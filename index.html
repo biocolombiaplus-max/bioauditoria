@@ -1,0 +1,141 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>BIOAuditoria — Plataforma de Habilitación en Salud</title>
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --orange:#FF6B00;--orange-light:#FF8C33;--orange-glow:rgba(255,107,0,0.25);
+  --purple:#7B2FBE;--purple-light:#9B4FDE;--purple-glow:rgba(123,47,190,0.25);
+  --dark:#0D0D1A;--dark2:#141428;--dark3:#1C1C35;
+  --text:#F0F0FF;--text2:#A0A0C0;--text3:#6060A0;
+  --border:rgba(255,255,255,0.08);
+}
+body{font-family:'Plus Jakarta Sans',sans-serif;background:var(--dark);color:var(--text);min-height:100vh;display:flex;align-items:center;justify-content:center;overflow:hidden}
+.bg{position:fixed;inset:0;z-index:0}
+.bg-orb{position:absolute;border-radius:50%;filter:blur(100px);opacity:0.35}
+.orb1{width:600px;height:600px;background:var(--orange);top:-200px;right:-100px;animation:float1 8s ease-in-out infinite}
+.orb2{width:500px;height:500px;background:var(--purple);bottom:-150px;left:-100px;animation:float2 10s ease-in-out infinite}
+.orb3{width:300px;height:300px;background:var(--orange-light);top:40%;left:40%;animation:float3 6s ease-in-out infinite}
+@keyframes float1{0%,100%{transform:translate(0,0)}50%{transform:translate(-30px,30px)}}
+@keyframes float2{0%,100%{transform:translate(0,0)}50%{transform:translate(30px,-20px)}}
+@keyframes float3{0%,100%{transform:translate(0,0) scale(1)}50%{transform:translate(-20px,20px) scale(1.1)}}
+.grid-bg{position:fixed;inset:0;background-image:linear-gradient(rgba(255,255,255,0.02) 1px,transparent 1px),linear-gradient(90deg,rgba(255,255,255,0.02) 1px,transparent 1px);background-size:50px 50px;z-index:0}
+.container{position:relative;z-index:1;width:100%;max-width:440px;padding:20px}
+.logo-block{text-align:center;margin-bottom:32px}
+.logo-icon{width:64px;height:64px;border-radius:16px;background:linear-gradient(135deg,var(--orange),var(--purple));display:inline-flex;align-items:center;justify-content:center;font-size:28px;margin-bottom:14px;box-shadow:0 0 40px var(--orange-glow),0 0 80px var(--purple-glow)}
+.logo-name{font-size:28px;font-weight:800;letter-spacing:-0.5px}
+.logo-name span{background:linear-gradient(90deg,var(--orange-light),var(--purple-light));-webkit-background-clip:text;-webkit-text-fill-color:transparent}
+.logo-tagline{font-size:12px;color:var(--text2);margin-top:4px;letter-spacing:0.05em;text-transform:uppercase}
+.card{background:rgba(20,20,40,0.8);backdrop-filter:blur(20px);border:1px solid var(--border);border-radius:20px;padding:32px;box-shadow:0 25px 60px rgba(0,0,0,0.5)}
+.card-title{font-size:18px;font-weight:700;margin-bottom:4px}
+.card-sub{font-size:13px;color:var(--text2);margin-bottom:24px}
+.form-group{margin-bottom:16px}
+.form-label{display:block;font-size:12px;font-weight:600;color:var(--text2);margin-bottom:6px;text-transform:uppercase;letter-spacing:0.05em}
+.form-input{width:100%;padding:12px 14px;background:rgba(255,255,255,0.05);border:1px solid var(--border);border-radius:10px;color:var(--text);font-size:14px;font-family:inherit;transition:all 0.2s;outline:none}
+.form-input:focus{border-color:var(--orange);box-shadow:0 0 0 3px var(--orange-glow)}
+.form-input::placeholder{color:var(--text3)}
+.role-selector{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:20px}
+.role-btn{padding:10px;border:1px solid var(--border);border-radius:10px;background:rgba(255,255,255,0.03);cursor:pointer;text-align:center;transition:all 0.2s;font-family:inherit}
+.role-btn .role-icon{font-size:20px;display:block;margin-bottom:4px}
+.role-btn .role-name{font-size:12px;font-weight:600;color:var(--text2)}
+.role-btn.active{border-color:var(--orange);background:rgba(255,107,0,0.1)}
+.role-btn.active .role-name{color:var(--orange)}
+.btn-login{width:100%;padding:14px;border:none;border-radius:12px;background:linear-gradient(135deg,var(--orange),var(--purple));color:#fff;font-size:15px;font-weight:700;font-family:inherit;cursor:pointer;transition:all 0.2s;margin-top:8px;letter-spacing:0.02em}
+.btn-login:hover{transform:translateY(-1px);box-shadow:0 8px 25px var(--orange-glow),0 8px 25px var(--purple-glow)}
+.btn-login:active{transform:translateY(0)}
+.divider{text-align:center;color:var(--text3);font-size:12px;margin:16px 0}
+.error-msg{background:rgba(255,60,60,0.1);border:1px solid rgba(255,60,60,0.3);border-radius:8px;padding:10px 14px;font-size:13px;color:#FF6B6B;display:none;margin-bottom:12px}
+.footer-note{text-align:center;font-size:11px;color:var(--text3);margin-top:20px}
+.footer-note strong{color:var(--orange)}
+.badge-norm{display:inline-flex;align-items:center;gap:6px;background:rgba(123,47,190,0.15);border:1px solid rgba(123,47,190,0.3);border-radius:6px;padding:3px 8px;font-size:10px;color:var(--purple-light);margin:2px}
+.norms-row{display:flex;flex-wrap:wrap;justify-content:center;gap:4px;margin-top:12px}
+</style>
+</head>
+<body>
+<div class="bg">
+  <div class="bg-orb orb1"></div>
+  <div class="bg-orb orb2"></div>
+  <div class="bg-orb orb3"></div>
+</div>
+<div class="grid-bg"></div>
+<div class="container">
+  <div class="logo-block">
+    <div class="logo-icon">🏥</div>
+    <div class="logo-name">BIO<span>Auditoria</span></div>
+    <div class="logo-tagline">Gestión documental · Habilitación en salud · Colombia</div>
+  </div>
+  <div class="card">
+    <div class="card-title">Iniciar sesión</div>
+    <div class="card-sub">Selecciona tu perfil de acceso</div>
+    <div class="role-selector">
+      <div class="role-btn active" id="role-admin" onclick="setRole('admin')">
+        <span class="role-icon">⚙️</span>
+        <span class="role-name">Administrador</span>
+      </div>
+      <div class="role-btn" id="role-cliente" onclick="setRole('cliente')">
+        <span class="role-icon">👩‍⚕️</span>
+        <span class="role-name">Cliente / Prestador</span>
+      </div>
+    </div>
+    <div class="error-msg" id="error-msg">Usuario o contraseña incorrectos.</div>
+    <div class="form-group">
+      <label class="form-label">Usuario</label>
+      <input class="form-input" type="text" id="username" placeholder="Ingresa tu usuario" autocomplete="off">
+    </div>
+    <div class="form-group">
+      <label class="form-label">Contraseña</label>
+      <input class="form-input" type="password" id="password" placeholder="••••••••" autocomplete="off">
+    </div>
+    <button class="btn-login" onclick="doLogin()">Ingresar a la plataforma →</button>
+    <div class="divider">Plataforma segura · Acceso restringido</div>
+  </div>
+  <div class="footer-note">
+    Powered by <strong>BIOMarketing</strong> · ventasbio.com<br>
+    <div class="norms-row">
+      <span class="badge-norm">📋 Res. 3100/2019</span>
+      <span class="badge-norm">♻️ Res. 1164/2002</span>
+      <span class="badge-norm">📁 Res. 1995/1999</span>
+      <span class="badge-norm">🛡️ Ley 1581/2012</span>
+    </div>
+  </div>
+</div>
+<script>
+// CREDENCIALES — Cambiar después del despliegue
+const USERS = {
+  admin: { password: 'Bio@Admin2025!', role: 'admin', redirect: 'admin/index.html' },
+  'dra.vesga': { password: 'Vesga@2025', role: 'cliente', redirect: 'cliente/index.html', clienteId: 'vesga' },
+};
+
+let selectedRole = 'admin';
+function setRole(r) {
+  selectedRole = r;
+  document.querySelectorAll('.role-btn').forEach(b => b.classList.remove('active'));
+  document.getElementById('role-' + r).classList.add('active');
+}
+function doLogin() {
+  const u = document.getElementById('username').value.trim().toLowerCase();
+  const p = document.getElementById('password').value;
+  const err = document.getElementById('error-msg');
+  if (USERS[u] && USERS[u].password === p && USERS[u].role === selectedRole) {
+    err.style.display = 'none';
+    sessionStorage.setItem('bio_user', u);
+    sessionStorage.setItem('bio_role', USERS[u].role);
+    if (USERS[u].clienteId) sessionStorage.setItem('bio_cliente', USERS[u].clienteId);
+    window.location.href = USERS[u].redirect;
+  } else {
+    err.style.display = 'block';
+    document.getElementById('password').value = '';
+  }
+}
+document.addEventListener('keypress', e => { if (e.key === 'Enter') doLogin(); });
+// Redirigir si ya tiene sesión
+const r = sessionStorage.getItem('bio_role');
+if (r === 'admin') window.location.href = 'admin/index.html';
+if (r === 'cliente') window.location.href = 'cliente/index.html';
+</script>
+</body>
+</html>
