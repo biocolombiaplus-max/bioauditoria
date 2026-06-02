@@ -1,0 +1,497 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>BIOAuditoria — Panel Administrador</title>
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --or:#FF6B00;--or2:#FF8C33;--or-bg:rgba(255,107,0,0.1);--or-glow:rgba(255,107,0,0.2);
+  --pu:#7B2FBE;--pu2:#9B4FDE;--pu-bg:rgba(123,47,190,0.1);
+  --dark:#0D0D1A;--dark2:#141428;--dark3:#1C1C35;--dark4:#22223D;
+  --text:#F0F0FF;--text2:#A0A0C0;--text3:#5A5A8A;
+  --border:rgba(255,255,255,0.07);--border2:rgba(255,255,255,0.12);
+  --green:#2D9F5C;--green-bg:rgba(45,159,92,0.12);
+  --red:#E63946;--red-bg:rgba(230,57,70,0.12);
+  --yellow:#F4A261;--yellow-bg:rgba(244,162,97,0.12);
+  --sidebar-w:240px;
+}
+body{font-family:'Plus Jakarta Sans',sans-serif;background:var(--dark);color:var(--text);display:flex;height:100vh;overflow:hidden;font-size:14px}
+/* SIDEBAR */
+.sidebar{width:var(--sidebar-w);background:var(--dark2);border-right:1px solid var(--border);display:flex;flex-direction:column;flex-shrink:0;overflow-y:auto}
+.sidebar-logo{padding:18px 16px 14px;border-bottom:1px solid var(--border);display:flex;align-items:center;gap:10px}
+.logo-box{width:34px;height:34px;border-radius:9px;background:linear-gradient(135deg,var(--or),var(--pu));display:flex;align-items:center;justify-content:center;font-size:16px;flex-shrink:0}
+.logo-txt{font-size:16px;font-weight:800;letter-spacing:-0.3px}
+.logo-txt span{color:var(--or)}
+.logo-role{font-size:10px;color:var(--text3);background:var(--or-bg);border:1px solid rgba(255,107,0,0.2);border-radius:4px;padding:1px 6px;display:inline-block;margin-top:1px}
+.nav-section{padding:12px 10px 4px;font-size:10px;text-transform:uppercase;letter-spacing:0.07em;color:var(--text3);font-weight:600}
+.nav-item{display:flex;align-items:center;gap:10px;padding:9px 12px;border-radius:8px;margin:1px 6px;cursor:pointer;color:var(--text2);transition:all 0.15s;font-size:13px}
+.nav-item:hover{background:rgba(255,255,255,0.04);color:var(--text)}
+.nav-item.active{background:var(--or-bg);color:var(--or);font-weight:600}
+.nav-item i{width:16px;text-align:center;font-size:14px}
+.sidebar-footer{padding:12px;border-top:1px solid var(--border);margin-top:auto}
+.user-badge{display:flex;align-items:center;gap:8px;padding:8px;border-radius:8px;background:var(--dark3)}
+.user-av{width:30px;height:30px;border-radius:50%;background:linear-gradient(135deg,var(--or),var(--pu));display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:700;flex-shrink:0}
+.user-name{font-size:12px;font-weight:600}
+.user-role{font-size:10px;color:var(--text3)}
+.btn-logout{font-size:11px;color:var(--text3);cursor:pointer;text-align:center;margin-top:8px;padding:4px}
+.btn-logout:hover{color:var(--red)}
+/* MAIN */
+.main{flex:1;display:flex;flex-direction:column;overflow:hidden}
+.topbar{display:flex;align-items:center;justify-content:space-between;padding:12px 20px;border-bottom:1px solid var(--border);background:var(--dark2);flex-shrink:0}
+.topbar-left{display:flex;align-items:center;gap:10px}
+.page-title{font-size:15px;font-weight:700}
+.breadcrumb{font-size:12px;color:var(--text3)}
+.topbar-right{display:flex;align-items:center;gap:8px}
+.btn{display:inline-flex;align-items:center;gap:6px;padding:7px 12px;border-radius:8px;font-size:12px;font-weight:600;cursor:pointer;font-family:inherit;transition:all 0.15s;border:1px solid var(--border2)}
+.btn-ghost{background:rgba(255,255,255,0.04);color:var(--text2)}
+.btn-ghost:hover{background:rgba(255,255,255,0.08);color:var(--text)}
+.btn-orange{background:linear-gradient(135deg,var(--or),var(--or2));color:#fff;border-color:transparent}
+.btn-orange:hover{filter:brightness(1.1);transform:translateY(-1px)}
+.btn-purple{background:var(--pu-bg);color:var(--pu2);border-color:rgba(123,47,190,0.3)}
+/* CONTENT */
+.content{flex:1;overflow-y:auto;padding:20px}
+.page{display:none}
+.page.active{display:block}
+/* CARDS */
+.stats-row{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:20px}
+.stat-card{background:var(--dark3);border:1px solid var(--border);border-radius:14px;padding:16px}
+.stat-icon{width:36px;height:36px;border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:16px;margin-bottom:10px}
+.stat-num{font-size:26px;font-weight:800;line-height:1}
+.stat-lbl{font-size:11px;color:var(--text2);margin-top:3px}
+.stat-bar{height:3px;border-radius:2px;margin-top:8px;background:var(--border)}
+.stat-fill{height:100%;border-radius:2px}
+.grid2{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:16px}
+.card{background:var(--dark3);border:1px solid var(--border);border-radius:14px;padding:16px}
+.card-head{display:flex;align-items:center;justify-content:space-between;margin-bottom:12px}
+.card-title2{font-size:13px;font-weight:700}
+.card-badge{font-size:10px;padding:2px 8px;border-radius:4px;font-weight:600}
+/* DOCS */
+.doc-row{display:flex;align-items:center;justify-content:space-between;padding:9px 10px;border-radius:8px;cursor:pointer;transition:background 0.1s;border:1px solid transparent}
+.doc-row:hover{background:rgba(255,255,255,0.04);border-color:var(--border)}
+.doc-row-l{display:flex;align-items:center;gap:10px}
+.doc-icon{width:30px;height:30px;border-radius:7px;display:flex;align-items:center;justify-content:center;font-size:13px;flex-shrink:0}
+.doc-name{font-size:13px;font-weight:500}
+.doc-meta{font-size:11px;color:var(--text3)}
+.status{display:inline-block;padding:2px 8px;border-radius:4px;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:0.04em}
+.s-v{background:var(--green-bg);color:var(--green)}
+.s-p{background:var(--yellow-bg);color:var(--yellow)}
+.s-r{background:var(--red-bg);color:var(--red)}
+/* FOLDERS */
+.folder-nav{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:14px}
+.ftab{padding:6px 12px;border-radius:8px;font-size:12px;font-weight:600;cursor:pointer;border:1px solid var(--border);background:var(--dark3);color:var(--text2);transition:all 0.15s;display:flex;align-items:center;gap:5px}
+.ftab:hover{border-color:var(--border2);color:var(--text)}
+.ftab.active{background:var(--or-bg);color:var(--or);border-color:rgba(255,107,0,0.35)}
+/* FORM */
+.form-modal{display:none;position:fixed;inset:0;z-index:100;align-items:center;justify-content:center;background:rgba(0,0,0,0.7);backdrop-filter:blur(8px)}
+.form-modal.open{display:flex}
+.modal-box{background:var(--dark2);border:1px solid var(--border2);border-radius:18px;padding:24px;width:560px;max-height:80vh;overflow-y:auto}
+.modal-head{display:flex;align-items:center;justify-content:space-between;margin-bottom:18px}
+.modal-title{font-size:16px;font-weight:700}
+.modal-close{cursor:pointer;color:var(--text3);font-size:18px;padding:4px}
+.modal-close:hover{color:var(--red)}
+.form-row2{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:10px}
+.fg{display:flex;flex-direction:column;gap:5px;margin-bottom:10px}
+.fl{font-size:11px;font-weight:600;color:var(--text2);text-transform:uppercase;letter-spacing:0.05em}
+.fi{padding:10px 12px;background:rgba(255,255,255,0.04);border:1px solid var(--border);border-radius:8px;color:var(--text);font-size:13px;font-family:inherit;outline:none;transition:border 0.2s;width:100%}
+.fi:focus{border-color:var(--or)}
+select.fi option{background:var(--dark2)}
+.fi-ta{min-height:80px;resize:vertical}
+.alert-box{padding:10px 12px;border-radius:8px;font-size:12px;margin-bottom:12px;display:flex;align-items:flex-start;gap:8px}
+.alert-warn{background:var(--yellow-bg);border:1px solid rgba(244,162,97,0.3);color:var(--yellow)}
+.alert-info{background:var(--pu-bg);border:1px solid rgba(123,47,190,0.3);color:var(--pu2)}
+/* LOG */
+.log-entry{display:flex;align-items:flex-start;gap:10px;padding:8px 0;border-bottom:1px solid var(--border);font-size:12px}
+.log-entry:last-child{border-bottom:none}
+.log-dot{width:7px;height:7px;border-radius:50%;margin-top:4px;flex-shrink:0}
+.log-time{color:var(--text3);min-width:120px;font-size:11px}
+/* VERIFY */
+.ver-row{display:flex;align-items:center;justify-content:space-between;padding:9px 12px;border-radius:8px;margin-bottom:4px;border:1px solid var(--border)}
+.ver-n{font-size:10px;font-weight:700;color:var(--text3);min-width:24px}
+.ver-desc{flex:1;font-size:12px;padding:0 10px}
+.progress-ring{background:conic-gradient(var(--or) 78%,var(--dark3) 0);width:50px;height:50px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:800;flex-shrink:0}
+.progress-inner{width:36px;height:36px;border-radius:50%;background:var(--dark3);display:flex;align-items:center;justify-content:center}
+</style>
+</head>
+<body>
+<div class="sidebar" id="sidebar">
+  <div class="sidebar-logo">
+    <div class="logo-box">🏥</div>
+    <div><div class="logo-txt">BIO<span>Auditoria</span></div><div class="logo-role">⚙️ Administrador</div></div>
+  </div>
+  <div class="nav-section">Panel</div>
+  <div class="nav-item active" onclick="nav(this,'dashboard')"><i class="fas fa-chart-pie"></i>Dashboard</div>
+  <div class="nav-item" onclick="nav(this,'clientes')"><i class="fas fa-users"></i>Clientes</div>
+  <div class="nav-section">Documentación</div>
+  <div class="nav-item" onclick="nav(this,'carpetas')"><i class="fas fa-folder-open"></i>Carpetas & Docs</div>
+  <div class="nav-item" onclick="nav(this,'formatos')"><i class="fas fa-file-alt"></i>Formatos</div>
+  <div class="nav-item" onclick="nav(this,'manuales')"><i class="fas fa-book"></i>Manuales</div>
+  <div class="nav-section">Compliance</div>
+  <div class="nav-item" onclick="nav(this,'pgirh')"><i class="fas fa-recycle"></i>PGIRH</div>
+  <div class="nav-item" onclick="nav(this,'verificacion')"><i class="fas fa-clipboard-check"></i>Verificación 3100</div>
+  <div class="nav-item" onclick="nav(this,'trazabilidad')"><i class="fas fa-history"></i>Trazabilidad</div>
+  <div class="sidebar-footer">
+    <div class="user-badge">
+      <div class="user-av">BM</div>
+      <div><div class="user-name">BIOMarketing Admin</div><div class="user-role">Acceso total</div></div>
+    </div>
+    <div class="btn-logout" onclick="logout()"><i class="fas fa-sign-out-alt"></i> Cerrar sesión</div>
+  </div>
+</div>
+<div class="main">
+  <div class="topbar">
+    <div class="topbar-left">
+      <div class="page-title" id="pg-title">Dashboard</div>
+      <div class="breadcrumb" id="pg-bread">BIOAuditoria / Panel de control</div>
+    </div>
+    <div class="topbar-right">
+      <button class="btn btn-ghost" onclick="window.open('../cliente/index.html','_blank')"><i class="fas fa-eye"></i>Vista cliente</button>
+      <button class="btn btn-orange" onclick="openModal()"><i class="fas fa-plus"></i>Agregar documento</button>
+    </div>
+  </div>
+  <div class="content">
+
+    <!-- DASHBOARD -->
+    <div class="page active" id="page-dashboard">
+      <div class="stats-row">
+        <div class="stat-card">
+          <div class="stat-icon" style="background:var(--or-bg)">📄</div>
+          <div class="stat-num" style="color:var(--or)">47</div>
+          <div class="stat-lbl">Documentos totales</div>
+          <div class="stat-bar"><div class="stat-fill" style="width:78%;background:var(--or)"></div></div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-icon" style="background:var(--green-bg)">✅</div>
+          <div class="stat-num" style="color:var(--green)">37</div>
+          <div class="stat-lbl">Vigentes / firmados</div>
+          <div class="stat-bar"><div class="stat-fill" style="width:100%;background:var(--green)"></div></div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-icon" style="background:var(--yellow-bg)">⚠️</div>
+          <div class="stat-num" style="color:var(--yellow)">7</div>
+          <div class="stat-lbl">Pendientes de firma</div>
+          <div class="stat-bar"><div class="stat-fill" style="width:50%;background:var(--yellow)"></div></div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-icon" style="background:var(--red-bg)">🚨</div>
+          <div class="stat-num" style="color:var(--red)">3</div>
+          <div class="stat-lbl">Requieren acción</div>
+          <div class="stat-bar"><div class="stat-fill" style="width:20%;background:var(--red)"></div></div>
+        </div>
+      </div>
+      <div class="grid2">
+        <div class="card">
+          <div class="card-head"><div class="card-title2">👩‍⚕️ Cliente activo</div><span class="card-badge s-v">Habilitado</span></div>
+          <div style="display:flex;align-items:center;gap:12px;margin-bottom:12px">
+            <div style="width:46px;height:46px;border-radius:50%;background:linear-gradient(135deg,var(--or),var(--pu));display:flex;align-items:center;justify-content:center;font-size:18px;font-weight:800;flex-shrink:0">YV</div>
+            <div>
+              <div style="font-weight:700;font-size:14px">Dra. Yesika Vesga</div>
+              <div style="font-size:11px;color:var(--text2)">Médico General · Cúcuta, N. de S.</div>
+              <div style="font-size:10px;color:var(--text3);margin-top:2px">Consulta externa medicina general</div>
+            </div>
+          </div>
+          <div style="display:flex;flex-wrap:wrap;gap:4px">
+            <span style="background:var(--pu-bg);color:var(--pu2);padding:2px 7px;border-radius:4px;font-size:10px;font-weight:600">Consulta externa</span>
+            <span style="background:var(--or-bg);color:var(--or2);padding:2px 7px;border-radius:4px;font-size:10px;font-weight:600">Estética no invasiva</span>
+          </div>
+          <div style="margin-top:12px">
+            <div style="display:flex;justify-content:space-between;font-size:11px;color:var(--text2);margin-bottom:4px"><span>Cumplimiento Res. 3100</span><span style="color:var(--or);font-weight:700">78%</span></div>
+            <div style="height:6px;background:var(--border);border-radius:3px"><div style="height:100%;width:78%;background:linear-gradient(90deg,var(--or),var(--pu));border-radius:3px"></div></div>
+          </div>
+        </div>
+        <div class="card">
+          <div class="card-head"><div class="card-title2">🕐 Actividad reciente</div></div>
+          <div id="log-mini"></div>
+        </div>
+      </div>
+      <div class="alert-box alert-warn"><i class="fas fa-exclamation-triangle"></i><div><strong>Acciones requeridas:</strong> Certificado de vacunación (falta), Listado CURE medicamentos (pendiente), Inventario dotación (pendiente firma). Completa estos ítems antes de una visita de verificación.</div></div>
+    </div>
+
+    <!-- CLIENTES -->
+    <div class="page" id="page-clientes">
+      <div class="card" style="margin-bottom:14px">
+        <div class="card-head"><div class="card-title2">👥 Clientes registrados</div><button class="btn btn-orange" onclick="alert('Módulo de nuevo cliente — próximamente')"><i class="fas fa-plus"></i>Nuevo cliente</button></div>
+        <div class="doc-row" style="padding:14px 12px">
+          <div class="doc-row-l">
+            <div style="width:44px;height:44px;border-radius:50%;background:linear-gradient(135deg,var(--or),var(--pu));display:flex;align-items:center;justify-content:center;font-size:16px;font-weight:800">YV</div>
+            <div>
+              <div class="doc-name">Dra. Yesika Vesga</div>
+              <div class="doc-meta">Médico General · Cúcuta · Consulta externa habilitada</div>
+              <div class="doc-meta">Usuario: dra.vesga · 8 carpetas · 47 documentos</div>
+            </div>
+          </div>
+          <div style="display:flex;align-items:center;gap:8px">
+            <span class="status s-v">Activo</span>
+            <button class="btn btn-ghost" onclick="nav(document.querySelector('.nav-item:nth-child(4)'),'carpetas')"><i class="fas fa-folder"></i>Ver docs</button>
+          </div>
+        </div>
+      </div>
+      <div class="alert-box alert-info"><i class="fas fa-info-circle"></i><div>Para agregar más clientes, duplica la estructura en <strong>js/data.js</strong> con un nuevo ID y crea su usuario en <strong>index.html</strong> (sección USERS).</div></div>
+    </div>
+
+    <!-- CARPETAS -->
+    <div class="page" id="page-carpetas">
+      <div class="folder-nav" id="folder-tabs"></div>
+      <div class="card">
+        <div class="card-head">
+          <div class="card-title2" id="folder-active-name">Selecciona una carpeta</div>
+          <button class="btn btn-orange" onclick="openModal()"><i class="fas fa-plus"></i>Agregar doc</button>
+        </div>
+        <div id="folder-docs"></div>
+      </div>
+    </div>
+
+    <!-- FORMATOS -->
+    <div class="page" id="page-formatos">
+      <div class="card">
+        <div class="card-head"><div class="card-title2">📝 Formatos diligenciables</div></div>
+        <div id="formatos-list"></div>
+      </div>
+    </div>
+
+    <!-- MANUALES -->
+    <div class="page" id="page-manuales">
+      <div class="card">
+        <div class="card-head"><div class="card-title2">📚 Manuales y políticas</div></div>
+        <div id="manuales-list"></div>
+      </div>
+    </div>
+
+    <!-- PGIRH -->
+    <div class="page" id="page-pgirh">
+      <div class="alert-box alert-info"><i class="fas fa-recycle"></i><div><strong>Marco normativo PGIRH:</strong> Resolución 1164 de 2002 (MinSalud–MinAmbiente), Decreto 351 de 2014, Resolución 0631 de 2015. Obligatorio para todo prestador de servicios de salud.</div></div>
+      <div class="card">
+        <div class="card-head"><div class="card-title2">♻️ Documentos PGIRH</div></div>
+        <div id="pgirh-list"></div>
+      </div>
+    </div>
+
+    <!-- VERIFICACION -->
+    <div class="page" id="page-verificacion">
+      <div style="display:flex;align-items:center;gap:16px;margin-bottom:16px">
+        <div class="progress-ring"><div class="progress-inner">78%</div></div>
+        <div>
+          <div style="font-size:16px;font-weight:700">Lista de verificación — Res. 3100/2019</div>
+          <div style="font-size:12px;color:var(--text2)">Consulta externa medicina general · Dra. Yesika Vesga</div>
+          <div style="font-size:11px;color:var(--text3);margin-top:3px">11 de 14 estándares cumplidos</div>
+        </div>
+      </div>
+      <div id="ver-list"></div>
+    </div>
+
+    <!-- TRAZABILIDAD -->
+    <div class="page" id="page-trazabilidad">
+      <div class="card">
+        <div class="card-head"><div class="card-title2">🔍 Registro de auditoría</div><span style="font-size:11px;color:var(--text3)">Todas las acciones quedan registradas</span></div>
+        <div class="alert-box alert-info" style="margin-bottom:12px"><i class="fas fa-lock"></i><div>Los clientes <strong>solo pueden consultar</strong> documentos. No pueden descargar ni editar. Cada acceso queda registrado aquí.</div></div>
+        <div id="log-full"></div>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<!-- MODAL AGREGAR DOCUMENTO -->
+<div class="form-modal" id="modal">
+  <div class="modal-box">
+    <div class="modal-head">
+      <div class="modal-title">➕ Agregar / Actualizar documento</div>
+      <span class="modal-close" onclick="closeModal()">✕</span>
+    </div>
+    <div class="fg">
+      <label class="fl">Cliente</label>
+      <select class="fi"><option>Dra. Yesika Vesga</option></select>
+    </div>
+    <div class="form-row2">
+      <div class="fg">
+        <label class="fl">Carpeta</label>
+        <select class="fi" id="m-carpeta">
+          <option>Talento Humano</option><option>Dotación e Infraestructura</option>
+          <option>Medicamentos e Insumos</option><option>Historia Clínica</option>
+          <option>PGIRH</option><option>Bioseguridad</option>
+          <option>Procedimientos Estéticos</option><option>Calidad y Gestión del Riesgo</option>
+        </select>
+      </div>
+      <div class="fg">
+        <label class="fl">Versión</label>
+        <input class="fi" type="text" placeholder="v1.0" id="m-ver">
+      </div>
+    </div>
+    <div class="fg">
+      <label class="fl">Nombre del documento</label>
+      <input class="fi" type="text" placeholder="Ej: Manual de bioseguridad" id="m-nombre">
+    </div>
+    <div class="fg">
+      <label class="fl">Descripción</label>
+      <textarea class="fi fi-ta" placeholder="Breve descripción del contenido y alcance del documento..." id="m-desc"></textarea>
+    </div>
+    <div class="form-row2">
+      <div class="fg">
+        <label class="fl">Estado</label>
+        <select class="fi" id="m-estado">
+          <option value="vigente">✅ Vigente</option>
+          <option value="pendiente">⚠️ Pendiente firma</option>
+          <option value="requerido">🚨 Requiere acción</option>
+        </select>
+      </div>
+      <div class="fg">
+        <label class="fl">Norma de referencia</label>
+        <input class="fi" type="text" placeholder="Ej: Res. 3100/2019" id="m-norma">
+      </div>
+    </div>
+    <div class="fg">
+      <label class="fl">Adjuntar archivo Word (.docx) — solo admin descarga</label>
+      <input class="fi" type="file" accept=".docx,.doc,.pdf" id="m-file">
+    </div>
+    <div style="display:flex;gap:8px;margin-top:6px">
+      <button class="btn btn-orange" style="flex:1;justify-content:center;padding:11px" onclick="saveDoc()"><i class="fas fa-save"></i>Guardar documento</button>
+      <button class="btn btn-ghost" onclick="closeModal()">Cancelar</button>
+    </div>
+  </div>
+</div>
+
+<script src="../js/data.js"></script>
+<script>
+// Auth check
+if(!sessionStorage.getItem('bio_user')||sessionStorage.getItem('bio_role')!=='admin'){window.location.href='../index.html'}
+
+const C = BIO_DATA.clientes.vesga;
+
+function logout(){sessionStorage.clear();window.location.href='../index.html'}
+function openModal(){document.getElementById('modal').classList.add('open')}
+function closeModal(){document.getElementById('modal').classList.remove('open')}
+function saveDoc(){alert('Documento guardado en el sistema.\nTrazabilidad registrada: Admin · '+new Date().toLocaleString());closeModal()}
+
+const PAGE_TITLES = {
+  dashboard:['Dashboard','BIOAuditoria / Panel de control'],
+  clientes:['Clientes','BIOAuditoria / Gestión de clientes'],
+  carpetas:['Carpetas y Documentos','BIOAuditoria / Documentación Res. 3100'],
+  formatos:['Formatos diligenciables','BIOAuditoria / Formatos clínicos'],
+  manuales:['Manuales y Políticas','BIOAuditoria / Documentos maestros'],
+  pgirh:['PGIRH — Residuos hospitalarios','BIOAuditoria / Cumplimiento ambiental'],
+  verificacion:['Lista de Verificación 3100','BIOAuditoria / Simulacro de visita'],
+  trazabilidad:['Trazabilidad y Auditoría','BIOAuditoria / Registro de acciones'],
+};
+
+function nav(el,pageId){
+  document.querySelectorAll('.nav-item').forEach(n=>n.classList.remove('active'));
+  if(el)el.classList.add('active');
+  document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));
+  document.getElementById('page-'+pageId).classList.add('active');
+  const t=PAGE_TITLES[pageId];
+  document.getElementById('pg-title').textContent=t[0];
+  document.getElementById('pg-bread').textContent=t[1];
+}
+
+function statusHtml(s){
+  if(s==='vigente') return '<span class="status s-v">✅ Vigente</span>';
+  if(s==='pendiente') return '<span class="status s-p">⚠️ Pendiente</span>';
+  return '<span class="status s-r">🚨 Requerido</span>';
+}
+
+// LOG mini
+function renderLogMini(){
+  document.getElementById('log-mini').innerHTML = BIO_DATA.trazabilidad.slice(0,5).map(l=>
+    `<div class="log-entry"><div class="log-dot" style="background:${l.accion==='Firmó'||l.accion==='Publicó'?'var(--green)':l.accion==='Alerta'?'var(--red)':'var(--or)'}"></div><div class="log-time">${l.fecha.split(' ')[0]}</div><div><strong>${l.usuario}</strong> ${l.accion}: ${l.documento}</div></div>`
+  ).join('');
+}
+
+// LOG full
+function renderLogFull(){
+  document.getElementById('log-full').innerHTML = BIO_DATA.trazabilidad.map(l=>
+    `<div class="log-entry"><div class="log-dot" style="background:${l.accion==='Firmó'||l.accion==='Publicó'?'var(--green)':l.accion==='Alerta'?'var(--red)':'var(--or)'}"></div><div class="log-time">${l.fecha}</div><div><strong>${l.usuario}</strong> — ${l.accion}: ${l.documento}</div></div>`
+  ).join('');
+}
+
+// CARPETAS
+let activeFolder = null;
+function renderFolderTabs(){
+  const tabs = document.getElementById('folder-tabs');
+  tabs.innerHTML = C.carpetas.map((f,i)=>
+    `<div class="ftab ${i===0?'active':''}" onclick="showFolder(this,'${f.id}')">${f.icono} ${f.nombre}</div>`
+  ).join('');
+  showFolder(tabs.children[0], C.carpetas[0].id);
+}
+function showFolder(el, fId){
+  document.querySelectorAll('.ftab').forEach(t=>t.classList.remove('active'));
+  if(el) el.classList.add('active');
+  const folder = C.carpetas.find(f=>f.id===fId);
+  document.getElementById('folder-active-name').textContent = folder.icono+' '+folder.nombre+' — '+folder.norma;
+  document.getElementById('folder-docs').innerHTML = folder.documentos.map(d=>
+    `<div class="doc-row">
+      <div class="doc-row-l">
+        <div class="doc-icon" style="background:${d.estado==='vigente'?'var(--green-bg)':d.estado==='pendiente'?'var(--yellow-bg)':'var(--red-bg)'}">📄</div>
+        <div><div class="doc-name">${d.nombre}</div><div class="doc-meta">${d.version} · ${d.descripcion}</div></div>
+      </div>
+      <div style="display:flex;align-items:center;gap:6px">
+        ${statusHtml(d.estado)}
+        <button class="btn btn-orange" style="font-size:11px;padding:5px 9px" onclick="downloadDoc('${d.id}','${d.nombre}')"><i class="fas fa-download"></i>Word</button>
+        <button class="btn btn-ghost" style="font-size:11px;padding:5px 9px" onclick="editDoc('${d.nombre}')"><i class="fas fa-edit"></i></button>
+      </div>
+    </div>`
+  ).join('');
+}
+
+function downloadDoc(id,nombre){
+  alert('⬇️ Descargando: '+nombre+'\n\nEl archivo Word (.docx) se descarga SOLO para el administrador.\nLos clientes solo pueden visualizar el PDF protegido.');
+}
+function editDoc(nombre){
+  document.getElementById('m-nombre').value=nombre;
+  openModal();
+}
+
+// FORMATOS
+function renderFormatos(){
+  document.getElementById('formatos-list').innerHTML = C.formatos_diligenciables.map(f=>
+    `<div class="doc-row">
+      <div class="doc-row-l">
+        <div class="doc-icon" style="background:var(--pu-bg)">📝</div>
+        <div><div class="doc-name">${f.nombre}</div><div class="doc-meta">Categoría: ${f.categoria} · Diligenciable digitalmente</div></div>
+      </div>
+      <div style="display:flex;gap:6px">
+        <button class="btn btn-orange" style="font-size:11px;padding:5px 9px" onclick="alert('Abriendo formato: ${f.nombre}')"><i class="fas fa-pen"></i>Diligenciar</button>
+        <button class="btn btn-ghost" style="font-size:11px;padding:5px 9px" onclick="downloadDoc('${f.id}','${f.nombre}')"><i class="fas fa-download"></i>Word</button>
+      </div>
+    </div>`
+  ).join('');
+}
+
+// MANUALES
+function renderManuales(){
+  const manCarpeta = C.carpetas.find(c=>c.id==='calidad');
+  const biosCarpeta = C.carpetas.find(c=>c.id==='bioseguridad');
+  const docs = [...(manCarpeta?manCarpeta.documentos:[]), ...(biosCarpeta?biosCarpeta.documentos:[])];
+  document.getElementById('manuales-list').innerHTML = docs.map(d=>
+    `<div class="doc-row"><div class="doc-row-l"><div class="doc-icon" style="background:var(--pu-bg)">📗</div><div><div class="doc-name">${d.nombre}</div><div class="doc-meta">${d.version} · ${d.descripcion}</div></div></div><div style="display:flex;gap:6px">${statusHtml(d.estado)}<button class="btn btn-orange" style="font-size:11px;padding:5px 9px" onclick="downloadDoc('${d.id}','${d.nombre}')"><i class="fas fa-download"></i>Word</button></div></div>`
+  ).join('');
+}
+
+// PGIRH
+function renderPgirh(){
+  const folder = C.carpetas.find(f=>f.id==='pgirh');
+  document.getElementById('pgirh-list').innerHTML = folder.documentos.map(d=>
+    `<div class="doc-row"><div class="doc-row-l"><div class="doc-icon" style="background:var(--green-bg)">♻️</div><div><div class="doc-name">${d.nombre}</div><div class="doc-meta">${d.version} · ${d.descripcion}</div></div></div><div style="display:flex;gap:6px">${statusHtml(d.estado)}<button class="btn btn-orange" style="font-size:11px;padding:5px 9px" onclick="downloadDoc('${d.id}','${d.nombre}')"><i class="fas fa-download"></i>Word</button></div></div>`
+  ).join('');
+}
+
+// VERIFICACION
+function renderVerificacion(){
+  document.getElementById('ver-list').innerHTML = BIO_DATA.verificacion_3100.map(v=>
+    `<div class="ver-row"><div class="ver-n">${v.estandar}</div><div class="ver-desc">${v.descripcion}</div>${statusHtml(v.estado)}</div>`
+  ).join('');
+}
+
+// INIT
+renderLogMini();
+renderLogFull();
+renderFolderTabs();
+renderFormatos();
+renderManuales();
+renderPgirh();
+renderVerificacion();
+</script>
+</body>
+</html>
