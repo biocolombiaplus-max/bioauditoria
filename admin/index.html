@@ -183,6 +183,9 @@ select.fi option{background:var(--dark2)}
     <div class="ns">Compliance</div>
     <div class="ni" onclick="nav(this,'verificacion','Verificación 3100')"><i class="fas fa-clipboard-check"></i>Verificación</div>
     <div class="ni" onclick="nav(this,'trazabilidad','Trazabilidad')"><i class="fas fa-history"></i>Trazabilidad</div>
+    <div class="ns">REPS e Inscripción</div>
+    <div class="ni" onclick="nav(this,'reps','Módulo REPS')"><i class="fas fa-hospital-user"></i>Módulo REPS</div>
+    <div class="ni" onclick="nav(this,'servicios','Servicios Habilitados')"><i class="fas fa-stethoscope"></i>Servicios</div>
     <div class="sfoot">
       <div class="upill"><div class="uav">BM</div><div><div class="unm">BIOMarketing Admin</div><div class="url">biomarketing.salud@gmail.com</div></div></div>
       <div class="lbtn" onclick="logout()"><i class="fas fa-sign-out-alt"></i> Cerrar sesión</div>
@@ -243,6 +246,16 @@ select.fi option{background:var(--dark2)}
       <!-- TRAZABILIDAD -->
       <div class="page" id="pg-trazabilidad">
         <div class="card"><div class="ch"><div class="ct">🔍 Registro de auditoría</div></div><div id="log-full"></div></div>
+      </div>
+
+      <!-- REPS MODULE -->
+      <div class="page" id="pg-reps">
+        <div id="reps-content"></div>
+      </div>
+
+      <!-- SERVICIOS -->
+      <div class="page" id="pg-servicios">
+        <div id="servicios-content"></div>
       </div>
 
     </div>
@@ -639,6 +652,75 @@ var metodo = 'drive';
 var selectedFile = null;
 var ncCurrentStep = 1;
 var logoDataUrl = null;
+// ================================================================
+// BASE DE DATOS NORMATIVA — Servicios de Salud Colombia
+// Res. 2003/2014 (REPS) + Res. 3100/2019 (Habilitación)
+// ================================================================
+
+var SERVICIOS_REPS = {
+  // NIVEL 1
+  '01': { codigo:'01', nombre:'Consulta Externa de Medicina General', nivel:1, grupo:'Consulta Externa',
+    documentos_obligatorios:['e1','e2','e3','e5','e6','e8'],
+    requisitos_reps:['Formulario inscripción prestador','Hoja de vida profesional','Tarjeta profesional','Certificado vacunación','Manual bioseguridad','Dotación mínima requerida'] },
+  '02': { codigo:'02', nombre:'Consulta Externa de Medicina Interna', nivel:2, grupo:'Consulta Externa',
+    documentos_obligatorios:['e1','e2','e3','e4','e5','e6','e7','e8'], requisitos_reps:['Formulario inscripción','Especialista medicina interna','Tarjeta profesional especialista'] },
+  '03': { codigo:'03', nombre:'Consulta Externa de Cirugía General', nivel:2, grupo:'Consulta Externa',
+    documentos_obligatorios:['e1','e2','e3','e4','e5','e6','e7','e8'], requisitos_reps:['Formulario inscripción','Especialista cirugía general'] },
+  '04': { codigo:'04', nombre:'Consulta Externa Odontología General', nivel:1, grupo:'Consulta Externa',
+    documentos_obligatorios:['e1','e2','e3','e5','e6','e8'], requisitos_reps:['Formulario inscripción','Hoja de vida odontólogo','Tarjeta profesional odontólogo'] },
+  '05': { codigo:'05', nombre:'Consulta Externa Psicología', nivel:1, grupo:'Consulta Externa',
+    documentos_obligatorios:['e1','e2','e5','e6','e8'], requisitos_reps:['Formulario inscripción','Hoja de vida psicólogo','Tarjeta profesional'] },
+  '06': { codigo:'06', nombre:'Consulta Externa Enfermería', nivel:1, grupo:'Consulta Externa',
+    documentos_obligatorios:['e1','e2','e3','e5','e6','e8'], requisitos_reps:['Formulario inscripción','Tarjeta profesional enfermería'] },
+  '07': { codigo:'07', nombre:'Consulta Externa Nutrición y Dietética', nivel:1, grupo:'Consulta Externa',
+    documentos_obligatorios:['e1','e2','e5','e6','e8'], requisitos_reps:['Formulario inscripción','Tarjeta profesional'] },
+  '08': { codigo:'08', nombre:'Consulta Externa Fisioterapia', nivel:1, grupo:'Rehabilitación',
+    documentos_obligatorios:['e1','e2','e3','e5','e6','e8'], requisitos_reps:['Formulario inscripción','Tarjeta profesional','Dotación equipos rehabilitación'] },
+  '09': { codigo:'09', nombre:'Urgencias', nivel:2, grupo:'Urgencias',
+    documentos_obligatorios:['e1','e2','e3','e4','e5','e6','e7','e8'], requisitos_reps:['Formulario inscripción','Médico de urgencias 24h','Equipos básicos urgencias','Protocolo emergencias'] },
+  '10': { codigo:'10', nombre:'Hospitalización Adultos', nivel:2, grupo:'Hospitalización',
+    documentos_obligatorios:['e1','e2','e3','e4','e5','e6','e7','e8'], requisitos_reps:['Formulario inscripción','Médico permanente','Enfermería 24h','Camas hospitalarias'] },
+  '11': { codigo:'11', nombre:'Cirugía Ambulatoria', nivel:2, grupo:'Cirugía',
+    documentos_obligatorios:['e1','e2','e3','e4','e5','e6','e7','e8'], requisitos_reps:['Formulario inscripción','Cirujano habilitado','Anestesiólogo','Sala de cirugía equipada'] },
+  '12': { codigo:'12', nombre:'Laboratorio Clínico Básico', nivel:1, grupo:'Apoyo Diagnóstico',
+    documentos_obligatorios:['e1','e2','e3','e4','e5','e6','e8'], requisitos_reps:['Formulario inscripción','Director técnico bacteriólogo','Control de calidad externo'] },
+  '13': { codigo:'13', nombre:'Imágenes Diagnósticas — Radiología', nivel:2, grupo:'Apoyo Diagnóstico',
+    documentos_obligatorios:['e1','e2','e3','e4','e5','e6','e7','e8'], requisitos_reps:['Formulario inscripción','Radiólogo habilitado','Equipos radiológicos con licencia IAEA'] },
+  '14': { codigo:'14', nombre:'Procedimientos — Estética Facial y Corporal no Invasiva', nivel:1, grupo:'Procedimientos',
+    documentos_obligatorios:['e1','e2','e3','e5','e6','e8'], requisitos_reps:['Formulario inscripción','Médico habilitado','Protocolos procedimientos estéticos','Consentimientos informados'] },
+  '15': { codigo:'15', nombre:'Procedimientos — Infiltraciones y Procedimientos Menores', nivel:1, grupo:'Procedimientos',
+    documentos_obligatorios:['e1','e2','e3','e4','e5','e6','e8'], requisitos_reps:['Formulario inscripción','Médico habilitado','Carro de paro básico'] },
+  '16': { codigo:'16', nombre:'Vacunación', nivel:1, grupo:'Prevención',
+    documentos_obligatorios:['e1','e2','e3','e4','e5','e6','e8'], requisitos_reps:['Formulario inscripción','Cadena de frío documentada','Protocolo vacunación'] },
+  '17': { codigo:'17', nombre:'Programa de Salud Oral', nivel:1, grupo:'Consulta Externa',
+    documentos_obligatorios:['e1','e2','e3','e5','e6','e8'], requisitos_reps:['Formulario inscripción','Odontólogo habilitado','Unidad dental equipada'] },
+  '18': { codigo:'18', nombre:'Transporte Asistencial Básico', nivel:2, grupo:'Transporte',
+    documentos_obligatorios:['e1','e2','e3','e4','e5','e7','e8'], requisitos_reps:['Formulario inscripción','Ambulancia equipada','SOAT vigente','Conductores capacitados'] },
+  '19': { codigo:'19', nombre:'UCI Adultos', nivel:3, grupo:'Hospitalización',
+    documentos_obligatorios:['e1','e2','e3','e4','e5','e6','e7','e8'], requisitos_reps:['Formulario inscripción','Intensivista 24h','Enfermería especializada UCI','Equipos UCI completos'] },
+  '20': { codigo:'20', nombre:'Telemedicina — Telexperticia', nivel:1, grupo:'Consulta Externa',
+    documentos_obligatorios:['e1','e2','e5','e6','e8'], requisitos_reps:['Formulario inscripción','Plataforma tecnológica habilitada','Protocolo telemedicina Res. 2654/2019'] },
+};
+
+// DOCS OBLIGATORIOS Res. 3100 — NO se pueden eliminar definitivamente
+var DOCS_OBLIGATORIOS_3100 = [
+  'e1-04','e1-05','e1-01', // TH: manual, inducción, hoja de vida
+  'e2-03', // Infra: plan gestión riesgo
+  'e3-02', // Dotación: mantenimiento
+  'e4-02','e4-03','e4-04', // Medicamentos: política, control, botiquín
+  'e5-01','e5-02','e5-03','e5-04','e5-05','e5-08','e5-09','e5-10', // Procesos prioritarios
+  'e6-01','e6-02','e6-04', // HC: manual, formato, habeas data
+  'e8-01','e8-02','e8-03','e8-04','e8-05','e8-07', // Calidad
+];
+
+// DOCS OBLIGATORIOS por nivel de atención
+var DOCS_POR_NIVEL = {
+  1: ['e1','e2','e3','e5','e6','e8'],
+  2: ['e1','e2','e3','e4','e5','e6','e7','e8'],
+  3: ['e1','e2','e3','e4','e5','e6','e7','e8'],
+};
+
+
 var TRAZ = [];
 
 // Load data from localStorage
@@ -699,9 +781,13 @@ function nav(el, id, title) {
   document.querySelectorAll('.ni').forEach(function(n) { n.classList.remove('act'); });
   if (el) el.classList.add('act');
   document.querySelectorAll('.page').forEach(function(p) { p.classList.remove('act'); });
-  document.getElementById('pg-' + id).classList.add('act');
+  var pg = document.getElementById('pg-' + id);
+  if (pg) pg.classList.add('act');
   document.getElementById('pgtit').textContent = title;
   closeSb();
+  // Lazy-render modules on demand
+  if (id === 'reps') renderReps();
+  if (id === 'servicios') renderServicios();
 }
 
 var toastTimer;
@@ -1007,7 +1093,14 @@ function dlDoc(doc) {
 }
 
 function deleteDoc(docId, nombre) {
-  if (!confirm('¿Eliminar "' + nombre + '"? Esta acción no se puede deshacer.')) return;
+  var isObligatorio = DOCS_OBLIGATORIOS_3100.indexOf(docId) >= 0;
+  if (isObligatorio) {
+    // Protected doc: only remove file, keep item as "faltante crítico"
+    showDeleteProtectedModal(docId, nombre);
+    return;
+  }
+  // Locally-added doc: can fully delete
+  if (!confirm('¿Eliminar definitivamente "' + nombre + '"?\n\nEsta acción no se puede deshacer.')) return;
   C.estandares.forEach(function(e) {
     var doc = e.documentos.find(function(d) { return d.id === docId; });
     if (doc && doc.localKey) localStorage.removeItem(doc.localKey);
@@ -1017,6 +1110,86 @@ function deleteDoc(docId, nombre) {
   addTraz('Eliminó', nombre);
   renderDash(); renderEstdTabs();
   toast('Documento eliminado');
+}
+
+function showDeleteProtectedModal(docId, nombre) {
+  var overlay = document.createElement('div');
+  overlay.style.cssText = 'position:fixed;inset:0;z-index:9999;background:rgba(0,0,0,0.85);display:flex;align-items:center;justify-content:center;padding:20px;backdrop-filter:blur(12px)';
+  overlay.innerHTML =
+    '<div style="background:#1C1C35;border:1px solid rgba(230,57,70,0.4);border-radius:16px;padding:24px;max-width:460px;width:100%;font-family:Plus Jakarta Sans,sans-serif">' +
+    '<div style="display:flex;align-items:center;gap:10px;margin-bottom:12px">' +
+    '<div style="width:40px;height:40px;border-radius:50%;background:rgba(230,57,70,0.15);display:flex;align-items:center;justify-content:center;font-size:18px;flex-shrink:0">⚠️</div>' +
+    '<div><div style="font-size:15px;font-weight:800;color:#F0F0FF">Documento obligatorio Res. 3100</div>' +
+    '<div style="font-size:12px;color:#A0A0C0;margin-top:2px">"' + nombre + '"</div></div></div>' +
+    '<div style="background:rgba(230,57,70,0.08);border:1px solid rgba(230,57,70,0.25);border-radius:10px;padding:12px;margin-bottom:16px;font-size:12px;color:#ff9999;line-height:1.7">' +
+    '🚨 <strong>Este documento es obligatorio</strong> según la Resolución 3100/2019.<br>' +
+    'Eliminarlo puede generar hallazgos negativos en una visita de verificación o incluso la <strong>suspensión del servicio habilitado</strong>.' +
+    '</div>' +
+    '<div style="font-size:13px;font-weight:700;color:#F0F0FF;margin-bottom:10px">¿Qué deseas hacer?</div>' +
+    '<div style="display:flex;flex-direction:column;gap:8px">' +
+    '<button id="btn-del-archivo" style="padding:11px 14px;background:rgba(244,162,97,0.12);border:1px solid rgba(244,162,97,0.3);border-radius:9px;color:#F4A261;font-size:13px;font-weight:600;cursor:pointer;text-align:left;font-family:inherit">' +
+    '🗂️ <strong>Eliminar solo el archivo</strong> — El ítem queda como "Requerido" en la lista</button>' +
+    '<button id="btn-del-todo" style="padding:11px 14px;background:rgba(230,57,70,0.1);border:1px solid rgba(230,57,70,0.3);border-radius:9px;color:#E63946;font-size:13px;font-weight:600;cursor:pointer;text-align:left;font-family:inherit">' +
+    '🗑️ <strong>Eliminar definitivamente</strong> — Asumo el riesgo normativo</button>' +
+    '<button id="btn-del-cancel" style="padding:11px 14px;background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.1);border-radius:9px;color:#A0A0C0;font-size:13px;font-weight:600;cursor:pointer;text-align:left;font-family:inherit">' +
+    '✋ Cancelar — Mantener el documento</button>' +
+    '</div></div>';
+  document.body.appendChild(overlay);
+
+  overlay.querySelector("#btn-del-archivo").onclick = function() {
+    // Only remove the file, reset to "requerido"
+    C.estandares.forEach(function(e) {
+      var doc = e.documentos.find(function(d) { return d.id === docId; });
+      if (doc) {
+        if (doc.localKey) localStorage.removeItem(doc.localKey);
+        doc.localKey = null; doc.fileData = null; doc.driveLink = null;
+        doc.fuente = ''; doc.archivo = doc.archivo || ''; // keep github ref if any
+        doc.estado = 'requerido'; doc._local = false;
+        doc.fechaCarga = null;
+      }
+    });
+    saveExtraDocs();
+    addTraz('Eliminó archivo (doc obligatorio marcado requerido)', nombre);
+    renderDash(); renderEstdTabs();
+    toast('Archivo eliminado — documento marcado como Requerido 🚨', 'info');
+    document.body.removeChild(overlay);
+  };
+
+  overlay.querySelector("#btn-del-todo").onclick = function() {
+    var confirm2 = confirm('⚠️ CONFIRMACIÓN FINAL\n\n"' + nombre + '" es obligatorio por la Res. 3100/2019.\n\nEliminarlo puede causar hallazgos en auditoría.\n\n¿Confirmas que deseas eliminarlo definitivamente?');
+    if (!confirm2) return;
+    C.estandares.forEach(function(e) {
+      var doc = e.documentos.find(function(d) { return d.id === docId; });
+      if (doc && doc.localKey) localStorage.removeItem(doc.localKey);
+      e.documentos = e.documentos.filter(function(d) { return d.id !== docId; });
+    });
+    // Add critical alert to trazabilidad
+    addTraz('🚨 ELIMINÓ DOC OBLIGATORIO RES.3100', nombre);
+    saveExtraDocs(); renderDash(); renderEstdTabs();
+    toast('Documento eliminado — ¡Riesgo normativo activo!', 'err');
+    document.body.removeChild(overlay);
+  };
+
+  overlay.querySelector("#btn-del-cancel").onclick = function() {
+    document.body.removeChild(overlay);
+  };
+}
+
+function reactivarDoc(docId) {
+  // Restore a missing obligatory doc from base template
+  var found = false;
+  C.estandares.forEach(function(e) {
+    if (!e.documentos.find(function(d) { return d.id === docId; })) {
+      // Find in base template and restore
+      var base = VESGA.estandares.find(function(x) { return x.id === e.id; });
+      if (base) {
+        var baseDoc = base.documentos.find(function(d) { return d.id === docId; });
+        if (baseDoc) { e.documentos.push(JSON.parse(JSON.stringify(baseDoc))); found = true; }
+      }
+    }
+  });
+  if (found) { renderEstdTabs(); toast('Documento reactivado ✓'); }
+  else toast('No se pudo reactivar — contacta soporte', 'err');
 }
 
 // ================================================================
@@ -1466,6 +1639,389 @@ function renderVer() {
         return '<div class="vr"><div class="vn">' + v.cod + '</div><div class="vd">' + v.desc + '</div>' + sh(v.estado) + '</div>';
       }).join('') + '</div></div>';
   }).join('');
+}
+
+
+// ================================================================
+// MÓDULO REPS — Inscripción y Habilitación de Servicios
+// ================================================================
+
+function renderReps() {
+  var serviciosCliente = JSON.parse(localStorage.getItem('bio_servicios_' + C.id) || '[]');
+  var radicado = JSON.parse(localStorage.getItem('bio_radicado_' + C.id) || '{}');
+  var c1 = C.color1 || '#FF6B00', c2 = C.color2 || '#7B2FBE';
+
+  var html = '<div class="alert ag"><i class="fas fa-hospital-user" style="flex-shrink:0;font-size:16px"></i>' +
+    '<div><strong>Módulo REPS — Inscripción ante la Secretaría de Salud</strong><br>' +
+    'Gestiona el proceso completo de inscripción y habilitación según Res. 2003/2014 y Res. 3100/2019.</div></div>';
+
+  // Summary card
+  var totalServ = serviciosCliente.length;
+  var docsOk = serviciosCliente.reduce(function(a,s) {
+    var reqs = (SERVICIOS_REPS[s.codigo] || {}).requisitos_reps || [];
+    return a + s.docs_cargados;
+  }, 0);
+
+  html += '<div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;margin-bottom:16px">' +
+    sc2('🏥', c1, totalServ, 'Servicios') +
+    sc2('📋', c2, docsOk, 'Docs cargados') +
+    sc2(radicado.numero ? '✅' : '📤', radicado.numero ? '#2D9F5C' : '#F4A261', radicado.numero ? '1' : '0', radicado.numero ? 'Radicado' : 'Pendiente') +
+    '</div>';
+
+  // STEPS indicator
+  var step1ok = totalServ > 0;
+  var step2ok = totalServ > 0 && serviciosCliente.every(function(s) { return s.docs_cargados >= 3; });
+  var step3ok = !!radicado.numero;
+  html += '<div class="card" style="margin-bottom:12px">' +
+    '<div class="ch"><div class="ct">📐 Proceso de inscripción REPS</div></div>' +
+    '<div style="display:flex;gap:0;margin-bottom:0">' +
+    stepReps(1, 'Servicios', 'Selecciona los servicios a inscribir', step1ok) +
+    stepReps(2, 'Documentos', 'Carga los requisitos por servicio', step2ok) +
+    stepReps(3, 'Radicar', 'Genera y entrega la documentación', step3ok) +
+    '</div></div>';
+
+  // Servicios list
+  html += '<div class="card" style="margin-bottom:12px">' +
+    '<div class="ch"><div class="ct">🏥 Servicios a inscribir</div>' +
+    '<button class="btn bor" style="font-size:11px;padding:6px 10px" onclick="openAddServicio()"><i class="fas fa-plus"></i>Agregar servicio</button></div>' +
+    (totalServ === 0
+      ? '<div style="text-align:center;padding:20px;color:var(--text3);font-size:13px">Agrega los servicios que deseas inscribir ante la Secretaría de Salud.</div>'
+      : serviciosCliente.map(function(s) { return renderServicioRow(s); }).join('')) +
+    '</div>';
+
+  // Checklists per service
+  if (totalServ > 0) {
+    html += '<div class="card" style="margin-bottom:12px">' +
+      '<div class="ch"><div class="ct">📋 Lista de chequeo por servicio</div>' +
+      '<button class="btn bor" style="font-size:11px;padding:6px 10px" onclick="generarDocumentosReps()"><i class="fas fa-file-pdf"></i>Generar documentos</button></div>';
+    serviciosCliente.forEach(function(s) {
+      var info = SERVICIOS_REPS[s.codigo];
+      if (!info) return;
+      var cargados = s.requisitos_estado || {};
+      html += '<div style="margin-bottom:14px">' +
+        '<div style="font-size:12px;font-weight:700;color:' + c1 + ';padding:6px 10px;background:' + c1 + '15;border-radius:7px;margin-bottom:6px">' +
+        info.nombre + ' — Nivel ' + info.nivel + '</div>' +
+        info.requisitos_reps.map(function(req, ri) {
+          var rKey = s.codigo + '_' + ri;
+          var estado = cargados[rKey] || 'pendiente';
+          var rowId = 'req-' + rKey.replace(/[^a-z0-9]/gi,'');
+          return '<div class="vr" id="' + rowId + '" style="margin-bottom:4px">' +
+            '<div style="font-size:12px;flex:1">' + req + '</div>' +
+            '<div style="display:flex;gap:5px;align-items:center;flex-shrink:0">' +
+            (estado === 'vigente'
+              ? '<span class="status sv">✅ Listo</span>'
+              : estado === 'cargado'
+                ? '<span class="status sp">📎 Cargado</span>'
+                : '<span class="status sr">⬜ Pendiente</span>') +
+            '<div class="ib" id="toggle-' + rowId + '" title="Marcar" style="font-size:11px">' +
+            (estado === 'vigente' ? '<i class="fas fa-check-circle" style="color:var(--green)"></i>'
+              : '<i class="fas fa-circle" style="color:var(--text3)"></i>') +
+            '</div></div></div>';
+        }).join('') + '</div>';
+    });
+    html += '</div>';
+
+    // Radicado section
+    html += '<div class="card" style="margin-bottom:12px">' +
+      '<div class="ch"><div class="ct">📤 Radicación ante Secretaría de Salud</div></div>';
+
+    if (radicado.numero) {
+      html += '<div class="alert ag"><i class="fas fa-check-circle" style="flex-shrink:0"></i>' +
+        '<div>Radicado <strong>#' + radicado.numero + '</strong> — ' + radicado.fecha + '<br>' +
+        'Entidad: <strong>' + (radicado.entidad || 'Secretaría de Salud') + '</strong></div></div>';
+      if (radicado.scanUrl) {
+        html += '<div class="dr"><div class="dl"><div class="di" style="background:var(--gbg)"><i class="fas fa-file-check" style="font-size:11px"></i></div>' +
+          '<div><div class="dn">Copia del radicado escaneada</div><div class="dm">' + radicado.fecha + '</div></div></div>' +
+          '<div class="da"><div class="ib g" onclick="window.open(\'' + radicado.scanUrl + '\',\'_blank\')"><i class="fas fa-external-link-alt"></i></div></div></div>';
+      } else {
+        html += '<button onclick="cargarRadicado()" style="width:100%;padding:10px;background:var(--or-bg);border:1px solid var(--orb);border-radius:8px;color:var(--or2);font-size:12px;font-weight:700;cursor:pointer;font-family:inherit"><i class="fas fa-upload"></i> Cargar copia del radicado escaneado</button>';
+      }
+    } else {
+      html += '<div style="font-size:12px;color:var(--text2);margin-bottom:12px;line-height:1.8">' +
+        'Una vez tengas los documentos listos, genera los formatos de radicación, imprímelos, radícalos ante la Secretaría de Salud y sube aquí la copia del radicado.</div>' +
+        '<div class="fgrid" style="margin-bottom:10px">' +
+        '<div class="fg"><label class="fl">Número de radicado</label><input class="fi" id="rad-numero" placeholder="Ej: 20250001234"></div>' +
+        '<div class="fg"><label class="fl">Fecha de radicación</label><input class="fi" type="date" id="rad-fecha"></div></div>' +
+        '<div class="fg"><label class="fl">Entidad receptora</label><input class="fi" id="rad-entidad" value="Secretaría de Salud Municipal de Cúcuta"></div>' +
+        '<div class="fg"><label class="fl">Enlace Drive — Copia escaneada del radicado</label><input class="fi" id="rad-scan" placeholder="https://drive.google.com/..."></div>' +
+        '<button onclick="guardarRadicado()" style="width:100%;padding:12px;background:linear-gradient(135deg,' + c1 + ',' + c2 + ');color:#fff;border:none;border-radius:9px;font-size:13px;font-weight:700;cursor:pointer;font-family:inherit;margin-top:4px"><i class="fas fa-save"></i> Registrar radicado</button>';
+    }
+    html += '</div>';
+  }
+
+  document.getElementById('reps-content').innerHTML = html;
+
+  // Attach toggle events
+  serviciosCliente.forEach(function(s) {
+    var info = SERVICIOS_REPS[s.codigo];
+    if (!info) return;
+    info.requisitos_reps.forEach(function(req, ri) {
+      var rKey = s.codigo + '_' + ri;
+      var rowId = 'req-' + rKey.replace(/[^a-z0-9]/gi,'');
+      var btn = document.getElementById('toggle-' + rowId);
+      if (btn) btn.onclick = (function(svc, key, servIdx) {
+        return function() {
+          var svcs = JSON.parse(localStorage.getItem('bio_servicios_' + C.id) || '[]');
+          if (!svcs[servIdx].requisitos_estado) svcs[servIdx].requisitos_estado = {};
+          var cur = svcs[servIdx].requisitos_estado[key] || 'pendiente';
+          svcs[servIdx].requisitos_estado[key] = cur === 'vigente' ? 'pendiente' : 'vigente';
+          localStorage.setItem('bio_servicios_' + C.id, JSON.stringify(svcs));
+          renderReps();
+        };
+      })(s, rKey, serviciosCliente.indexOf(s));
+    });
+  });
+}
+
+function stepReps(n, titulo, desc, done) {
+  var c = done ? 'var(--green)' : 'var(--text3)';
+  var bg = done ? 'var(--gbg)' : 'var(--dark4)';
+  return '<div style="flex:1;text-align:center;padding:12px 8px;background:' + bg + ';border:1px solid var(--bd);' +
+    (n < 3 ? 'border-right:none;' : '') + (n === 1 ? 'border-radius:8px 0 0 8px' : n === 3 ? 'border-radius:0 8px 8px 0' : '') + '">' +
+    '<div style="width:28px;height:28px;border-radius:50%;background:' + (done ? 'var(--green)' : 'var(--dark3)') + ';border:2px solid ' + c + ';display:flex;align-items:center;justify-content:center;margin:0 auto 6px;font-size:12px;font-weight:800;color:' + (done ? '#fff' : 'var(--text3)') + '">' + (done ? '✓' : n) + '</div>' +
+    '<div style="font-size:12px;font-weight:700;color:' + c + '">' + titulo + '</div>' +
+    '<div style="font-size:10px;color:var(--text3);margin-top:2px">' + desc + '</div></div>';
+}
+
+function renderServicioRow(s) {
+  var info = SERVICIOS_REPS[s.codigo] || {};
+  var nivelColor = s.nivel == 1 ? 'var(--green)' : s.nivel == 2 ? 'var(--yellow)' : 'var(--red)';
+  var reqs = (info.requisitos_reps || []).length;
+  var cargados = Object.values(s.requisitos_estado || {}).filter(function(v) { return v === 'vigente'; }).length;
+  var pct = reqs > 0 ? Math.round(cargados / reqs * 100) : 0;
+  return '<div class="dr" style="flex-wrap:wrap;padding:12px">' +
+    '<div class="dl">' +
+    '<div class="di" style="background:var(--or-bg)"><i class="fas fa-stethoscope" style="font-size:11px;color:var(--or)"></i></div>' +
+    '<div style="min-width:0">' +
+    '<div class="dn">' + (info.nombre || s.nombre) + '</div>' +
+    '<div class="dm">Código ' + s.codigo + ' &middot; <span style="color:' + nivelColor + ';font-weight:700">Nivel ' + s.nivel + '</span> &middot; ' + (info.grupo || '') + '</div>' +
+    '<div style="display:flex;align-items:center;gap:6px;margin-top:4px">' +
+    '<div class="pw" style="width:80px;height:4px;margin-top:0"><div class="pf" style="width:' + pct + '%;background:' + (pct >= 80 ? 'var(--green)' : pct >= 40 ? 'var(--yellow)' : 'var(--red)')  + '"></div></div>' +
+    '<span style="font-size:10px;color:var(--text3)">' + cargados + '/' + reqs + ' requisitos</span></div>' +
+    '</div></div>' +
+    '<div class="da"><button class="btn bg" style="font-size:11px" onclick="removeServicio(\'' + s.codigo + '\')"><i class="fas fa-times"></i></button></div></div>';
+}
+
+function sc2(ico, color, num, label) {
+  return '<div class="sc"><div class="si" style="background:' + color + '22">' + ico + '</div>' +
+    '<div class="sn" style="color:' + color + '">' + num + '</div><div class="sl">' + label + '</div></div>';
+}
+
+function openAddServicio() {
+  var opts = Object.values(SERVICIOS_REPS).map(function(s) {
+    return '<option value="' + s.codigo + '">[N' + s.nivel + '] ' + s.nombre + '</option>';
+  }).join('');
+  var overlay = document.createElement('div');
+  overlay.style.cssText = 'position:fixed;inset:0;z-index:9999;background:rgba(0,0,0,0.85);display:flex;align-items:flex-end;justify-content:center;backdrop-filter:blur(12px)';
+  overlay.innerHTML =
+    '<div style="background:#141428;border:1px solid rgba(255,255,255,0.13);border-radius:20px 20px 0 0;width:100%;max-width:580px;padding:22px;font-family:Plus Jakarta Sans,sans-serif">' +
+    '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px">' +
+    '<div style="font-size:15px;font-weight:800;color:#F0F0FF">Agregar servicio a inscribir</div>' +
+    '<div onclick="this.closest(\'div[style]\').remove()" style="width:30px;height:30px;border-radius:50%;background:rgba(255,255,255,0.08);display:flex;align-items:center;justify-content:center;cursor:pointer;font-size:14px;color:#A0A0C0">✕</div></div>' +
+    '<div style="margin-bottom:12px"><label style="font-size:11px;font-weight:700;color:#A0A0C0;text-transform:uppercase;letter-spacing:0.05em;display:block;margin-bottom:5px">Servicio de salud (Res. 2003/2014)</label>' +
+    '<select id="new-serv-sel" style="width:100%;padding:11px 13px;background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.07);border-radius:9px;color:#F0F0FF;font-size:13px;font-family:inherit;outline:none">' +
+    opts + '</select></div>' +
+    '<div style="background:rgba(255,107,0,0.08);border:1px solid rgba(255,107,0,0.2);border-radius:9px;padding:10px 12px;margin-bottom:14px;font-size:11px;color:#A0A0C0" id="serv-info-preview"></div>' +
+    '<button onclick="confirmarAddServicio(this)" style="width:100%;padding:12px;background:linear-gradient(135deg,#FF6B00,#7B2FBE);color:#fff;border:none;border-radius:9px;font-size:13px;font-weight:700;cursor:pointer;font-family:inherit"><i class="fas fa-plus"></i> Agregar servicio</button>' +
+    '</div>';
+  document.body.appendChild(overlay);
+  var sel = overlay.querySelector('#new-serv-sel');
+  function updatePreview() {
+    var info = SERVICIOS_REPS[sel.value];
+    if (!info) return;
+    overlay.querySelector('#serv-info-preview').innerHTML =
+      '<strong style="color:#FF8C33">Nivel ' + info.nivel + '</strong> · ' + info.grupo + '<br>' +
+      '<strong style="color:#F0F0FF">Requisitos REPS (' + info.requisitos_reps.length + '):</strong> ' +
+      info.requisitos_reps.slice(0,3).join(', ') + (info.requisitos_reps.length > 3 ? '...' : '');
+  }
+  sel.onchange = updatePreview; updatePreview();
+}
+
+function confirmarAddServicio(btn) {
+  var overlay = btn.closest('div[style]');
+  var sel = overlay.querySelector('#new-serv-sel');
+  var codigo = sel.value;
+  var info = SERVICIOS_REPS[codigo];
+  if (!info) return;
+  var svcs = JSON.parse(localStorage.getItem('bio_servicios_' + C.id) || '[]');
+  if (svcs.find(function(s) { return s.codigo === codigo; })) {
+    alert('Este servicio ya está en la lista.'); return;
+  }
+  svcs.push({ codigo: codigo, nombre: info.nombre, nivel: info.nivel, docs_cargados: 0, requisitos_estado: {} });
+  localStorage.setItem('bio_servicios_' + C.id, JSON.stringify(svcs));
+  addTraz('Agregó servicio REPS', info.nombre);
+  overlay.remove();
+  renderReps();
+  toast('Servicio "' + info.nombre + '" agregado ✓');
+}
+
+function removeServicio(codigo) {
+  if (!confirm('¿Quitar el servicio "' + (SERVICIOS_REPS[codigo] || {}).nombre + '" del proceso de inscripción?')) return;
+  var svcs = JSON.parse(localStorage.getItem('bio_servicios_' + C.id) || '[]');
+  svcs = svcs.filter(function(s) { return s.codigo !== codigo; });
+  localStorage.setItem('bio_servicios_' + C.id, JSON.stringify(svcs));
+  renderReps(); toast('Servicio eliminado');
+}
+
+function guardarRadicado() {
+  var numero = document.getElementById('rad-numero').value.trim();
+  var fecha = document.getElementById('rad-fecha').value;
+  var entidad = document.getElementById('rad-entidad').value.trim();
+  var scan = document.getElementById('rad-scan').value.trim();
+  if (!numero || !fecha) { toast('Ingresa número y fecha de radicado', 'err'); return; }
+  var rad = { numero: numero, fecha: fecha, entidad: entidad, scanUrl: scan };
+  localStorage.setItem('bio_radicado_' + C.id, JSON.stringify(rad));
+  addTraz('Registró radicado REPS', '#' + numero + ' — ' + entidad);
+  renderReps();
+  toast('Radicado #' + numero + ' registrado ✓');
+}
+
+function cargarRadicado() {
+  var url = prompt('Pega el enlace de Google Drive con la copia escaneada del radicado:');
+  if (!url) return;
+  var rad = JSON.parse(localStorage.getItem('bio_radicado_' + C.id) || '{}');
+  rad.scanUrl = url;
+  localStorage.setItem('bio_radicado_' + C.id, JSON.stringify(rad));
+  renderReps(); toast('Copia del radicado guardada ✓');
+}
+
+function generarDocumentosReps() {
+  var serviciosCliente = JSON.parse(localStorage.getItem('bio_servicios_' + C.id) || '[]');
+  if (!serviciosCliente.length) { toast('Agrega al menos un servicio primero', 'err'); return; }
+  var fecha = new Date().toLocaleDateString('es-CO', {year:'numeric',month:'long',day:'numeric'});
+  var w = window.open('', '_blank');
+  var serviciosHtml = serviciosCliente.map(function(s) {
+    var info = SERVICIOS_REPS[s.codigo] || {};
+    var cargados = Object.values(s.requisitos_estado || {}).filter(function(v){ return v==='vigente'; }).length;
+    var reqs = (info.requisitos_reps || []).length;
+    return '<tr><td>' + info.nombre + '</td><td style="text-align:center">N' + s.nivel + '</td>' +
+      '<td style="text-align:center">' + cargados + '/' + reqs + '</td>' +
+      '<td style="text-align:center">' + (cargados===reqs?'✅ Listo':'⏳ Pendiente') + '</td></tr>';
+  }).join('');
+
+  var checklistHtml = serviciosCliente.map(function(s) {
+    var info = SERVICIOS_REPS[s.codigo] || {};
+    return '<h3 style="color:#FF6B00;margin:16px 0 8px;font-size:13px">🏥 ' + info.nombre + ' (Nivel ' + s.nivel + ')</h3>' +
+      '<table style="width:100%;border-collapse:collapse;margin-bottom:10px"><tr style="background:#f0f0f0"><th style="padding:6px 8px;text-align:left;font-size:11px">Requisito</th><th style="padding:6px 8px;width:80px;font-size:11px">Estado</th><th style="padding:6px 8px;width:100px;font-size:11px">Firma/Sello</th></tr>' +
+      (info.requisitos_reps || []).map(function(req, ri) {
+        var est = (s.requisitos_estado || {})[s.codigo+'_'+ri] || 'pendiente';
+        return '<tr style="border-bottom:1px solid #eee"><td style="padding:6px 8px;font-size:11px">' + req + '</td>' +
+          '<td style="text-align:center;font-size:11px">' + (est==='vigente'?'✅':est==='cargado'?'📎':'⬜') + '</td>' +
+          '<td style="border:1px solid #ddd;height:24px"></td></tr>';
+      }).join('') + '</table>';
+  }).join('');
+
+  w.document.write(`<!DOCTYPE html><html><head><meta charset="UTF-8">
+<title>Documentos REPS — ${C.empresa}</title>
+<style>
+  body{font-family:Arial,sans-serif;font-size:12px;color:#111;max-width:800px;margin:0 auto;padding:30px}
+  h1{font-size:16px;text-align:center;color:#0A3D55;border-bottom:3px solid #FF6B00;padding-bottom:10px;margin-bottom:20px}
+  h2{font-size:14px;color:#7B2FBE;margin:20px 0 10px;border-left:4px solid #FF6B00;padding-left:10px}
+  table{width:100%;border-collapse:collapse;margin:10px 0}
+  td,th{padding:7px 10px;border:1px solid #ddd;font-size:11px}
+  th{background:#0A3D55;color:#fff}
+  .sig{border-top:2px solid #333;padding-top:6px;text-align:center;font-size:11px;margin-top:30px;min-height:50px}
+  @media print{button{display:none}}
+</style></head><body>
+<div style="display:flex;justify-content:space-between;margin-bottom:16px;padding-bottom:12px;border-bottom:2px solid #FF6B00">
+  <div><strong style="font-size:16px;color:#FF6B00">BIOAuditoria®</strong><br><span style="font-size:10px;color:#666">Sistema de gestión — Habilitación en salud</span></div>
+  <div style="text-align:right;font-size:11px;color:#666">${fecha}<br>Ref: REPS-${C.nit}</div>
+</div>
+<h1>DOCUMENTOS PARA INSCRIPCIÓN REPS<br><span style="font-size:13px;font-weight:normal">${C.empresa} — NIT ${C.nit}</span></h1>
+
+<h2>1. CARTA DE RADICACIÓN</h2>
+<p style="line-height:2">${fecha}</p>
+<p style="line-height:2"><strong>Señores<br>Secretaría de Salud Municipal / Instituto Departamental de Salud<br>Cúcuta, Norte de Santander</strong></p>
+<p style="line-height:2;margin-top:12px">Yo, <strong>${C.nombre}</strong>, identificado(a) con C.C. <strong>${C.cedula}</strong>, en calidad de Representante Legal de <strong>${C.empresa}</strong> identificada con NIT <strong>${C.nit}</strong>, con domicilio en <strong>${C.direccion}, ${C.ciudad}</strong>, me permito presentar ante su despacho la documentación requerida para la <strong>inscripción en el Registro Especial de Prestadores de Servicios de Salud (REPS)</strong> y verificación de condiciones de habilitación de los siguientes servicios:</p>
+<table><tr><th>Servicio</th><th>Nivel</th><th>Req. cumplidos</th><th>Estado</th></tr>${serviciosHtml}</table>
+<p style="margin-top:14px;line-height:2">Los documentos anexos cumplen con los estándares establecidos en la <strong>Resolución 3100 de 2019</strong> y los requisitos definidos en la <strong>Resolución 2003 de 2014</strong>. Me comprometo a mantener vigentes todas las condiciones de habilitación durante el ejercicio de los servicios inscritos.</p>
+<p style="line-height:2">Atentamente,</p>
+<div class="sig" style="display:inline-block;width:250px;margin-top:40px"><br><br><strong>${C.nombre}</strong><br>${C.especialidad}<br>C.C. ${C.cedula}</div>
+
+<div style="page-break-before:always"></div>
+<h2>2. LISTA DE CHEQUEO — DOCUMENTOS POR SERVICIO</h2>
+${checklistHtml}
+
+<h2>3. LISTADO DE DOCUMENTOS ADJUNTOS</h2>
+<table><tr><th>#</th><th>Documento</th><th>Estándar</th><th>Estado</th><th>Observaciones</th></tr>
+${(function(){
+  var rows = ''; var n = 1;
+  C.estandares.forEach(function(estd) {
+    var info = ESTANDARES_3100.find(function(x){ return x.id===estd.id; });
+    estd.documentos.filter(function(d){ return d.estado==='vigente'; }).forEach(function(d){
+      rows += '<tr><td style="text-align:center">'+n+'</td><td>'+d.nombre+'</td><td style="white-space:nowrap">E'+(info?info.num:'')+'</td><td style="text-align:center">✅</td><td></td></tr>';
+      n++;
+    });
+  });
+  return rows;
+})()}
+</table>
+
+<p style="margin-top:20px;font-size:10px;color:#999;text-align:center">
+  Generado por BIOAuditoria® — biomarketing.salud@gmail.com — ${fecha}<br>
+  Resolución 2003/2014 · Resolución 3100/2019 · Ley 1122/2007 · Decreto 780/2016
+</p>
+<button onclick="window.print()" style="position:fixed;bottom:20px;right:20px;padding:12px 20px;background:#FF6B00;color:#fff;border:none;border-radius:10px;font-size:14px;font-weight:bold;cursor:pointer">🖨️ Imprimir / PDF</button>
+</body></html>`);
+  w.document.close();
+  addTraz('Generó documentos REPS', serviciosCliente.length + ' servicios');
+  toast('Documentos REPS generados ✓');
+}
+
+// ================================================================
+// MÓDULO SERVICIOS HABILITADOS
+// ================================================================
+function renderServicios() {
+  var serviciosCliente = JSON.parse(localStorage.getItem('bio_servicios_' + C.id) || '[]');
+  var c1 = C.color1 || '#FF6B00', c2 = C.color2 || '#7B2FBE';
+
+  var html = '<div class="alert ai"><i class="fas fa-stethoscope" style="flex-shrink:0;font-size:16px"></i>' +
+    '<div><strong>Servicios habilitados del prestador</strong><br>' +
+    'Un prestador puede tener múltiples servicios. Cada servicio tiene sus propios requisitos de habilitación según la Res. 3100/2019 y el nivel de atención.</div></div>';
+
+  // Por nivel
+  var porNivel = {1:[],2:[],3:[]};
+  Object.values(SERVICIOS_REPS).forEach(function(s) { (porNivel[s.nivel]||[]).push(s); });
+
+  html += '<div class="card" style="margin-bottom:12px">' +
+    '<div class="ch"><div class="ct">📊 Catálogo de servicios por nivel de atención</div></div>';
+
+  [1,2,3].forEach(function(nivel) {
+    var svcs = porNivel[nivel] || [];
+    var nivelColor = nivel===1?'var(--green)':nivel===2?'var(--yellow)':'var(--red)';
+    html += '<div style="margin-bottom:12px">' +
+      '<div style="font-size:12px;font-weight:700;color:' + nivelColor + ';padding:5px 10px;background:' + nivelColor.replace(')',',0.1)').replace('var','rgba') + ';border-radius:6px;margin-bottom:8px;display:flex;justify-content:space-between">' +
+      '<span>Nivel ' + nivel + ' — ' + (nivel===1?'Atención básica':nivel===2?'Mediana complejidad':'Alta complejidad') + '</span>' +
+      '<span style="font-size:10px;font-weight:600;opacity:0.8">' + svcs.length + ' servicios</span></div>';
+    svcs.forEach(function(s) {
+      var isAdded = serviciosCliente.find(function(x){return x.codigo===s.codigo;});
+      html += '<div class="dr" style="margin-bottom:4px">' +
+        '<div class="dl"><div class="di" style="background:var(--dark3)"><i class="fas fa-stethoscope" style="font-size:10px;color:var(--text3)"></i></div>' +
+        '<div style="min-width:0"><div class="dn">' + s.nombre + '</div>' +
+        '<div class="dm">Código ' + s.codigo + ' &middot; ' + s.grupo + ' &middot; ' + s.requisitos_reps.length + ' requisitos</div></div></div>' +
+        '<div class="da">' +
+        (isAdded
+          ? '<span class="status sv" style="font-size:10px">✅ Inscrito</span>'
+          : '<button class="btn bor" style="font-size:10px;padding:5px 9px" onclick="quickAddServicio(\'' + s.codigo + '\')"><i class="fas fa-plus"></i>Agregar</button>') +
+        '</div></div>';
+    });
+    html += '</div>';
+  });
+  html += '</div>';
+
+  document.getElementById('servicios-content').innerHTML = html;
+}
+
+function quickAddServicio(codigo) {
+  var info = SERVICIOS_REPS[codigo];
+  if (!info) return;
+  var svcs = JSON.parse(localStorage.getItem('bio_servicios_' + C.id) || '[]');
+  if (svcs.find(function(s){return s.codigo===codigo;})) { toast('Ya está en la lista'); return; }
+  svcs.push({ codigo:codigo, nombre:info.nombre, nivel:info.nivel, docs_cargados:0, requisitos_estado:{} });
+  localStorage.setItem('bio_servicios_' + C.id, JSON.stringify(svcs));
+  addTraz('Inscribió servicio', info.nombre);
+  renderServicios();
+  toast(info.nombre + ' agregado ✓');
 }
 
 // ================================================================
