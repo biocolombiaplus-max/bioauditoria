@@ -544,12 +544,99 @@ function openDocModal(){
 }
 function closeDocModal(){document.getElementById('modal-doc').classList.remove('open')}
 function saveDoc(){
-  const n=document.getElementById('m-nombre').value.trim();
-  if(!n){toast('Ingresa el nombre del documento','err');return}
-  BIO_DATA.trazabilidad.unshift({fecha:new Date().toLocaleString('es-CO'),usuario:'Admin',accion:'Agregó',documento:n});
-  toast('Documento "'+n+'" guardado');
-  closeDocModal();
+  var n=document.getElementById('m-nom')?document.getElementById('m-nom').value.trim():(document.getElementById('m-nombre')?document.getElementById('m-nombre').value.trim():'');
+  var fileInput=document.getElementById('m-file');
+  var estdSel=document.getElementById('m-estd');
+  var estadoSel=document.getElementById('m-est')||document.getElementById('m-estado');
+  var tipoSel=document.getElementById('m-tipo');
+  var verInput=document.getElementById('m-ver');
+  var archInput=document.getElementById('m-arch')||document.getElementById('m-archivo');
+  
+  if(!n){toast('Ingresa el nombre del documento','err');return;}
+  
+  var newDoc={
+    id:'doc-'+Date.now(),
+    nombre:n,
+    version:(verInput?verInput.value:'v1.0')||'v1.0',
+    estado:(estadoSel?estadoSel.value:'vigente')||'vigente',
+    tipo:(tipoSel?tipoSel.value:'documento')||'documento',
+    archivo:(archInput?archInput.value:'')||'',
+    estdId:(estdSel?estdSel.value:'e1')||'e1',
+    fileData:null,
+    fileName:'',
+    fileType:'',
+    fechaCarga:new Date().toLocaleString('es-CO')
+  };
+  
+  // If file is attached, read and store as base64
+  if(fileInput&&fileInput.files&&fileInput.files[0]){
+    var file=fileInput.files[0];
+    newDoc.fileName=file.name;
+    newDoc.fileType=file.type;
+    if(!newDoc.archivo)newDoc.archivo=file.name;
+    var reader=new FileReader();
+    reader.onload=function(ev){
+      newDoc.fileData=ev.target.result;
+      storeAndRefresh(newDoc);
+    };
+    reader.readAsDataURL(file);
+  } else {
+    storeAndRefresh(newDoc);
+  }
+}
+
+function storeAndRefresh(newDoc){
+  // Save to localStorage
+  var stored=JSON.parse(localStorage.getItem('bio_docs_'+C.id)||'[]');
+  // Update if same id exists, else push
+  var idx=stored.findIndex(function(d){return d.id===newDoc.id;});
+  if(idx>=0)stored[idx]=newDoc; else stored.push(newDoc);
+  localStorage.setItem('bio_docs_'+C.id, JSON.stringify(stored));
+  
+  // Add to in-memory data structure
+  var estd=C.estandares.find(function(e){return e.id===newDoc.estdId;});
+  if(estd){
+    estd.documentos.push({
+      id:newDoc.id,
+      nombre:newDoc.nombre,
+      version:newDoc.version+' · '+newDoc.fechaCarga,
+      estado:newDoc.estado,
+      tipo:newDoc.tipo,
+      archivo:newDoc.archivo,
+      _stored:true
+    });
+  }
+  
+  TRAZ.unshift({fecha:new Date().toLocaleString('es-CO'),usuario:'Admin',accion:'Cargó',doc:newDoc.nombre+(newDoc.fileName?' ('+newDoc.fileName+')':'')});
+  toast('Documento "'+newDoc.nombre+'" guardado'+(newDoc.fileData?' con archivo adjunto':''));
+  cDocModal();
+  renderDash();
+  renderEstdTabs();
   renderLog('log-mini',5);renderLog('log-full',99);
+  // Re-show current estándar
+  var activeTab=document.querySelector('#estd-tabs .ftab.act');
+  if(activeTab)activeTab.click();
+}
+
+function loadStoredDocs(){
+  var stored=JSON.parse(localStorage.getItem('bio_docs_'+C.id)||'[]');
+  stored.forEach(function(doc){
+    var estd=C.estandares.find(function(e){return e.id===doc.estdId;});
+    if(estd){
+      var exists=estd.documentos.find(function(d){return d.id===doc.id;});
+      if(!exists){
+        estd.documentos.push({
+          id:doc.id,
+          nombre:doc.nombre,
+          version:doc.version+' · '+doc.fechaCarga,
+          estado:doc.estado,
+          tipo:doc.tipo,
+          archivo:doc.archivo,
+          _stored:true
+        });
+      }
+    }
+  });
 }
 function openNuevoCliente(){document.getElementById('modal-nc').classList.add('open')}
 function saveNuevoCliente(){
@@ -563,15 +650,46 @@ function saveNuevoCliente(){
 }
 
 // DESCARGA REAL
-function dlDoc(archivo,nombre){
-  if(!archivo){toast('Este documento no tiene archivo cargado aún','err');return}
-  const url=GITHUB+encodeURIComponent(archivo);
-  const a=document.createElement('a');
-  a.href=url;a.download=archivo;a.target='_blank';
-  document.body.appendChild(a);a.click();document.body.removeChild(a);
-  toast('Descargando: '+nombre);
-  BIO_DATA.trazabilidad.unshift({fecha:new Date().toLocaleString('es-CO'),usuario:'Admin',accion:'Descargó',documento:nombre});
-  renderLog('log-mini',5);renderLog('log-full',99);
+function dlDoc(archivo,nombre,docId){
+  // First check localStorage for uploaded file
+  if(docId&&docId.startsWith('doc-')){
+    var stored=JSON.parse(localStorage.getItem('bio_docs_'+C.id)||'[]');
+    var doc=stored.find(function(d){return d.id===docId;});
+    if(doc&&doc.fileData){
+      var a=document.createElement('a');
+      a.href=doc.fileData;
+      a.download=doc.fileName||doc.nombre;
+      document.body.appendChild(a);a.click();document.body.removeChild(a);
+      toast('Descargando: '+doc.fileName);
+      TRAZ.unshift({fecha:new Date().toLocaleString('es-CO'),usuario:'Admin',accion:'Descargó',doc:doc.nombre});
+      renderLog('log-mini',5);
+      return;
+    }
+  }
+  // Then try GitHub
+  if(archivo){
+    var url=GH+encodeURIComponent(archivo);
+    var a=document.createElement('a');a.href=url;a.download=archivo;a.target='_blank';
+    document.body.appendChild(a);a.click();document.body.removeChild(a);
+    toast('Descargando desde GitHub: '+nombre);
+    TRAZ.unshift({fecha:new Date().toLocaleString('es-CO'),usuario:'Admin',accion:'Descargó',doc:nombre});
+    renderLog('log-mini',5);
+    return;
+  }
+  toast('Este documento no tiene archivo cargado aún','err');
+}
+
+function deleteDoc(docId,nombre){
+  if(!confirm('¿Eliminar "'+nombre+'"? Esta acción no se puede deshacer.'))return;
+  var stored=JSON.parse(localStorage.getItem('bio_docs_'+C.id)||'[]');
+  stored=stored.filter(function(d){return d.id!==docId;});
+  localStorage.setItem('bio_docs_'+C.id,JSON.stringify(stored));
+  C.estandares.forEach(function(e){e.documentos=e.documentos.filter(function(d){return d.id!==docId;});});
+  toast('Documento "'+nombre+'" eliminado');
+  TRAZ.unshift({fecha:new Date().toLocaleString('es-CO'),usuario:'Admin',accion:'Eliminó',doc:nombre});
+  renderDash();renderEstdTabs();renderLog('log-mini',5);renderLog('log-full',99);
+  var activeTab=document.querySelector('#estd-tabs .ftab.act');
+  if(activeTab)activeTab.click();
 }
 
 // DASHBOARD STATS
@@ -638,27 +756,42 @@ function renderEstdTabs(){
 }
 
 function showEstd(el,eid){
-  document.querySelectorAll('.ftab').forEach(t=>t.classList.remove('act'));
+  document.querySelectorAll('#estd-tabs .ftab').forEach(function(t){t.classList.remove('act');});
   if(el)el.classList.add('act');
-  const e=C.estandares.find(x=>x.id===eid);
-  const info=ES.find(x=>x.id===eid);
-  document.getElementById('estd-active-name').innerHTML=`${info.icono} Estándar ${info.num}: ${info.nombre} — <span style="color:var(--text3);font-size:11px">${info.norma}</span>`;
-  document.getElementById('estd-docs').innerHTML=`
-    <div style="background:var(--dark4);border-radius:8px;padding:10px;margin-bottom:10px;font-size:11px;color:var(--text2)">${info.descripcion}</div>
-    ${e.documentos.map(d=>`<div class="dr">
-      <div class="dl">
-        <div class="di" style="background:${d.estado==='vigente'?'var(--gbg)':d.estado==='pendiente'?'var(--ybg)':'var(--rbg)'}">📄</div>
-        <div style="min-width:0">
-          <div class="dn">${d.nombre}</div>
-          <div class="dm">${d.version} &nbsp;·&nbsp; <span style="background:var(--pu-bg);color:var(--pu2);padding:1px 5px;border-radius:3px;font-size:9px;font-weight:600;text-transform:uppercase">${d.tipo}</span></div>
-        </div>
-      </div>
-      <div class="da">
-        ${sh(d.estado)}
-        <div class="ib dl" onclick="dlDoc('${d.archivo}','${d.nombre}')" title="Descargar Word"><i class="fas fa-download"></i></div>
-        <div class="ib" onclick="editarDoc('${d.nombre}','${d.archivo}')" title="Editar"><i class="fas fa-edit"></i></div>
-      </div>
-    </div>`).join('')}`;
+  var e=C.estandares.find(function(x){return x.id===eid;});
+  var info=ES.find(function(x){return x.id===eid;});
+  var ok=e.documentos.filter(function(d){return d.estado==='vigente';}).length;
+  document.getElementById('estd-nm').innerHTML=info.icono+' E'+info.num+': '+info.nombre+' <span style="color:var(--text3);font-size:11px">'+ok+'/'+e.documentos.length+' vigentes</span>';
+  var stored=JSON.parse(localStorage.getItem('bio_docs_'+C.id)||'[]');
+  var rows=e.documentos.length===0
+    ?'<div style="text-align:center;padding:20px;font-size:12px;color:var(--text3)">Sin documentos cargados. Toca "Agregar" para cargar el primero.</div>'
+    :e.documentos.map(function(d){
+      var isStored=d._stored||String(d.id).startsWith('doc-');
+      var sd=isStored?stored.find(function(x){return x.id===d.id;}):null;
+      var hasFile=!!(sd&&sd.fileData);
+      return '<div class="dr" data-docid="'+String(d.id).replace(/"/g,'')+'" data-arch="'+String(d.archivo||'').replace(/"/g,'')+'">'
+        +'<div class="dl">'
+        +'<div class="di" style="background:'+(d.estado==='vigente'?'var(--gbg)':d.estado==='pendiente'?'var(--ybg)':'var(--rbg)')+'">'+( isStored?'<i class="fas fa-paperclip" style="font-size:11px"></i>':'<i class="fas fa-file-alt" style="font-size:11px"></i>')+'</div>'
+        +'<div style="min-width:0">'
+        +'<div class="dn">'+d.nombre+(isStored?' <span style="background:var(--gbg);color:var(--green);padding:1px 5px;border-radius:3px;font-size:9px;font-weight:700">CARGADO</span>':'')+'</div>'
+        +'<div class="dm">'+d.version+' &middot; <span style="background:var(--pu-bg);color:var(--pu2);padding:1px 5px;border-radius:3px;font-size:9px;font-weight:600;text-transform:uppercase">'+d.tipo+'</span>'+(hasFile?' &middot; <span style="color:var(--green);font-size:10px">Con archivo</span>':'')+'</div>'
+        +'</div></div>'
+        +'<div class="da">'+sh(d.estado)
+        +'<div class="ib dl btn-dl-row" title="'+(hasFile?'Descargar archivo cargado':'Descargar desde GitHub')+'"><i class="fas fa-'+(hasFile?'file-download':'download')+'"></i></div>'
+        +(isStored?'<div class="ib btn-del-row" title="Eliminar" style="color:var(--red)"><i class="fas fa-trash-alt"></i></div>':'')
+        +'</div></div>';
+    }).join('');
+  document.getElementById('estd-docs').innerHTML='<div style="background:var(--dark4);border-radius:8px;padding:10px;margin-bottom:10px;font-size:11px;color:var(--text2)">'+info.descripcion+'</div>'+rows;
+  document.querySelectorAll('#estd-docs .btn-dl-row').forEach(function(btn){
+    var row=btn.closest('.dr');
+    var docNm=row.querySelector('.dn')?row.querySelector('.dn').textContent.replace('CARGADO','').trim():'';
+    btn.onclick=function(){dlDoc(row.dataset.arch,docNm,row.dataset.docid);};
+  });
+  document.querySelectorAll('#estd-docs .btn-del-row').forEach(function(btn){
+    var row=btn.closest('.dr');
+    var docNm=row.querySelector('.dn')?row.querySelector('.dn').textContent.replace('CARGADO','').trim():'';
+    btn.onclick=function(){deleteDoc(row.dataset.docid,docNm);};
+  });
 }
 
 function editarDoc(nombre,archivo){
