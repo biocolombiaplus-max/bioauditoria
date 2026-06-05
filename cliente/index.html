@@ -4,7 +4,6 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
 <meta name="apple-mobile-web-app-capable" content="yes">
-<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="theme-color" content="#0D0D1A">
 <title>BIOAuditoria — Portal</title>
 <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
@@ -12,316 +11,425 @@
 <style>
 *{box-sizing:border-box;margin:0;padding:0;-webkit-user-select:none!important;user-select:none!important;-webkit-tap-highlight-color:transparent}
 :root{
-  --or:#FF6B00;--or2:#FF8C33;--or-bg:rgba(255,107,0,0.12);
-  --pu:#7B2FBE;--pu2:#9B4FDE;--pu-bg:rgba(123,47,190,0.12);
+  --or:#FF6B00;--or2:#FF8C33;--or-bg:rgba(255,107,0,0.12);--orb:rgba(255,107,0,0.3);
+  --pu:#7B2FBE;--pu2:#9B4FDE;--pu-bg:rgba(123,47,190,0.12);--pub:rgba(123,47,190,0.3);
   --dark:#0D0D1A;--dark2:#141428;--dark3:#1C1C35;--dark4:#22223A;
   --text:#F0F0FF;--text2:#A0A0C0;--text3:#5A5A8A;
-  --border:rgba(255,255,255,0.07);--border2:rgba(255,255,255,0.12);
-  --green:#2D9F5C;--green-bg:rgba(45,159,92,0.12);
-  --red:#E63946;--red-bg:rgba(230,57,70,0.12);
-  --yellow:#F4A261;--yellow-bg:rgba(244,162,97,0.12);
-  --bottom-h:64px;
+  --bd:rgba(255,255,255,0.07);--bd2:rgba(255,255,255,0.13);
+  --green:#2D9F5C;--gbg:rgba(45,159,92,0.12);
+  --red:#E63946;--rbg:rgba(230,57,70,0.12);
+  --yellow:#F4A261;--ybg:rgba(244,162,97,0.12);
+  --bn:62px;--r:13px;
 }
-html,body{height:100%;overflow:hidden}
-body{font-family:'Plus Jakarta Sans',sans-serif;background:var(--dark);color:var(--text);font-size:14px}
-.app-shell{display:flex;height:100vh;overflow:hidden}
-.sidebar{width:240px;background:var(--dark2);border-right:1px solid var(--border);display:flex;flex-direction:column;flex-shrink:0;overflow-y:auto}
-.sidebar-logo{padding:18px 16px 14px;border-bottom:1px solid var(--border)}
-.logo-txt{font-size:17px;font-weight:800}.logo-txt span{color:var(--or)}
-.logo-role{font-size:10px;background:var(--pu-bg);color:var(--pu2);border:1px solid rgba(123,47,190,0.25);padding:2px 8px;border-radius:5px;display:inline-block;margin-top:4px}
-.nav-section{padding:12px 12px 4px;font-size:10px;text-transform:uppercase;letter-spacing:0.07em;color:var(--text3);font-weight:700}
-.nav-item{display:flex;align-items:center;gap:10px;padding:10px 14px;border-radius:9px;margin:1px 8px;cursor:pointer;color:var(--text2);transition:all 0.15s;font-size:13px;font-weight:500}
-.nav-item:hover{background:rgba(255,255,255,0.05);color:var(--text)}
-.nav-item.active{background:var(--or-bg);color:var(--or);font-weight:700}
-.nav-item i{width:17px;text-align:center;font-size:15px}
-.sidebar-footer{padding:14px;border-top:1px solid var(--border);margin-top:auto}
-.user-card{background:var(--dark3);border-radius:10px;padding:10px 12px;margin-bottom:8px}
-.user-name{font-size:12px;font-weight:700}.user-role{font-size:10px;color:var(--text3);margin-top:1px}
-.lock-badge{display:flex;align-items:center;gap:5px;background:var(--red-bg);border:1px solid rgba(230,57,70,0.2);border-radius:6px;padding:5px 8px;font-size:10px;color:var(--red);font-weight:600}
-.btn-logout-desk{font-size:11px;color:var(--text3);cursor:pointer;text-align:center;margin-top:8px;padding:4px}
+html,body{height:100%;overflow:hidden;background:var(--dark);color:var(--text);font-family:'Plus Jakarta Sans',sans-serif;font-size:14px}
+.shell{display:flex;height:100vh;overflow:hidden}
+
+/* SIDEBAR DESKTOP */
+.sidebar{width:240px;background:var(--dark2);border-right:1px solid var(--bd);display:flex;flex-direction:column;flex-shrink:0;overflow-y:auto}
+.slogo{padding:16px 14px 12px;border-bottom:1px solid var(--bd)}
+.snm{font-size:16px;font-weight:800}.snm span{color:var(--or)}
+.srole{font-size:10px;background:var(--pu-bg);color:var(--pu2);border:1px solid var(--pub);padding:2px 8px;border-radius:5px;display:inline-block;margin-top:3px}
+.ns{padding:12px 12px 4px;font-size:10px;text-transform:uppercase;letter-spacing:0.07em;color:var(--text3);font-weight:700}
+.ni{display:flex;align-items:center;gap:10px;padding:10px 14px;border-radius:9px;margin:1px 8px;cursor:pointer;color:var(--text2);transition:all 0.15s;font-size:13px;font-weight:500}
+.ni:hover{background:rgba(255,255,255,0.05);color:var(--text)}
+.ni.act{background:var(--or-bg);color:var(--or);font-weight:700}
+.ni i{width:17px;text-align:center;font-size:15px}
+.sfoot{padding:14px;border-top:1px solid var(--bd);margin-top:auto}
+.ucard{background:var(--dark3);border-radius:10px;padding:10px 12px;margin-bottom:8px}
+.unm{font-size:12px;font-weight:700}.url2{font-size:10px;color:var(--text3);margin-top:1px}
+.lkbadge{display:flex;align-items:center;gap:5px;background:var(--rbg);border:1px solid rgba(230,57,70,0.2);border-radius:6px;padding:5px 8px;font-size:10px;color:var(--red);font-weight:600}
+.lkbtn{font-size:11px;color:var(--text3);cursor:pointer;text-align:center;margin-top:8px;padding:4px}
+
+/* MAIN */
 .main{flex:1;display:flex;flex-direction:column;overflow:hidden}
-.topbar{display:flex;align-items:center;justify-content:space-between;padding:12px 18px;border-bottom:1px solid var(--border);background:var(--dark2);flex-shrink:0}
-.topbar-title{font-size:14px;font-weight:700}
-.topbar-badge{display:flex;align-items:center;gap:4px;background:var(--red-bg);border:1px solid rgba(230,57,70,0.2);border-radius:6px;padding:4px 9px;font-size:11px;color:var(--red);font-weight:600}
-.content{flex:1;overflow-y:auto;padding:18px;-webkit-overflow-scrolling:touch}
-.page{display:none}.page.active{display:block}
-.card{background:var(--dark3);border:1px solid var(--border);border-radius:14px;padding:16px;margin-bottom:14px}
-.card-head{display:flex;align-items:center;justify-content:space-between;margin-bottom:12px}
-.card-title{font-size:13px;font-weight:700}
-.stats-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:16px}
-.stat{background:var(--dark3);border:1px solid var(--border);border-radius:14px;padding:14px;text-align:center}
-.stat-num{font-size:26px;font-weight:800;line-height:1}.stat-lbl{font-size:10px;color:var(--text2);margin-top:3px}
-.folder-scroll{display:flex;gap:7px;overflow-x:auto;padding-bottom:4px;margin-bottom:14px;scrollbar-width:none}
-.folder-scroll::-webkit-scrollbar{display:none}
-.ftab{flex-shrink:0;padding:7px 13px;border-radius:9px;font-size:12px;font-weight:600;cursor:pointer;border:1px solid var(--border);background:var(--dark3);color:var(--text2);transition:all 0.15s;white-space:nowrap;display:flex;align-items:center;gap:5px}
-.ftab.active{background:var(--or-bg);color:var(--or);border-color:rgba(255,107,0,0.35)}
-.doc-row{display:flex;align-items:center;justify-content:space-between;padding:11px 12px;border-radius:9px;border:1px solid var(--border);margin-bottom:6px;background:var(--dark4)}
-.doc-row-l{display:flex;align-items:center;gap:10px;flex:1;min-width:0}
-.doc-ico{width:34px;height:34px;border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:15px;flex-shrink:0}
-.doc-name{font-size:13px;font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.doc-meta{font-size:11px;color:var(--text3)}
+.topbar{display:flex;align-items:center;justify-content:space-between;padding:12px 18px;border-bottom:1px solid var(--bd);background:var(--dark2);flex-shrink:0}
+.pgtitle{font-size:14px;font-weight:700}
+.prot{display:flex;align-items:center;gap:4px;background:var(--rbg);border:1px solid rgba(230,57,70,0.2);border-radius:6px;padding:4px 9px;font-size:11px;color:var(--red);font-weight:600}
+
+/* CONTENT */
+.content{flex:1;overflow-y:auto;padding:16px;-webkit-overflow-scrolling:touch}
+.page{display:none}.page.act{display:block}
+
+/* STATS */
+.sgrid{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:14px}
+.sc{background:var(--dark3);border:1px solid var(--bd);border-radius:var(--r);padding:14px;text-align:center}
+.sn{font-size:26px;font-weight:800;line-height:1}.sl{font-size:10px;color:var(--text2);margin-top:3px}
+
+/* CARDS */
+.card{background:var(--dark3);border:1px solid var(--bd);border-radius:var(--r);padding:14px;margin-bottom:12px}
+.ch{display:flex;align-items:center;justify-content:space-between;margin-bottom:11px}
+.ct{font-size:13px;font-weight:700}
+
+/* FOLDER CARDS */
+.fcrd{display:flex;align-items:center;justify-content:space-between;padding:13px 14px;border-radius:12px;border:1px solid var(--bd);background:var(--dark4);margin-bottom:8px;cursor:pointer;transition:border-color 0.15s,background 0.15s}
+.fcrd:active{border-color:var(--or);background:rgba(255,107,0,0.05)}
+.fcrd-l{display:flex;align-items:center;gap:12px}
+.fcrd-ico{width:40px;height:40px;border-radius:10px;background:var(--or-bg);display:flex;align-items:center;justify-content:center;font-size:18px;flex-shrink:0}
+.fcrd-nm{font-size:13px;font-weight:600}.fcrd-mt{font-size:11px;color:var(--text3);margin-top:1px}
+.pw{height:4px;background:var(--bd);border-radius:2px;overflow:hidden;margin-top:4px;width:100px}
+.pf{height:100%;border-radius:2px;background:linear-gradient(90deg,var(--or),var(--pu))}
+
+/* FOLDER TABS */
+.fscroll{display:flex;gap:6px;overflow-x:auto;padding-bottom:4px;margin-bottom:12px;scrollbar-width:none}
+.fscroll::-webkit-scrollbar{display:none}
+.ftab{flex-shrink:0;padding:7px 12px;border-radius:8px;font-size:12px;font-weight:600;cursor:pointer;border:1px solid var(--bd);background:var(--dark3);color:var(--text2);transition:all 0.15s;white-space:nowrap;display:flex;align-items:center;gap:5px}
+.ftab.act{background:var(--or-bg);color:var(--or);border-color:var(--orb)}
+
+/* DOC ROWS */
+.dr{display:flex;align-items:center;justify-content:space-between;padding:11px 12px;border-radius:9px;border:1px solid var(--bd);margin-bottom:6px;background:var(--dark4);gap:8px}
+.dl{display:flex;align-items:center;gap:10px;flex:1;min-width:0}
+.di{width:34px;height:34px;border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:15px;flex-shrink:0}
+.dn{font-size:13px;font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.dm{font-size:11px;color:var(--text3)}
 .status{display:inline-block;padding:2px 8px;border-radius:4px;font-size:10px;font-weight:700;text-transform:uppercase;flex-shrink:0}
-.s-v{background:var(--green-bg);color:var(--green)}.s-p{background:var(--yellow-bg);color:var(--yellow)}.s-r{background:var(--red-bg);color:var(--red)}
-.btn-ver{display:inline-flex;align-items:center;gap:4px;padding:7px 12px;border-radius:7px;font-size:11px;font-weight:700;cursor:pointer;border:1px solid rgba(123,47,190,0.3);background:var(--pu-bg);color:var(--pu2);font-family:inherit;white-space:nowrap;flex-shrink:0;margin-left:6px}
+.sv{background:var(--gbg);color:var(--green)}.sp{background:var(--ybg);color:var(--yellow)}.sr{background:var(--rbg);color:var(--red)}
+.bver{display:inline-flex;align-items:center;gap:4px;padding:7px 12px;border-radius:7px;font-size:11px;font-weight:700;cursor:pointer;border:1px solid var(--pub);background:var(--pu-bg);color:var(--pu2);font-family:inherit;white-space:nowrap;flex-shrink:0;margin-left:5px}
+.bver:active{background:rgba(123,47,190,0.25)}
+
+/* ALERT */
 .alert{display:flex;align-items:flex-start;gap:8px;padding:10px 12px;border-radius:9px;font-size:12px;margin-bottom:12px}
-.alert-warn{background:var(--yellow-bg);border:1px solid rgba(244,162,97,0.3);color:var(--yellow)}
-.alert-info{background:var(--pu-bg);border:1px solid rgba(123,47,190,0.3);color:var(--pu2)}
-.ver-row{display:flex;align-items:center;gap:10px;padding:10px 12px;border-radius:9px;margin-bottom:5px;border:1px solid var(--border);background:var(--dark4)}
-.ver-n{font-size:10px;font-weight:700;color:var(--text3);min-width:22px}.ver-desc{flex:1;font-size:12px}
-.viewer{display:none;position:fixed;inset:0;z-index:200;background:rgba(0,0,0,0.88);backdrop-filter:blur(12px);align-items:flex-end;justify-content:center}
+.aw{background:var(--ybg);border:1px solid rgba(244,162,97,0.3);color:var(--yellow)}
+.ai{background:var(--pu-bg);border:1px solid var(--pub);color:var(--pu2)}
+
+/* VERIFY */
+.vrow{display:flex;align-items:center;gap:8px;padding:10px 12px;border-radius:9px;margin-bottom:5px;border:1px solid var(--bd);background:var(--dark4)}
+.vn{font-size:10px;font-weight:700;color:var(--text3);min-width:22px}.vd{flex:1;font-size:12px}
+
+/* VIEWER */
+.viewer{display:none;position:fixed;inset:0;z-index:200;background:rgba(0,0,0,0.88);backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px);align-items:flex-end;justify-content:center}
 .viewer.open{display:flex}
-.viewer-box{background:var(--dark2);border:1px solid var(--border2);border-radius:20px 20px 0 0;width:100%;max-width:700px;max-height:90vh;overflow:hidden;display:flex;flex-direction:column}
-.viewer-head{display:flex;align-items:center;justify-content:space-between;padding:14px 18px;border-bottom:1px solid var(--border);flex-shrink:0}
-.viewer-title{font-size:13px;font-weight:700;flex:1;margin-right:8px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.viewer-close{width:30px;height:30px;border-radius:50%;background:rgba(255,255,255,0.08);display:flex;align-items:center;justify-content:center;cursor:pointer;font-size:14px;flex-shrink:0}
-.viewer-body{padding:16px;overflow-y:auto;flex:1;-webkit-overflow-scrolling:touch}
-.doc-preview{background:#fff;color:#111;padding:22px 24px;border-radius:10px;font-family:'Plus Jakarta Sans',Arial,sans-serif;font-size:12px;line-height:1.8;position:relative}
-.doc-preview h1{font-size:14px;font-weight:700;text-align:center;color:#0A3D55;margin-bottom:4px;border-bottom:2px solid #FF6B00;padding-bottom:8px}
-.doc-preview h2{font-size:12px;font-weight:700;color:#7B2FBE;margin:14px 0 5px;border-left:3px solid #FF6B00;padding-left:7px}
-.doc-preview p{margin-bottom:7px;color:#222}
-.doc-preview .wm{position:absolute;top:50%;left:50%;transform:translate(-50%,-50%) rotate(-35deg);font-size:48px;color:rgba(255,107,0,0.06);font-weight:900;white-space:nowrap;pointer-events:none;z-index:1}
-.doc-preview table{width:100%;border-collapse:collapse;margin:6px 0;font-size:11px}
-.doc-preview table td,.doc-preview table th{padding:5px 7px;border:1px solid #ddd}
-.doc-preview table th{background:#0A3D55;color:#fff;font-weight:600}
-.doc-preview .sig{border:1px dashed #ccc;border-radius:6px;padding:10px;margin-top:10px;text-align:center;color:#888;font-size:11px;min-height:55px}
-.protect-ov{position:absolute;inset:0;z-index:10;cursor:not-allowed}
-.no-dl-strip{font-size:10px;color:var(--red);background:var(--red-bg);padding:5px 10px;border-radius:6px;margin-bottom:10px;display:flex;align-items:center;gap:5px}
-.prog-wrap{height:5px;background:var(--border);border-radius:3px;overflow:hidden;margin-top:5px}
-.prog-fill{height:100%;border-radius:3px;background:linear-gradient(90deg,var(--or),var(--pu))}
-.folder-card{display:flex;align-items:center;justify-content:space-between;padding:13px 14px;border-radius:12px;border:1px solid var(--border);background:var(--dark4);margin-bottom:8px;cursor:pointer;transition:border-color 0.15s}
-.folder-card-l{display:flex;align-items:center;gap:12px}
-.folder-card-ico{width:38px;height:38px;border-radius:10px;background:var(--or-bg);display:flex;align-items:center;justify-content:center;font-size:18px;flex-shrink:0}
-.folder-card-name{font-size:13px;font-weight:600}.folder-card-meta{font-size:11px;color:var(--text3);margin-top:1px}
+.vbox{background:var(--dark2);border:1px solid var(--bd2);border-radius:20px 20px 0 0;width:100%;max-width:700px;max-height:92vh;overflow:hidden;display:flex;flex-direction:column}
+.vhead{display:flex;align-items:center;justify-content:space-between;padding:14px 18px;border-bottom:1px solid var(--bd);flex-shrink:0}
+.vtitle{font-size:13px;font-weight:700;flex:1;margin-right:8px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.vclose{width:30px;height:30px;border-radius:50%;background:rgba(255,255,255,0.08);display:flex;align-items:center;justify-content:center;cursor:pointer;font-size:14px;flex-shrink:0}
+.vbody{padding:16px;overflow-y:auto;flex:1;-webkit-overflow-scrolling:touch}
+.dprev{background:#fff;color:#111;padding:22px 24px;border-radius:10px;font-family:'Plus Jakarta Sans',Arial,sans-serif;font-size:12px;line-height:1.8;position:relative}
+.dprev h1{font-size:14px;font-weight:700;text-align:center;color:#0A3D55;margin-bottom:8px;border-bottom:2px solid #FF6B00;padding-bottom:8px}
+.dprev h2{font-size:12px;font-weight:700;color:#7B2FBE;margin:14px 0 5px;border-left:3px solid #FF6B00;padding-left:7px}
+.dprev p{margin-bottom:7px;color:#333}
+.dprev .wm{position:absolute;top:50%;left:50%;transform:translate(-50%,-50%) rotate(-35deg);font-size:52px;color:rgba(255,107,0,0.05);font-weight:900;white-space:nowrap;pointer-events:none;z-index:1;letter-spacing:2px}
+.dprev .sig{border:1px dashed #ccc;border-radius:6px;padding:12px;margin-top:10px;text-align:center;color:#888;font-size:11px;min-height:55px}
+.pov{position:absolute;inset:0;z-index:10;cursor:not-allowed}
+.nodl{font-size:10px;color:var(--red);background:var(--rbg);padding:5px 10px;border-radius:6px;margin-bottom:10px;display:flex;align-items:center;gap:5px}
+
+/* BOTTOM NAV MOBILE */
+.bnav{display:none;position:fixed;bottom:0;left:0;right:0;height:var(--bn);background:var(--dark2);border-top:1px solid var(--bd);z-index:100;padding-bottom:env(safe-area-inset-bottom,0px)}
+.bni{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;cursor:pointer;padding:8px 4px;color:var(--text3);transition:color 0.15s;font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:0.04em;-webkit-tap-highlight-color:transparent}
+.bni i{font-size:20px;transition:all 0.15s}
+.bni.act{color:var(--or)}.bni.act i{filter:drop-shadow(0 0 6px rgba(255,107,0,0.6))}
+
 /* MOBILE */
 @media(max-width:768px){
   .sidebar{display:none}
   .topbar{padding:10px 14px}
-  .content{padding:12px;padding-bottom:calc(var(--bottom-h) + 16px)}
-  .stats-grid{gap:8px}.stat{padding:11px 8px}.stat-num{font-size:20px}.stat-lbl{font-size:9px}
-  .doc-name{font-size:12px}
-  .bottom-nav{display:flex;position:fixed;bottom:0;left:0;right:0;height:var(--bottom-h);background:var(--dark2);border-top:1px solid var(--border);z-index:100;padding-bottom:env(safe-area-inset-bottom)}
-  .bn-item{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;cursor:pointer;padding:8px 4px;color:var(--text3);transition:color 0.15s;font-size:9px;font-weight:600;text-transform:uppercase}
-  .bn-item i{font-size:19px}.bn-item.active{color:var(--or)}
-  .bn-item.active i{filter:drop-shadow(0 0 5px rgba(255,107,0,0.6))}
-  .mobile-header{display:flex!important;align-items:center;justify-content:space-between;margin-bottom:14px}
-  .mobile-logo{font-size:18px;font-weight:800}.mobile-logo span{color:var(--or)}
-  .mobile-user{font-size:11px;color:var(--text2)}
-  .viewer-box{max-height:92vh}
+  .content{padding:12px;padding-bottom:calc(var(--bn) + 12px)}
+  .sgrid{gap:8px}.sc{padding:11px 8px}.sn{font-size:21px}.sl{font-size:9px}
+  .dn{font-size:12px}
+  .bnav{display:flex}
+  .mhdr{display:flex!important;align-items:center;justify-content:space-between;margin-bottom:14px}
+  .mlogo{font-size:18px;font-weight:800}.mlogo span{color:var(--or)}
+  .musernm{font-size:11px;color:var(--text2)}
 }
-@media(min-width:769px){
-  .bottom-nav{display:none}
-  .mobile-header{display:none}
-}
+@media(min-width:769px){.bnav{display:none}.mhdr{display:none}}
 </style>
 </head>
 <body>
-<div class="app-shell">
+<div class="shell">
+  <!-- SIDEBAR DESKTOP -->
   <div class="sidebar">
-    <div class="sidebar-logo">
-      <div class="logo-txt">BIO<span>Auditoria</span></div>
-      <div class="logo-role">👩‍⚕️ Portal Prestador</div>
+    <div class="slogo">
+      <div class="snm">BIO<span>Auditoria</span></div>
+      <div class="srole">👩‍⚕️ Portal del Prestador</div>
     </div>
-    <div class="nav-section">Mi documentación</div>
-    <div class="nav-item active" onclick="nav(this,'inicio','Inicio')"><i class="fas fa-home"></i>Inicio</div>
-    <div class="nav-item" onclick="nav(this,'carpetas','Mis documentos')"><i class="fas fa-folder-open"></i>Mis documentos</div>
-    <div class="nav-item" onclick="nav(this,'formatos','Formatos')"><i class="fas fa-file-alt"></i>Formatos</div>
-    <div class="nav-section">Compliance</div>
-    <div class="nav-item" onclick="nav(this,'verificacion','Verificación 3100')"><i class="fas fa-clipboard-check"></i>Verificación 3100</div>
-    <div class="nav-item" onclick="nav(this,'pgirh','PGIRH')"><i class="fas fa-recycle"></i>PGIRH</div>
-    <div class="sidebar-footer">
-      <div class="user-card">
-        <div class="user-name">Dra. Yesika Vesga</div>
-        <div class="user-role">Médico General · Cúcuta</div>
-      </div>
-      <div class="lock-badge"><i class="fas fa-lock"></i>Solo lectura · Sin descarga</div>
-      <div class="btn-logout-desk" onclick="logout()"><i class="fas fa-sign-out-alt"></i> Cerrar sesión</div>
+    <div class="ns">Mi documentación</div>
+    <div class="ni act" onclick="go(this,'inicio','Inicio')"><i class="fas fa-home"></i>Inicio</div>
+    <div class="ni" onclick="go(this,'carpetas','Documentos')"><i class="fas fa-folder-open"></i>Mis documentos</div>
+    <div class="ni" onclick="go(this,'formatos','Formatos')"><i class="fas fa-file-alt"></i>Formatos</div>
+    <div class="ns">Compliance</div>
+    <div class="ni" onclick="go(this,'verificacion','Verificación 3100')"><i class="fas fa-clipboard-check"></i>Verificación 3100</div>
+    <div class="ni" onclick="go(this,'pgirh','PGIRH')"><i class="fas fa-recycle"></i>PGIRH</div>
+    <div class="sfoot">
+      <div class="ucard"><div class="unm" id="d-unm">Dra. Yesika Vesga</div><div class="url2">Medical Center Siloé SAS</div></div>
+      <div class="lkbadge"><i class="fas fa-lock"></i>Solo lectura · Sin descarga</div>
+      <div class="lkbtn" onclick="logout()"><i class="fas fa-sign-out-alt"></i> Cerrar sesión</div>
     </div>
   </div>
+
+  <!-- MAIN -->
   <div class="main">
     <div class="topbar">
-      <div class="topbar-title" id="pg-title">Inicio</div>
-      <div class="topbar-badge"><i class="fas fa-ban"></i>Protegido</div>
+      <div class="pgtitle" id="pgtitle">Inicio</div>
+      <div class="prot"><i class="fas fa-ban"></i>Protegido</div>
     </div>
     <div class="content">
 
-      <div class="page active" id="page-inicio">
-        <div class="mobile-header" style="display:none">
-          <div class="mobile-logo">BIO<span>Auditoria</span></div>
-          <div class="mobile-user">Dra. Vesga</div>
+      <!-- INICIO -->
+      <div class="page act" id="page-inicio">
+        <div class="mhdr" style="display:none">
+          <div class="mlogo">BIO<span>Auditoria</span></div>
+          <div class="musernm" id="m-unm">Dra. Vesga</div>
         </div>
         <div style="padding:4px 0 14px">
-          <div style="font-size:17px;font-weight:800;margin-bottom:2px">Bienvenida 👋</div>
-          <div style="font-size:12px;color:var(--text2)">Medical Center Siloé SAS · Cúcuta</div>
+          <div style="font-size:18px;font-weight:800;margin-bottom:2px">Bienvenida 👋</div>
+          <div style="font-size:12px;color:var(--text2)" id="sub-nm">Medical Center Siloé SAS · Cúcuta</div>
         </div>
-        <div class="stats-grid">
-          <div class="stat"><div class="stat-num" style="color:var(--or)">35</div><div class="stat-lbl">Documentos</div></div>
-          <div class="stat"><div class="stat-num" style="color:var(--green)">78%</div><div class="stat-lbl">Cumplimiento</div></div>
-          <div class="stat"><div class="stat-num" style="color:var(--red)">3</div><div class="stat-lbl">Urgentes</div></div>
+        <div class="sgrid" id="stats-box">
+          <div class="sc"><div class="sn" style="color:var(--or)" id="st-total">—</div><div class="sl">Documentos</div></div>
+          <div class="sc"><div class="sn" style="color:var(--green)" id="st-pct">—</div><div class="sl">Cumplimiento</div></div>
+          <div class="sc"><div class="sn" style="color:var(--red)" id="st-req">—</div><div class="sl">Urgentes</div></div>
         </div>
-        <div class="alert alert-warn"><i class="fas fa-exclamation-triangle" style="flex-shrink:0"></i><div>Tienes <strong>3 documentos</strong> que requieren acción antes de una visita de verificación.</div></div>
+        <div class="alert aw" id="alert-req" style="display:none"><i class="fas fa-exclamation-triangle" style="flex-shrink:0"></i><div id="alert-req-txt"></div></div>
         <div style="font-size:13px;font-weight:700;margin-bottom:10px">📂 Mis carpetas</div>
         <div id="inicio-carpetas"></div>
       </div>
 
+      <!-- CARPETAS -->
       <div class="page" id="page-carpetas">
-        <div class="folder-scroll" id="folder-tabs"></div>
+        <div class="fscroll" id="ftabs"></div>
         <div class="card">
-          <div class="card-head"><div class="card-title" id="folder-active-name">Documentos</div></div>
-          <div id="folder-docs"></div>
+          <div class="ch"><div class="ct" id="fnm">Documentos</div></div>
+          <div id="fdocs"></div>
         </div>
       </div>
 
+      <!-- FORMATOS -->
       <div class="page" id="page-formatos">
         <div class="card">
-          <div class="card-head"><div class="card-title">📝 Mis formatos</div></div>
-          <div id="formatos-list"></div>
+          <div class="ch"><div class="ct">📝 Mis formatos</div><span style="font-size:11px;color:var(--text3)">Solo visualización</span></div>
+          <div id="fmts"></div>
         </div>
       </div>
 
+      <!-- VERIFICACION -->
       <div class="page" id="page-verificacion">
-        <div class="card" style="margin-bottom:14px">
+        <div class="card" style="margin-bottom:12px">
           <div style="display:flex;align-items:center;gap:12px">
-            <div style="width:56px;height:56px;border-radius:50%;background:conic-gradient(var(--or) 78%,var(--dark3) 0);display:flex;align-items:center;justify-content:center;flex-shrink:0">
-              <div style="width:42px;height:42px;border-radius:50%;background:var(--dark3);display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:800">78%</div>
+            <div style="width:54px;height:54px;border-radius:50%;background:conic-gradient(var(--or) 82%,var(--dark3) 0);display:flex;align-items:center;justify-content:center;flex-shrink:0">
+              <div style="width:40px;height:40px;border-radius:50%;background:var(--dark3);display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:800">82%</div>
             </div>
-            <div><div style="font-size:14px;font-weight:700">Verificación Res. 3100</div><div style="font-size:11px;color:var(--text2)">11 de 14 estándares cumplidos</div></div>
+            <div><div style="font-size:14px;font-weight:700">Verificación Res. 3100</div><div style="font-size:11px;color:var(--text2)" id="ver-sub">Cargando...</div></div>
           </div>
         </div>
         <div id="ver-list"></div>
       </div>
 
+      <!-- PGIRH -->
       <div class="page" id="page-pgirh">
-        <div class="alert alert-info"><i class="fas fa-recycle" style="flex-shrink:0"></i><div>Res. 1164/2002 · Dec. 351/2014 — Obligatorio para todo prestador de salud.</div></div>
-        <div class="card">
-          <div class="card-head"><div class="card-title">♻️ Documentos PGIRH</div></div>
-          <div id="pgirh-list"></div>
-        </div>
+        <div class="alert ai"><i class="fas fa-recycle" style="flex-shrink:0"></i><div>Res. 1164/2002 · Dec. 351/2014 — Obligatorio para todo prestador de servicios de salud.</div></div>
+        <div class="card"><div class="ch"><div class="ct">♻️ Documentos PGIRH</div></div><div id="pgirh-docs"></div></div>
       </div>
 
     </div>
   </div>
 </div>
 
-<nav class="bottom-nav">
-  <div class="bn-item active" id="bn-inicio" onclick="nav(null,'inicio','Inicio');setBn('bn-inicio')"><i class="fas fa-home"></i>Inicio</div>
-  <div class="bn-item" id="bn-carpetas" onclick="nav(null,'carpetas','Documentos');setBn('bn-carpetas')"><i class="fas fa-folder-open"></i>Docs</div>
-  <div class="bn-item" id="bn-formatos" onclick="nav(null,'formatos','Formatos');setBn('bn-formatos')"><i class="fas fa-file-alt"></i>Formatos</div>
-  <div class="bn-item" id="bn-verificacion" onclick="nav(null,'verificacion','Verificación');setBn('bn-verificacion')"><i class="fas fa-clipboard-check"></i>Check</div>
-  <div class="bn-item" id="bn-pgirh" onclick="nav(null,'pgirh','PGIRH');setBn('bn-pgirh')"><i class="fas fa-recycle"></i>PGIRH</div>
+<!-- BOTTOM NAV -->
+<nav class="bnav">
+  <div class="bni act" id="bn-inicio" onclick="go(null,'inicio','Inicio');bn('bn-inicio')"><i class="fas fa-home"></i>Inicio</div>
+  <div class="bni" id="bn-carpetas" onclick="go(null,'carpetas','Documentos');bn('bn-carpetas')"><i class="fas fa-folder-open"></i>Docs</div>
+  <div class="bni" id="bn-formatos" onclick="go(null,'formatos','Formatos');bn('bn-formatos')"><i class="fas fa-file-alt"></i>Formatos</div>
+  <div class="bni" id="bn-verificacion" onclick="go(null,'verificacion','Verificación');bn('bn-verificacion')"><i class="fas fa-clipboard-check"></i>Check</div>
+  <div class="bni" id="bn-pgirh" onclick="go(null,'pgirh','PGIRH');bn('bn-pgirh')"><i class="fas fa-recycle"></i>PGIRH</div>
 </nav>
 
+<!-- VIEWER -->
 <div class="viewer" id="viewer">
-  <div class="viewer-box">
-    <div class="viewer-head">
-      <div class="viewer-title" id="viewer-title">Documento</div>
-      <div style="display:flex;align-items:center;gap:8px">
-        <span style="font-size:10px;background:var(--red-bg);color:var(--red);padding:3px 7px;border-radius:4px;font-weight:700;white-space:nowrap"><i class="fas fa-lock"></i> Solo lectura</span>
-        <div class="viewer-close" onclick="closeViewer()">✕</div>
+  <div class="vbox">
+    <div class="vhead">
+      <div class="vtitle" id="vtitle">Documento</div>
+      <div style="display:flex;align-items:center;gap:7px">
+        <span style="font-size:10px;background:var(--rbg);color:var(--red);padding:3px 7px;border-radius:4px;font-weight:700"><i class="fas fa-lock"></i> Solo lectura</span>
+        <div class="vclose" onclick="closeViewer()">✕</div>
       </div>
     </div>
-    <div class="viewer-body" id="viewer-body"></div>
+    <div class="vbody" id="vbody"></div>
   </div>
 </div>
 
 <script src="../js/data.js"></script>
 <script>
-if(!sessionStorage.getItem('bio_user')||sessionStorage.getItem('bio_role')!=='cliente'){window.location.href='../index.html'}
+// AUTH
+if(!sessionStorage.getItem('bio_user')||sessionStorage.getItem('bio_role')!=='cliente'){
+  window.location.replace('../index.html');
+}
+// ANTI-COPY
 document.addEventListener('contextmenu',e=>e.preventDefault());
 document.addEventListener('keydown',e=>{if((e.ctrlKey||e.metaKey)&&['s','a','c','p','u'].includes(e.key.toLowerCase()))e.preventDefault()});
-const C=BIO_DATA.clientes.vesga;
-function logout(){sessionStorage.clear();window.location.href='../index.html'}
-function nav(el,pageId,title){
-  document.querySelectorAll('.nav-item').forEach(n=>n.classList.remove('active'));
-  if(el)el.classList.add('active');
-  document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));
-  document.getElementById('page-'+pageId).classList.add('active');
-  document.getElementById('pg-title').textContent=title;
+
+// DATA
+const C = BIO_DATA.clientes.vesga;
+document.getElementById('d-unm').textContent = C.nombre;
+document.getElementById('m-unm').textContent = C.nombre.replace('Dra. ','').split(' ')[0]+' Vesga';
+document.getElementById('sub-nm').textContent = C.empresa+' · '+C.ciudad;
+
+function logout(){sessionStorage.clear();window.location.replace('../index.html')}
+
+function go(el,id,title){
+  document.querySelectorAll('.ni').forEach(n=>n.classList.remove('act'));
+  if(el)el.classList.add('act');
+  document.querySelectorAll('.page').forEach(p=>p.classList.remove('act'));
+  document.getElementById('page-'+id).classList.add('act');
+  document.getElementById('pgtitle').textContent=title;
 }
-function setBn(id){document.querySelectorAll('.bn-item').forEach(b=>b.classList.remove('active'));document.getElementById(id).classList.add('active')}
-function statusHtml(s){
-  if(s==='vigente')return '<span class="status s-v">✅ Vigente</span>';
-  if(s==='pendiente')return '<span class="status s-p">⚠️ Pendiente</span>';
-  return '<span class="status s-r">🚨 Requerido</span>';
+function bn(id){
+  document.querySelectorAll('.bni').forEach(b=>b.classList.remove('act'));
+  document.getElementById(id).classList.add('act');
 }
+function sh(s){
+  if(s==='vigente')return '<span class="status sv">✅ Vigente</span>';
+  if(s==='pendiente')return '<span class="status sp">⚠️ Pendiente</span>';
+  return '<span class="status sr">🚨 Requerido</span>';
+}
+
+// STATS
+function initStats(){
+  const docs=C.carpetas.flatMap(f=>f.documentos);
+  const total=docs.length;
+  const ok=docs.filter(d=>d.estado==='vigente').length;
+  const req=docs.filter(d=>d.estado==='requerido').length;
+  const pct=Math.round(ok/total*100);
+  document.getElementById('st-total').textContent=total;
+  document.getElementById('st-pct').textContent=pct+'%';
+  document.getElementById('st-req').textContent=req;
+  if(req>0){
+    document.getElementById('alert-req').style.display='flex';
+    document.getElementById('alert-req-txt').innerHTML='Tienes <strong>'+req+' documento(s)</strong> que requieren acción antes de una visita de verificación.';
+  }
+}
+
+// INICIO CARPETAS
 function renderInicio(){
   document.getElementById('inicio-carpetas').innerHTML=C.carpetas.map(f=>{
-    const ok=f.documentos.filter(d=>d.estado==='vigente').length,total=f.documentos.length,pct=Math.round(ok/total*100);
-    return `<div class="folder-card" onclick="goFolder('${f.id}')">
-      <div class="folder-card-l">
-        <div class="folder-card-ico">${f.icono}</div>
-        <div><div class="folder-card-name">${f.nombre}</div><div class="folder-card-meta">${ok}/${total} docs vigentes</div>
-        <div class="prog-wrap" style="width:110px"><div class="prog-fill" style="width:${pct}%"></div></div></div>
-      </div><i class="fas fa-chevron-right" style="color:var(--text3);font-size:13px"></i>
+    const ok=f.documentos.filter(d=>d.estado==='vigente').length;
+    const total=f.documentos.length;
+    const pct=Math.round(ok/total*100);
+    return `<div class="fcrd" onclick="goCarpeta('${f.id}')">
+      <div class="fcrd-l">
+        <div class="fcrd-ico">${f.icono}</div>
+        <div>
+          <div class="fcrd-nm">${f.nombre}</div>
+          <div class="fcrd-mt">${ok}/${total} vigentes · ${f.norma.split('·')[0].trim()}</div>
+          <div class="pw"><div class="pf" style="width:${pct}%"></div></div>
+        </div>
+      </div>
+      <i class="fas fa-chevron-right" style="color:var(--text3);font-size:13px;flex-shrink:0"></i>
     </div>`;
   }).join('');
 }
-function goFolder(fId){
-  nav(null,'carpetas','Documentos');setBn('bn-carpetas');
-  setTimeout(()=>{renderFolderTabs();const t=document.querySelector(`.ftab[data-fid="${fId}"]`);if(t)t.click()},50);
+
+function goCarpeta(fId){
+  go(null,'carpetas','Documentos');
+  bn('bn-carpetas');
+  document.querySelectorAll('.ni')[1]&&document.querySelectorAll('.ni')[1].classList.add('act');
+  setTimeout(()=>{
+    renderFolderTabs();
+    const t=document.querySelector(`.ftab[data-fid="${fId}"]`);
+    if(t)t.click();
+  },60);
 }
+
+// CARPETAS
 function renderFolderTabs(){
-  const tabs=document.getElementById('folder-tabs');
-  tabs.innerHTML=C.carpetas.map((f,i)=>`<div class="ftab ${i===0?'active':''}" data-fid="${f.id}" onclick="showFolder(this,'${f.id}')">${f.icono} ${f.nombre}</div>`).join('');
-  if(C.carpetas[0])showFolder(tabs.children[0],C.carpetas[0].id);
+  const el=document.getElementById('ftabs');
+  el.innerHTML=C.carpetas.map((f,i)=>
+    `<div class="ftab ${i===0?'act':''}" data-fid="${f.id}" onclick="showFolder(this,'${f.id}')">${f.icono} ${f.nombre}</div>`
+  ).join('');
+  if(C.carpetas[0])showFolder(el.children[0],C.carpetas[0].id);
 }
 function showFolder(el,fId){
-  document.querySelectorAll('.ftab').forEach(t=>t.classList.remove('active'));
-  if(el)el.classList.add('active');
-  const folder=C.carpetas.find(f=>f.id===fId);
-  document.getElementById('folder-active-name').textContent=folder.icono+' '+folder.nombre;
-  document.getElementById('folder-docs').innerHTML=folder.documentos.map(d=>
-    `<div class="doc-row"><div class="doc-row-l"><div class="doc-ico" style="background:${d.estado==='vigente'?'var(--green-bg)':d.estado==='pendiente'?'var(--yellow-bg)':'var(--red-bg)'}">📄</div>
-    <div style="min-width:0"><div class="doc-name">${d.nombre}</div><div class="doc-meta">${d.version}</div></div></div>
-    <div style="display:flex;align-items:center;gap:4px;flex-shrink:0">${statusHtml(d.estado)}<button class="btn-ver" onclick="viewDoc('${d.id}','${d.nombre}')"><i class="fas fa-eye"></i></button></div></div>`
+  document.querySelectorAll('.ftab').forEach(t=>t.classList.remove('act'));
+  if(el)el.classList.add('act');
+  const f=C.carpetas.find(x=>x.id===fId);
+  document.getElementById('fnm').textContent=f.icono+' '+f.nombre;
+  document.getElementById('fdocs').innerHTML=f.documentos.map(d=>
+    `<div class="dr">
+      <div class="dl">
+        <div class="di" style="background:${d.estado==='vigente'?'var(--gbg)':d.estado==='pendiente'?'var(--ybg)':'var(--rbg)'}">📄</div>
+        <div style="min-width:0"><div class="dn">${d.nombre}</div><div class="dm">${d.version}</div></div>
+      </div>
+      <div style="display:flex;align-items:center;gap:4px;flex-shrink:0">
+        ${sh(d.estado)}
+        <button class="bver" onclick="viewDoc('${d.nombre}','${d.archivo||''}')"><i class="fas fa-eye"></i></button>
+      </div>
+    </div>`
   ).join('');
 }
+
+// FORMATOS
 function renderFormatos(){
-  document.getElementById('formatos-list').innerHTML=C.formatos_diligenciables.map(f=>
-    `<div class="doc-row"><div class="doc-row-l"><div class="doc-ico" style="background:var(--pu-bg)">📝</div>
-    <div style="min-width:0"><div class="doc-name">${f.nombre}</div><div class="doc-meta">${f.categoria}</div></div></div>
-    <button class="btn-ver" onclick="viewDoc('${f.id}','${f.nombre}')"><i class="fas fa-pen"></i></button></div>`
+  document.getElementById('fmts').innerHTML=C.formatos_diligenciables.map(f=>
+    `<div class="dr">
+      <div class="dl">
+        <div class="di" style="background:var(--pu-bg)">📝</div>
+        <div style="min-width:0"><div class="dn">${f.nombre}</div><div class="dm">${f.categoria}</div></div>
+      </div>
+      <button class="bver" onclick="viewDoc('${f.nombre}','${f.archivo||''}')"><i class="fas fa-pen"></i></button>
+    </div>`
   ).join('');
 }
-function renderVerificacion(){
-  document.getElementById('ver-list').innerHTML=BIO_DATA.verificacion_3100.map(v=>
-    `<div class="ver-row"><div class="ver-n">${v.estandar}</div><div class="ver-desc">${v.descripcion}</div>${statusHtml(v.estado)}</div>`
+
+// VERIFICACION
+function renderVer(){
+  const list=BIO_DATA.verificacion_3100;
+  const ok=list.filter(v=>v.estado==='vigente').length;
+  document.getElementById('ver-sub').textContent=ok+' de '+list.length+' estándares cumplidos · '+C.empresa;
+  document.getElementById('ver-list').innerHTML=list.map(v=>
+    `<div class="vrow"><div class="vn">${v.estandar}</div><div class="vd">${v.descripcion}</div>${sh(v.estado)}</div>`
   ).join('');
 }
+
+// PGIRH
 function renderPgirh(){
-  const folder=C.carpetas.find(f=>f.id==='pgirh');
-  document.getElementById('pgirh-list').innerHTML=folder.documentos.map(d=>
-    `<div class="doc-row"><div class="doc-row-l"><div class="doc-ico" style="background:var(--green-bg)">♻️</div>
-    <div style="min-width:0"><div class="doc-name">${d.nombre}</div><div class="doc-meta">${d.version}</div></div></div>
-    <div style="display:flex;align-items:center;gap:4px;flex-shrink:0">${statusHtml(d.estado)}<button class="btn-ver" onclick="viewDoc('${d.id}','${d.nombre}')"><i class="fas fa-eye"></i></button></div></div>`
+  const f=C.carpetas.find(x=>x.id==='pgirh');
+  document.getElementById('pgirh-docs').innerHTML=f.documentos.map(d=>
+    `<div class="dr">
+      <div class="dl">
+        <div class="di" style="background:var(--gbg)">♻️</div>
+        <div style="min-width:0"><div class="dn">${d.nombre}</div><div class="dm">${d.version}</div></div>
+      </div>
+      <div style="display:flex;align-items:center;gap:4px;flex-shrink:0">
+        ${sh(d.estado)}
+        <button class="bver" onclick="viewDoc('${d.nombre}','${d.archivo||''}')"><i class="fas fa-eye"></i></button>
+      </div>
+    </div>`
   ).join('');
 }
-function viewDoc(id,nombre){
-  document.getElementById('viewer-title').textContent=nombre;
+
+// VIEWER
+function viewDoc(nombre,archivo){
+  document.getElementById('vtitle').textContent=nombre;
   const fecha=new Date().toLocaleDateString('es-CO');
-  document.getElementById('viewer-body').innerHTML=
-    `<div class="no-dl-strip"><i class="fas fa-ban"></i>Documento protegido · Solo visualización · © BIOAuditoria</div>
-    <div class="doc-preview" oncopy="return false">
-      <div style="display:flex;justify-content:space-between;margin-bottom:12px;padding-bottom:10px;border-bottom:1px solid #eee;font-size:10px;color:#666">
-        <div><strong>MEDICAL CENTER SILOÉ SAS</strong><br>NIT 902.052.974-3<br>Calle 15A No. 1E-109 · Cúcuta</div>
+  document.getElementById('vbody').innerHTML=
+    `<div class="nodl"><i class="fas fa-ban"></i>Documento protegido · Solo visualización · © BIOAuditoria / BIOMarketing</div>
+    <div class="dprev" oncopy="return false">
+      <div style="display:flex;justify-content:space-between;margin-bottom:10px;padding-bottom:10px;border-bottom:1px solid #eee;font-size:10px;color:#777">
+        <div><strong>${C.empresa}</strong><br>NIT ${C.nit}<br>${C.direccion}<br>${C.ciudad}</div>
         <div style="text-align:right"><strong>BIOAuditoria®</strong><br>Res. 3100/2019<br>${fecha}</div>
       </div>
       <h1>${nombre.toUpperCase()}</h1>
-      <h2>Prestador de servicios de salud</h2>
-      <p><strong>Empresa:</strong> Medical Center Siloé SAS &nbsp;|&nbsp; <strong>NIT:</strong> 902.052.974-3</p>
-      <p><strong>Médico:</strong> Dra. Yesika Zayra Vesga Español &nbsp;|&nbsp; <strong>C.C.:</strong> 1.140.858.207</p>
-      <p><strong>Servicio:</strong> Consulta Externa de Medicina General</p>
-      <p><strong>Dirección:</strong> Calle 15A No. 1E-109 Local 1, Barrio Caobos, Cúcuta</p>
-      <h2>Documento de gestión documental habilitación en salud</h2>
-      <p>Este documento hace parte del sistema de gestión documental de <strong>Medical Center Siloé SAS</strong>, gestionado por BIOAuditoria® en cumplimiento de la Resolución 3100 de 2019 y normativa complementaria.</p>
-      <p>Para ver el contenido completo o solicitar actualización, contacte al administrador: <strong>biomarketing.salud@gmail.com</strong></p>
-      <div class="sig">Firma responsable: Dra. Yesika Zayra Vesga Español · Médico General</div>
+      <h2>Prestador del servicio</h2>
+      <p><strong>Médico responsable:</strong> ${C.nombre}</p>
+      <p><strong>C.C.:</strong> ${C.cedula} &nbsp;|&nbsp; <strong>Especialidad:</strong> ${C.especialidad}</p>
+      <p><strong>Servicio habilitado:</strong> ${C.servicio_habilitado}</p>
+      <p><strong>Dirección:</strong> ${C.direccion}, ${C.ciudad}</p>
+      <h2>Estado del documento</h2>
+      <p>Este documento hace parte del sistema de gestión documental de <strong>${C.empresa}</strong>, administrado por <strong>BIOAuditoria®</strong> en cumplimiento de la Resolución 3100 de 2019.</p>
+      <p>Para obtener el archivo completo editable, contacte al administrador: <strong>${C.email_admin}</strong></p>
+      <div class="sig">Firma: ${C.nombre} · ${C.especialidad} · C.C. ${C.cedula}</div>
       <div class="wm">BIOAuditoria</div>
-      <div class="protect-ov"></div>
+      <div class="pov" title="Contenido protegido"></div>
     </div>`;
   document.getElementById('viewer').classList.add('open');
 }
 function closeViewer(){document.getElementById('viewer').classList.remove('open')}
-renderInicio();renderFolderTabs();renderFormatos();renderVerificacion();renderPgirh();
+
+// INIT
+initStats();
+renderInicio();
+renderFolderTabs();
+renderFormatos();
+renderVer();
+renderPgirh();
 </script>
 </body>
 </html>
