@@ -310,7 +310,198 @@ select.fi option{background:var(--dark2)}
   </div>
 </div>
 
-<script src="../js/data.js"></script>
+<script>
+
+var GITHUB_URL = 'https://raw.githubusercontent.com/biocolombiaplus-max/bioauditoria/main/docs/';
+
+var ESTANDARES_3100 = [
+  {id:'e1',num:1,nombre:'Talento Humano',icono:'👤',color:'#7B2FBE',
+   descripcion:'Idoneidad, suficiencia y competencias del recurso humano en salud',
+   norma:'Res. 3100/2019 — Estándar 1',
+   requisitos:['Hojas de vida con soportes académicos vigentes','Tarjeta profesional y registro RETHUS activo','Certificados de vacunación completos (HepB, Tétanos, Influenza, COVID)','Programa de inducción y reinducción ejecutado con registro','Evaluación de desempeño anual documentada','Educación continuada mínima 20 horas/año con certificados','Contratos o vinculaciones laborales vigentes']},
+  {id:'e2',num:2,nombre:'Infraestructura',icono:'🏥',color:'#FF6B00',
+   descripcion:'Condiciones físicas, ambientales y de seguridad de la sede habilitada',
+   norma:'Res. 3100/2019 — Estándar 2',
+   requisitos:['Plano de planta física actualizado y archivado','Condiciones de ventilación e iluminación adecuadas','Accesibilidad para personas con discapacidad','Señalización de emergencias y rutas de evacuación visibles','Extintor vigente, accesible y personal capacitado','Plan de gestión del riesgo de desastres implementado','Privacidad del paciente garantizada en todos los ambientes']},
+  {id:'e3',num:3,nombre:'Dotación',icono:'🩺',color:'#2D9F5C',
+   descripcion:'Equipos biomédicos, mobiliario e insumos según el servicio habilitado',
+   norma:'Res. 3100/2019 — Estándar 3',
+   requisitos:['Inventario de dotación actualizado y firmado','Hojas de vida de todos los equipos biomédicos','Programa de mantenimiento preventivo al día','Calibración de equipos de medición vigente','Contratos de mantenimiento con proveedores certificados','Insumos suficientes para la prestación del servicio']},
+  {id:'e4',num:4,nombre:'Medicamentos y Dispositivos',icono:'💊',color:'#E63946',
+   descripcion:'Gestión segura de medicamentos, dispositivos médicos e insumos terapéuticos',
+   norma:'Res. 3100/2019 — Estándar 4 · Res. 1403/2007',
+   requisitos:['Listado CURE de medicamentos autorizados disponible y vigente','Política de medicamentos seguros implementada (5 correctos)','Control de vencimientos mensual documentado','Condiciones de almacenamiento correctas (temperatura, luz, humedad)','Cadena de frío cuando aplique con registros de temperatura','Registro de RAM al INVIMA cuando corresponda']},
+  {id:'e5',num:5,nombre:'Procesos Prioritarios',icono:'⚙️',color:'#FF6B00',
+   descripcion:'Bioseguridad, seguridad del paciente, PGIRH y procesos asistenciales críticos',
+   norma:'Res. 3100/2019 — Estándar 5',
+   requisitos:['Manual de bioseguridad implementado y socializado','Protocolo lavado de manos 5 momentos OMS con monitoreo','Protocolo limpieza y desinfección de superficies','Plan PGIRH actualizado con gestor externo contratado y vigente','Segregación correcta de residuos en la fuente','Programa de seguridad del paciente implementado','Consentimientos informados vigentes por servicio','EPP disponible, suficiente y en buen estado','Protocolo de manejo de accidente de riesgo biológico']},
+  {id:'e6',num:6,nombre:'Historia Clínica',icono:'📁',color:'#7B2FBE',
+   descripcion:'Sistema de gestión, custodia y confidencialidad de la historia clínica',
+   norma:'Res. 3100/2019 — Estándar 6 · Res. 1995/1999',
+   requisitos:['Manual del sistema de historia clínica disponible','Formato de historia clínica estandarizado en uso','Política de custodia y conservación mínimo 30 años','Sistema de archivo activo, central e histórico implementado','Política de confidencialidad y control de acceso','Autorización de tratamiento de datos (Ley 1581/2012)']},
+  {id:'e7',num:7,nombre:'Interdependencia',icono:'🔗',color:'#2D9F5C',
+   descripcion:'Articulación con otros servicios y redes de apoyo diagnóstico y terapéutico',
+   norma:'Res. 3100/2019 — Estándar 7',
+   requisitos:['Protocolo de referencia y contrarreferencia documentado','Directorio actualizado de entidades de referencia','Convenios o acuerdos con laboratorio clínico','Convenios con servicio de imágenes diagnósticas','Protocolo de traslado seguro de pacientes','Procedimiento de remisión de urgencias']},
+  {id:'e8',num:8,nombre:'Mejoramiento Calidad',icono:'🏆',color:'#FF6B00',
+   descripcion:'Sistema de calidad, PQRS, indicadores, auditoría y mejora continua',
+   norma:'Res. 3100/2019 — Estándar 8 · Res. 0256/2016',
+   requisitos:['Manual de calidad actualizado y vigente','Programa de seguridad del paciente con indicadores','Sistema de PQRS operativo con tiempos de respuesta','Indicadores de calidad con seguimiento mensual documentado','Reporte de eventos adversos al SIVIGILA cuando corresponda','Plan de mejoramiento continuo con seguimiento','Política habeas data publicada (Ley 1581/2012)']},
+];
+
+var VESGA = {
+  id:'vesga',
+  nombre:'Dra. Yesika Zayra Vesga Español',
+  cedula:'1.140.858.207',
+  especialidad:'Médico General',
+  registro_medico:'(completar RM)',
+  empresa:'MEDICAL CENTER SILOÉ SAS',
+  nit:'902.052.974-3',
+  nivel_atencion:1,
+  ciudad:'Cúcuta, Norte de Santander',
+  direccion:'Calle 15A No. 1E-109 Local 1, Barrio Caobos',
+  telefono:'(completar)',
+  email:'jessicavesga1305@hotmail.com',
+  email_admin:'biomarketing.salud@gmail.com',
+  servicio_habilitado:'Consulta Externa de Medicina General',
+  servicios_adicionales:['Procedimientos estéticos no invasivos'],
+  logo_url:'',
+  estandares:[
+    {id:'e1',estandar_num:1,documentos:[
+      {id:'e1-01',nombre:'Hoja de vida — Dra. Yesika Zayra Vesga Español',version:'v1.0 · 2025',estado:'pendiente',archivo:'04_Hoja_Vida_Medico.docx',tipo:'documento'},
+      {id:'e1-02',nombre:'Tarjeta profesional médica y registro RETHUS',version:'v1.0 · 2025',estado:'requerido',archivo:'',tipo:'soporte'},
+      {id:'e1-03',nombre:'Certificados de vacunación del personal',version:'v1.0 · 2025',estado:'requerido',archivo:'',tipo:'soporte'},
+      {id:'e1-04',nombre:'Manual de talento humano',version:'v1.0 · 2025',estado:'vigente',archivo:'03_Manual_Talento_Humano.docx',tipo:'manual'},
+      {id:'e1-05',nombre:'Programa de inducción y reinducción',version:'v1.0 · 2025',estado:'vigente',archivo:'30_Programa_Induccion_Reinduccion.docx',tipo:'programa'},
+      {id:'e1-06',nombre:'Evaluación de desempeño anual',version:'v1.0 · 2025',estado:'pendiente',archivo:'',tipo:'formato'},
+      {id:'e1-07',nombre:'Certificados de educación continuada',version:'v1.0 · 2025',estado:'pendiente',archivo:'',tipo:'soporte'},
+    ]},
+    {id:'e2',estandar_num:2,documentos:[
+      {id:'e2-01',nombre:'Plano de planta física del consultorio',version:'v1.0 · 2025',estado:'pendiente',archivo:'',tipo:'plano'},
+      {id:'e2-02',nombre:'Ficha técnica del establecimiento',version:'v1.0 · 2025',estado:'pendiente',archivo:'35_Ficha_Tecnica_Establecimiento.docx',tipo:'documento'},
+      {id:'e2-03',nombre:'Plan de gestión del riesgo de desastres',version:'v1.0 · 2025',estado:'vigente',archivo:'24_Plan_Gestion_Riesgo_Desastres.docx',tipo:'plan'},
+      {id:'e2-04',nombre:'Inventario extintor y equipos de emergencia',version:'v1.0 · 2025',estado:'pendiente',archivo:'',tipo:'inventario'},
+      {id:'e2-05',nombre:'Registro de simulacros de evacuación',version:'v1.0 · 2025',estado:'pendiente',archivo:'',tipo:'registro'},
+    ]},
+    {id:'e3',estandar_num:3,documentos:[
+      {id:'e3-01',nombre:'Inventario de dotación e insumos médicos',version:'v1.2 · 2025',estado:'pendiente',archivo:'13_Inventario_Dotacion.docx',tipo:'inventario'},
+      {id:'e3-02',nombre:'Programa de mantenimiento de equipos biomédicos',version:'v1.0 · 2025',estado:'vigente',archivo:'14_Programa_Mantenimiento_Equipos.docx',tipo:'programa'},
+      {id:'e3-03',nombre:'Hojas de vida de equipos biomédicos',version:'v1.0 · 2025',estado:'pendiente',archivo:'',tipo:'documento'},
+      {id:'e3-04',nombre:'Contratos de mantenimiento y calibración',version:'v1.0 · 2025',estado:'pendiente',archivo:'',tipo:'contrato'},
+    ]},
+    {id:'e4',estandar_num:4,documentos:[
+      {id:'e4-01',nombre:'Listado de medicamentos autorizados CURE',version:'v1.0 · 2025',estado:'requerido',archivo:'',tipo:'listado'},
+      {id:'e4-02',nombre:'Política de medicamentos seguros — 5 correctos',version:'v1.0 · 2025',estado:'vigente',archivo:'31_Politica_Medicamentos_Seguros.docx',tipo:'politica'},
+      {id:'e4-03',nombre:'Control mensual de medicamentos y vencimientos',version:'v1.0 · 2025',estado:'vigente',archivo:'29_Control_Medicamentos_Vencimientos.docx',tipo:'formato'},
+      {id:'e4-04',nombre:'Inventario y control del botiquín de primeros auxilios',version:'v1.0 · 2025',estado:'vigente',archivo:'28_Inventario_Botiquin.docx',tipo:'inventario'},
+    ]},
+    {id:'e5',estandar_num:5,documentos:[
+      {id:'e5-01',nombre:'Manual de bioseguridad',version:'v1.0 · 2025',estado:'vigente',archivo:'02_Manual_Bioseguridad.docx',tipo:'manual'},
+      {id:'e5-02',nombre:'Protocolo de lavado de manos — 5 momentos OMS',version:'v1.0 · 2025',estado:'vigente',archivo:'19_Protocolo_Lavado_Manos.docx',tipo:'protocolo'},
+      {id:'e5-03',nombre:'Protocolo de limpieza y desinfección de superficies',version:'v1.0 · 2025',estado:'vigente',archivo:'18_Protocolo_Limpieza_Desinfeccion.docx',tipo:'protocolo'},
+      {id:'e5-04',nombre:'Plan PGIRH completo — Residuos hospitalarios',version:'v2.0 · 2025',estado:'vigente',archivo:'15_Plan_PGIRH.docx',tipo:'plan'},
+      {id:'e5-05',nombre:'Procedimiento de segregación en la fuente',version:'v1.0 · 2025',estado:'vigente',archivo:'17_Protocolo_Segregacion_Residuos.docx',tipo:'protocolo'},
+      {id:'e5-06',nombre:'Registro mensual de generación de residuos PGIRH',version:'v1.0 · 2025',estado:'vigente',archivo:'16_Registro_Mensual_PGIRH.docx',tipo:'formato'},
+      {id:'e5-07',nombre:'Contrato con gestor externo de residuos hospitalarios',version:'v1.0 · 2025',estado:'pendiente',archivo:'',tipo:'contrato'},
+      {id:'e5-08',nombre:'Programa de seguridad del paciente',version:'v1.0 · 2025',estado:'vigente',archivo:'05_Programa_Seguridad_Paciente.docx',tipo:'programa'},
+      {id:'e5-09',nombre:'Protocolo manejo de accidente de riesgo biológico',version:'v1.0 · 2025',estado:'vigente',archivo:'27_Protocolo_Accidente_Biologico.docx',tipo:'protocolo'},
+      {id:'e5-10',nombre:'Consentimiento informado general',version:'v1.1 · 2025',estado:'vigente',archivo:'08_Consentimiento_Informado_General.docx',tipo:'formato'},
+      {id:'e5-11',nombre:'Consentimiento informado — procedimientos estéticos',version:'v1.0 · 2025',estado:'vigente',archivo:'09_Consentimiento_Estetica.docx',tipo:'formato'},
+      {id:'e5-12',nombre:'Protocolo de procedimientos estéticos no invasivos',version:'v1.0 · 2025',estado:'vigente',archivo:'11_Protocolo_Procedimientos_Esteticos.docx',tipo:'protocolo'},
+    ]},
+    {id:'e6',estandar_num:6,documentos:[
+      {id:'e6-01',nombre:'Manual del sistema de historia clínica',version:'v1.0 · 2025',estado:'vigente',archivo:'20_Manual_Historia_Clinica.docx',tipo:'manual'},
+      {id:'e6-02',nombre:'Formato de historia clínica estandarizado',version:'v2.0 · 2025',estado:'vigente',archivo:'07_Formato_Historia_Clinica.docx',tipo:'formato'},
+      {id:'e6-03',nombre:'Política de custodia, conservación y confidencialidad',version:'v1.0 · 2025',estado:'vigente',archivo:'20_Manual_Historia_Clinica.docx',tipo:'politica'},
+      {id:'e6-04',nombre:'Política tratamiento de datos personales (Ley 1581/2012)',version:'v1.0 · 2025',estado:'vigente',archivo:'21_Politica_Habeas_Data.docx',tipo:'politica'},
+      {id:'e6-05',nombre:'Registro de préstamo y devolución de historias clínicas',version:'v1.0 · 2025',estado:'pendiente',archivo:'',tipo:'registro'},
+    ]},
+    {id:'e7',estandar_num:7,documentos:[
+      {id:'e7-01',nombre:'Protocolo de referencia y contrarreferencia',version:'v1.0 · 2025',estado:'pendiente',archivo:'',tipo:'protocolo'},
+      {id:'e7-02',nombre:'Directorio de entidades de referencia y apoyo diagnóstico',version:'v1.0 · 2025',estado:'pendiente',archivo:'',tipo:'directorio'},
+      {id:'e7-03',nombre:'Convenios con laboratorio clínico y diagnóstico',version:'v1.0 · 2025',estado:'pendiente',archivo:'',tipo:'convenio'},
+      {id:'e7-04',nombre:'Protocolo de traslado seguro de pacientes',version:'v1.0 · 2025',estado:'pendiente',archivo:'',tipo:'protocolo'},
+    ]},
+    {id:'e8',estandar_num:8,documentos:[
+      {id:'e8-01',nombre:'Manual de calidad y gestión',version:'v1.0 · 2025',estado:'vigente',archivo:'01_Manual_Calidad.docx',tipo:'manual'},
+      {id:'e8-02',nombre:'Manual de humanización del servicio',version:'v1.0 · 2025',estado:'vigente',archivo:'06_Manual_Humanizacion.docx',tipo:'manual'},
+      {id:'e8-03',nombre:'Procedimiento y formato de PQRS',version:'v1.0 · 2025',estado:'vigente',archivo:'22_Procedimiento_PQRS.docx',tipo:'procedimiento'},
+      {id:'e8-04',nombre:'Tablero de indicadores de calidad',version:'v1.0 · 2025',estado:'vigente',archivo:'25_Indicadores_Calidad.docx',tipo:'tablero'},
+      {id:'e8-05',nombre:'Formato reporte de evento adverso / incidente',version:'v1.0 · 2025',estado:'vigente',archivo:'26_Formato_Reporte_Evento_Adverso.docx',tipo:'formato'},
+      {id:'e8-06',nombre:'Registro diario de atenciones',version:'v1.0 · 2025',estado:'vigente',archivo:'33_Registro_Diario_Atenciones.docx',tipo:'registro'},
+      {id:'e8-07',nombre:'Lista de verificación — Simulacro visita habilitación',version:'v1.0 · 2025',estado:'vigente',archivo:'34_Lista_Verificacion_Habilitacion.docx',tipo:'lista'},
+    ]},
+  ],
+  formatos:[
+    {id:'fd01',nombre:'Historia clínica de consulta externa',cat:'E6 — Historia Clínica',archivo:'07_Formato_Historia_Clinica.docx',freq:'Por consulta'},
+    {id:'fd02',nombre:'Consentimiento informado general',cat:'E5 — Procesos Prioritarios',archivo:'08_Consentimiento_Informado_General.docx',freq:'Por consulta'},
+    {id:'fd03',nombre:'Consentimiento informado — procedimiento estético',cat:'E5 — Procesos Prioritarios',archivo:'09_Consentimiento_Estetica.docx',freq:'Por procedimiento'},
+    {id:'fd04',nombre:'Valoración previa procedimiento estético',cat:'E5 — Procesos Prioritarios',archivo:'10_Formato_Valoracion_Estetica.docx',freq:'Por procedimiento'},
+    {id:'fd05',nombre:'Seguimiento post-procedimiento estético',cat:'E5 — Procesos Prioritarios',archivo:'12_Formato_Seguimiento_Post_Procedimiento.docx',freq:'Por procedimiento'},
+    {id:'fd06',nombre:'Registro mensual PGIRH',cat:'E5 — Procesos Prioritarios',archivo:'16_Registro_Mensual_PGIRH.docx',freq:'Mensual'},
+    {id:'fd07',nombre:'Reporte de evento adverso / incidente',cat:'E8 — Mejoramiento Calidad',archivo:'26_Formato_Reporte_Evento_Adverso.docx',freq:'Por evento'},
+    {id:'fd08',nombre:'Formato PQRS',cat:'E8 — Mejoramiento Calidad',archivo:'23_Formato_PQRS.docx',freq:'Por solicitud'},
+    {id:'fd09',nombre:'Registro diario de atenciones',cat:'E8 — Mejoramiento Calidad',archivo:'33_Registro_Diario_Atenciones.docx',freq:'Diario'},
+    {id:'fd10',nombre:'Control medicamentos y vencimientos',cat:'E4 — Medicamentos',archivo:'29_Control_Medicamentos_Vencimientos.docx',freq:'Mensual'},
+  ],
+};
+
+var VERIFICACION = [
+  {e:'1',cod:'1.1',desc:'Hoja de vida con soportes académicos completa y vigente',estado:'pendiente'},
+  {e:'1',cod:'1.2',desc:'Tarjeta profesional vigente y registrada en RETHUS',estado:'requerido'},
+  {e:'1',cod:'1.3',desc:'Certificados de vacunación completos (HepB, Tétanos, Influenza)',estado:'requerido'},
+  {e:'1',cod:'1.4',desc:'Inducción y reinducción ejecutada con registro firmado',estado:'vigente'},
+  {e:'1',cod:'1.5',desc:'Educación continuada mínima 20 horas/año certificada',estado:'pendiente'},
+  {e:'2',cod:'2.1',desc:'Plano de planta física actualizado y archivado',estado:'pendiente'},
+  {e:'2',cod:'2.2',desc:'Condiciones físicas adecuadas para el servicio habilitado',estado:'vigente'},
+  {e:'2',cod:'2.3',desc:'Extintor vigente, accesible y señalizado',estado:'pendiente'},
+  {e:'2',cod:'2.4',desc:'Señalización de emergencias y ruta de evacuación',estado:'pendiente'},
+  {e:'2',cod:'2.5',desc:'Plan gestión riesgo de desastres implementado',estado:'vigente'},
+  {e:'3',cod:'3.1',desc:'Inventario de dotación actualizado y firmado',estado:'pendiente'},
+  {e:'3',cod:'3.2',desc:'Equipos biomédicos con hojas de vida completas',estado:'pendiente'},
+  {e:'3',cod:'3.3',desc:'Mantenimiento preventivo al día y documentado',estado:'vigente'},
+  {e:'3',cod:'3.4',desc:'Calibración de equipos de medición vigente',estado:'pendiente'},
+  {e:'4',cod:'4.1',desc:'Listado CURE de medicamentos autorizados disponible',estado:'requerido'},
+  {e:'4',cod:'4.2',desc:'Control de vencimientos mensual diligenciado',estado:'vigente'},
+  {e:'4',cod:'4.3',desc:'Condiciones de almacenamiento de medicamentos correctas',estado:'vigente'},
+  {e:'4',cod:'4.4',desc:'Botiquín de primeros auxilios completo y vigente',estado:'vigente'},
+  {e:'5',cod:'5.1',desc:'Manual de bioseguridad disponible y socializado',estado:'vigente'},
+  {e:'5',cod:'5.2',desc:'Protocolo lavado de manos implementado (5 momentos OMS)',estado:'vigente'},
+  {e:'5',cod:'5.3',desc:'PGIRH actualizado con gestor externo contratado',estado:'vigente'},
+  {e:'5',cod:'5.4',desc:'Segregación correcta de residuos en la fuente',estado:'vigente'},
+  {e:'5',cod:'5.5',desc:'Programa de seguridad del paciente implementado',estado:'vigente'},
+  {e:'5',cod:'5.6',desc:'Consentimientos informados vigentes y disponibles',estado:'vigente'},
+  {e:'5',cod:'5.7',desc:'EPP disponible y suficiente para el servicio',estado:'vigente'},
+  {e:'5',cod:'5.8',desc:'Contrato gestor externo residuos hospitalarios vigente',estado:'pendiente'},
+  {e:'6',cod:'6.1',desc:'Manual del sistema de historia clínica disponible',estado:'vigente'},
+  {e:'6',cod:'6.2',desc:'Formato de historia clínica estandarizado en uso',estado:'vigente'},
+  {e:'6',cod:'6.3',desc:'Política de custodia y conservación mínimo 30 años',estado:'vigente'},
+  {e:'6',cod:'6.4',desc:'Consentimiento uso de datos personales (Ley 1581)',estado:'vigente'},
+  {e:'7',cod:'7.1',desc:'Protocolo de referencia y contrarreferencia disponible',estado:'pendiente'},
+  {e:'7',cod:'7.2',desc:'Directorio de entidades de referencia actualizado',estado:'pendiente'},
+  {e:'7',cod:'7.3',desc:'Convenios con apoyo diagnóstico establecidos',estado:'pendiente'},
+  {e:'8',cod:'8.1',desc:'Manual de calidad disponible y actualizado',estado:'vigente'},
+  {e:'8',cod:'8.2',desc:'Sistema de PQRS operativo con registro de respuestas',estado:'vigente'},
+  {e:'8',cod:'8.3',desc:'Indicadores de calidad con seguimiento mensual',estado:'vigente'},
+  {e:'8',cod:'8.4',desc:'Reporte eventos adversos al SIVIGILA cuando aplica',estado:'vigente'},
+  {e:'8',cod:'8.5',desc:'Política habeas data publicada (Ley 1581/2012)',estado:'vigente'},
+];
+
+var TRAZABILIDAD = [
+  {fecha:'05/06/2025 10:00',usuario:'Admin (BIOMarketing)',accion:'Publicó',doc:'BIOAuditoria v3 — Plataforma completa Res. 3100'},
+  {fecha:'04/06/2025 16:00',usuario:'Admin',accion:'Activó',doc:'Dominio bioauditoria.com'},
+  {fecha:'04/06/2025 09:00',usuario:'Sistema',accion:'Alerta',doc:'Tarjetas profesionales y vacunación pendientes'},
+];
+
+
+// Compatibility: BIO_DATA alias for any legacy code
+var BIO_DATA = {
+  clientes: { vesga: VESGA },
+  verificacion_3100: VERIFICACION,
+  trazabilidad: TRAZABILIDAD,
+  github_docs_url: GITHUB_URL
+};
+</script>
 <script>
 if(!sessionStorage.getItem('bio_user')||sessionStorage.getItem('bio_role')!=='admin'){window.location.replace('../index.html')}
 
