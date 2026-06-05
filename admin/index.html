@@ -76,6 +76,8 @@ html,body{height:100%;overflow:hidden;background:var(--dark);color:var(--text);f
 .sv{background:var(--gbg);color:var(--green)}.sp{background:var(--ybg);color:var(--yellow)}.sr{background:var(--rbg);color:var(--red)}
 .ib{width:30px;height:30px;border-radius:7px;display:flex;align-items:center;justify-content:center;cursor:pointer;border:1px solid var(--bd);background:rgba(255,255,255,0.04);font-size:13px;flex-shrink:0;color:var(--text2);transition:all 0.15s}
 .ib:hover{background:var(--or-bg);border-color:var(--orb);color:var(--or)}
+.ib-action{display:inline-flex;align-items:center;justify-content:center;height:30px;padding:0 10px;border-radius:7px;cursor:pointer;border:1px solid var(--bd);font-size:13px;flex-shrink:0;transition:all 0.15s;font-family:inherit}
+.ib-action:hover{filter:brightness(1.15)}
 .ib.g:hover{background:var(--gbg);border-color:rgba(45,159,92,0.3);color:var(--green)}
 .ib.r:hover{background:var(--rbg);border-color:rgba(230,57,70,0.3);color:var(--red)}
 /* TABS */
@@ -750,6 +752,8 @@ function openAddDoc(eid) {
 function closeAddDoc() {
   document.getElementById('modal-add').classList.remove('open');
   selectedFile = null;
+  window._editingDocId = null;
+  window._editingEstdId = null;
 }
 
 function setMetodo(m) {
@@ -841,6 +845,37 @@ function fmtBytes(b) {
 }
 
 // GUARDAR DOCUMENTO — DEFINITIVO
+function openAddDocForExisting(doc, estdId) {
+  // Open add modal pre-configured for this specific document
+  currentEstd = estdId;
+  var sel = document.getElementById('add-estd');
+  sel.innerHTML = ES.map(function(e) {
+    return '<option value="' + e.id + '"' + (e.id === estdId ? ' selected' : '') + '>E' + e.num + ' — ' + e.nombre + '</option>';
+  }).join('');
+  // Pre-fill with document info
+  document.getElementById('add-nombre').value = doc.nombre;
+  document.getElementById('add-version').value = doc.version || 'v1.0 · 2025';
+  document.getElementById('add-estado').value = 'vigente'; // uploading means it'll be vigente
+  document.getElementById('add-tipo').value = doc.tipo || 'soporte';
+  document.getElementById('add-drive-url').value = doc.driveLink || '';
+  document.getElementById('add-github-file').value = doc.archivo || '';
+  document.getElementById('drive-test-result').style.display = 'none';
+  removeFile();
+  // Auto-select method based on current state
+  if (doc.driveLink) setMetodo('drive');
+  else if (doc.archivo) setMetodo('github');
+  else setMetodo('drive');
+  // Store reference to update existing doc
+  window._editingDocId = doc.id;
+  window._editingEstdId = estdId;
+  // Update hint
+  var info2 = ES.find(function(x) { return x.id === estdId; });
+  var hint = document.getElementById('drive-folder-hint');
+  if (hint && info2) hint.textContent = 'Carpeta en Drive: "E' + info2.num + ' — ' + info2.nombre + '"';
+  document.getElementById('modal-add').classList.add('open');
+  setTimeout(function() { document.getElementById('add-nombre').focus(); }, 200);
+}
+
 function guardarDoc() {
   var nombre = document.getElementById('add-nombre').value.trim();
   var estdId = document.getElementById('add-estd').value;
@@ -899,6 +934,36 @@ function guardarDoc() {
 
 function finalizarDoc(doc) {
   var estd = C.estandares.find(function(e) { return e.id === doc.estdId; });
+  // If editing existing document, update it instead of adding new
+  if (window._editingDocId && estd) {
+    var existingIdx = estd.documentos.findIndex(function(d) { return d.id === window._editingDocId; });
+    if (existingIdx >= 0) {
+      var existing = estd.documentos[existingIdx];
+      // Update fields but keep original ID
+      doc.id = existing.id;
+      // If vigente had no file and now getting one, update estado too
+      existing.driveLink = doc.driveLink || existing.driveLink;
+      existing.archivo = doc.archivo || existing.archivo;
+      existing.localKey = doc.localKey || existing.localKey;
+      existing.fuente = doc.fuente || existing.fuente;
+      existing.fileName = doc.fileName || existing.fileName;
+      existing.estado = doc.estado;
+      existing.version = doc.version;
+      existing._local = doc._local || existing._local;
+      existing.fechaCarga = doc.fechaCarga;
+      window._editingDocId = null;
+      window._editingEstdId = null;
+      saveExtraDocs();
+      addTraz('Actualizó', doc.nombre + ' [' + doc.fuente.toUpperCase() + ']');
+      renderDash(); renderEstdTabs();
+      if (document.getElementById('pg-estandares').classList.contains('act')) showEstd(null, doc.estdId);
+      closeAddDoc();
+      toast('✓ Documento "' + doc.nombre + '" actualizado');
+      return;
+    }
+  }
+  window._editingDocId = null;
+  window._editingEstdId = null;
   if (estd) estd.documentos.unshift(doc);
   saveExtraDocs();
   addTraz('Cargó', doc.nombre + ' [' + doc.fuente.toUpperCase() + ']');
@@ -1222,13 +1287,14 @@ function showEstd(el, eid) {
   document.querySelectorAll('#estd-tabs .ftab').forEach(function(t) { t.classList.remove('act'); });
   if (el) el.classList.add('act');
   else {
-    var found = document.querySelector('#estd-tabs .ftab[onclick*="\'' + eid + '\'"]');
+    var found = document.querySelector('#estd-tabs .ftab[onclick*="\''+eid+'\'"]');
     if (found) found.classList.add('act');
   }
   var e = C.estandares.find(function(x) { return x.id === eid; });
   var info = ES.find(function(x) { return x.id === eid; });
   var ok = e.documentos.filter(function(d) { return d.estado === 'vigente'; }).length;
   var c1 = C.color1 || '#FF6B00', c2 = C.color2 || '#7B2FBE';
+
   document.getElementById('estd-nm').innerHTML = info.icono + ' Estándar ' + info.num + ': ' + info.nombre;
   document.getElementById('estd-sub').innerHTML = ok + '/' + e.documentos.length + ' vigentes &nbsp;·&nbsp; ' + info.norma;
 
@@ -1236,46 +1302,119 @@ function showEstd(el, eid) {
     document.getElementById('estd-docs').innerHTML =
       '<div style="text-align:center;padding:30px;color:var(--text3)">' +
       '<div style="font-size:32px;margin-bottom:8px">📂</div>' +
-      '<div style="font-size:13px;font-weight:600;margin-bottom:6px">Sin documentos</div>' +
-      '<div style="font-size:12px">Toca "Cargar" para agregar el primer documento.</div></div>';
+      '<div style="font-size:13px;font-weight:600;margin-bottom:6px">Sin documentos base en este estándar</div>' +
+      '<div style="font-size:12px">Toca "Cargar" para agregar el primero.</div></div>';
     return;
   }
 
   var rows = '<div style="background:var(--dark4);border-radius:8px;padding:8px 12px;margin-bottom:10px;font-size:11px;color:var(--text2)">' + info.descripcion + '</div>';
+
   e.documentos.forEach(function(d, idx) {
     var isLocal = d._local || String(d.id).startsWith('local_');
     var hasDrive = !!d.driveLink;
     var hasGH = !!d.archivo;
     var hasLocal = isLocal && !!d.localKey;
     var hasAny = hasDrive || hasGH || hasLocal;
-    var sourceLabel = hasLocal ? '<span style="background:var(--gbg);color:var(--green);padding:1px 6px;border-radius:3px;font-size:9px;font-weight:700;margin-left:4px">📎LOCAL</span>'
-      : hasDrive ? '<span style="background:rgba(66,133,244,0.15);color:#4285F4;padding:1px 6px;border-radius:3px;font-size:9px;font-weight:700;margin-left:4px">DRIVE</span>'
-      : hasGH ? '<span style="background:var(--pu-bg);color:var(--pu2);padding:1px 6px;border-radius:3px;font-size:9px;font-weight:700;margin-left:4px">GH</span>' : '';
-    var rowId = 'row-' + idx + '-' + d.id.replace(/[^a-z0-9]/gi, '');
-    rows += '<div class="dr" id="' + rowId + '">' +
-      '<div class="dl">' +
-      '<div class="di" style="background:' + (d.estado === 'vigente' ? 'var(--gbg)' : d.estado === 'pendiente' ? 'var(--ybg)' : 'var(--rbg)') + '">' +
-      '<i class="fas fa-' + (isLocal ? 'paperclip' : 'file-alt') + '" style="font-size:11px"></i></div>' +
+    var rowId = 'row' + idx + eid.replace(/[^a-z0-9]/gi,'');
+
+    // Source badge
+    var sourceLabel = hasLocal
+      ? '<span style="background:var(--gbg);color:var(--green);padding:1px 5px;border-radius:3px;font-size:9px;font-weight:700;margin-left:5px;vertical-align:middle">📎LOCAL</span>'
+      : hasDrive
+        ? '<span style="background:rgba(66,133,244,0.15);color:#4285F4;padding:1px 5px;border-radius:3px;font-size:9px;font-weight:700;margin-left:5px;vertical-align:middle">DRIVE</span>'
+        : hasGH
+          ? '<span style="background:var(--pu-bg);color:var(--pu2);padding:1px 5px;border-radius:3px;font-size:9px;font-weight:700;margin-left:5px;vertical-align:middle">GH</span>'
+          : '';
+
+    // Left icon color by estado
+    var iconBg = d.estado === 'vigente' ? 'var(--gbg)' : d.estado === 'pendiente' ? 'var(--ybg)' : 'var(--rbg)';
+    var iconClass = isLocal ? 'paperclip' : 'file-alt';
+
+    // Status badge
+    var statusBadge = d.estado === 'vigente'
+      ? '<span class="status sv">✅ Vigente</span>'
+      : d.estado === 'pendiente'
+        ? '<span class="status sp">⚠️ Pendiente</span>'
+        : '<span class="status sr">🚨 Requerido</span>';
+
+    // ── ACTION BUTTONS — contextual by estado and file availability
+    var actionBtns = '';
+
+    if (d.estado === 'requerido' || d.estado === 'pendiente') {
+      // Primary action: UPLOAD — big and obvious
+      actionBtns +=
+        '<div class="ib-action upload-btn" id="upload-' + rowId + '" title="Cargar archivo para este documento" style="background:linear-gradient(135deg,' + c1 + ',' + c2 + ');border-color:transparent;color:#fff;min-width:72px;gap:4px">' +
+        '<i class="fas fa-upload" style="font-size:11px"></i><span style="font-size:10px;font-weight:700">Cargar</span></div>';
+    }
+
+    if (d.estado === 'vigente') {
+      // Primary action: DOWNLOAD/OPEN
+      if (hasAny) {
+        actionBtns +=
+          '<div class="ib g" id="dl-' + rowId + '" title="' + (hasDrive ? 'Abrir en Drive' : 'Descargar') + '">' +
+          '<i class="fas fa-' + (hasDrive ? 'external-link-alt' : 'download') + '"></i></div>';
+      }
+      // Secondary: EDIT/UPDATE — add another version
+      actionBtns +=
+        '<div class="ib" id="edit-' + rowId + '" title="Actualizar o agregar otro archivo" style="background:var(--pu-bg);border-color:var(--pub);color:var(--pu2)">' +
+        '<i class="fas fa-edit"></i></div>';
+    }
+
+    // Always: multi-file indicator and delete for local
+    var extraFiles = JSON.parse(localStorage.getItem('bio_extras_' + d.id) || '[]');
+    var extraCount = extraFiles.length;
+    if (extraCount > 0) {
+      actionBtns = '<div style="background:var(--or-bg);color:var(--or2);border:1px solid var(--orb);border-radius:6px;padding:2px 7px;font-size:9px;font-weight:700;margin-right:2px">' + extraCount + ' arch.</div>' + actionBtns;
+    }
+
+    if (isLocal) {
+      actionBtns += '<div class="ib r" id="del-' + rowId + '" title="Eliminar"><i class="fas fa-trash-alt"></i></div>';
+    }
+
+    rows +=
+      '<div class="dr" id="' + rowId + '" style="flex-wrap:wrap;gap:6px">' +
+      '<div class="dl" style="min-width:0;flex:1">' +
+      '<div class="di" style="background:' + iconBg + '">' +
+      '<i class="fas fa-' + iconClass + '" style="font-size:11px"></i></div>' +
       '<div style="min-width:0">' +
       '<div class="dn">' + d.nombre + sourceLabel + '</div>' +
-      '<div class="dm">' + d.version + ' &middot; <span style="background:var(--pu-bg);color:var(--pu2);padding:1px 4px;border-radius:3px;font-size:9px;font-weight:600;text-transform:uppercase">' + d.tipo + '</span>' +
-      (d.fechaCarga ? ' &middot; ' + (d.fechaCarga || '').split(' ')[0] : '') + '</div>' +
+      '<div class="dm">' + d.version +
+      ' &middot; <span style="background:var(--pu-bg);color:var(--pu2);padding:1px 4px;border-radius:3px;font-size:9px;font-weight:600;text-transform:uppercase">' + d.tipo + '</span>' +
+      (d.fechaCarga ? ' &middot; ' + String(d.fechaCarga).split(' ')[0] : '') +
+      '</div>' +
+      (extraCount > 0 ? '<div style="font-size:10px;color:var(--or2);margin-top:2px">' + extraCount + ' archivo(s) adicional(es) adjunto(s)</div>' : '') +
       '</div></div>' +
-      '<div class="da">' + sh(d.estado) +
-      '<div class="ib g" id="dl-' + rowId + '" title="' + (hasAny ? (hasDrive ? 'Abrir en Drive' : 'Descargar') : 'Sin archivo') + '" style="' + (hasAny ? '' : 'opacity:0.3') + '">' +
-      '<i class="fas fa-' + (hasDrive ? 'external-link-alt' : 'download') + '"></i></div>' +
-      (isLocal ? '<div class="ib r" id="del-' + rowId + '" title="Eliminar"><i class="fas fa-trash-alt"></i></div>' : '') +
-      '</div></div>';
+      '<div class="da" style="flex-shrink:0;flex-wrap:wrap;gap:4px">' + statusBadge + actionBtns + '</div>' +
+      '</div>';
   });
+
   document.getElementById('estd-docs').innerHTML = rows;
 
-  // Attach events
+  // ── ATTACH EVENTS safely
   e.documentos.forEach(function(d, idx) {
-    var rowId = 'row-' + idx + '-' + d.id.replace(/[^a-z0-9]/gi, '');
-    var dl = document.getElementById('dl-' + rowId);
-    if (dl) dl.onclick = (function(doc) { return function() { dlDoc(doc); }; })(d);
-    var del = document.getElementById('del-' + rowId);
-    if (del) del.onclick = (function(doc) { return function() { deleteDoc(doc.id, doc.nombre); }; })(d);
+    var rowId = 'row' + idx + eid.replace(/[^a-z0-9]/gi,'');
+
+    // Download button
+    var dlBtn = document.getElementById('dl-' + rowId);
+    if (dlBtn) dlBtn.onclick = (function(doc) { return function() { dlDoc(doc); }; })(d);
+
+    // Upload button (requerido/pendiente)
+    var upBtn = document.getElementById('upload-' + rowId);
+    if (upBtn) upBtn.onclick = (function(doc, estdId) {
+      return function() { openAddDocForExisting(doc, estdId); };
+    })(d, eid);
+
+    // Edit button (vigente)
+    var editBtn = document.getElementById('edit-' + rowId);
+    if (editBtn) editBtn.onclick = (function(doc, estdId) {
+      return function() { openAddDocForExisting(doc, estdId); };
+    })(d, eid);
+
+    // Delete button
+    var delBtn = document.getElementById('del-' + rowId);
+    if (delBtn) delBtn.onclick = (function(doc) {
+      return function() { deleteDoc(doc.id, doc.nombre); };
+    })(d);
   });
 }
 
