@@ -2,636 +2,140 @@
 <html lang="es">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-<meta name="apple-mobile-web-app-capable" content="yes">
-<meta name="theme-color" content="#0D0D1A">
-<title>BIOAuditoria — Admin</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>BIOAuditoria — Plataforma de Habilitación en Salud</title>
 <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
 <style>
-*{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
+*{box-sizing:border-box;margin:0;padding:0}
 :root{
-  --or:#FF6B00;--or2:#FF8C33;--or-bg:rgba(255,107,0,0.12);--orb:rgba(255,107,0,0.3);
-  --pu:#7B2FBE;--pu2:#9B4FDE;--pu-bg:rgba(123,47,190,0.12);--pub:rgba(123,47,190,0.3);
-  --dark:#0D0D1A;--dark2:#141428;--dark3:#1C1C35;--dark4:#22223A;
-  --text:#F0F0FF;--text2:#A0A0C0;--text3:#5A5A8A;
-  --bd:rgba(255,255,255,0.07);--bd2:rgba(255,255,255,0.13);
-  --green:#2D9F5C;--gbg:rgba(45,159,92,0.12);
-  --red:#E63946;--rbg:rgba(230,57,70,0.12);
-  --yellow:#F4A261;--ybg:rgba(244,162,97,0.12);
-  --r:13px;
+  --orange:#FF6B00;--orange-light:#FF8C33;--orange-glow:rgba(255,107,0,0.25);
+  --purple:#7B2FBE;--purple-light:#9B4FDE;--purple-glow:rgba(123,47,190,0.25);
+  --dark:#0D0D1A;--dark2:#141428;--dark3:#1C1C35;
+  --text:#F0F0FF;--text2:#A0A0C0;--text3:#6060A0;
+  --border:rgba(255,255,255,0.08);
 }
-html,body{height:100%;overflow:hidden;background:var(--dark)}
-body{font-family:'Plus Jakarta Sans',sans-serif;color:var(--text);font-size:14px}
-.shell{display:flex;height:100vh;overflow:hidden}
-
-/* SIDEBAR */
-.sidebar{width:230px;background:var(--dark2);border-right:1px solid var(--bd);display:flex;flex-direction:column;flex-shrink:0;overflow-y:auto;transition:transform 0.28s cubic-bezier(.4,0,.2,1)}
-.logo-area{padding:16px 14px 12px;border-bottom:1px solid var(--bd);display:flex;align-items:center;gap:10px}
-.logo-box{width:34px;height:34px;border-radius:9px;background:linear-gradient(135deg,var(--or),var(--pu));display:flex;align-items:center;justify-content:center;font-size:16px;flex-shrink:0}
-.logo-name{font-size:15px;font-weight:800}.logo-name span{color:var(--or)}
-.logo-badge{font-size:10px;background:var(--or-bg);color:var(--or2);border:1px solid var(--orb);padding:1px 7px;border-radius:4px;display:inline-block;margin-top:2px}
-.ns{padding:10px 12px 3px;font-size:10px;text-transform:uppercase;letter-spacing:0.07em;color:var(--text3);font-weight:700}
-.ni{display:flex;align-items:center;gap:9px;padding:9px 12px;border-radius:9px;margin:1px 6px;cursor:pointer;color:var(--text2);transition:all 0.15s;font-size:13px;font-weight:500}
-.ni:hover{background:rgba(255,255,255,0.05);color:var(--text)}
-.ni.act{background:var(--or-bg);color:var(--or);font-weight:700}
-.ni i{width:16px;text-align:center;font-size:14px}
-.sfoot{padding:12px;border-top:1px solid var(--bd);margin-top:auto}
-.upill{display:flex;align-items:center;gap:8px;padding:8px 10px;background:var(--dark3);border-radius:9px;margin-bottom:6px}
-.uav{width:30px;height:30px;border-radius:50%;background:linear-gradient(135deg,var(--or),var(--pu));display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:800;flex-shrink:0}
-.unm{font-size:11px;font-weight:700}.url{font-size:10px;color:var(--text3)}
-.lbtn{font-size:11px;color:var(--text3);cursor:pointer;text-align:center;padding:4px}.lbtn:hover{color:var(--red)}
-
-/* MAIN */
-.main{flex:1;display:flex;flex-direction:column;overflow:hidden}
-.topbar{display:flex;align-items:center;justify-content:space-between;padding:11px 16px;border-bottom:1px solid var(--bd);background:var(--dark2);flex-shrink:0;gap:10px}
-.tbl{display:flex;align-items:center;gap:8px;min-width:0}
-.mbtn{display:none;width:34px;height:34px;border-radius:8px;background:rgba(255,255,255,0.06);border:1px solid var(--bd);align-items:center;justify-content:center;cursor:pointer;flex-shrink:0;font-size:15px;color:var(--text)}
-.pgtitle{font-size:15px;font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.tbr{display:flex;align-items:center;gap:7px;flex-shrink:0}
-.btn{display:inline-flex;align-items:center;gap:5px;padding:7px 11px;border-radius:8px;font-size:12px;font-weight:600;cursor:pointer;font-family:inherit;transition:all 0.15s;border:1px solid var(--bd2);white-space:nowrap}
-.bg{background:rgba(255,255,255,0.04);color:var(--text2)}.bg:hover{background:rgba(255,255,255,0.08)}
-.bor{background:linear-gradient(135deg,var(--or),var(--or2));color:#fff;border-color:transparent}.bor:hover{filter:brightness(1.1)}
-.bpu{background:var(--pu-bg);color:var(--pu2);border-color:var(--pub)}
-
-/* CONTENT */
-.content{flex:1;overflow-y:auto;padding:16px;-webkit-overflow-scrolling:touch}
-.page{display:none}.page.act{display:block}
-
-/* STATS */
-.srow{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-bottom:16px}
-.sc{background:var(--dark3);border:1px solid var(--bd);border-radius:var(--r);padding:14px}
-.si{width:34px;height:34px;border-radius:9px;display:flex;align-items:center;justify-content:center;font-size:16px;margin-bottom:8px}
-.sn{font-size:24px;font-weight:800;line-height:1}.sl{font-size:11px;color:var(--text2);margin-top:2px}
-.sb{height:3px;border-radius:2px;margin-top:7px;background:var(--bd)}.sf{height:100%;border-radius:2px}
-
-/* CARDS */
-.card{background:var(--dark3);border:1px solid var(--bd);border-radius:var(--r);padding:14px;margin-bottom:13px}
-.ch{display:flex;align-items:center;justify-content:space-between;margin-bottom:11px}
-.ct{font-size:13px;font-weight:700}
-.g2{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:13px}
-
-/* DOC ROWS */
-.dr{display:flex;align-items:center;justify-content:space-between;padding:10px 11px;border-radius:9px;border:1px solid var(--bd);margin-bottom:5px;background:var(--dark4);gap:8px}
-.dl{display:flex;align-items:center;gap:9px;flex:1;min-width:0}
-.di{width:32px;height:32px;border-radius:7px;display:flex;align-items:center;justify-content:center;font-size:14px;flex-shrink:0}
-.dn{font-size:13px;font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.dm{font-size:10px;color:var(--text3)}
-.da{display:flex;align-items:center;gap:5px;flex-shrink:0}
-.status{display:inline-block;padding:2px 7px;border-radius:4px;font-size:10px;font-weight:700;text-transform:uppercase;flex-shrink:0}
-.sv{background:var(--gbg);color:var(--green)}.sp{background:var(--ybg);color:var(--yellow)}.sr{background:var(--rbg);color:var(--red)}
-.ib{width:30px;height:30px;border-radius:7px;display:flex;align-items:center;justify-content:center;cursor:pointer;border:1px solid var(--bd);background:rgba(255,255,255,0.04);font-size:13px;flex-shrink:0;color:var(--text2);transition:all 0.15s}
-.ib:hover{background:var(--or-bg);border-color:var(--orb);color:var(--or)}
-.ib.dl-btn:hover{background:var(--gbg);border-color:rgba(45,159,92,0.3);color:var(--green)}
-
-/* FOLDER TABS */
-.fscroll{display:flex;gap:6px;overflow-x:auto;padding-bottom:4px;margin-bottom:12px;scrollbar-width:none}
-.fscroll::-webkit-scrollbar{display:none}
-.ftab{flex-shrink:0;padding:7px 12px;border-radius:8px;font-size:12px;font-weight:600;cursor:pointer;border:1px solid var(--bd);background:var(--dark3);color:var(--text2);transition:all 0.15s;white-space:nowrap;display:flex;align-items:center;gap:5px}
-.ftab.act{background:var(--or-bg);color:var(--or);border-color:var(--orb)}
-
-/* LOG */
-.li{display:flex;align-items:flex-start;gap:8px;padding:8px 0;border-bottom:1px solid var(--bd);font-size:12px}
-.li:last-child{border-bottom:none}
-.ld{width:7px;height:7px;border-radius:50%;margin-top:4px;flex-shrink:0}
-.lt{color:var(--text3);min-width:90px;font-size:11px}
-
-/* ALERT */
-.alert{display:flex;align-items:flex-start;gap:8px;padding:10px 12px;border-radius:9px;font-size:12px;margin-bottom:12px}
-.aw{background:var(--ybg);border:1px solid rgba(244,162,97,0.3);color:var(--yellow)}
-.ai{background:var(--pu-bg);border:1px solid var(--pub);color:var(--pu2)}
-.ag{background:var(--gbg);border:1px solid rgba(45,159,92,0.3);color:var(--green)}
-
-/* PROGRESS */
-.pw{height:5px;background:var(--bd);border-radius:3px;overflow:hidden;margin-top:5px}
-.pf{height:100%;border-radius:3px;background:linear-gradient(90deg,var(--or),var(--pu))}
-
-/* CLIENT CARD */
-.cc{background:linear-gradient(135deg,rgba(255,107,0,0.08),rgba(123,47,190,0.08));border:1px solid var(--orb);border-radius:var(--r);padding:16px;margin-bottom:13px}
-.cav{width:46px;height:46px;border-radius:50%;background:linear-gradient(135deg,var(--or),var(--pu));display:flex;align-items:center;justify-content:center;font-size:17px;font-weight:800;flex-shrink:0}
-.tag{display:inline-block;padding:3px 8px;border-radius:5px;font-size:10px;font-weight:700;margin:2px}
-.tor{background:var(--or-bg);color:var(--or2);border:1px solid var(--orb)}
-.tpu{background:var(--pu-bg);color:var(--pu2);border:1px solid var(--pub)}
-.tgr{background:var(--gbg);color:var(--green)}
-
-/* VERIFY */
-.vr{display:flex;align-items:center;gap:8px;padding:9px 11px;border-radius:8px;margin-bottom:4px;border:1px solid var(--bd);background:var(--dark4)}
-.vn{font-size:10px;font-weight:700;color:var(--text3);min-width:22px}
-.vd{flex:1;font-size:12px}
-
-/* MODAL */
-.modal{display:none;position:fixed;inset:0;z-index:300;background:rgba(0,0,0,0.75);backdrop-filter:blur(10px);align-items:flex-end;justify-content:center}
-.modal.open{display:flex}
-.mbox{background:var(--dark2);border:1px solid var(--bd2);border-radius:20px 20px 0 0;width:100%;max-width:580px;max-height:90vh;overflow-y:auto;padding:20px}
-.mh{display:flex;align-items:center;justify-content:space-between;margin-bottom:16px}
-.mt{font-size:15px;font-weight:700}
-.mc{width:30px;height:30px;border-radius:50%;background:rgba(255,255,255,0.08);display:flex;align-items:center;justify-content:center;cursor:pointer;font-size:14px;flex-shrink:0}
-.fg{display:flex;flex-direction:column;gap:4px;margin-bottom:10px}
-.fl{font-size:11px;font-weight:600;color:var(--text2);text-transform:uppercase;letter-spacing:0.05em}
-.fi{padding:10px 12px;background:rgba(255,255,255,0.04);border:1px solid var(--bd);border-radius:8px;color:var(--text);font-size:13px;font-family:inherit;outline:none;transition:border 0.2s;width:100%}
-.fi:focus{border-color:var(--or)}
-.fta{min-height:70px;resize:vertical}
-select.fi option{background:var(--dark2)}
-.fgrid{display:grid;grid-template-columns:1fr 1fr;gap:10px}
-
-/* NUEVO CLIENTE MODAL */
-.nc-step{display:none}.nc-step.act{display:block}
-.step-indicator{display:flex;gap:8px;margin-bottom:20px}
-.step-dot{flex:1;height:3px;border-radius:2px;background:var(--bd);transition:background 0.3s}
-.step-dot.act{background:var(--or)}
-.step-dot.done{background:var(--green)}
-
-/* OVERLAY */
-.overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,0.6);z-index:150;backdrop-filter:blur(4px)}
-.overlay.show{display:block}
-
-/* TOAST */
-.toast{position:fixed;bottom:80px;left:50%;transform:translateX(-50%) translateY(100px);background:var(--dark3);border:1px solid var(--bd2);border-radius:10px;padding:10px 18px;font-size:13px;font-weight:600;z-index:500;transition:transform 0.3s;white-space:nowrap;display:flex;align-items:center;gap:8px}
-.toast.show{transform:translateX(-50%) translateY(0)}
-.toast.success{border-color:rgba(45,159,92,0.4);color:var(--green)}
-.toast.error{border-color:rgba(230,57,70,0.4);color:var(--red)}
-
-/* MOBILE */
-@media(max-width:768px){
-  .sidebar{position:fixed;top:0;left:0;bottom:0;z-index:200;transform:translateX(-100%);width:260px}
-  .sidebar.open{transform:translateX(0)}
-  .mbtn{display:flex}
-  .srow{grid-template-columns:repeat(2,1fr);gap:8px}
-  .sc{padding:12px}.sn{font-size:20px}
-  .g2{grid-template-columns:1fr}
-  .content{padding:12px;padding-bottom:20px}
-  .tbr .bg{display:none}
-  .dn{font-size:12px}
-  .fgrid{grid-template-columns:1fr}
-  .topbar{padding:10px 12px}
-}
+body{font-family:'Plus Jakarta Sans',sans-serif;background:var(--dark);color:var(--text);min-height:100vh;display:flex;align-items:center;justify-content:center;overflow:hidden}
+.bg{position:fixed;inset:0;z-index:0}
+.bg-orb{position:absolute;border-radius:50%;filter:blur(100px);opacity:0.35}
+.orb1{width:600px;height:600px;background:var(--orange);top:-200px;right:-100px;animation:float1 8s ease-in-out infinite}
+.orb2{width:500px;height:500px;background:var(--purple);bottom:-150px;left:-100px;animation:float2 10s ease-in-out infinite}
+.orb3{width:300px;height:300px;background:var(--orange-light);top:40%;left:40%;animation:float3 6s ease-in-out infinite}
+@keyframes float1{0%,100%{transform:translate(0,0)}50%{transform:translate(-30px,30px)}}
+@keyframes float2{0%,100%{transform:translate(0,0)}50%{transform:translate(30px,-20px)}}
+@keyframes float3{0%,100%{transform:translate(0,0) scale(1)}50%{transform:translate(-20px,20px) scale(1.1)}}
+.grid-bg{position:fixed;inset:0;background-image:linear-gradient(rgba(255,255,255,0.02) 1px,transparent 1px),linear-gradient(90deg,rgba(255,255,255,0.02) 1px,transparent 1px);background-size:50px 50px;z-index:0}
+.container{position:relative;z-index:1;width:100%;max-width:440px;padding:20px}
+.logo-block{text-align:center;margin-bottom:32px}
+.logo-icon{width:64px;height:64px;border-radius:16px;background:linear-gradient(135deg,var(--orange),var(--purple));display:inline-flex;align-items:center;justify-content:center;font-size:28px;margin-bottom:14px;box-shadow:0 0 40px var(--orange-glow),0 0 80px var(--purple-glow)}
+.logo-name{font-size:28px;font-weight:800;letter-spacing:-0.5px}
+.logo-name span{background:linear-gradient(90deg,var(--orange-light),var(--purple-light));-webkit-background-clip:text;-webkit-text-fill-color:transparent}
+.logo-tagline{font-size:12px;color:var(--text2);margin-top:4px;letter-spacing:0.05em;text-transform:uppercase}
+.card{background:rgba(20,20,40,0.8);backdrop-filter:blur(20px);border:1px solid var(--border);border-radius:20px;padding:32px;box-shadow:0 25px 60px rgba(0,0,0,0.5)}
+.card-title{font-size:18px;font-weight:700;margin-bottom:4px}
+.card-sub{font-size:13px;color:var(--text2);margin-bottom:24px}
+.form-group{margin-bottom:16px}
+.form-label{display:block;font-size:12px;font-weight:600;color:var(--text2);margin-bottom:6px;text-transform:uppercase;letter-spacing:0.05em}
+.form-input{width:100%;padding:12px 14px;background:rgba(255,255,255,0.05);border:1px solid var(--border);border-radius:10px;color:var(--text);font-size:14px;font-family:inherit;transition:all 0.2s;outline:none}
+.form-input:focus{border-color:var(--orange);box-shadow:0 0 0 3px var(--orange-glow)}
+.form-input::placeholder{color:var(--text3)}
+.role-selector{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:20px}
+.role-btn{padding:10px;border:1px solid var(--border);border-radius:10px;background:rgba(255,255,255,0.03);cursor:pointer;text-align:center;transition:all 0.2s;font-family:inherit}
+.role-btn .role-icon{font-size:20px;display:block;margin-bottom:4px}
+.role-btn .role-name{font-size:12px;font-weight:600;color:var(--text2)}
+.role-btn.active{border-color:var(--orange);background:rgba(255,107,0,0.1)}
+.role-btn.active .role-name{color:var(--orange)}
+.btn-login{width:100%;padding:14px;border:none;border-radius:12px;background:linear-gradient(135deg,var(--orange),var(--purple));color:#fff;font-size:15px;font-weight:700;font-family:inherit;cursor:pointer;transition:all 0.2s;margin-top:8px;letter-spacing:0.02em}
+.btn-login:hover{transform:translateY(-1px);box-shadow:0 8px 25px var(--orange-glow),0 8px 25px var(--purple-glow)}
+.btn-login:active{transform:translateY(0)}
+.divider{text-align:center;color:var(--text3);font-size:12px;margin:16px 0}
+.error-msg{background:rgba(255,60,60,0.1);border:1px solid rgba(255,60,60,0.3);border-radius:8px;padding:10px 14px;font-size:13px;color:#FF6B6B;display:none;margin-bottom:12px}
+.footer-note{text-align:center;font-size:11px;color:var(--text3);margin-top:20px}
+.footer-note strong{color:var(--orange)}
+.badge-norm{display:inline-flex;align-items:center;gap:6px;background:rgba(123,47,190,0.15);border:1px solid rgba(123,47,190,0.3);border-radius:6px;padding:3px 8px;font-size:10px;color:var(--purple-light);margin:2px}
+.norms-row{display:flex;flex-wrap:wrap;justify-content:center;gap:4px;margin-top:12px}
 </style>
 </head>
 <body>
-<div class="overlay" id="overlay" onclick="closeSidebar()"></div>
-<div class="toast" id="toast"></div>
-
-<div class="shell">
-  <div class="sidebar" id="sidebar">
-    <div class="logo-area">
-      <div class="logo-box">🏥</div>
-      <div><div class="logo-name">BIO<span>Auditoria</span></div><div class="logo-badge">⚙️ Administrador</div></div>
-    </div>
-    <div class="ns">Panel</div>
-    <div class="ni act" onclick="nav(this,'dashboard','Dashboard')"><i class="fas fa-chart-pie"></i>Dashboard</div>
-    <div class="ni" onclick="nav(this,'clientes','Clientes')"><i class="fas fa-users"></i>Clientes</div>
-    <div class="ns">Documentación</div>
-    <div class="ni" onclick="nav(this,'carpetas','Carpetas & Docs')"><i class="fas fa-folder-open"></i>Carpetas & Docs</div>
-    <div class="ni" onclick="nav(this,'formatos','Formatos')"><i class="fas fa-file-alt"></i>Formatos</div>
-    <div class="ni" onclick="nav(this,'manuales','Manuales')"><i class="fas fa-book"></i>Manuales</div>
-    <div class="ns">Compliance</div>
-    <div class="ni" onclick="nav(this,'pgirh','PGIRH')"><i class="fas fa-recycle"></i>PGIRH</div>
-    <div class="ni" onclick="nav(this,'verificacion','Verificación 3100')"><i class="fas fa-clipboard-check"></i>Verificación 3100</div>
-    <div class="ni" onclick="nav(this,'trazabilidad','Trazabilidad')"><i class="fas fa-history"></i>Trazabilidad</div>
-    <div class="sfoot">
-      <div class="upill"><div class="uav">BM</div><div><div class="unm">BIOMarketing Admin</div><div class="url">biomarketing.salud@gmail.com</div></div></div>
-      <div class="lbtn" onclick="logout()"><i class="fas fa-sign-out-alt"></i> Cerrar sesión</div>
-    </div>
+<div class="bg">
+  <div class="bg-orb orb1"></div>
+  <div class="bg-orb orb2"></div>
+  <div class="bg-orb orb3"></div>
+</div>
+<div class="grid-bg"></div>
+<div class="container">
+  <div class="logo-block">
+    <div class="logo-icon">🏥</div>
+    <div class="logo-name">BIO<span>Auditoria</span></div>
+    <div class="logo-tagline">Gestión documental · Habilitación en salud · Colombia</div>
   </div>
-
-  <div class="main">
-    <div class="topbar">
-      <div class="tbl">
-        <div class="mbtn" onclick="openSidebar()"><i class="fas fa-bars"></i></div>
-        <div class="pgtitle" id="pgtitle">Dashboard</div>
+  <div class="card">
+    <div class="card-title">Iniciar sesión</div>
+    <div class="card-sub">Selecciona tu perfil de acceso</div>
+    <div class="role-selector">
+      <div class="role-btn active" id="role-admin" onclick="setRole('admin')">
+        <span class="role-icon">⚙️</span>
+        <span class="role-name">Administrador</span>
       </div>
-      <div class="tbr">
-        <button class="btn bg" onclick="window.open('../cliente/index.html','_blank')"><i class="fas fa-eye"></i>Vista cliente</button>
-        <button class="btn bor" onclick="openDocModal()"><i class="fas fa-plus"></i>Agregar doc</button>
+      <div class="role-btn" id="role-cliente" onclick="setRole('cliente')">
+        <span class="role-icon">👩‍⚕️</span>
+        <span class="role-name">Cliente / Prestador</span>
       </div>
     </div>
-
-    <div class="content">
-
-      <!-- DASHBOARD -->
-      <div class="page act" id="page-dashboard">
-        <div class="srow">
-          <div class="sc"><div class="si" style="background:var(--or-bg)">📄</div><div class="sn" style="color:var(--or)" id="total-docs">35</div><div class="sl">Documentos totales</div><div class="sb"><div class="sf" style="width:78%;background:var(--or)"></div></div></div>
-          <div class="sc"><div class="si" style="background:var(--gbg)">✅</div><div class="sn" style="color:var(--green)" id="total-ok">28</div><div class="sl">Vigentes</div><div class="sb"><div class="sf" style="width:100%;background:var(--green)"></div></div></div>
-          <div class="sc"><div class="si" style="background:var(--ybg)">⚠️</div><div class="sn" style="color:var(--yellow)" id="total-pen">4</div><div class="sl">Pendientes</div><div class="sb"><div class="sf" style="width:50%;background:var(--yellow)"></div></div></div>
-          <div class="sc"><div class="si" style="background:var(--rbg)">🚨</div><div class="sn" style="color:var(--red)" id="total-req">3</div><div class="sl">Requieren acción</div><div class="sb"><div class="sf" style="width:20%;background:var(--red)"></div></div></div>
-        </div>
-        <div class="alert aw"><i class="fas fa-exclamation-triangle" style="flex-shrink:0"></i><div><strong>Acciones requeridas:</strong> Certificado de vacunación (falta), Hoja de vida completa (pendiente), Inventario dotación firmado (pendiente).</div></div>
-        <div class="g2">
-          <div class="cc">
-            <div style="display:flex;align-items:center;gap:12px;margin-bottom:12px">
-              <div class="cav">YV</div>
-              <div>
-                <div style="font-weight:700;font-size:14px">Dra. Yesika Zayra Vesga</div>
-                <div style="font-size:11px;color:var(--text2)">Médico General · Cúcuta</div>
-                <div style="font-size:10px;color:var(--text3)">Medical Center Siloé SAS · NIT 902.052.974-3</div>
-              </div>
-            </div>
-            <div style="display:flex;flex-wrap:wrap;gap:3px;margin-bottom:10px">
-              <span class="tag tpu">Consulta externa</span>
-              <span class="tag tor">Estética no invasiva</span>
-              <span class="tag tgr">Habilitado</span>
-            </div>
-            <div style="display:flex;justify-content:space-between;font-size:11px;margin-bottom:4px">
-              <span style="color:var(--text2)">Cumplimiento Res. 3100</span>
-              <span style="color:var(--or);font-weight:700">82%</span>
-            </div>
-            <div class="pw"><div class="pf" style="width:82%"></div></div>
-            <div style="display:flex;gap:6px;margin-top:12px">
-              <button class="btn bor" style="flex:1;justify-content:center;font-size:11px" onclick="nav(document.querySelectorAll('.ni')[2],'carpetas','Carpetas & Docs')"><i class="fas fa-folder-open"></i>Ver documentos</button>
-              <button class="btn bg" style="font-size:11px" onclick="nav(document.querySelectorAll('.ni')[1],'clientes','Clientes')"><i class="fas fa-edit"></i>Editar</button>
-            </div>
-          </div>
-          <div class="card" style="margin-bottom:0">
-            <div class="ch"><div class="ct">🕐 Actividad reciente</div></div>
-            <div id="log-mini"></div>
-          </div>
-        </div>
-      </div>
-
-      <!-- CLIENTES -->
-      <div class="page" id="page-clientes">
-        <div class="alert ai"><i class="fas fa-info-circle" style="flex-shrink:0"></i><div>Gestiona los prestadores registrados en BIOAuditoria. Cada cliente tiene su portal de acceso con usuario y contraseña independientes.</div></div>
-        <div class="card">
-          <div class="ch">
-            <div class="ct">👥 Clientes registrados</div>
-            <button class="btn bor" style="font-size:11px;padding:6px 10px" onclick="openNuevoCliente()"><i class="fas fa-plus"></i>Nuevo cliente</button>
-          </div>
-          <div id="clientes-list"></div>
-        </div>
-      </div>
-
-      <!-- CARPETAS -->
-      <div class="page" id="page-carpetas">
-        <div class="fscroll" id="folder-tabs"></div>
-        <div class="card">
-          <div class="ch">
-            <div class="ct" id="folder-name" style="font-size:12px">Selecciona carpeta</div>
-            <button class="btn bor" style="font-size:11px;padding:6px 10px" onclick="openDocModal()"><i class="fas fa-plus"></i>Agregar</button>
-          </div>
-          <div id="folder-docs"></div>
-        </div>
-      </div>
-
-      <!-- FORMATOS -->
-      <div class="page" id="page-formatos">
-        <div class="card">
-          <div class="ch"><div class="ct">📝 Formatos diligenciables</div></div>
-          <div id="formatos-list"></div>
-        </div>
-      </div>
-
-      <!-- MANUALES -->
-      <div class="page" id="page-manuales">
-        <div class="card">
-          <div class="ch"><div class="ct">📚 Manuales y políticas institucionales</div></div>
-          <div id="manuales-list"></div>
-        </div>
-      </div>
-
-      <!-- PGIRH -->
-      <div class="page" id="page-pgirh">
-        <div class="alert ai"><i class="fas fa-recycle" style="flex-shrink:0"></i><div>Res. 1164/2002 · Decreto 351/2014 · Resolución 0631/2015</div></div>
-        <div class="card">
-          <div class="ch"><div class="ct">♻️ Documentos PGIRH</div></div>
-          <div id="pgirh-list"></div>
-        </div>
-      </div>
-
-      <!-- VERIFICACION -->
-      <div class="page" id="page-verificacion">
-        <div style="display:flex;align-items:center;gap:14px;margin-bottom:14px">
-          <div style="width:58px;height:58px;border-radius:50%;background:conic-gradient(var(--or) 82%,var(--dark3) 0);display:flex;align-items:center;justify-content:center;flex-shrink:0">
-            <div style="width:44px;height:44px;border-radius:50%;background:var(--dark3);display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:800">82%</div>
-          </div>
-          <div>
-            <div style="font-size:15px;font-weight:700">Lista de verificación Res. 3100/2019</div>
-            <div style="font-size:12px;color:var(--text2)">Medical Center Siloé SAS · Dra. Yesika Vesga</div>
-          </div>
-        </div>
-        <div id="ver-list"></div>
-      </div>
-
-      <!-- TRAZABILIDAD -->
-      <div class="page" id="page-trazabilidad">
-        <div class="card">
-          <div class="ch"><div class="ct">🔍 Registro de auditoría</div></div>
-          <div class="alert ai" style="margin-bottom:12px"><i class="fas fa-lock" style="flex-shrink:0"></i><div>Cada acción de admin y cliente queda registrada automáticamente.</div></div>
-          <div id="log-full"></div>
-        </div>
-      </div>
-
+    <div class="error-msg" id="error-msg">Usuario o contraseña incorrectos.</div>
+    <div class="form-group">
+      <label class="form-label">Usuario</label>
+      <input class="form-input" type="text" id="username" placeholder="Ingresa tu usuario" autocomplete="off">
+    </div>
+    <div class="form-group">
+      <label class="form-label">Contraseña</label>
+      <input class="form-input" type="password" id="password" placeholder="••••••••" autocomplete="off">
+    </div>
+    <button class="btn-login" onclick="doLogin()">Ingresar a la plataforma →</button>
+    <div class="divider">Plataforma segura · Acceso restringido</div>
+  </div>
+  <div class="footer-note">
+    Powered by <strong>BIOMarketing</strong> · ventasbio.com<br>
+    <div class="norms-row">
+      <span class="badge-norm">📋 Res. 3100/2019</span>
+      <span class="badge-norm">♻️ Res. 1164/2002</span>
+      <span class="badge-norm">📁 Res. 1995/1999</span>
+      <span class="badge-norm">🛡️ Ley 1581/2012</span>
     </div>
   </div>
 </div>
-
-<!-- MODAL AGREGAR DOCUMENTO -->
-<div class="modal" id="modal-doc">
-  <div class="mbox">
-    <div class="mh"><div class="mt">➕ Agregar / actualizar documento</div><div class="mc" onclick="closeDocModal()">✕</div></div>
-    <div class="fg"><label class="fl">Cliente</label><select class="fi" id="m-cliente"><option value="vesga">Dra. Yesika Vesga — Medical Center Siloé SAS</option></select></div>
-    <div class="fgrid">
-      <div class="fg"><label class="fl">Carpeta</label>
-        <select class="fi" id="m-carpeta">
-          <option value="calidad">🏆 Calidad y Gestión</option>
-          <option value="talento">👤 Talento Humano</option>
-          <option value="bioseguridad">🛡️ Bioseguridad</option>
-          <option value="historiaclinica">📋 Historia Clínica</option>
-          <option value="estetica">✨ Procedimientos Estéticos</option>
-          <option value="pgirh">♻️ PGIRH</option>
-          <option value="dotacion">🏥 Dotación</option>
-          <option value="operaciones">📊 Operaciones</option>
-        </select>
-      </div>
-      <div class="fg"><label class="fl">Versión</label><input class="fi" type="text" id="m-ver" placeholder="v1.0"></div>
-    </div>
-    <div class="fg"><label class="fl">Nombre del documento</label><input class="fi" type="text" id="m-nombre" placeholder="Ej: Manual de bioseguridad"></div>
-    <div class="fg"><label class="fl">Descripción</label><textarea class="fi fta" id="m-desc" placeholder="Descripción y alcance..."></textarea></div>
-    <div class="fgrid">
-      <div class="fg"><label class="fl">Estado</label>
-        <select class="fi" id="m-estado">
-          <option value="vigente">✅ Vigente</option>
-          <option value="pendiente">⚠️ Pendiente firma</option>
-          <option value="requerido">🚨 Requiere acción</option>
-        </select>
-      </div>
-      <div class="fg"><label class="fl">Norma</label><input class="fi" type="text" id="m-norma" placeholder="Res. 3100/2019"></div>
-    </div>
-    <div class="fg"><label class="fl">Adjuntar archivo Word (.docx)</label><input class="fi" type="file" accept=".docx,.doc,.pdf" id="m-file"></div>
-    <div style="display:flex;gap:8px;margin-top:4px">
-      <button class="btn bor" style="flex:1;justify-content:center;padding:12px" onclick="saveDoc()"><i class="fas fa-save"></i>Guardar documento</button>
-      <button class="btn bg" onclick="closeDocModal()">Cancelar</button>
-    </div>
-  </div>
-</div>
-
-<!-- MODAL NUEVO CLIENTE -->
-<div class="modal" id="modal-cliente">
-  <div class="mbox">
-    <div class="mh"><div class="mt">👤 Registrar nuevo cliente</div><div class="mc" onclick="closeClienteModal()">✕</div></div>
-    <div class="step-indicator"><div class="step-dot act" id="sd1"></div><div class="step-dot" id="sd2"></div><div class="step-dot" id="sd3"></div></div>
-
-    <div class="nc-step act" id="nc1">
-      <div style="font-size:13px;font-weight:700;margin-bottom:12px;color:var(--or)">Paso 1 — Datos del prestador</div>
-      <div class="fgrid">
-        <div class="fg"><label class="fl">Nombre completo médico</label><input class="fi" id="nc-nombre" placeholder="Dra. / Dr. Nombre Apellido"></div>
-        <div class="fg"><label class="fl">Cédula</label><input class="fi" id="nc-cedula" placeholder="0.000.000.000"></div>
-      </div>
-      <div class="fgrid">
-        <div class="fg"><label class="fl">Especialidad</label><input class="fi" id="nc-especialidad" placeholder="Médico General"></div>
-        <div class="fg"><label class="fl">Registro médico</label><input class="fi" id="nc-rm" placeholder="RM-XXXXX"></div>
-      </div>
-      <div class="fg"><label class="fl">Empresa / Razón social</label><input class="fi" id="nc-empresa" placeholder="Nombre SAS / Persona natural"></div>
-      <div class="fg"><label class="fl">NIT o C.C. (si persona natural)</label><input class="fi" id="nc-nit" placeholder="000.000.000-0"></div>
-      <button class="btn bor" style="width:100%;justify-content:center;padding:11px;margin-top:4px" onclick="ncNext(1)">Siguiente <i class="fas fa-arrow-right"></i></button>
-    </div>
-
-    <div class="nc-step" id="nc2">
-      <div style="font-size:13px;font-weight:700;margin-bottom:12px;color:var(--or)">Paso 2 — Sede y servicios</div>
-      <div class="fg"><label class="fl">Dirección de la sede</label><input class="fi" id="nc-dir" placeholder="Calle X No. Y-Z, Barrio, Ciudad"></div>
-      <div class="fgrid">
-        <div class="fg"><label class="fl">Ciudad</label><input class="fi" id="nc-ciudad" placeholder="Cúcuta, Norte de Santander"></div>
-        <div class="fg"><label class="fl">Teléfono</label><input class="fi" id="nc-tel" placeholder="(607) 000-0000"></div>
-      </div>
-      <div class="fg"><label class="fl">Correo electrónico</label><input class="fi" id="nc-email" placeholder="correo@ejemplo.com"></div>
-      <div class="fg"><label class="fl">Servicio habilitado</label>
-        <select class="fi" id="nc-servicio">
-          <option>Consulta externa de medicina general</option>
-          <option>Consulta externa odontología</option>
-          <option>Consulta externa psicología</option>
-          <option>Enfermería</option>
-          <option>Otro (completar)</option>
-        </select>
-      </div>
-      <div style="display:flex;gap:8px;margin-top:4px">
-        <button class="btn bg" style="padding:11px 16px" onclick="ncBack(2)"><i class="fas fa-arrow-left"></i></button>
-        <button class="btn bor" style="flex:1;justify-content:center;padding:11px" onclick="ncNext(2)">Siguiente <i class="fas fa-arrow-right"></i></button>
-      </div>
-    </div>
-
-    <div class="nc-step" id="nc3">
-      <div style="font-size:13px;font-weight:700;margin-bottom:12px;color:var(--or)">Paso 3 — Acceso a la plataforma</div>
-      <div class="fgrid">
-        <div class="fg"><label class="fl">Usuario de acceso</label><input class="fi" id="nc-user" placeholder="ej: dra.gomez"></div>
-        <div class="fg"><label class="fl">Contraseña inicial</label><input class="fi" id="nc-pass" placeholder="Minimo 8 caracteres" type="password"></div>
-      </div>
-      <div class="alert ai" style="margin-top:8px"><i class="fas fa-info-circle" style="flex-shrink:0"></i><div>Después de registrar el cliente, debes agregar manualmente el usuario en el archivo <strong>index.html</strong> (sección USERS) y en <strong>js/data.js</strong> para que pueda acceder al portal.</div></div>
-      <div class="fg" style="margin-top:4px"><label class="fl">Notas adicionales</label><textarea class="fi fta" id="nc-notas" placeholder="Procedimientos especiales, observaciones..."></textarea></div>
-      <div style="display:flex;gap:8px;margin-top:4px">
-        <button class="btn bg" style="padding:11px 16px" onclick="ncBack(3)"><i class="fas fa-arrow-left"></i></button>
-        <button class="btn bor" style="flex:1;justify-content:center;padding:11px" onclick="saveCliente()"><i class="fas fa-check"></i>Registrar cliente</button>
-      </div>
-    </div>
-  </div>
-</div>
-
-<script src="../js/data.js"></script>
 <script>
-if(!sessionStorage.getItem('bio_user')||sessionStorage.getItem('bio_role')!=='admin'){window.location.href='../index.html'}
-const C=BIO_DATA.clientes.vesga;
-const GITHUB='https://raw.githubusercontent.com/biocolombiaplus-max/bioauditoria/main/docs/';
+// CREDENCIALES — Cambiar después del despliegue
+const USERS = {
+  admin: { password: 'Bio@Admin2025!', role: 'admin', redirect: 'admin/index.html' },
+  'dra.vesga': { password: 'Vesga@2025', role: 'cliente', redirect: 'cliente/index.html', clienteId: 'vesga' },
+};
 
-function logout(){sessionStorage.clear();window.location.href='../index.html'}
-function openSidebar(){document.getElementById('sidebar').classList.add('open');document.getElementById('overlay').classList.add('show')}
-function closeSidebar(){document.getElementById('sidebar').classList.remove('open');document.getElementById('overlay').classList.remove('show')}
-function nav(el,id,title){
-  document.querySelectorAll('.ni').forEach(n=>n.classList.remove('act'));
-  if(el)el.classList.add('act');
-  document.querySelectorAll('.page').forEach(p=>p.classList.remove('act'));
-  document.getElementById('page-'+id).classList.add('act');
-  document.getElementById('pgtitle').textContent=title;
-  closeSidebar();
+let selectedRole = 'admin';
+function setRole(r) {
+  selectedRole = r;
+  document.querySelectorAll('.role-btn').forEach(b => b.classList.remove('active'));
+  document.getElementById('role-' + r).classList.add('active');
 }
-
-// TOAST
-function toast(msg,type='success'){
-  const t=document.getElementById('toast');
-  t.className='toast show '+(type==='success'?'success':'error');
-  t.innerHTML=(type==='success'?'<i class="fas fa-check-circle"></i>':'<i class="fas fa-exclamation-circle"></i>')+' '+msg;
-  setTimeout(()=>t.classList.remove('show'),3000);
+function doLogin() {
+  const u = document.getElementById('username').value.trim().toLowerCase();
+  const p = document.getElementById('password').value;
+  const err = document.getElementById('error-msg');
+  if (USERS[u] && USERS[u].password === p && USERS[u].role === selectedRole) {
+    err.style.display = 'none';
+    sessionStorage.setItem('bio_user', u);
+    sessionStorage.setItem('bio_role', USERS[u].role);
+    if (USERS[u].clienteId) sessionStorage.setItem('bio_cliente', USERS[u].clienteId);
+    window.location.href = USERS[u].redirect;
+  } else {
+    err.style.display = 'block';
+    document.getElementById('password').value = '';
+  }
 }
-
-// STATUS
-function sh(s){
-  if(s==='vigente')return '<span class="status sv">✅ Vigente</span>';
-  if(s==='pendiente')return '<span class="status sp">⚠️ Pendiente</span>';
-  return '<span class="status sr">🚨 Requerido</span>';
-}
-
-// DESCARGA REAL DESDE GITHUB
-function dlDoc(archivo,nombre){
-  const url=GITHUB+encodeURIComponent(archivo);
-  const a=document.createElement('a');
-  a.href=url;a.download=archivo;a.target='_blank';
-  document.body.appendChild(a);a.click();document.body.removeChild(a);
-  toast('Descargando: '+nombre);
-  BIO_DATA.trazabilidad.unshift({fecha:new Date().toLocaleString('es-CO'),usuario:'Admin (BIOMarketing)',accion:'Descargó',documento:nombre});
-}
-
-// MODALES
-function openDocModal(){document.getElementById('modal-doc').classList.add('open')}
-function closeDocModal(){document.getElementById('modal-doc').classList.remove('open')}
-function saveDoc(){
-  const n=document.getElementById('m-nombre').value.trim();
-  if(!n){toast('Ingresa el nombre del documento','error');return}
-  BIO_DATA.trazabilidad.unshift({fecha:new Date().toLocaleString('es-CO'),usuario:'Admin',accion:'Agregó documento',documento:n});
-  toast('Documento "'+n+'" guardado en el sistema');
-  closeDocModal();
-}
-
-function openNuevoCliente(){document.getElementById('modal-cliente').classList.add('open')}
-function closeClienteModal(){document.getElementById('modal-cliente').classList.remove('open');ncReset()}
-let ncStep=1;
-function ncNext(from){
-  document.getElementById('nc'+from).classList.remove('act');
-  document.getElementById('nc'+(from+1)).classList.add('act');
-  document.getElementById('sd'+from).classList.remove('act');document.getElementById('sd'+from).classList.add('done');
-  document.getElementById('sd'+(from+1)).classList.add('act');
-  ncStep=from+1;
-}
-function ncBack(from){
-  document.getElementById('nc'+from).classList.remove('act');
-  document.getElementById('nc'+(from-1)).classList.add('act');
-  document.getElementById('sd'+from).classList.remove('act','done');
-  document.getElementById('sd'+(from-1)).classList.remove('done');document.getElementById('sd'+(from-1)).classList.add('act');
-  ncStep=from-1;
-}
-function ncReset(){
-  [1,2,3].forEach(i=>{document.getElementById('nc'+i).classList.remove('act');document.getElementById('sd'+i).classList.remove('act','done')});
-  document.getElementById('nc1').classList.add('act');document.getElementById('sd1').classList.add('act');
-}
-function saveCliente(){
-  const nombre=document.getElementById('nc-nombre').value.trim();
-  const empresa=document.getElementById('nc-empresa').value.trim();
-  const user=document.getElementById('nc-user').value.trim();
-  if(!nombre||!empresa||!user){toast('Completa todos los campos requeridos','error');return}
-  BIO_DATA.trazabilidad.unshift({fecha:new Date().toLocaleString('es-CO'),usuario:'Admin',accion:'Registró cliente',documento:nombre+' — '+empresa});
-  renderClientes();
-  toast('Cliente "'+nombre+'" registrado. Ahora agrega el usuario en index.html y data.js');
-  closeClienteModal();
-  nav(document.querySelectorAll('.ni')[1],'clientes','Clientes');
-}
-
-// LOG
-function renderLog(el,n){
-  document.getElementById(el).innerHTML=BIO_DATA.trazabilidad.slice(0,n).map(l=>
-    `<div class="li"><div class="ld" style="background:${l.accion.includes('Firmó')||l.accion.includes('Publicó')?'var(--green)':l.accion.includes('Alerta')?'var(--red)':'var(--or)'}"></div><div class="lt">${l.fecha.split(' ')[0]}</div><div><strong>${l.usuario}</strong> ${l.accion}: ${l.documento}</div></div>`
-  ).join('');
-}
-
-// CLIENTES
-function renderClientes(){
-  document.getElementById('clientes-list').innerHTML=`
-    <div class="dr" style="padding:14px 12px">
-      <div class="dl">
-        <div style="width:42px;height:42px;border-radius:50%;background:linear-gradient(135deg,var(--or),var(--pu));display:flex;align-items:center;justify-content:center;font-size:15px;font-weight:800;flex-shrink:0">YV</div>
-        <div>
-          <div style="font-weight:700;font-size:13px">${C.nombre}</div>
-          <div style="font-size:11px;color:var(--text2)">${C.empresa} · NIT ${C.nit}</div>
-          <div style="font-size:10px;color:var(--text3)">dra.vesga · ${C.carpetas.length} carpetas · ${C.carpetas.reduce((a,f)=>a+f.documentos.length,0)} documentos</div>
-          <div style="font-size:10px;color:var(--text3)">${C.direccion} · ${C.ciudad}</div>
-        </div>
-      </div>
-      <div style="display:flex;flex-direction:column;align-items:flex-end;gap:5px;flex-shrink:0">
-        <span class="status sv">Activo</span>
-        <button class="btn bor" style="font-size:11px;padding:5px 8px" onclick="nav(document.querySelectorAll('.ni')[2],'carpetas','Carpetas & Docs')"><i class="fas fa-folder"></i>Docs</button>
-      </div>
-    </div>`;
-}
-
-// STATS dinámicos
-function updateStats(){
-  const docs=C.carpetas.flatMap(f=>f.documentos);
-  const total=docs.length,ok=docs.filter(d=>d.estado==='vigente').length,pen=docs.filter(d=>d.estado==='pendiente').length,req=docs.filter(d=>d.estado==='requerido').length;
-  document.getElementById('total-docs').textContent=total;
-  document.getElementById('total-ok').textContent=ok;
-  document.getElementById('total-pen').textContent=pen;
-  document.getElementById('total-req').textContent=req;
-}
-
-// CARPETAS
-function renderFolderTabs(){
-  const tabs=document.getElementById('folder-tabs');
-  tabs.innerHTML=C.carpetas.map((f,i)=>
-    `<div class="ftab ${i===0?'act':''}" onclick="showFolder(this,'${f.id}')">${f.icono} ${f.nombre}</div>`
-  ).join('');
-  if(C.carpetas[0])showFolder(tabs.children[0],C.carpetas[0].id);
-}
-function showFolder(el,fId){
-  document.querySelectorAll('.ftab').forEach(t=>t.classList.remove('act'));
-  if(el)el.classList.add('act');
-  const folder=C.carpetas.find(f=>f.id===fId);
-  document.getElementById('folder-name').textContent=folder.icono+' '+folder.nombre+' · '+folder.norma;
-  document.getElementById('folder-docs').innerHTML=folder.documentos.map(d=>
-    `<div class="dr">
-      <div class="dl">
-        <div class="di" style="background:${d.estado==='vigente'?'var(--gbg)':d.estado==='pendiente'?'var(--ybg)':'var(--rbg)'}">📄</div>
-        <div style="min-width:0"><div class="dn">${d.nombre}</div><div class="dm">${d.version}</div></div>
-      </div>
-      <div class="da">
-        ${sh(d.estado)}
-        <div class="ib dl-btn" onclick="dlDoc('${d.archivo}','${d.nombre}')" title="Descargar Word"><i class="fas fa-download"></i></div>
-        <div class="ib" onclick="editDoc('${d.nombre}')" title="Editar"><i class="fas fa-edit"></i></div>
-      </div>
-    </div>`
-  ).join('');
-}
-function editDoc(n){document.getElementById('m-nombre').value=n;openDocModal()}
-
-// FORMATOS
-function renderFormatos(){
-  document.getElementById('formatos-list').innerHTML=C.formatos_diligenciables.map(f=>
-    `<div class="dr">
-      <div class="dl">
-        <div class="di" style="background:var(--pu-bg)">📝</div>
-        <div style="min-width:0"><div class="dn">${f.nombre}</div><div class="dm">${f.categoria}</div></div>
-      </div>
-      <div class="da">
-        <div class="ib dl-btn" onclick="dlDoc('${f.archivo}','${f.nombre}')" title="Descargar"><i class="fas fa-download"></i></div>
-        <div class="ib" onclick="alert('Diligenciar: ${f.nombre}')" title="Diligenciar"><i class="fas fa-pen"></i></div>
-      </div>
-    </div>`
-  ).join('');
-}
-
-// MANUALES
-function renderManuales(){
-  const docs=[...C.carpetas.find(c=>c.id==='calidad').documentos,...C.carpetas.find(c=>c.id==='bioseguridad').documentos];
-  document.getElementById('manuales-list').innerHTML=docs.map(d=>
-    `<div class="dr">
-      <div class="dl">
-        <div class="di" style="background:var(--pu-bg)">📗</div>
-        <div style="min-width:0"><div class="dn">${d.nombre}</div><div class="dm">${d.version}</div></div>
-      </div>
-      <div class="da">${sh(d.estado)}<div class="ib dl-btn" onclick="dlDoc('${d.archivo}','${d.nombre}')"><i class="fas fa-download"></i></div></div>
-    </div>`
-  ).join('');
-}
-
-// PGIRH
-function renderPgirh(){
-  document.getElementById('pgirh-list').innerHTML=C.carpetas.find(f=>f.id==='pgirh').documentos.map(d=>
-    `<div class="dr">
-      <div class="dl">
-        <div class="di" style="background:var(--gbg)">♻️</div>
-        <div style="min-width:0"><div class="dn">${d.nombre}</div><div class="dm">${d.version}</div></div>
-      </div>
-      <div class="da">${sh(d.estado)}<div class="ib dl-btn" onclick="dlDoc('${d.archivo}','${d.nombre}')"><i class="fas fa-download"></i></div></div>
-    </div>`
-  ).join('');
-}
-
-// VERIFICACION
-function renderVerificacion(){
-  document.getElementById('ver-list').innerHTML=BIO_DATA.verificacion_3100.map(v=>
-    `<div class="vr"><div class="vn">${v.estandar}</div><div class="vd">${v.descripcion}</div>${sh(v.estado)}</div>`
-  ).join('');
-}
-
-// INIT
-updateStats();
-renderLog('log-mini',5);renderLog('log-full',BIO_DATA.trazabilidad.length);
-renderClientes();renderFolderTabs();renderFormatos();renderManuales();renderPgirh();renderVerificacion();
+document.addEventListener('keypress', e => { if (e.key === 'Enter') doLogin(); });
+// Redirigir si ya tiene sesión
+const r = sessionStorage.getItem('bio_role');
+if (r === 'admin') window.location.href = 'admin/index.html';
+if (r === 'cliente') window.location.href = 'cliente/index.html';
 </script>
 </body>
 </html>
