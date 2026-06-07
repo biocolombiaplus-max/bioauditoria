@@ -186,6 +186,8 @@ select.fi option{background:var(--dark2)}
     <div class="ns">REPS e Inscripción</div>
     <div class="ni" onclick="nav(this,'reps','Módulo REPS')"><i class="fas fa-hospital-user"></i>Módulo REPS</div>
     <div class="ni" onclick="nav(this,'servicios','Servicios Habilitados')"><i class="fas fa-stethoscope"></i>Servicios</div>
+    <div class="ns">Drive</div>
+    <div class="ni" onclick="nav(this,'gesdocs','Documentos por Cliente')"><i class="fas fa-folder-open"></i>Docs por Cliente</div>
     <div class="sfoot">
       <div class="upill"><div class="uav">BM</div><div><div class="unm">BIOMarketing Admin</div><div class="url">biomarketing.salud@gmail.com</div></div></div>
       <div class="lbtn" onclick="logout()"><i class="fas fa-sign-out-alt"></i> Cerrar sesión</div>
@@ -258,6 +260,51 @@ select.fi option{background:var(--dark2)}
         <div id="servicios-content"></div>
       </div>
 
+      <!-- GESTIÓN DOCUMENTOS POR CLIENTE (DRIVE) -->
+      <div class="page" id="pg-gesdocs">
+        <div id="gesdocs-content"></div>
+      </div>
+
+    </div>
+  </div>
+</div>
+
+<!-- ============ MODAL: INSTRUCCIONES DRIVE ============ -->
+<div class="modal" id="modal-instrucciones">
+  <div class="mbox">
+    <div class="mh">
+      <div class="mt2">📋 Cómo asignar documentos a un cliente</div>
+      <div class="mc" onclick="document.getElementById('modal-instrucciones').classList.remove('open')">✕</div>
+    </div>
+    <div style="font-size:13px;line-height:1.7;color:var(--text2)">
+      <div style="background:var(--or-bg);border:1px solid var(--orb);border-radius:10px;padding:14px;margin-bottom:14px">
+        <div style="font-size:12px;font-weight:800;color:var(--or2);margin-bottom:8px">PASO 1 — Crear carpeta del cliente en Drive</div>
+        <div>• Ve a Drive y abre la carpeta raíz de clientes</div>
+        <div>• Crea una nueva carpeta con el nombre: <strong>NombreCliente - NIT - Año</strong></div>
+        <div>• Comparte la carpeta con el email del cliente (ver o editar)</div>
+        <div style="margin-top:8px"><a href="https://drive.google.com/drive/folders/1Qq7ymzOFEaxkOliCaJedacIPjzLCsrQ3" target="_blank" style="color:#4285F4;font-weight:700;font-size:12px">📁 Ver carpeta raíz de plantillas ↗</a></div>
+      </div>
+      <div style="background:var(--pu-bg);border:1px solid var(--pub);border-radius:10px;padding:14px;margin-bottom:14px">
+        <div style="font-size:12px;font-weight:800;color:var(--pu2);margin-bottom:8px">PASO 2 — Copiar plantillas originales</div>
+        <div>• En la carpeta de plantillas, abre el estándar correspondiente</div>
+        <div>• Selecciona el documento que necesitas copiar</div>
+        <div>• Click derecho → <strong>"Hacer una copia"</strong></div>
+        <div>• Mueve la copia a la carpeta que creaste para el cliente</div>
+        <div>• Renombra el archivo con el nombre del cliente si deseas</div>
+      </div>
+      <div style="background:var(--gbg);border:1px solid rgba(45,159,92,0.3);border-radius:10px;padding:14px;margin-bottom:14px">
+        <div style="font-size:12px;font-weight:800;color:var(--green);margin-bottom:8px">PASO 3 — Enlazar en la plataforma</div>
+        <div>• Abre el documento copiado en Drive</div>
+        <div>• Copia el ID de la URL: <code style="background:rgba(255,255,255,0.1);padding:2px 5px;border-radius:4px;font-size:11px">drive.google.com/file/d/<strong>[ESTE-ES-EL-ID]</strong>/view</code></div>
+        <div>• En esta sección, selecciona el cliente y pega el ID en el campo del documento</div>
+        <div>• Haz click en <strong>Guardar</strong></div>
+      </div>
+      <div style="background:var(--dark3);border:1px solid var(--bd);border-radius:10px;padding:14px">
+        <div style="font-size:12px;font-weight:800;color:var(--text);margin-bottom:8px">PASO 4 — El cliente ya puede verlos</div>
+        <div>• El cliente ingresa a su portal y ve la sección "Mis Documentos"</div>
+        <div>• Puede abrir y editar cada documento directamente en Drive</div>
+        <div>• Los documentos originales (plantillas) NO se modifican</div>
+      </div>
     </div>
   </div>
 </div>
@@ -788,6 +835,7 @@ function nav(el, id, title) {
   // Lazy-render modules on demand
   if (id === 'reps') renderReps();
   if (id === 'servicios') renderServicios();
+  if (id === 'gesdocs') renderGesdocs();
 }
 
 var toastTimer;
@@ -2022,6 +2070,188 @@ function quickAddServicio(codigo) {
   addTraz('Inscribió servicio', info.nombre);
   renderServicios();
   toast(info.nombre + ' agregado ✓');
+}
+
+// ================================================================
+// MÓDULO GESTIÓN DOCUMENTAL POR CLIENTE (DRIVE)
+// ================================================================
+
+function getDocsCliente(clienteId) {
+  var saved = localStorage.getItem('bio_docs_' + clienteId);
+  if (saved) {
+    try { return JSON.parse(saved); } catch(e) {}
+  }
+  // Buscar en BIO_DATA
+  var cli = BIO_DATA.clientes[clienteId];
+  if (cli && cli.documentosDrive) return JSON.parse(JSON.stringify(cli.documentosDrive));
+  return { carpetaClienteId: '', carpetaClienteUrl: '', serviciosHabilitados: ['medicina_general'], documentos: [] };
+}
+
+function saveDocsCliente(clienteId, data) {
+  localStorage.setItem('bio_docs_' + clienteId, JSON.stringify(data));
+}
+
+function enlazarDocumentoCliente(clienteId, codigo, driveId) {
+  var data = getDocsCliente(clienteId);
+  var driveUrl = driveId ? 'https://drive.google.com/file/d/' + driveId + '/view' : '';
+  var idx = data.documentos.findIndex(function(d) { return d.codigo === codigo; });
+  if (idx >= 0) {
+    data.documentos[idx].driveId = driveId;
+    data.documentos[idx].driveUrl = driveUrl;
+    data.documentos[idx].estado = driveId ? 'disponible' : 'pendiente';
+  } else {
+    data.documentos.push({ codigo: codigo, driveId: driveId, driveUrl: driveUrl, estado: driveId ? 'disponible' : 'pendiente' });
+  }
+  saveDocsCliente(clienteId, data);
+}
+
+function renderGesdocs() {
+  var clientes = Object.values(BIO_DATA.clientes);
+  var selId = document.getElementById('gd-cliente-sel') ? document.getElementById('gd-cliente-sel').value : (clientes[0] ? clientes[0].id : '');
+
+  var cliOptions = clientes.map(function(c) {
+    return '<option value="' + c.id + '"' + (selId === c.id ? ' selected' : '') + '>' + c.nombre_corto + ' — ' + c.empresa + '</option>';
+  }).join('');
+
+  var html = '<div class="alert ai"><i class="fas fa-folder-open" style="flex-shrink:0;font-size:16px"></i>' +
+    '<div><strong>Gestión Documental por Cliente — Google Drive</strong><br>' +
+    'Asigna y enlaza los documentos de cada cliente con sus copias en Google Drive. El cliente podrá verlos y editarlos desde su portal.</div></div>';
+
+  html += '<div class="card">' +
+    '<div class="ch"><div class="ct">📋 Gestión Documental por Cliente</div>' +
+    '<button class="btn bg" onclick="document.getElementById(\'modal-instrucciones\').classList.add(\'open\')"><i class="fas fa-question-circle"></i>Ver instrucciones</button></div>';
+
+  html += '<div class="fg" style="margin-bottom:14px">' +
+    '<label class="fl">Seleccionar Cliente</label>' +
+    '<select class="fi" id="gd-cliente-sel" onchange="renderGesdocs()">' + cliOptions + '</select></div>';
+
+  if (!selId) { html += '</div>'; document.getElementById('gesdocs-content').innerHTML = html; return; }
+
+  var data = getDocsCliente(selId);
+  var cli = BIO_DATA.clientes[selId];
+
+  // Carpeta Drive del cliente
+  html += '<div style="background:var(--dark4);border:1px solid var(--bd2);border-radius:10px;padding:14px;margin-bottom:14px">' +
+    '<div style="font-size:12px;font-weight:700;color:var(--text2);margin-bottom:8px"><i class="fab fa-google-drive" style="color:#4285F4"></i> Carpeta Drive del cliente</div>' +
+    '<div style="display:flex;gap:8px;margin-bottom:8px">' +
+    '<input class="fi" id="gd-carpeta-id" placeholder="ID de la carpeta Drive del cliente..." value="' + (data.carpetaClienteId || '') + '" style="flex:1">' +
+    '<button class="drive-btn" onclick="guardarCarpetaCliente(\'' + selId + '\')">💾 Guardar</button>' +
+    (data.carpetaClienteId ? '<a href="https://drive.google.com/drive/folders/' + data.carpetaClienteId + '" target="_blank" class="drive-btn" style="text-decoration:none">📁 Abrir ↗</a>' : '') +
+    '</div>' +
+    '<div style="font-size:11px;color:var(--text3)">Pega el ID de la carpeta (lo encuentras en la URL de Drive: drive.google.com/drive/folders/<strong>[ID]</strong>)</div>' +
+    '</div>';
+
+  // Servicios habilitados
+  var svcsHab = data.serviciosHabilitados || ['medicina_general'];
+  html += '<div style="background:var(--dark4);border:1px solid var(--bd);border-radius:10px;padding:14px;margin-bottom:14px">' +
+    '<div style="font-size:12px;font-weight:700;color:var(--text2);margin-bottom:10px">Servicios habilitados del cliente</div>' +
+    '<div style="display:flex;flex-wrap:wrap;gap:12px">' +
+    '<label style="display:flex;align-items:center;gap:6px;font-size:12px;cursor:pointer">' +
+    '<input type="checkbox" id="svc-medicina" ' + (svcsHab.indexOf('medicina_general') >= 0 ? 'checked' : '') + ' onchange="toggleServicio(\'' + selId + '\',\'medicina_general\')">' +
+    'Medicina General</label>' +
+    '<label style="display:flex;align-items:center;gap:6px;font-size:12px;cursor:pointer">' +
+    '<input type="checkbox" id="svc-estetica" ' + (svcsHab.indexOf('estetica') >= 0 ? 'checked' : '') + ' onchange="toggleServicio(\'' + selId + '\',\'estetica\')">' +
+    'Estética No Invasiva</label>' +
+    '<label style="display:flex;align-items:center;gap:6px;font-size:12px;cursor:pointer">' +
+    '<input type="checkbox" id="svc-urgencias" ' + (svcsHab.indexOf('urgencias') >= 0 ? 'checked' : '') + ' onchange="toggleServicio(\'' + selId + '\',\'urgencias\')">' +
+    'Urgencias</label>' +
+    '</div></div>';
+
+  // Documentos por estándar
+  html += '<div style="font-size:12px;font-weight:700;color:var(--text);margin-bottom:10px;padding-bottom:6px;border-bottom:1px solid var(--bd)">Documentos a asignar (según servicios)</div>';
+
+  Object.keys(PLANTILLAS_DRIVE.estandares).forEach(function(eKey) {
+    var estd = PLANTILLAS_DRIVE.estandares[eKey];
+    // Filtrar documentos relevantes según servicios
+    var docs = estd.documentos.filter(function(d) {
+      if (!d.servicio) return true;
+      return svcsHab.indexOf(d.servicio) >= 0;
+    });
+    if (!docs.length) return;
+
+    var carpUrl = 'https://drive.google.com/drive/folders/' + estd.carpetaDriveId;
+    html += '<div style="background:var(--dark4);border:1px solid var(--bd);border-radius:10px;padding:12px;margin-bottom:8px">';
+    html += '<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px">' +
+      '<div style="font-size:12px;font-weight:700;color:var(--or2)">📁 ' + estd.nombre + '</div>' +
+      '<a href="' + carpUrl + '" target="_blank" style="font-size:10px;color:#4285F4;font-weight:600;text-decoration:none">Ver plantillas ↗</a></div>';
+
+    docs.forEach(function(doc) {
+      var guardado = data.documentos.find(function(d) { return d.codigo === doc.codigo; }) || {};
+      var driveId = guardado.driveId || '';
+      var estado = driveId ? 'disponible' : 'pendiente';
+      var estadoClass = driveId ? 'sv' : 'sp';
+      var estadoLabel = driveId ? '✅ Enlazado' : '⏳ Pendiente';
+      html += '<div class="dr" style="margin-bottom:6px">' +
+        '<div class="dl">' +
+        '<div class="di" style="background:var(--dark3);font-size:10px;font-weight:700;color:var(--text3)">' + doc.codigo.split('-')[0] + '</div>' +
+        '<div style="min-width:0">' +
+        '<div class="dn">' + doc.nombre + '</div>' +
+        '<div class="dm">' + doc.codigo + (doc.obligatorio ? ' · Obligatorio' : ' · Opcional') + (doc.servicio ? ' · Solo ' + doc.servicio : '') + '</div>' +
+        '</div></div>' +
+        '<div class="da">' +
+        '<span class="status ' + estadoClass + '">' + estadoLabel + '</span>' +
+        '</div></div>';
+      html += '<div style="display:flex;gap:6px;margin-bottom:10px;padding:0 4px">' +
+        '<input class="fi" id="drv-' + selId + '-' + doc.codigo + '" placeholder="ID de Drive de la copia del cliente..." value="' + driveId + '" style="font-size:11px;padding:7px 10px">' +
+        '<button class="drive-btn" style="padding:7px 12px;font-size:11px" onclick="guardarDriveId(\'' + selId + '\',\'' + doc.codigo + '\')">Guardar</button>' +
+        (driveId ? '<a href="https://drive.google.com/file/d/' + driveId + '/view" target="_blank" class="drive-btn" style="padding:7px 10px;font-size:11px;text-decoration:none">↗</a>' : '') +
+        '</div>';
+    });
+    html += '</div>';
+  });
+
+  // Estadísticas
+  var total = 0;
+  var enlazados = 0;
+  Object.keys(PLANTILLAS_DRIVE.estandares).forEach(function(eKey) {
+    PLANTILLAS_DRIVE.estandares[eKey].documentos.forEach(function(d) {
+      if (d.servicio && svcsHab.indexOf(d.servicio) < 0) return;
+      total++;
+      var g = data.documentos.find(function(x) { return x.codigo === d.codigo; });
+      if (g && g.driveId) enlazados++;
+    });
+  });
+
+  var pct = total > 0 ? Math.round((enlazados / total) * 100) : 0;
+  html += '<div style="background:var(--dark4);border:1px solid var(--bd2);border-radius:10px;padding:14px;margin-top:8px">' +
+    '<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:6px">' +
+    '<div style="font-size:12px;font-weight:700">Estado documental</div>' +
+    '<div style="font-size:12px;color:var(--or2);font-weight:700">' + enlazados + '/' + total + ' documentos (' + pct + '%)</div></div>' +
+    '<div class="pw"><div class="pf" style="width:' + pct + '%"></div></div></div>';
+
+  html += '</div>'; // card
+
+  document.getElementById('gesdocs-content').innerHTML = html;
+}
+
+function guardarCarpetaCliente(clienteId) {
+  var id = document.getElementById('gd-carpeta-id').value.trim();
+  var data = getDocsCliente(clienteId);
+  data.carpetaClienteId = id;
+  data.carpetaClienteUrl = id ? 'https://drive.google.com/drive/folders/' + id : '';
+  saveDocsCliente(clienteId, data);
+  addTraz('Configuró carpeta Drive', BIO_DATA.clientes[clienteId].nombre_corto + ' → ' + id);
+  toast('Carpeta Drive guardada ✓');
+  renderGesdocs();
+}
+
+function toggleServicio(clienteId, servicio) {
+  var data = getDocsCliente(clienteId);
+  var idx = data.serviciosHabilitados.indexOf(servicio);
+  if (idx >= 0) data.serviciosHabilitados.splice(idx, 1);
+  else data.serviciosHabilitados.push(servicio);
+  saveDocsCliente(clienteId, data);
+  renderGesdocs();
+}
+
+function guardarDriveId(clienteId, codigo) {
+  var input = document.getElementById('drv-' + clienteId + '-' + codigo);
+  if (!input) return;
+  var driveId = input.value.trim();
+  enlazarDocumentoCliente(clienteId, codigo, driveId);
+  addTraz('Enlazó documento Drive', codigo + ' → ' + (driveId || '(vacío)'));
+  toast(driveId ? 'Documento "' + codigo + '" enlazado ✓' : 'Enlace removido', driveId ? 'ok' : 'info');
+  renderGesdocs();
 }
 
 // ================================================================

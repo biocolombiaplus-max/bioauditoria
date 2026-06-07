@@ -171,6 +171,7 @@ select.fi option{background:var(--dark2)}
     <div class="ni act" onclick="go(this,'inicio','Inicio')"><i class="fas fa-home"></i>Inicio</div>
     <div class="ni" onclick="go(this,'estandares','Estándares Res. 3100')"><i class="fas fa-layer-group"></i>Estándares 3100 <span class="ni-badge" id="badge-req">—</span></div>
     <div class="ni" onclick="go(this,'formatos','Formatos')"><i class="fas fa-file-alt"></i>Formatos</div>
+    <div class="ni" onclick="go(this,'misdocs','Mis Documentos')"><i class="fas fa-folder-open"></i>Mis Documentos</div>
     <div class="ns">Auditoría</div>
     <div class="ni" onclick="go(this,'verificacion','Verificación 3100')"><i class="fas fa-clipboard-check"></i>Verificación</div>
     <div class="ni" onclick="go(this,'auditoria','Módulo Auditoría')"><i class="fas fa-search"></i>Módulo Auditoría</div>
@@ -302,6 +303,11 @@ select.fi option{background:var(--dark2)}
         <div id="actas-list"><div style="font-size:13px;color:var(--text3);text-align:center;padding:30px">No hay actas generadas aún.</div></div>
       </div>
 
+      <!-- MIS DOCUMENTOS DRIVE -->
+      <div class="page" id="page-misdocs">
+        <div id="misdocs-content"></div>
+      </div>
+
     </div>
   </div>
 </div>
@@ -313,6 +319,7 @@ select.fi option{background:var(--dark2)}
   <div class="bni" id="bn-verificacion" onclick="go(null,'verificacion','Verificación');bn('bn-verificacion')"><i class="fas fa-clipboard-check"></i>Check</div>
   <div class="bni" id="bn-auditoria" onclick="go(null,'auditoria','Auditoría');bn('bn-auditoria')"><i class="fas fa-search"></i>Audita</div>
   <div class="bni" id="bn-actas" onclick="go(null,'actas','Actas');bn('bn-actas')"><i class="fas fa-file-signature"></i>Actas</div>
+  <div class="bni" id="bn-misdocs" onclick="go(null,'misdocs','Mis Documentos');bn('bn-misdocs')"><i class="fas fa-folder-open"></i>Docs</div>
 </nav>
 
 <!-- VIEWER -->
@@ -520,6 +527,108 @@ var BIO_DATA = {
   trazabilidad: TRAZABILIDAD,
   github_docs_url: GITHUB_URL
 };
+
+// PLANTILLAS DRIVE — Estructura de documentos por estándar
+var PLANTILLAS_DRIVE = {
+  carpetaRaizId: '1Qq7ymzOFEaxkOliCaJedacIPjzLCsrQ3',
+  carpetaRaizUrl: 'https://drive.google.com/drive/folders/1Qq7ymzOFEaxkOliCaJedacIPjzLCsrQ3',
+  estandares: {
+    talento_humano: {
+      nombre: 'Estándar 1 - Talento Humano',
+      carpetaDriveId: '1HbCRafjXkN1ZyCn2SwIcutY2w2JoVgB-',
+      documentos: [
+        { codigo: 'MAN-TH-001', nombre: 'Manual de Talento Humano', driveId: '', obligatorio: true },
+        { codigo: 'PER-TH-001', nombre: 'Perfil de Cargo Médico General', driveId: '', obligatorio: true },
+        { codigo: 'PRO-TH-001', nombre: 'Proceso Selección y Contratación', driveId: '', obligatorio: true },
+        { codigo: 'FOR-TH-001', nombre: 'Formato Evaluación Desempeño', driveId: '', obligatorio: false }
+      ]
+    },
+    infraestructura: {
+      nombre: 'Estándar 2 - Infraestructura',
+      carpetaDriveId: '12ssFjo2h9POL6Q17EL-ywzcxVerVyxqv',
+      documentos: [
+        { codigo: 'MAN-INF-001', nombre: 'Manual Gestión Infraestructura', driveId: '', obligatorio: true },
+        { codigo: 'PRO-INF-001', nombre: 'Programa Mantenimiento Infraestructura', driveId: '', obligatorio: true },
+        { codigo: 'FOR-INF-001', nombre: 'Formato Inspección Infraestructura', driveId: '', obligatorio: false }
+      ]
+    },
+    dotacion: {
+      nombre: 'Estándar 3 - Dotación',
+      carpetaDriveId: '1ClITk9xW_tfniFrPS8442FEXAcsQJqPP',
+      documentos: [
+        { codigo: 'MAN-DOT-001', nombre: 'Manual Gestión Equipos Biomédicos', driveId: '', obligatorio: true },
+        { codigo: 'PRO-DOT-001', nombre: 'Proceso Mantenimiento Equipos', driveId: '', obligatorio: true },
+        { codigo: 'FOR-DOT-001', nombre: 'Inventario Equipos y Dispositivos', driveId: '', obligatorio: false }
+      ]
+    },
+    medicamentos: {
+      nombre: 'Estándar 4 - Medicamentos y Dispositivos',
+      carpetaDriveId: '15hxi2-u49j5Wyz8QmdQ44s6NMlALi3oR',
+      documentos: [
+        { codigo: 'MAN-MED-001', nombre: 'Manual Gestión Medicamentos', driveId: '', obligatorio: true },
+        { codigo: 'PRO-MED-001', nombre: 'Proceso Almacenamiento Medicamentos', driveId: '', obligatorio: true },
+        { codigo: 'FOR-MED-001', nombre: 'Control Stock Medicamentos', driveId: '', obligatorio: false }
+      ]
+    },
+    procesos_prioritarios: {
+      nombre: 'Estándar 5 - Procesos Prioritarios',
+      carpetaDriveId: '1j6Vt3RmdcfJ2oPkvXw3UXGrTAqZ7NEmr',
+      documentos: [
+        { codigo: 'MAN-PP-001', nombre: 'Manual Atención al Paciente', driveId: '', obligatorio: true },
+        { codigo: 'PRO-PP-001', nombre: 'Proceso Consulta Medicina General', driveId: '', obligatorio: true },
+        { codigo: 'PRO-PP-002', nombre: 'Proceso Procedimientos Estéticos No Invasivos', driveId: '', obligatorio: false, servicio: 'estetica' },
+        { codigo: 'PRO-PP-003', nombre: 'Proceso Seguridad del Paciente', driveId: '', obligatorio: true },
+        { codigo: 'PRO-PP-004', nombre: 'Proceso Prevención Infecciones', driveId: '', obligatorio: true },
+        { codigo: 'PRO-PP-005', nombre: 'PAMEC - Programa Auditoría Mejoramiento Calidad', driveId: '', obligatorio: true },
+        { codigo: 'PRO-PP-006', nombre: 'Plan Gestión Residuos Hospitalarios', driveId: '', obligatorio: true },
+        { codigo: 'PRO-PP-007', nombre: 'Plan Emergencias y Contingencias', driveId: '', obligatorio: true },
+        { codigo: 'FOR-PP-001', nombre: 'Consentimiento Informado Consulta General', driveId: '', obligatorio: true },
+        { codigo: 'FOR-PP-002', nombre: 'Consentimiento Informado Toxina Botulínica', driveId: '', obligatorio: false, servicio: 'estetica' },
+        { codigo: 'FOR-PP-003', nombre: 'Consentimiento Informado Rellenos Dérmicos', driveId: '', obligatorio: false, servicio: 'estetica' },
+        { codigo: 'FOR-PP-004', nombre: 'Consentimiento Informado Peeling Químico', driveId: '', obligatorio: false, servicio: 'estetica' },
+        { codigo: 'FOR-PP-005', nombre: 'Formato Reporte Evento Adverso', driveId: '', obligatorio: true }
+      ]
+    },
+    historia_clinica: {
+      nombre: 'Estándar 6 - Historia Clínica y Registros',
+      carpetaDriveId: '16w2X6h_Uwo6jmQOl_-Dd_27_bLrYMMWu',
+      documentos: [
+        { codigo: 'MAN-HC-001', nombre: 'Manual Historia Clínica', driveId: '', obligatorio: true },
+        { codigo: 'PRO-HC-001', nombre: 'Proceso Gestión Historia Clínica', driveId: '', obligatorio: true },
+        { codigo: 'FOR-HC-001', nombre: 'Historia Clínica Medicina General', driveId: '', obligatorio: true },
+        { codigo: 'FOR-HC-002', nombre: 'Historia Clínica Estética', driveId: '', obligatorio: false, servicio: 'estetica' }
+      ]
+    },
+    referencia_contrarreferencia: {
+      nombre: 'Estándar 7 - Referencia y Contrarreferencia',
+      carpetaDriveId: '1zHNuSlF-Aq3QXxyWc14YsNrVxJxz_e4v',
+      documentos: [
+        { codigo: 'MAN-RCR-001', nombre: 'Manual Referencia y Contrarreferencia', driveId: '', obligatorio: true },
+        { codigo: 'FOR-RCR-001', nombre: 'Formato de Remisión', driveId: '', obligatorio: true }
+      ]
+    },
+    gestion_calidad: {
+      nombre: 'Estándar 8 - Gestión de Calidad',
+      carpetaDriveId: '1kxTc_r7DUw04okqkU_DBhPRgPBuEMshn',
+      documentos: [
+        { codigo: 'MAN-GC-001', nombre: 'Manual de Calidad', driveId: '', obligatorio: true },
+        { codigo: 'POL-GC-001', nombre: 'Política de Calidad y Seguridad', driveId: '', obligatorio: true },
+        { codigo: 'PRO-GC-001', nombre: 'Proceso Auditoría Interna', driveId: '', obligatorio: true },
+        { codigo: 'PRO-GC-002', nombre: 'Proceso Gestión de Riesgos', driveId: '', obligatorio: true },
+        { codigo: 'PRO-GC-003', nombre: 'Proceso Atención Quejas y Reclamos PQR', driveId: '', obligatorio: true }
+      ]
+    },
+    habilitacion: {
+      nombre: 'Estándar 9 - Habilitación y Normatividad',
+      carpetaDriveId: '1KoqRi-KeatMrDXZ18bCXklX70vaIG1kJ',
+      documentos: [
+        { codigo: 'MAN-HAB-001', nombre: 'Manual de Habilitación Servicios de Salud', driveId: '', obligatorio: true },
+        { codigo: 'CHK-HAB-001', nombre: 'Lista de Verificación Estándares Res. 3100', driveId: '', obligatorio: true },
+        { codigo: 'FOR-HAB-001', nombre: 'Acta de Visita y Autoevaluación', driveId: '', obligatorio: true }
+      ]
+    }
+  }
+};
 </script>
 <script>
 // AUTH
@@ -550,6 +659,7 @@ function go(el,id,title){
   document.querySelectorAll('.page').forEach(p=>p.classList.remove('act'));
   document.getElementById('page-'+id).classList.add('act');
   document.getElementById('pgtitle').textContent=title;
+  if(id==='misdocs') renderMisDocs();
 }
 function bn(id){document.querySelectorAll('.bni').forEach(b=>b.classList.remove('act'));document.getElementById(id).classList.add('act')}
 function sh(s){
@@ -947,6 +1057,133 @@ function viewDoc(nombre,archivo,eid){
   document.getElementById('viewer').classList.add('open');
 }
 function closeViewer(){document.getElementById('viewer').classList.remove('open')}
+
+// ================================================================
+// MIS DOCUMENTOS DE HABILITACIÓN (DRIVE)
+// ================================================================
+function renderMisDocs() {
+  var el = document.getElementById('misdocs-content');
+  if (!el) return;
+
+  // Cargar datos del localStorage (guardados por el admin)
+  var data;
+  try {
+    var saved = localStorage.getItem('bio_docs_' + C.id);
+    data = saved ? JSON.parse(saved) : (C.documentosDrive || { carpetaClienteId:'', carpetaClienteUrl:'', serviciosHabilitados:['medicina_general'], documentos:[] });
+  } catch(e) {
+    data = { carpetaClienteId:'', carpetaClienteUrl:'', serviciosHabilitados:['medicina_general'], documentos:[] };
+  }
+
+  var svcs = data.serviciosHabilitados || ['medicina_general'];
+
+  // Calcular progreso
+  var total = 0, disponibles = 0;
+  Object.keys(PLANTILLAS_DRIVE.estandares).forEach(function(eKey) {
+    PLANTILLAS_DRIVE.estandares[eKey].documentos.forEach(function(d) {
+      if (d.servicio && svcs.indexOf(d.servicio) < 0) return;
+      if (!d.obligatorio) return;
+      total++;
+      var g = data.documentos.find(function(x) { return x.codigo === d.codigo; });
+      if (g && g.driveId) disponibles++;
+    });
+  });
+  var pct = total > 0 ? Math.round((disponibles / total) * 100) : 0;
+  var pctBar = Math.max(2, pct);
+
+  var html = '<div class="alert ai"><i class="fas fa-info-circle" style="flex-shrink:0;font-size:16px"></i>' +
+    '<div><strong>Mis Documentos de Habilitación — Res. 3100/2019</strong><br>' +
+    'Estos son SUS documentos personalizados en Google Drive. Puede editarlos directamente sin afectar las plantillas base.</div></div>';
+
+  // Progreso
+  html += '<div style="background:var(--dark3);border:1px solid var(--bd2);border-radius:var(--r);padding:14px;margin-bottom:12px">' +
+    '<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:6px">' +
+    '<div style="font-size:13px;font-weight:700">📊 Progreso de habilitación</div>' +
+    '<div style="font-size:13px;font-weight:800;color:var(--or2)">' + disponibles + '/' + total + ' obligatorios (' + pct + '%)</div></div>' +
+    '<div class="pw" style="height:8px"><div class="pf" style="width:' + pctBar + '%;background:linear-gradient(90deg,var(--or),var(--pu))"></div></div></div>';
+
+  // Servicios habilitados
+  var svcsLabels = [];
+  if (svcs.indexOf('medicina_general') >= 0) svcsLabels.push('Medicina General');
+  if (svcs.indexOf('estetica') >= 0) svcsLabels.push('Estética No Invasiva');
+  if (svcs.indexOf('urgencias') >= 0) svcsLabels.push('Urgencias');
+
+  html += '<div style="display:flex;flex-wrap:wrap;gap:6px;margin-bottom:14px">' +
+    svcsLabels.map(function(s) { return '<span class="tag" style="background:var(--or-bg);color:var(--or2);border:1px solid var(--orb)">' + s + '</span>'; }).join('') +
+    '</div>';
+
+  // Documentos por estándar
+  var hayDocs = false;
+  Object.keys(PLANTILLAS_DRIVE.estandares).forEach(function(eKey) {
+    var estd = PLANTILLAS_DRIVE.estandares[eKey];
+    var docs = estd.documentos.filter(function(d) {
+      if (d.servicio && svcs.indexOf(d.servicio) < 0) return false;
+      return true;
+    });
+    if (!docs.length) return;
+
+    // Solo mostrar si hay al menos un documento enlazado o relevante
+    var docsConEnlace = docs.filter(function(d) {
+      var g = data.documentos.find(function(x) { return x.codigo === d.codigo; });
+      return g && g.driveId;
+    });
+
+    html += '<div style="background:var(--dark3);border:1px solid var(--bd);border-radius:var(--r);margin-bottom:10px;overflow:hidden">';
+    html += '<div style="display:flex;align-items:center;justify-content:space-between;padding:11px 14px;background:var(--dark4)">' +
+      '<div style="font-size:13px;font-weight:700"><i class="fas fa-folder" style="color:var(--or2);margin-right:6px"></i>' + estd.nombre + '</div>' +
+      '<div style="font-size:11px;color:var(--text3)">' + docsConEnlace.length + '/' + docs.length + ' disponibles</div></div>';
+
+    html += '<div style="padding:8px 12px 10px">';
+    docs.forEach(function(doc) {
+      var guardado = data.documentos.find(function(d) { return d.codigo === doc.codigo; }) || {};
+      var driveId = guardado.driveId || '';
+      var driveUrl = driveId ? 'https://drive.google.com/file/d/' + driveId + '/view' : '';
+      var noAplica = doc.servicio && svcs.indexOf(doc.servicio) < 0;
+
+      var icono, estadoHtml, accionHtml;
+      if (noAplica) {
+        icono = '🔒';
+        estadoHtml = '<span class="status" style="background:rgba(90,90,138,0.2);color:var(--text3)">N/A</span>';
+        accionHtml = '<span style="font-size:10px;color:var(--text3)">No aplica para sus servicios</span>';
+      } else if (driveId) {
+        icono = '✅';
+        estadoHtml = '<span class="status sv">Disponible</span>';
+        accionHtml = '<a href="' + driveUrl + '" target="_blank" style="display:inline-flex;align-items:center;gap:4px;padding:5px 10px;border-radius:7px;font-size:11px;font-weight:700;background:rgba(66,133,244,0.12);border:1px solid rgba(66,133,244,0.3);color:#4285F4;text-decoration:none;white-space:nowrap"><i class="fab fa-google-drive"></i>Abrir en Drive ↗</a>';
+      } else {
+        icono = '⏳';
+        estadoHtml = '<span class="status sp">Pendiente</span>';
+        accionHtml = '<span style="font-size:11px;color:var(--text3)">No disponible aún</span>';
+      }
+
+      html += '<div class="dr" style="margin-bottom:5px">' +
+        '<div class="dl">' +
+        '<div class="di" style="background:var(--dark4);font-size:14px">' + icono + '</div>' +
+        '<div style="min-width:0">' +
+        '<div class="dn">' + doc.nombre + '</div>' +
+        '<div class="dm">' + doc.codigo + (doc.obligatorio ? ' · Obligatorio' : ' · Opcional') + '</div>' +
+        '</div></div>' +
+        '<div class="da" style="flex-wrap:wrap;justify-content:flex-end;gap:4px">' + estadoHtml + accionHtml + '</div></div>';
+      hayDocs = true;
+    });
+    html += '</div></div>';
+  });
+
+  if (!hayDocs && disponibles === 0) {
+    html += '<div style="text-align:center;padding:30px;color:var(--text3)">' +
+      '<div style="font-size:32px;margin-bottom:10px">📂</div>' +
+      '<div style="font-size:13px;font-weight:700;margin-bottom:6px">Documentos no disponibles aún</div>' +
+      '<div style="font-size:12px">El administrador está preparando sus documentos personalizados. ' +
+      'Recibirás acceso cuando estén listos.</div></div>';
+  }
+
+  // Botón carpeta Drive del cliente (si existe)
+  if (data.carpetaClienteId) {
+    html += '<a href="https://drive.google.com/drive/folders/' + data.carpetaClienteId + '" target="_blank" ' +
+      'style="display:flex;align-items:center;justify-content:center;gap:8px;padding:12px;background:rgba(66,133,244,0.1);border:1px solid rgba(66,133,244,0.3);color:#4285F4;border-radius:10px;font-size:13px;font-weight:700;text-decoration:none;margin-top:4px">' +
+      '<i class="fab fa-google-drive"></i>Abrir mi carpeta de documentos en Drive ↗</a>';
+  }
+
+  el.innerHTML = html;
+}
 
 // INIT
 initStats();

@@ -5,6 +5,110 @@
 
 const GITHUB = 'https://raw.githubusercontent.com/biocolombiaplus-max/bioauditoria/main/docs/';
 
+// ============================================================
+// PLANTILLAS DRIVE — Documentos base por estándar
+// ============================================================
+const PLANTILLAS_DRIVE = {
+  carpetaRaizId: '1Qq7ymzOFEaxkOliCaJedacIPjzLCsrQ3',
+  carpetaRaizUrl: 'https://drive.google.com/drive/folders/1Qq7ymzOFEaxkOliCaJedacIPjzLCsrQ3',
+  estandares: {
+    talento_humano: {
+      nombre: 'Estándar 1 - Talento Humano',
+      carpetaDriveId: '1HbCRafjXkN1ZyCn2SwIcutY2w2JoVgB-',
+      documentos: [
+        { codigo: 'MAN-TH-001', nombre: 'Manual de Talento Humano', driveId: '', obligatorio: true },
+        { codigo: 'PER-TH-001', nombre: 'Perfil de Cargo Médico General', driveId: '', obligatorio: true },
+        { codigo: 'PRO-TH-001', nombre: 'Proceso Selección y Contratación', driveId: '', obligatorio: true },
+        { codigo: 'FOR-TH-001', nombre: 'Formato Evaluación Desempeño', driveId: '', obligatorio: false },
+      ]
+    },
+    infraestructura: {
+      nombre: 'Estándar 2 - Infraestructura',
+      carpetaDriveId: '12ssFjo2h9POL6Q17EL-ywzcxVerVyxqv',
+      documentos: [
+        { codigo: 'MAN-INF-001', nombre: 'Manual Gestión Infraestructura', driveId: '', obligatorio: true },
+        { codigo: 'PRO-INF-001', nombre: 'Programa Mantenimiento Infraestructura', driveId: '', obligatorio: true },
+        { codigo: 'FOR-INF-001', nombre: 'Formato Inspección Infraestructura', driveId: '', obligatorio: false },
+      ]
+    },
+    dotacion: {
+      nombre: 'Estándar 3 - Dotación',
+      carpetaDriveId: '1ClITk9xW_tfniFrPS8442FEXAcsQJqPP',
+      documentos: [
+        { codigo: 'MAN-DOT-001', nombre: 'Manual Gestión Equipos Biomédicos', driveId: '', obligatorio: true },
+        { codigo: 'PRO-DOT-001', nombre: 'Proceso Mantenimiento Equipos', driveId: '', obligatorio: true },
+        { codigo: 'FOR-DOT-001', nombre: 'Inventario Equipos y Dispositivos', driveId: '', obligatorio: false },
+      ]
+    },
+    medicamentos: {
+      nombre: 'Estándar 4 - Medicamentos y Dispositivos',
+      carpetaDriveId: '15hxi2-u49j5Wyz8QmdQ44s6NMlALi3oR',
+      documentos: [
+        { codigo: 'MAN-MED-001', nombre: 'Manual Gestión Medicamentos', driveId: '', obligatorio: true },
+        { codigo: 'PRO-MED-001', nombre: 'Proceso Almacenamiento Medicamentos', driveId: '', obligatorio: true },
+        { codigo: 'FOR-MED-001', nombre: 'Control Stock Medicamentos', driveId: '', obligatorio: false },
+      ]
+    },
+    procesos_prioritarios: {
+      nombre: 'Estándar 5 - Procesos Prioritarios',
+      carpetaDriveId: '1j6Vt3RmdcfJ2oPkvXw3UXGrTAqZ7NEmr',
+      documentos: [
+        { codigo: 'MAN-PP-001', nombre: 'Manual Atención al Paciente', driveId: '', obligatorio: true },
+        { codigo: 'PRO-PP-001', nombre: 'Proceso Consulta Medicina General', driveId: '', obligatorio: true },
+        { codigo: 'PRO-PP-002', nombre: 'Proceso Procedimientos Estéticos No Invasivos', driveId: '', obligatorio: false, servicio: 'estetica' },
+        { codigo: 'PRO-PP-003', nombre: 'Proceso Seguridad del Paciente', driveId: '', obligatorio: true },
+        { codigo: 'PRO-PP-004', nombre: 'Proceso Prevención Infecciones', driveId: '', obligatorio: true },
+        { codigo: 'PRO-PP-005', nombre: 'PAMEC - Programa Auditoría Mejoramiento Calidad', driveId: '', obligatorio: true },
+        { codigo: 'PRO-PP-006', nombre: 'Plan Gestión Residuos Hospitalarios', driveId: '', obligatorio: true },
+        { codigo: 'PRO-PP-007', nombre: 'Plan Emergencias y Contingencias', driveId: '', obligatorio: true },
+        { codigo: 'FOR-PP-001', nombre: 'Consentimiento Informado Consulta General', driveId: '', obligatorio: true },
+        { codigo: 'FOR-PP-002', nombre: 'Consentimiento Informado Toxina Botulínica', driveId: '', obligatorio: false, servicio: 'estetica' },
+        { codigo: 'FOR-PP-003', nombre: 'Consentimiento Informado Rellenos Dérmicos', driveId: '', obligatorio: false, servicio: 'estetica' },
+        { codigo: 'FOR-PP-004', nombre: 'Consentimiento Informado Peeling Químico', driveId: '', obligatorio: false, servicio: 'estetica' },
+        { codigo: 'FOR-PP-005', nombre: 'Formato Reporte Evento Adverso', driveId: '', obligatorio: true },
+      ]
+    },
+    historia_clinica: {
+      nombre: 'Estándar 6 - Historia Clínica y Registros',
+      carpetaDriveId: '16w2X6h_Uwo6jmQOl_-Dd_27_bLrYMMWu',
+      documentos: [
+        { codigo: 'MAN-HC-001', nombre: 'Manual Historia Clínica', driveId: '', obligatorio: true },
+        { codigo: 'PRO-HC-001', nombre: 'Proceso Gestión Historia Clínica', driveId: '', obligatorio: true },
+        { codigo: 'FOR-HC-001', nombre: 'Historia Clínica Medicina General', driveId: '', obligatorio: true },
+        { codigo: 'FOR-HC-002', nombre: 'Historia Clínica Estética', driveId: '', obligatorio: false, servicio: 'estetica' },
+      ]
+    },
+    referencia_contrarreferencia: {
+      nombre: 'Estándar 7 - Referencia y Contrarreferencia',
+      carpetaDriveId: '1zHNuSlF-Aq3QXxyWc14YsNrVxJxz_e4v',
+      documentos: [
+        { codigo: 'MAN-RCR-001', nombre: 'Manual Referencia y Contrarreferencia', driveId: '', obligatorio: true },
+        { codigo: 'FOR-RCR-001', nombre: 'Formato de Remisión', driveId: '', obligatorio: true },
+      ]
+    },
+    gestion_calidad: {
+      nombre: 'Estándar 8 - Gestión de Calidad',
+      carpetaDriveId: '1kxTc_r7DUw04okqkU_DBhPRgPBuEMshn',
+      documentos: [
+        { codigo: 'MAN-GC-001', nombre: 'Manual de Calidad', driveId: '', obligatorio: true },
+        { codigo: 'POL-GC-001', nombre: 'Política de Calidad y Seguridad', driveId: '', obligatorio: true },
+        { codigo: 'PRO-GC-001', nombre: 'Proceso Auditoría Interna', driveId: '', obligatorio: true },
+        { codigo: 'PRO-GC-002', nombre: 'Proceso Gestión de Riesgos', driveId: '', obligatorio: true },
+        { codigo: 'PRO-GC-003', nombre: 'Proceso Atención Quejas y Reclamos PQR', driveId: '', obligatorio: true },
+      ]
+    },
+    habilitacion: {
+      nombre: 'Estándar 9 - Habilitación y Normatividad',
+      carpetaDriveId: '1KoqRi-KeatMrDXZ18bCXklX70vaIG1kJ',
+      documentos: [
+        { codigo: 'MAN-HAB-001', nombre: 'Manual de Habilitación Servicios de Salud', driveId: '', obligatorio: true },
+        { codigo: 'CHK-HAB-001', nombre: 'Lista de Verificación Estándares Res. 3100', driveId: '', obligatorio: true },
+        { codigo: 'FOR-HAB-001', nombre: 'Acta de Visita y Autoevaluación', driveId: '', obligatorio: true },
+      ]
+    }
+  }
+};
+
 // TIPOS DE AUDITORÍA
 const TIPOS_AUDITORIA = [
   'Visita de verificación habilitación (Secretaría de Salud)',
@@ -291,6 +395,14 @@ const BIO_DATA = {
 
       // ACTAS DE AUDITORÍA
       auditorias: [],
+
+      // DOCUMENTOS DRIVE — Gestionados por el admin
+      documentosDrive: {
+        carpetaClienteId: '',
+        carpetaClienteUrl: '',
+        serviciosHabilitados: ['medicina_general'],
+        documentos: []
+      },
     }
   },
 
