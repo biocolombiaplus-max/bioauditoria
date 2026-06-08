@@ -155,6 +155,161 @@ select.fi option{background:var(--dark2)}
 /* NOTA AUDITORÍA */
 .nota-badge{display:inline-flex;align-items:center;gap:4px;padding:3px 8px;border-radius:5px;font-size:10px;font-weight:700;background:rgba(255,107,0,0.15);color:var(--or2);border:1px solid var(--orb)}
 </style>
+<style>
+/* ===== VISOR PREMIUM DE DOCUMENTOS ===== */
+.doc-viewer-modal {
+  position: fixed; top:0; left:0; right:0; bottom:0;
+  background: rgba(10,20,40,0.92);
+  z-index: 99999;
+  display: flex; flex-direction: column;
+  animation: viewerFadeIn 0.25s ease;
+}
+@keyframes viewerFadeIn { from{opacity:0;transform:scale(0.98)} to{opacity:1;transform:scale(1)} }
+
+.dv-header {
+  background: linear-gradient(135deg, #0d2137 0%, #1565C0 100%);
+  color: #fff; padding: 14px 24px;
+  display: flex; align-items: center; gap: 16px;
+  box-shadow: 0 3px 15px rgba(0,0,0,0.4); z-index: 2;
+  flex-shrink: 0;
+}
+.dv-back-btn {
+  background: rgba(255,255,255,0.15); color: #fff; border: 1px solid rgba(255,255,255,0.3);
+  padding: 8px 16px; border-radius: 8px; cursor: pointer; font-size: 14px;
+  transition: background 0.2s; white-space: nowrap;
+}
+.dv-back-btn:hover { background: rgba(255,255,255,0.25); }
+.dv-title { flex:1; }
+.dv-doc-codigo {
+  display: inline-block; background: rgba(255,255,255,0.2);
+  padding: 2px 10px; border-radius: 20px; font-size: 11px;
+  font-weight: 700; letter-spacing: 1px; margin-bottom: 4px;
+}
+.dv-doc-nombre { font-size: 16px; font-weight: 700; display: block; }
+.dv-protected-badge {
+  background: linear-gradient(135deg, #C9A84C, #E8C96B);
+  color: #1a0a00; padding: 6px 14px; border-radius: 20px;
+  font-size: 12px; font-weight: 700; white-space: nowrap;
+}
+.dv-body { flex:1; display:flex; overflow:hidden; }
+
+.dv-iframe-wrap {
+  flex:1; position:relative; background:#525659;
+  display:flex; align-items:center; justify-content:center;
+}
+.dv-iframe-wrap iframe {
+  width:100%; height:100%; border:none; display:block;
+}
+.dv-no-download-overlay {
+  position:absolute; top:0; left:0; right:0; bottom:0;
+  z-index: 10; cursor:default; user-select:none;
+  pointer-events: none;
+}
+
+.dv-sidebar {
+  width: 300px; background: #fff; border-left: 1px solid #e0e0e0;
+  overflow-y: auto; display: flex; flex-direction: column;
+  flex-shrink: 0;
+}
+.dv-sidebar-header {
+  background: linear-gradient(135deg, #0d2137, #1565C0);
+  color: #fff; padding: 20px; flex-shrink: 0;
+}
+.dv-sidebar-header h3 { margin:0; font-size:16px; }
+.dv-sidebar-header p { margin:6px 0 0; font-size:12px; opacity:0.8; }
+.dv-sidebar-body { padding: 20px; flex:1; }
+.dv-form-group { margin-bottom: 16px; }
+.dv-form-group label {
+  display:block; font-size:11px; font-weight:700; color:#546e7a;
+  text-transform:uppercase; letter-spacing:0.5px; margin-bottom:5px;
+}
+.dv-form-group input {
+  width:100%; padding:9px 12px; border:1.5px solid #e0e0e0;
+  border-radius:8px; font-size:13px; color:#1a3a5c;
+  transition: border-color 0.2s; box-sizing:border-box;
+}
+.dv-form-group input:focus { outline:none; border-color:#1565C0; }
+.dv-save-btn {
+  width:100%; padding:12px; background:linear-gradient(135deg,#0d2137,#1565C0);
+  color:#fff; border:none; border-radius:10px; font-size:14px; font-weight:700;
+  cursor:pointer; transition: opacity 0.2s; margin-bottom:16px;
+}
+.dv-save-btn:hover { opacity:0.9; }
+.dv-protection-info {
+  background:#FFF8E1; border:1px solid #FFD54F; border-radius:10px;
+  padding:14px; display:flex; gap:10px; align-items:flex-start;
+}
+.dv-protection-info .lock-icon { font-size:22px; }
+.dv-protection-info strong { display:block; font-size:12px; color:#E65100; }
+.dv-protection-info p { margin:4px 0 0; font-size:11px; color:#795548; line-height:1.5; }
+
+/* ===== TARJETAS PREMIUM DE DOCUMENTOS ===== */
+.doc-card-premium {
+  display:flex; align-items:center; gap:14px;
+  padding:14px 18px; background:#fff; border-radius:12px;
+  border:1.5px solid #e8ecf0; margin-bottom:10px; cursor:pointer;
+  transition: all 0.2s; box-shadow: 0 2px 6px rgba(0,0,0,0.04);
+  text-align: left; width: 100%;
+}
+.doc-card-premium:hover {
+  border-color:#1565C0; box-shadow:0 6px 20px rgba(21,101,192,0.15);
+  transform:translateY(-2px);
+}
+.doc-card-premium.no-disponible { opacity:0.5; cursor:not-allowed; }
+.doc-card-premium.no-disponible:hover { transform:none; box-shadow:0 2px 6px rgba(0,0,0,0.04); border-color:#e8ecf0; }
+.dcp-icon { font-size:28px; flex-shrink:0; }
+.dcp-info { flex:1; min-width:0; }
+.dcp-codigo {
+  display:inline-block; background:#E3F2FD; color:#1565C0;
+  padding:2px 8px; border-radius:4px; font-size:10px; font-weight:800;
+  letter-spacing:0.5px; margin-bottom:5px;
+}
+.dcp-nombre { font-size:14px; font-weight:700; color:#1a3a5c; display:block; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+.dcp-estandar { font-size:11px; color:#90a4ae; display:block; margin-top:2px; }
+.dcp-estado-ok { color:#43A047; font-size:11px; font-weight:700; }
+.dcp-estado-pending { color:#FB8C00; font-size:11px; font-weight:700; }
+.dcp-estado-na { color:#90a4ae; font-size:11px; }
+.dcp-action {
+  background:linear-gradient(135deg,#0d2137,#1565C0);
+  color:#fff; border:none; padding:9px 16px; border-radius:8px;
+  font-size:12px; font-weight:700; cursor:pointer; white-space:nowrap;
+  flex-shrink:0;
+}
+
+/* ===== TOAST NOTIFICATION ===== */
+.bio-toast {
+  position:fixed; bottom:24px; left:50%; transform:translateX(-50%);
+  background:#1a3a5c; color:#fff; padding:12px 24px; border-radius:30px;
+  font-size:14px; font-weight:600; z-index:999999;
+  box-shadow:0 4px 20px rgba(0,0,0,0.3);
+  animation: toastIn 0.3s ease, toastOut 0.3s ease 2.5s forwards;
+}
+.bio-toast.success { background:#2E7D32; }
+.bio-toast.warning { background:#E65100; }
+.bio-toast.info { background:#1565C0; }
+@keyframes toastIn { from{opacity:0;transform:translateX(-50%) translateY(20px)} to{opacity:1;transform:translateX(-50%) translateY(0)} }
+@keyframes toastOut { to{opacity:0;transform:translateX(-50%) translateY(20px)} }
+
+/* ===== ESTANDAR GRUPOS ===== */
+.estandar-group { margin-bottom:28px; }
+.estandar-group-header {
+  display:flex; align-items:center; gap:12px;
+  padding:12px 18px; background:linear-gradient(135deg,#0d2137,#1565C0);
+  border-radius:10px; margin-bottom:10px; color:#fff;
+}
+.estandar-group-header .eg-icon { font-size:20px; }
+.estandar-group-header .eg-nombre { font-size:14px; font-weight:700; flex:1; }
+.estandar-group-header .eg-count {
+  background:rgba(255,255,255,0.2); padding:3px 10px;
+  border-radius:20px; font-size:12px; font-weight:700;
+}
+
+/* Progress bar */
+.docs-progress-wrap { background:#f5f5f5; border-radius:12px; padding:20px; margin-bottom:24px; }
+.docs-progress-label { display:flex; justify-content:space-between; font-size:13px; font-weight:700; color:#1a3a5c; margin-bottom:10px; }
+.docs-progress-bar { height:10px; background:#e0e0e0; border-radius:10px; overflow:hidden; }
+.docs-progress-fill { height:100%; background:linear-gradient(90deg,#1565C0,#42A5F5); border-radius:10px; transition:width 0.8s ease; }
+</style>
 </head>
 <body>
 <div class="shell">
@@ -1062,6 +1217,12 @@ function closeViewer(){document.getElementById('viewer').classList.remove('open'
 // MIS DOCUMENTOS DE HABILITACIÓN (DRIVE)
 // ================================================================
 function renderMisDocs() {
+  // Usar visor premium si PLANTILLAS_DRIVE está disponible
+  if (typeof PLANTILLAS_DRIVE !== 'undefined' && typeof renderMisDocsPremium === 'function') {
+    renderMisDocsPremium(C.id);
+    return;
+  }
+
   var el = document.getElementById('misdocs-content');
   if (!el) return;
 
@@ -1192,6 +1353,226 @@ renderEstandares();
 renderFormatos();
 renderVer();
 renderHallazgos();
+</script>
+
+<script>
+// ===== VISOR PREMIUM DE DOCUMENTOS =====
+var DV_CAMPOS = [
+  {id:'nombreConsultorio', label:'Nombre del Consultorio', placeholder:'Ej: CONSULTORIO DRA. VESGA'},
+  {id:'nombreMedico', label:'Nombre completo del médico', placeholder:'Dra. Nombre Apellido'},
+  {id:'tarjetaProfesional', label:'N° Tarjeta Profesional', placeholder:'TP XXXXXX'},
+  {id:'registroReps', label:'N° Registro REPS (Habilitación)', placeholder:'Número de habilitación'},
+  {id:'direccion', label:'Dirección del Consultorio', placeholder:'Calle, Número, Barrio'},
+  {id:'ciudad', label:'Ciudad / Departamento', placeholder:'Ej: Cúcuta, Norte de Santander'},
+  {id:'telefono', label:'Teléfono / WhatsApp', placeholder:'Ej: 315 XXX XXXX'},
+  {id:'email', label:'Correo electrónico', placeholder:'correo@consultorio.com'},
+  {id:'nit', label:'NIT / Cédula', placeholder:'XXX.XXX.XXX-X'},
+  {id:'horario', label:'Horario de atención', placeholder:'Lun-Vie 8am-5pm'},
+];
+
+function dvCargarDatos() {
+  try { return JSON.parse(localStorage.getItem('bio_mis_datos') || '{}'); } catch(e) { return {}; }
+}
+
+function dvGuardarDatos() {
+  var datos = {};
+  DV_CAMPOS.forEach(function(c) {
+    var el = document.getElementById('dv_' + c.id);
+    if (el) datos[c.id] = el.value.trim();
+  });
+  localStorage.setItem('bio_mis_datos', JSON.stringify(datos));
+  dvToast('✅ Datos guardados correctamente', 'success');
+}
+
+function dvToast(msg, tipo, ms) {
+  tipo = tipo || 'info';
+  ms = ms || 3000;
+  var old = document.querySelector('.bio-toast');
+  if (old) old.remove();
+  var t = document.createElement('div');
+  t.className = 'bio-toast ' + tipo;
+  t.textContent = msg;
+  document.body.appendChild(t);
+  setTimeout(function() { if(t.parentNode) t.remove(); }, ms + 300);
+}
+
+function abrirVisorDocumento(driveId, codigo, nombre) {
+  if (!driveId) { dvToast('⏳ Documento no disponible aún', 'warning'); return; }
+
+  var visorUrl = 'https://docs.google.com/document/d/' + driveId + '/preview?rm=minimal';
+  var datos = dvCargarDatos();
+
+  var modal = document.createElement('div');
+  modal.className = 'doc-viewer-modal';
+  modal.id = 'dvModal';
+
+  var camposHtml = DV_CAMPOS.map(function(c) {
+    return '<div class="dv-form-group">' +
+      '<label>' + c.label + '</label>' +
+      '<input type="text" id="dv_' + c.id + '" placeholder="' + c.placeholder + '" value="' + (datos[c.id] || '') + '">' +
+      '</div>';
+  }).join('');
+
+  modal.innerHTML =
+    '<div class="dv-header">' +
+      '<button class="dv-back-btn" onclick="cerrarVisor()">← Volver</button>' +
+      '<div class="dv-title">' +
+        '<span class="dv-doc-codigo">' + codigo + '</span>' +
+        '<span class="dv-doc-nombre">' + nombre + '</span>' +
+      '</div>' +
+      '<div class="dv-protected-badge">🔒 Documento Protegido</div>' +
+    '</div>' +
+    '<div class="dv-body">' +
+      '<div class="dv-iframe-wrap">' +
+        '<iframe src="' + visorUrl + '" allowfullscreen loading="lazy" title="' + nombre + '"></iframe>' +
+        '<div class="dv-no-download-overlay"></div>' +
+      '</div>' +
+      '<div class="dv-sidebar">' +
+        '<div class="dv-sidebar-header">' +
+          '<h3>✏️ Mis Datos del Consultorio</h3>' +
+          '<p>Complete una vez. Se aplicarán a todos sus documentos.</p>' +
+        '</div>' +
+        '<div class="dv-sidebar-body">' +
+          camposHtml +
+          '<button class="dv-save-btn" onclick="dvGuardarDatos()">💾 Guardar Mis Datos</button>' +
+          '<div class="dv-protection-info">' +
+            '<span class="lock-icon">🔒</span>' +
+            '<div>' +
+              '<strong>Documento Protegido</strong>' +
+              '<p>Este documento es de uso exclusivo de su consultorio. La descarga está restringida para proteger la propiedad intelectual.</p>' +
+            '</div>' +
+          '</div>' +
+        '</div>' +
+      '</div>' +
+    '</div>';
+
+  document.body.appendChild(modal);
+  document.body.style.overflow = 'hidden';
+
+  modal.addEventListener('contextmenu', function(e) { e.preventDefault(); });
+  modal.addEventListener('keydown', function(e) { if(e.key === 'Escape') cerrarVisor(); });
+
+  setTimeout(function() { dvToast('🔒 Documento protegido — Solo visualización', 'info'); }, 800);
+}
+
+function cerrarVisor() {
+  var m = document.getElementById('dvModal');
+  if (m) {
+    m.style.animation = 'viewerFadeIn 0.2s ease reverse';
+    setTimeout(function() { if(m.parentNode) m.remove(); }, 180);
+  }
+  document.body.style.overflow = '';
+}
+
+// ===== RENDER MEJORADO DE MIS DOCUMENTOS =====
+function renderMisDocsPremium(clienteId) {
+  var page = document.getElementById('misdocs-content');
+  if (!page) return;
+
+  var docsData = {};
+  try { docsData = JSON.parse(localStorage.getItem('bio_docs_' + clienteId) || '{}'); } catch(e) {}
+  var servicios = docsData.serviciosHabilitados || ['medicina_general'];
+
+  if (typeof PLANTILLAS_DRIVE === 'undefined') {
+    page.innerHTML = '<p style="padding:20px;color:#666">Configure los documentos desde el panel de administración.</p>';
+    return;
+  }
+
+  var total = 0, disponibles = 0;
+  var grupos = [];
+
+  Object.keys(PLANTILLAS_DRIVE.estandares).forEach(function(key) {
+    var est = PLANTILLAS_DRIVE.estandares[key];
+    var docs = est.documentos.filter(function(d) {
+      if (!d.obligatorio && d.servicio && servicios.indexOf(d.servicio) < 0) return false;
+      return true;
+    });
+
+    var docsConInfo = docs.map(function(d) {
+      var guardado = (docsData.documentos || []).find(function(x) { return x.codigo === d.codigo; });
+      var driveId = guardado ? guardado.driveId : '';
+      var disp = !!driveId;
+      var aplica = !d.servicio || servicios.indexOf(d.servicio) >= 0;
+      if (d.obligatorio) { total++; if(disp) disponibles++; }
+      return {codigo:d.codigo, nombre:d.nombre, obligatorio:d.obligatorio, servicio:d.servicio, driveId:driveId, disponible:disp, aplica:aplica};
+    });
+
+    if (docsConInfo.length > 0) grupos.push({ nombre: est.nombre, docs: docsConInfo });
+  });
+
+  var pct = total > 0 ? Math.round((disponibles/total)*100) : 0;
+
+  var html = '<div style="padding:24px;max-width:900px;margin:0 auto;">' +
+    '<div style="margin-bottom:24px;">' +
+      '<h2 style="color:#0d2137;font-size:22px;margin:0 0 6px">📁 Mis Documentos de Habilitación</h2>' +
+      '<p style="color:#546e7a;font-size:13px;margin:0">Resolución 3100 de 2019 — Consultorio Médico General</p>' +
+    '</div>' +
+    '<div class="docs-progress-wrap">' +
+      '<div class="docs-progress-label">' +
+        '<span>📊 Progreso de documentación</span>' +
+        '<span>' + disponibles + ' / ' + total + ' documentos disponibles</span>' +
+      '</div>' +
+      '<div class="docs-progress-bar">' +
+        '<div class="docs-progress-fill" style="width:' + pct + '%"></div>' +
+      '</div>' +
+      '<p style="margin:10px 0 0;font-size:12px;color:#90a4ae;text-align:right">' + pct + '% completado</p>' +
+    '</div>' +
+    '<div style="background:#E3F2FD;border:1px solid #90CAF9;border-radius:10px;padding:14px 18px;margin-bottom:24px;display:flex;gap:12px;align-items:flex-start;">' +
+      '<span style="font-size:20px">ℹ️</span>' +
+      '<div>' +
+        '<strong style="color:#1565C0;font-size:13px">Sus documentos son personalizados y protegidos</strong>' +
+        '<p style="margin:4px 0 0;font-size:12px;color:#546e7a">Haga clic en cualquier documento para verlo. Use el panel lateral para completar sus datos del consultorio. La descarga está deshabilitada para proteger la información.</p>' +
+      '</div>' +
+    '</div>';
+
+  grupos.forEach(function(g) {
+    html += '<div class="estandar-group">' +
+      '<div class="estandar-group-header">' +
+        '<span class="eg-icon">📋</span>' +
+        '<span class="eg-nombre">' + g.nombre + '</span>' +
+        '<span class="eg-count">' + g.docs.length + ' docs</span>' +
+      '</div>';
+
+    g.docs.forEach(function(d) {
+      if (!d.aplica) {
+        html += '<div class="doc-card-premium no-disponible">' +
+          '<span class="dcp-icon">🔒</span>' +
+          '<div class="dcp-info">' +
+            '<span class="dcp-codigo">' + d.codigo + '</span>' +
+            '<span class="dcp-nombre">' + d.nombre + '</span>' +
+            '<span class="dcp-estado-na">No aplica para sus servicios habilitados</span>' +
+          '</div>' +
+        '</div>';
+      } else if (!d.disponible) {
+        html += '<div class="doc-card-premium no-disponible">' +
+          '<span class="dcp-icon">⏳</span>' +
+          '<div class="dcp-info">' +
+            '<span class="dcp-codigo">' + d.codigo + '</span>' +
+            '<span class="dcp-nombre">' + d.nombre + '</span>' +
+            '<span class="dcp-estado-pending">⏳ Pendiente de asignación</span>' +
+          '</div>' +
+          '<span style="font-size:12px;color:#90a4ae;white-space:nowrap">Próximamente</span>' +
+        '</div>';
+      } else {
+        var nombreEscapado = d.nombre.replace(/'/g, "\\'");
+        html += '<button class="doc-card-premium" onclick="abrirVisorDocumento(\'' + d.driveId + '\',\'' + d.codigo + '\',\'' + nombreEscapado + '\')">' +
+          '<span class="dcp-icon">📄</span>' +
+          '<div class="dcp-info">' +
+            '<span class="dcp-codigo">' + d.codigo + '</span>' +
+            '<span class="dcp-nombre">' + d.nombre + '</span>' +
+            '<span class="dcp-estado-ok">✅ Disponible</span>' +
+          '</div>' +
+          '<span class="dcp-action">👁️ Ver</span>' +
+        '</button>';
+      }
+    });
+
+    html += '</div>';
+  });
+
+  html += '</div>';
+  page.innerHTML = html;
+}
 </script>
 </body>
 </html>
