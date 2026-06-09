@@ -898,7 +898,7 @@ function updateSidebarLogo() {
 // ================================================================
 // UI
 // ================================================================
-function logout() { sessionStorage.clear(); window.location.replace('../index.html'); }
+function logout() { sessionStorage.clear(); window.location.replace('../login.html'); }
 function openSb() { document.getElementById('sb').classList.add('open'); document.getElementById('ov').classList.add('show'); }
 function closeSb() { document.getElementById('sb').classList.remove('open'); document.getElementById('ov').classList.remove('show'); }
 
@@ -3036,7 +3036,7 @@ function verActaEvento(idx) {
 // ================================================================
 (function() {
   if (!sessionStorage.getItem('bio_user') || sessionStorage.getItem('bio_role') !== 'admin') {
-    window.location.replace('../index.html'); return;
+    window.location.replace('../login.html'); return;
   }
   loadData();
   renderDash();
