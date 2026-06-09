@@ -317,13 +317,14 @@ select.fi option{background:var(--dark2)}
   .dv-fab:active { transform: scale(0.92); }
   .dv-fab.open { background: linear-gradient(135deg, #1565C0, #0d2137); }
 
-  /* Backdrop when sidebar is open on mobile */
-  .dv-sidebar-backdrop {
+  /* Backdrop — solo cuando el sidebar está abierto */
+  .dv-sidebar-backdrop.visible {
     display: block !important;
     position: fixed; inset: 0;
-    background: rgba(0,0,0,0.5);
+    /* Solo cubre debajo del header del visor, no lo bloquea */
+    top: 56px;
+    background: rgba(0,0,0,0.45);
     z-index: 99;
-    animation: viewerFadeIn 0.2s ease;
   }
 
   /* Document content full width on mobile */
@@ -1722,7 +1723,7 @@ function toggleSidebar() {
   var collapsed = sidebar.classList.toggle('collapsed');
   if (btn) btn.innerHTML = collapsed ? '✏️ Editar' : '✕ Cerrar';
   if (fab) { fab.innerHTML = collapsed ? '✏️' : '✕'; fab.classList.toggle('open', !collapsed); }
-  if (backdrop) backdrop.style.display = collapsed ? 'none' : 'block';
+  if (backdrop) backdrop.classList.toggle('visible', !collapsed);
 }
 
 // ===== RENDER MEJORADO DE MIS DOCUMENTOS =====
