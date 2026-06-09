@@ -262,10 +262,9 @@ function accederDemo(){
   window.location.href='cliente/index.html';
 }
 document.addEventListener('keypress',e=>{if(e.key==='Enter')doLogin()});
-// Auto-redirect if already logged in
-const r=sessionStorage.getItem('bio_role');
-if(r==='admin')window.location.replace('admin/index.html');
-else if(r==='cliente')window.location.replace('cliente/index.html');
+// Clear any stale session so the form always works
+sessionStorage.removeItem('bio_user');
+sessionStorage.removeItem('bio_role');
 </script>
 </body>
 </html>
