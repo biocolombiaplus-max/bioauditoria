@@ -1568,7 +1568,11 @@ function renderMisDocsPremium(clienteId) {
 
   var docsData = {};
   try { docsData = JSON.parse(localStorage.getItem('bio_docs_' + clienteId) || '{}'); } catch(e) {}
-  var servicios = docsData.serviciosHabilitados || ['medicina_general'];
+  // Si no hay datos en localStorage, usar los datos de documentosDrive del cliente en data.js
+  if (!docsData.serviciosHabilitados && typeof C !== 'undefined' && C.documentosDrive) {
+    docsData = Object.assign({}, C.documentosDrive, docsData);
+  }
+  var servicios = docsData.serviciosHabilitados || ['medicina_general', 'estetica'];
 
   if (typeof PLANTILLAS_DRIVE === 'undefined') {
     page.innerHTML = '<p style="padding:20px;color:#666">Configure los documentos desde el panel de administración.</p>';
