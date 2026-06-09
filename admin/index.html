@@ -616,7 +616,7 @@ var VESGA = {
     {id:'e1',estandar_num:1,documentos:[
       {id:'e1-04',nombre:'Manual de talento humano',version:'v1.0 · 2025',estado:'vigente',archivo:'03_Manual_Talento_Humano.docx',tipo:'manual',fuente:'github'},
       {id:'e1-05',nombre:'Programa de inducción y reinducción',version:'v1.0 · 2025',estado:'vigente',archivo:'30_Programa_Induccion_Reinduccion.docx',tipo:'programa',fuente:'github'},
-      {id:'e1-01',nombre:'Hoja de vida — Dra. Yesika Zayra Vesga',version:'v1.0 · 2025',estado:'pendiente',archivo:'04_Hoja_Vida_Medico.docx',tipo:'documento',fuente:'github'},
+      {id:'e1-01',nombre:'Hoja de vida profesional',version:'v1.0 · 2025',estado:'pendiente',archivo:'04_Hoja_Vida_Medico.docx',tipo:'documento',fuente:'github'},
       {id:'e1-02',nombre:'Tarjeta profesional médica y RETHUS',version:'v1.0 · 2025',estado:'requerido',archivo:'',tipo:'soporte',fuente:''},
       {id:'e1-03',nombre:'Certificados de vacunación del personal',version:'v1.0 · 2025',estado:'requerido',archivo:'',tipo:'soporte',fuente:''},
     ]},
@@ -775,6 +775,14 @@ function switchClient(clientId) {
     var savedEst = null;
     try { savedEst = JSON.parse(localStorage.getItem('bio_servicios_' + found.id)); } catch(e) {}
     found.estandares = savedEst || crearEstandaresVacios();
+    // Patch legacy personalized names from old seeds
+    found.estandares.forEach(function(e) {
+      e.documentos.forEach(function(d) {
+        if (d.id === 'e1-01' && d.nombre && d.nombre.indexOf('Vesga') !== -1) {
+          d.nombre = 'Hoja de vida profesional';
+        }
+      });
+    });
     C = found;
   }
   loadData();
