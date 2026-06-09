@@ -747,8 +747,15 @@ function getAllClientes() {
 }
 
 function crearEstandaresVacios() {
-  return ESTANDARES_3100.map(function(e) {
-    return { id: e.id, estandar_num: e.num, documentos: [] };
+  // Use VESGA as template but clear files/states — each doc starts as 'requerido'
+  return VESGA.estandares.map(function(e) {
+    return {
+      id: e.id,
+      estandar_num: e.estandar_num,
+      documentos: e.documentos.map(function(d) {
+        return { id: d.id, nombre: d.nombre, version: d.version, tipo: d.tipo, archivo: '', estado: 'requerido', fuente: '' };
+      })
+    };
   });
 }
 
@@ -762,9 +769,12 @@ function switchClient(clientId) {
     var found = saved.find(function(c) { return (c.usuario || c.nombre) === clientId; });
     if (!found) { toast('Cliente no encontrado', 'err'); return; }
     if (!found.id) found.id = found.usuario || found.nombre;
-    if (!found.estandares) found.estandares = crearEstandaresVacios();
     if (!found.color1) found.color1 = '#FF6B00';
     if (!found.color2) found.color2 = '#7B2FBE';
+    // Load this client's own standards — NEVER inherit from VESGA
+    var savedEst = null;
+    try { savedEst = JSON.parse(localStorage.getItem('bio_servicios_' + found.id)); } catch(e) {}
+    found.estandares = savedEst || crearEstandaresVacios();
     C = found;
   }
   loadData();
@@ -850,14 +860,16 @@ var TRAZ = [];
 
 // Load data from localStorage
 function loadData() {
-  var extra = JSON.parse(localStorage.getItem('bio_docs_' + C.id) || '[]');
+  var cid = C.id || C.usuario || currentClientId;
+  // Only merge _local extra docs (user-uploaded via admin) — never touch base standards
+  var extra = JSON.parse(localStorage.getItem('bio_extra_' + cid) || '[]');
   extra.forEach(function(d) {
     var estd = C.estandares.find(function(e) { return e.id === d.estdId; });
     if (estd && !estd.documentos.find(function(x) { return x.id === d.id; })) {
       estd.documentos.unshift(d);
     }
   });
-  var savedTraz = JSON.parse(localStorage.getItem('bio_traz_' + C.id) || '[]');
+  var savedTraz = JSON.parse(localStorage.getItem('bio_traz_' + cid) || '[]');
   TRAZ = savedTraz;
   // Load client customizations
   var cUser = C.usuario || currentClientId;
@@ -872,10 +884,13 @@ function loadData() {
 }
 
 function saveExtraDocs() {
+  var cid = C.id || C.usuario || currentClientId;
   var extra = C.estandares.reduce(function(a, e) {
     return a.concat(e.documentos.filter(function(d) { return d._local; }));
   }, []);
-  localStorage.setItem('bio_docs_' + C.id, JSON.stringify(extra));
+  localStorage.setItem('bio_extra_' + cid, JSON.stringify(extra));
+  // Also persist the full standards state for this client
+  localStorage.setItem('bio_servicios_' + cid, JSON.stringify(C.estandares));
 }
 
 function addTraz(accion, doc) {
@@ -911,6 +926,7 @@ function nav(el, id, title) {
   document.getElementById('pgtit').textContent = title;
   closeSb();
   // Lazy-render modules on demand
+  if (id === 'estandares') renderEstdTabs();
   if (id === 'reps') renderReps();
   if (id === 'servicios') renderServicios();
   if (id === 'gesdocs') renderGesdocs();
