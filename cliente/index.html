@@ -626,6 +626,33 @@ var VESGA = {
     {id:'fd09',nombre:'Registro diario de atenciones',cat:'E8 — Mejoramiento Calidad',archivo:'33_Registro_Diario_Atenciones.docx',freq:'Diario'},
     {id:'fd10',nombre:'Control medicamentos y vencimientos',cat:'E4 — Medicamentos',archivo:'29_Control_Medicamentos_Vencimientos.docx',freq:'Mensual'},
   ],
+  documentosDrive: {
+    carpetaClienteId: '16cD7M_skaywa2Aq6-N7fn8GcRht8vNSU',
+    carpetaClienteUrl: 'https://drive.google.com/drive/folders/16cD7M_skaywa2Aq6-N7fn8GcRht8vNSU',
+    serviciosHabilitados: ['medicina_general', 'estetica'],
+    documentos: [
+      {codigo:'MAN-TH-001',driveId:'local'},{codigo:'PER-TH-001',driveId:'local'},
+      {codigo:'PRO-TH-001',driveId:'local'},{codigo:'FOR-TH-001',driveId:'local'},
+      {codigo:'MAN-INF-001',driveId:'local'},{codigo:'PRO-INF-001',driveId:'local'},
+      {codigo:'FOR-INF-001',driveId:'local'},{codigo:'MAN-DOT-001',driveId:'local'},
+      {codigo:'PRO-DOT-001',driveId:'local'},{codigo:'FOR-DOT-001',driveId:'local'},
+      {codigo:'MAN-MED-001',driveId:'local'},{codigo:'PRO-MED-001',driveId:'local'},
+      {codigo:'FOR-MED-001',driveId:'local'},{codigo:'MAN-PP-001',driveId:'local'},
+      {codigo:'PRO-PP-001',driveId:'local'},{codigo:'PRO-PP-002',driveId:'local'},
+      {codigo:'PRO-PP-003',driveId:'local'},{codigo:'PRO-PP-004',driveId:'local'},
+      {codigo:'PRO-PP-005',driveId:'local'},{codigo:'PRO-PP-006',driveId:'local'},
+      {codigo:'PRO-PP-007',driveId:'local'},{codigo:'FOR-PP-001',driveId:'local'},
+      {codigo:'FOR-PP-002',driveId:'local'},{codigo:'FOR-PP-003',driveId:'local'},
+      {codigo:'FOR-PP-004',driveId:'local'},{codigo:'FOR-PP-005',driveId:'local'},
+      {codigo:'MAN-HC-001',driveId:'local'},{codigo:'PRO-HC-001',driveId:'local'},
+      {codigo:'FOR-HC-001',driveId:'local'},{codigo:'FOR-HC-002',driveId:'local'},
+      {codigo:'MAN-RCR-001',driveId:'local'},{codigo:'FOR-RCR-001',driveId:'local'},
+      {codigo:'MAN-GC-001',driveId:'local'},{codigo:'POL-GC-001',driveId:'local'},
+      {codigo:'PRO-GC-001',driveId:'local'},{codigo:'PRO-GC-002',driveId:'local'},
+      {codigo:'PRO-GC-003',driveId:'local'},{codigo:'MAN-HAB-001',driveId:'local'},
+      {codigo:'CHK-HAB-001',driveId:'local'},{codigo:'FOR-HAB-001',driveId:'local'},
+    ]
+  }
 };
 
 var VERIFICACION = [
@@ -1591,11 +1618,12 @@ function renderMisDocsPremium(clienteId) {
 
     var docsConInfo = docs.map(function(d) {
       var guardado = (docsData.documentos || []).find(function(x) { return x.codigo === d.codigo; });
-      var driveId = guardado ? guardado.driveId : '';
-      // Disponible si tiene driveId (incluyendo 'local') O si existe en DOCS_CONTENIDO
+      var driveId = (guardado && guardado.driveId) ? guardado.driveId : '';
+      // Disponible si: tiene driveId guardado, O existe en DOCS_CONTENIDO, O existe en C.documentosDrive
       var enLocal = (typeof DOCS_CONTENIDO !== 'undefined') && !!DOCS_CONTENIDO[d.codigo];
-      var disp = !!driveId || enLocal;
-      if (!driveId && enLocal) driveId = 'local';
+      var enVesga = (typeof C !== 'undefined' && C.documentosDrive && C.documentosDrive.documentos || []).some(function(x){return x.codigo===d.codigo && x.driveId;});
+      var disp = !!driveId || enLocal || enVesga;
+      if (!driveId && (enLocal || enVesga)) driveId = 'local';
       var aplica = !d.servicio || servicios.indexOf(d.servicio) >= 0;
       if (d.obligatorio) { total++; if(disp) disponibles++; }
       return {codigo:d.codigo, nombre:d.nombre, obligatorio:d.obligatorio, servicio:d.servicio, driveId:driveId, disponible:disp, aplica:aplica};
