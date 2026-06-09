@@ -160,188 +160,161 @@ select.fi option{background:var(--dark2)}
 /* ===== VISOR PREMIUM DE DOCUMENTOS ===== */
 .doc-viewer-modal {
   position: fixed; top:0; left:0; right:0; bottom:0;
-  background: rgba(10,20,40,0.95);
   z-index: 99999;
   display: flex; flex-direction: column;
-  animation: viewerFadeIn 0.25s ease;
+  background: #1a1a2e;
+  -webkit-overflow-scrolling: touch;
 }
-@keyframes viewerFadeIn { from{opacity:0;transform:scale(0.98)} to{opacity:1;transform:scale(1)} }
+@keyframes viewerFadeIn { from{opacity:0} to{opacity:1} }
 
+/* HEADER */
 .dv-header {
   background: linear-gradient(135deg, #0d2137 0%, #1565C0 100%);
-  color: #fff; padding: 12px 20px;
-  display: flex; align-items: center; gap: 12px;
-  box-shadow: 0 3px 15px rgba(0,0,0,0.4); z-index: 2;
-  flex-shrink: 0; min-height: 56px;
+  color: #fff; padding: 10px 14px;
+  display: flex; align-items: center; gap: 10px;
+  flex-shrink: 0; z-index: 2;
+  box-shadow: 0 2px 10px rgba(0,0,0,0.4);
 }
 .dv-back-btn {
   background: rgba(255,255,255,0.15); color: #fff; border: 1px solid rgba(255,255,255,0.3);
-  padding: 8px 14px; border-radius: 8px; cursor: pointer; font-size: 14px;
-  transition: background 0.2s; white-space: nowrap; flex-shrink: 0;
+  padding: 9px 16px; border-radius: 8px; cursor: pointer; font-size: 15px; font-weight: 700;
+  white-space: nowrap; flex-shrink: 0; -webkit-tap-highlight-color: transparent;
+  min-width: 44px; min-height: 44px; display: flex; align-items: center;
 }
-.dv-back-btn:hover { background: rgba(255,255,255,0.25); }
 .dv-title { flex:1; min-width:0; overflow:hidden; }
 .dv-doc-codigo {
   display: inline-block; background: rgba(255,255,255,0.2);
-  padding: 2px 10px; border-radius: 20px; font-size: 11px;
-  font-weight: 700; letter-spacing: 1px; margin-bottom: 3px;
+  padding: 2px 8px; border-radius: 20px; font-size: 10px;
+  font-weight: 700; letter-spacing: 1px; margin-bottom: 2px;
 }
-.dv-doc-nombre { font-size: 15px; font-weight: 700; display: block; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+.dv-doc-nombre { font-size: 14px; font-weight: 700; display: block; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
 .dv-protected-badge {
   background: linear-gradient(135deg, #C9A84C, #E8C96B);
-  color: #1a0a00; padding: 5px 12px; border-radius: 20px;
+  color: #1a0a00; padding: 4px 10px; border-radius: 20px;
   font-size: 11px; font-weight: 700; white-space: nowrap; flex-shrink:0;
 }
-/* Toggle button in header */
 .dv-sidebar-toggle {
-  background: rgba(255,255,255,0.18); color: #fff; border: 1px solid rgba(255,255,255,0.35);
-  padding: 8px 16px; border-radius: 8px; cursor: pointer; font-size: 13px; font-weight: 700;
-  white-space: nowrap; flex-shrink: 0; transition: background 0.2s; display: flex; align-items: center; gap: 6px;
+  background: rgba(255,255,255,0.2); color: #fff; border: 1.5px solid rgba(255,255,255,0.4);
+  padding: 9px 14px; border-radius: 8px; cursor: pointer; font-size: 13px; font-weight: 700;
+  white-space: nowrap; flex-shrink: 0; -webkit-tap-highlight-color: transparent;
+  min-width: 44px; min-height: 44px; display: flex; align-items: center; gap: 5px;
 }
-.dv-sidebar-toggle:hover { background: rgba(255,255,255,0.3); }
 
-.dv-body { flex:1; display:flex; overflow:hidden; min-height:0; position:relative; }
+/* BODY — document + sidebar side by side */
+.dv-body {
+  flex: 1; display: flex; min-height: 0;
+  position: relative; overflow: hidden;
+}
+
+/* DOCUMENT CONTENT */
+#docContentWrap {
+  flex: 1; min-width: 0;
+  overflow-y: auto; overflow-x: hidden;
+  -webkit-overflow-scrolling: touch;
+  background: #e8e8e8;
+  padding: 20px 0;
+}
+#docPageContainer { max-width: 850px; margin: 0 auto; padding: 0 12px; }
+#docPageContainer table { display:block; overflow-x:auto; -webkit-overflow-scrolling:touch; max-width:100%; }
+#docPageContainer img { max-width:100%; height:auto; }
 
 .dv-iframe-wrap {
-  flex:1; min-width:0; position:relative; background:#525659;
-  display:flex; align-items:center; justify-content:center; overflow:hidden;
+  flex:1; min-width:0; overflow:hidden;
 }
 .dv-iframe-wrap iframe { width:100%; height:100%; border:none; display:block; }
-.dv-no-download-overlay {
-  position:absolute; top:0; left:0; right:0; bottom:0;
-  z-index:10; cursor:default; user-select:none; pointer-events:none;
-}
 
-/* === SIDEBAR === */
+/* SIDEBAR */
 .dv-sidebar {
   width: 310px; min-width: 310px; background: #fff;
   border-left: 2px solid #1565C0;
-  overflow-y: auto; display: flex; flex-direction: column;
-  flex-shrink: 0; position: relative; z-index: 10;
-  box-shadow: -4px 0 20px rgba(0,0,0,0.15);
-  transition: width 0.28s ease, min-width 0.28s ease;
+  overflow-y: auto; -webkit-overflow-scrolling: touch;
+  display: flex; flex-direction: column;
+  flex-shrink: 0;
+  transition: width 0.25s ease, min-width 0.25s ease;
 }
 .dv-sidebar.collapsed { width: 0; min-width: 0; overflow: hidden; border: none; }
 .dv-sidebar-header {
   background: linear-gradient(135deg, #0d2137, #1565C0);
-  color: #fff; padding: 18px 20px; flex-shrink: 0;
+  color: #fff; padding: 16px 18px; flex-shrink: 0;
   display: flex; align-items: flex-start; justify-content: space-between; gap: 10px;
 }
-.dv-sidebar-header h3 { margin:0; font-size:15px; line-height:1.3; }
-.dv-sidebar-header p { margin:5px 0 0; font-size:11px; opacity:0.8; }
+.dv-sidebar-header h3 { margin:0; font-size:14px; line-height:1.3; }
+.dv-sidebar-header p { margin:4px 0 0; font-size:11px; opacity:0.8; }
 .dv-sidebar-close-btn {
   background: rgba(255,255,255,0.15); border: 1px solid rgba(255,255,255,0.3);
-  color:#fff; width:28px; height:28px; border-radius:50%; cursor:pointer;
-  font-size:14px; display:flex; align-items:center; justify-content:center; flex-shrink:0;
+  color:#fff; width:32px; height:32px; border-radius:50%; cursor:pointer;
+  font-size:16px; display:flex; align-items:center; justify-content:center; flex-shrink:0;
+  -webkit-tap-highlight-color: transparent;
 }
-.dv-sidebar-body { padding: 18px; flex:1; }
+.dv-sidebar-body { padding: 16px; flex:1; overflow-y: auto; -webkit-overflow-scrolling: touch; }
 .dv-form-group { margin-bottom: 14px; }
 .dv-form-group label {
   display:block; font-size:10px; font-weight:700; color:#546e7a;
   text-transform:uppercase; letter-spacing:0.5px; margin-bottom:4px;
 }
 .dv-form-group input {
-  width:100%; padding:9px 12px; border:1.5px solid #e0e0e0;
-  border-radius:8px; font-size:13px; color:#1a3a5c;
-  transition: border-color 0.2s; box-sizing:border-box;
+  width:100%; padding:10px 12px; border:1.5px solid #e0e0e0;
+  border-radius:8px; font-size:14px; color:#1a3a5c;
+  box-sizing:border-box; -webkit-appearance:none;
 }
-.dv-form-group input:focus { outline:none; border-color:#1565C0; box-shadow: 0 0 0 3px rgba(21,101,192,0.12); }
+.dv-form-group input:focus { outline:none; border-color:#1565C0; }
 .dv-save-btn {
-  width:100%; padding:13px; background:linear-gradient(135deg,#0d2137,#1565C0);
-  color:#fff; border:none; border-radius:10px; font-size:14px; font-weight:700;
-  cursor:pointer; transition: opacity 0.2s; margin-bottom:14px; display:flex; align-items:center; justify-content:center; gap:6px;
+  width:100%; padding:14px; background:linear-gradient(135deg,#0d2137,#1565C0);
+  color:#fff; border:none; border-radius:10px; font-size:15px; font-weight:700;
+  cursor:pointer; margin-bottom:14px; -webkit-tap-highlight-color: transparent;
+  display:flex; align-items:center; justify-content:center; gap:6px;
 }
-.dv-save-btn:hover { opacity:0.9; }
 .dv-protection-info {
   background:#FFF8E1; border:1px solid #FFD54F; border-radius:10px;
   padding:12px; display:flex; gap:10px; align-items:flex-start;
 }
-.dv-protection-info .lock-icon { font-size:20px; }
+.dv-protection-info .lock-icon { font-size:18px; flex-shrink:0; }
 .dv-protection-info strong { display:block; font-size:11px; color:#E65100; }
 .dv-protection-info p { margin:3px 0 0; font-size:11px; color:#795548; line-height:1.5; }
 
-/* Document content tables — horizontal scroll on narrow screens */
-#docPageContainer table { display:block; overflow-x:auto; -webkit-overflow-scrolling:touch; max-width:100%; }
-#docPageContainer img { max-width:100%; height:auto; }
-
-/* === MOBILE — sidebar as bottom sheet === */
+/* === MOBILE === */
 @media (max-width: 640px) {
-  .dv-header { padding: 10px 14px; gap: 8px; min-height: 52px; }
-  .dv-back-btn { padding: 7px 11px; font-size: 13px; }
-  .dv-doc-nombre { font-size: 13px; }
+  .dv-header { padding: 8px 12px; gap: 8px; }
   .dv-protected-badge { display: none; }
-  .dv-sidebar-toggle { display: none !important; } /* replaced by FAB */
+  .dv-doc-nombre { font-size: 13px; }
 
-  /* Sidebar becomes a bottom sheet */
+  /* En móvil el sidebar se superpone sobre el documento (no lo comprime) */
+  .dv-body { overflow: visible; }
+
+  #docContentWrap {
+    position: absolute; inset: 0;
+    overflow-y: scroll !important;
+    -webkit-overflow-scrolling: touch !important;
+    z-index: 1;
+  }
+
   .dv-sidebar {
-    position: fixed !important;
-    bottom: 0 !important; left: 0 !important; right: 0 !important;
-    width: 100% !important; min-width: 100% !important;
-    max-height: 78vh;
-    border-left: none !important; border-top: 3px solid #1565C0 !important;
-    border-radius: 18px 18px 0 0 !important;
-    transform: translateY(0);
-    transition: transform 0.3s cubic-bezier(0.4,0,0.2,1) !important;
-    box-shadow: 0 -8px 40px rgba(0,0,0,0.35) !important;
-    z-index: 100 !important;
+    position: absolute !important;
+    top: 0 !important; right: 0 !important; bottom: 0 !important;
+    width: 88% !important; min-width: 0 !important;
+    max-width: 340px !important;
+    border-left: 3px solid #1565C0 !important;
+    box-shadow: -6px 0 30px rgba(0,0,0,0.4) !important;
+    transform: translateX(0) !important;
+    transition: transform 0.3s ease !important;
+    z-index: 10 !important;
+    overflow-y: auto !important; -webkit-overflow-scrolling: touch !important;
   }
   .dv-sidebar.collapsed {
-    transform: translateY(105%) !important;
-    width: 100% !important; min-width: 100% !important;
+    transform: translateX(110%) !important;
     overflow: hidden !important;
     border: none !important;
-  }
-  /* Sheet handle */
-  .dv-sidebar-header::before {
-    content: '';
-    display: block;
-    width: 36px; height: 4px;
-    background: rgba(255,255,255,0.4);
-    border-radius: 2px;
-    margin: 0 auto 12px;
-  }
-  .dv-sidebar-header { flex-direction: column; }
-
-  /* FAB button */
-  .dv-fab {
-    display: flex !important;
-    position: fixed;
-    bottom: 22px; right: 18px;
-    width: 56px; height: 56px; border-radius: 50%;
-    background: linear-gradient(135deg, #0d2137, #1565C0);
-    color: #fff; border: none; cursor: pointer;
-    font-size: 22px; align-items: center; justify-content: center;
-    box-shadow: 0 6px 20px rgba(21,101,192,0.55);
-    z-index: 101; transition: transform 0.2s;
-  }
-  .dv-fab:active { transform: scale(0.92); }
-  .dv-fab.open { background: linear-gradient(135deg, #1565C0, #0d2137); }
-
-  /* Backdrop — solo cuando el sidebar está abierto */
-  .dv-sidebar-backdrop.visible {
-    display: block !important;
-    position: fixed; inset: 0;
-    /* Solo cubre debajo del header del visor, no lo bloquea */
-    top: 56px;
-    background: rgba(0,0,0,0.45);
-    z-index: 99;
+    width: 88% !important; min-width: 0 !important;
   }
 
-  /* Document content full width on mobile */
-  .dv-body { position: relative; }
-  #docContentWrap { padding: 10px 0 !important; }
-  #docPageContainer { padding: 0 6px !important; }
-  .doc-page { padding: 18px 16px !important; margin-bottom: 10px !important; box-shadow: 0 2px 8px rgba(0,0,0,0.12) !important; }
+  .doc-page { padding: 16px 14px !important; margin-bottom: 10px !important; }
   .doc-page table { font-size: 11px !important; }
-  .doc-page h1, .doc-page-h1 { font-size: 16px !important; margin: 16px 0 8px !important; }
-  .doc-page h2 { font-size: 14px !important; margin: 14px 0 7px !important; }
-  .doc-page h3 { font-size: 12px !important; margin: 12px 0 6px !important; }
   .doc-page p { font-size: 12px !important; }
   .doc-page th, .doc-page td { padding: 5px 7px !important; font-size: 11px !important; }
 }
 
-/* FAB hidden on desktop */
-.dv-fab { display: none; }
+/* FAB — never used (removed) */
+.dv-fab { display: none !important; }
 
 /* ===== TARJETAS PREMIUM DE DOCUMENTOS ===== */
 .doc-card-premium {
@@ -1634,8 +1607,8 @@ function abrirVisorDocumento(driveId, codigo, nombre) {
   modal.setAttribute('data-driveid', driveId || 'local');
 
   var cuerpoVisor = usarLocal
-    ? '<div id="docContentWrap" style="overflow-y:auto;overflow-x:hidden;background:#e8e8e8;padding:20px 0;flex:1;min-width:0;height:100%">' +
-        '<div id="docPageContainer" style="max-width:850px;margin:0 auto;padding:0 10px;">' + htmlContenido + '</div>' +
+    ? '<div id="docContentWrap">' +
+        '<div id="docPageContainer">' + htmlContenido + '</div>' +
       '</div>'
     : '<div class="dv-iframe-wrap">' + htmlContenido + '</div>';
 
@@ -1647,33 +1620,26 @@ function abrirVisorDocumento(driveId, codigo, nombre) {
         '<span class="dv-doc-nombre">' + nombre + '</span>' +
       '</div>' +
       '<div class="dv-protected-badge">🔒 Protegido</div>' +
-      '<button class="dv-sidebar-toggle" id="dvSidebarToggle" onclick="toggleSidebar()" title="Mostrar/Ocultar panel de edición">✏️ Editar</button>' +
+      '<button class="dv-sidebar-toggle" id="dvSidebarToggle" onclick="toggleSidebar()">✏️ Editar</button>' +
     '</div>' +
     '<div class="dv-body">' +
       cuerpoVisor +
-      '<div id="dvSidebarBackdrop" class="dv-sidebar-backdrop" style="display:none" onclick="toggleSidebar()"></div>' +
       '<div class="dv-sidebar" id="dvSidebarPanel">' +
         '<div class="dv-sidebar-header">' +
-          '<div>' +
-            '<h3>✏️ Mis Datos del Consultorio</h3>' +
-            '<p>Edita tus datos para personalizar todos los documentos.</p>' +
-          '</div>' +
-          '<button class="dv-sidebar-close-btn" onclick="toggleSidebar()" title="Cerrar">✕</button>' +
+          '<div><h3>✏️ Mis Datos</h3><p>Edita para personalizar el documento.</p></div>' +
+          '<button class="dv-sidebar-close-btn" onclick="toggleSidebar()">✕</button>' +
         '</div>' +
         '<div class="dv-sidebar-body">' +
           camposHtml +
-          '<button class="dv-save-btn" onclick="dvGuardarYActualizar()">💾 Guardar y ver cambios</button>' +
+          '<button class="dv-save-btn" onclick="dvGuardarYActualizar()">💾 Guardar y actualizar</button>' +
           '<div class="dv-protection-info">' +
             '<span class="lock-icon">🔒</span>' +
-            '<div>' +
-              '<strong>Documento Protegido</strong>' +
-              '<p>Solo visualización. La descarga no está permitida para proteger la propiedad intelectual de BioAuditoría.</p>' +
-            '</div>' +
+            '<div><strong>Documento Protegido</strong>' +
+            '<p>Solo visualización. Descarga no permitida.</p></div>' +
           '</div>' +
         '</div>' +
       '</div>' +
-    '</div>' +
-    '<button class="dv-fab" id="dvFab" onclick="toggleSidebar()" title="Editar datos">✏️</button>';
+    '</div>';
 
   document.body.appendChild(modal);
   document.body.style.overflow = 'hidden';
@@ -1684,10 +1650,8 @@ function abrirVisorDocumento(driveId, codigo, nombre) {
   if (window.innerWidth <= 640) {
     var sb = document.getElementById('dvSidebarPanel');
     var toggle = document.getElementById('dvSidebarToggle');
-    var fab = document.getElementById('dvFab');
     if (sb) sb.classList.add('collapsed');
     if (toggle) toggle.innerHTML = '✏️ Editar';
-    if (fab) fab.innerHTML = '✏️';
   }
 
   setTimeout(function() { dvToast('🔒 Documento protegido — Solo visualización', 'info'); }, 600);
@@ -1717,13 +1681,9 @@ function cerrarVisor() {
 function toggleSidebar() {
   var sidebar = document.getElementById('dvSidebarPanel');
   var btn = document.getElementById('dvSidebarToggle');
-  var fab = document.getElementById('dvFab');
-  var backdrop = document.getElementById('dvSidebarBackdrop');
   if (!sidebar) return;
   var collapsed = sidebar.classList.toggle('collapsed');
   if (btn) btn.innerHTML = collapsed ? '✏️ Editar' : '✕ Cerrar';
-  if (fab) { fab.innerHTML = collapsed ? '✏️' : '✕'; fab.classList.toggle('open', !collapsed); }
-  if (backdrop) backdrop.classList.toggle('visible', !collapsed);
 }
 
 // ===== RENDER MEJORADO DE MIS DOCUMENTOS =====
