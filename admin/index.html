@@ -1331,6 +1331,20 @@ function openNewCliente() {
   if (t) t.textContent = '👤 Registrar nuevo cliente';
   var sb = document.querySelector('.nc-save-btn');
   if (sb) { sb.textContent = ''; sb.innerHTML = '<i class="fas fa-check"></i>Registrar cliente'; sb.removeAttribute('data-edit-id'); sb.removeAttribute('data-edit-base'); }
+  // Clear all form fields
+  ['nc-nombre','nc-cedula','nc-esp','nc-rm','nc-empresa','nc-nit','nc-nivel','nc-dir','nc-ciudad','nc-tel','nc-email','nc-servicio','nc-drive','nc-user','nc-pass','nc-notas'].forEach(function(id) {
+    var el = document.getElementById(id); if (el) el.value = '';
+  });
+  var c1 = document.getElementById('nc-color1'); if (c1) c1.value = '#FF6B00';
+  var c2 = document.getElementById('nc-color2'); if (c2) c2.value = '#7B2FBE';
+  var ct1 = document.getElementById('nc-color1-txt'); if (ct1) ct1.value = '#FF6B00';
+  var ct2 = document.getElementById('nc-color2-txt'); if (ct2) ct2.value = '#7B2FBE';
+  var img = document.getElementById('logo-preview-img'); if (img) { img.src = ''; img.style.display = 'none'; }
+  var ph = document.getElementById('logo-placeholder'); if (ph) ph.style.display = '';
+  // Restore password field to required state
+  var passInput = document.getElementById('nc-pass'); if (passInput) passInput.placeholder = 'Mínimo 8 caracteres';
+  var passContainer = passInput ? passInput.closest('.fg') : null;
+  if (passContainer) { var lbl = passContainer.querySelector('.fl'); if (lbl) lbl.textContent = 'Contraseña inicial *'; }
   logoDataUrl = null;
   document.getElementById('modal-nc').classList.add('open');
 }
@@ -1407,11 +1421,17 @@ function processLogo(f) {
 }
 
 function guardarCliente() {
+  var saveBtn = document.querySelector('#nc-modal .nc-save-btn') || document.querySelector('.nc-save-btn');
+  var editId = saveBtn ? saveBtn.getAttribute('data-edit-id') : null;
+  var editBase = saveBtn ? saveBtn.getAttribute('data-edit-base') === 'true' : false;
+  var isEdit = !!editId;
+
   var user = document.getElementById('nc-user').value.trim().toLowerCase();
   var pass = document.getElementById('nc-pass').value;
   var nombre = document.getElementById('nc-nombre').value.trim();
-  if (!user || !pass) { toast('Ingresa usuario y contraseña', 'err'); return; }
-  if (pass.length < 8) { toast('La contraseña debe tener mínimo 8 caracteres', 'err'); return; }
+  if (!user) { toast('Ingresa el nombre de usuario', 'err'); return; }
+  if (!isEdit && !pass) { toast('Ingresa una contraseña para el nuevo cliente', 'err'); return; }
+  if (pass && pass.length < 8) { toast('La contraseña debe tener mínimo 8 caracteres', 'err'); return; }
 
   var cliente = {
     nombre: nombre,
@@ -1435,9 +1455,33 @@ function guardarCliente() {
     fecha_registro: new Date().toLocaleString('es-CO')
   };
 
-  // Save to localStorage
+  // Save to localStorage — update existing or push new
   var clientes = JSON.parse(localStorage.getItem('bio_clientes_list') || '[]');
-  clientes.push(cliente);
+  if (isEdit && !editBase) {
+    var idx = clientes.findIndex(function(c) { return (c.usuario || c.nombre) === editId; });
+    if (idx >= 0) {
+      // Preserve password if not changed
+      if (!pass) cliente._pass = clientes[idx]._pass;
+      else cliente._pass = pass;
+      clientes[idx] = cliente;
+    } else {
+      clientes.push(cliente);
+    }
+  } else if (isEdit && editBase) {
+    // Editing the base VESGA client — update VESGA object in memory
+    VESGA.nombre = cliente.nombre; VESGA.empresa = cliente.empresa; VESGA.nit = cliente.nit;
+    VESGA.nivel_atencion = cliente.nivel; VESGA.ciudad = cliente.ciudad;
+    VESGA.especialidad = cliente.especialidad; VESGA.email = cliente.email;
+    VESGA.telefono = cliente.telefono; VESGA.cedula = cliente.cedula;
+    VESGA.direccion = cliente.direccion; VESGA.color1 = cliente.color1;
+    VESGA.color2 = cliente.color2; VESGA.registro_medico = cliente.rm;
+    VESGA.drive_url = cliente.drive_url;
+    if (logoDataUrl) VESGA.logo_url = logoDataUrl;
+    localStorage.setItem('bio_vesga_custom', JSON.stringify(VESGA));
+  } else {
+    cliente._pass = pass;
+    clientes.push(cliente);
+  }
   localStorage.setItem('bio_clientes_list', JSON.stringify(clientes));
 
   // Save logo (compress if too large)
@@ -1475,14 +1519,18 @@ function guardarCliente() {
     renderDash();
   }
 
-  addTraz('Registró cliente', nombre + ' — ' + cliente.empresa);
+  addTraz(isEdit ? 'Actualizó cliente' : 'Registró cliente', nombre + ' — ' + cliente.empresa);
   renderCli();
   closeNewCliente();
   logoDataUrl = null;
 
-  // Show instructions modal (nicer than alert)
-  var instruccion = '\'' + user + '\': {pass:\'' + pass + '\', role:\'cliente\', to:\'cliente/index.html\'},';
-  showInstrucciones(nombre, user, instruccion);
+  if (isEdit) {
+    toast('Cliente actualizado correctamente ✓');
+  } else {
+    // Show instructions modal only for new clients (need to add to USERS in index.html)
+    var instruccion = '\'' + user + '\': {pass:\'' + pass + '\', role:\'cliente\', to:\'cliente/index.html\'},';
+    showInstrucciones(nombre, user, instruccion);
+  }
 }
 
 function showInstrucciones(nombre, user, linea) {
@@ -1631,9 +1679,14 @@ function editCliente(clientId, isBase) {
     set('nc-user', cli.usuario); set('nc-notas', cli.notas);
     var ct1 = document.getElementById('nc-color1-txt'); if (ct1) ct1.value = cli.color1 || '#FF6B00';
     var ct2 = document.getElementById('nc-color2-txt'); if (ct2) ct2.value = cli.color2 || '#7B2FBE';
-    document.getElementById('nc-modal-title').textContent = 'Editar cliente';
+    document.getElementById('nc-modal-title').textContent = '✏️ Editar cliente';
+    var passLbl = document.querySelector('label[for="nc-pass"], label.fl + input#nc-pass, .fg:has(#nc-pass) .fl');
+    var passInput = document.getElementById('nc-pass');
+    if (passInput) passInput.placeholder = 'Dejar vacío para no cambiarla';
+    var passContainer = passInput ? passInput.closest('.fg') : null;
+    if (passContainer) { var lbl = passContainer.querySelector('.fl'); if (lbl) lbl.textContent = 'Contraseña (opcional al editar)'; }
     var saveBtn = document.querySelector('#nc-modal .nc-save-btn');
-    if (saveBtn) { saveBtn.textContent = '💾 Guardar cambios'; saveBtn.setAttribute('data-edit-id', clientId); saveBtn.setAttribute('data-edit-base', isBase); }
+    if (saveBtn) { saveBtn.innerHTML = '<i class="fas fa-save"></i>💾 Guardar cambios'; saveBtn.setAttribute('data-edit-id', clientId); saveBtn.setAttribute('data-edit-base', isBase); }
     updateDocPreview();
   }, 100);
 }

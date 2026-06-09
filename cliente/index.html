@@ -887,7 +887,41 @@ if(!sessionStorage.getItem('bio_user')||sessionStorage.getItem('bio_role')!=='cl
 document.addEventListener('contextmenu',e=>e.preventDefault());
 document.addEventListener('keydown',e=>{if((e.ctrlKey||e.metaKey)&&['s','a','c','p','u'].includes(e.key.toLowerCase()))e.preventDefault()});
 
-const C = BIO_DATA.clientes.vesga;
+// Load client data — supports demo and any localStorage-based client
+var _loggedUser = sessionStorage.getItem('bio_user') || 'dra.vesga';
+var C;
+if (_loggedUser === 'dra.vesga') {
+  C = BIO_DATA.clientes.vesga;
+} else {
+  // Build C from localStorage for demo / other clients
+  var _savedList = JSON.parse(localStorage.getItem('bio_clientes_list') || '[]');
+  var _cli = _savedList.find(function(c){ return c.usuario === _loggedUser; });
+  var _custom = {};
+  try { _custom = JSON.parse(localStorage.getItem('bio_custom_' + _loggedUser) || '{}'); } catch(e){}
+  var _baseEstandares = VESGA.estandares || [];
+  var _savedEstandares = null;
+  try { _savedEstandares = JSON.parse(localStorage.getItem('bio_servicios_' + _loggedUser)); } catch(e){}
+  C = {
+    id: _loggedUser,
+    usuario: _loggedUser,
+    nombre: _cli ? _cli.nombre : 'Clínica Demo BIOAuditoría',
+    empresa: _cli ? _cli.empresa : 'Clínica Santa Fe Demo S.A.S.',
+    nit: _cli ? _cli.nit : '900.123.456-7',
+    nivel_atencion: _cli ? (_cli.nivel || '1') : '1',
+    ciudad: _cli ? _cli.ciudad : 'Bogotá D.C.',
+    especialidad: _cli ? _cli.especialidad : 'Medicina General',
+    email: _cli ? _cli.email : 'demo@bioauditoria.com',
+    telefono: _cli ? _cli.telefono : '601-234-5678',
+    cedula: _cli ? _cli.cedula : '79.123.456',
+    direccion: _cli ? _cli.direccion : 'Cra. 15 No. 93-47, Bogotá',
+    registro_medico: _cli ? _cli.rm : 'RM-2015-234567',
+    color1: _custom.color1 || (_cli && _cli.color1) || '#0EA5E9',
+    color2: _custom.color2 || (_cli && _cli.color2) || '#7B2FBE',
+    logo_url: _custom.logo_url || (_cli && _cli.logo_url) || '',
+    drive_url: _custom.drive_url || (_cli && _cli.drive_url) || '',
+    estandares: _savedEstandares || _baseEstandares
+  };
+}
 const ES = ESTANDARES_3100;
 let hallazgos = [];
 let actas = [];
