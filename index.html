@@ -785,6 +785,12 @@ document.querySelectorAll('a[href^="#"]').forEach(function(a) {
     if (target) { e.preventDefault(); target.scrollIntoView({behavior:'smooth', block:'start'}); }
   });
 });
+// If user already has active session, redirect them directly
+(function(){
+  var r=sessionStorage.getItem('bio_role');
+  if(r==='admin')window.location.replace('/admin/index.html');
+  else if(r==='cliente')window.location.replace('/cliente/index.html');
+})();
 </script>
 </body>
 </html>
