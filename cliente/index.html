@@ -160,7 +160,7 @@ select.fi option{background:var(--dark2)}
 /* ===== VISOR PREMIUM DE DOCUMENTOS ===== */
 .doc-viewer-modal {
   position: fixed; top:0; left:0; right:0; bottom:0;
-  background: rgba(10,20,40,0.92);
+  background: rgba(10,20,40,0.95);
   z-index: 99999;
   display: flex; flex-direction: column;
   animation: viewerFadeIn 0.25s ease;
@@ -169,96 +169,178 @@ select.fi option{background:var(--dark2)}
 
 .dv-header {
   background: linear-gradient(135deg, #0d2137 0%, #1565C0 100%);
-  color: #fff; padding: 14px 24px;
-  display: flex; align-items: center; gap: 16px;
+  color: #fff; padding: 12px 20px;
+  display: flex; align-items: center; gap: 12px;
   box-shadow: 0 3px 15px rgba(0,0,0,0.4); z-index: 2;
-  flex-shrink: 0;
+  flex-shrink: 0; min-height: 56px;
 }
 .dv-back-btn {
   background: rgba(255,255,255,0.15); color: #fff; border: 1px solid rgba(255,255,255,0.3);
-  padding: 8px 16px; border-radius: 8px; cursor: pointer; font-size: 14px;
-  transition: background 0.2s; white-space: nowrap;
+  padding: 8px 14px; border-radius: 8px; cursor: pointer; font-size: 14px;
+  transition: background 0.2s; white-space: nowrap; flex-shrink: 0;
 }
 .dv-back-btn:hover { background: rgba(255,255,255,0.25); }
-.dv-title { flex:1; }
+.dv-title { flex:1; min-width:0; overflow:hidden; }
 .dv-doc-codigo {
   display: inline-block; background: rgba(255,255,255,0.2);
   padding: 2px 10px; border-radius: 20px; font-size: 11px;
-  font-weight: 700; letter-spacing: 1px; margin-bottom: 4px;
+  font-weight: 700; letter-spacing: 1px; margin-bottom: 3px;
 }
-.dv-doc-nombre { font-size: 16px; font-weight: 700; display: block; }
+.dv-doc-nombre { font-size: 15px; font-weight: 700; display: block; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
 .dv-protected-badge {
   background: linear-gradient(135deg, #C9A84C, #E8C96B);
-  color: #1a0a00; padding: 6px 14px; border-radius: 20px;
-  font-size: 12px; font-weight: 700; white-space: nowrap;
+  color: #1a0a00; padding: 5px 12px; border-radius: 20px;
+  font-size: 11px; font-weight: 700; white-space: nowrap; flex-shrink:0;
 }
+/* Toggle button in header */
+.dv-sidebar-toggle {
+  background: rgba(255,255,255,0.18); color: #fff; border: 1px solid rgba(255,255,255,0.35);
+  padding: 8px 16px; border-radius: 8px; cursor: pointer; font-size: 13px; font-weight: 700;
+  white-space: nowrap; flex-shrink: 0; transition: background 0.2s; display: flex; align-items: center; gap: 6px;
+}
+.dv-sidebar-toggle:hover { background: rgba(255,255,255,0.3); }
+
 .dv-body { flex:1; display:flex; overflow:hidden; min-height:0; position:relative; }
 
 .dv-iframe-wrap {
   flex:1; min-width:0; position:relative; background:#525659;
   display:flex; align-items:center; justify-content:center; overflow:hidden;
 }
-.dv-iframe-wrap iframe {
-  width:100%; height:100%; border:none; display:block;
-}
+.dv-iframe-wrap iframe { width:100%; height:100%; border:none; display:block; }
 .dv-no-download-overlay {
   position:absolute; top:0; left:0; right:0; bottom:0;
-  z-index: 10; cursor:default; user-select:none;
-  pointer-events: none;
+  z-index:10; cursor:default; user-select:none; pointer-events:none;
 }
 
-/* Sidebar siempre visible, con posición fija relativa al modal */
+/* === SIDEBAR === */
 .dv-sidebar {
-  width: 300px; min-width: 300px; background: #fff;
+  width: 310px; min-width: 310px; background: #fff;
   border-left: 2px solid #1565C0;
   overflow-y: auto; display: flex; flex-direction: column;
   flex-shrink: 0; position: relative; z-index: 10;
   box-shadow: -4px 0 20px rgba(0,0,0,0.15);
-  transition: width 0.25s ease, min-width 0.25s ease;
+  transition: width 0.28s ease, min-width 0.28s ease;
 }
-.dv-sidebar.collapsed {
-  width: 0; min-width: 0; overflow: hidden; border: none;
-}
-/* Botón toggle sidebar */
-.dv-sidebar-toggle {
-  background: rgba(255,255,255,0.18); color: #fff; border: 1px solid rgba(255,255,255,0.35);
-  padding: 7px 14px; border-radius: 6px;
-  cursor: pointer; font-size: 13px; font-weight: 600;
-  white-space: nowrap; flex-shrink: 0;
-  transition: background 0.2s;
-}
-.dv-sidebar-toggle:hover { background: rgba(255,255,255,0.3); }
+.dv-sidebar.collapsed { width: 0; min-width: 0; overflow: hidden; border: none; }
 .dv-sidebar-header {
   background: linear-gradient(135deg, #0d2137, #1565C0);
-  color: #fff; padding: 20px; flex-shrink: 0;
+  color: #fff; padding: 18px 20px; flex-shrink: 0;
+  display: flex; align-items: flex-start; justify-content: space-between; gap: 10px;
 }
-.dv-sidebar-header h3 { margin:0; font-size:16px; }
-.dv-sidebar-header p { margin:6px 0 0; font-size:12px; opacity:0.8; }
-.dv-sidebar-body { padding: 20px; flex:1; }
-.dv-form-group { margin-bottom: 16px; }
+.dv-sidebar-header h3 { margin:0; font-size:15px; line-height:1.3; }
+.dv-sidebar-header p { margin:5px 0 0; font-size:11px; opacity:0.8; }
+.dv-sidebar-close-btn {
+  background: rgba(255,255,255,0.15); border: 1px solid rgba(255,255,255,0.3);
+  color:#fff; width:28px; height:28px; border-radius:50%; cursor:pointer;
+  font-size:14px; display:flex; align-items:center; justify-content:center; flex-shrink:0;
+}
+.dv-sidebar-body { padding: 18px; flex:1; }
+.dv-form-group { margin-bottom: 14px; }
 .dv-form-group label {
-  display:block; font-size:11px; font-weight:700; color:#546e7a;
-  text-transform:uppercase; letter-spacing:0.5px; margin-bottom:5px;
+  display:block; font-size:10px; font-weight:700; color:#546e7a;
+  text-transform:uppercase; letter-spacing:0.5px; margin-bottom:4px;
 }
 .dv-form-group input {
   width:100%; padding:9px 12px; border:1.5px solid #e0e0e0;
   border-radius:8px; font-size:13px; color:#1a3a5c;
   transition: border-color 0.2s; box-sizing:border-box;
 }
-.dv-form-group input:focus { outline:none; border-color:#1565C0; }
+.dv-form-group input:focus { outline:none; border-color:#1565C0; box-shadow: 0 0 0 3px rgba(21,101,192,0.12); }
 .dv-save-btn {
-  width:100%; padding:12px; background:linear-gradient(135deg,#0d2137,#1565C0);
+  width:100%; padding:13px; background:linear-gradient(135deg,#0d2137,#1565C0);
   color:#fff; border:none; border-radius:10px; font-size:14px; font-weight:700;
-  cursor:pointer; transition: opacity 0.2s; margin-bottom:16px;
+  cursor:pointer; transition: opacity 0.2s; margin-bottom:14px; display:flex; align-items:center; justify-content:center; gap:6px;
 }
 .dv-save-btn:hover { opacity:0.9; }
 .dv-protection-info {
   background:#FFF8E1; border:1px solid #FFD54F; border-radius:10px;
-  padding:14px; display:flex; gap:10px; align-items:flex-start;
+  padding:12px; display:flex; gap:10px; align-items:flex-start;
 }
-.dv-protection-info .lock-icon { font-size:22px; }
-.dv-protection-info strong { display:block; font-size:12px; color:#E65100; }
-.dv-protection-info p { margin:4px 0 0; font-size:11px; color:#795548; line-height:1.5; }
+.dv-protection-info .lock-icon { font-size:20px; }
+.dv-protection-info strong { display:block; font-size:11px; color:#E65100; }
+.dv-protection-info p { margin:3px 0 0; font-size:11px; color:#795548; line-height:1.5; }
+
+/* Document content tables — horizontal scroll on narrow screens */
+#docPageContainer table { display:block; overflow-x:auto; -webkit-overflow-scrolling:touch; max-width:100%; }
+#docPageContainer img { max-width:100%; height:auto; }
+
+/* === MOBILE — sidebar as bottom sheet === */
+@media (max-width: 640px) {
+  .dv-header { padding: 10px 14px; gap: 8px; min-height: 52px; }
+  .dv-back-btn { padding: 7px 11px; font-size: 13px; }
+  .dv-doc-nombre { font-size: 13px; }
+  .dv-protected-badge { display: none; }
+  .dv-sidebar-toggle { display: none !important; } /* replaced by FAB */
+
+  /* Sidebar becomes a bottom sheet */
+  .dv-sidebar {
+    position: fixed !important;
+    bottom: 0 !important; left: 0 !important; right: 0 !important;
+    width: 100% !important; min-width: 100% !important;
+    max-height: 78vh;
+    border-left: none !important; border-top: 3px solid #1565C0 !important;
+    border-radius: 18px 18px 0 0 !important;
+    transform: translateY(0);
+    transition: transform 0.3s cubic-bezier(0.4,0,0.2,1) !important;
+    box-shadow: 0 -8px 40px rgba(0,0,0,0.35) !important;
+    z-index: 100 !important;
+  }
+  .dv-sidebar.collapsed {
+    transform: translateY(105%) !important;
+    width: 100% !important; min-width: 100% !important;
+    overflow: hidden !important;
+    border: none !important;
+  }
+  /* Sheet handle */
+  .dv-sidebar-header::before {
+    content: '';
+    display: block;
+    width: 36px; height: 4px;
+    background: rgba(255,255,255,0.4);
+    border-radius: 2px;
+    margin: 0 auto 12px;
+  }
+  .dv-sidebar-header { flex-direction: column; }
+
+  /* FAB button */
+  .dv-fab {
+    display: flex !important;
+    position: fixed;
+    bottom: 22px; right: 18px;
+    width: 56px; height: 56px; border-radius: 50%;
+    background: linear-gradient(135deg, #0d2137, #1565C0);
+    color: #fff; border: none; cursor: pointer;
+    font-size: 22px; align-items: center; justify-content: center;
+    box-shadow: 0 6px 20px rgba(21,101,192,0.55);
+    z-index: 101; transition: transform 0.2s;
+  }
+  .dv-fab:active { transform: scale(0.92); }
+  .dv-fab.open { background: linear-gradient(135deg, #1565C0, #0d2137); }
+
+  /* Backdrop when sidebar is open on mobile */
+  .dv-sidebar-backdrop {
+    display: block !important;
+    position: fixed; inset: 0;
+    background: rgba(0,0,0,0.5);
+    z-index: 99;
+    animation: viewerFadeIn 0.2s ease;
+  }
+
+  /* Document content full width on mobile */
+  .dv-body { position: relative; }
+  #docContentWrap { padding: 10px 0 !important; }
+  #docPageContainer { padding: 0 6px !important; }
+  .doc-page { padding: 18px 16px !important; margin-bottom: 10px !important; box-shadow: 0 2px 8px rgba(0,0,0,0.12) !important; }
+  .doc-page table { font-size: 11px !important; }
+  .doc-page h1, .doc-page-h1 { font-size: 16px !important; margin: 16px 0 8px !important; }
+  .doc-page h2 { font-size: 14px !important; margin: 14px 0 7px !important; }
+  .doc-page h3 { font-size: 12px !important; margin: 12px 0 6px !important; }
+  .doc-page p { font-size: 12px !important; }
+  .doc-page th, .doc-page td { padding: 5px 7px !important; font-size: 11px !important; }
+}
+
+/* FAB hidden on desktop */
+.dv-fab { display: none; }
 
 /* ===== TARJETAS PREMIUM DE DOCUMENTOS ===== */
 .doc-card-premium {
@@ -1402,16 +1484,16 @@ renderHallazgos();
 <script>
 // ===== VISOR PREMIUM DE DOCUMENTOS =====
 var DV_CAMPOS = [
-  {id:'nombreConsultorio', label:'Nombre del Consultorio', placeholder:'Ej: CONSULTORIO DRA. VESGA'},
-  {id:'nombreMedico', label:'Nombre completo del médico', placeholder:'Dra. Nombre Apellido'},
-  {id:'tarjetaProfesional', label:'N° Tarjeta Profesional', placeholder:'TP XXXXXX'},
-  {id:'registroReps', label:'N° Registro REPS (Habilitación)', placeholder:'Número de habilitación'},
-  {id:'direccion', label:'Dirección del Consultorio', placeholder:'Calle, Número, Barrio'},
-  {id:'ciudad', label:'Ciudad / Departamento', placeholder:'Ej: Cúcuta, Norte de Santander'},
-  {id:'telefono', label:'Teléfono / WhatsApp', placeholder:'Ej: 315 XXX XXXX'},
-  {id:'email', label:'Correo electrónico', placeholder:'correo@consultorio.com'},
-  {id:'nit', label:'NIT / Cédula', placeholder:'XXX.XXX.XXX-X'},
-  {id:'horario', label:'Horario de atención', placeholder:'Lun-Vie 8am-5pm'},
+  {id:'nombreConsultorio', label:'Nombre del Consultorio', placeholder:'Ej: CONSULTORIO DRA. VESGA', type:'text'},
+  {id:'nombreMedico', label:'Nombre completo del médico/a', placeholder:'Dra. Nombre Apellido', type:'text'},
+  {id:'tarjetaProfesional', label:'N° Tarjeta Profesional', placeholder:'TP XXXXXX', type:'text'},
+  {id:'registroReps', label:'N° Registro REPS (Habilitación)', placeholder:'Número de habilitación REPS', type:'text'},
+  {id:'nit', label:'NIT / Cédula', placeholder:'XXX.XXX.XXX-X', type:'text'},
+  {id:'direccion', label:'Dirección del Consultorio', placeholder:'Calle, Número, Barrio', type:'text'},
+  {id:'ciudad', label:'Ciudad / Departamento', placeholder:'Ej: Cúcuta, Norte de Santander', type:'text'},
+  {id:'telefono', label:'Teléfono / WhatsApp', placeholder:'315 XXX XXXX', type:'tel'},
+  {id:'email', label:'Correo electrónico', placeholder:'correo@consultorio.com', type:'email'},
+  {id:'horario', label:'Horario de atención', placeholder:'Lun-Vie 8am-6pm', type:'text'},
 ];
 
 function dvCargarDatos() {
@@ -1487,15 +1569,15 @@ function convertirAHtml(texto, codigo, nombre) {
   }
   if (paginaActual.length) paginas.push(paginaActual.join(''));
   return paginas.map(function(contenidoPagina, i) {
-    return '<div style="background:#fff;width:100%;max-width:850px;min-height:1100px;padding:72px 80px;box-shadow:0 4px 20px rgba(0,0,0,0.15);margin-bottom:20px;font-family:\'Calibri\',Arial,sans-serif;position:relative;box-sizing:border-box;">' +
-      '<div style="position:absolute;top:20px;left:80px;right:80px;display:flex;justify-content:space-between;padding-bottom:8px;border-bottom:1px solid #e0e0e0;font-size:10px;color:#90a4ae">' +
-        '<span>' + codigo + ' — ' + nombre + '</span>' +
+    return '<div class="doc-page" style="background:#fff;width:100%;max-width:850px;min-height:auto;padding:56px 64px;box-shadow:0 4px 20px rgba(0,0,0,0.15);margin-bottom:20px;font-family:\'Calibri\',Arial,sans-serif;position:relative;box-sizing:border-box;">' +
+      '<div class="doc-page-header" style="display:flex;justify-content:space-between;padding-bottom:8px;border-bottom:1px solid #e0e0e0;font-size:10px;color:#90a4ae;margin-bottom:20px;flex-wrap:wrap;gap:4px">' +
+        '<span>' + codigo + ' — ' + nombre.substr(0,40) + '</span>' +
         '<span>Versión 2.0 | Junio 2025</span>' +
       '</div>' +
       contenidoPagina +
-      '<div style="position:absolute;bottom:20px;left:80px;right:80px;display:flex;justify-content:space-between;padding-top:8px;border-top:1px solid #e0e0e0;font-size:10px;color:#90a4ae">' +
+      '<div class="doc-page-footer" style="display:flex;justify-content:space-between;padding-top:8px;border-top:1px solid #e0e0e0;font-size:10px;color:#90a4ae;margin-top:20px;flex-wrap:wrap;gap:4px">' +
         '<span>🔒 Documento Protegido — Solo Visualización</span>' +
-        '<span>Página ' + (i+1) + ' de ' + paginas.length + '</span>' +
+        '<span>Pág. ' + (i+1) + '/' + paginas.length + '</span>' +
       '</div>' +
     '</div>';
   }).join('');
@@ -1525,12 +1607,23 @@ function abrirVisorDocumento(driveId, codigo, nombre) {
     ? convertirAHtml(contenido, codigo, nombre)
     : '<iframe src="https://docs.google.com/document/d/' + driveId + '/preview?rm=minimal" style="width:100%;height:100%;border:none;display:block" allowfullscreen loading="lazy" title="' + nombre + '"></iframe><div class="dv-no-download-overlay"></div>';
 
-  var camposHtml = DV_CAMPOS.map(function(c) {
-    return '<div class="dv-form-group">' +
-      '<label>' + c.label + '</label>' +
-      '<input type="text" id="dv_' + c.id + '" placeholder="' + c.placeholder + '" value="' + (datos[c.id] || '') + '">' +
-      '</div>';
-  }).join('');
+  var iconos = {
+    nombreConsultorio:'🏥', nombreMedico:'👩‍⚕️', tarjetaProfesional:'🪪',
+    registroReps:'📋', direccion:'📍', ciudad:'🏙️',
+    telefono:'📞', email:'✉️', nit:'🔢', horario:'🕐'
+  };
+  var camposHtml =
+    '<div style="background:#f0f7ff;border:1px solid #c8dff8;border-radius:10px;padding:12px 14px;margin-bottom:16px;font-size:12px;color:#1565C0;line-height:1.5">' +
+    '<strong>💡 ¿Cómo funciona?</strong><br>Completa tus datos aquí y toca <strong>Guardar y ver cambios</strong> — los documentos se personalizarán automáticamente con tu información.' +
+    '</div>' +
+    DV_CAMPOS.map(function(c) {
+      var icono = iconos[c.id] || '📝';
+      var val = (datos[c.id] || '').replace(/"/g, '&quot;');
+      return '<div class="dv-form-group">' +
+        '<label>' + icono + ' ' + c.label + '</label>' +
+        '<input type="' + (c.type||'text') + '" id="dv_' + c.id + '" placeholder="' + c.placeholder + '" value="' + val + '" autocomplete="off">' +
+        '</div>';
+    }).join('');
 
   var modal = document.createElement('div');
   modal.className = 'doc-viewer-modal';
@@ -1552,19 +1645,23 @@ function abrirVisorDocumento(driveId, codigo, nombre) {
         '<span class="dv-doc-codigo">' + codigo + '</span>' +
         '<span class="dv-doc-nombre">' + nombre + '</span>' +
       '</div>' +
-      '<div class="dv-protected-badge">🔒 Documento Protegido</div>' +
-      '<button class="dv-sidebar-toggle" id="dvSidebarToggle" onclick="toggleSidebar()" title="Mostrar/Ocultar panel de edición">✏️</button>' +
+      '<div class="dv-protected-badge">🔒 Protegido</div>' +
+      '<button class="dv-sidebar-toggle" id="dvSidebarToggle" onclick="toggleSidebar()" title="Mostrar/Ocultar panel de edición">✏️ Editar</button>' +
     '</div>' +
     '<div class="dv-body">' +
       cuerpoVisor +
+      '<div id="dvSidebarBackdrop" class="dv-sidebar-backdrop" style="display:none" onclick="toggleSidebar()"></div>' +
       '<div class="dv-sidebar" id="dvSidebarPanel">' +
         '<div class="dv-sidebar-header">' +
-          '<h3>✏️ Mis Datos del Consultorio</h3>' +
-          '<p>Complete sus datos para personalizar todos sus documentos.</p>' +
+          '<div>' +
+            '<h3>✏️ Mis Datos del Consultorio</h3>' +
+            '<p>Edita tus datos para personalizar todos los documentos.</p>' +
+          '</div>' +
+          '<button class="dv-sidebar-close-btn" onclick="toggleSidebar()" title="Cerrar">✕</button>' +
         '</div>' +
         '<div class="dv-sidebar-body">' +
           camposHtml +
-          '<button class="dv-save-btn" onclick="dvGuardarYActualizar()">💾 Guardar y Actualizar Documento</button>' +
+          '<button class="dv-save-btn" onclick="dvGuardarYActualizar()">💾 Guardar y ver cambios</button>' +
           '<div class="dv-protection-info">' +
             '<span class="lock-icon">🔒</span>' +
             '<div>' +
@@ -1574,12 +1671,23 @@ function abrirVisorDocumento(driveId, codigo, nombre) {
           '</div>' +
         '</div>' +
       '</div>' +
-    '</div>';
+    '</div>' +
+    '<button class="dv-fab" id="dvFab" onclick="toggleSidebar()" title="Editar datos">✏️</button>';
 
   document.body.appendChild(modal);
   document.body.style.overflow = 'hidden';
   modal.addEventListener('contextmenu', function(e) { e.preventDefault(); });
   modal.addEventListener('keydown', function(e) { if(e.key === 'Escape') cerrarVisor(); });
+
+  // En móvil: sidebar colapsado por defecto para no tapar el documento
+  if (window.innerWidth <= 640) {
+    var sb = document.getElementById('dvSidebarPanel');
+    var toggle = document.getElementById('dvSidebarToggle');
+    var fab = document.getElementById('dvFab');
+    if (sb) sb.classList.add('collapsed');
+    if (toggle) toggle.innerHTML = '✏️ Editar';
+    if (fab) fab.innerHTML = '✏️';
+  }
 
   setTimeout(function() { dvToast('🔒 Documento protegido — Solo visualización', 'info'); }, 600);
 }
@@ -1608,9 +1716,13 @@ function cerrarVisor() {
 function toggleSidebar() {
   var sidebar = document.getElementById('dvSidebarPanel');
   var btn = document.getElementById('dvSidebarToggle');
+  var fab = document.getElementById('dvFab');
+  var backdrop = document.getElementById('dvSidebarBackdrop');
   if (!sidebar) return;
   var collapsed = sidebar.classList.toggle('collapsed');
-  if (btn) btn.textContent = collapsed ? '✏️ Editar' : '✕ Cerrar';
+  if (btn) btn.innerHTML = collapsed ? '✏️ Editar' : '✕ Cerrar';
+  if (fab) { fab.innerHTML = collapsed ? '✏️' : '✕'; fab.classList.toggle('open', !collapsed); }
+  if (backdrop) backdrop.style.display = collapsed ? 'none' : 'block';
 }
 
 // ===== RENDER MEJORADO DE MIS DOCUMENTOS =====
