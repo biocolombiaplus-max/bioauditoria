@@ -153,6 +153,19 @@ select.fi option{background:var(--dark2)}
 /* OVERLAY */
 .ov{display:none;position:fixed;inset:0;background:rgba(0,0,0,0.6);z-index:150;backdrop-filter:blur(4px)}
 .ov.show{display:block}
+.client-switcher-btn { transition: all 0.2s; }
+.client-switcher-btn.active-client { box-shadow: 0 2px 10px rgba(255,107,0,0.3); }
+.mod-header { background:linear-gradient(135deg,var(--dark2),var(--dark3)); border:1px solid var(--bd); border-radius:14px; padding:20px; margin-bottom:16px; }
+.mod-header h2 { margin:0 0 4px; font-size:18px; }
+.mod-header p { margin:0; font-size:12px; color:var(--text3); }
+.eq-card,.th-card,.ev-card { background:var(--dark3); border:1px solid var(--bd); border-radius:12px; padding:14px; margin-bottom:10px; }
+.eq-card:hover,.th-card:hover,.ev-card:hover { border-color:var(--or2); }
+.badge-riesgo-i { background:rgba(45,159,92,0.15); color:#2D9F5C; padding:2px 8px; border-radius:10px; font-size:10px; font-weight:700; }
+.badge-riesgo-ii { background:rgba(244,162,97,0.15); color:#F4A261; padding:2px 8px; border-radius:10px; font-size:10px; font-weight:700; }
+.badge-riesgo-iii { background:rgba(230,57,70,0.15); color:#E63946; padding:2px 8px; border-radius:10px; font-size:10px; font-weight:700; }
+.ev-tipo-adverso { border-left:4px solid var(--red); }
+.ev-tipo-incidente { border-left:4px solid var(--yellow); }
+.ev-tipo-cuasi { border-left:4px solid var(--or2); }
 /* MOBILE */
 @media(max-width:768px){
   .sidebar{position:fixed;top:0;left:0;bottom:0;z-index:200;transform:translateX(-100%);width:260px}
@@ -161,6 +174,10 @@ select.fi option{background:var(--dark2)}
   .srow{grid-template-columns:1fr 1fr;gap:8px}.sc{padding:12px}.sn{font-size:20px}
   .g2{grid-template-columns:1fr}.content{padding:12px}.tbr .bg{display:none}
   .dn{font-size:12px}.fgrid{grid-template-columns:1fr}.topbar{padding:10px 12px}
+  .client-switcher-btn { font-size:11px; padding:5px 9px; }
+  .mod-header h2 { font-size:15px; }
+  .fgrid { grid-template-columns:1fr !important; }
+  .eq-card,.th-card,.ev-card { padding:11px; }
 }
 </style>
 </head>
@@ -186,6 +203,10 @@ select.fi option{background:var(--dark2)}
     <div class="ns">REPS e Inscripción</div>
     <div class="ni" onclick="nav(this,'reps','Módulo REPS')"><i class="fas fa-hospital-user"></i>Módulo REPS</div>
     <div class="ni" onclick="nav(this,'servicios','Servicios Habilitados')"><i class="fas fa-stethoscope"></i>Servicios</div>
+    <div class="ns">Gestión Clínica</div>
+    <div class="ni" onclick="nav(this,'equipos','Equipos Biomédicos')"><i class="fas fa-heartbeat"></i>Equipos Biomédicos</div>
+    <div class="ni" onclick="nav(this,'talento','Talento Humano')"><i class="fas fa-id-badge"></i>Talento Humano</div>
+    <div class="ni" onclick="nav(this,'eventos','Seguridad del Paciente')"><i class="fas fa-shield-alt"></i>Seguridad Paciente</div>
     <div class="ns">Drive</div>
     <div class="ni" onclick="nav(this,'gesdocs','Documentos por Cliente')"><i class="fas fa-folder-open"></i>Docs por Cliente</div>
     <div class="sfoot">
@@ -263,6 +284,21 @@ select.fi option{background:var(--dark2)}
       <!-- GESTIÓN DOCUMENTOS POR CLIENTE (DRIVE) -->
       <div class="page" id="pg-gesdocs">
         <div id="gesdocs-content"></div>
+      </div>
+
+      <!-- EQUIPOS BIOMÉDICOS -->
+      <div class="page" id="pg-equipos">
+        <div id="equipos-content"></div>
+      </div>
+
+      <!-- TALENTO HUMANO -->
+      <div class="page" id="pg-talento">
+        <div id="talento-content"></div>
+      </div>
+
+      <!-- SEGURIDAD DEL PACIENTE / EVENTOS ADVERSOS -->
+      <div class="page" id="pg-eventos">
+        <div id="eventos-content"></div>
       </div>
 
     </div>
@@ -431,10 +467,10 @@ select.fi option{background:var(--dark2)}
 </div>
 
 <!-- ============ MODAL: NUEVO CLIENTE ============ -->
-<div class="modal" id="modal-nc">
+<div class="modal" id="modal-nc" id="nc-modal">
   <div class="mbox">
     <div class="mh">
-      <div class="mt2">👤 Registrar nuevo cliente</div>
+      <div class="mt2" id="nc-modal-title">👤 Registrar nuevo cliente</div>
       <div class="mc" onclick="closeNewCliente()"><i class="fas fa-times"></i></div>
     </div>
     <div class="step-bar">
@@ -543,7 +579,7 @@ select.fi option{background:var(--dark2)}
       <div class="fg"><label class="fl">Notas / observaciones</label><textarea class="fi fta" id="nc-notas" placeholder="Información adicional sobre el cliente..."></textarea></div>
       <div style="display:flex;gap:8px">
         <button class="btn bg" onclick="ncStep(2)" style="padding:12px 16px"><i class="fas fa-arrow-left"></i></button>
-        <button class="btn bor" style="flex:1;justify-content:center;padding:12px" onclick="guardarCliente()"><i class="fas fa-check"></i>Registrar cliente</button>
+        <button class="btn bor nc-save-btn" style="flex:1;justify-content:center;padding:12px" onclick="guardarCliente()"><i class="fas fa-check"></i>Registrar cliente</button>
       </div>
     </div>
 
@@ -699,6 +735,48 @@ var metodo = 'drive';
 var selectedFile = null;
 var ncCurrentStep = 1;
 var logoDataUrl = null;
+var currentClientId = 'vesga';
+
+function getAllClientes() {
+  var saved = JSON.parse(localStorage.getItem('bio_clientes_list') || '[]');
+  var base = [{ id:'vesga', nombre:VESGA.nombre, empresa:VESGA.empresa, nit:VESGA.nit,
+    nivel_atencion:VESGA.nivel_atencion, ciudad:VESGA.ciudad, usuario:'dra.vesga',
+    color1:VESGA.color1, color2:VESGA.color2, logo_url:VESGA.logo_url, _base:true }];
+  saved.forEach(function(c) { if (!c.id) c.id = c.usuario || c.nombre; });
+  return base.concat(saved);
+}
+
+function crearEstandaresVacios() {
+  return ESTANDARES_3100.map(function(e) {
+    return { id: e.id, estandar_num: e.num, documentos: [] };
+  });
+}
+
+function switchClient(clientId) {
+  if (clientId === currentClientId) return;
+  currentClientId = clientId;
+  if (clientId === 'vesga') {
+    C = VESGA;
+  } else {
+    var saved = JSON.parse(localStorage.getItem('bio_clientes_list') || '[]');
+    var found = saved.find(function(c) { return (c.usuario || c.nombre) === clientId; });
+    if (!found) { toast('Cliente no encontrado', 'err'); return; }
+    if (!found.id) found.id = found.usuario || found.nombre;
+    if (!found.estandares) found.estandares = crearEstandaresVacios();
+    if (!found.color1) found.color1 = '#FF6B00';
+    if (!found.color2) found.color2 = '#7B2FBE';
+    C = found;
+  }
+  loadData();
+  renderDash();
+  if (document.getElementById('pg-estandares').classList.contains('act')) renderEstdTabs();
+  if (document.getElementById('pg-reps').classList.contains('act')) renderReps();
+  updateSidebarLogo();
+  document.querySelectorAll('.client-switcher-btn').forEach(function(b) {
+    b.classList.toggle('active-client', b.getAttribute('data-cid') === clientId);
+  });
+  toast('Vista: ' + C.nombre.split(' ').slice(0,3).join(' ') + ' ✓');
+}
 // ================================================================
 // BASE DE DATOS NORMATIVA — Servicios de Salud Colombia
 // Res. 2003/2014 (REPS) + Res. 3100/2019 (Habilitación)
@@ -782,13 +860,13 @@ function loadData() {
   var savedTraz = JSON.parse(localStorage.getItem('bio_traz_' + C.id) || '[]');
   TRAZ = savedTraz;
   // Load client customizations
-  var custom = JSON.parse(localStorage.getItem('bio_custom_dra.vesga') || localStorage.getItem('bio_cliente_' + C.id) || '{}');
+  var cUser = C.usuario || currentClientId;
+  var custom = JSON.parse(localStorage.getItem('bio_custom_' + cUser) || localStorage.getItem('bio_cliente_' + C.id) || '{}');
   if (custom.logo_url) C.logo_url = custom.logo_url;
   if (custom.color1) C.color1 = custom.color1;
   if (custom.color2) C.color2 = custom.color2;
   if (custom.drive_url) C.drive_url = custom.drive_url;
-  // Also check logo stored separately
-  var savedLogo = localStorage.getItem('bio_logo_dra.vesga');
+  var savedLogo = localStorage.getItem('bio_logo_' + cUser);
   if (savedLogo && !C.logo_url) C.logo_url = savedLogo;
   updateSidebarLogo();
 }
@@ -836,6 +914,10 @@ function nav(el, id, title) {
   if (id === 'reps') renderReps();
   if (id === 'servicios') renderServicios();
   if (id === 'gesdocs') renderGesdocs();
+  if (id === 'equipos') renderEquipos();
+  if (id === 'talento') renderTalento();
+  if (id === 'eventos') renderEventos();
+  if (id === 'clientes') renderCli();
 }
 
 var toastTimer;
@@ -1243,7 +1325,15 @@ function reactivarDoc(docId) {
 // ================================================================
 // MODAL NUEVO CLIENTE
 // ================================================================
-function openNewCliente() { ncCurrentStep = 1; updateNcStep(); document.getElementById('modal-nc').classList.add('open'); }
+function openNewCliente() {
+  ncCurrentStep = 1; updateNcStep();
+  var t = document.getElementById('nc-modal-title');
+  if (t) t.textContent = '👤 Registrar nuevo cliente';
+  var sb = document.querySelector('.nc-save-btn');
+  if (sb) { sb.textContent = ''; sb.innerHTML = '<i class="fas fa-check"></i>Registrar cliente'; sb.removeAttribute('data-edit-id'); sb.removeAttribute('data-edit-base'); }
+  logoDataUrl = null;
+  document.getElementById('modal-nc').classList.add('open');
+}
 function closeNewCliente() { document.getElementById('modal-nc').classList.remove('open'); }
 
 function ncStep(n) {
@@ -1423,37 +1513,53 @@ function renderDash() {
     else if (d.estado === 'pendiente') pen++;
     else req++;
   });
-  var pct = Math.round(ok / total * 100);
+  var pct = total > 0 ? Math.round(ok / total * 100) : 0;
 
   document.getElementById('st-row').innerHTML =
     sc('📄', 'var(--or)', total, 'Total docs', pct) +
     sc('✅', 'var(--green)', ok, 'Vigentes', 100) +
-    sc('⚠️', 'var(--yellow)', pen, 'Pendientes', Math.round(pen/total*100)) +
-    sc('🚨', 'var(--red)', req, 'Requeridos', Math.round(req/total*100));
+    sc('⚠️', 'var(--yellow)', pen, 'Pendientes', total ? Math.round(pen/total*100) : 0) +
+    sc('🚨', 'var(--red)', req, 'Requeridos', total ? Math.round(req/total*100) : 0);
 
   document.getElementById('dash-alert').innerHTML = req > 0
     ? '<div class="alert aw"><i class="fas fa-exclamation-triangle" style="flex-shrink:0"></i><div><strong>' + req + ' documento(s) requeridos</strong> — Gestiónalos antes de cualquier visita de verificación.</div></div>'
     : '<div class="alert ag"><i class="fas fa-check-circle" style="flex-shrink:0"></i><div><strong>Cumplimiento ' + pct + '%</strong> — Documentación en buen estado.</div></div>';
 
   var c1 = C.color1 || '#FF6B00', c2 = C.color2 || '#7B2FBE';
+  var initials = (C.nombre || '').split(' ').map(function(x){return x[0]||'';}).join('').substr(0,2).toUpperCase();
   var logoHtml = C.logo_url
     ? '<img src="' + C.logo_url + '" style="width:46px;height:46px;border-radius:50%;object-fit:cover">'
-    : '<div style="width:46px;height:46px;border-radius:50%;background:linear-gradient(135deg,' + c1 + ',' + c2 + ');display:flex;align-items:center;justify-content:center;font-size:17px;font-weight:800">YV</div>';
+    : '<div style="width:46px;height:46px;border-radius:50%;background:linear-gradient(135deg,' + c1 + ',' + c2 + ');display:flex;align-items:center;justify-content:center;font-size:17px;font-weight:800">' + initials + '</div>';
+
+  // All clients switcher
+  var allCli = getAllClientes();
+  var switcherHtml = '<div style="display:flex;flex-wrap:wrap;gap:8px;padding:12px 0 4px">' +
+    allCli.map(function(cli) {
+      var cid = cli.id || cli.usuario || cli.nombre;
+      var iAct = cid === currentClientId;
+      var cc1 = cli.color1 || '#FF6B00', cc2 = cli.color2 || '#7B2FBE';
+      var ini = (cli.nombre||'').split(' ').map(function(x){return x[0]||'';}).join('').substr(0,2).toUpperCase();
+      return '<button class="client-switcher-btn' + (iAct ? ' active-client' : '') + '" data-cid="' + cid + '" onclick="switchClient(\'' + cid + '\')" style="display:flex;align-items:center;gap:8px;padding:7px 12px;border-radius:20px;border:2px solid ' + (iAct ? cc1 : 'var(--bd)') + ';background:' + (iAct ? cc1+'22' : 'var(--dark3)') + ';cursor:pointer;font-family:inherit;color:var(--text);font-size:12px;font-weight:' + (iAct?'800':'600') + ';transition:all 0.2s">' +
+        '<div style="width:24px;height:24px;border-radius:50%;background:linear-gradient(135deg,' + cc1 + ',' + cc2 + ');display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:800;color:#fff;flex-shrink:0">' + ini + '</div>' +
+        (cli.nombre.split(' ').slice(1,3).join(' ')) +
+        (iAct ? '<span style="font-size:9px;background:' + cc1 + ';color:#fff;padding:1px 5px;border-radius:8px;margin-left:2px">Activo</span>' : '') +
+        '</button>';
+    }).join('') +
+    '</div>';
 
   document.getElementById('client-card').innerHTML =
+    '<div style="margin-bottom:10px"><div style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:0.06em;color:var(--text3);margin-bottom:4px">Cambiar cliente</div>' + switcherHtml + '</div>' +
+    '<div style="height:1px;background:var(--bd);margin-bottom:12px"></div>' +
     '<div style="display:flex;align-items:center;gap:12px;margin-bottom:12px">' + logoHtml +
     '<div><div style="font-weight:700;font-size:14px">' + C.nombre + '</div>' +
-    '<div style="font-size:11px;color:var(--text2)">' + C.especialidad + ' · ' + C.ciudad + '</div>' +
-    '<div style="font-size:10px;color:var(--text3)">' + C.empresa + ' · NIT ' + C.nit + '</div></div></div>' +
-    '<div style="display:flex;flex-wrap:wrap;gap:3px;margin-bottom:10px">' +
-    '<span class="tag" style="background:' + c2 + '22;color:' + c2 + ';border:1px solid ' + c2 + '44">Consulta externa</span>' +
-    '<span class="tag" style="background:' + c1 + '22;color:' + c1 + ';border:1px solid ' + c1 + '44">Estética no invasiva</span>' +
-    '<span class="tag" style="background:var(--gbg);color:var(--green)">Habilitado</span></div>' +
+    '<div style="font-size:11px;color:var(--text2)">' + (C.especialidad || C.servicio || 'Prestador de salud') + ' · ' + (C.ciudad || '') + '</div>' +
+    '<div style="font-size:10px;color:var(--text3)">' + (C.empresa || '') + (C.nit ? ' · NIT ' + C.nit : '') + '</div></div></div>' +
     '<div style="display:flex;justify-content:space-between;font-size:11px;margin-bottom:4px"><span style="color:var(--text2)">Cumplimiento Res. 3100</span><span style="color:' + c1 + ';font-weight:700">' + pct + '%</span></div>' +
     '<div class="pw"><div class="pf" style="width:' + pct + '%;background:linear-gradient(90deg,' + c1 + ',' + c2 + ')"></div></div>' +
     '<div style="display:flex;gap:6px;margin-top:12px">' +
     '<button class="btn bor" style="flex:1;justify-content:center;font-size:11px;background:linear-gradient(135deg,' + c1 + ',' + c2 + ')" onclick="nav(document.querySelectorAll(\'.ni\')[2],\'estandares\',\'Estándares 3100\')"><i class="fas fa-folder-open"></i>Ver documentos</button>' +
-    '<button class="btn bgr" style="font-size:11px" onclick="window.open(\'' + (C.drive_url || '') + '\',\'_blank\')"><i class="fab fa-google-drive"></i>Drive</button></div>';
+    (C.drive_url ? '<button class="btn bgr" style="font-size:11px" onclick="window.open(\'' + C.drive_url + '\',\'_blank\')"><i class="fab fa-google-drive"></i>Drive</button>' : '') +
+    '</div>';
 }
 
 function sc(ico, color, num, label, pct) {
@@ -1475,17 +1581,70 @@ function renderLog(el, n) {
 
 function renderCli() {
   var savedClientes = JSON.parse(localStorage.getItem('bio_clientes_list') || '[]');
-  var allClientes = [{ nombre: C.nombre, empresa: C.empresa, nit: C.nit, nivel: C.nivel_atencion, ciudad: C.ciudad, usuario: 'dra.vesga', _base: true }].concat(savedClientes);
-  document.getElementById('cli-list').innerHTML = allClientes.map(function(cli) {
+  var allClientes = [{ nombre: VESGA.nombre, empresa: VESGA.empresa, nit: VESGA.nit,
+    nivel: VESGA.nivel_atencion, ciudad: VESGA.ciudad, usuario: 'dra.vesga',
+    especialidad: VESGA.especialidad, color1: VESGA.color1, color2: VESGA.color2,
+    email: VESGA.email, telefono: VESGA.telefono, direccion: VESGA.direccion, _base: true }].concat(savedClientes);
+  document.getElementById('cli-list').innerHTML = allClientes.map(function(cli, idx) {
+    var cid = cli.usuario || cli.nombre;
     var initials = (cli.nombre || '').split(' ').map(function(x) { return x[0]; }).join('').substr(0, 2).toUpperCase();
-    return '<div class="dr" style="padding:12px">' +
+    var c1 = cli.color1 || '#FF6B00', c2 = cli.color2 || '#7B2FBE';
+    var isActive = cid === currentClientId;
+    var svcs = JSON.parse(localStorage.getItem('bio_servicios_' + cid) || '[]');
+    return '<div class="dr" style="padding:12px;border-left:3px solid ' + (isActive ? c1 : 'transparent') + ';cursor:pointer" onclick="switchClient(\'' + cid + '\')">' +
       '<div class="dl">' +
-      '<div style="width:40px;height:40px;border-radius:50%;background:linear-gradient(135deg,var(--or),var(--pu));display:flex;align-items:center;justify-content:center;font-size:14px;font-weight:800;flex-shrink:0">' + initials + '</div>' +
-      '<div><div style="font-weight:700;font-size:13px">' + cli.nombre + '</div>' +
+      '<div style="width:42px;height:42px;border-radius:50%;background:linear-gradient(135deg,' + c1 + ',' + c2 + ');display:flex;align-items:center;justify-content:center;font-size:14px;font-weight:800;flex-shrink:0;color:#fff">' + initials + '</div>' +
+      '<div style="min-width:0">' +
+      '<div style="font-weight:700;font-size:13px">' + cli.nombre + (isActive ? ' <span style="font-size:9px;background:'+c1+';color:#fff;padding:1px 6px;border-radius:8px">Activo</span>' : '') + '</div>' +
       '<div style="font-size:11px;color:var(--text2)">' + (cli.empresa || '') + (cli.nit ? ' · NIT ' + cli.nit : '') + '</div>' +
-      '<div style="font-size:10px;color:var(--text3)">@' + (cli.usuario || '') + ' · Nivel ' + (cli.nivel || '1') + (cli.ciudad ? ' · ' + cli.ciudad : '') + '</div></div></div>' +
-      '<span class="status sv">Activo</span></div>';
+      '<div style="font-size:10px;color:var(--text3)">@' + (cli.usuario || '') + ' · Nivel ' + (cli.nivel || cli.nivel_atencion || '1') + (cli.ciudad ? ' · ' + cli.ciudad : '') + '</div>' +
+      (svcs.length > 0 ? '<div style="font-size:10px;color:var(--or2);margin-top:2px">' + svcs.length + ' servicio(s) REPS</div>' : '') +
+      '</div></div>' +
+      '<div style="display:flex;gap:5px;align-items:center">' +
+      '<button class="btn bg" style="font-size:10px;padding:5px 8px" onclick="event.stopPropagation();editCliente(\'' + cid + '\',' + (cli._base ? 'true' : 'false') + ')"><i class="fas fa-edit"></i></button>' +
+      (!cli._base ? '<button class="btn bg" style="font-size:10px;padding:5px 8px;background:var(--rbg);color:var(--red)" onclick="event.stopPropagation();eliminarCliente(\'' + cid + '\')"><i class="fas fa-trash"></i></button>' : '') +
+      '<span class="status sv">Activo</span></div></div>';
   }).join('');
+}
+
+function editCliente(clientId, isBase) {
+  var cli;
+  if (isBase) {
+    cli = { nombre: VESGA.nombre, empresa: VESGA.empresa, nit: VESGA.nit,
+      nivel: VESGA.nivel_atencion, ciudad: VESGA.ciudad, usuario: 'dra.vesga',
+      especialidad: VESGA.especialidad, email: VESGA.email, telefono: VESGA.telefono,
+      cedula: VESGA.cedula, direccion: VESGA.direccion, color1: VESGA.color1, color2: VESGA.color2,
+      rm: VESGA.registro_medico, drive_url: VESGA.drive_url, _base: true };
+  } else {
+    var saved = JSON.parse(localStorage.getItem('bio_clientes_list') || '[]');
+    cli = saved.find(function(c) { return (c.usuario || c.nombre) === clientId; });
+  }
+  if (!cli) return;
+  openNewCliente();
+  setTimeout(function() {
+    var set = function(id, val) { var el = document.getElementById(id); if (el && val) el.value = val; };
+    set('nc-nombre', cli.nombre); set('nc-cedula', cli.cedula); set('nc-esp', cli.especialidad);
+    set('nc-rm', cli.rm || cli.registro_medico); set('nc-empresa', cli.empresa); set('nc-nit', cli.nit);
+    set('nc-nivel', cli.nivel || cli.nivel_atencion); set('nc-dir', cli.direccion); set('nc-ciudad', cli.ciudad);
+    set('nc-tel', cli.telefono); set('nc-email', cli.email); set('nc-servicio', cli.servicio || '');
+    set('nc-color1', cli.color1); set('nc-color2', cli.color2); set('nc-drive', cli.drive_url);
+    set('nc-user', cli.usuario); set('nc-notas', cli.notas);
+    var ct1 = document.getElementById('nc-color1-txt'); if (ct1) ct1.value = cli.color1 || '#FF6B00';
+    var ct2 = document.getElementById('nc-color2-txt'); if (ct2) ct2.value = cli.color2 || '#7B2FBE';
+    document.getElementById('nc-modal-title').textContent = 'Editar cliente';
+    var saveBtn = document.querySelector('#nc-modal .nc-save-btn');
+    if (saveBtn) { saveBtn.textContent = '💾 Guardar cambios'; saveBtn.setAttribute('data-edit-id', clientId); saveBtn.setAttribute('data-edit-base', isBase); }
+    updateDocPreview();
+  }, 100);
+}
+
+function eliminarCliente(clientId) {
+  if (!confirm('¿Eliminar permanentemente este cliente? Esta acción no se puede deshacer.')) return;
+  var saved = JSON.parse(localStorage.getItem('bio_clientes_list') || '[]');
+  saved = saved.filter(function(c) { return (c.usuario || c.nombre) !== clientId; });
+  localStorage.setItem('bio_clientes_list', JSON.stringify(saved));
+  if (currentClientId === clientId) { currentClientId = 'vesga'; C = VESGA; loadData(); }
+  renderCli(); renderDash(); toast('Cliente eliminado');
 }
 
 function renderEstdTabs() {
@@ -2252,6 +2411,571 @@ function guardarDriveId(clienteId, codigo) {
   addTraz('Enlazó documento Drive', codigo + ' → ' + (driveId || '(vacío)'));
   toast(driveId ? 'Documento "' + codigo + '" enlazado ✓' : 'Enlace removido', driveId ? 'ok' : 'info');
   renderGesdocs();
+}
+
+// ================================================================
+// MÓDULO EQUIPOS BIOMÉDICOS
+// ================================================================
+function getEquipos() { return JSON.parse(localStorage.getItem('bio_equipos_' + C.id) || '[]'); }
+function saveEquipos(data) { localStorage.setItem('bio_equipos_' + C.id, JSON.stringify(data)); }
+
+var RIESGOS_INVIMA = ['I — Bajo riesgo','IIA — Riesgo moderado','IIB — Riesgo moderado-alto','III — Alto riesgo'];
+
+function renderEquipos() {
+  var equipos = getEquipos();
+  var c1 = C.color1 || '#FF6B00', c2 = C.color2 || '#7B2FBE';
+  var html = '<div class="mod-header"><div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px">' +
+    '<div><h2>🩺 Equipos Biomédicos — ' + C.nombre.split(' ').slice(0,3).join(' ') + '</h2>' +
+    '<p>Inventario, hojas de vida y cronograma de mantenimiento según INVIMA y Res. 3100/2019</p></div>' +
+    '<button class="btn bor" style="font-size:12px" onclick="openAddEquipo()"><i class="fas fa-plus"></i>Agregar equipo</button></div></div>';
+
+  if (equipos.length === 0) {
+    html += '<div class="card" style="text-align:center;padding:30px"><div style="font-size:36px;margin-bottom:10px">🩺</div><div style="font-size:14px;color:var(--text3)">No hay equipos registrados.<br>Agrega equipos biomédicos para generar hojas de vida y cronogramas.</div></div>';
+  } else {
+    // Resumen
+    var porMantener = equipos.filter(function(e) {
+      if (!e.proxMantenimiento) return false;
+      return new Date(e.proxMantenimiento) <= new Date(Date.now() + 30*24*3600*1000);
+    }).length;
+    html += '<div class="srow" style="grid-template-columns:repeat(3,1fr);margin-bottom:16px">' +
+      sc('🩺','var(--or)',equipos.length,'Equipos registrados',100) +
+      sc('📅','var(--yellow)',porMantener,'Mantenimiento próximo',Math.round(porMantener/equipos.length*100)) +
+      sc('✅','var(--green)',equipos.length-porMantener,'Al día',Math.round((equipos.length-porMantener)/equipos.length*100)) + '</div>';
+
+    html += '<div class="card"><div class="ch"><div class="ct">📋 Inventario de Equipos Biomédicos</div></div>';
+    equipos.forEach(function(eq, idx) {
+      var riesgoBadge = eq.riesgo && eq.riesgo.startsWith('III') ? 'badge-riesgo-iii' : eq.riesgo && eq.riesgo.startsWith('II') ? 'badge-riesgo-ii' : 'badge-riesgo-i';
+      var vencido = eq.proxMantenimiento && new Date(eq.proxMantenimiento) < new Date();
+      html += '<div class="eq-card">' +
+        '<div style="display:flex;align-items:flex-start;gap:12px">' +
+        (eq.foto ? '<img src="' + eq.foto + '" style="width:56px;height:56px;border-radius:8px;object-fit:cover;flex-shrink:0">' :
+          '<div style="width:56px;height:56px;border-radius:8px;background:linear-gradient(135deg,' + c1 + '22,' + c2 + '22);display:flex;align-items:center;justify-content:center;font-size:22px;flex-shrink:0">🔬</div>') +
+        '<div style="flex:1;min-width:0">' +
+        '<div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap;margin-bottom:4px">' +
+        '<span style="font-weight:700;font-size:14px">' + eq.nombre + '</span>' +
+        '<span class="' + riesgoBadge + '">' + (eq.riesgo || 'Sin clasificar') + '</span>' +
+        (vencido ? '<span style="background:var(--rbg);color:var(--red);padding:2px 7px;border-radius:8px;font-size:10px;font-weight:700">⚠️ Mantenimiento vencido</span>' : '') +
+        '</div>' +
+        '<div style="font-size:11px;color:var(--text2);margin-bottom:3px">' + (eq.marca||'') + ' ' + (eq.modelo||'') + (eq.serie ? ' · Serie: ' + eq.serie : '') + '</div>' +
+        (eq.registroInvima ? '<div style="font-size:10px;color:var(--text3)">INVIMA: ' + eq.registroInvima + '</div>' : '') +
+        '<div style="display:flex;gap:10px;margin-top:6px;flex-wrap:wrap">' +
+        (eq.fechaAdquisicion ? '<span style="font-size:10px;color:var(--text3)">📦 ' + eq.fechaAdquisicion + '</span>' : '') +
+        (eq.proxMantenimiento ? '<span style="font-size:10px;color:' + (vencido?'var(--red)':'var(--green)') + '">🔧 Próx. mant: ' + eq.proxMantenimiento + '</span>' : '') +
+        '</div></div>' +
+        '<div style="display:flex;gap:5px;flex-shrink:0">' +
+        '<button class="btn bg" style="font-size:10px;padding:5px 8px" onclick="verHojaVidaEquipo(' + idx + ')"><i class="fas fa-file-alt"></i></button>' +
+        '<button class="btn bg" style="font-size:10px;padding:5px 8px" onclick="editEquipo(' + idx + ')"><i class="fas fa-edit"></i></button>' +
+        '<button class="btn bg" style="font-size:10px;padding:5px 8px;background:var(--rbg);color:var(--red)" onclick="eliminarEquipo(' + idx + ')"><i class="fas fa-trash"></i></button>' +
+        '</div></div></div>';
+    });
+    html += '</div>';
+
+    // Cronograma de mantenimiento
+    html += '<div class="card"><div class="ch"><div class="ct">📅 Cronograma de Mantenimiento Preventivo</div></div>';
+    var meses = ['Ene','Feb','Mar','Abr','May','Jun','Jul','Ago','Sep','Oct','Nov','Dic'];
+    var hoy = new Date();
+    var cronHtml = '<div style="overflow-x:auto"><table style="width:100%;border-collapse:collapse;font-size:11px"><thead><tr>' +
+      '<th style="text-align:left;padding:6px;border-bottom:1px solid var(--bd);min-width:150px">Equipo</th>' +
+      '<th style="padding:6px;border-bottom:1px solid var(--bd)">Frec.</th>' +
+      meses.map(function(m) { return '<th style="padding:6px;border-bottom:1px solid var(--bd);text-align:center">' + m + '</th>'; }).join('') +
+      '</tr></thead><tbody>';
+    equipos.forEach(function(eq) {
+      var freq = parseInt(eq.frecMantenimiento) || 6;
+      cronHtml += '<tr><td style="padding:6px;border-bottom:1px solid var(--bd2);font-weight:600">' + eq.nombre + '</td>' +
+        '<td style="padding:6px;border-bottom:1px solid var(--bd2);text-align:center;color:var(--text3)">' + freq + 'm</td>';
+      for (var m = 0; m < 12; m++) {
+        var esMes = (m % freq === (hoy.getMonth() % freq));
+        cronHtml += '<td style="padding:6px;border-bottom:1px solid var(--bd2);text-align:center">' +
+          (esMes ? '<span style="background:' + c1 + ';color:#fff;padding:2px 6px;border-radius:6px;font-size:10px;font-weight:700">M</span>' : '<span style="color:var(--bd)">·</span>') + '</td>';
+      }
+      cronHtml += '</tr>';
+    });
+    cronHtml += '</tbody></table></div>';
+    html += cronHtml + '</div>';
+  }
+  document.getElementById('equipos-content').innerHTML = html;
+}
+
+function openAddEquipo(editIdx) {
+  var equipos = getEquipos();
+  var eq = editIdx !== undefined ? equipos[editIdx] : {};
+  var isEdit = editIdx !== undefined;
+  var overlay = document.createElement('div');
+  overlay.style.cssText = 'position:fixed;inset:0;z-index:9999;background:rgba(0,0,0,0.88);display:flex;align-items:center;justify-content:center;backdrop-filter:blur(12px);padding:16px';
+  overlay.innerHTML =
+    '<div style="background:#141428;border:1px solid rgba(255,255,255,0.13);border-radius:18px;width:100%;max-width:640px;max-height:90vh;overflow-y:auto;padding:24px;font-family:Plus Jakarta Sans,sans-serif">' +
+    '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:20px">' +
+    '<div style="font-size:16px;font-weight:800;color:#F0F0FF">' + (isEdit?'✏️ Editar':'➕ Nuevo') + ' Equipo Biomédico</div>' +
+    '<div onclick="this.closest(\'div[style]\').parentElement.remove()" style="width:30px;height:30px;border-radius:50%;background:rgba(255,255,255,0.08);display:flex;align-items:center;justify-content:center;cursor:pointer;font-size:14px;color:#A0A0C0">✕</div></div>' +
+    '<div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">' +
+    fld('eq-nombre','Nombre del equipo *','text',eq.nombre,'Ej: Tensiómetro digital','col-span:2') +
+    fld('eq-marca','Marca / Fabricante','text',eq.marca,'Ej: Riester, Welch Allyn') +
+    fld('eq-modelo','Modelo','text',eq.modelo,'Ej: Big Ben') +
+    fld('eq-serie','Número de serie','text',eq.serie,'') +
+    fld('eq-invima','Registro INVIMA','text',eq.registroInvima,'Ej: 2020DM-0012345') +
+    '<div style="grid-column:span 1"><label style="font-size:11px;font-weight:700;color:#A0A0C0;text-transform:uppercase;letter-spacing:0.05em;display:block;margin-bottom:5px">Clasificación de riesgo INVIMA</label>' +
+    '<select id="eq-riesgo" style="width:100%;padding:10px 12px;background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.1);border-radius:9px;color:#F0F0FF;font-size:13px;font-family:inherit">' +
+    RIESGOS_INVIMA.map(function(r) { return '<option value="' + r + '"' + (eq.riesgo===r?' selected':'') + '>' + r + '</option>'; }).join('') + '</select></div>' +
+    fld('eq-adquisicion','Fecha de adquisición','date',eq.fechaAdquisicion,'') +
+    fld('eq-proveedor','Proveedor / Distribuidor','text',eq.proveedor,'') +
+    fld('eq-vida','Vida útil estimada','text',eq.vidaUtil,'Ej: 10 años') +
+    fld('eq-freq','Frecuencia mantenimiento (meses)','number',eq.frecMantenimiento||6,'') +
+    fld('eq-prox','Próxima fecha mantenimiento','date',eq.proxMantenimiento,'','col-span:1') +
+    fld('eq-responsable','Responsable de mantenimiento','text',eq.responsable,'','col-span:2') +
+    fld('eq-contrato','Empresa de mantenimiento / contrato','text',eq.empresa_mant,'','col-span:2') +
+    fld('eq-calibracion','Fecha última calibración','date',eq.calibracion,'') +
+    fld('eq-prox-calib','Próxima calibración','date',eq.proxCalibracion,'') +
+    '</div>' +
+    '<div style="margin-top:12px"><label style="font-size:11px;font-weight:700;color:#A0A0C0;text-transform:uppercase;letter-spacing:0.05em;display:block;margin-bottom:5px">Foto del equipo (opcional)</label>' +
+    '<div style="display:flex;align-items:center;gap:10px">' +
+    '<div id="eq-foto-preview" style="width:60px;height:60px;border-radius:8px;background:rgba(255,255,255,0.05);border:1px dashed rgba(255,255,255,0.2);display:flex;align-items:center;justify-content:center;font-size:20px">' +
+    (eq.foto ? '<img src="' + eq.foto + '" style="width:100%;height:100%;object-fit:cover;border-radius:8px">' : '🔬') + '</div>' +
+    '<input type="file" id="eq-foto-input" accept="image/*" style="font-size:12px;color:#A0A0C0" onchange="previewEquipoFoto(this)"></div></div>' +
+    '<div style="margin-top:14px"><label style="font-size:11px;font-weight:700;color:#A0A0C0;text-transform:uppercase;letter-spacing:0.05em;display:block;margin-bottom:5px">Observaciones técnicas</label>' +
+    '<textarea id="eq-obs" rows="3" style="width:100%;padding:10px 12px;background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.1);border-radius:9px;color:#F0F0FF;font-size:13px;font-family:inherit;resize:vertical;box-sizing:border-box">' + (eq.observaciones||'') + '</textarea></div>' +
+    '<div style="margin-top:16px;display:flex;gap:10px">' +
+    '<button onclick="guardarEquipo(' + (isEdit?editIdx:-1) + ',this)" style="flex:1;padding:12px;background:linear-gradient(135deg,#FF6B00,#7B2FBE);color:#fff;border:none;border-radius:9px;font-size:13px;font-weight:700;cursor:pointer;font-family:inherit">' + (isEdit?'💾 Guardar cambios':'➕ Agregar equipo') + '</button>' +
+    '</div></div>';
+  overlay._eqFotoData = eq.foto || null;
+  document.body.appendChild(overlay);
+}
+
+function fld(id, label, type, value, placeholder, extra) {
+  var span = extra ? 'grid-column:span 2' : '';
+  return '<div style="' + span + '"><label style="font-size:11px;font-weight:700;color:#A0A0C0;text-transform:uppercase;letter-spacing:0.05em;display:block;margin-bottom:5px">' + label + '</label>' +
+    '<input id="' + id + '" type="' + type + '" value="' + (value||'') + '" placeholder="' + (placeholder||'') + '" style="width:100%;padding:10px 12px;background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.1);border-radius:9px;color:#F0F0FF;font-size:13px;font-family:inherit;box-sizing:border-box"></div>';
+}
+
+var _eqFotoData = null;
+function previewEquipoFoto(input) {
+  if (!input.files[0]) return;
+  var reader = new FileReader();
+  reader.onload = function(e) {
+    _eqFotoData = e.target.result;
+    var prev = document.getElementById('eq-foto-preview');
+    if (prev) prev.innerHTML = '<img src="' + _eqFotoData + '" style="width:100%;height:100%;object-fit:cover;border-radius:8px">';
+  };
+  reader.readAsDataURL(input.files[0]);
+}
+
+function guardarEquipo(editIdx, btn) {
+  var nombre = document.getElementById('eq-nombre').value.trim();
+  if (!nombre) { toast('Ingresa el nombre del equipo', 'err'); return; }
+  var eq = {
+    nombre: nombre, marca: document.getElementById('eq-marca').value.trim(),
+    modelo: document.getElementById('eq-modelo').value.trim(), serie: document.getElementById('eq-serie').value.trim(),
+    registroInvima: document.getElementById('eq-invima').value.trim(), riesgo: document.getElementById('eq-riesgo').value,
+    fechaAdquisicion: document.getElementById('eq-adquisicion').value, proveedor: document.getElementById('eq-proveedor').value.trim(),
+    vidaUtil: document.getElementById('eq-vida').value.trim(), frecMantenimiento: document.getElementById('eq-freq').value,
+    proxMantenimiento: document.getElementById('eq-prox').value, responsable: document.getElementById('eq-responsable').value.trim(),
+    empresa_mant: document.getElementById('eq-contrato').value.trim(), calibracion: document.getElementById('eq-calibracion').value,
+    proxCalibracion: document.getElementById('eq-prox-calib').value, observaciones: document.getElementById('eq-obs').value.trim(),
+    foto: _eqFotoData || (editIdx >= 0 ? getEquipos()[editIdx].foto : null)
+  };
+  var equipos = getEquipos();
+  if (editIdx >= 0) equipos[editIdx] = eq;
+  else equipos.push(eq);
+  saveEquipos(equipos);
+  _eqFotoData = null;
+  btn.closest('div[style]').parentElement.remove();
+  addTraz(editIdx >= 0 ? 'Editó equipo biomédico' : 'Registró equipo biomédico', nombre);
+  renderEquipos();
+  toast((editIdx >= 0 ? 'Equipo actualizado' : 'Equipo registrado') + ' ✓');
+}
+
+function editEquipo(idx) { _eqFotoData = null; openAddEquipo(idx); }
+
+function eliminarEquipo(idx) {
+  if (!confirm('¿Eliminar este equipo del inventario?')) return;
+  var equipos = getEquipos(); equipos.splice(idx, 1); saveEquipos(equipos);
+  renderEquipos(); toast('Equipo eliminado');
+}
+
+function verHojaVidaEquipo(idx) {
+  var eq = getEquipos()[idx];
+  if (!eq) return;
+  var c1 = C.color1 || '#FF6B00', c2 = C.color2 || '#7B2FBE';
+  var fecha = new Date().toLocaleDateString('es-CO', {year:'numeric',month:'long',day:'numeric'});
+  var html = '<!DOCTYPE html><html><head><meta charset="UTF-8"><title>Hoja de Vida — ' + eq.nombre + '</title>' +
+    '<style>*{box-sizing:border-box;margin:0;padding:0}body{font-family:Georgia,serif;background:#fff;color:#1a1a1a}' +
+    '.page{width:210mm;min-height:297mm;margin:0 auto;padding:20mm;background:#fff}' +
+    '.header{background:linear-gradient(135deg,' + c1 + ',' + c2 + ');color:#fff;padding:20px 24px;border-radius:10px;margin-bottom:20px;display:flex;align-items:center;gap:16px}' +
+    '.header img{width:70px;height:70px;border-radius:8px;object-fit:cover;border:2px solid rgba(255,255,255,0.5)}' +
+    '.header .ico{width:70px;height:70px;border-radius:8px;background:rgba(255,255,255,0.15);display:flex;align-items:center;justify-content:center;font-size:28px}' +
+    'h1{font-size:20px;margin-bottom:4px}h2{font-size:14px;font-weight:400;opacity:0.85}' +
+    '.section{margin-bottom:18px}.section-title{font-size:13px;font-weight:700;text-transform:uppercase;letter-spacing:0.06em;color:' + c1 + ';border-bottom:2px solid ' + c1 + ';padding-bottom:4px;margin-bottom:10px}' +
+    'table{width:100%;border-collapse:collapse}td{padding:6px 10px;font-size:12px;border:1px solid #e5e5e5;vertical-align:top}' +
+    'td:first-child{font-weight:700;background:#f8f8f8;width:35%;color:#444}' +
+    '.invima-badge{display:inline-block;padding:3px 10px;border-radius:20px;font-size:11px;font-weight:700;background:' + c1 + '20;color:' + c1 + ';border:1px solid ' + c1 + '44}' +
+    '.firma{margin-top:30px;padding-top:20px;border-top:1px solid #ddd;display:flex;justify-content:space-between}' +
+    '.firma-line{text-align:center;width:200px}.firma-blank{border-bottom:1px solid #333;height:40px;margin-bottom:5px}.firma-label{font-size:11px;color:#666}' +
+    '@media print{body{background:#fff}.page{margin:0;padding:15mm;box-shadow:none}}' +
+    '</style></head><body><div class="page">' +
+    '<div class="header">' +
+    (eq.foto ? '<img src="' + eq.foto + '">' : '<div class="ico">🔬</div>') +
+    '<div><h1>Hoja de Vida — Equipo Biomédico</h1><h2>' + eq.nombre + (eq.marca ? ' · ' + eq.marca : '') + '</h2></div></div>' +
+    '<div style="text-align:right;font-size:11px;color:#888;margin-bottom:16px">Generado: ' + fecha + ' · ' + C.empresa + '</div>' +
+    '<div class="section"><div class="section-title">1. Identificación del Equipo</div>' +
+    '<table><tr><td>Nombre del equipo</td><td>' + eq.nombre + '</td></tr>' +
+    '<tr><td>Marca / Fabricante</td><td>' + (eq.marca||'—') + '</td></tr>' +
+    '<tr><td>Modelo</td><td>' + (eq.modelo||'—') + '</td></tr>' +
+    '<tr><td>Número de serie</td><td>' + (eq.serie||'—') + '</td></tr>' +
+    '<tr><td>Registro INVIMA</td><td>' + (eq.registroInvima ? '<span class="invima-badge">' + eq.registroInvima + '</span>' : '—') + '</td></tr>' +
+    '<tr><td>Clasificación de riesgo</td><td><span class="invima-badge">' + (eq.riesgo||'Sin clasificar') + '</span></td></tr>' +
+    '</table></div>' +
+    '<div class="section"><div class="section-title">2. Información Administrativa</div>' +
+    '<table><tr><td>Fecha de adquisición</td><td>' + (eq.fechaAdquisicion||'—') + '</td></tr>' +
+    '<tr><td>Proveedor / Distribuidor</td><td>' + (eq.proveedor||'—') + '</td></tr>' +
+    '<tr><td>Vida útil estimada</td><td>' + (eq.vidaUtil||'—') + '</td></tr>' +
+    '<tr><td>Prestador de salud</td><td>' + C.empresa + '</td></tr>' +
+    '<tr><td>Ubicación / Sede</td><td>' + (C.direccion||'') + '</td></tr>' +
+    '</table></div>' +
+    '<div class="section"><div class="section-title">3. Plan de Mantenimiento</div>' +
+    '<table><tr><td>Frecuencia preventivo</td><td>Cada ' + (eq.frecMantenimiento||6) + ' meses</td></tr>' +
+    '<tr><td>Próximo mantenimiento</td><td>' + (eq.proxMantenimiento||'Por programar') + '</td></tr>' +
+    '<tr><td>Empresa de mantenimiento</td><td>' + (eq.empresa_mant||'—') + '</td></tr>' +
+    '<tr><td>Responsable</td><td>' + (eq.responsable||'—') + '</td></tr>' +
+    '<tr><td>Última calibración</td><td>' + (eq.calibracion||'—') + '</td></tr>' +
+    '<tr><td>Próxima calibración</td><td>' + (eq.proxCalibracion||'Por programar') + '</td></tr>' +
+    '</table></div>' +
+    (eq.observaciones ? '<div class="section"><div class="section-title">4. Observaciones Técnicas</div><p style="font-size:12px;line-height:1.6;padding:10px;background:#f8f8f8;border-radius:6px">' + eq.observaciones + '</p></div>' : '') +
+    '<div class="firma"><div class="firma-line"><div class="firma-blank"></div><div class="firma-label">Firma responsable técnico</div></div>' +
+    '<div class="firma-line"><div class="firma-blank"></div><div class="firma-label">Firma director médico</div></div></div>' +
+    '</div></body></html>';
+  var w = window.open('', '_blank');
+  w.document.write(html);
+  w.document.close();
+  setTimeout(function() { w.print(); }, 500);
+}
+
+// ================================================================
+// MÓDULO TALENTO HUMANO
+// ================================================================
+function getPersonal() { return JSON.parse(localStorage.getItem('bio_personal_' + C.id) || '[]'); }
+function savePersonal(data) { localStorage.setItem('bio_personal_' + C.id, JSON.stringify(data)); }
+
+function renderTalento() {
+  var personal = getPersonal();
+  var c1 = C.color1 || '#FF6B00', c2 = C.color2 || '#7B2FBE';
+  var html = '<div class="mod-header"><div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px">' +
+    '<div><h2>👤 Talento Humano — ' + C.nombre.split(' ').slice(0,3).join(' ') + '</h2>' +
+    '<p>Gestión de colaboradores, hojas de vida y verificación de requisitos normativos según Res. 3100/2019 Estándar 1</p></div>' +
+    '<button class="btn bor" style="font-size:12px" onclick="openAddPersonal()"><i class="fas fa-user-plus"></i>Agregar colaborador</button></div></div>';
+
+  if (personal.length === 0) {
+    html += '<div class="card" style="text-align:center;padding:30px"><div style="font-size:36px;margin-bottom:10px">👤</div><div style="font-size:14px;color:var(--text3)">No hay colaboradores registrados.<br>Agrega el equipo de salud para generar hojas de vida.</div></div>';
+  } else {
+    html += '<div class="card"><div class="ch"><div class="ct">👥 Equipo de Salud</div></div>';
+    personal.forEach(function(p, idx) {
+      var initials = (p.nombre||'').split(' ').map(function(x){return x[0]||'';}).join('').substr(0,2).toUpperCase();
+      var completo = p.tarjetaProfesional && p.rethus && p.vacunas;
+      html += '<div class="th-card" style="display:flex;align-items:flex-start;gap:12px">' +
+        (p.foto ? '<img src="' + p.foto + '" style="width:56px;height:56px;border-radius:50%;object-fit:cover;flex-shrink:0">' :
+          '<div style="width:56px;height:56px;border-radius:50%;background:linear-gradient(135deg,' + c1 + ',' + c2 + ');display:flex;align-items:center;justify-content:center;font-size:18px;font-weight:800;color:#fff;flex-shrink:0">' + initials + '</div>') +
+        '<div style="flex:1;min-width:0">' +
+        '<div style="font-weight:700;font-size:14px;margin-bottom:2px">' + p.nombre + '</div>' +
+        '<div style="font-size:11px;color:var(--text2);margin-bottom:4px">' + (p.cargo||'') + (p.especialidad ? ' · ' + p.especialidad : '') + '</div>' +
+        '<div style="display:flex;gap:5px;flex-wrap:wrap">' +
+        '<span style="font-size:10px;background:' + (p.tarjetaProfesional?'var(--gbg)':'var(--rbg)') + ';color:' + (p.tarjetaProfesional?'var(--green)':'var(--red)') + ';padding:2px 7px;border-radius:8px">' + (p.tarjetaProfesional?'✅':'⚠️') + ' Tarjeta prof.</span>' +
+        '<span style="font-size:10px;background:' + (p.rethus?'var(--gbg)':'var(--rbg)') + ';color:' + (p.rethus?'var(--green)':'var(--red)') + ';padding:2px 7px;border-radius:8px">' + (p.rethus?'✅':'⚠️') + ' RETHUS</span>' +
+        '<span style="font-size:10px;background:' + (p.vacunas?'var(--gbg)':'var(--rbg)') + ';color:' + (p.vacunas?'var(--green)':'var(--red)') + ';padding:2px 7px;border-radius:8px">' + (p.vacunas?'✅':'⚠️') + ' Vacunas</span>' +
+        '</div></div>' +
+        '<div style="display:flex;gap:5px;flex-shrink:0">' +
+        '<button class="btn bg" style="font-size:10px;padding:5px 8px" onclick="verHojaVidaPersonal(' + idx + ')"><i class="fas fa-id-card"></i></button>' +
+        '<button class="btn bg" style="font-size:10px;padding:5px 8px" onclick="editPersonal(' + idx + ')"><i class="fas fa-edit"></i></button>' +
+        '<button class="btn bg" style="font-size:10px;padding:5px 8px;background:var(--rbg);color:var(--red)" onclick="eliminarPersonal(' + idx + ')"><i class="fas fa-trash"></i></button>' +
+        '</div></div>';
+    });
+    html += '</div>';
+  }
+  document.getElementById('talento-content').innerHTML = html;
+}
+
+var _thFotoData = null;
+function openAddPersonal(editIdx) {
+  var personal = getPersonal();
+  var p = editIdx !== undefined ? personal[editIdx] : {};
+  _thFotoData = null;
+  var overlay = document.createElement('div');
+  overlay.style.cssText = 'position:fixed;inset:0;z-index:9999;background:rgba(0,0,0,0.88);display:flex;align-items:center;justify-content:center;backdrop-filter:blur(12px);padding:16px';
+  var chk = function(id,lbl,val) { return '<label style="display:flex;align-items:center;gap:7px;cursor:pointer;font-size:12px;color:#C0C0D0;padding:6px 0">' +
+    '<input type="checkbox" id="' + id + '"' + (val?' checked':'') + ' style="width:15px;height:15px;accent-color:#FF6B00"> ' + lbl + '</label>'; };
+  overlay.innerHTML =
+    '<div style="background:#141428;border:1px solid rgba(255,255,255,0.13);border-radius:18px;width:100%;max-width:620px;max-height:90vh;overflow-y:auto;padding:24px;font-family:Plus Jakarta Sans,sans-serif">' +
+    '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:20px">' +
+    '<div style="font-size:16px;font-weight:800;color:#F0F0FF">' + (editIdx!==undefined?'✏️ Editar':'👤 Nuevo') + ' Colaborador</div>' +
+    '<div onclick="this.closest(\'div[style]\').parentElement.remove()" style="width:30px;height:30px;border-radius:50%;background:rgba(255,255,255,0.08);display:flex;align-items:center;justify-content:center;cursor:pointer;font-size:14px;color:#A0A0C0">✕</div></div>' +
+    '<div style="display:flex;gap:14px;margin-bottom:16px;align-items:center">' +
+    '<div id="th-foto-preview" style="width:70px;height:70px;border-radius:50%;background:rgba(255,255,255,0.05);border:2px dashed rgba(255,255,255,0.2);display:flex;align-items:center;justify-content:center;font-size:24px;cursor:pointer;flex-shrink:0;overflow:hidden" onclick="document.getElementById(\'th-foto-input\').click()">' +
+    (p.foto ? '<img src="' + p.foto + '" style="width:100%;height:100%;object-fit:cover">' : '📷') + '</div>' +
+    '<div><div style="font-size:12px;color:#A0A0C0;margin-bottom:4px">Foto del colaborador (opcional)</div>' +
+    '<input type="file" id="th-foto-input" accept="image/*" style="display:none" onchange="previewPersonalFoto(this)">' +
+    '<button onclick="document.getElementById(\'th-foto-input\').click()" style="padding:6px 12px;background:rgba(255,255,255,0.07);border:1px solid rgba(255,255,255,0.12);border-radius:8px;color:#C0C0D0;font-size:12px;cursor:pointer;font-family:inherit"><i class="fas fa-camera"></i> Subir foto</button></div></div>' +
+    '<div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">' +
+    fld('th-nombre','Nombre completo *','text',p.nombre,'','col-span:2') +
+    fld('th-doc','Tipo y N° identificación','text',p.documento,'Ej: CC 1140858207') +
+    fld('th-cargo','Cargo','text',p.cargo,'Ej: Médico general') +
+    fld('th-esp','Especialidad / Perfil','text',p.especialidad,'') +
+    fld('th-rm','Registro médico / profesional','text',p.registroMedico,'') +
+    fld('th-fecha','Fecha de vinculación','date',p.fechaVinculacion,'','col-span:2') +
+    '</div>' +
+    '<div style="margin-top:14px"><div style="font-size:11px;font-weight:700;color:#A0A0C0;text-transform:uppercase;letter-spacing:0.05em;margin-bottom:8px">Requisitos normativos Res. 3100</div>' +
+    '<div style="display:grid;grid-template-columns:1fr 1fr;gap:4px">' +
+    chk('th-tarjeta','Tarjeta profesional vigente',p.tarjetaProfesional) +
+    chk('th-rethus','Inscrito en RETHUS',p.rethus) +
+    chk('th-vacunas','Certificados de vacunación',p.vacunas) +
+    chk('th-induccion','Inducción realizada',p.induccion) +
+    chk('th-reinduccion','Reinducción al día',p.reinduccion) +
+    chk('th-evaluacion','Evaluación de desempeño',p.evaluacion) +
+    '</div></div>' +
+    '<div style="margin-top:12px"><label style="font-size:11px;font-weight:700;color:#A0A0C0;text-transform:uppercase;letter-spacing:0.05em;display:block;margin-bottom:5px">Formación académica y postgrados</label>' +
+    '<textarea id="th-formacion" rows="3" style="width:100%;padding:10px 12px;background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.1);border-radius:9px;color:#F0F0FF;font-size:13px;font-family:inherit;resize:vertical;box-sizing:border-box">' + (p.formacion||'') + '</textarea></div>' +
+    '<div style="margin-top:8px"><label style="font-size:11px;font-weight:700;color:#A0A0C0;text-transform:uppercase;letter-spacing:0.05em;display:block;margin-bottom:5px">Observaciones</label>' +
+    '<textarea id="th-obs" rows="2" style="width:100%;padding:10px 12px;background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.1);border-radius:9px;color:#F0F0FF;font-size:13px;font-family:inherit;resize:vertical;box-sizing:border-box">' + (p.observaciones||'') + '</textarea></div>' +
+    '<button onclick="guardarPersonal(' + (editIdx!==undefined?editIdx:-1) + ',this)" style="width:100%;padding:12px;background:linear-gradient(135deg,#FF6B00,#7B2FBE);color:#fff;border:none;border-radius:9px;font-size:13px;font-weight:700;cursor:pointer;font-family:inherit;margin-top:16px">' + (editIdx!==undefined?'💾 Guardar cambios':'👤 Agregar colaborador') + '</button>' +
+    '</div>';
+  document.body.appendChild(overlay);
+}
+
+function previewPersonalFoto(input) {
+  if (!input.files[0]) return;
+  var reader = new FileReader();
+  reader.onload = function(e) {
+    _thFotoData = e.target.result;
+    var prev = document.getElementById('th-foto-preview');
+    if (prev) prev.innerHTML = '<img src="' + _thFotoData + '" style="width:100%;height:100%;object-fit:cover">';
+  };
+  reader.readAsDataURL(input.files[0]);
+}
+
+function guardarPersonal(editIdx, btn) {
+  var nombre = document.getElementById('th-nombre').value.trim();
+  if (!nombre) { toast('Ingresa el nombre del colaborador', 'err'); return; }
+  var chkVal = function(id) { var el = document.getElementById(id); return el ? el.checked : false; };
+  var p = {
+    nombre: nombre, documento: document.getElementById('th-doc').value.trim(),
+    cargo: document.getElementById('th-cargo').value.trim(), especialidad: document.getElementById('th-esp').value.trim(),
+    registroMedico: document.getElementById('th-rm').value.trim(), fechaVinculacion: document.getElementById('th-fecha').value,
+    tarjetaProfesional: chkVal('th-tarjeta'), rethus: chkVal('th-rethus'), vacunas: chkVal('th-vacunas'),
+    induccion: chkVal('th-induccion'), reinduccion: chkVal('th-reinduccion'), evaluacion: chkVal('th-evaluacion'),
+    formacion: document.getElementById('th-formacion').value.trim(), observaciones: document.getElementById('th-obs').value.trim(),
+    foto: _thFotoData || (editIdx >= 0 ? getPersonal()[editIdx].foto : null)
+  };
+  var personal = getPersonal();
+  if (editIdx >= 0) personal[editIdx] = p; else personal.push(p);
+  savePersonal(personal);
+  _thFotoData = null;
+  btn.closest('div[style]').parentElement.remove();
+  addTraz(editIdx>=0?'Editó colaborador':'Registró colaborador', nombre);
+  renderTalento(); toast((editIdx>=0?'Colaborador actualizado':'Colaborador registrado') + ' ✓');
+}
+
+function editPersonal(idx) { _thFotoData = null; openAddPersonal(idx); }
+function eliminarPersonal(idx) {
+  if (!confirm('¿Eliminar este colaborador?')) return;
+  var p = getPersonal(); p.splice(idx,1); savePersonal(p);
+  renderTalento(); toast('Colaborador eliminado');
+}
+
+function verHojaVidaPersonal(idx) {
+  var p = getPersonal()[idx];
+  if (!p) return;
+  var c1 = C.color1||'#FF6B00', c2 = C.color2||'#7B2FBE';
+  var fecha = new Date().toLocaleDateString('es-CO',{year:'numeric',month:'long',day:'numeric'});
+  var req = function(ok, lbl) { return '<tr><td>' + lbl + '</td><td style="color:' + (ok?'#2D9F5C':'#E63946') + ';font-weight:700">' + (ok?'✅ Cumple':'⚠️ Pendiente') + '</td></tr>'; };
+  var html = '<!DOCTYPE html><html><head><meta charset="UTF-8"><title>Hoja de Vida — ' + p.nombre + '</title>' +
+    '<style>*{box-sizing:border-box;margin:0;padding:0}body{font-family:Georgia,serif;background:#fff;color:#1a1a1a}' +
+    '.page{width:210mm;min-height:297mm;margin:0 auto;padding:20mm;background:#fff}' +
+    '.header{background:linear-gradient(135deg,' + c1 + ',' + c2 + ');color:#fff;padding:20px 24px;border-radius:10px;margin-bottom:20px;display:flex;align-items:center;gap:16px}' +
+    '.avatar{width:80px;height:80px;border-radius:50%;background:rgba(255,255,255,0.2);display:flex;align-items:center;justify-content:center;font-size:28px;font-weight:800;flex-shrink:0;overflow:hidden;border:2px solid rgba(255,255,255,0.5)}' +
+    '.section{margin-bottom:18px}.section-title{font-size:13px;font-weight:700;text-transform:uppercase;letter-spacing:0.06em;color:' + c1 + ';border-bottom:2px solid ' + c1 + ';padding-bottom:4px;margin-bottom:10px}' +
+    'table{width:100%;border-collapse:collapse}td{padding:6px 10px;font-size:12px;border:1px solid #e5e5e5;vertical-align:top}' +
+    'td:first-child{font-weight:700;background:#f8f8f8;width:35%;color:#444}' +
+    '.firma{margin-top:30px;padding-top:20px;border-top:1px solid #ddd;display:flex;justify-content:space-between}' +
+    '.firma-line{text-align:center;width:200px}.firma-blank{border-bottom:1px solid #333;height:40px;margin-bottom:5px}.firma-label{font-size:11px;color:#666}' +
+    '@media print{body{background:#fff}.page{margin:0;padding:15mm}}' +
+    '</style></head><body><div class="page">' +
+    '<div class="header">' +
+    '<div class="avatar">' + (p.foto ? '<img src="' + p.foto + '" style="width:100%;height:100%;object-fit:cover">' : (p.nombre||'').split(' ').map(function(x){return x[0]||'';}).join('').substr(0,2).toUpperCase()) + '</div>' +
+    '<div><h1 style="font-size:22px;margin-bottom:4px">' + p.nombre + '</h1><h2 style="font-size:14px;font-weight:400;opacity:0.85">' + (p.cargo||'') + (p.especialidad?' · '+p.especialidad:'') + '</h2>' +
+    (p.registroMedico?'<div style="font-size:12px;opacity:0.8;margin-top:4px">RM: ' + p.registroMedico + '</div>':'') + '</div></div>' +
+    '<div style="text-align:right;font-size:11px;color:#888;margin-bottom:16px">Generado: ' + fecha + ' · ' + C.empresa + '</div>' +
+    '<div class="section"><div class="section-title">1. Datos Personales e Identificación</div>' +
+    '<table><tr><td>Nombre completo</td><td>' + p.nombre + '</td></tr>' +
+    '<tr><td>Identificación</td><td>' + (p.documento||'—') + '</td></tr>' +
+    '<tr><td>Cargo</td><td>' + (p.cargo||'—') + '</td></tr>' +
+    '<tr><td>Especialidad / Perfil</td><td>' + (p.especialidad||'—') + '</td></tr>' +
+    '<tr><td>Registro médico / profesional</td><td>' + (p.registroMedico||'—') + '</td></tr>' +
+    '<tr><td>Fecha de vinculación</td><td>' + (p.fechaVinculacion||'—') + '</td></tr>' +
+    '<tr><td>Institución</td><td>' + C.empresa + '</td></tr>' +
+    '</table></div>' +
+    (p.formacion ? '<div class="section"><div class="section-title">2. Formación Académica</div><div style="font-size:12px;line-height:1.7;padding:10px;background:#f8f8f8;border-radius:6px;white-space:pre-line">' + p.formacion + '</div></div>' : '') +
+    '<div class="section"><div class="section-title">3. Verificación de Requisitos Normativos (Res. 3100/2019)</div>' +
+    '<table>' + req(p.tarjetaProfesional,'Tarjeta profesional vigente') + req(p.rethus,'Inscrito en RETHUS') + req(p.vacunas,'Certificados de vacunación al día') + req(p.induccion,'Inducción realizada') + req(p.reinduccion,'Reinducción vigente') + req(p.evaluacion,'Evaluación de desempeño') + '</table></div>' +
+    (p.observaciones ? '<div class="section"><div class="section-title">4. Observaciones</div><p style="font-size:12px;line-height:1.6;padding:10px;background:#f8f8f8;border-radius:6px">' + p.observaciones + '</p></div>' : '') +
+    '<div class="firma"><div class="firma-line"><div class="firma-blank"></div><div class="firma-label">Firma del colaborador</div></div>' +
+    '<div class="firma-line"><div class="firma-blank"></div><div class="firma-label">Firma representante legal</div></div></div>' +
+    '</div></body></html>';
+  var w = window.open('','_blank'); w.document.write(html); w.document.close();
+  setTimeout(function(){w.print();},500);
+}
+
+// ================================================================
+// MÓDULO SEGURIDAD DEL PACIENTE / EVENTOS ADVERSOS
+// ================================================================
+function getEventos() { return JSON.parse(localStorage.getItem('bio_eventos_' + C.id) || '[]'); }
+function saveEventos(data) { localStorage.setItem('bio_eventos_' + C.id, JSON.stringify(data)); }
+
+var TIPOS_EVENTO = {
+  'adverso':'Evento adverso','incidente':'Incidente de seguridad','cuasi':'Cuasi-falla','complicacion':'Complicación médica'
+};
+
+function renderEventos() {
+  var eventos = getEventos();
+  var c1 = C.color1||'#FF6B00', c2 = C.color2||'#7B2FBE';
+  var html = '<div class="mod-header"><div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px">' +
+    '<div><h2>🛡️ Seguridad del Paciente — ' + C.nombre.split(' ').slice(0,3).join(' ') + '</h2>' +
+    '<p>Reporte y seguimiento de eventos adversos, incidentes y acciones de mejora según Res. 256/2016 y Política Nacional de Seguridad del Paciente</p></div>' +
+    '<button class="btn bor" style="font-size:12px" onclick="openAddEvento()"><i class="fas fa-plus"></i>Registrar evento</button></div></div>';
+
+  var adversos = eventos.filter(function(e){return e.tipo==='adverso';}).length;
+  var incidentes = eventos.filter(function(e){return e.tipo==='incidente';}).length;
+  var sinCerrar = eventos.filter(function(e){return e.estado!=='cerrado';}).length;
+  html += '<div class="srow" style="grid-template-columns:repeat(4,1fr);margin-bottom:16px">' +
+    sc('📋','var(--or)',eventos.length,'Total reportes',100) +
+    sc('🚨','var(--red)',adversos,'Eventos adversos',adversos?Math.round(adversos/eventos.length*100):0) +
+    sc('⚠️','var(--yellow)',incidentes,'Incidentes',incidentes?Math.round(incidentes/eventos.length*100):0) +
+    sc('🔓','var(--pu)',sinCerrar,'Sin cerrar',sinCerrar?Math.round(sinCerrar/eventos.length*100):0) + '</div>';
+
+  if (eventos.length === 0) {
+    html += '<div class="card" style="text-align:center;padding:30px"><div style="font-size:36px;margin-bottom:10px">🛡️</div><div style="font-size:14px;color:var(--text3)">No hay eventos reportados.<br>Registra eventos adversos e incidentes para el seguimiento normativo.</div></div>';
+  } else {
+    html += '<div class="card"><div class="ch"><div class="ct">📋 Registro de Eventos</div></div>';
+    eventos.slice().reverse().forEach(function(ev, ridx) {
+      var idx = eventos.length - 1 - ridx;
+      var tipoClass = 'ev-tipo-' + (ev.tipo==='adverso'?'adverso':ev.tipo==='incidente'?'incidente':'cuasi');
+      var estadoColor = ev.estado==='cerrado'?'var(--green)':ev.estado==='en_seguimiento'?'var(--yellow)':'var(--red)';
+      html += '<div class="ev-card ' + tipoClass + '">' +
+        '<div style="display:flex;align-items:flex-start;justify-content:space-between;gap:10px;flex-wrap:wrap">' +
+        '<div><div style="font-weight:700;font-size:13px;margin-bottom:3px">' + (TIPOS_EVENTO[ev.tipo]||ev.tipo) + '</div>' +
+        '<div style="font-size:11px;color:var(--text3)">' + ev.fecha + (ev.paciente?' · Paciente: '+ev.paciente:'') + '</div></div>' +
+        '<div style="display:flex;gap:5px;align-items:center">' +
+        '<span style="font-size:10px;background:' + estadoColor + '22;color:' + estadoColor + ';padding:2px 8px;border-radius:8px;font-weight:700">' + (ev.estado==='cerrado'?'✅ Cerrado':ev.estado==='en_seguimiento'?'⏳ En seguimiento':'🔴 Abierto') + '</span>' +
+        '<button class="btn bg" style="font-size:10px;padding:5px 8px" onclick="verActaEvento(' + idx + ')"><i class="fas fa-file-alt"></i></button>' +
+        '<button class="btn bg" style="font-size:10px;padding:5px 8px;background:var(--rbg);color:var(--red)" onclick="eliminarEvento(' + idx + ')"><i class="fas fa-trash"></i></button>' +
+        '</div></div>' +
+        '<div style="font-size:12px;color:var(--text2);margin-top:8px;line-height:1.5">' + ev.descripcion.substr(0,150) + (ev.descripcion.length>150?'...':'') + '</div>' +
+        (ev.acciones ? '<div style="font-size:11px;color:var(--green);margin-top:5px"><strong>Acciones:</strong> ' + ev.acciones.substr(0,100) + '</div>' : '') +
+        '</div>';
+    });
+    html += '</div>';
+  }
+  document.getElementById('eventos-content').innerHTML = html;
+}
+
+function openAddEvento() {
+  var overlay = document.createElement('div');
+  overlay.style.cssText = 'position:fixed;inset:0;z-index:9999;background:rgba(0,0,0,0.88);display:flex;align-items:center;justify-content:center;backdrop-filter:blur(12px);padding:16px';
+  var sel = function(id,lbl,opts,val) {
+    return '<div><label style="font-size:11px;font-weight:700;color:#A0A0C0;text-transform:uppercase;letter-spacing:0.05em;display:block;margin-bottom:5px">' + lbl + '</label>' +
+      '<select id="' + id + '" style="width:100%;padding:10px 12px;background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.1);border-radius:9px;color:#F0F0FF;font-size:13px;font-family:inherit">' +
+      opts.map(function(o){return '<option value="'+o.v+'"'+(val===o.v?' selected':'')+'>'+o.l+'</option>';}).join('') + '</select></div>';
+  };
+  var ta = function(id,lbl,val,rows) {
+    return '<div><label style="font-size:11px;font-weight:700;color:#A0A0C0;text-transform:uppercase;letter-spacing:0.05em;display:block;margin-bottom:5px">' + lbl + '</label>' +
+      '<textarea id="' + id + '" rows="' + (rows||3) + '" style="width:100%;padding:10px 12px;background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.1);border-radius:9px;color:#F0F0FF;font-size:13px;font-family:inherit;resize:vertical;box-sizing:border-box">' + (val||'') + '</textarea></div>';
+  };
+  overlay.innerHTML =
+    '<div style="background:#141428;border:1px solid rgba(255,255,255,0.13);border-radius:18px;width:100%;max-width:600px;max-height:90vh;overflow-y:auto;padding:24px;font-family:Plus Jakarta Sans,sans-serif">' +
+    '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:20px">' +
+    '<div style="font-size:16px;font-weight:800;color:#F0F0FF">🚨 Registrar Evento de Seguridad</div>' +
+    '<div onclick="this.closest(\'div[style]\').parentElement.remove()" style="width:30px;height:30px;border-radius:50%;background:rgba(255,255,255,0.08);display:flex;align-items:center;justify-content:center;cursor:pointer;font-size:14px;color:#A0A0C0">✕</div></div>' +
+    '<div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:12px">' +
+    sel('ev-tipo','Tipo de evento *',[{v:'adverso',l:'🚨 Evento adverso'},{v:'incidente',l:'⚠️ Incidente de seguridad'},{v:'cuasi',l:'⚡ Cuasi-falla'},{v:'complicacion',l:'📋 Complicación médica'}]) +
+    fld('ev-fecha','Fecha del evento *','date',new Date().toISOString().slice(0,10),'') +
+    '</div>' +
+    '<div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:12px">' +
+    fld('ev-paciente','Iniciales del paciente','text','','Ej: J.G.R.') +
+    fld('ev-responsable','Responsable del reporte','text','','Nombre del reportador') +
+    '</div>' +
+    '<div style="display:grid;gap:12px;margin-bottom:12px">' +
+    ta('ev-desc','Descripción detallada del evento *','',4) +
+    ta('ev-causas','Análisis de causas (método 5 porqués)','',3) +
+    ta('ev-acciones','Acciones correctivas / Plan de mejora','',3) +
+    '</div>' +
+    '<div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:16px">' +
+    sel('ev-estado','Estado del caso',[{v:'abierto',l:'🔴 Abierto'},{v:'en_seguimiento',l:'⏳ En seguimiento'},{v:'cerrado',l:'✅ Cerrado'}]) +
+    fld('ev-email','Notificar a (email)','email','','biomarketing.salud@gmail.com') +
+    '</div>' +
+    '<div style="background:rgba(255,107,0,0.08);border:1px solid rgba(255,107,0,0.2);border-radius:9px;padding:10px 12px;margin-bottom:16px;font-size:11px;color:#A0A0C0">' +
+    '⚕️ <strong style="color:#FF8C33">Res. 256/2016:</strong> Los eventos adversos graves deben reportarse a la EPS y al ente territorial de salud. Use este registro para documentación interna y SIVIGILA si aplica.</div>' +
+    '<div style="display:flex;gap:10px">' +
+    '<button onclick="guardarEvento(this)" style="flex:1;padding:12px;background:linear-gradient(135deg,#E63946,#7B2FBE);color:#fff;border:none;border-radius:9px;font-size:13px;font-weight:700;cursor:pointer;font-family:inherit">🚨 Registrar evento</button>' +
+    '</div></div>';
+  document.body.appendChild(overlay);
+}
+
+function guardarEvento(btn) {
+  var desc = document.getElementById('ev-desc').value.trim();
+  if (!desc) { toast('Describe el evento', 'err'); return; }
+  var ev = {
+    tipo: document.getElementById('ev-tipo').value, fecha: document.getElementById('ev-fecha').value,
+    paciente: document.getElementById('ev-paciente').value.trim(), responsable: document.getElementById('ev-responsable').value.trim(),
+    descripcion: desc, causas: document.getElementById('ev-causas').value.trim(),
+    acciones: document.getElementById('ev-acciones').value.trim(), estado: document.getElementById('ev-estado').value,
+    email: document.getElementById('ev-email').value.trim(), fechaRegistro: new Date().toLocaleString('es-CO')
+  };
+  var eventos = getEventos(); eventos.push(ev); saveEventos(eventos);
+  btn.closest('div[style]').parentElement.remove();
+  addTraz('Registró evento de seguridad', TIPOS_EVENTO[ev.tipo] + ' — ' + ev.fecha);
+  renderEventos();
+  toast('Evento registrado ✓ · Asegúrate de notificar al ente territorial si aplica');
+}
+
+function eliminarEvento(idx) {
+  if (!confirm('¿Eliminar este reporte?')) return;
+  var ev = getEventos(); ev.splice(idx,1); saveEventos(ev);
+  renderEventos(); toast('Reporte eliminado');
+}
+
+function verActaEvento(idx) {
+  var ev = getEventos()[idx];
+  if (!ev) return;
+  var c1 = C.color1||'#FF6B00', c2 = C.color2||'#7B2FBE';
+  var fecha = new Date().toLocaleDateString('es-CO',{year:'numeric',month:'long',day:'numeric'});
+  var acta = '<!DOCTYPE html><html><head><meta charset="UTF-8"><title>Acta Evento — ' + ev.fecha + '</title>' +
+    '<style>*{box-sizing:border-box;margin:0;padding:0}body{font-family:Georgia,serif;background:#fff;color:#1a1a1a}' +
+    '.page{width:210mm;min-height:297mm;margin:0 auto;padding:20mm;background:#fff}' +
+    '.header-top{background:linear-gradient(135deg,' + c1 + ',' + c2 + ');color:#fff;padding:16px 20px;border-radius:8px;margin-bottom:16px;text-align:center}' +
+    '.acta-num{font-size:11px;opacity:0.8;margin-bottom:4px}.acta-title{font-size:20px;font-weight:700}' +
+    '.section{margin-bottom:14px;border:1px solid #e5e5e5;border-radius:6px;overflow:hidden}' +
+    '.section-head{background:' + c1 + '15;padding:8px 12px;font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:0.05em;color:' + c1 + ';border-bottom:1px solid #e5e5e5}' +
+    '.section-body{padding:12px;font-size:12px;line-height:1.7;white-space:pre-wrap}' +
+    'table{width:100%;border-collapse:collapse}td{padding:7px 12px;font-size:12px;border:1px solid #e5e5e5}td:first-child{font-weight:700;background:#f8f8f8;width:35%}' +
+    '.firma{margin-top:24px;display:flex;justify-content:space-between}.firma-line{text-align:center;width:180px}.firma-blank{border-bottom:1px solid #333;height:40px;margin-bottom:5px}.firma-label{font-size:11px;color:#666}' +
+    '@media print{.page{margin:0;padding:15mm}}</style></head><body><div class="page">' +
+    '<div class="header-top"><div class="acta-num">ACTA DE REPORTE · ' + ev.fechaRegistro + '</div>' +
+    '<div class="acta-title">' + (TIPOS_EVENTO[ev.tipo]||ev.tipo).toUpperCase() + ' DE SEGURIDAD DEL PACIENTE</div>' +
+    '<div style="font-size:12px;opacity:0.8;margin-top:4px">' + C.empresa + ' · ' + (C.direccion||C.ciudad||'') + '</div></div>' +
+    '<div class="section"><div class="section-head">1. Datos Generales</div>' +
+    '<table><tr><td>Institución</td><td>' + C.empresa + '</td></tr>' +
+    '<tr><td>Fecha del evento</td><td>' + ev.fecha + '</td></tr>' +
+    '<tr><td>Tipo de evento</td><td>' + (TIPOS_EVENTO[ev.tipo]||ev.tipo) + '</td></tr>' +
+    '<tr><td>Paciente (iniciales)</td><td>' + (ev.paciente||'No registrado') + '</td></tr>' +
+    '<tr><td>Responsable del reporte</td><td>' + (ev.responsable||'—') + '</td></tr>' +
+    '<tr><td>Estado del caso</td><td>' + (ev.estado==='cerrado'?'✅ Cerrado':ev.estado==='en_seguimiento'?'⏳ En seguimiento':'🔴 Abierto') + '</td></tr>' +
+    '</table></div>' +
+    '<div class="section"><div class="section-head">2. Descripción del Evento</div><div class="section-body">' + ev.descripcion + '</div></div>' +
+    (ev.causas ? '<div class="section"><div class="section-head">3. Análisis de Causas (5 Porqués)</div><div class="section-body">' + ev.causas + '</div></div>' : '') +
+    (ev.acciones ? '<div class="section"><div class="section-head">4. Acciones Correctivas / Plan de Mejora</div><div class="section-body">' + ev.acciones + '</div></div>' : '') +
+    '<div style="margin-top:14px;padding:10px 12px;background:#fff3f3;border:1px solid #ffcccc;border-radius:6px;font-size:11px;color:#c00">' +
+    '⚠️ Este documento es confidencial y hace parte del Sistema de Gestión de Calidad de la institución según Res. 256/2016 del Ministerio de Salud.</div>' +
+    '<div class="firma"><div class="firma-line"><div class="firma-blank"></div><div class="firma-label">Reportador</div></div>' +
+    '<div class="firma-line"><div class="firma-blank"></div><div class="firma-label">Director médico</div></div>' +
+    '<div class="firma-line"><div class="firma-blank"></div><div class="firma-label">Gerente / Representante legal</div></div></div>' +
+    '</div></body></html>';
+  var w = window.open('','_blank'); w.document.write(acta); w.document.close();
+  setTimeout(function(){w.print();},500);
 }
 
 // ================================================================
