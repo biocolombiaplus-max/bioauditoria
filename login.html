@@ -226,16 +226,32 @@ function doLogin(){
   const u=document.getElementById('user').value.trim().toLowerCase();
   const p=document.getElementById('pass').value;
   const e=document.getElementById('err');
+  // Check hardcoded users first
   if(USERS[u]&&USERS[u].pass===p&&USERS[u].role===rol){
     e.style.display='none';
     if(u==='demo') seedDemoData();
     sessionStorage.setItem('bio_user',u);
     sessionStorage.setItem('bio_role',rol);
     window.location.href=USERS[u].to;
-  } else {
-    e.style.display='block';
-    document.getElementById('pass').value='';
+    return;
   }
+  // Check localStorage clients (created from admin panel)
+  if(rol==='cliente'){
+    try {
+      const clientes=JSON.parse(localStorage.getItem('bio_clientes_list')||'[]');
+      const cli=clientes.find(c=>c.usuario===u);
+      if(cli&&cli._pass===p){
+        e.style.display='none';
+        sessionStorage.setItem('bio_user',u);
+        sessionStorage.setItem('bio_role','cliente');
+        window.location.href='cliente/index.html';
+        return;
+      }
+    } catch(ex){}
+  }
+  e.style.display='block';
+  document.getElementById('pass').value='';
+}
 }
 function accederDemo(){
   setRole('cliente');
