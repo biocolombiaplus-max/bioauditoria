@@ -192,11 +192,11 @@ select.fi option{background:var(--dark2)}
   color: #1a0a00; padding: 6px 14px; border-radius: 20px;
   font-size: 12px; font-weight: 700; white-space: nowrap;
 }
-.dv-body { flex:1; display:flex; overflow:hidden; }
+.dv-body { flex:1; display:flex; overflow:hidden; min-height:0; position:relative; }
 
 .dv-iframe-wrap {
-  flex:1; position:relative; background:#525659;
-  display:flex; align-items:center; justify-content:center;
+  flex:1; min-width:0; position:relative; background:#525659;
+  display:flex; align-items:center; justify-content:center; overflow:hidden;
 }
 .dv-iframe-wrap iframe {
   width:100%; height:100%; border:none; display:block;
@@ -207,11 +207,27 @@ select.fi option{background:var(--dark2)}
   pointer-events: none;
 }
 
+/* Sidebar siempre visible, con posición fija relativa al modal */
 .dv-sidebar {
-  width: 300px; background: #fff; border-left: 1px solid #e0e0e0;
+  width: 300px; min-width: 300px; background: #fff;
+  border-left: 2px solid #1565C0;
   overflow-y: auto; display: flex; flex-direction: column;
-  flex-shrink: 0;
+  flex-shrink: 0; position: relative; z-index: 10;
+  box-shadow: -4px 0 20px rgba(0,0,0,0.15);
+  transition: width 0.25s ease, min-width 0.25s ease;
 }
+.dv-sidebar.collapsed {
+  width: 0; min-width: 0; overflow: hidden; border: none;
+}
+/* Botón toggle sidebar */
+.dv-sidebar-toggle {
+  background: rgba(255,255,255,0.18); color: #fff; border: 1px solid rgba(255,255,255,0.35);
+  padding: 7px 14px; border-radius: 6px;
+  cursor: pointer; font-size: 13px; font-weight: 600;
+  white-space: nowrap; flex-shrink: 0;
+  transition: background 0.2s;
+}
+.dv-sidebar-toggle:hover { background: rgba(255,255,255,0.3); }
 .dv-sidebar-header {
   background: linear-gradient(135deg, #0d2137, #1565C0);
   color: #fff; padding: 20px; flex-shrink: 0;
@@ -1524,8 +1540,8 @@ function abrirVisorDocumento(driveId, codigo, nombre) {
   modal.setAttribute('data-driveid', driveId || 'local');
 
   var cuerpoVisor = usarLocal
-    ? '<div id="docContentWrap" style="overflow-y:auto;background:#e8e8e8;padding:20px 0;flex:1;height:100%">' +
-        '<div id="docPageContainer" style="max-width:850px;margin:0 auto;">' + htmlContenido + '</div>' +
+    ? '<div id="docContentWrap" style="overflow-y:auto;overflow-x:hidden;background:#e8e8e8;padding:20px 0;flex:1;min-width:0;height:100%">' +
+        '<div id="docPageContainer" style="max-width:850px;margin:0 auto;padding:0 10px;">' + htmlContenido + '</div>' +
       '</div>'
     : '<div class="dv-iframe-wrap">' + htmlContenido + '</div>';
 
@@ -1537,10 +1553,11 @@ function abrirVisorDocumento(driveId, codigo, nombre) {
         '<span class="dv-doc-nombre">' + nombre + '</span>' +
       '</div>' +
       '<div class="dv-protected-badge">🔒 Documento Protegido</div>' +
+      '<button class="dv-sidebar-toggle" id="dvSidebarToggle" onclick="toggleSidebar()" title="Mostrar/Ocultar panel de edición">✏️</button>' +
     '</div>' +
     '<div class="dv-body">' +
       cuerpoVisor +
-      '<div class="dv-sidebar">' +
+      '<div class="dv-sidebar" id="dvSidebarPanel">' +
         '<div class="dv-sidebar-header">' +
           '<h3>✏️ Mis Datos del Consultorio</h3>' +
           '<p>Complete sus datos para personalizar todos sus documentos.</p>' +
@@ -1586,6 +1603,14 @@ function cerrarVisor() {
     setTimeout(function() { if(m.parentNode) m.remove(); }, 180);
   }
   document.body.style.overflow = '';
+}
+
+function toggleSidebar() {
+  var sidebar = document.getElementById('dvSidebarPanel');
+  var btn = document.getElementById('dvSidebarToggle');
+  if (!sidebar) return;
+  var collapsed = sidebar.classList.toggle('collapsed');
+  if (btn) btn.textContent = collapsed ? '✏️ Editar' : '✕ Cerrar';
 }
 
 // ===== RENDER MEJORADO DE MIS DOCUMENTOS =====
