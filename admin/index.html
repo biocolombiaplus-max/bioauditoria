@@ -1527,27 +1527,8 @@ function guardarCliente() {
   if (isEdit) {
     toast('Cliente actualizado correctamente ✓');
   } else {
-    // Show instructions modal only for new clients (need to add to USERS in index.html)
-    var instruccion = '\'' + user + '\': {pass:\'' + pass + '\', role:\'cliente\', to:\'cliente/index.html\'},';
-    showInstrucciones(nombre, user, instruccion);
+    toast('✅ ' + nombre + ' registrado — ya puede ingresar con usuario: ' + user);
   }
-}
-
-function showInstrucciones(nombre, user, linea) {
-  var msg = document.createElement('div');
-  msg.style.cssText = 'position:fixed;inset:0;z-index:9999;background:rgba(0,0,0,0.85);display:flex;align-items:center;justify-content:center;padding:20px;backdrop-filter:blur(10px)';
-  msg.innerHTML = '<div style="background:#1C1C35;border:1px solid rgba(255,255,255,0.15);border-radius:16px;padding:24px;max-width:500px;width:100%;font-family:Plus Jakarta Sans,sans-serif">' +
-    '<div style="font-size:16px;font-weight:800;color:#F0F0FF;margin-bottom:6px">✅ Cliente registrado</div>' +
-    '<div style="font-size:13px;color:#A0A0C0;margin-bottom:16px">' + nombre + ' fue guardado correctamente.</div>' +
-    '<div style="background:#0D0D1A;border:1px solid rgba(255,107,0,0.3);border-radius:10px;padding:14px;margin-bottom:14px">' +
-    '<div style="font-size:11px;font-weight:700;color:#FF8C33;margin-bottom:8px;text-transform:uppercase">⚠️ Paso requerido — Agregar en index.html</div>' +
-    '<div style="font-size:12px;color:#A0A0C0;margin-bottom:8px">En la sección <strong style="color:#F0F0FF">USERS</strong> del archivo <strong style="color:#F0F0FF">index.html</strong> (raíz de GitHub), agrega esta línea:</div>' +
-    '<div style="background:#141428;border-radius:8px;padding:10px;font-family:monospace;font-size:12px;color:#9B4FDE;word-break:break-all;border:1px solid rgba(123,47,190,0.3)">' + linea.replace(/</g,'&lt;') + '</div>' +
-    '<button onclick="navigator.clipboard&&navigator.clipboard.writeText(\'' + linea.replace(/'/g,"\'") + '\').then(function(){document.getElementById(\'copy-btn\').textContent=\'✅ Copiado\'})" id="copy-btn" style="margin-top:8px;padding:6px 14px;background:rgba(123,47,190,0.2);border:1px solid rgba(123,47,190,0.4);border-radius:6px;color:#9B4FDE;font-size:11px;font-weight:700;cursor:pointer;font-family:inherit">📋 Copiar línea</button>' +
-    '</div>' +
-    '<button onclick="this.closest(\'div[style]\').remove()" style="width:100%;padding:11px;background:linear-gradient(135deg,#FF6B00,#7B2FBE);color:#fff;border:none;border-radius:10px;font-size:13px;font-weight:700;cursor:pointer;font-family:inherit">Entendido</button>' +
-    '</div>';
-  document.body.appendChild(msg);
 }
 
 // ================================================================
