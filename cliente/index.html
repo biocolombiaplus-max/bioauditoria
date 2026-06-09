@@ -8,6 +8,7 @@
 <title>BIOAuditoria — Portal</title>
 <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
+<script src="../js/documentos_contenido.js"></script>
 <style>
 *{box-sizing:border-box;margin:0;padding:0;-webkit-user-select:none!important;user-select:none!important;-webkit-tap-highlight-color:transparent}
 :root{
@@ -1396,15 +1397,90 @@ function dvToast(msg, tipo, ms) {
   setTimeout(function() { if(t.parentNode) t.remove(); }, ms + 300);
 }
 
-function abrirVisorDocumento(driveId, codigo, nombre) {
-  if (!driveId) { dvToast('⏳ Documento no disponible aún', 'warning'); return; }
+function convertirAHtml(texto, codigo, nombre) {
+  if (!texto) return '<p style="color:#999;text-align:center;padding:40px">Contenido no disponible</p>';
+  var paginas = [];
+  var paginaActual = [];
+  var charCount = 0;
+  var CHARS_POR_PAGINA = 2500;
+  var enTabla = false;
+  var primeraFilaTabla = true;
+  var lineas = texto.split('\n');
+  for (var li = 0; li < lineas.length; li++) {
+    var linea = lineas[li];
+    charCount += linea.length + 1;
+    if (linea.startsWith('## ')) {
+      paginaActual.push('<h1 style="color:#003366;font-size:18px;font-weight:800;margin:24px 0 12px;padding-bottom:8px;border-bottom:3px solid #003366">' + linea.slice(3) + '</h1>');
+    } else if (linea.startsWith('### ')) {
+      paginaActual.push('<h2 style="color:#1565C0;font-size:15px;font-weight:700;margin:20px 0 10px">' + linea.slice(4) + '</h2>');
+    } else if (linea.startsWith('#### ')) {
+      paginaActual.push('<h3 style="color:#1976D2;font-size:13px;font-weight:700;margin:16px 0 8px">' + linea.slice(5) + '</h3>');
+    } else if (linea.trim() === '[TABLA]') {
+      enTabla = true;
+      primeraFilaTabla = true;
+      paginaActual.push('<div style="overflow-x:auto;margin:12px 0"><table style="width:100%;border-collapse:collapse;font-size:12px">');
+    } else if (linea.trim() === '[/TABLA]') {
+      if (enTabla) { paginaActual.push('</tbody></table></div>'); enTabla = false; }
+    } else if (enTabla && linea.indexOf(' | ') >= 0) {
+      var cells = linea.split(' | ');
+      if (primeraFilaTabla) {
+        paginaActual.push('<thead><tr>' + cells.map(function(c){ return '<th style="background:#003366;color:#fff;padding:8px 10px;text-align:left;font-size:11px">' + c + '</th>'; }).join('') + '</tr></thead><tbody>');
+        primeraFilaTabla = false;
+      } else {
+        paginaActual.push('<tr>' + cells.map(function(c){ return '<td style="padding:7px 10px;border-bottom:1px solid #e0e0e0;font-size:11px">' + c + '</td>'; }).join('') + '</tr>');
+      }
+    } else if (linea.trim() === '') {
+      paginaActual.push('<br>');
+    } else {
+      paginaActual.push('<p style="margin:6px 0;line-height:1.7;font-size:13px;color:#2c3e50">' + linea + '</p>');
+    }
+    if (charCount >= CHARS_POR_PAGINA) {
+      paginas.push(paginaActual.join(''));
+      paginaActual = [];
+      charCount = 0;
+      enTabla = false;
+      primeraFilaTabla = true;
+    }
+  }
+  if (paginaActual.length) paginas.push(paginaActual.join(''));
+  return paginas.map(function(contenidoPagina, i) {
+    return '<div style="background:#fff;width:100%;max-width:850px;min-height:1100px;padding:72px 80px;box-shadow:0 4px 20px rgba(0,0,0,0.15);margin-bottom:20px;font-family:\'Calibri\',Arial,sans-serif;position:relative;box-sizing:border-box;">' +
+      '<div style="position:absolute;top:20px;left:80px;right:80px;display:flex;justify-content:space-between;padding-bottom:8px;border-bottom:1px solid #e0e0e0;font-size:10px;color:#90a4ae">' +
+        '<span>' + codigo + ' — ' + nombre + '</span>' +
+        '<span>Versión 2.0 | Junio 2025</span>' +
+      '</div>' +
+      contenidoPagina +
+      '<div style="position:absolute;bottom:20px;left:80px;right:80px;display:flex;justify-content:space-between;padding-top:8px;border-top:1px solid #e0e0e0;font-size:10px;color:#90a4ae">' +
+        '<span>🔒 Documento Protegido — Solo Visualización</span>' +
+        '<span>Página ' + (i+1) + ' de ' + paginas.length + '</span>' +
+      '</div>' +
+    '</div>';
+  }).join('');
+}
 
-  var visorUrl = 'https://docs.google.com/document/d/' + driveId + '/preview?rm=minimal';
+function abrirVisorDocumento(driveId, codigo, nombre) {
   var datos = dvCargarDatos();
 
-  var modal = document.createElement('div');
-  modal.className = 'doc-viewer-modal';
-  modal.id = 'dvModal';
+  // Usar contenido local si está disponible o driveId es 'local'
+  var contenidoRaw = (typeof DOCS_CONTENIDO !== 'undefined') ? (DOCS_CONTENIDO[codigo] || null) : null;
+  var usarLocal = contenidoRaw || driveId === 'local';
+
+  if (!usarLocal && !driveId) { dvToast('⏳ Documento no disponible aún', 'warning'); return; }
+
+  // Personalizar marcadores con datos del cliente
+  var contenido = contenidoRaw || '';
+  if (datos.nombreConsultorio) contenido = contenido.split('[NOMBRE DEL CONSULTORIO]').join(datos.nombreConsultorio);
+  if (datos.nombreMedico) contenido = contenido.split('[NOMBRE DE LA MÉDICA]').join(datos.nombreMedico);
+  if (datos.direccion) contenido = contenido.split('[DIRECCIÓN DEL CONSULTORIO]').join(datos.direccion);
+  if (datos.ciudad) contenido = contenido.split('[CIUDAD]').join(datos.ciudad);
+  if (datos.telefono) contenido = contenido.split('[TELÉFONO]').join(datos.telefono);
+  if (datos.registroReps) contenido = contenido.split('[REGISTRO ESPECIAL DE PRESTADORES]').join(datos.registroReps);
+  if (datos.tarjetaProfesional) contenido = contenido.split('[N° TP]').join(datos.tarjetaProfesional);
+  if (datos.nit) contenido = contenido.split('[NIT DEL CONSULTORIO]').join(datos.nit);
+
+  var htmlContenido = usarLocal
+    ? convertirAHtml(contenido, codigo, nombre)
+    : '<iframe src="https://docs.google.com/document/d/' + driveId + '/preview?rm=minimal" style="width:100%;height:100%;border:none;display:block" allowfullscreen loading="lazy" title="' + nombre + '"></iframe><div class="dv-no-download-overlay"></div>';
 
   var camposHtml = DV_CAMPOS.map(function(c) {
     return '<div class="dv-form-group">' +
@@ -1412,6 +1488,19 @@ function abrirVisorDocumento(driveId, codigo, nombre) {
       '<input type="text" id="dv_' + c.id + '" placeholder="' + c.placeholder + '" value="' + (datos[c.id] || '') + '">' +
       '</div>';
   }).join('');
+
+  var modal = document.createElement('div');
+  modal.className = 'doc-viewer-modal';
+  modal.id = 'dvModal';
+  modal.setAttribute('data-codigo', codigo);
+  modal.setAttribute('data-nombre', nombre);
+  modal.setAttribute('data-driveid', driveId || 'local');
+
+  var cuerpoVisor = usarLocal
+    ? '<div id="docContentWrap" style="overflow-y:auto;background:#e8e8e8;padding:20px 0;flex:1;height:100%">' +
+        '<div id="docPageContainer" style="max-width:850px;margin:0 auto;">' + htmlContenido + '</div>' +
+      '</div>'
+    : '<div class="dv-iframe-wrap">' + htmlContenido + '</div>';
 
   modal.innerHTML =
     '<div class="dv-header">' +
@@ -1423,23 +1512,20 @@ function abrirVisorDocumento(driveId, codigo, nombre) {
       '<div class="dv-protected-badge">🔒 Documento Protegido</div>' +
     '</div>' +
     '<div class="dv-body">' +
-      '<div class="dv-iframe-wrap">' +
-        '<iframe src="' + visorUrl + '" allowfullscreen loading="lazy" title="' + nombre + '"></iframe>' +
-        '<div class="dv-no-download-overlay"></div>' +
-      '</div>' +
+      cuerpoVisor +
       '<div class="dv-sidebar">' +
         '<div class="dv-sidebar-header">' +
           '<h3>✏️ Mis Datos del Consultorio</h3>' +
-          '<p>Complete una vez. Se aplicarán a todos sus documentos.</p>' +
+          '<p>Complete sus datos para personalizar todos sus documentos.</p>' +
         '</div>' +
         '<div class="dv-sidebar-body">' +
           camposHtml +
-          '<button class="dv-save-btn" onclick="dvGuardarDatos()">💾 Guardar Mis Datos</button>' +
+          '<button class="dv-save-btn" onclick="dvGuardarYActualizar()">💾 Guardar y Actualizar Documento</button>' +
           '<div class="dv-protection-info">' +
             '<span class="lock-icon">🔒</span>' +
             '<div>' +
               '<strong>Documento Protegido</strong>' +
-              '<p>Este documento es de uso exclusivo de su consultorio. La descarga está restringida para proteger la propiedad intelectual.</p>' +
+              '<p>Solo visualización. La descarga no está permitida para proteger la propiedad intelectual de BioAuditoría.</p>' +
             '</div>' +
           '</div>' +
         '</div>' +
@@ -1448,11 +1534,22 @@ function abrirVisorDocumento(driveId, codigo, nombre) {
 
   document.body.appendChild(modal);
   document.body.style.overflow = 'hidden';
-
   modal.addEventListener('contextmenu', function(e) { e.preventDefault(); });
   modal.addEventListener('keydown', function(e) { if(e.key === 'Escape') cerrarVisor(); });
 
-  setTimeout(function() { dvToast('🔒 Documento protegido — Solo visualización', 'info'); }, 800);
+  setTimeout(function() { dvToast('🔒 Documento protegido — Solo visualización', 'info'); }, 600);
+}
+
+function dvGuardarYActualizar() {
+  dvGuardarDatos();
+  var modal = document.getElementById('dvModal');
+  if (modal) {
+    var codigo = modal.getAttribute('data-codigo');
+    var nombre = modal.getAttribute('data-nombre');
+    var driveId = modal.getAttribute('data-driveid');
+    cerrarVisor();
+    setTimeout(function() { abrirVisorDocumento(driveId, codigo, nombre); }, 200);
+  }
 }
 
 function cerrarVisor() {
@@ -1491,7 +1588,10 @@ function renderMisDocsPremium(clienteId) {
     var docsConInfo = docs.map(function(d) {
       var guardado = (docsData.documentos || []).find(function(x) { return x.codigo === d.codigo; });
       var driveId = guardado ? guardado.driveId : '';
-      var disp = !!driveId;
+      // Disponible si tiene driveId (incluyendo 'local') O si existe en DOCS_CONTENIDO
+      var enLocal = (typeof DOCS_CONTENIDO !== 'undefined') && !!DOCS_CONTENIDO[d.codigo];
+      var disp = !!driveId || enLocal;
+      if (!driveId && enLocal) driveId = 'local';
       var aplica = !d.servicio || servicios.indexOf(d.servicio) >= 0;
       if (d.obligatorio) { total++; if(disp) disponibles++; }
       return {codigo:d.codigo, nombre:d.nombre, obligatorio:d.obligatorio, servicio:d.servicio, driveId:driveId, disponible:disp, aplica:aplica};
