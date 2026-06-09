@@ -653,117 +653,120 @@ function seedDemoData() {
   var uid = 'demo';
   // Only seed if not already seeded
   var already = localStorage.getItem('bio_demo_seeded');
-  if (already) return;
+  if (already === 'v3') return;
+  // Clear old seed
+  ['bio_servicios_demo','bio_docs_demo','bio_equipos_demo','bio_personal_demo','bio_eventos_demo','bio_custom_demo'].forEach(function(k){localStorage.removeItem(k);});
 
-  // Custom branding
-  localStorage.setItem('bio_custom_' + uid, JSON.stringify({
-    color1: '#0EA5E9', color2: '#7B2FBE',
-    drive_url: '', logo_url: ''
-  }));
-
-  // Standards with documents
-  var now = new Date().toLocaleDateString('es-CO');
-  var estandares = [
-    { id:'E1', documentos: [
-      {id:'E1-D1',titulo:'Manual de funciones y competencias',estado:'vigente',fecha_carga:now,notas:'Actualizado 2025'},
-      {id:'E1-D2',titulo:'Contratos y hojas de vida del personal',estado:'vigente',fecha_carga:now,notas:''},
-      {id:'E1-D3',titulo:'Plan de inducción y reinducción',estado:'pendiente',fecha_carga:'',notas:'Programar para marzo'},
-      {id:'E1-D4',titulo:'Programa de educación continuada',estado:'requerido',fecha_carga:'',notas:''}
+  localStorage.setItem('bio_custom_'+uid,JSON.stringify({color1:'#0F766E',color2:'#7B2FBE',drive_url:'',logo_url:''}));
+  var est=[
+    {id:'e1',estandar_num:1,documentos:[
+      {id:'e1-01',nombre:'Hojas de vida — equipo médico especialista (7 profesionales)',version:'v2.1 · 2025',estado:'vigente',archivo:'04_Hoja_Vida_Medico.docx',tipo:'documento'},
+      {id:'e1-02',nombre:'Tarjetas profesionales y registros RETHUS vigentes',version:'v2.0 · 2025',estado:'vigente',archivo:'RETHUS_verificado.pdf',tipo:'soporte'},
+      {id:'e1-03',nombre:'Certificados de vacunación del personal asistencial',version:'v1.0 · 2025',estado:'vigente',archivo:'Vacunacion_personal.pdf',tipo:'soporte'},
+      {id:'e1-04',nombre:'Manual de talento humano — Alta Complejidad',version:'v2.0 · 2025',estado:'vigente',archivo:'03_Manual_Talento_Humano.docx',tipo:'manual'},
+      {id:'e1-05',nombre:'Programa de inducción y reinducción — 2025',version:'v1.0 · 2025',estado:'vigente',archivo:'30_Programa_Induccion_Reinduccion.docx',tipo:'programa'},
+      {id:'e1-06',nombre:'Evaluaciones de desempeño anual — 2025',version:'v1.0 · 2025',estado:'vigente',archivo:'Evaluaciones_desempeno.pdf',tipo:'formato'},
+      {id:'e1-07',nombre:'Certificados educación continuada — 80 h anuales',version:'v1.0 · 2025',estado:'vigente',archivo:'Edu_continuada_2025.pdf',tipo:'soporte'},
+      {id:'e1-08',nombre:'Contratos laborales y de prestación de servicios',version:'v1.0 · 2025',estado:'vigente',archivo:'Contratos_2025.pdf',tipo:'documento'},
+      {id:'e1-09',nombre:'Programa SG-SST — Seguridad y salud en el trabajo',version:'v1.0 · 2025',estado:'pendiente',archivo:'',tipo:'programa'}
     ]},
-    { id:'E2', documentos: [
-      {id:'E2-D1',titulo:'Planos de la sede con áreas señalizadas',estado:'vigente',fecha_carga:now,notas:''},
-      {id:'E2-D2',titulo:'Concepto sanitario vigente',estado:'vigente',fecha_carga:now,notas:'Vence dic 2025'},
-      {id:'E2-D3',titulo:'Certificado de condiciones de seguridad',estado:'pendiente',fecha_carga:'',notas:'Pendiente renovación'}
+    {id:'e2',estandar_num:2,documentos:[
+      {id:'e2-01',nombre:'Planos arquitectónicos sede principal — 3 pisos',version:'v2.0 · 2025',estado:'vigente',archivo:'Planos_sede_2025.pdf',tipo:'plano'},
+      {id:'e2-02',nombre:'Ficha técnica del establecimiento',version:'v1.5 · 2025',estado:'vigente',archivo:'35_Ficha_Tecnica_Establecimiento.docx',tipo:'documento'},
+      {id:'e2-03',nombre:'Plan de gestión del riesgo de desastres',version:'v2.0 · 2025',estado:'vigente',archivo:'24_Plan_Gestion_Riesgo_Desastres.docx',tipo:'plan'},
+      {id:'e2-04',nombre:'Certificado de uso del suelo y licencia de construcción',version:'v1.0 · 2025',estado:'vigente',archivo:'Licencias_construccion.pdf',tipo:'soporte'},
+      {id:'e2-05',nombre:'Inventario extintores y equipos de emergencia',version:'v1.0 · 2025',estado:'vigente',archivo:'Inventario_extintores.pdf',tipo:'inventario'},
+      {id:'e2-06',nombre:'Registros de simulacros de evacuación — 2025',version:'v1.0 · 2025',estado:'vigente',archivo:'Simulacros_2025.pdf',tipo:'registro'},
+      {id:'e2-07',nombre:'Concepto técnico de condiciones sanitarias INVIMA',version:'v1.0 · 2024',estado:'pendiente',archivo:'',tipo:'soporte'}
     ]},
-    { id:'E3', documentos: [
-      {id:'E3-D1',titulo:'Inventario de dotación y equipos',estado:'vigente',fecha_carga:now,notas:''},
-      {id:'E3-D2',titulo:'Plan de mantenimiento preventivo',estado:'vigente',fecha_carga:now,notas:''},
-      {id:'E3-D3',titulo:'Cronograma de calibración',estado:'pendiente',fecha_carga:'',notas:''}
+    {id:'e3',estandar_num:3,documentos:[
+      {id:'e3-01',nombre:'Inventario completo de equipos biomédicos — 24 equipos',version:'v3.0 · 2025',estado:'vigente',archivo:'13_Inventario_Dotacion.docx',tipo:'inventario'},
+      {id:'e3-02',nombre:'Programa de mantenimiento preventivo y correctivo',version:'v2.0 · 2025',estado:'vigente',archivo:'14_Programa_Mantenimiento_Equipos.docx',tipo:'programa'},
+      {id:'e3-03',nombre:'Hojas de vida equipos biomédicos — Alta complejidad',version:'v2.0 · 2025',estado:'vigente',archivo:'Hojas_vida_equipos.pdf',tipo:'documento'},
+      {id:'e3-04',nombre:'Contratos de mantenimiento con proveedores certificados',version:'v1.0 · 2025',estado:'vigente',archivo:'Contratos_mantenimiento.pdf',tipo:'contrato'},
+      {id:'e3-05',nombre:'Certificados de calibración vigentes — 2025',version:'v1.0 · 2025',estado:'vigente',archivo:'Calibracion_2025.pdf',tipo:'soporte'},
+      {id:'e3-06',nombre:'Registros de mantenimiento correctivo — 2024/2025',version:'v1.0 · 2025',estado:'vigente',archivo:'Correctivos_2025.pdf',tipo:'registro'}
     ]},
-    { id:'E4', documentos: [
-      {id:'E4-D1',titulo:'Política de medicamentos y dispositivos',estado:'vigente',fecha_carga:now,notas:''},
-      {id:'E4-D2',titulo:'Procedimientos de farmacia y almacenamiento',estado:'pendiente',fecha_carga:'',notas:''}
+    {id:'e4',estandar_num:4,documentos:[
+      {id:'e4-01',nombre:'Listado CURE de medicamentos autorizados',version:'v3.0 · 2025',estado:'vigente',archivo:'CURE_medicamentos.pdf',tipo:'listado'},
+      {id:'e4-02',nombre:'Política de medicamentos seguros — 5 correctos',version:'v2.0 · 2025',estado:'vigente',archivo:'31_Politica_Medicamentos_Seguros.docx',tipo:'politica'},
+      {id:'e4-03',nombre:'Control mensual de medicamentos y vencimientos',version:'v2.0 · 2025',estado:'vigente',archivo:'29_Control_Medicamentos_Vencimientos.docx',tipo:'formato'},
+      {id:'e4-04',nombre:'Registros de cadena de frío — vacunas y biológicos',version:'v1.0 · 2025',estado:'vigente',archivo:'Cadena_frio_2025.pdf',tipo:'registro'},
+      {id:'e4-05',nombre:'Inventario botiquín de urgencias — piso 1, 2 y 3',version:'v1.0 · 2025',estado:'vigente',archivo:'28_Inventario_Botiquin.docx',tipo:'inventario'},
+      {id:'e4-06',nombre:'Reporte de reacciones adversas a medicamentos (RAM)',version:'v1.0 · 2025',estado:'pendiente',archivo:'',tipo:'formato'}
     ]},
-    { id:'E5', documentos: [
-      {id:'E5-D1',titulo:'Manual de bioseguridad',estado:'vigente',fecha_carga:now,notas:'Revisado feb 2025'},
-      {id:'E5-D2',titulo:'Protocolo de lavado de manos',estado:'vigente',fecha_carga:now,notas:''},
-      {id:'E5-D3',titulo:'Protocolo de esterilización',estado:'vigente',fecha_carga:now,notas:''},
-      {id:'E5-D4',titulo:'Plan de gestión de residuos hospitalarios',estado:'vigente',fecha_carga:now,notas:'Res. 1164/2002'},
-      {id:'E5-D5',titulo:'Protocolos de aislamiento',estado:'requerido',fecha_carga:'',notas:''}
+    {id:'e5',estandar_num:5,documentos:[
+      {id:'e5-01',nombre:'Manual de bioseguridad — Alta complejidad',version:'v3.0 · 2025',estado:'vigente',archivo:'02_Manual_Bioseguridad.docx',tipo:'manual'},
+      {id:'e5-02',nombre:'Protocolo lavado de manos — 5 momentos OMS',version:'v2.0 · 2025',estado:'vigente',archivo:'19_Protocolo_Lavado_Manos.docx',tipo:'protocolo'},
+      {id:'e5-03',nombre:'Protocolo limpieza y desinfección de superficies',version:'v2.0 · 2025',estado:'vigente',archivo:'18_Protocolo_Limpieza_Desinfeccion.docx',tipo:'protocolo'},
+      {id:'e5-04',nombre:'Plan PGIRH — Residuos hospitalarios y especiales',version:'v3.0 · 2025',estado:'vigente',archivo:'15_Plan_PGIRH.docx',tipo:'plan'},
+      {id:'e5-05',nombre:'Contrato con gestor externo PGIRH — Eco-Salud S.A.',version:'v1.0 · 2025',estado:'vigente',archivo:'Contrato_gestor_PGIRH.pdf',tipo:'contrato'},
+      {id:'e5-06',nombre:'Protocolo de esterilización y centralización',version:'v2.0 · 2025',estado:'vigente',archivo:'Protocolo_esterilizacion.docx',tipo:'protocolo'},
+      {id:'e5-07',nombre:'Programa de seguridad del paciente',version:'v3.0 · 2025',estado:'vigente',archivo:'05_Programa_Seguridad_Paciente.docx',tipo:'programa'},
+      {id:'e5-08',nombre:'Consentimientos informados por especialidad (12)',version:'v2.0 · 2025',estado:'vigente',archivo:'08_Consentimiento_Informado_General.docx',tipo:'formato'},
+      {id:'e5-09',nombre:'Protocolo manejo accidente de riesgo biológico',version:'v2.0 · 2025',estado:'vigente',archivo:'27_Protocolo_Accidente_Biologico.docx',tipo:'protocolo'},
+      {id:'e5-10',nombre:'Protocolo de aislamiento — infecciones de alto riesgo',version:'v2.0 · 2025',estado:'vigente',archivo:'Protocolo_aislamiento.docx',tipo:'protocolo'},
+      {id:'e5-11',nombre:'Indicadores de adherencia a lavado de manos',version:'v1.0 · 2025',estado:'vigente',archivo:'Indicadores_lavado_manos.pdf',tipo:'registro'}
     ]},
-    { id:'E6', documentos: [
-      {id:'E6-D1',titulo:'Guías de atención por servicio',estado:'vigente',fecha_carga:now,notas:''},
-      {id:'E6-D2',titulo:'Protocolos clínicos basados en evidencia',estado:'vigente',fecha_carga:now,notas:''},
-      {id:'E6-D3',titulo:'Política de seguridad del paciente',estado:'vigente',fecha_carga:now,notas:''}
+    {id:'e6',estandar_num:6,documentos:[
+      {id:'e6-01',nombre:'Manual del sistema de historia clínica',version:'v2.0 · 2025',estado:'vigente',archivo:'20_Manual_Historia_Clinica.docx',tipo:'manual'},
+      {id:'e6-02',nombre:'Formato de historia clínica — consulta externa',version:'v3.0 · 2025',estado:'vigente',archivo:'07_Formato_Historia_Clinica.docx',tipo:'formato'},
+      {id:'e6-03',nombre:'Formato de historia clínica — urgencias',version:'v2.0 · 2025',estado:'vigente',archivo:'HC_urgencias.docx',tipo:'formato'},
+      {id:'e6-04',nombre:'Política de custodia y conservación — 30 años',version:'v1.0 · 2025',estado:'vigente',archivo:'20_Manual_Historia_Clinica.docx',tipo:'politica'},
+      {id:'e6-05',nombre:'Política de habeas data y tratamiento de datos (Ley 1581)',version:'v1.0 · 2025',estado:'vigente',archivo:'21_Politica_Habeas_Data.docx',tipo:'politica'},
+      {id:'e6-06',nombre:'Registro de préstamo y devolución de historias',version:'v1.0 · 2025',estado:'vigente',archivo:'Prestamo_HC.pdf',tipo:'registro'}
     ]},
-    { id:'E7', documentos: [
-      {id:'E7-D1',titulo:'Historia clínica — formato y manual de uso',estado:'vigente',fecha_carga:now,notas:''},
-      {id:'E7-D2',titulo:'Consentimientos informados',estado:'vigente',fecha_carga:now,notas:''},
-      {id:'E7-D3',titulo:'Política de confidencialidad (Ley 1581)',estado:'pendiente',fecha_carga:'',notas:''}
+    {id:'e7',estandar_num:7,documentos:[
+      {id:'e7-01',nombre:'Protocolo de referencia y contrarreferencia',version:'v2.0 · 2025',estado:'vigente',archivo:'Protocolo_referencia.docx',tipo:'protocolo'},
+      {id:'e7-02',nombre:'Directorio de entidades de referencia — Nivel 3',version:'v2.0 · 2025',estado:'vigente',archivo:'Directorio_referencia.pdf',tipo:'directorio'},
+      {id:'e7-03',nombre:'Convenio con Laboratorio Clínico Dinámica S.A.',version:'v1.0 · 2025',estado:'vigente',archivo:'Convenio_laboratorio.pdf',tipo:'convenio'},
+      {id:'e7-04',nombre:'Convenio con Imágenes Diagnósticas del Norte',version:'v1.0 · 2025',estado:'vigente',archivo:'Convenio_imagenes.pdf',tipo:'convenio'},
+      {id:'e7-05',nombre:'Protocolo de traslado seguro — ambulancias',version:'v1.0 · 2025',estado:'vigente',archivo:'Protocolo_traslado.docx',tipo:'protocolo'},
+      {id:'e7-06',nombre:'Acuerdos interinstitucionales UCI y cirugía',version:'v1.0 · 2025',estado:'pendiente',archivo:'',tipo:'convenio'}
     ]},
-    { id:'E8', documentos: [
-      {id:'E8-D1',titulo:'Política de atención humanizada',estado:'vigente',fecha_carga:now,notas:''},
-      {id:'E8-D2',titulo:'Sistema de quejas y reclamos PQRS',estado:'vigente',fecha_carga:now,notas:''},
-      {id:'E8-D3',titulo:'Encuestas de satisfacción del usuario',estado:'pendiente',fecha_carga:'',notas:''}
-    ]},
-    { id:'E9', documentos: [
-      {id:'E9-D1',titulo:'Políticas de seguridad de la información',estado:'vigente',fecha_carga:now,notas:''},
-      {id:'E9-D2',titulo:'Plan de gestión del riesgo',estado:'pendiente',fecha_carga:'',notas:''}
+    {id:'e8',estandar_num:8,documentos:[
+      {id:'e8-01',nombre:'Manual de calidad — Sistema de Gestión en Salud',version:'v3.0 · 2025',estado:'vigente',archivo:'01_Manual_Calidad.docx',tipo:'manual'},
+      {id:'e8-02',nombre:'Manual de humanización del servicio',version:'v2.0 · 2025',estado:'vigente',archivo:'06_Manual_Humanizacion.docx',tipo:'manual'},
+      {id:'e8-03',nombre:'Procedimiento y formato PQRS',version:'v2.0 · 2025',estado:'vigente',archivo:'22_Procedimiento_PQRS.docx',tipo:'procedimiento'},
+      {id:'e8-04',nombre:'Tablero de indicadores de calidad — 2025',version:'v2.0 · 2025',estado:'vigente',archivo:'25_Indicadores_Calidad.docx',tipo:'tablero'},
+      {id:'e8-05',nombre:'Formato reporte de evento adverso e incidente',version:'v2.0 · 2025',estado:'vigente',archivo:'26_Formato_Reporte_Evento_Adverso.docx',tipo:'formato'},
+      {id:'e8-06',nombre:'Informe semestral de indicadores — I sem. 2025',version:'v1.0 · 2025',estado:'vigente',archivo:'Informe_indicadores_2025.pdf',tipo:'informe'},
+      {id:'e8-07',nombre:'Lista verificación — Simulacro visita de habilitación',version:'v2.0 · 2025',estado:'vigente',archivo:'34_Lista_Verificacion_Habilitacion.docx',tipo:'lista'},
+      {id:'e8-08',nombre:'Encuestas de satisfacción usuario — II trim. 2025',version:'v1.0 · 2025',estado:'pendiente',archivo:'',tipo:'formato'}
     ]}
   ];
-  localStorage.setItem('bio_servicios_' + uid, JSON.stringify(estandares));
-
-  // REPS services
-  var reps = [
-    {id:'reps-1', nombre:'Consulta médica general', grupo:'Consulta externa', complejidad:'Baja', modalidad:'Intramural', ambito:'Ambulatorio', estado:'Habilitado',
-     docs:[{nombre:'Certificado REPS vigente',estado:'vigente'},{nombre:'Profesionales adscritos',estado:'vigente'}]},
-    {id:'reps-2', nombre:'Toma de muestras de laboratorio - Primer nivel', grupo:'Laboratorio clínico', complejidad:'Baja', modalidad:'Intramural', ambito:'Ambulatorio', estado:'Habilitado',
-     docs:[{nombre:'Manual de toma de muestras',estado:'vigente'},{nombre:'Control de calidad interno',estado:'pendiente'}]}
+  localStorage.setItem('bio_servicios_'+uid,JSON.stringify(est));
+  var reps=[
+    {id:'reps-1',nombre:'Consulta externa médica especializada',grupo:'Consulta externa',complejidad:'Alta',modalidad:'Intramural',ambito:'Ambulatorio',estado:'Habilitado',docs:[{nombre:'Registro REPS vigente',estado:'vigente'},{nombre:'Especialistas adscritos con RETHUS',estado:'vigente'}]},
+    {id:'reps-2',nombre:'Cirugía general y especializada',grupo:'Cirugía',complejidad:'Alta',modalidad:'Intramural',ambito:'Hospitalario',estado:'Habilitado',docs:[{nombre:'Habilitación quirófanos',estado:'vigente'},{nombre:'Protocolos quirúrgicos',estado:'vigente'}]},
+    {id:'reps-3',nombre:'Urgencias — 24 horas',grupo:'Urgencias',complejidad:'Alta',modalidad:'Intramural',ambito:'Urgencias',estado:'Habilitado',docs:[{nombre:'Dotación urgencias',estado:'vigente'},{nombre:'Triage Manchester',estado:'vigente'}]},
+    {id:'reps-4',nombre:'Laboratorio clínico — mediana complejidad',grupo:'Apoyo diagnóstico',complejidad:'Media',modalidad:'Intramural',ambito:'Ambulatorio',estado:'Habilitado',docs:[{nombre:'Control de calidad interno',estado:'vigente'},{nombre:'Manual de toma de muestras',estado:'vigente'}]},
+    {id:'reps-5',nombre:'Imágenes diagnósticas — RX y ecografía',grupo:'Apoyo diagnóstico',complejidad:'Media',modalidad:'Intramural',ambito:'Ambulatorio',estado:'Habilitado',docs:[{nombre:'Licencia manejo radiación ANLA',estado:'vigente'},{nombre:'Protocolos protección radiológica',estado:'vigente'}]}
   ];
-  localStorage.setItem('bio_docs_' + uid, JSON.stringify(reps));
-
-  // Equipment
-  var equipos = [
-    {id:'eq-1',nombre:'Electrocardiógrafo',marca:'NIHON KOHDEN',modelo:'ECG-1350P',serie:'NK2024-00781',invima:'2020DM-0012345',ubicacion:'Consultorio 1',
-     estado:'Operativo',fecha_adquisicion:'2022-03-15',vida_util:'10 años',prox_mantenimiento:'2026-03-15',
-     prox_calibracion:'2025-09-15',voltaje:'110V',potencia:'45W',notas:'Mantenimiento realizado feb 2025'},
-    {id:'eq-2',nombre:'Tensiómetro digital',marca:'OMRON',modelo:'HEM-7120',serie:'OMR20240023',invima:'2019DM-0098234',ubicacion:'Consultorio 1',
-     estado:'Operativo',fecha_adquisicion:'2023-01-10',vida_util:'5 años',prox_mantenimiento:'2025-07-10',
-     prox_calibracion:'2025-07-10',voltaje:'Baterías AA',potencia:'N/A',notas:''},
-    {id:'eq-3',nombre:'Glucómetro',marca:'Accu-Chek',modelo:'Performa',serie:'AC2023-9917',invima:'2021DM-0034512',ubicacion:'Enfermería',
-     estado:'Operativo',fecha_adquisicion:'2023-06-20',vida_util:'5 años',prox_mantenimiento:'2025-06-20',
-     prox_calibracion:'2025-06-20',voltaje:'Baterías CR2032',potencia:'N/A',notas:''}
+  localStorage.setItem('bio_docs_'+uid,JSON.stringify(reps));
+  var eq=[
+    {id:'eq-1',nombre:'Electrocardiógrafo 12 derivaciones',marca:'NIHON KOHDEN',modelo:'ECG-2350',serie:'NK2023-00781',invima:'2020DM-0012345',ubicacion:'Urgencias — piso 1',estado:'Operativo',fecha_adquisicion:'2023-01-15',vida_util:'10 años',prox_mantenimiento:'2026-01-15',prox_calibracion:'2025-07-15',voltaje:'110V/60Hz',potencia:'60W',notas:'Mantenimiento preventivo ene 2025'},
+    {id:'eq-2',nombre:'Monitor multiparamétrico UCI',marca:'Mindray',modelo:'BC-5800',serie:'MR2022-4412',invima:'2021DM-0034521',ubicacion:'UCI — piso 2',estado:'Operativo',fecha_adquisicion:'2022-08-10',vida_util:'8 años',prox_mantenimiento:'2025-08-10',prox_calibracion:'2025-08-10',voltaje:'110-220V',potencia:'120W',notas:'Con módulo CO₂ y BIS'},
+    {id:'eq-3',nombre:'Ventilador mecánico Dräger',marca:'Dräger',modelo:'Oxylog 3000+',serie:'DR2021-0097',invima:'2019DM-0089234',ubicacion:'UCI — piso 2',estado:'Operativo',fecha_adquisicion:'2021-03-20',vida_util:'10 años',prox_mantenimiento:'2025-09-20',prox_calibracion:'2025-09-20',voltaje:'Batería + 110V',potencia:'N/A',notas:''},
+    {id:'eq-4',nombre:'Equipo de rayos X Siemens',marca:'Siemens Healthineers',modelo:'Ysio Max',serie:'SH2022-1134',invima:'2020DM-0056789',ubicacion:'Rayos X — piso 1',estado:'Operativo',fecha_adquisicion:'2022-05-01',vida_util:'15 años',prox_mantenimiento:'2025-11-01',prox_calibracion:'2025-11-01',voltaje:'220V trifásico',potencia:'32 kW',notas:'Licencia ANLA vigente dic 2025'},
+    {id:'eq-5',nombre:'Ecógrafo GE Voluson',marca:'GE Healthcare',modelo:'Voluson E10',serie:'GE2023-8871',invima:'2022DM-0023456',ubicacion:'Imágenes — piso 1',estado:'Operativo',fecha_adquisicion:'2023-04-12',vida_util:'10 años',prox_mantenimiento:'2026-04-12',prox_calibracion:'2025-10-12',voltaje:'110V/60Hz',potencia:'800W',notas:''},
+    {id:'eq-6',nombre:'Desfibrilador Zoll AED Plus',marca:'Zoll Medical',modelo:'AED Plus',serie:'ZO2022-3345',invima:'2021DM-0011234',ubicacion:'Urgencias — piso 1',estado:'Operativo',fecha_adquisicion:'2022-06-01',vida_util:'7 años',prox_mantenimiento:'2025-06-01',prox_calibracion:'2025-06-01',voltaje:'110V / Batería',potencia:'N/A',notas:'Verificación mensual baterías'}
   ];
-  localStorage.setItem('bio_equipos_' + uid, JSON.stringify(equipos));
-
-  // Staff
-  var personal = [
-    {id:'per-1',nombre:'María Fernanda González Ruiz',cargo:'Médico General',cedula:'52.345.678',rethus:'RM-CO-2015-234567',
-     especialidad:'Medicina General',titulo:'Médico y Cirujano — Universidad Nacional',universidad:'Universidad Nacional de Colombia',
-     fecha_grado:'2015-06-15',tipo_contrato:'Contrato de prestación de servicios',email:'mfgonzalez@clinicasantafe.com',
-     telefono:'300-456-7890',estado:'Activo',notas:'Coordinadora médica'},
-    {id:'per-2',nombre:'Juan Pablo Herrera Ospina',cargo:'Auxiliar de Enfermería',cedula:'1.098.234.567',rethus:'AE-CO-2018-567890',
-     especialidad:'Auxiliar de Enfermería',titulo:'Técnico en Auxiliar de Enfermería',universidad:'SENA',
-     fecha_grado:'2018-11-20',tipo_contrato:'Contrato laboral',email:'jpherrera@clinicasantafe.com',
-     telefono:'315-678-9012',estado:'Activo',notas:''}
+  localStorage.setItem('bio_equipos_'+uid,JSON.stringify(eq));
+  var per=[
+    {id:'per-1',nombre:'Dr. Andrés Felipe Montoya Restrepo',cargo:'Médico Internista — Director Médico',cedula:'71.345.892',rethus:'RM-CO-2010-078234',especialidad:'Medicina Interna',titulo:'Especialista en Medicina Interna — Universidad de Antioquia',universidad:'Universidad de Antioquia',fecha_grado:'2010-06-15',tipo_contrato:'Contrato laboral — tiempo completo',email:'afmontoya@clinicageneral.com',telefono:'310-456-7890',estado:'Activo',notas:'Director médico y coordinador UCI'},
+    {id:'per-2',nombre:'Dra. Valentina Ospina Cárdenas',cargo:'Médico Cirujano General',cedula:'52.789.012',rethus:'RM-CO-2012-134567',especialidad:'Cirugía General',titulo:'Especialista en Cirugía General — Pontificia Universidad Javeriana',universidad:'Pontificia Universidad Javeriana',fecha_grado:'2012-11-20',tipo_contrato:'Prestación de servicios — 4 días/semana',email:'vospina@clinicageneral.com',telefono:'314-567-8901',estado:'Activo',notas:'Cirugía laparoscópica y bariátrica'},
+    {id:'per-3',nombre:'Lic. Sandra Milena Torres Gutiérrez',cargo:'Jefe de Enfermería',cedula:'39.234.567',rethus:'EN-CO-2008-456789',especialidad:'Enfermería Clínica',titulo:'Licenciada en Enfermería — Universidad del Valle',universidad:'Universidad del Valle',fecha_grado:'2008-06-10',tipo_contrato:'Contrato laboral — tiempo completo',email:'smtorres@clinicageneral.com',telefono:'318-789-0123',estado:'Activo',notas:'Especialización en UCI adultos'},
+    {id:'per-4',nombre:'Bact. Marcela Jiménez Herrera',cargo:'Bacterióloga — Laboratorio Clínico',cedula:'52.456.789',rethus:'BA-CO-2013-345678',especialidad:'Bacteriología y Laboratorio Clínico',titulo:'Bacterióloga — Universidad CES',universidad:'Universidad CES Medellín',fecha_grado:'2013-05-25',tipo_contrato:'Contrato laboral — tiempo completo',email:'mjimenez@clinicageneral.com',telefono:'322-901-2345',estado:'Activo',notas:'Directora técnica laboratorio'}
   ];
-  localStorage.setItem('bio_personal_' + uid, JSON.stringify(personal));
-
-  // Patient safety events
-  var eventos = [
-    {id:'ev-1',tipo:'Incidente',fecha:'2025-02-14',hora:'09:30',lugar:'Consultorio 1',descripcion:'Paciente refirió mareo post toma de muestra. Se atendió de inmediato con posición Trendelenburg.',
-     severidad:'Leve',estado:'Cerrado',paciente_cod:'PAC-2025-0234',personal_involucrado:'María F. González',
-     causa_raiz:'Ayuno prolongado no detectado en admisión',acciones:'Protocolo de verificación pre-toma actualizado. Capacitación al personal.',
-     fecha_cierre:'2025-02-15',numero_acta:'EA-2025-001'},
-    {id:'ev-2',tipo:'Evento adverso',fecha:'2025-04-03',hora:'14:15',lugar:'Enfermería',descripcion:'Error de identificación de muestra de laboratorio. Detectado antes de procesamiento.',
-     severidad:'Moderado',estado:'En seguimiento',paciente_cod:'PAC-2025-0456',personal_involucrado:'Juan Pablo Herrera',
-     causa_raiz:'Etiquetado realizado sin verificación doble',acciones:'Implementación de verificación en doble por dos funcionarios para etiquetado.',
-     fecha_cierre:'',numero_acta:'EA-2025-002'}
+  localStorage.setItem('bio_personal_'+uid,JSON.stringify(per));
+  var ev=[
+    {id:'ev-1',tipo:'Incidente — casi evento',fecha:'2025-01-22',hora:'08:15',lugar:'Farmacia — piso 1',descripcion:'Se detectó antes de la administración que se preparó dosis incorrecta de heparina sódica. El error fue detectado en doble verificación de enfermería. Medicamento no administrado al paciente.',severidad:'Moderado',estado:'Cerrado',paciente_cod:'PAC-2025-0089',personal_involucrado:'Aux. Enfermería — turno noche',causa_raiz:'Fatiga del personal. Presentación similar frascos 5.000 UI vs 25.000 UI.',acciones:'Separación física medicamentos alto riesgo. Etiquetado doble cinta roja. Capacitación LASA.',fecha_cierre:'2025-01-30',numero_acta:'EA-2025-001'},
+    {id:'ev-2',tipo:'Evento adverso',fecha:'2025-03-11',hora:'14:30',lugar:'Cirugía — quirófano 2',descripcion:'Reacción alérgica leve (urticaria) tras administración de cefazolina profiláctica. Paciente evolucionó favorablemente.',severidad:'Leve',estado:'Cerrado',paciente_cod:'PAC-2025-0312',personal_involucrado:'Dra. Carolina Mejía — Anestesióloga',causa_raiz:'Antecedente alérgico no consignado en historia clínica preoperatoria.',acciones:'Revisión protocolo valoración preoperatoria. Lista verificación OMS actualizada.',fecha_cierre:'2025-03-20',numero_acta:'EA-2025-002'},
+    {id:'ev-3',tipo:'Caída de paciente',fecha:'2025-04-28',hora:'03:45',lugar:'Hospitalización — hab. 214',descripcion:'Paciente de 72 años cayó al intentar ir al baño sin llamar al personal. Rx descartó fractura. Contusión leve.',severidad:'Leve',estado:'En seguimiento',paciente_cod:'PAC-2025-0478',personal_involucrado:'Enf. turno noche — piso 2',causa_raiz:'Paciente Morse 60 sin protocolo completo. Barandas no activadas.',acciones:'Protocolo Morse >45 completo. Barandas dobles obligatorias. Ronda cada 2h nocturna.',fecha_cierre:'',numero_acta:'EA-2025-003'}
   ];
-  localStorage.setItem('bio_eventos_' + uid, JSON.stringify(eventos));
-
-  // Mark as seeded
-  localStorage.setItem('bio_demo_seeded', '1');
+  localStorage.setItem('bio_eventos_'+uid,JSON.stringify(ev));
+  localStorage.setItem('bio_demo_seeded','v3');
 }
 
 function toggleFaq(el) {

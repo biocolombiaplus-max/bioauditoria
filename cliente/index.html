@@ -415,6 +415,34 @@ select.fi option{background:var(--dark2)}
     </div>
     <div class="content">
 
+      <!-- DEMO GUIDE BANNER — solo visible para usuario demo -->
+      <div id="demo-guide" style="display:none;margin-bottom:20px;border-radius:16px;overflow:hidden;border:1px solid rgba(15,118,110,0.4);background:linear-gradient(135deg,rgba(15,118,110,0.12),rgba(123,47,190,0.08))">
+        <div style="padding:14px 18px;display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap">
+          <div style="display:flex;align-items:center;gap:12px">
+            <div style="font-size:28px;flex-shrink:0">🎯</div>
+            <div>
+              <div style="font-size:14px;font-weight:800;color:#F0F0FF;margin-bottom:2px">Estás explorando el demo — Clínica General del Norte S.A.S. (Nivel 3)</div>
+              <div style="font-size:12px;color:#A0A0C0">Todos los datos son ficticios de ejemplo. En tu plan real verás tu propia información.</div>
+            </div>
+          </div>
+          <button onclick="document.getElementById('demo-guide').style.display='none'" style="background:none;border:1px solid rgba(255,255,255,0.15);border-radius:8px;color:#A0A0C0;font-size:12px;padding:6px 12px;cursor:pointer;font-family:inherit;white-space:nowrap;flex-shrink:0">Entendido ✕</button>
+        </div>
+        <div style="border-top:1px solid rgba(255,255,255,0.06);padding:12px 18px;display:flex;gap:10px;flex-wrap:wrap">
+          <div style="background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.08);border-radius:10px;padding:10px 14px;min-width:160px;flex:1">
+            <div style="font-size:11px;font-weight:700;color:#0F766E;margin-bottom:4px;text-transform:uppercase;letter-spacing:0.05em">📋 Documentos Res. 3100</div>
+            <div style="font-size:12px;color:#A0A0C0;line-height:1.5">Haz clic en cualquier estándar para ver los documentos. El ✏️ te permite editarlos y personalizarlos con los datos de tu institución.</div>
+          </div>
+          <div style="background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.08);border-radius:10px;padding:10px 14px;min-width:160px;flex:1">
+            <div style="font-size:11px;font-weight:700;color:#7B2FBE;margin-bottom:4px;text-transform:uppercase;letter-spacing:0.05em">📊 Dashboard</div>
+            <div style="font-size:12px;color:#A0A0C0;line-height:1.5">Los indicadores muestran el estado de todos los documentos: ✅ vigentes, ⚠️ pendientes, 🚨 requeridos para la visita.</div>
+          </div>
+          <div style="background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.08);border-radius:10px;padding:10px 14px;min-width:160px;flex:1">
+            <div style="font-size:11px;font-weight:700;color:#FF6B00;margin-bottom:4px;text-transform:uppercase;letter-spacing:0.05em">⚗️ Equipos · 👥 Personal · 🛡️ Seguridad</div>
+            <div style="font-size:12px;color:#A0A0C0;line-height:1.5">Genera hojas de vida de equipos biomédicos y personal. Registra eventos adversos con actas formales para la Secretaría de Salud.</div>
+          </div>
+        </div>
+      </div>
+
       <!-- INICIO -->
       <div class="page act" id="page-inicio">
         <div class="mhdr" style="display:none">
@@ -904,18 +932,18 @@ if (_loggedUser === 'dra.vesga') {
   C = {
     id: _loggedUser,
     usuario: _loggedUser,
-    nombre: _cli ? _cli.nombre : 'Clínica Demo BIOAuditoría',
-    empresa: _cli ? _cli.empresa : 'Clínica Santa Fe Demo S.A.S.',
-    nit: _cli ? _cli.nit : '900.123.456-7',
-    nivel_atencion: _cli ? (_cli.nivel || '1') : '1',
-    ciudad: _cli ? _cli.ciudad : 'Bogotá D.C.',
-    especialidad: _cli ? _cli.especialidad : 'Medicina General',
-    email: _cli ? _cli.email : 'demo@bioauditoria.com',
-    telefono: _cli ? _cli.telefono : '601-234-5678',
-    cedula: _cli ? _cli.cedula : '79.123.456',
-    direccion: _cli ? _cli.direccion : 'Cra. 15 No. 93-47, Bogotá',
-    registro_medico: _cli ? _cli.rm : 'RM-2015-234567',
-    color1: _custom.color1 || (_cli && _cli.color1) || '#0EA5E9',
+    nombre: _cli ? _cli.nombre : 'Dr. Andrés Felipe Montoya Restrepo',
+    empresa: _cli ? _cli.empresa : 'Clínica General del Norte S.A.S.',
+    nit: _cli ? _cli.nit : '900.456.789-2',
+    nivel_atencion: _cli ? (_cli.nivel || '3') : '3',
+    ciudad: _cli ? _cli.ciudad : 'Barranquilla, Atlántico',
+    especialidad: _cli ? _cli.especialidad : 'Medicina Interna — Cirugía General',
+    email: _cli ? _cli.email : 'direccion@clinicageneral.com',
+    telefono: _cli ? _cli.telefono : '(605) 345-6789',
+    cedula: _cli ? _cli.cedula : '71.345.892',
+    direccion: _cli ? _cli.direccion : 'Cra. 43 No. 84-15, Barranquilla',
+    registro_medico: _cli ? _cli.rm : 'RM-CO-2010-078234',
+    color1: _custom.color1 || (_cli && _cli.color1) || '#0F766E',
     color2: _custom.color2 || (_cli && _cli.color2) || '#7B2FBE',
     logo_url: _custom.logo_url || (_cli && _cli.logo_url) || '',
     drive_url: _custom.drive_url || (_cli && _cli.drive_url) || '',
@@ -938,6 +966,8 @@ if(C.logo_url){
 }
 
 function logout(){sessionStorage.clear();window.location.replace('../index.html')}
+// Show demo guide banner for demo user
+if(_loggedUser==='demo'){var dg=document.getElementById('demo-guide');if(dg)dg.style.display='block';}
 function go(el,id,title){
   document.querySelectorAll('.ni').forEach(n=>n.classList.remove('act'));
   if(el)el.classList.add('act');
