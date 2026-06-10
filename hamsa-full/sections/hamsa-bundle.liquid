@@ -6,6 +6,7 @@
 {%- if col == blank or col.products_count < 2 -%}
   {%- assign col = product.collections.first -%}
 {%- endif -%}
+{%- assign catalog_limit = section.settings.limit | default: 12 -%}
 
 <section class="hbv5" id="HamsaBundleV5-{{ section.id }}" style="background:{{ section.settings.bg_color | default: '#FDFAF7' }}">
 
@@ -93,7 +94,7 @@
   </div>
   <div class="hbv5__catalog-grid" id="hbv5Grid">
     {% if col != blank %}
-      {% for p in col.products limit: section.settings.limit | default: 12 %}
+      {% for p in col.products limit: catalog_limit %}
         {% unless p.id == product.id %}
         <button class="hbv5__prod-btn" data-id="{{ p.id }}"
           data-title="{{ p.title | escape | truncate: 28 }}"
