@@ -30,7 +30,6 @@
     {% if col != blank and col.products_count > 0 %}
       <div class="hhp-grid hhp-grid--{{ section.settings.columns }}">
         {% for product in col.products limit: section.settings.limit %}
-          {%- assign purl = '/products/' | append: product.handle -%}
           {%- assign has_sale = false -%}
           {%- if product.compare_at_price > product.price -%}{%- assign has_sale = true -%}{%- endif -%}
           {%- assign pct = 0 -%}
@@ -38,7 +37,7 @@
 
           <article class="hhp-card">
 
-            <a href="{{ purl }}" class="hhp-card__img-link">
+            <a href="{{ product.url }}" class="hhp-card__img-link">
               {% if product.featured_image %}
                 <img src="{{ product.featured_image | image_url: width: 300, format: 'webp' }}"
                      srcset="{{ product.featured_image | image_url: width: 180, format: 'webp' }} 180w,
@@ -71,7 +70,7 @@
             </a>
 
             <div class="hhp-card__body">
-              <a href="{{ purl }}" class="hhp-card__title">{{ product.title | truncate: 45 }}</a>
+              <a href="{{ product.url }}" class="hhp-card__title">{{ product.title | truncate: 45 }}</a>
 
               <div class="hhp-card__stars">
                 <span>★★★★★</span>
@@ -86,7 +85,7 @@
               </div>
 
               <div class="hhp-card__actions">
-                <a href="{{ purl }}" class="hhp-card__btn-primary">
+                <a href="{{ product.url }}" class="hhp-card__btn-primary">
                   <span class="hhp-card__btn-shine"></span>
                   Ver producto
                 </a>
