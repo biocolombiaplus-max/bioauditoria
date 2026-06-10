@@ -32,6 +32,13 @@
     <span class="hpp3__sold">🛍️ +{{ section.settings.sold_count | default: 342 }} vendidos</span>
   </div>
 
+
+  <!-- ══ VISITANTES EN VIVO (neuromarketing) ══ -->
+  <div class="hpp3__viewers" id="hpp3Viewers-{{ section.id }}">
+    <span class="hpp3__viewers-dot"></span>
+    <span id="hpp3ViewCount-{{ section.id }}">12</span> personas están viendo este producto ahora
+  </div>
+
   <!-- ══ TRUST BADGES — 2×2 compacto ══ -->
   <div class="hpp3__trust">
     {% if section.settings.trust1 != blank %}
@@ -128,13 +135,21 @@
   </a>
   {% endif %}
 
-  <!-- ══ GARANTÍA ══ -->
+  <!-- ══ GARANTÍA PREMIUM ══ -->
   {% if section.settings.show_guarantee %}
   <div class="hpp3__guarantee">
-    <span class="hpp3__gu-icon">🛡️</span>
-    <div>
-      <strong>{{ section.settings.guarantee_title | default: 'Compra 100% garantizada' }}</strong>
-      <span>{{ section.settings.guarantee_text | default: 'Si tu pedido no llega o no es el correcto, te lo resolvemos.' }}</span>
+    <div class="hpp3__gu-head">
+      <span class="hpp3__gu-shield">🛡️</span>
+      <div>
+        <strong>{{ section.settings.guarantee_title | default: 'Compra 100% garantizada' }}</strong>
+        <span>{{ section.settings.guarantee_text | default: 'Si tu pedido no llega o no es el correcto, te lo resolvemos.' }}</span>
+      </div>
+    </div>
+    <div class="hpp3__gu-items">
+      <div class="hpp3__gu-item"><span>✅</span> Pago solo cuando llega a tu puerta</div>
+      <div class="hpp3__gu-item"><span>✅</span> Cambio de talla sin costo adicional</div>
+      <div class="hpp3__gu-item"><span>✅</span> Envío gratis a toda Colombia</div>
+      <div class="hpp3__gu-item"><span>✅</span> Soporte WhatsApp en menos de 1 hora</div>
     </div>
   </div>
   {% endif %}
@@ -168,6 +183,23 @@
 .hpp3__stars span:first-child { color:#F59E0B; font-size:15px; letter-spacing:1px; }
 .hpp3__reviews { font-size:12px; color:var(--muted); }
 .hpp3__sold { font-size:11px; font-weight:700; color:var(--rose); background:rgba(212,82,122,.1); border:1px solid rgba(212,82,122,.2); padding:3px 10px; border-radius:20px; }
+
+
+/* live viewers */
+.hpp3__viewers {
+  display:flex; align-items:center; gap:7px;
+  font-size:12px; color:var(--muted);
+  margin:0 0 12px;
+  padding:8px 14px;
+  background:rgba(74,222,128,.06);
+  border:1px solid rgba(74,222,128,.2);
+  border-radius:8px;
+}
+.hpp3__viewers-dot {
+  width:7px; height:7px; border-radius:50%;
+  background:#4ADE80; flex-shrink:0;
+  animation:hpp3pulse 1.5s infinite;
+}
 
 /* trust */
 .hpp3__trust { display:grid; grid-template-columns:1fr 1fr; gap:8px; margin:0 0 12px; }
@@ -261,6 +293,11 @@
 .hpp3__wa-arrow { font-size:18px; font-weight:700; opacity:.8; }
 
 /* guarantee */
+.hpp3__gu-head { display:flex; gap:12px; align-items:flex-start; margin-bottom:12px; }
+.hpp3__gu-shield { font-size:24px; flex-shrink:0; }
+.hpp3__gu-items { display:grid; grid-template-columns:1fr 1fr; gap:6px; }
+.hpp3__gu-item { display:flex; align-items:center; gap:5px; font-size:11px; color:var(--text); }
+.hpp3__gu-item span { font-size:12px; }
 .hpp3__guarantee {
   display:flex; align-items:flex-start; gap:11px;
   background:linear-gradient(135deg,rgba(212,82,122,.06),rgba(212,82,122,.02));
@@ -288,6 +325,20 @@
 
 <script>
 (function(){
+
+  // Live viewers neuromarketing
+  (function(){
+    var el = document.getElementById('hpp3ViewCount-{{ section.id }}');
+    if (!el) return;
+    var base = Math.floor(Math.random() * 8) + 7; // 7-14
+    el.textContent = base;
+    setInterval(function(){
+      var delta = Math.random() > 0.5 ? 1 : -1;
+      base = Math.max(4, Math.min(22, base + delta));
+      el.textContent = base;
+    }, 8000 + Math.random() * 4000);
+  })();
+
   var SID='{{ section.id }}';
 
   // ── Timer persistente ──────────────────────────────────────────────────
