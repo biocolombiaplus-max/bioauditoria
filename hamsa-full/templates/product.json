@@ -261,7 +261,10 @@
         "padding-block-start": 0,
         "padding-block-end": 0
       },
-      "block_order": []
+      "block_order": [
+        "media-gallery",
+        "product-details"
+      ]
     },
     "hamsa_product_pro": {
       "type": "hamsa-product-pro",
