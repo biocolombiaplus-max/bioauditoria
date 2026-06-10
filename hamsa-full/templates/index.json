@@ -49,7 +49,7 @@
     "hamsa_home_products": {
       "type": "hamsa-home-products",
       "settings": {
-        "collection": "frontpage",
+        "collection": "all",
         "limit": 8,
         "columns": "4",
         "eyebrow": "Las favoritas del momento",

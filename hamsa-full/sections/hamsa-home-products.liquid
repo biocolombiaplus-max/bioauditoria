@@ -30,7 +30,7 @@
     {% if col != blank and col.products_count > 0 %}
       <div class="hhp-grid hhp-grid--{{ section.settings.columns }}">
         {% for product in col.products limit: section.settings.limit %}
-          {%- assign purl = product.url | within: col -%}
+          {%- assign purl = product.url -%}
           {%- assign has_sale = false -%}
           {%- if product.compare_at_price > product.price -%}{%- assign has_sale = true -%}{%- endif -%}
           {%- assign pct = 0 -%}
@@ -38,7 +38,7 @@
 
           <article class="hhp-card">
 
-            <a href="{{ purl }}" class="hhp-card__img-link" tabindex="-1" aria-hidden="true">
+            <a href="{{ purl }}" class="hhp-card__img-link">
               {% if product.featured_image %}
                 <img src="{{ product.featured_image | image_url: width: 300, format: 'webp' }}"
                      srcset="{{ product.featured_image | image_url: width: 180, format: 'webp' }} 180w,
