@@ -1,15 +1,5 @@
 {
   "sections": {
-    "main": {
-      "type": "custom-liquid",
-      "settings": {
-        "custom_liquid": "",
-        "color_scheme": "",
-        "section_width": "page-width",
-        "padding-block-start": 0,
-        "padding-block-end": 0
-      }
-    },
     "hamsa_home_hero": {
       "type": "hamsa-home-hero",
       "settings": {
@@ -272,77 +262,6 @@
         "badge_url": "/pages/oferta-2x1",
         "position": "right"
       }
-    },
-    "hamsa_urgency_ac5351c1": {
-      "type": "hamsa-urgency-strip",
-      "settings": {
-        "bg_color": "#FFF0F4",
-        "text_color": "#D4527A",
-        "icon_color": "#D4527A",
-        "icon1": "🚚",
-        "item1": "Envío GRATIS a toda Colombia",
-        "icon2": "💵",
-        "item2": "Pago contra entrega disponible",
-        "icon3": "🔒",
-        "item3": "Compra 100% segura",
-        "icon4": "↩️",
-        "item4": "Cambio de talla gratis"
-      }
-    },
-    "hamsa_social_d7c842ad": {
-      "type": "hamsa-social-proof",
-      "settings": {
-        "bg_color": "#FDFAF7",
-        "card_color": "#FFFFFF",
-        "text_color": "#1C1208",
-        "accent_color": "#D4527A",
-        "show_counter": true,
-        "counter_start": 1847,
-        "counter_label": "pares vendidos este mes",
-        "show_recent": true,
-        "pt": 20,
-        "pb": 20
-      },
-      "blocks": {
-        "p1": {
-          "type": "purchase",
-          "settings": {
-            "name": "Valentina R.",
-            "city": "Medellín",
-            "flag": "🇨🇴",
-            "product": "Sandalia Hamsa Rosa T.38",
-            "time": "hace 2 minutos",
-            "delay": 1200
-          }
-        },
-        "p2": {
-          "type": "purchase",
-          "settings": {
-            "name": "Camila S.",
-            "city": "Bogotá",
-            "flag": "🇨🇴",
-            "product": "Sandalia Hamsa Dorada T.36",
-            "time": "hace 7 minutos",
-            "delay": 2800
-          }
-        },
-        "p3": {
-          "type": "purchase",
-          "settings": {
-            "name": "Isabella T.",
-            "city": "Cali",
-            "flag": "🇨🇴",
-            "product": "Sandalia Hamsa Nude T.39",
-            "time": "hace 11 minutos",
-            "delay": 4500
-          }
-        }
-      },
-      "block_order": [
-        "p1",
-        "p2",
-        "p3"
-      ]
     },
     "hamsa_sizes_e4de9e45": {
       "type": "hamsa-size-selector",

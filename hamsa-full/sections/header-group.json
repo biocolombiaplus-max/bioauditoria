@@ -2,45 +2,6 @@
   "type": "header",
   "name": "Header",
   "sections": {
-    "announcement_bar": {
-      "type": "header-announcements",
-      "blocks": {
-        "ann_1": {
-          "type": "_announcement",
-          "settings": {
-            "text": "🚚 ENVÍO GRATIS — A toda Colombia sin costo adicional",
-            "link": ""
-          }
-        },
-        "ann_2": {
-          "type": "_announcement",
-          "settings": {
-            "text": "🔥 OFERTA 2×1 — 2 pares por $159.900 · Tiempo limitado",
-            "link": ""
-          }
-        },
-        "ann_3": {
-          "type": "_announcement",
-          "settings": {
-            "text": "💵 PAGO CONTRA ENTREGA — Paga cuando llega a tu puerta",
-            "link": ""
-          }
-        }
-      },
-      "block_order": [
-        "ann_1",
-        "ann_2",
-        "ann_3"
-      ],
-      "settings": {
-        "speed": 3,
-        "section_width": "page-width",
-        "color_scheme": "scheme-1",
-        "divider_width": 0,
-        "padding-block-start": 12,
-        "padding-block-end": 12
-      }
-    },
     "header_section": {
       "type": "header",
       "blocks": {
@@ -92,7 +53,6 @@
     }
   },
   "order": [
-    "announcement_bar",
     "header_section"
   ]
 }
