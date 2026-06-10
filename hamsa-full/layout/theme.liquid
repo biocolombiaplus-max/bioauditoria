@@ -243,6 +243,9 @@
       data-template="{{ template }}"
     >
       {{ content_for_layout }}
+      {% if template == 'product' %}
+        {%- render 'hamsa-conversion', product: product -%}
+      {% endif %}
     </main>
 
     <footer>
@@ -491,10 +494,6 @@
     document.addEventListener('shopify:section:load', initWaButtons);
   })();
   </script>
-
-  {% if template == 'product' %}
-    {%- render 'hamsa-conversion', product: product -%}
-  {% endif %}
 
   </body>
 </html>

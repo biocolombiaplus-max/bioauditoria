@@ -1,259 +1,526 @@
-{% comment %}hamsa-conversion — inyectado en theme.liquid para páginas de producto{% endcomment %}
-{%- assign hc_wa = "573508258757" -%}
-{%- assign hc_msg = "Hola, quiero pedir: " | append: product.title | url_encode -%}
+{% comment %}hamsa-conversion v3 — premium product page conversion block{% endcomment %}
+{%- assign hc_wa   = "573508258757" -%}
+{%- assign hc_msg  = "Hola! Quiero pedir: " | append: product.title | url_encode -%}
+{%- assign hc_bundle_price = 15990000 -%}
 
-<div class="hc" id="HamsaConversion">
+<div class="hcv3" id="HamsaCV3">
 
-<!-- ══ 1. BARRA URGENCIA ══ -->
-<div class="hc__urgency">
-  <div class="hc__u-left">
-    <span class="hc__udot"></span>
-    <span class="hc__ulabel">⏰ Precio especial termina en:</span>
-    <span class="hc__utimer">
-      <b id="hcH">14</b>:<b id="hcM">59</b>:<b id="hcS">59</b>
-    </span>
+<!-- ════════════════════════════════
+     BARRA URGENCIA SUPERIOR
+════════════════════════════════ -->
+<div class="hcv3__top-bar">
+  <span class="hcv3__tb-dot"></span>
+  <span class="hcv3__tb-text">⏰ Precio especial termina en:</span>
+  <span class="hcv3__tb-timer"><b id="hcvH">14</b>:<b id="hcvM">59</b>:<b id="hcvS">59</b></span>
+  <span class="hcv3__tb-sep">·</span>
+  <span class="hcv3__tb-viewers"><span id="hcvVC">14</span> personas viendo ahora</span>
+</div>
+
+<!-- ════════════════════════════════
+     SOCIAL PROOF ROW
+════════════════════════════════ -->
+<div class="hcv3__proof">
+  <div class="hcv3__proof-stars">★★★★★ <strong>4.9</strong> <span>(87 reseñas)</span></div>
+  <span class="hcv3__proof-sep">|</span>
+  <div class="hcv3__proof-sold">🛍️ <strong>+342</strong> vendidos</div>
+  <span class="hcv3__proof-sep">|</span>
+  <div class="hcv3__proof-top">🏆 Top ventas Colombia</div>
+</div>
+
+<!-- ════════════════════════════════
+     TRUST BADGES — 4 columnas
+════════════════════════════════ -->
+<div class="hcv3__trust">
+  <div class="hcv3__tb-item">
+    <span class="hcv3__tbi">🚚</span>
+    <strong>Envío gratis</strong>
+    <small>A toda Colombia</small>
   </div>
-  <div class="hc__viewers">
-    <span class="hc__vdot"></span>
-    <span id="hcVC">12</span> viendo ahora
+  <div class="hcv3__tb-item">
+    <span class="hcv3__tbi">💵</span>
+    <strong>Contra entrega</strong>
+    <small>Paga al recibir</small>
+  </div>
+  <div class="hcv3__tb-item">
+    <span class="hcv3__tbi">🔒</span>
+    <strong>Compra segura</strong>
+    <small>100% garantizado</small>
+  </div>
+  <div class="hcv3__tb-item">
+    <span class="hcv3__tbi">🔄</span>
+    <strong>Cambio gratis</strong>
+    <small>Sin preguntas</small>
   </div>
 </div>
 
-<!-- ══ 2. SOCIAL PROOF ══ -->
-<div class="hc__social">
-  <span class="hc__stars">★★★★★</span>
-  <span class="hc__slabel">87 reseñas verificadas</span>
-  <span class="hc__sep">·</span>
-  <span class="hc__slabel">+342 vendidos</span>
-  <span class="hc__sep">·</span>
-  <span class="hc__top">🏆 Top Colombia</span>
-</div>
-
-<!-- ══ 3. TRUST BADGES ══ -->
-<div class="hc__trust">
-  <div class="hc__ti"><span>🚚</span><strong>Envío gratis</strong><small>A toda Colombia</small></div>
-  <div class="hc__ti"><span>💵</span><strong>Contra entrega</strong><small>Paga al recibir</small></div>
-  <div class="hc__ti"><span>🔒</span><strong>Compra segura</strong><small>100% protegida</small></div>
-  <div class="hc__ti"><span>🔄</span><strong>Cambio gratis</strong><small>Sin preguntas</small></div>
-</div>
-
-<!-- ══ 4. STOCK URGENCIA ══ -->
-<div class="hc__stock">
-  <div class="hc__stock-top">
+<!-- ════════════════════════════════
+     STOCK BAR ESCASEZ
+════════════════════════════════ -->
+<div class="hcv3__stock">
+  <div class="hcv3__stock-hd">
     <span>🔥 ¡Alta demanda! Pocas unidades disponibles</span>
     <span>23% disponible</span>
   </div>
-  <div class="hc__stock-bar"><div class="hc__stock-fill" style="width:23%"></div></div>
-  <div class="hc__stock-sub">⚡ Se agota rápido — Asegura el tuyo ahora</div>
+  <div class="hcv3__stock-bar"><div class="hcv3__stock-fill"></div></div>
+  <p class="hcv3__stock-sub">⚡ Se agota rápido — Asegura el tuyo antes de que se acabe</p>
 </div>
 
-<!-- ══ 5. WHATSAPP ══ -->
-<a href="https://wa.me/{{ hc_wa }}?text={{ hc_msg }}" class="hc__wa" target="_blank" rel="noopener">
-  <svg viewBox="0 0 24 24" fill="currentColor" width="22" height="22" style="flex-shrink:0">
-    <path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z"/>
-  </svg>
-  <div>
-    <span class="hc__wa-main">Pedir por WhatsApp</span>
-    <span class="hc__wa-sub">Respuesta inmediata · Pago al recibir</span>
+<!-- ════════════════════════════════
+     BOTÓN WHATSAPP PRINCIPAL
+════════════════════════════════ -->
+<a href="https://wa.me/{{ hc_wa }}?text={{ hc_msg }}" class="hcv3__wa" target="_blank" rel="noopener">
+  <svg viewBox="0 0 24 24" fill="currentColor" width="24" height="24"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z"/></svg>
+  <div class="hcv3__wa-txt">
+    <strong>Pedir por WhatsApp — Respuesta inmediata</strong>
+    <span>Pago contra entrega · Sin tarjeta · Sin riesgos</span>
   </div>
-  <span style="font-size:20px;font-weight:700">→</span>
+  <span class="hcv3__wa-arr">→</span>
 </a>
 
-<!-- ══ 6. GARANTÍA ══ -->
-<div class="hc__guarantee">
-  <span style="font-size:28px;flex-shrink:0">🛡️</span>
-  <div>
-    <strong>Compra 100% garantizada</strong>
-    <span>Si tu pedido no llega o no es el correcto, te lo resolvemos sin preguntas.</span>
+<!-- ════════════════════════════════
+     BUNDLE OFERTA 2×1 — BLOQUE PREMIUM
+════════════════════════════════ -->
+<div class="hcv3__bundle" id="hcvBundle">
+  <div class="hcv3__bundle-hd">
+    <div class="hcv3__bundle-badge">
+      <span class="hcv3__bd-dot"></span>
+      OFERTA MÁS POPULAR
+    </div>
+    <h3 class="hcv3__bundle-title">🔥 Lleva 2 Pares — Solo por hoy</h3>
+    <div class="hcv3__bundle-timer-row">
+      <span class="hcv3__bd-dot2"></span>
+      <span>Oferta válida solo por:</span>
+      <span class="hcv3__bundle-clock" id="hcvBT">14:59</span>
+      <span class="hcv3__bundle-scarce">— ¡Pocas unidades!</span>
+    </div>
+  </div>
+
+  <!-- Comparación visual de precios -->
+  <div class="hcv3__compare">
+    <div class="hcv3__cmp-item hcv3__cmp-bad">
+      <span class="hcv3__cmp-lbl">1 par</span>
+      <span class="hcv3__cmp-price">{{ product.compare_at_price | money }}</span>
+      <span class="hcv3__cmp-sub">precio normal</span>
+    </div>
+    <div class="hcv3__cmp-arrow">→</div>
+    <div class="hcv3__cmp-item hcv3__cmp-good">
+      <span class="hcv3__cmp-lbl">2 pares HOY</span>
+      <span class="hcv3__cmp-price">{{ hc_bundle_price | money }}</span>
+      <span class="hcv3__cmp-sub">¡Ahorras ${{ product.compare_at_price | times: 2 | minus: hc_bundle_price | divided_by: 100 | floor }}!</span>
+    </div>
+  </div>
+
+  <!-- Pills -->
+  <div class="hcv3__pills">
+    <span>🚚 Envío gratis</span><span>💵 Paga al recibir</span><span>🔄 Cambio gratis</span><span>⚡ Precio limitado</span>
+  </div>
+
+  <!-- Par 1 (actual) + Par 2 (elegir) -->
+  <div class="hcv3__pairs">
+    <div class="hcv3__pair">
+      <div class="hcv3__pair-num">Par 1 — Seleccionado ✓</div>
+      {% if product.featured_image %}
+        <img class="hcv3__pair-img" src="{{ product.featured_image | image_url: width: 120 }}" alt="{{ product.title | escape }}" width="80" height="80" loading="lazy">
+      {% endif %}
+      <div class="hcv3__pair-name">{{ product.title | truncate: 28 }}</div>
+      <div class="hcv3__pair-price">{{ product.price | money }}</div>
+    </div>
+    <div class="hcv3__plus">+</div>
+    <div class="hcv3__pair hcv3__pair--b" id="hcvPairB">
+      <div class="hcv3__pair-num">Par 2 — <span class="hcv3__pair-off">50% OFF</span></div>
+      <div class="hcv3__pair-empty" id="hcvPairBImg">
+        <span>+</span>
+      </div>
+      <div class="hcv3__pair-name" id="hcvPairBName">Elige tu 2do par →</div>
+      <div class="hcv3__pair-price hcv3__pair-free" id="hcvPairBPrice">¡GRATIS con la oferta!</div>
+      <button class="hcv3__choose-btn" id="hcvChooseBtn">Seleccionar →</button>
+    </div>
+  </div>
+
+  <!-- Catálogo expandible -->
+  <div class="hcv3__catalog" id="hcvCatalog">
+    <div class="hcv3__cat-hd">
+      <span>Elige tu 2do par</span>
+      <button class="hcv3__cat-close" id="hcvCatClose">✕</button>
+    </div>
+    <div class="hcv3__cat-grid" id="hcvCatGrid">
+      {%- assign cat_col = collections['all'] -%}
+      {%- if cat_col == blank or cat_col.products_count < 2 -%}
+        {%- assign cat_col = product.collections.first -%}
+      {%- endif -%}
+      {%- assign cat_limit = 12 -%}
+      {% for p in cat_col.products limit: cat_limit %}
+        {% unless p.id == product.id %}
+          <button class="hcv3__prod"
+            data-id="{{ p.id }}"
+            data-title="{{ p.title | escape | truncate: 26 }}"
+            data-price="{{ p.price | money }}"
+            data-img="{{ p.featured_image | image_url: width: 120 }}"
+            data-variant="{{ p.first_available_variant.id }}">
+            {% if p.featured_image %}
+              <img src="{{ p.featured_image | image_url: width: 100 }}" alt="{{ p.title | escape }}" width="80" height="80" loading="lazy">
+            {% endif %}
+            <span class="hcv3__prod-name">{{ p.title | truncate: 20 }}</span>
+            <span class="hcv3__prod-price">{{ p.price | money }}</span>
+          </button>
+        {% endunless %}
+      {% endfor %}
+    </div>
+  </div>
+
+  <!-- Total y CTA bundle -->
+  <div class="hcv3__bundle-cta">
+    <div class="hcv3__total">
+      <div class="hcv3__total-row">
+        <span>Total normal:</span>
+        <span class="hcv3__total-old">{{ product.compare_at_price | times: 2 | money }}</span>
+      </div>
+      <div class="hcv3__total-row hcv3__total-main">
+        <span>Tu precio hoy:</span>
+        <span class="hcv3__total-price">{{ hc_bundle_price | money }}</span>
+      </div>
+      <div class="hcv3__total-save">🎁 ¡Ahorras ${{ product.compare_at_price | times: 2 | minus: hc_bundle_price | divided_by: 100 | floor }}! — Envío gratis incluido</div>
+    </div>
+    <button class="hcv3__bundle-btn" id="hcvAddBtn" disabled>
+      <span class="hcv3__btn-shine"></span>
+      <span id="hcvBtnTxt">Selecciona tu 2do par ↑</span>
+    </button>
+    <div class="hcv3__microcopy">🔒 Pago seguro · 💵 Pagas cuando llega · 🔄 Cambio gratis</div>
   </div>
 </div>
 
-<!-- ══ 7. LIVE FOMO ══ -->
-<div id="hcLive" aria-live="polite" style="margin:0 20px 12px;min-height:0"></div>
+<!-- ════════════════════════════════
+     GARANTÍA
+════════════════════════════════ -->
+<div class="hcv3__guarantee">
+  <span class="hcv3__gicon">🛡️</span>
+  <div>
+    <strong>Garantía total de satisfacción</strong>
+    <span>Si tu pedido no llega o no es el correcto, te lo resolvemos sin preguntas ni demoras.</span>
+  </div>
+</div>
 
-<!-- ══ 8. RESEÑAS ══ -->
-<div class="hc__reviews">
-  <div class="hc__rev-head">
-    <span style="color:#F59E0B;font-size:16px">★★★★★</span>
+<!-- ════════════════════════════════
+     LIVE FOMO
+════════════════════════════════ -->
+<div id="hcvLive" aria-live="polite"></div>
+
+<!-- ════════════════════════════════
+     RESEÑAS VERIFICADAS
+════════════════════════════════ -->
+<div class="hcv3__reviews">
+  <div class="hcv3__rev-hd">
+    <span class="hcv3__rev-stars">★★★★★</span>
     <strong>4.9 / 5</strong>
-    <span style="font-size:12px;color:#7A6E64">(87 reseñas verificadas)</span>
+    <span class="hcv3__rev-count">87 reseñas verificadas</span>
   </div>
 
-  <div class="hc__review">
-    <div class="hc__rev-row">
-      <span class="hc__av" style="background:#D4527A">M</span>
-      <div><strong>María C.</strong><span class="hc__rstars">★★★★★</span></div>
-      <span class="hc__badge">✓ Compra verificada</span>
+  <div class="hcv3__review">
+    <div class="hcv3__rev-row">
+      <span class="hcv3__av" style="background:#D4527A">M</span>
+      <div><strong>María Camila R.</strong><span class="hcv3__rs">★★★★★</span></div>
+      <span class="hcv3__vbadge">✓ Verificada</span>
     </div>
-    <p>"Me llegaron en 3 días, preciosas! El material es de muy buena calidad, exactamente como las fotos. Ya pedí otro par 😍"</p>
+    <p>"¡Llegaron en 3 días a Bogotá! El material es exactamente como las fotos, muy buena calidad. Ya pedí otro par para mi mamá 😍"</p>
     <small>hace 2 días · Bogotá</small>
   </div>
 
-  <div class="hc__review">
-    <div class="hc__rev-row">
-      <span class="hc__av" style="background:#7C3AED">L</span>
-      <div><strong>Laura M.</strong><span class="hc__rstars">★★★★★</span></div>
-      <span class="hc__badge">✓ Compra verificada</span>
+  <div class="hcv3__review">
+    <div class="hcv3__rev-row">
+      <span class="hcv3__av" style="background:#7C3AED">L</span>
+      <div><strong>Laura M.</strong><span class="hcv3__rs">★★★★★</span></div>
+      <span class="hcv3__vbadge">✓ Verificada</span>
     </div>
-    <p>"Aproveché la oferta 2×1 y quedé feliz. El taco es cómodo para todo el día y el envío fue rapidísimo. 100% recomendado"</p>
-    <small>hace 5 días · Medellín</small>
+    <p>"Aproveché la oferta 2×1 y quedé súper feliz. Cómodas para todo el día y el envío fue rapidísimo. 100% recomendadas!"</p>
+    <small>hace 4 días · Medellín</small>
   </div>
 
-  <div class="hc__review">
-    <div class="hc__rev-row">
-      <span class="hc__av" style="background:#059669">A</span>
-      <div><strong>Andrea R.</strong><span class="hc__rstars">★★★★★</span></div>
-      <span class="hc__badge">✓ Compra verificada</span>
+  <div class="hcv3__review">
+    <div class="hcv3__rev-row">
+      <span class="hcv3__av" style="background:#059669">A</span>
+      <div><strong>Andrea P.</strong><span class="hcv3__rs">★★★★★</span></div>
+      <span class="hcv3__vbadge">✓ Verificada</span>
     </div>
-    <p>"Pagué al recibir, sin riesgo. La sandalia es divina, ya quiero comprar otra. Muy buena atención por WhatsApp también."</p>
+    <p>"Pagué al recibir, sin ningún riesgo. La sandalia es divina y el cambio de talla fue facilísimo. Muy buena atención."</p>
     <small>hace 1 semana · Cali</small>
   </div>
 </div>
 
-</div><!-- /.hc -->
+</div><!-- /.hcv3 -->
 
-<!-- ══ STICKY BAR MÓVIL ══ -->
-<div class="hc__sticky" id="hcSticky">
-  <div class="hc__sticky-price">
-    <span class="hc__sp-main">{{ product.price | money }}</span>
+<!-- ════════════════════════════════
+     STICKY BAR MÓVIL
+════════════════════════════════ -->
+<div class="hcv3__sticky" id="hcvSticky">
+  <div class="hcv3__sticky-l">
+    <span class="hcv3__sticky-price">{{ product.price | money }}</span>
     {% if product.compare_at_price > product.price %}
-      <span class="hc__sp-old">{{ product.compare_at_price | money }}</span>
+      <span class="hcv3__sticky-old">{{ product.compare_at_price | money }}</span>
     {% endif %}
   </div>
-  <a href="https://wa.me/{{ hc_wa }}?text={{ hc_msg }}" class="hc__sticky-btn" target="_blank" rel="noopener">
+  <a href="https://wa.me/{{ hc_wa }}?text={{ hc_msg }}" class="hcv3__sticky-btn" target="_blank" rel="noopener">
     💚 Pedir ahora
   </a>
 </div>
 
 <style>
-.hc{font-family:var(--font-body--family,system-ui,sans-serif);color:#1C1208;background:#FDFAF7;padding-bottom:8px}
-.hc *{box-sizing:border-box}
+/* ═══════════════════════════════════════
+   HAMSA CONVERSION v3 — Premium
+═══════════════════════════════════════ */
+.hcv3{font-family:var(--font-body--family,system-ui,sans-serif);color:#1C1208;background:#FAFAF7}
+.hcv3 *{box-sizing:border-box}
 
-/* URGENCY */
-.hc__urgency{display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px;background:linear-gradient(135deg,#1C1208,#2D1A10);color:#fff;padding:10px 20px}
-.hc__udot,.hc__vdot{width:8px;height:8px;border-radius:50%;flex-shrink:0;box-shadow:0 0 0 0 rgba(74,222,128,.5);animation:hc-pulse 1.5s infinite}
-.hc__udot{background:#4ADE80}
-.hc__vdot{background:#F59E0B;width:6px;height:6px;animation-delay:.5s}
-@keyframes hc-pulse{0%{box-shadow:0 0 0 0 rgba(74,222,128,.5)}70%{box-shadow:0 0 0 8px rgba(74,222,128,0)}100%{box-shadow:0 0 0 0 rgba(74,222,128,0)}}
-.hc__u-left{display:flex;align-items:center;gap:8px}
-.hc__ulabel{font-size:12px;font-weight:700;color:rgba(255,255,255,.85);white-space:nowrap}
-.hc__utimer{font-size:18px;font-weight:900;color:#FFD700;font-variant-numeric:tabular-nums;letter-spacing:.02em}
-.hc__utimer b{font-weight:900}
-.hc__viewers{display:flex;align-items:center;gap:6px;font-size:11px;color:rgba(255,255,255,.7);white-space:nowrap}
+/* TOP BAR */
+.hcv3__top-bar{display:flex;align-items:center;flex-wrap:wrap;gap:8px;background:linear-gradient(135deg,#1C1208 0%,#2D1A0E 100%);color:#fff;padding:10px 20px;font-size:12px}
+.hcv3__tb-dot{width:8px;height:8px;border-radius:50%;background:#4ADE80;flex-shrink:0;animation:hcv3-pulse 1.5s infinite}
+@keyframes hcv3-pulse{0%{box-shadow:0 0 0 0 rgba(74,222,128,.5)}70%{box-shadow:0 0 0 8px rgba(74,222,128,0)}100%{box-shadow:0 0 0 0 rgba(74,222,128,0)}}
+.hcv3__tb-text{color:rgba(255,255,255,.85);font-weight:600}
+.hcv3__tb-timer{font-size:18px;font-weight:900;color:#FFD700;font-variant-numeric:tabular-nums;letter-spacing:.02em}
+.hcv3__tb-timer b{font-weight:900}
+.hcv3__tb-sep{color:rgba(255,255,255,.3)}
+.hcv3__tb-viewers{color:rgba(255,255,255,.65);font-size:11px}
 
-/* SOCIAL */
-.hc__social{display:flex;align-items:center;gap:8px;flex-wrap:wrap;padding:10px 20px;background:#fff;border-bottom:1px solid rgba(212,82,122,.08)}
-.hc__stars{color:#F59E0B;font-size:13px;letter-spacing:1px}
-.hc__slabel{font-size:12px;font-weight:600;color:#7A6E64}
-.hc__sep{color:rgba(0,0,0,.2);font-size:14px}
-.hc__top{background:linear-gradient(135deg,#FFD700,#F59E0B);border-radius:20px;padding:2px 8px;font-size:11px;font-weight:700;color:#1C1208}
+/* PROOF */
+.hcv3__proof{display:flex;align-items:center;flex-wrap:wrap;gap:8px;padding:10px 20px;background:#fff;border-bottom:1px solid rgba(212,82,122,.1)}
+.hcv3__proof-stars{color:#F59E0B;font-weight:700;font-size:13px}
+.hcv3__proof-stars span{font-size:11px;color:#7A6E64;font-weight:400}
+.hcv3__proof-sold strong,.hcv3__proof-sold{font-size:12px;font-weight:600;color:#7A6E64}
+.hcv3__proof-top{font-size:11px;font-weight:700;color:#1C1208;background:linear-gradient(135deg,#FFD700,#F59E0B);border-radius:20px;padding:2px 10px}
+.hcv3__proof-sep{color:rgba(0,0,0,.15);font-size:16px}
 
 /* TRUST */
-.hc__trust{display:grid;grid-template-columns:repeat(4,1fr);gap:1px;background:rgba(212,82,122,.1);border-top:1px solid rgba(212,82,122,.08);border-bottom:1px solid rgba(212,82,122,.08);overflow:hidden}
-.hc__ti{background:#fff;display:flex;flex-direction:column;align-items:center;text-align:center;padding:14px 8px;gap:4px}
-.hc__ti>span{font-size:22px}
-.hc__ti>strong{font-size:11px;font-weight:700;color:#1C1208;display:block}
-.hc__ti>small{font-size:10px;color:#7A6E64;display:block;line-height:1.3}
+.hcv3__trust{display:grid;grid-template-columns:repeat(4,1fr);gap:1px;background:rgba(212,82,122,.1);border-top:1px solid rgba(212,82,122,.08);border-bottom:1px solid rgba(212,82,122,.08);overflow:hidden}
+.hcv3__tb-item{background:#fff;display:flex;flex-direction:column;align-items:center;text-align:center;padding:14px 6px;gap:3px}
+.hcv3__tbi{font-size:20px}
+.hcv3__tb-item strong{font-size:10px;font-weight:700;color:#1C1208}
+.hcv3__tb-item small{font-size:9px;color:#7A6E64;line-height:1.3}
 
 /* STOCK */
-.hc__stock{padding:14px 20px;background:linear-gradient(135deg,#FFF5F7,#FFF0F4);border-bottom:1px solid rgba(212,82,122,.1)}
-.hc__stock-top{display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;font-size:12px;font-weight:700;color:#C0405F}
-.hc__stock-bar{height:8px;background:rgba(212,82,122,.15);border-radius:20px;overflow:hidden}
-.hc__stock-fill{height:100%;background:linear-gradient(90deg,#C0405F,#D4527A);border-radius:20px;animation:hc-stock 2s ease-out}
-@keyframes hc-stock{from{width:0}}
-.hc__stock-sub{font-size:11px;color:#7A6E64;margin-top:6px;font-weight:600}
+.hcv3__stock{padding:14px 20px;background:linear-gradient(135deg,#FFF5F7,#FFF8F4);border-bottom:1px solid rgba(212,82,122,.08)}
+.hcv3__stock-hd{display:flex;justify-content:space-between;align-items:center;font-size:12px;font-weight:700;color:#C0405F;margin-bottom:8px}
+.hcv3__stock-bar{height:8px;background:rgba(212,82,122,.15);border-radius:20px;overflow:hidden}
+.hcv3__stock-fill{width:23%;height:100%;background:linear-gradient(90deg,#C0405F,#D4527A);border-radius:20px;animation:hcv3-stk 2s ease-out}
+@keyframes hcv3-stk{from{width:0}}
+.hcv3__stock-sub{font-size:11px;color:#7A6E64;margin-top:6px;font-weight:600}
 
 /* WHATSAPP */
-.hc__wa{display:flex;align-items:center;gap:14px;margin:16px 20px;background:linear-gradient(135deg,#075E54,#128C7E,#25D366);color:#fff;text-decoration:none;padding:14px 20px;border-radius:14px;box-shadow:0 6px 24px rgba(37,211,102,.35);transition:transform .25s,box-shadow .25s}
-.hc__wa:hover{transform:translateY(-3px);box-shadow:0 10px 32px rgba(37,211,102,.5);color:#fff}
-.hc__wa>div{flex:1}
-.hc__wa-main{display:block;font-size:15px;font-weight:800}
-.hc__wa-sub{display:block;font-size:11px;color:rgba(255,255,255,.8);margin-top:2px}
+.hcv3__wa{display:flex;align-items:center;gap:14px;margin:16px 20px;background:linear-gradient(135deg,#075E54,#128C7E,#25D366);color:#fff;text-decoration:none;padding:15px 20px;border-radius:16px;box-shadow:0 6px 24px rgba(37,211,102,.35);transition:transform .25s,box-shadow .25s}
+.hcv3__wa:hover{transform:translateY(-2px);box-shadow:0 10px 32px rgba(37,211,102,.5);color:#fff}
+.hcv3__wa-txt{flex:1}
+.hcv3__wa-txt strong{display:block;font-size:14px;font-weight:800}
+.hcv3__wa-txt span{display:block;font-size:11px;color:rgba(255,255,255,.8);margin-top:2px}
+.hcv3__wa-arr{font-size:22px;font-weight:700;flex-shrink:0}
+
+/* BUNDLE */
+.hcv3__bundle{margin:0;border-top:3px solid #D4527A;background:#fff}
+.hcv3__bundle-hd{background:linear-gradient(135deg,#1C1208,#2D1810);padding:20px 20px 16px;color:#fff}
+.hcv3__bundle-badge{display:inline-flex;align-items:center;gap:6px;background:rgba(255,215,0,.15);border:1px solid rgba(255,215,0,.4);color:#FFD700;font-size:10px;font-weight:800;letter-spacing:.12em;padding:3px 12px;border-radius:20px;margin-bottom:10px;text-transform:uppercase}
+.hcv3__bd-dot{width:6px;height:6px;border-radius:50%;background:#FFD700;animation:hcv3-pulse 1.5s infinite}
+.hcv3__bundle-title{font-size:clamp(1.1rem,4vw,1.5rem);font-weight:900;color:#fff;margin:0 0 12px;line-height:1.25}
+.hcv3__bundle-timer-row{display:flex;align-items:center;gap:6px;flex-wrap:wrap;font-size:12px;color:rgba(255,255,255,.7)}
+.hcv3__bd-dot2{width:6px;height:6px;border-radius:50%;background:#4ADE80;flex-shrink:0;animation:hcv3-pulse 1.5s .3s infinite}
+.hcv3__bundle-clock{font-size:16px;font-weight:900;color:#FFD700;font-variant-numeric:tabular-nums}
+.hcv3__bundle-scarce{color:#F87171;font-weight:700;font-size:11px}
+
+/* COMPARE */
+.hcv3__compare{display:flex;align-items:center;gap:10px;padding:16px 20px 12px;flex-wrap:wrap}
+.hcv3__cmp-item{flex:1;min-width:110px;background:rgba(255,255,255,.06);border-radius:12px;padding:12px;text-align:center;border:1px solid rgba(255,255,255,.1)}
+.hcv3__bundle .hcv3__compare{background:linear-gradient(135deg,#1C1208,#2D1810);border-bottom:1px solid rgba(255,255,255,.08)}
+.hcv3__cmp-lbl{display:block;font-size:10px;text-transform:uppercase;letter-spacing:.1em;color:rgba(255,255,255,.55);margin-bottom:4px}
+.hcv3__cmp-price{display:block;font-size:18px;font-weight:900;color:#FFD700}
+.hcv3__cmp-bad .hcv3__cmp-price{color:rgba(255,255,255,.4);text-decoration:line-through;font-size:15px}
+.hcv3__cmp-sub{display:block;font-size:11px;color:rgba(255,255,255,.55);margin-top:3px}
+.hcv3__cmp-good .hcv3__cmp-sub{color:#4ADE80;font-weight:700}
+.hcv3__cmp-good{background:rgba(212,82,122,.25);border-color:rgba(212,82,122,.5);box-shadow:0 0 20px rgba(212,82,122,.25)}
+.hcv3__cmp-arrow{color:#D4527A;font-size:22px;font-weight:900;flex-shrink:0}
+
+/* PILLS */
+.hcv3__pills{display:flex;gap:6px;flex-wrap:wrap;padding:0 20px 16px;background:linear-gradient(135deg,#1C1208,#2D1810)}
+.hcv3__pills span{font-size:10px;font-weight:600;background:rgba(255,255,255,.1);border-radius:20px;padding:4px 10px;color:rgba(255,255,255,.8);white-space:nowrap}
+
+/* PAIRS */
+.hcv3__pairs{display:flex;align-items:center;gap:10px;padding:20px;background:#fff;border-bottom:1px solid rgba(212,82,122,.08)}
+.hcv3__pair{flex:1;text-align:center}
+.hcv3__pair-num{font-size:10px;font-weight:800;color:#D4527A;text-transform:uppercase;letter-spacing:.1em;margin-bottom:8px;display:flex;align-items:center;justify-content:center;gap:4px}
+.hcv3__pair-off{background:#D4527A;color:#fff;font-size:9px;padding:1px 6px;border-radius:20px}
+.hcv3__pair-img{width:80px;height:80px;object-fit:cover;border-radius:12px;border:2px solid rgba(212,82,122,.2);display:block;margin:0 auto 8px}
+.hcv3__pair-empty{width:80px;height:80px;border-radius:12px;border:2px dashed rgba(212,82,122,.4);background:linear-gradient(135deg,#FFF0F4,#F5E6FF);display:flex;align-items:center;justify-content:center;margin:0 auto 8px;font-size:28px;color:rgba(212,82,122,.4);cursor:pointer;position:relative}
+.hcv3__pair-name{font-size:11px;font-weight:700;color:#1C1208;line-height:1.3;margin-bottom:4px}
+.hcv3__pair-price{font-size:13px;font-weight:800;color:#D4527A}
+.hcv3__pair-free{color:#25D366!important;font-size:11px!important}
+.hcv3__choose-btn{margin-top:8px;font-size:11px;font-weight:700;color:#D4527A;background:rgba(212,82,122,.1);border:1.5px solid rgba(212,82,122,.3);border-radius:20px;padding:5px 12px;cursor:pointer;font-family:inherit;transition:background .2s}
+.hcv3__choose-btn:hover{background:rgba(212,82,122,.2)}
+.hcv3__plus{font-size:26px;font-weight:900;color:#D4527A;flex-shrink:0}
+
+/* CATALOG */
+.hcv3__catalog{max-height:0;overflow:hidden;transition:max-height .4s ease;background:#fff;border-top:1px solid rgba(212,82,122,.08)}
+.hcv3__catalog.open{max-height:340px;overflow-y:auto}
+.hcv3__cat-hd{display:flex;justify-content:space-between;align-items:center;padding:12px 16px;font-weight:700;font-size:13px;border-bottom:1px solid rgba(212,82,122,.08);position:sticky;top:0;background:#fff;z-index:1}
+.hcv3__cat-close{background:none;border:none;cursor:pointer;font-size:16px;color:#7A6E64;padding:4px;line-height:1}
+.hcv3__cat-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;padding:14px}
+.hcv3__prod{background:none;border:2px solid rgba(212,82,122,.15);border-radius:12px;padding:8px;cursor:pointer;text-align:center;font-family:inherit;transition:border-color .2s,background .2s,transform .15s}
+.hcv3__prod:hover{border-color:#D4527A;background:rgba(212,82,122,.05);transform:translateY(-2px)}
+.hcv3__prod.selected{border-color:#D4527A;background:rgba(212,82,122,.1)}
+.hcv3__prod img{width:72px;height:72px;object-fit:cover;border-radius:8px;display:block;margin:0 auto 5px}
+.hcv3__prod-name{display:block;font-size:10px;font-weight:600;color:#1C1208;margin-bottom:2px;line-height:1.3}
+.hcv3__prod-price{display:block;font-size:11px;font-weight:800;color:#D4527A}
+
+/* BUNDLE CTA */
+.hcv3__bundle-cta{padding:16px 20px 20px;background:#fff}
+.hcv3__total{background:linear-gradient(135deg,#FFF0F4,#FDFAF7);border-radius:12px;padding:14px;margin-bottom:14px;border:1px solid rgba(212,82,122,.1)}
+.hcv3__total-row{display:flex;justify-content:space-between;align-items:center;font-size:13px;margin-bottom:6px}
+.hcv3__total-main{font-size:15px;font-weight:800}
+.hcv3__total-old{text-decoration:line-through;color:#9CA3AF}
+.hcv3__total-price{color:#D4527A;font-size:22px;font-weight:900}
+.hcv3__total-save{font-size:12px;font-weight:700;color:#059669;background:rgba(5,150,105,.08);border-radius:8px;padding:6px 10px;text-align:center}
+.hcv3__bundle-btn{position:relative;overflow:hidden;width:100%;padding:17px;background:linear-gradient(135deg,#C0405F,#D4527A,#E0607A);color:#fff;font-size:16px;font-weight:800;border:none;border-radius:50px;cursor:pointer;letter-spacing:.02em;font-family:inherit;box-shadow:0 6px 24px rgba(192,64,95,.45);transition:transform .25s cubic-bezier(.34,1.56,.64,1),box-shadow .25s,opacity .2s;margin-bottom:12px}
+.hcv3__bundle-btn:disabled{opacity:.5;cursor:not-allowed;transform:none!important}
+.hcv3__bundle-btn:not(:disabled):hover{transform:translateY(-3px);box-shadow:0 10px 32px rgba(192,64,95,.6)}
+.hcv3__btn-shine{position:absolute;top:0;left:-75%;width:50%;height:100%;background:linear-gradient(90deg,transparent,rgba(255,255,255,.3),transparent);transform:skewX(-20deg);animation:hcv3-shine 3s infinite}
+@keyframes hcv3-shine{0%{left:-75%;opacity:0}10%{opacity:1}40%{left:120%;opacity:0}100%{left:120%;opacity:0}}
+.hcv3__microcopy{text-align:center;font-size:11px;color:#9CA3AF}
 
 /* GUARANTEE */
-.hc__guarantee{display:flex;align-items:flex-start;gap:14px;margin:0 20px 16px;background:#fff;border:1.5px solid rgba(212,82,122,.2);border-radius:12px;padding:14px}
-.hc__guarantee>div strong{display:block;font-size:13px;font-weight:800;color:#1C1208;margin-bottom:4px}
-.hc__guarantee>div span{font-size:12px;color:#7A6E64;line-height:1.5}
+.hcv3__guarantee{display:flex;align-items:flex-start;gap:14px;margin:16px 20px;background:#fff;border:1.5px solid rgba(212,82,122,.2);border-radius:14px;padding:16px}
+.hcv3__gicon{font-size:30px;flex-shrink:0}
+.hcv3__guarantee strong{display:block;font-size:13px;font-weight:800;color:#1C1208;margin-bottom:4px}
+.hcv3__guarantee span{font-size:12px;color:#7A6E64;line-height:1.5}
 
-/* LIVE TOAST */
-.hc__toast{display:flex;align-items:center;gap:10px;background:#fff;border:1px solid rgba(212,82,122,.15);border-radius:10px;padding:10px 14px;font-size:12px;color:#1C1208;animation:hc-slide .4s ease;box-shadow:0 2px 12px rgba(0,0,0,.06)}
-@keyframes hc-slide{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:translateY(0)}}
+/* LIVE FOMO */
+#hcvLive{margin:0 20px 10px;min-height:0}
+.hcv3__toast{display:flex;align-items:center;gap:10px;background:#fff;border:1px solid rgba(212,82,122,.15);border-radius:10px;padding:10px 14px;font-size:12px;color:#1C1208;animation:hcv3-in .4s ease;box-shadow:0 2px 12px rgba(0,0,0,.06)}
+@keyframes hcv3-in{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:translateY(0)}}
 
 /* REVIEWS */
-.hc__reviews{padding:20px 20px 8px;border-top:1px solid rgba(212,82,122,.08)}
-.hc__rev-head{display:flex;align-items:center;gap:8px;margin-bottom:16px;flex-wrap:wrap}
-.hc__rev-head strong{font-size:16px;font-weight:800;color:#1C1208}
-.hc__review{background:#fff;border:1px solid rgba(212,82,122,.1);border-radius:12px;padding:14px;margin-bottom:12px}
-.hc__rev-row{display:flex;align-items:center;gap:10px;margin-bottom:8px;flex-wrap:wrap}
-.hc__av{width:36px;height:36px;border-radius:50%;flex-shrink:0;display:flex;align-items:center;justify-content:center;color:#fff;font-size:16px;font-weight:800}
-.hc__rev-row>div{flex:1}
-.hc__rev-row strong{display:block;font-size:13px;font-weight:700;color:#1C1208}
-.hc__rstars{color:#F59E0B;font-size:11px}
-.hc__badge{font-size:10px;color:#059669;font-weight:600;background:rgba(5,150,105,.08);padding:2px 8px;border-radius:20px;white-space:nowrap}
-.hc__review p{font-size:13px;color:#7A6E64;line-height:1.6;margin:0 0 6px}
-.hc__review small{font-size:11px;color:rgba(0,0,0,.35)}
+.hcv3__reviews{padding:20px;border-top:1px solid rgba(212,82,122,.08)}
+.hcv3__rev-hd{display:flex;align-items:center;gap:8px;margin-bottom:16px;flex-wrap:wrap}
+.hcv3__rev-stars{color:#F59E0B;font-size:16px}
+.hcv3__rev-hd strong{font-size:16px;font-weight:800}
+.hcv3__rev-count{font-size:12px;color:#7A6E64}
+.hcv3__review{background:#fff;border:1px solid rgba(212,82,122,.1);border-radius:12px;padding:14px;margin-bottom:12px}
+.hcv3__rev-row{display:flex;align-items:center;gap:10px;margin-bottom:8px;flex-wrap:wrap}
+.hcv3__av{width:36px;height:36px;border-radius:50%;flex-shrink:0;display:flex;align-items:center;justify-content:center;color:#fff;font-size:16px;font-weight:800}
+.hcv3__rev-row>div{flex:1}
+.hcv3__rev-row strong{display:block;font-size:13px;font-weight:700}
+.hcv3__rs{color:#F59E0B;font-size:11px}
+.hcv3__vbadge{font-size:10px;color:#059669;font-weight:600;background:rgba(5,150,105,.08);padding:2px 8px;border-radius:20px;white-space:nowrap}
+.hcv3__review p{font-size:13px;color:#7A6E64;line-height:1.6;margin:0 0 6px}
+.hcv3__review small{font-size:11px;color:rgba(0,0,0,.3)}
 
-/* STICKY (móvil) */
-.hc__sticky{display:none;position:fixed;bottom:56px;left:0;right:0;z-index:9996;background:#fff;border-top:1px solid rgba(212,82,122,.2);padding:10px 16px;align-items:center;gap:12px;box-shadow:0 -4px 20px rgba(0,0,0,.1)}
-.hc__sticky-price{flex:1}
-.hc__sp-main{font-size:18px;font-weight:800;color:#D4527A;display:block}
-.hc__sp-old{font-size:12px;text-decoration:line-through;color:#7A6E64}
-.hc__sticky-btn{background:linear-gradient(135deg,#128C7E,#25D366);color:#fff;font-size:14px;font-weight:800;padding:12px 20px;border-radius:50px;text-decoration:none;white-space:nowrap;box-shadow:0 4px 16px rgba(37,211,102,.4)}
+/* STICKY MÓVIL */
+.hcv3__sticky{display:none;position:fixed;bottom:56px;left:0;right:0;z-index:9996;background:#fff;border-top:1px solid rgba(212,82,122,.15);padding:10px 16px;align-items:center;gap:12px;box-shadow:0 -4px 20px rgba(0,0,0,.08)}
+.hcv3__sticky-l{flex:1}
+.hcv3__sticky-price{font-size:18px;font-weight:900;color:#D4527A;display:block}
+.hcv3__sticky-old{font-size:12px;text-decoration:line-through;color:#9CA3AF}
+.hcv3__sticky-btn{background:linear-gradient(135deg,#128C7E,#25D366);color:#fff;font-size:14px;font-weight:800;padding:12px 22px;border-radius:50px;text-decoration:none;white-space:nowrap;box-shadow:0 4px 16px rgba(37,211,102,.4)}
 
+/* RESPONSIVE */
 @media(max-width:767px){
-  .hc__sticky{display:flex}
-  .hc__trust{grid-template-columns:repeat(2,1fr)}
-  .hc__urgency{padding:8px 14px}
-  .hc__ulabel{font-size:11px}
-  .hc__utimer{font-size:16px}
-  .hc__wa{margin:12px 14px;padding:12px 16px}
-  .hc__guarantee{margin:0 14px 12px}
-  .hc__reviews{padding:16px 14px}
-  .hc__stock{padding:12px 14px}
-  .hc__social{padding:8px 14px}
-  body{padding-bottom:56px}
+  .hcv3__sticky{display:flex}
+  .hcv3__trust{grid-template-columns:repeat(2,1fr)}
+  .hcv3__top-bar{padding:8px 14px;font-size:11px}
+  .hcv3__tb-timer{font-size:15px}
+  .hcv3__wa{margin:12px 14px;padding:12px 14px}
+  .hcv3__stock{padding:12px 14px}
+  .hcv3__proof{padding:8px 14px}
+  .hcv3__reviews{padding:16px 14px}
+  .hcv3__guarantee{margin:12px 14px}
+  .hcv3__cat-grid{grid-template-columns:repeat(2,1fr)}
+  body{padding-bottom:56px!important}
 }
 </style>
 
 <script>
 (function(){
-  /* TIMER */
-  var KEY='hctmr',SECS=14*60+59;
+  /* ── TIMER URGENCIA ── */
+  var SECS=14*60+59,KEY='hcv3tmr';
   function loadT(){try{var d=JSON.parse(localStorage.getItem(KEY)||'null');if(d&&d.exp>Date.now())return Math.floor((d.exp-Date.now())/1000);}catch(e){}var exp=Date.now()+SECS*1000;try{localStorage.setItem(KEY,JSON.stringify({exp:exp}));}catch(e){}return SECS;}
   var rem=loadT();
   function pad(n){return n<10?'0'+n:''+n;}
   function tick(){
     if(rem<=0){rem=SECS;try{localStorage.removeItem(KEY);}catch(e){}}
     var h=Math.floor(rem/3600),m=Math.floor((rem%3600)/60),s=rem%60;
-    var eH=document.getElementById('hcH'),eM=document.getElementById('hcM'),eS=document.getElementById('hcS');
-    if(eH)eH.textContent=pad(h);
-    if(eM)eM.textContent=pad(m);
-    if(eS)eS.textContent=pad(s);
+    ['hcvH','hcvM','hcvS'].forEach(function(id,i){var el=document.getElementById(id);if(el)el.textContent=pad([h,m,s][i]);});
     rem--;
   }
   tick();setInterval(tick,1000);
 
-  /* VIEWERS */
-  var vcEl=document.getElementById('hcVC');
-  var vc=Math.floor(Math.random()*15)+8;
+  /* ── TIMER BUNDLE ── */
+  var brem=14*60+59,btEl=document.getElementById('hcvBT');
+  function btick(){if(brem<=0)brem=14*60+59;var m=Math.floor(brem/60),s=brem%60;if(btEl)btEl.textContent=pad(m)+':'+pad(s);brem--;}
+  btick();setInterval(btick,1000);
+
+  /* ── VIEWERS ── */
+  var vcEl=document.getElementById('hcvVC');
+  var vc=Math.floor(Math.random()*14)+8;
   if(vcEl)vcEl.textContent=vc;
   setInterval(function(){vc=Math.max(6,Math.min(28,vc+(Math.random()<.5?1:-1)));if(vcEl)vcEl.textContent=vc;},7000);
 
-  /* LIVE FOMO */
+  /* ── LIVE FOMO ── */
   var cities=['Bogotá','Medellín','Cali','Barranquilla','Bucaramanga','Pereira','Cartagena','Santa Marta'];
-  var names=['María','Laura','Andrea','Valentina','Camila','Daniela','Sofía','Paula'];
-  var feed=document.getElementById('hcLive');
+  var names=['María','Laura','Andrea','Valentina','Camila','Daniela','Sofía','Paula','Isabella','Natalia'];
+  var feed=document.getElementById('hcvLive');
   var tt=null;
   function showToast(){
     if(!feed)return;
     var c=cities[Math.floor(Math.random()*cities.length)],n=names[Math.floor(Math.random()*names.length)],mn=Math.floor(Math.random()*25)+2;
     var msgs=['¡Acaba de comprar! <strong>'+n+'</strong> de '+c+' hace '+mn+' min','<strong>'+n+'</strong> de '+c+' aprovechó la oferta 2×1 🎉','¡Vendido! <strong>'+n+'</strong> en '+c+' aseguró su par ✓'];
-    var t=document.createElement('div');
-    t.className='hc__toast';
+    var t=document.createElement('div');t.className='hcv3__toast';
     t.innerHTML='<span style="font-size:18px">🛍️</span><span>'+msgs[Math.floor(Math.random()*msgs.length)]+'</span>';
-    feed.innerHTML='';feed.appendChild(t);
-    clearTimeout(tt);tt=setTimeout(function(){if(feed)feed.innerHTML='';},5000);
+    feed.innerHTML='';feed.appendChild(t);clearTimeout(tt);tt=setTimeout(function(){if(feed)feed.innerHTML='';},5000);
   }
-  setTimeout(function(){showToast();setInterval(showToast,Math.random()*15000+20000);},Math.random()*6000+4000);
+  setTimeout(function(){showToast();setInterval(showToast,Math.random()*15000+20000);},Math.random()*5000+3000);
+
+  /* ── CATALOG BUNDLE ── */
+  var chooseBtn=document.getElementById('hcvChooseBtn');
+  var catalog=document.getElementById('hcvCatalog');
+  var catClose=document.getElementById('hcvCatClose');
+  var grid=document.getElementById('hcvCatGrid');
+  var pairBImg=document.getElementById('hcvPairBImg');
+  var pairBName=document.getElementById('hcvPairBName');
+  var pairBPrice=document.getElementById('hcvPairBPrice');
+  var addBtn=document.getElementById('hcvAddBtn');
+  var btnTxt=document.getElementById('hcvBtnTxt');
+  var selVariant=null;
+
+  function openCat(){if(catalog)catalog.classList.add('open');}
+  function closeCat(){if(catalog)catalog.classList.remove('open');}
+  if(chooseBtn)chooseBtn.addEventListener('click',openCat);
+  if(catClose)catClose.addEventListener('click',closeCat);
+
+  if(grid){
+    grid.addEventListener('click',function(e){
+      var btn=e.target.closest('.hcv3__prod');
+      if(!btn)return;
+      grid.querySelectorAll('.hcv3__prod').forEach(function(b){b.classList.remove('selected');});
+      btn.classList.add('selected');
+      selVariant=btn.dataset.variant;
+      if(pairBImg){pairBImg.innerHTML='<img src="'+btn.dataset.img+'" alt="'+btn.dataset.title+'" width="80" height="80" style="width:80px;height:80px;object-fit:cover;border-radius:12px;border:2px solid rgba(212,82,122,.3)">';pairBImg.className='hcv3__pair-img-sel';}
+      if(pairBName)pairBName.textContent=btn.dataset.title;
+      if(pairBPrice){pairBPrice.textContent='¡GRATIS con la oferta!';pairBPrice.className='hcv3__pair-free';}
+      if(chooseBtn)chooseBtn.textContent='✓ Cambiarlo';
+      if(addBtn)addBtn.disabled=false;
+      if(btnTxt)btnTxt.textContent='🛒 Agregar los 2 pares al carrito';
+      closeCat();
+    });
+  }
+
+  /* ── ADD TO CART BUNDLE ── */
+  if(addBtn){
+    addBtn.addEventListener('click',function(){
+      if(!selVariant||addBtn.disabled)return;
+      addBtn.disabled=true;
+      if(btnTxt)btnTxt.textContent='Agregando...';
+      var varA={{ product.first_available_variant.id | json }};
+      fetch('/cart/add.js',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({items:[{id:varA,quantity:1},{id:parseInt(selVariant),quantity:1}]})})
+      .then(function(r){return r.json();})
+      .then(function(){
+        if(btnTxt)btnTxt.textContent='✓ ¡Agregados! Redirigiendo...';
+        addBtn.style.background='linear-gradient(135deg,#059669,#10B981)';
+        setTimeout(function(){window.location.href='/cart';},1200);
+      })
+      .catch(function(){addBtn.disabled=false;if(btnTxt)btnTxt.textContent='Error — Intenta de nuevo';});
+    });
+  }
 })();
 </script>
