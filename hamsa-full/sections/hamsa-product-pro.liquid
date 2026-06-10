@@ -244,7 +244,7 @@
 .hpp3__modal-wa:hover { background:#1DA851; color:#fff; }
 
 /* WA button */
-.hpp3__wa {
+.hpp3__wa { position:relative; overflow:hidden;
   display:flex; align-items:center; gap:12px; width:100%;
   padding:15px 18px; margin:0 0 10px;
   background:linear-gradient(135deg,#0d6b30,#25D366);
@@ -253,7 +253,8 @@
   transition:transform .15s, box-shadow .15s;
   position:relative; overflow:hidden;
 }
-.hpp3__wa:hover { transform:translateY(-2px); box-shadow:0 8px 28px rgba(37,211,102,.4); color:#fff; }
+.hpp3__wa:hover { transform:translateY(-3px); box-shadow:0 10px 32px rgba(37,211,102,.65); color:#fff; animation:none; }
+.hpp3__wa { animation:hmsa-wa-pulse 2.2s cubic-bezier(.4,0,.6,1) infinite; }
 .hpp3__wa-text { flex:1; display:flex; flex-direction:column; gap:2px; }
 .hpp3__wa-text strong { font-size:14px; font-weight:800; }
 .hpp3__wa-text span { font-size:11px; opacity:.85; }
@@ -270,6 +271,19 @@
 .hpp3__guarantee div { display:flex; flex-direction:column; gap:3px; }
 .hpp3__guarantee strong { font-size:12px; font-weight:700; color:var(--rose); }
 .hpp3__guarantee span { font-size:11px; color:var(--muted); line-height:1.5; }
+
+@keyframes hmsa-shine {
+  0%   { left: -75%; opacity: 0; }
+  10%  { opacity: 1; }
+  40%  { left: 120%; opacity: 0; }
+  100% { left: 120%; opacity: 0; }
+}
+@keyframes hmsa-wa-pulse {
+  0%   { box-shadow: 0 0 0 0 rgba(37,211,102,.5); }
+  70%  { box-shadow: 0 0 0 10px rgba(37,211,102,0); }
+  100% { box-shadow: 0 0 0 0 rgba(37,211,102,0); }
+}
+
 </style>
 
 <script>
