@@ -13,34 +13,7 @@
         "padding-block-start": 0,
         "padding-block-end": 0
       }
-    },
-    "hamsa_product_pro": {
-      "type": "hamsa-product-pro",
-      "settings": {
-        "show_urgency": true,
-        "timer_min": 14,
-        "timer_sec": 59,
-        "reviews_count": 87,
-        "sold_count": 342,
-        "show_stock_bar": true,
-        "stock_pct": 23,
-        "show_wa": true,
-        "wa_number": "3508258757",
-        "show_guarantee": true
-      }
-    },
-    "hamsa_bundle": {
-      "type": "hamsa-bundle",
-      "settings": {
-        "title": "🔥 Lleva 2 Pares y Ahorra $79.900",
-        "savings_label": "¡Ahorras $79.900!",
-        "compare_price": "$239.800",
-        "bundle_price": "15990000",
-        "timer_min": 14,
-        "timer_sec": 59,
-        "limit": 12
-      }
     }
   },
-  "order": ["main", "hamsa_product_pro", "hamsa_bundle"]
+  "order": ["main"]
 }
