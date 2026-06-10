@@ -270,10 +270,7 @@
       "settings": {
         "enabled": true,
         "badge_url": "/pages/oferta-2x1",
-        "position": "right",
-        "bg_color": "#FDFAF7",
-        "text_color": "#ffffff",
-        "accent_color": "#D4527A"
+        "position": "right"
       }
     },
     "hamsa_urgency_ac5351c1": {
