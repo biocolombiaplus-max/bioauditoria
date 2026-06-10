@@ -16,22 +16,22 @@
         "hero_image": "shopify://shop_images/mujer_de_25_202603310813.jpg",
         "image_alt": "Calzado Hamsa",
         "image_radius": 30,
-        "eyebrow": "Nueva Colección",
-        "heading": "Sandalias que elevan tu estilo",
-        "subtext": "Diseños exclusivos, femeninos y elegantes. Compra fácil con pago contra entrega a todo Colombia.",
+        "eyebrow": "✨ Colección 2025",
+        "heading": "Sandalias que te hacen brillar",
+        "subtext": "Diseños exclusivos para la mujer colombiana. Envío gratis, pago al recibir y cambio de talla sin costo.",
         "badge1": "🚚 Envío gratis",
         "badge2": "💵 Contra entrega",
         "badge3": "🔒 Compra segura",
-        "btn1_text": "Ver catálogo",
+        "btn1_text": "🛍️ Ver colección",
         "btn1_url": "shopify://collections/all",
-        "btn2_text": "Ver ofertas",
+        "btn2_text": "💥 Oferta 2×1",
         "btn2_url": "shopify://pages/2x1-sandalias-femeninas-colombia",
         "show_whatsapp": true,
         "wa_country": "57",
         "wa_number": "3508258757",
         "wa_message": "Hola, quiero ver el catálogo de Hamsa Shoes",
-        "floating_badge": "✨ Nueva colección 2025",
-        "floating_stat": "+2.000 clientas felices",
+        "floating_badge": "⭐ Nuevo ingreso",
+        "floating_stat": "+2.400 clientas felices",
         "bg_color": "#FDFAF7",
         "text_color": "#1C1208",
         "muted_color": "#7A6E64",
@@ -51,10 +51,10 @@
       "settings": {
         "collection": "frontpage",
         "limit": 8,
-        "columns": "5",
-        "eyebrow": "Más vendidos",
-        "heading": "Nuestras sandalias",
-        "subtext": "Diseños exclusivos para cada ocasión",
+        "columns": "4",
+        "eyebrow": "Los más vendidos",
+        "heading": "Las sandalias favoritas de Colombia",
+        "subtext": "Más de 2.400 mujeres ya las tienen. ¿Cuál es la tuya?",
         "btn_text": "Ver todo el catálogo",
         "btn_url": "shopify://collections/all",
         "base_reviews": 42,
@@ -82,32 +82,32 @@
           "type": "benefit",
           "settings": {
             "icon": "star",
-            "title": "Productos Garantizado",
-            "text": "Fácil cambio por talla u otra situación"
+            "title": "Calidad garantizada",
+            "text": "Materiales premium, cambio fácil si algo no queda perfecto."
           }
         },
         "benefit_WACrJi": {
           "type": "benefit",
           "settings": {
             "icon": "shield",
-            "title": "Pagos Seguros",
-            "text": "Todos los medios de pago con WOMPI"
+            "title": "Pago 100% seguro",
+            "text": "WOMPI, tarjeta, transferencia o paga al recibir."
           }
         },
         "benefit_tMw7rh": {
           "type": "benefit",
           "settings": {
             "icon": "payment",
-            "title": "Pago Contra Entrega",
-            "text": "Recibe tu pedido sin costo adicional."
+            "title": "Contra entrega",
+            "text": "Paga cuando el paquete llega a tu puerta. Sin riesgo."
           }
         },
         "benefit_cUcgyV": {
           "type": "benefit",
           "settings": {
             "icon": "truck",
-            "title": "Envío gratis a Colombia",
-            "text": "Recibe tu pedido sin costo adicional."
+            "title": "Envío gratis Colombia",
+            "text": "A toda Colombia sin costo adicional. Llegamos a tu ciudad."
           }
         }
       },
@@ -118,7 +118,7 @@
         "benefit_cUcgyV"
       ],
       "settings": {
-        "heading": "Por qué comprarnos",
+        "heading": "¿Por qué elegir Hamsa Shoes?",
         "bg_color": "#FDFAF7",
         "card_color": "#FFFFFF",
         "text_color": "#1C1208",
@@ -137,13 +137,13 @@
         "floating_label": "✨ Nueva temporada",
         "reverse": false,
         "radius": 20,
-        "eyebrow": "Editorial Hamsa",
-        "heading": "Sandalias que transforman tu look",
-        "text": "",
-        "btn_text": "Ver colección",
+        "eyebrow": "✨ Editorial Hamsa 2025",
+        "heading": "Elegancia que se siente en cada paso",
+        "text": "Sandalias diseñadas para la mujer que quiere verse increíble sin sacrificar comodidad.",
+        "btn_text": "Ver colección completa",
         "btn_url": "shopify://collections/all",
         "show_wa": true,
-        "wa_text": "Comprar por WhatsApp",
+        "wa_text": "💬 Pedir por WhatsApp",
         "wa_country": "57",
         "wa_number": "3508258757",
         "wa_message": "Hola, quiero comprar",
@@ -221,7 +221,7 @@
       ],
       "settings": {
         "heading": "Lo que dicen nuestras clientas",
-        "subtext": "",
+        "subtext": "Más de 2.400 colombianas ya son parte de la familia Hamsa",
         "bg_color": "#FDFAF7",
         "card_color": "#FFFFFF",
         "text_color": "#1C1208",
@@ -237,13 +237,13 @@
       "type": "hamsa-home-cta",
       "settings": {
         "image": "shopify://shop_images/mujer_de_25_202603310813_1.jpg",
-        "eyebrow": "Calzado Hamsa",
-        "heading": "Encuentra tus favoritas hoy",
-        "text": "Sandalias elegantes, femeninas y listas para transformar tu look. Compra rápida, segura y con envío gratis.",
+        "eyebrow": "¿Lista para lucir espectacular?",
+        "heading": "Encuentra tus sandalias perfectas hoy",
+        "text": "Miles de mujeres en Colombia ya las tienen. Paga al recibir, envío gratis, cambio de talla sin costo.",
         "trust1": "Envío gratis",
         "trust2": "Pago contra entrega",
-        "trust3": "Colombia y Venezuela",
-        "btn_text": "Ver catálogo",
+        "trust3": "Cambio de talla gratis",
+        "btn_text": "🛍️ Comprar ahora",
         "btn_url": "shopify://collections/all",
         "show_wa": true,
         "wa_btn_text": "Comprar por WhatsApp",
