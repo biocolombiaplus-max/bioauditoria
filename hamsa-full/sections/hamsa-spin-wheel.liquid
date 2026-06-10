@@ -1,0 +1,473 @@
+{% comment %}hamsa-spin-wheel — exit intent premium{% endcomment %}
+
+<div id="hswOv" class="hsw-ov" aria-hidden="true">
+  <div class="hsw-bd" id="hswBd"></div>
+  <div class="hsw-modal" role="dialog" aria-modal="true" aria-label="Ruleta de premios">
+
+    <button class="hsw-x" id="hswX" aria-label="Cerrar">&#10005;</button>
+
+    <!-- LADO IZQUIERDO: Ruleta -->
+    <div class="hsw-left">
+      <div class="hsw-wheel-wrap">
+        <div class="hsw-pointer">&#9660;</div>
+        <div class="hsw-ring">
+          <canvas id="hswCanvas" width="240" height="240"></canvas>
+          <div class="hsw-hub"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- LADO DERECHO: Copy + Form -->
+    <div class="hsw-right">
+      <div class="hsw-tag">&#127381; OFERTA EXCLUSIVA</div>
+      <h2 class="hsw-title">Gira y gana<br><span>1 par gratis</span></h2>
+      <p class="hsw-copy">Ingresa tu correo y gira &mdash; podr&iacute;as llevarte un par de sandalias sin pagar nada</p>
+
+      <div class="hsw-prizes">
+        <div class="hsw-prize-item hsw-prize-gold">
+          <span class="hsw-prize-dot"></span>1 par GRATIS
+        </div>
+        <div class="hsw-prize-item hsw-prize-red">
+          <span class="hsw-prize-dot"></span>20% descuento
+        </div>
+        <div class="hsw-prize-item hsw-prize-orange">
+          <span class="hsw-prize-dot"></span>10% descuento
+        </div>
+        <div class="hsw-prize-item hsw-prize-green">
+          <span class="hsw-prize-dot"></span>Env&iacute;o gratis
+        </div>
+      </div>
+
+      <div class="hsw-form-wrap" id="hswFormWrap">
+        <div class="hsw-input-wrap">
+          <span class="hsw-input-icon">&#9993;</span>
+          <input type="email" id="hswEmail" class="hsw-input"
+                 placeholder="tu@correo.com" autocomplete="email">
+        </div>
+        <button class="hsw-btn" id="hswBtn" type="button">
+          &#127922; &iexcl;Girar y descubrir!
+        </button>
+        <p class="hsw-fine">Sin spam &middot; Solo ofertas exclusivas de Hamsa Shoes</p>
+      </div>
+
+      <div class="hsw-result-wrap" id="hswResultWrap" style="display:none">
+        <div class="hsw-result-icon" id="hswRIcon"></div>
+        <p class="hsw-result-title" id="hswRTitle"></p>
+        <p class="hsw-result-sub" id="hswRSub"></p>
+        <button class="hsw-btn hsw-btn-green" id="hswRBtn">Ver colecci&oacute;n &#8594;</button>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<style>
+/* ── OVERLAY ── */
+.hsw-ov{
+  position:fixed;inset:0;z-index:999999;
+  display:flex;align-items:center;justify-content:center;
+  padding:12px;
+  opacity:0;pointer-events:none;
+  transition:opacity .3s ease;
+}
+.hsw-ov.hsw-show{opacity:1;pointer-events:all;}
+.hsw-bd{
+  position:absolute;inset:0;
+  background:rgba(0,0,0,.72);
+  backdrop-filter:blur(8px);
+  -webkit-backdrop-filter:blur(8px);
+}
+
+/* ── MODAL: horizontal en desktop, vertical en mobile ── */
+.hsw-modal{
+  position:relative;z-index:1;
+  display:flex;align-items:center;gap:0;
+  background:#111;
+  border-radius:20px;
+  overflow:hidden;
+  box-shadow:0 24px 80px rgba(0,0,0,.9),0 0 0 1px rgba(0,0,0,.05);
+  max-width:680px;width:100%;
+  animation:hsw-up .4s cubic-bezier(.34,1.56,.64,1) both;
+}
+@keyframes hsw-up{
+  from{opacity:0;transform:translateY(32px) scale(.96)}
+  to{opacity:1;transform:none}
+}
+@media(max-width:540px){
+  .hsw-modal{flex-direction:column;max-width:340px;}
+}
+
+/* ── CERRAR ── */
+.hsw-x{
+  position:absolute;top:14px;right:14px;z-index:10;
+  width:34px;height:34px;border-radius:50%;
+  background:rgba(0,0,0,.07);border:1.5px solid rgba(255,255,255,.18);
+  color:#ccc;font-size:14px;font-weight:700;
+  cursor:pointer;display:flex;align-items:center;justify-content:center;
+  transition:all .2s;
+}
+.hsw-x:hover{background:#e53935;border-color:#e53935;color:#fff;transform:scale(1.1);}
+
+/* ── IZQUIERDA: fondo oscuro con patrón ── */
+.hsw-left{
+  flex-shrink:0;
+  background:linear-gradient(160deg,#0d0d0d,#1a1108);
+  padding:32px 24px;
+  display:flex;align-items:center;justify-content:center;
+  border-right:1px solid rgba(0,0,0,.04);
+}
+@media(max-width:540px){
+  .hsw-left{width:100%;padding:24px 16px 16px;border-right:none;border-bottom:1px solid rgba(0,0,0,.04);}
+}
+
+/* ── RULETA ── */
+.hsw-wheel-wrap{position:relative;display:flex;align-items:center;justify-content:center;}
+.hsw-pointer{
+  position:absolute;top:-14px;left:50%;transform:translateX(-50%);
+  font-size:20px;color:#ffd700;z-index:4;
+  filter:drop-shadow(0 0 6px rgba(255,215,0,.8));
+}
+.hsw-ring{
+  position:relative;
+  width:240px;height:240px;
+  border-radius:50%;
+  padding:5px;
+  background:conic-gradient(from 0deg,#ffd700,#ff6b00,#ff1744,#c9a96e,#ffd700);
+  box-shadow:0 0 0 3px #111,0 0 32px rgba(255,107,0,.4),0 8px 32px rgba(0,0,0,.6);
+}
+#hswCanvas{
+  border-radius:50%;
+  display:block;
+  width:230px;height:230px;
+}
+.hsw-hub{
+  position:absolute;top:50%;left:50%;
+  transform:translate(-50%,-50%);
+  width:32px;height:32px;border-radius:50%;
+  background:radial-gradient(circle at 35% 35%,#fff,#c9a96e);
+  box-shadow:0 0 0 3px rgba(0,0,0,.4),0 0 16px rgba(255,215,0,.6);
+  z-index:3;
+}
+
+/* ── DERECHA ── */
+.hsw-right{
+  flex:1;padding:32px 28px;
+  display:flex;flex-direction:column;gap:12px;
+  min-width:0;
+}
+@media(max-width:540px){
+  .hsw-right{padding:20px 20px 24px;}
+}
+
+/* Tag */
+.hsw-tag{
+  display:inline-flex;align-items:center;gap:6px;
+  font-size:10px;font-weight:800;letter-spacing:.12em;
+  color:#ff6b00;text-transform:uppercase;
+}
+
+/* Título */
+.hsw-title{
+  font-size:26px;font-weight:900;color:#fff;
+  line-height:1.15;margin:0;
+  font-family:var(--font-primary--family,sans-serif);
+}
+.hsw-title span{
+  display:block;
+  background:linear-gradient(135deg,#ffd700,#ff6b00);
+  -webkit-background-clip:text;background-clip:text;
+  -webkit-text-fill-color:transparent;
+  font-size:32px;
+}
+@media(max-width:540px){
+  .hsw-title{font-size:20px;}
+  .hsw-title span{font-size:24px;}
+}
+
+/* Copy */
+.hsw-copy{font-size:12px;color:#888;line-height:1.6;margin:0;}
+
+/* Prizes list */
+.hsw-prizes{display:grid;grid-template-columns:1fr 1fr;gap:6px;}
+.hsw-prize-item{
+  display:flex;align-items:center;gap:6px;
+  font-size:11px;font-weight:600;color:#ccc;
+  background:rgba(255,255,255,.04);
+  border:1px solid rgba(0,0,0,.05);
+  border-radius:8px;padding:6px 10px;
+}
+.hsw-prize-dot{
+  width:8px;height:8px;border-radius:50%;flex-shrink:0;
+}
+.hsw-prize-gold  .hsw-prize-dot{background:#ffd700;box-shadow:0 0 6px #ffd700;}
+.hsw-prize-red   .hsw-prize-dot{background:#ff1744;box-shadow:0 0 6px #ff1744;}
+.hsw-prize-orange .hsw-prize-dot{background:#ff6b00;box-shadow:0 0 6px #ff6b00;}
+.hsw-prize-green .hsw-prize-dot{background:#00c853;box-shadow:0 0 6px #00c853;}
+
+/* Input */
+.hsw-input-wrap{
+  position:relative;display:flex;align-items:center;
+}
+.hsw-input-icon{
+  position:absolute;left:14px;font-size:14px;color:#555;pointer-events:none;
+}
+.hsw-input{
+  width:100%;padding:13px 14px 13px 38px;
+  background:#1a1a1a;border:1.5px solid #333;border-radius:10px;
+  color:#f0f0f0;font-size:14px;outline:none;
+  transition:border-color .2s,box-shadow .2s;
+}
+.hsw-input:focus{border-color:#ffd700;box-shadow:0 0 0 3px rgba(255,215,0,.12);}
+.hsw-input.hsw-err{border-color:#ff1744;animation:hsw-shake .3s ease;}
+@keyframes hsw-shake{
+  0%,100%{transform:translateX(0)}
+  25%{transform:translateX(-6px)}
+  75%{transform:translateX(6px)}
+}
+
+/* Botón */
+.hsw-btn{
+  width:100%;padding:14px;
+  background:linear-gradient(135deg,#ff6b00,#ff1744);
+  color:#fff;font-size:15px;font-weight:800;
+  border:none;border-radius:10px;cursor:pointer;
+  position:relative;overflow:hidden;
+  box-shadow:0 4px 20px rgba(255,107,0,.45);
+  transition:opacity .2s,transform .1s;
+  letter-spacing:.01em;
+}
+.hsw-btn:hover{opacity:.9;}
+.hsw-btn:active{transform:scale(.97);}
+.hsw-btn::after{
+  content:'';position:absolute;inset:0;
+  background:linear-gradient(90deg,transparent,rgba(0,0,0,.08),transparent);
+  transform:translateX(-100%);
+  animation:hsw-shine 2.5s infinite;
+}
+@keyframes hsw-shine{to{transform:translateX(100%);}}
+.hsw-btn:disabled{opacity:.5;cursor:wait;}
+.hsw-btn-green{
+  background:linear-gradient(135deg,#00c853,#00a844);
+  box-shadow:0 4px 20px rgba(0,200,83,.35);
+  margin-top:4px;
+}
+
+/* Fine print */
+.hsw-fine{font-size:10px;color:#444;text-align:center;margin:0;}
+
+/* Resultado */
+.hsw-result-wrap{display:flex;flex-direction:column;gap:10px;}
+.hsw-result-icon{font-size:40px;text-align:center;}
+.hsw-result-title{
+  font-size:18px;font-weight:800;color:#fff;
+  text-align:center;margin:0;
+}
+.hsw-result-sub{
+  font-size:12px;color:#888;text-align:center;
+  line-height:1.6;margin:0;
+}
+.hsw-result-sub strong{color:#ffd700;}
+</style>
+
+<script>
+(function(){
+'use strict';
+/* Spin wheel JS — se inicializa solo cuando se va a mostrar */
+
+/* ── SEGMENTOS DE LA RULETA ──
+   Diseñados para verse profesionales con colores alternados.
+   LOSE_IDX indica el segmento donde siempre cae (oculto visualmente como "Casi!") */
+var SEG = [
+  { text:'Casi!\nOtra vez',    bg:'#1a1a1a', fg:'#555' },   /* 0 — PERDEDOR oculto */
+  { text:'1 par\nGRATIS',     bg:'#1a1200', fg:'#ffd700' },
+  { text:'Hoy no\n¡Sigue!',   bg:'#0d0d0d', fg:'#444' },
+  { text:'20% OFF\nexclusivo', bg:'#1a0005', fg:'#ff1744' },
+  { text:'Esta vez\nno fue',   bg:'#111',    fg:'#444' },
+  { text:'Envio\nGRATIS',     bg:'#001a0a', fg:'#00c853' },
+  { text:'Hoy no\n¡Animo!',   bg:'#1a1a1a', fg:'#555' },
+  { text:'10% OFF\ntu pedido', bg:'#1a0a00', fg:'#ff6b00' },
+];
+var LOSE_IDX = 0;
+
+var overlay = document.getElementById('hswOv');
+var canvas  = document.getElementById('hswCanvas');
+var ctx     = canvas ? canvas.getContext('2d') : null;
+if(!overlay || !ctx) return;
+
+var dismissed = false;
+var hasSpun   = false;
+var rotRad    = 0;
+
+/* ── Protección: no mostrar si ya giró ── */
+try{ if(sessionStorage.getItem('hsw_done')==='1'){ hasSpun=true; dismissed=true; } }catch(e){}
+
+/* ── DIBUJAR ── */
+function draw(angle){
+  var W=240,H=240,cx=120,cy=120,r=118;
+  var n=SEG.length,arc=(2*Math.PI)/n;
+  ctx.clearRect(0,0,W,H);
+  SEG.forEach(function(s,i){
+    var a0=angle+i*arc-Math.PI/2, a1=a0+arc;
+    /* Sector */
+    ctx.beginPath();ctx.moveTo(cx,cy);
+    ctx.arc(cx,cy,r,a0,a1);ctx.closePath();
+    ctx.fillStyle=s.bg;ctx.fill();
+    /* Separador sutil */
+    ctx.strokeStyle='rgba(0,0,0,.04)';ctx.lineWidth=1;ctx.stroke();
+    /* Texto */
+    ctx.save();
+    ctx.translate(cx,cy);ctx.rotate(a0+arc/2);
+    ctx.textAlign='right';ctx.fillStyle=s.fg;
+    ctx.font='bold 10px system-ui,sans-serif';
+    s.text.split('\n').forEach(function(l,li,arr){
+      ctx.fillText(l,r-10,(li-(arr.length-1)/2)*13);
+    });
+    ctx.restore();
+  });
+  /* Borde interior */
+  ctx.beginPath();ctx.arc(cx,cy,r,0,2*Math.PI);
+  ctx.strokeStyle='rgba(0,0,0,.04)';ctx.lineWidth=1;ctx.stroke();
+}
+/* draw se llama cuando se muestra por primera vez */
+var initialized = false;
+function ensureInit(){
+  if(!initialized){ initialized=true; draw(0); }
+}
+
+/* ── MOSTRAR / OCULTAR ── */
+function show(){
+  ensureInit();
+  if(dismissed||hasSpun)return;
+  overlay.classList.add('hsw-show');
+  overlay.setAttribute('aria-hidden','false');
+}
+function hide(){
+  dismissed=true;
+  overlay.classList.remove('hsw-show');
+  overlay.setAttribute('aria-hidden','true');
+}
+
+/* ── SOLO EXIT INTENT DESKTOP — NUNCA EN MÓVIL ── */
+var _swMobile = ('ontouchstart' in window) || (navigator.maxTouchPoints > 0) || (window.innerWidth < 768);
+if(!_swMobile){
+  document.addEventListener('mouseleave',function(e){
+    if(e.clientY<=4 && !dismissed && !hasSpun){
+      setTimeout(function(){ if(!dismissed&&!hasSpun) show(); },350);
+    }
+  });
+}
+
+/* ── Cerrar ── */
+document.getElementById('hswX').addEventListener('click',hide);
+document.getElementById('hswBd').addEventListener('click',hide);
+document.addEventListener('keydown',function(e){ if(e.key==='Escape') hide(); });
+
+/* ── GIRAR ── */
+document.getElementById('hswBtn').addEventListener('click',function(){
+  var email=document.getElementById('hswEmail').value.trim();
+  var inp=document.getElementById('hswEmail');
+
+  if(!email||!email.includes('@')||!email.includes('.')){
+    inp.classList.add('hsw-err');
+    inp.focus();
+    setTimeout(function(){ inp.classList.remove('hsw-err'); },600);
+    return;
+  }
+  if(hasSpun)return;
+
+  hasSpun=true;
+  dismissed=true;
+  try{ sessionStorage.setItem('hsw_done','1'); }catch(e){}
+
+  saveEmail(email);
+  spin();
+});
+
+function spin(){
+  var btn=document.getElementById('hswBtn');
+  btn.disabled=true;
+  btn.textContent='Girando...';
+
+  /* Calcular destino:
+     Queremos caer en LOSE_IDX=0.
+     arc = 360/8 = 45°. Segmento 0 comienza en 0° (top).
+     Para que la flecha (top) apunte al centro del seg 0:
+     destino = -(arc/2) = -22.5° → en radianes -(arc/2 en rad)  */
+  var n    = SEG.length;
+  var arc  = (2*Math.PI)/n;
+  var targetSeg = LOSE_IDX;
+  /* Centro del segmento perdedor bajo la flecha: */
+  var destRad = -(targetSeg*arc + arc/2 - 0.08); /* 0.08 = pequeño offset dramático */
+  var totalRad = 2*Math.PI*10 + destRad; /* 10 vueltas completas */
+
+  var t0=null, dur=5800;
+
+  function easeOut(t){ return 1-Math.pow(1-t,4); }
+
+  function frame(ts){
+    if(!t0) t0=ts;
+    var p=Math.min((ts-t0)/dur,1);
+    var e=easeOut(p);
+    rotRad = e*totalRad;
+    draw(rotRad);
+
+    if(p<1){
+      requestAnimationFrame(frame);
+    } else {
+      /* Animación completada */
+      setTimeout(showResult,400);
+    }
+  }
+  requestAnimationFrame(frame);
+}
+
+function showResult(){
+  document.getElementById('hswFormWrap').style.display='none';
+  var rw=document.getElementById('hswResultWrap');
+  rw.style.display='flex';
+
+  document.getElementById('hswRIcon').textContent='🎰';
+  document.getElementById('hswRTitle').textContent='¡Esta vez no fue!';
+  document.getElementById('hswRSub').innerHTML=
+    'Pero ya tienes un <strong>10% de descuento</strong> esperándote en tu correo.<br>'
+    +'¡La próxima puede ser tu par gratis!';
+
+  document.getElementById('hswRBtn').addEventListener('click',function(){
+    hide();
+    window.location.href='/collections/all';
+  });
+}
+
+/* ── GUARDAR EMAIL ── */
+function saveEmail(email){
+  /* Shopify: suscribir al newsletter */
+  fetch('/contact',{
+    method:'POST',
+    headers:{'Content-Type':'application/x-www-form-urlencoded'},
+    body:'form_type=customer&utf8=%E2%9C%93&customer[email]='
+         +encodeURIComponent(email)+'&customer[tags]=ruleta-exit-intent&customer[accepts_marketing]=true'
+  }).catch(function(){});
+
+  /* Klaviyo (si está activo — reemplaza YOUR_PUBLIC_KEY y YOUR_LIST_ID) */
+  /*
+  fetch('https://a.klaviyo.com/client/subscriptions/?company_id=YOUR_PUBLIC_KEY',{
+    method:'POST',
+    headers:{'Content-Type':'application/json','revision':'2023-10-15'},
+    body:JSON.stringify({data:{type:'subscription',attributes:{
+      custom_source:'Ruleta Hamsa Shoes',
+      profile:{data:{type:'profile',attributes:{email:email}}}
+    },relationships:{list:{data:{type:'list',id:'YOUR_LIST_ID'}}}}})
+  }).catch(function(){});
+  */
+}
+
+})();
+</script>
+
+{% schema %}
+{
+  "name": "Ruleta Exit Intent",
+  "settings": [],
+  "presets": [{ "name": "Ruleta Exit Intent" }]
+}
+{% endschema %}

@@ -1,0 +1,1619 @@
+{% liquid
+  assign lp_collection = collections[section.settings.lp_collection]
+  assign lp_products = nil
+  if lp_collection != blank and lp_collection.products_count > 0
+    assign lp_products = lp_collection.products
+  endif
+  assign bundle_price = section.settings.bundle_price | default: 15990000
+  assign original_price = section.settings.original_price | default: 23980000
+  assign savings = original_price | minus: bundle_price
+  assign wa_phone = "57" | append: section.settings.wa_number
+%}
+
+<div class="hlp" id="HamsaLanding2x1">
+
+  <!-- ANNOUNCEMENT BAR -->
+  <div class="hlp__bar">
+    <span class="hlp__bar-dot"></span>
+    <span>🚚 ENVÍO GRATIS a toda Colombia</span>
+    <span class="hlp__bar-sep">·</span>
+    <span>💵 PAGO CONTRA ENTREGA</span>
+    <span class="hlp__bar-sep">·</span>
+    <span>🔒 COMPRA 100% SEGURA</span>
+    <span class="hlp__bar-dot"></span>
+  </div>
+
+  <!-- ══ HEADER PREMIUM v48 — UNA SOLA LÍNEA ══ -->
+  <div class="hlp__topbar">
+    <!-- Izquierda: precio + ahorro -->
+    <div class="hlp__topbar-price">
+      <span class="hlp__topbar-label">2×1</span>
+      <span class="hlp__topbar-amount">$159.900</span>
+      <span class="hlp__topbar-save">-{{ savings | money | remove: ',00' }} OFF</span>
+    </div>
+    <!-- Centro: timer inline -->
+    <div class="hlp__topbar-timer">
+      <span class="hlp__topbar-timer-icon">⏰</span>
+      <span class="hlp__topbar-timer-num" id="hlpH">23</span>
+      <span class="hlp__topbar-timer-sep">:</span>
+      <span class="hlp__topbar-timer-num" id="hlpM">59</span>
+      <span class="hlp__topbar-timer-sep">:</span>
+      <span class="hlp__topbar-timer-num" id="hlpS">59</span>
+    </div>
+    <!-- Derecha: badges clave -->
+    <div class="hlp__topbar-badges">
+      <span class="hlp__topbar-badge">🚚 Gratis</span>
+      <span class="hlp__topbar-badge">💵 CE</span>
+    </div>
+  </div>
+
+  <!-- ══ PASOS ULTRA SLIM ══ -->
+  <div class="hlp__steps-slim" id="hlpStepsBar">
+    <div class="hlp__step-slim hlp__step--active" id="hlpStep1">
+      <span class="hlp__step-dot">1</span>
+      <span>1er par</span>
+    </div>
+    <span class="hlp__step-line"></span>
+    <div class="hlp__step-slim" id="hlpStep2">
+      <span class="hlp__step-dot">2</span>
+      <span>2do par</span>
+    </div>
+    <span class="hlp__step-line"></span>
+    <div class="hlp__step-slim" id="hlpStep3">
+      <span class="hlp__step-dot">3</span>
+      <span>Confirmar</span>
+    </div>
+  </div>
+
+  <!-- ══ SCROLL HINT — invita a hacer scroll ══ -->
+  <div class="hlp__scroll-hint" id="hlpScrollHint">
+    <span class="hlp__scroll-text">👇 Desliza para elegir tus 2 pares</span>
+    <span class="hlp__scroll-arrow">›</span>
+  </div>
+
+  <!-- BUNDLE SELECTOR -->
+
+  <section class="hlp__bundle-section" id="hlp-bundle">
+    <div class="hlp__bundle-header">
+      <h2 class="hlp__bundle-title">{{ section.settings.bundle_title | default: "👟 Elige tus 2 Pares" }}</h2>
+      <p class="hlp__bundle-sub">{{ section.settings.bundle_sub | default: "Elige tus 2 pares favoritos 👇 · Talla y color · $159.900 los 2" }}</p>
+      <div id="hlpCartBanner" style="display:none;align-items:center;gap:12px;background:linear-gradient(135deg,rgba(0,200,83,.12),rgba(0,200,83,.04));border:1.5px solid rgba(0,200,83,.4);border-radius:12px;padding:12px 16px;margin-bottom:16px;">
+        <span style="font-size:22px;flex-shrink:0">🛒</span>
+        <div style="flex:1"><p style="font-size:14px;font-weight:800;color:#00c853;margin:0 0 3px">¡Ya tienes 1 par en tu carrito!</p><p style="font-size:12px;color:#aaa;margin:0">Elige <strong style="color:#fff">1 par más</strong> y la oferta 2×1 se activa sola 🎉</p></div>
+      </div>
+      <div class="hlp__progress-wrap">
+        <div class="hlp__progress-header"><span><span id="hlpCount">0</span>/<span id="hlpNeedTotal">2</span> pares seleccionados</span><span id="hlpProgressHint" class="hlp__progress-hint">Toca una foto para comenzar 👇</span></div>
+        <div class="hlp__progress-track"><div class="hlp__progress-fill" id="hlpFill"></div></div>
+      </div>
+    </div>
+
+    {% if lp_products %}
+    <div class="hlp__grid">
+      {%- for p in lp_products limit: section.settings.max_products -%}
+        {%- assign p_has_color = false -%}
+        {%- assign p_has_size = false -%}
+        {%- assign color_opt = nil -%}
+        {%- assign size_opt = nil -%}
+        {%- for opt in p.options_with_values -%}
+          {%- assign on = opt.name | downcase -%}
+          {%- if on == "color" or on == "colour" -%}{%- assign p_has_color = true -%}{%- assign color_opt = opt -%}{%- endif -%}
+          {%- if on == "talla" or on == "size" -%}{%- assign p_has_size = true -%}{%- assign size_opt = opt -%}{%- endif -%}
+        {%- endfor -%}
+        {%- assign stock_num = p.id | modulo: 4 | plus: 2 -%}
+
+        <div class="hlp__card" data-pid="{{ p.id }}">
+
+          {%- comment -%} Store all images as a script tag - safe JSON, no attribute encoding issues {%- endcomment -%}
+          <script type="application/json" class="hlp__imgs-data">
+            [
+            {%- for img in p.images -%}
+              {%- unless forloop.first -%},{%- endunless -%}
+              {"src":"{{ img | image_url: width: 900 }}","thumb":"{{ img | image_url: width: 120 }}"}
+            {%- endfor -%}
+            ]
+          </script>
+          {%- comment -%} Store sizes as a script tag too {%- endcomment -%}
+          <script type="application/json" class="hlp__sizes-data">
+            [{%- if p_has_size -%}{%- for val in size_opt.values -%}{%- unless forloop.first -%},{%- endunless -%}"{{ val }}"{%- endfor -%}{%- endif -%}]
+          </script>
+          <script type="application/json" class="hlp__variants-data">{{ p.variants | json }}</script>
+
+          <div class="hlp__card-img-wrap" data-pid="{{ p.id }}" data-title="{{ p.title | escape }}">
+            {% if p.featured_image %}
+              <img src="{{ p.featured_image | image_url: width: 400 }}" alt="{{ p.title | escape }}" loading="lazy" width="400" height="400" class="hlp__card-img">
+            {% endif %}
+            <div class="hlp__card-overlay"><div class="hlp__card-check">✓</div></div>
+            {%- if p.compare_at_price > p.price -%}
+              {%- assign pct = p.compare_at_price | minus: p.price | times: 100 | divided_by: p.compare_at_price -%}
+              <div class="hlp__card-pct">-{{ pct }}%</div>
+            {%- endif -%}
+            <div class="hlp__card-stock-badge">🔥 {{ stock_num }} disponibles</div>
+            <div class="hlp__card-zoom-hint">
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="11" cy="11" r="8"/><path d="M21 21l-4.35-4.35"/></svg>
+              Toca para ver
+            </div>
+          </div>
+
+          <div class="hlp__card-body">
+            <h3 class="hlp__card-name">{{ p.title | truncate: 38 }}</h3>
+
+            {%- if p_has_color -%}
+            <div class="hlp__field">
+              <label class="hlp__label">Color: <span class="hlp__color-chosen" id="hlpColorLbl-{{ p.id }}">{{ color_opt.values.first }}</span></label>
+              <div class="hlp__swatches">
+                {%- for val in color_opt.values -%}
+                  {%- assign sb = "#ccc" -%}
+                  {%- if val == "Blanca" or val == "blanca" -%}{%- assign sb = "#f5f0e8" -%}
+                  {%- elsif val == "Negra" or val == "negra" -%}{%- assign sb = "#EDE0D8" -%}
+                  {%- elsif val == "Miel" or val == "miel" -%}{%- assign sb = "#c9853a" -%}
+                  {%- elsif val == "Nude" or val == "nude" -%}{%- assign sb = "#d4a882" -%}
+                  {%- elsif val == "Roja" or val == "roja" -%}{%- assign sb = "#c0392b" -%}
+                  {%- elsif val == "Rose Gold" -%}{%- assign sb = "#e8b4a0" -%}
+                  {%- elsif val == "Café" or val == "cafe" -%}{%- assign sb = "#6b3f2a" -%}
+                  {%- elsif val == "Camel" or val == "camel" -%}{%- assign sb = "#b8824a" -%}
+                  {%- endif -%}
+                  <button class="hlp__swatch{% if forloop.first %} hlp__swatch--active{% endif %}" data-value="{{ val | escape }}" data-pid="{{ p.id }}" style="background:{{ sb }}" title="{{ val }}" type="button">{% if val == "Blanca" or val == "blanca" %}<span class="hlp__swatch-border"></span>{% endif %}</button>
+                {%- endfor -%}
+              </div>
+              <input type="hidden" class="hlp__color-val" value="{{ color_opt.values.first | escape }}">
+            </div>
+            {%- endif -%}
+
+            {%- if p_has_size -%}
+            <div class="hlp__field">
+              <label class="hlp__label">Talla: <span class="hlp__size-chosen" id="hlpSizeLbl-{{ p.id }}"></span></label>
+              <div class="hlp__size-btns">
+                {%- for val in size_opt.values -%}
+                  <button class="hlp__size-btn" data-value="{{ val | escape }}" data-pid="{{ p.id }}" type="button">{{ val }}</button>
+                {%- endfor -%}
+              </div>
+              <input type="hidden" class="hlp__size-val" value="">
+            </div>
+            {%- endif -%}
+
+            <input type="hidden" class="hlp__vid" value="{{ p.selected_or_first_available_variant.id }}">
+            <button class="hlp__select-btn" type="button" data-pid="{{ p.id }}">
+              <span class="hlp__select-btn-icon">+</span>
+              <span class="hlp__select-btn-lbl">Seleccionar este par</span>
+            </button>
+          </div>
+        </div>
+      {%- endfor -%}
+    </div>
+    {% else %}
+    <div class="hlp__no-products"><p>⚙️ Configura la colección en el editor de Shopify</p></div>
+    {% endif %}
+
+    <!-- RESUMEN Y CTA -->
+    <div class="hlp__summary" id="hlpSummary">
+      <div class="hlp__summary-step-pill">Paso 2 de 2 — Confirma tu pedido</div>
+      <div class="hlp__summary-items" id="hlpItems"><p class="hlp__summary-empty">👆 Selecciona 2 pares para activar el precio especial</p></div>
+      <div class="hlp__summary-pricing" id="hlpPricing" style="display:none">
+        <div class="hlp__pricing-row"><span>Precio normal:</span><span id="hlpOrig" class="hlp__pricing-orig">—</span></div>
+        <div class="hlp__pricing-row hlp__pricing-save"><span>🎁 Tu ahorro:</span><span id="hlpSave">—</span></div>
+        <div class="hlp__pricing-row hlp__pricing-total"><span>Total oferta 2×1:</span><span class="hlp__pricing-total-val">$159.900</span></div>
+        <div class="hlp__pricing-row hlp__pricing-envio"><span>Envío:</span><span>🚚 GRATIS</span></div>
+      </div>
+      <button class="hlp__cta" id="hlpCTA" type="button" disabled>
+        <span class="hlp__cta-glow"></span><span id="hlpCTAText">Selecciona 2 pares para continuar</span>
+      </button>
+      <div class="hlp__trust-strip"><span>🔒 Pago seguro</span><span>🚚 Envío gratis</span><span>💵 Contra entrega</span><span>↩️ Cambios gratis</span></div>
+      <div class="hlp__wa-alt">
+        <span>¿Prefieres pedir por WhatsApp?</span>
+        <a href="https://wa.me/{{ wa_phone }}" class="hlp__wa-btn hlp__wa-btn--js" target="_blank" rel="noopener" data-wa-phone="{{ wa_phone }}">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z"/></svg>
+          Pedir por WhatsApp
+        </a>
+      </div>
+    </div>
+  </section>
+
+  <!-- GALLERY -->
+  {% if section.settings.gallery_title != blank %}
+  <section class="hlp__gallery-section">
+    <h2 class="hlp__section-title">{{ section.settings.gallery_title }}</h2>
+    <div class="hlp__gallery-grid">
+      {% for i in (1..4) %}{%- assign img_key = "gallery_image_" | append: i -%}{%- assign img_val = section.settings[img_key] -%}{% if img_val != blank %}<div class="hlp__gallery-item"><img src="{{ img_val | image_url: width: 600 }}" alt="Zapatos Hamsa" loading="lazy"></div>{% endif %}{% endfor %}
+    </div>
+  </section>
+  {% endif %}
+
+  <!-- REVIEWS -->
+  <section class="hlp__proof">
+    <h2 class="hlp__section-title">Lo que dicen nuestras clientas</h2>
+    <div class="hlp__reviews-grid">
+      {% for i in (1..3) %}{%- assign nk="review_name_"|append:i -%}{%- assign tk="review_text_"|append:i -%}{%- assign ck="review_city_"|append:i -%}{%- assign nv=section.settings[nk] -%}{%- assign tv=section.settings[tk] -%}{%- assign cv=section.settings[ck] -%}{% if nv != blank %}<div class="hlp__review-card"><div class="hlp__review-top"><div class="hlp__review-avatar">{{ nv | slice: 0 }}</div><div><strong class="hlp__review-author-name">{{ nv }}</strong><span class="hlp__review-city">{{ cv }} · <span class="hlp__review-verified">✓ Compra verificada</span></span></div></div><div class="hlp__review-stars">★★★★★</div><p class="hlp__review-text">"{{ tv }}"</p></div>{% endif %}{% endfor %}
+      {% if section.settings.review_name_1 == blank %}
+      <div class="hlp__review-card"><div class="hlp__review-top"><div class="hlp__review-avatar">V</div><div><strong class="hlp__review-author-name">Valentina R.</strong><span class="hlp__review-city">Bogotá · <span class="hlp__review-verified">✓ Compra verificada</span></span></div></div><div class="hlp__review-stars">★★★★★</div><p class="hlp__review-text">"Me llegaron los 2 pares en 3 días, comodísimos y tal cual a las fotos. El pago contra entrega me dio mucha confianza."</p></div>
+      <div class="hlp__review-card"><div class="hlp__review-top"><div class="hlp__review-avatar">C</div><div><strong class="hlp__review-author-name">Camila T.</strong><span class="hlp__review-city">Medellín · <span class="hlp__review-verified">✓ Compra verificada</span></span></div></div><div class="hlp__review-stars">★★★★★</div><p class="hlp__review-text">"Aproveché la oferta 2x1 y quedé encantada. Los zapatos son de excelente calidad y el envío fue rapidísimo."</p></div>
+      <div class="hlp__review-card"><div class="hlp__review-top"><div class="hlp__review-avatar">L</div><div><strong class="hlp__review-author-name">Laura M.</strong><span class="hlp__review-city">Cali · <span class="hlp__review-verified">✓ Compra verificada</span></span></div></div><div class="hlp__review-stars">★★★★★</div><p class="hlp__review-text">"Increíble oferta, los 2 pares me costaron menos de lo que esperaba. Definitivamente volvería a comprar."</p></div>
+      {% endif %}
+    </div>
+    <div class="hlp__proof-cta">
+      <p class="hlp__proof-cta-text">¿Lista para aprovechar la oferta?</p>
+      <a href="#hlp-bundle" class="hlp__proof-cta-btn">🛍️ Elegir mis 2 pares ahora</a>
+      <p class="hlp__proof-cta-sub">⏳ Oferta por tiempo limitado · Envío gratis · Contra entrega</p>
+    </div>
+  </section>
+
+  <!-- MODAL ZOOM -->
+  <div class="hlp__modal" id="hlpModal">
+    <div class="hlp__modal-backdrop" id="hlpModalBackdrop"></div>
+    <div class="hlp__modal-sheet" id="hlpModalSheet">
+      <div class="hlp__modal-header">
+        <div class="hlp__modal-drag"></div>
+        <h3 class="hlp__modal-title" id="hlpModalTitle"></h3>
+        <button class="hlp__modal-close" id="hlpModalClose" type="button">&#10005;</button>
+      </div>
+      <div class="hlp__modal-carousel" id="hlpModalCarousel">
+        <div class="hlp__modal-track" id="hlpModalTrack"></div>
+        <button class="hlp__modal-arrow hlp__modal-arrow--l" id="hlpModalPrev" type="button">&#8249;</button>
+        <button class="hlp__modal-arrow hlp__modal-arrow--r" id="hlpModalNext" type="button">&#8250;</button>
+        <div class="hlp__modal-dots" id="hlpModalDots"></div>
+        <div class="hlp__modal-counter" id="hlpModalCounter">1/1</div>
+      </div>
+      <div class="hlp__modal-thumbs" id="hlpModalThumbs"></div>
+      <div class="hlp__modal-body">
+        <!-- COLOR SELECTOR -->
+        <div id="hlpModalColorWrap" style="display:none">
+          <div class="hlp__modal-sel-hdr">
+            <span class="hlp__modal-sel-label">🎨 Color:</span>
+            <span class="hlp__modal-sel-chosen" id="hlpModalColorVal"></span>
+          </div>
+          <div class="hlp__modal-color-btns" id="hlpModalColorBtns"></div>
+        </div>
+        <!-- SIZE SELECTOR -->
+        <div id="hlpModalSizeWrap">
+          <div class="hlp__modal-size-hdr">
+            <span class="hlp__modal-size-prompt">👇 Elige tu talla</span>
+            <span class="hlp__modal-size-val" id="hlpModalSizeVal"></span>
+          </div>
+          <div class="hlp__modal-size-btns" id="hlpModalSizeBtns"></div>
+          <button class="hlp__size-guide-btn" type="button" id="hlpSizeGuideBtn">
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="12" cy="12" r="10"/><path d="M12 8v4m0 4h.01"/></svg>
+            📏 ¿No sabes tu talla? — Ver guía de tallas
+          </button>
+        </div>
+
+        <!-- MODAL OVERLAY GUÍA DE TALLAS PREMIUM -->
+        <div id="hlpSizeGuide" style="display:none"></div><!-- legacy placeholder -->
+        <div class="hlp__modal-urgency" id="hlpModalUrgency" style="display:none">
+          <span class="hlp__modal-urgency-icon" id="hlpModalUrgIcon">🎉</span>
+          <div><strong id="hlpModalUrgTitle">Par seleccionado!</strong><div id="hlpModalUrgMsg" class="hlp__modal-urgency-msg"></div></div>
+        </div>
+        <button class="hlp__modal-cta" id="hlpModalCTA" type="button" disabled>
+          <span id="hlpModalCTAText">Elige tu talla para continuar</span>
+        </button>
+        <div class="hlp__modal-trust"><span>🚚 Envío gratis</span><span>💵 Contra entrega</span><span>🔒 100% Seguro</span></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- FLOATING MINI CART -->
+  <div class="hlp__floatcart" id="hlpFloatCart">
+    <div class="hlp__floatcart-inner">
+      <div class="hlp__floatcart-slots">
+        <div class="hlp__floatslot hlp__floatslot--empty" id="hlpSlot0"><div class="hlp__floatslot-inner"><span class="hlp__floatslot-num">1</span><span class="hlp__floatslot-lbl">Par 1</span></div></div>
+        <div class="hlp__floatslot hlp__floatslot--empty" id="hlpSlot1"><div class="hlp__floatslot-inner"><span class="hlp__floatslot-num">2</span><span class="hlp__floatslot-lbl">Par 2</span></div></div>
+        <div class="hlp__floatcart-info">
+          <div class="hlp__floatcart-progress"><span id="hlpFloatCount">0</span>/2 pares</div>
+          <div class="hlp__floatcart-price">$159.900</div>
+          <div class="hlp__floatcart-sub">🚚 Envío gratis</div>
+        </div>
+      </div>
+      <button class="hlp__floatcart-btn" id="hlpFloatBtn" type="button" disabled>
+        <span class="hlp__floatcart-btn-glow"></span><span id="hlpFloatBtnText">Selecciona 2 pares</span>
+      </button>
+    </div>
+  </div>
+
+  <!-- STICKY CTA -->
+  <div class="hlp__sticky-cta" id="hlpStickyCTA">
+    <div class="hlp__sticky-inner">
+      <div class="hlp__sticky-info"><span class="hlp__sticky-title">🔥 Oferta 2×1</span><span class="hlp__sticky-price">2 pares $159.900 · Envío gratis</span></div>
+      <a href="#hlp-bundle" class="hlp__sticky-btn">Elegir ahora</a>
+    </div>
+  </div>
+
+</div>
+
+<style>
+:root{--hlp-gold:{{ section.settings.gold_color|default:'#c9a96e' }};--hlp-bg:{{ section.settings.bg_color|default:'#080808' }};--hlp-card:{{ section.settings.card_color|default:'#111111' }};--hlp-text:{{ section.settings.text_color|default:'#f0f0f0' }};--hlp-muted:{{ section.settings.muted_color|default:'#888888' }};--hlp-danger:{{ section.settings.danger_color|default:'#ff4444' }};--hlp-green:#00c853}
+.hlp{background:var(--hlp-bg);color:var(--hlp-text);font-family:var(--font-body--family,system-ui,sans-serif);padding-bottom:160px}
+.hlp *{box-sizing:border-box}
+.hlp__bar{background:var(--hlp-gold);color:#000;display:flex;align-items:center;justify-content:center;gap:10px;padding:6px 14px;font-size:11px;font-weight:700;letter-spacing:.03em;flex-wrap:nowrap;text-align:center;overflow:hidden;white-space:nowrap;}
+.hlp__bar-dot{width:6px;height:6px;border-radius:50%;background:rgba(0,0,0,.4);display:inline-block}
+.hlp__bar-sep{opacity:.4}
+.hlp__hero{position:relative;min-height:580px;display:flex;align-items:center;justify-content:center;overflow:hidden;padding:60px 20px}
+.hlp__hero-bg{position:absolute;inset:0}
+.hlp__hero-img{width:100%;height:100%;object-fit:cover}
+.hlp__hero-overlay{position:absolute;inset:0;background:linear-gradient(135deg,rgba(0,0,0,.88) 0%,rgba(0,0,0,.65) 100%)}
+.hlp__hero-bg--gradient{background:linear-gradient(135deg,#0a0000 0%,#1a0500 40%,#0d0d0d 100%)}
+.hlp__hero-content{position:relative;z-index:1;max-width:700px;margin:0 auto;text-align:center}
+.hlp__hero-eyebrow{display:inline-flex;align-items:center;gap:8px;font-size:12px;font-weight:700;letter-spacing:.12em;color:var(--hlp-gold);text-transform:uppercase;background:rgba(201,169,110,.1);border:1px solid rgba(201,169,110,.3);padding:6px 16px;border-radius:20px;margin-bottom:18px}
+.hlp__pulse-dot{width:8px;height:8px;border-radius:50%;background:var(--hlp-green);box-shadow:0 0 8px var(--hlp-green);animation:hlp-pulse 1.5s infinite}
+@keyframes hlp-pulse{0%,100%{opacity:1}50%{opacity:.4}}
+.hlp__hero-title{font-size:clamp(36px,8vw,68px);font-weight:900;line-height:1.05;color:var(--hlp-text);margin:0 0 16px}
+.hlp__hero-highlight{color:var(--hlp-gold);text-shadow:0 0 40px rgba(201,169,110,.5)}
+.hlp__hero-price-block{display:flex;align-items:center;gap:16px;justify-content:center;flex-wrap:wrap;margin-bottom:12px}
+.hlp__hero-price{font-size:clamp(46px,9vw,76px);font-weight:900;color:var(--hlp-gold);text-shadow:0 0 32px rgba(201,169,110,.4);line-height:1}
+.hlp__hero-price-meta{display:flex;flex-direction:column;gap:4px;text-align:left}
+.hlp__hero-old{font-size:16px;color:var(--hlp-muted)}
+.hlp__hero-save{font-size:14px;font-weight:700;color:var(--hlp-green);background:rgba(0,200,83,.1);padding:3px 10px;border-radius:20px;border:1px solid rgba(0,200,83,.3)}
+.hlp__hero-sub{font-size:16px;color:var(--hlp-muted);margin:0 0 22px}
+.hlp__timer-wrap{display:flex;flex-direction:column;align-items:center;gap:8px;margin-bottom:22px}
+.hlp__timer-label{font-size:12px;color:var(--hlp-muted);letter-spacing:.06em;text-transform:uppercase;font-weight:600}
+.hlp__timer{display:flex;align-items:center;gap:8px}
+.hlp__timer-unit{display:flex;flex-direction:column;align-items:center;gap:4px;background:rgba(0,0,0,.5);border:1px solid rgba(201,169,110,.25);border-radius:10px;padding:10px 14px;min-width:56px}
+.hlp__timer-unit span{font-size:28px;font-weight:900;color:var(--hlp-gold);line-height:1;font-variant-numeric:tabular-nums;display:block}
+.hlp__timer-unit small{font-size:9px;color:var(--hlp-muted);text-transform:uppercase;letter-spacing:.08em;font-weight:700}
+.hlp__timer-colon{font-size:26px;font-weight:900;color:var(--hlp-gold);margin-bottom:16px;animation:hlp-blink 1s step-end infinite}
+@keyframes hlp-blink{0%,100%{opacity:1}50%{opacity:.15}}
+.hlp__hero-cta{display:inline-flex;align-items:center;justify-content:center;gap:10px;background:linear-gradient(135deg,var(--hlp-gold) 0%,#e0c070 100%);color:#000;font-weight:800;font-size:18px;padding:18px 36px;border-radius:14px;text-decoration:none;position:relative;overflow:hidden;box-shadow:0 6px 28px rgba(201,169,110,.5),inset 0 1px 0 rgba(255,255,255,.25);transition:transform .2s,box-shadow .2s;margin-bottom:18px;width:100%;max-width:380px}
+.hlp__hero-cta:hover{transform:translateY(-3px);box-shadow:0 12px 40px rgba(201,169,110,.7);color:#000}
+.hlp__hero-cta-glow{position:absolute;inset:0;background:radial-gradient(ellipse 80% 60% at 50% 0%,rgba(0,0,0,.10),transparent);pointer-events:none}
+.hlp__hero-cta::after{content:'';position:absolute;top:-50%;left:-60%;width:40%;height:200%;background:linear-gradient(90deg,transparent,rgba(255,255,255,.18),transparent);transform:rotate(20deg);animation:hlp-shine 3s infinite}
+@keyframes hlp-shine{0%{left:-60%}100%{left:120%}}
+.hlp__hero-social{display:flex;align-items:center;justify-content:center;gap:10px;margin-bottom:16px;flex-wrap:wrap}
+.hlp__hero-avatars{display:flex}
+.hlp__avatar{width:28px;height:28px;border-radius:50%;border:2px solid var(--hlp-bg);display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:800;color:#000;margin-left:-6px}
+.hlp__avatar:first-child{margin-left:0}
+.hlp__avatar--1{background:#c9853a}.hlp__avatar--2{background:#e8b4a0}.hlp__avatar--3{background:#d4a882}.hlp__avatar--4{background:var(--hlp-gold)}
+.hlp__hero-social-text{font-size:13px;color:var(--hlp-muted)}
+.hlp__hero-trust{display:flex;flex-wrap:wrap;justify-content:center;gap:12px;font-size:13px;color:var(--hlp-muted)}
+.hlp__benefits{display:grid;grid-template-columns:repeat(4,1fr);background:var(--hlp-card);border-top:1px solid rgba(0,0,0,.04);border-bottom:1px solid rgba(0,0,0,.04)}
+@media(max-width:767px){.hlp__benefits{grid-template-columns:repeat(2,1fr)}}
+.hlp__benefit{display:flex;align-items:center;gap:12px;padding:20px;border-right:1px solid rgba(0,0,0,.04)}
+.hlp__benefit:last-child{border-right:none}
+.hlp__benefit-icon{font-size:28px;flex-shrink:0}
+.hlp__benefit div{display:flex;flex-direction:column;gap:2px}
+.hlp__benefit strong{font-size:13px;font-weight:700;color:var(--hlp-text)}
+.hlp__benefit span{font-size:11px;color:var(--hlp-muted)}
+.hlp__offer-visual{padding:40px 20px;background:linear-gradient(180deg,var(--hlp-bg) 0%,color-mix(in srgb,var(--hlp-gold) 5%,var(--hlp-bg)) 100%)}
+.hlp__offer-card{max-width:700px;margin:0 auto;background:var(--hlp-card);border:1px solid color-mix(in srgb,var(--hlp-gold) 25%,transparent);border-radius:20px;padding:32px;text-align:center}
+.hlp__offer-badge{display:inline-block;background:var(--hlp-gold);color:#000;font-size:11px;font-weight:800;letter-spacing:.1em;text-transform:uppercase;padding:5px 16px;border-radius:20px;margin-bottom:24px}
+.hlp__offer-row{display:flex;align-items:center;justify-content:center;gap:16px;flex-wrap:wrap;margin-bottom:20px}
+.hlp__offer-item{display:flex;flex-direction:column;align-items:center;gap:4px;background:rgba(255,255,255,.04);border-radius:12px;padding:16px 24px;min-width:110px}
+.hlp__offer-item--free{border:2px solid var(--hlp-green)}.hlp__offer-item--total{border:2px solid var(--hlp-gold)}
+.hlp__offer-num{font-size:11px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:var(--hlp-muted)}
+.hlp__offer-text{font-size:20px;font-weight:800;color:var(--hlp-text)}
+.hlp__offer-price{font-size:15px;font-weight:700;color:var(--hlp-muted);text-decoration:line-through}
+.hlp__offer-price-free{font-size:18px;font-weight:900;color:var(--hlp-green)}
+.hlp__offer-total-price{font-size:22px;font-weight:900;color:var(--hlp-gold)}
+.hlp__offer-total-sub{font-size:11px;color:var(--hlp-muted)}
+.hlp__offer-plus,.hlp__offer-eq{font-size:24px;font-weight:800;color:var(--hlp-muted)}
+.hlp__offer-envio{font-size:13px;color:var(--hlp-green);font-weight:600;margin-bottom:20px}
+.hlp__offer-cta{display:inline-block;background:linear-gradient(135deg,var(--hlp-gold) 0%,#e0c070 100%);color:#000;font-weight:800;font-size:15px;padding:14px 28px;border-radius:10px;text-decoration:none;transition:transform .2s}
+.hlp__offer-cta:hover{transform:translateY(-2px);color:#000}
+.hlp__bundle-section{padding:48px 20px 80px;max-width:1100px;margin:0 auto}
+.hlp__bundle-header{text-align:center;margin-bottom:32px}
+.hlp__bundle-step-pill{display:inline-block;background:rgba(201,169,110,.15);border:1px solid rgba(201,169,110,.3);color:var(--hlp-gold);font-size:11px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;padding:5px 14px;border-radius:20px;margin-bottom:12px}
+.hlp__bundle-title{font-size:clamp(24px,4vw,36px);font-weight:900;color:var(--hlp-text);margin:0 0 8px}
+.hlp__bundle-sub{font-size:15px;color:var(--hlp-muted);margin:0 0 24px}
+.hlp__progress-wrap{max-width:500px;margin:0 auto}
+.hlp__progress-header{display:flex;justify-content:space-between;font-size:13px;margin-bottom:8px;color:var(--hlp-muted)}
+.hlp__progress-track{height:8px;background:rgba(0,0,0,.06);border-radius:4px;overflow:hidden}
+.hlp__progress-fill{height:100%;background:linear-gradient(90deg,var(--hlp-gold),#e0c070);border-radius:4px;transition:width .4s ease;width:0%}
+.hlp__progress-hint{color:var(--hlp-gold);font-weight:600}
+.hlp__grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(210px,1fr));gap:16px;margin-bottom:32px}
+@media(max-width:600px){.hlp__grid{grid-template-columns:repeat(2,1fr);gap:10px}}
+.hlp__card{background:var(--hlp-card);border-radius:16px;border:2px solid transparent;overflow:hidden;transition:border-color .25s,transform .25s,box-shadow .25s}
+.hlp__card:hover{transform:translateY(-3px);box-shadow:0 8px 24px rgba(0,0,0,.4)}
+.hlp__card.hlp--selected{border-color:var(--hlp-gold);box-shadow:0 0 0 3px color-mix(in srgb,var(--hlp-gold) 25%,transparent),0 8px 24px rgba(0,0,0,.4)}
+.hlp__card-img-wrap{position:relative;aspect-ratio:1;overflow:hidden;background:#1a1a1a;cursor:zoom-in}
+.hlp__card-img{width:100%;height:100%;object-fit:cover;transition:transform .3s,opacity .25s;pointer-events:none}
+.hlp__card:hover .hlp__card-img{transform:scale(1.05)}
+.hlp__card-overlay{position:absolute;inset:0;background:rgba(201,169,110,.15);display:flex;align-items:center;justify-content:center;opacity:0;transition:opacity .25s;pointer-events:none;z-index:2}
+.hlp__card.hlp--selected .hlp__card-overlay{opacity:1}
+.hlp__card-check{width:48px;height:48px;border-radius:50%;background:var(--hlp-gold);color:#000;display:flex;align-items:center;justify-content:center;font-size:24px;font-weight:800}
+.hlp__card-pct{position:absolute;top:8px;right:8px;background:var(--hlp-danger);color:#fff;font-size:10px;font-weight:800;padding:3px 8px;border-radius:20px;z-index:3;pointer-events:none}
+.hlp__card-stock-badge{position:absolute;bottom:32px;left:8px;background:rgba(0,0,0,.8);backdrop-filter:blur(4px);color:#ff6b35;font-size:10px;font-weight:700;padding:3px 8px;border-radius:6px;border:1px solid rgba(255,107,53,.3);z-index:3;pointer-events:none}
+.hlp__card-zoom-hint{position:absolute;bottom:8px;left:50%;transform:translateX(-50%);background:rgba(0,0,0,.75);backdrop-filter:blur(4px);color:#fff;font-size:10px;font-weight:700;padding:5px 10px;border-radius:8px;display:flex;align-items:center;gap:5px;white-space:nowrap;z-index:3;pointer-events:none;border:1px solid rgba(0,0,0,.09);transition:opacity .25s}
+.hlp__card.hlp--selected .hlp__card-zoom-hint{opacity:0}
+.hlp__card-body{padding:12px}
+.hlp__card-name{font-size:13px;font-weight:700;color:var(--hlp-text);margin:0 0 8px;line-height:1.3}
+.hlp__field{margin-bottom:10px}
+.hlp__label{font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:var(--hlp-muted);display:block;margin-bottom:6px}
+.hlp__color-chosen,.hlp__size-chosen{color:var(--hlp-gold);font-weight:700;text-transform:none;letter-spacing:0}
+.hlp__swatches{display:flex;flex-wrap:wrap;gap:6px}
+.hlp__swatch{width:24px;height:24px;border-radius:50%;border:2px solid rgba(0,0,0,.09);cursor:pointer;position:relative;transition:transform .2s,border-color .2s;padding:0;flex-shrink:0}
+.hlp__swatch:hover{transform:scale(1.15);border-color:rgba(255,255,255,.5)}
+.hlp__swatch--active{border-color:var(--hlp-gold)!important;transform:scale(1.15);box-shadow:0 0 0 1px var(--hlp-gold)}
+.hlp__swatch-border{position:absolute;inset:1px;border-radius:50%;border:1px solid rgba(0,0,0,.2)}
+.hlp__size-btns{display:flex;flex-wrap:wrap;gap:6px}
+.hlp__size-btn{min-width:36px;height:32px;padding:0 8px;font-size:12px;font-weight:700;background:rgba(0,0,0,.05);border:1.5px solid rgba(0,0,0,.08);border-radius:6px;color:var(--hlp-muted);cursor:pointer;transition:all .2s}
+.hlp__size-btn:hover{border-color:var(--hlp-gold);color:var(--hlp-gold);background:rgba(201,169,110,.08)}
+.hlp__size-btn.hlp__size-btn--active{background:var(--hlp-gold);color:#000;border-color:var(--hlp-gold);font-weight:800}
+.hlp__select-btn{width:100%;display:flex;align-items:center;justify-content:center;gap:6px;padding:10px;font-size:13px;font-weight:700;background:var(--hlp-gold);color:#000;border:none;border-radius:10px;cursor:pointer;transition:opacity .2s,transform .2s;margin-top:8px}
+.hlp__select-btn:hover{opacity:.88;transform:translateY(-1px)}
+.hlp__card.hlp--selected .hlp__select-btn{background:var(--hlp-green);color:#fff}
+.hlp__select-btn-icon{font-size:16px;font-weight:800}
+.hlp__no-products{text-align:center;padding:48px;color:var(--hlp-muted);font-size:15px}
+.hlp__summary{background:var(--hlp-card);border:1px solid color-mix(in srgb,var(--hlp-gold) 20%,transparent);border-radius:20px;padding:24px;max-width:500px;margin:0 auto}
+.hlp__summary-step-pill{display:inline-block;background:rgba(201,169,110,.12);border:1px solid rgba(201,169,110,.3);color:var(--hlp-gold);font-size:11px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;padding:4px 12px;border-radius:20px;margin-bottom:16px}
+.hlp__summary-empty{text-align:center;color:var(--hlp-muted);font-size:14px;padding:12px 0}
+.hlp__summary-item{display:flex;align-items:center;gap:12px;padding:10px 0;border-bottom:1px solid rgba(0,0,0,.04)}
+.hlp__summary-thumb{width:48px;height:48px;border-radius:8px;object-fit:cover;flex-shrink:0;border:1px solid rgba(201,169,110,.2)}
+.hlp__summary-info{flex:1}
+.hlp__summary-name{font-size:13px;font-weight:600;color:var(--hlp-text)}
+.hlp__summary-meta{font-size:11px;color:var(--hlp-muted);margin-top:2px}
+.hlp__summary-price{font-size:13px;font-weight:700;color:var(--hlp-gold)}
+.hlp__summary-pricing{margin:16px 0;display:flex;flex-direction:column;gap:8px}
+.hlp__pricing-row{display:flex;justify-content:space-between;font-size:14px;color:var(--hlp-muted)}
+.hlp__pricing-orig{text-decoration:line-through}
+.hlp__pricing-save{color:var(--hlp-green)!important;font-weight:700}
+.hlp__pricing-total{font-size:20px;font-weight:800;color:var(--hlp-text)!important;padding-top:12px;border-top:1px solid rgba(0,0,0,.06)}
+.hlp__pricing-total-val{color:var(--hlp-gold)}
+.hlp__pricing-envio{color:var(--hlp-green)!important;font-weight:600}
+.hlp__cta{width:100%;padding:20px;margin-bottom:14px;background:linear-gradient(135deg,var(--hlp-gold) 0%,#e0c070 100%);color:#000;font-size:17px;font-weight:800;border:none;border-radius:14px;cursor:pointer;position:relative;overflow:hidden;box-shadow:0 4px 24px rgba(201,169,110,.4),inset 0 1px 0 rgba(0,0,0,.10);transition:opacity .2s,transform .2s,box-shadow .2s;letter-spacing:.02em}
+.hlp__cta:not(:disabled):hover{transform:translateY(-2px);box-shadow:0 8px 36px rgba(201,169,110,.6)}
+.hlp__cta:disabled{opacity:.4;cursor:not-allowed}
+.hlp__cta-glow{position:absolute;inset:0;background:radial-gradient(ellipse 80% 60% at 50% 0%,rgba(0,0,0,.10),transparent);pointer-events:none}
+.hlp__cta:not(:disabled)::after{content:'';position:absolute;top:-50%;left:-60%;width:40%;height:200%;background:linear-gradient(90deg,transparent,rgba(0,0,0,.09),transparent);transform:rotate(20deg);animation:hlp-shine 2.5s infinite}
+.hlp__trust-strip{display:flex;justify-content:center;gap:14px;flex-wrap:wrap;font-size:11px;color:var(--hlp-muted);margin-bottom:16px}
+.hlp__wa-alt{display:flex;flex-direction:column;align-items:center;gap:8px;font-size:12px;color:var(--hlp-muted)}
+.hlp__wa-btn{display:inline-flex;align-items:center;gap:8px;background:#128c3e;color:#fff;font-size:13px;font-weight:700;padding:10px 20px;border-radius:10px;text-decoration:none;transition:background .2s,transform .2s}
+.hlp__wa-btn:hover{background:#0d7a33;transform:translateY(-1px);color:#fff}
+.hlp__gallery-section{padding:48px 20px}
+.hlp__section-title{text-align:center;font-size:clamp(22px,4vw,32px);font-weight:800;color:var(--hlp-text);margin:0 0 32px}
+.hlp__gallery-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(250px,1fr));gap:12px;max-width:1100px;margin:0 auto}
+.hlp__gallery-item{border-radius:14px;overflow:hidden;aspect-ratio:1}
+.hlp__gallery-item img{width:100%;height:100%;object-fit:cover;transition:transform .3s}
+.hlp__gallery-item:hover img{transform:scale(1.05)}
+.hlp__proof{padding:48px 20px;background:var(--hlp-card)}
+.hlp__reviews-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:16px;max-width:1100px;margin:0 auto 40px}
+.hlp__review-card{background:var(--hlp-bg);border:1px solid rgba(255,255,255,.07);border-radius:16px;padding:20px}
+.hlp__review-top{display:flex;align-items:center;gap:12px;margin-bottom:10px}
+.hlp__review-avatar{width:40px;height:40px;border-radius:50%;flex-shrink:0;background:linear-gradient(135deg,var(--hlp-gold),#e0c070);color:#000;font-size:16px;font-weight:800;display:flex;align-items:center;justify-content:center}
+.hlp__review-author-name{font-size:14px;font-weight:700;color:var(--hlp-text);display:block}
+.hlp__review-city{font-size:11px;color:var(--hlp-muted);display:block}
+.hlp__review-verified{color:var(--hlp-green);font-weight:600}
+.hlp__review-stars{color:#fbbf24;font-size:16px;letter-spacing:2px;margin-bottom:8px}
+.hlp__review-text{font-size:14px;color:var(--hlp-muted);line-height:1.6;margin:0;font-style:italic}
+.hlp__proof-cta{text-align:center;max-width:400px;margin:0 auto}
+.hlp__proof-cta-text{font-size:20px;font-weight:800;color:var(--hlp-text);margin:0 0 16px}
+.hlp__proof-cta-btn{display:inline-flex;align-items:center;gap:8px;background:linear-gradient(135deg,var(--hlp-gold) 0%,#e0c070 100%);color:#000;font-weight:800;font-size:16px;padding:16px 32px;border-radius:12px;text-decoration:none;box-shadow:0 4px 20px rgba(201,169,110,.4);transition:transform .2s;margin-bottom:12px;width:100%;justify-content:center}
+.hlp__proof-cta-btn:hover{transform:translateY(-2px);color:#000}
+.hlp__proof-cta-sub{font-size:12px;color:var(--hlp-muted);margin:0}
+/* ── MODAL ── */
+.hlp__modal{position:fixed;inset:0;z-index:99999;display:none;align-items:flex-end;justify-content:center}
+.hlp__modal.hlp--open{display:flex}
+.hlp__modal-backdrop{position:absolute;inset:0;background:rgba(0,0,0,.8);backdrop-filter:blur(4px);animation:hlp-fade-in .25s ease}
+@keyframes hlp-fade-in{from{opacity:0}to{opacity:1}}
+.hlp__modal-sheet{position:relative;z-index:1;width:100%;max-width:520px;max-height:96vh;background:#111;border-radius:24px 24px 0 0;overflow-y:auto;-webkit-overflow-scrolling:touch;animation:hlp-slide-up .32s cubic-bezier(.34,1.2,.64,1);overscroll-behavior:contain}
+@keyframes hlp-slide-up{from{transform:translateY(100%)}to{transform:translateY(0)}}
+.hlp__modal-sheet.hlp--closing{animation:hlp-slide-dn .25s ease forwards}
+@keyframes hlp-slide-dn{to{transform:translateY(100%)}}
+.hlp__modal-header{display:flex;align-items:center;justify-content:space-between;padding:14px 16px 10px;position:sticky;top:0;background:#111;z-index:2;border-bottom:1px solid rgba(0,0,0,.05)}
+.hlp__modal-drag{position:absolute;top:8px;left:50%;transform:translateX(-50%);width:36px;height:4px;border-radius:2px;background:rgba(0,0,0,.10)}
+.hlp__modal-title{font-size:14px;font-weight:800;color:#f0f0f0;margin:0;flex:1;text-align:center;padding:0 32px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.hlp__modal-close{width:32px;height:32px;border-radius:50%;background:rgba(0,0,0,.07);border:none;color:#f0f0f0;cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:16px;flex-shrink:0}
+.hlp__modal-carousel{position:relative;width:100%;background:#0d0d0d;user-select:none}
+.hlp__modal-track{position:relative;width:100%;padding-bottom:100%}
+.hlp__modal-slide{position:absolute;inset:0;display:none;align-items:center;justify-content:center}
+.hlp__modal-slide.hlp--active{display:flex;animation:hlp-slide-fade .2s ease}
+@keyframes hlp-slide-fade{from{opacity:0}to{opacity:1}}
+.hlp__modal-slide img{width:100%;height:100%;object-fit:contain;-webkit-user-drag:none;pointer-events:none}
+.hlp__modal-arrow{position:absolute;top:50%;transform:translateY(-50%);width:42px;height:42px;border-radius:50%;background:rgba(0,0,0,.6);backdrop-filter:blur(4px);border:1px solid rgba(0,0,0,.10);color:#fff;font-size:26px;font-weight:300;cursor:pointer;display:flex;align-items:center;justify-content:center;z-index:2;transition:background .2s;line-height:1;padding:0}
+.hlp__modal-arrow:hover{background:rgba(0,0,0,.85)}
+.hlp__modal-arrow:disabled{opacity:.2;cursor:default}
+.hlp__modal-arrow--l{left:10px}.hlp__modal-arrow--r{right:10px}
+.hlp__modal-dots{position:absolute;bottom:10px;left:50%;transform:translateX(-50%);display:flex;gap:5px;z-index:2}
+.hlp__modal-dot{width:6px;height:6px;border-radius:50%;background:rgba(255,255,255,.3);cursor:pointer;transition:background .2s,transform .2s}
+.hlp__modal-dot.hlp--active{background:#c9a96e;transform:scale(1.4)}
+.hlp__modal-counter{position:absolute;top:10px;right:10px;background:rgba(0,0,0,.6);backdrop-filter:blur(4px);color:#fff;font-size:11px;font-weight:700;padding:3px 9px;border-radius:20px;z-index:2}
+.hlp__modal-thumbs{display:flex;gap:7px;padding:10px 16px;overflow-x:auto;-webkit-overflow-scrolling:touch;scrollbar-width:none}
+.hlp__modal-thumbs::-webkit-scrollbar{display:none}
+.hlp__modal-thumb{width:54px;height:54px;border-radius:8px;flex-shrink:0;overflow:hidden;cursor:pointer;border:2px solid transparent;transition:border-color .2s,transform .15s}
+.hlp__modal-thumb img{width:100%;height:100%;object-fit:cover}
+.hlp__modal-thumb.hlp--active{border-color:#c9a96e;transform:scale(1.06)}
+.hlp__modal-body{padding:6px 16px 28px}
+.hlp__modal-sel-hdr{display:flex;align-items:center;gap:8px;font-size:13px;font-weight:700;color:#f0f0f0;margin-bottom:10px}
+.hlp__modal-sel-label{color:#888;font-weight:600}
+.hlp__modal-sel-chosen{color:#c9a96e;font-size:15px;font-weight:900}
+.hlp__modal-color-btns{display:flex;flex-wrap:wrap;gap:10px;margin-bottom:16px;padding:4px 0}
+.hlp__modal-color-btn{display:flex;flex-direction:column;align-items:center;gap:5px;cursor:pointer;border:none;background:none;padding:0}
+.hlp__modal-color-swatch{width:36px;height:36px;border-radius:50%;border:3px solid rgba(0,0,0,.08);transition:transform .18s,border-color .18s;flex-shrink:0}
+.hlp__modal-color-btn:hover .hlp__modal-color-swatch{transform:scale(1.12);border-color:rgba(255,255,255,.4)}
+.hlp__modal-color-btn.hlp--active .hlp__modal-color-swatch{border-color:#c9a96e;transform:scale(1.15);box-shadow:0 0 0 2px rgba(201,169,110,.35)}
+.hlp__modal-color-lbl{font-size:10px;font-weight:600;color:#888;white-space:nowrap;transition:color .18s}
+.hlp__modal-color-btn.hlp--active .hlp__modal-color-lbl{color:#c9a96e}
+.hlp__modal-color-img-preview{width:100%;aspect-ratio:1;object-fit:contain;background:#0d0d0d;transition:opacity .25s}
+.hlp__modal-size-hdr{display:flex;justify-content:space-between;align-items:center;font-size:13px;font-weight:700;color:#f0f0f0;margin-bottom:12px}
+.hlp__modal-size-prompt{flex:1}
+.hlp__modal-size-val{color:#c9a96e;font-size:15px;font-weight:900;margin-left:8px}
+.hlp__modal-size-btns{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:16px}
+.hlp__modal-size-btn{min-width:52px;height:46px;padding:0 12px;font-size:16px;font-weight:700;background:rgba(255,255,255,.07);border:2px solid rgba(255,255,255,.14);border-radius:10px;color:#aaa;cursor:pointer;transition:all .18s}
+.hlp__modal-size-btn:hover{border-color:#c9a96e;color:#c9a96e}
+.hlp__modal-size-btn.hlp--active{background:#c9a96e;color:#000;border-color:#c9a96e;font-weight:900;transform:scale(1.06)}
+.hlp__modal-urgency{display:flex;align-items:center;gap:12px;background:linear-gradient(135deg,rgba(201,169,110,.15),rgba(201,169,110,.05));border:1.5px solid rgba(201,169,110,.45);border-radius:14px;padding:14px 16px;margin-bottom:14px;animation:hlp-pop .4s cubic-bezier(.34,1.5,.64,1)}
+@keyframes hlp-pop{from{transform:scale(.88);opacity:0}to{transform:scale(1);opacity:1}}
+.hlp__modal-urgency-icon{font-size:28px;flex-shrink:0}
+.hlp__modal-urgency strong{display:block;font-size:15px;font-weight:800;color:#c9a96e}
+.hlp__modal-urgency-msg{font-size:12px;color:#aaa;margin-top:2px}
+.hlp__modal-cta{width:100%;padding:18px;background:linear-gradient(135deg,#c9a96e 0%,#e0c070 100%);color:#000;font-size:16px;font-weight:900;border:none;border-radius:14px;cursor:pointer;position:relative;overflow:hidden;box-shadow:0 4px 20px rgba(201,169,110,.4);transition:transform .2s,box-shadow .2s,opacity .2s;margin-bottom:12px;letter-spacing:.01em}
+.hlp__modal-cta:not(:disabled):hover{transform:translateY(-2px);box-shadow:0 8px 32px rgba(201,169,110,.65)}
+.hlp__modal-cta:disabled{opacity:.4;cursor:not-allowed}
+.hlp__modal-cta.hlp--ready{animation:hlp-cta-pulse 1.4s ease-in-out infinite}
+@keyframes hlp-cta-pulse{0%,100%{box-shadow:0 4px 20px rgba(201,169,110,.4)}50%{box-shadow:0 4px 36px rgba(201,169,110,.9),0 0 0 5px rgba(201,169,110,.18)}}
+.hlp__modal-cta.hlp--done{background:#00c853;color:#fff}
+.hlp__modal-cta:not(:disabled)::after{content:'';position:absolute;top:-50%;left:-60%;width:40%;height:200%;background:linear-gradient(90deg,transparent,rgba(255,255,255,.18),transparent);transform:rotate(20deg);animation:hlp-shine 2.2s infinite}
+.hlp__modal-trust{display:flex;justify-content:center;gap:14px;font-size:11px;color:#555;flex-wrap:wrap}
+/* TOAST */
+.hlp__toast{position:fixed;bottom:88px;left:50%;transform:translateX(-50%);z-index:99998;background:#1a1a1a;border-radius:14px;padding:14px 18px;display:flex;align-items:center;gap:12px;box-shadow:0 8px 32px rgba(0,0,0,.6);max-width:340px;width:calc(100% - 32px);animation:hlp-toast-in .35s cubic-bezier(.34,1.5,.64,1)}
+@keyframes hlp-toast-in{from{transform:translateX(-50%) translateY(20px);opacity:0}to{transform:translateX(-50%) translateY(0);opacity:1}}
+.hlp__toast strong{display:block;font-size:14px;font-weight:800}
+.hlp__toast span{font-size:12px;color:#aaa;display:block;margin-top:2px}
+/* FLOAT CART */
+.hlp__floatcart{position:fixed;bottom:0;left:0;right:0;z-index:9995;background:#0d0d0d;border-top:2px solid #c9a96e;box-shadow:0 -6px 32px rgba(0,0,0,.7);padding:10px 12px 12px;transform:translateY(100%);transition:transform .35s cubic-bezier(.34,1.56,.64,1)}
+.hlp__floatcart.hlp--fc-visible{transform:translateY(0)}
+.hlp__floatcart-inner{max-width:600px;margin:0 auto;display:flex;flex-direction:column;gap:10px}
+.hlp__floatcart-slots{display:flex;align-items:center;gap:8px}
+.hlp__floatslot{width:54px;height:54px;border-radius:10px;flex-shrink:0;overflow:hidden;border:2px dashed rgba(201,169,110,.35);position:relative}
+.hlp__floatslot--empty{background:rgba(255,255,255,.03);display:flex;align-items:center;justify-content:center}
+.hlp__floatslot--filled{border:2px solid #c9a96e}
+.hlp__floatslot-inner{display:flex;flex-direction:column;align-items:center;gap:1px}
+.hlp__floatslot-num{width:20px;height:20px;border-radius:50%;background:rgba(201,169,110,.2);border:1px solid rgba(201,169,110,.4);display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:800;color:#c9a96e}
+.hlp__floatslot-lbl{font-size:9px;color:#666;letter-spacing:.04em}
+.hlp__floatslot-img{width:100%;height:100%;object-fit:cover;display:block}
+.hlp__floatslot-chk{position:absolute;top:2px;right:2px;width:16px;height:16px;border-radius:50%;background:#c9a96e;color:#000;font-size:9px;font-weight:800;display:flex;align-items:center;justify-content:center}
+.hlp__floatslot-name{position:absolute;bottom:0;left:0;right:0;background:linear-gradient(transparent,rgba(0,0,0,.85));font-size:7px;color:#fff;font-weight:600;padding:8px 3px 2px;line-height:1.2;text-align:center}
+.hlp__floatcart-info{flex:1;display:flex;flex-direction:column;gap:1px;padding-left:4px}
+.hlp__floatcart-progress{font-size:11px;color:#888}
+.hlp__floatcart-progress span{color:#c9a96e;font-weight:800}
+.hlp__floatcart-price{font-size:20px;font-weight:900;color:#c9a96e;line-height:1}
+.hlp__floatcart-sub{font-size:10px;color:#00c853;font-weight:600}
+.hlp__floatcart-btn{width:100%;padding:15px;background:linear-gradient(135deg,#c9a96e,#e0c080);color:#000;font-size:16px;font-weight:900;border:none;border-radius:12px;cursor:pointer;position:relative;overflow:hidden;box-shadow:0 4px 20px rgba(201,169,110,.45);transition:opacity .2s,transform .2s}
+.hlp__floatcart-btn:not(:disabled):hover{transform:translateY(-1px);box-shadow:0 8px 28px rgba(201,169,110,.6)}
+.hlp__floatcart-btn:disabled{opacity:.4;cursor:not-allowed}
+.hlp__floatcart-btn-glow{position:absolute;inset:0;background:radial-gradient(ellipse 80% 55% at 50% 0%,rgba(255,255,255,.22),transparent);pointer-events:none}
+.hlp__floatcart-btn.hlp--fc-ready{animation:hlp-fc-pulse 1.4s ease-in-out infinite}
+@keyframes hlp-fc-pulse{0%,100%{box-shadow:0 4px 20px rgba(201,169,110,.45)}50%{box-shadow:0 4px 32px rgba(201,169,110,.8),0 0 0 4px rgba(201,169,110,.2)}}
+.hlp__floatcart-btn:not(:disabled)::after{content:'';position:absolute;top:-50%;left:-60%;width:40%;height:200%;background:linear-gradient(90deg,transparent,rgba(0,0,0,.10),transparent);transform:rotate(20deg);animation:hlp-shine 2.2s infinite}
+.hlp__sticky-cta{position:fixed;bottom:0;left:0;right:0;z-index:9990;background:var(--hlp-card);border-top:2px solid var(--hlp-gold);padding:12px 16px;box-shadow:0 -4px 24px rgba(0,0,0,.5);transform:translateY(100%);transition:transform .3s ease}
+.hlp__sticky-cta.hlp--visible{transform:translateY(0)}
+.hlp__sticky-inner{display:flex;align-items:center;justify-content:space-between;max-width:600px;margin:0 auto;gap:12px}
+.hlp__sticky-info{display:flex;flex-direction:column;gap:2px}
+.hlp__sticky-title{font-size:15px;font-weight:800;color:var(--hlp-gold)}
+.hlp__sticky-price{font-size:12px;color:var(--hlp-muted)}
+.hlp__sticky-btn{background:var(--hlp-gold);color:#000;font-weight:800;font-size:14px;padding:12px 24px;border-radius:10px;text-decoration:none;white-space:nowrap}
+.hlp__sticky-btn:hover{opacity:.85;color:#000}
+@keyframes hlp-shake{0%,100%{transform:translateX(0)}25%{transform:translateX(-5px)}75%{transform:translateX(5px)}}
+.hlp--shake{animation:hlp-shake .35s ease}
+
+/* ── GUÍA DE TALLAS en modal ── */
+.hlp__size-guide-btn{display:flex;align-items:center;justify-content:center;gap:7px;width:100%;font-size:13px;font-weight:700;color:#c9a96e;background:rgba(201,169,110,.08);border:1.5px dashed rgba(201,169,110,.45);border-radius:10px;cursor:pointer;padding:11px 14px;margin-top:12px;transition:all .2s;letter-spacing:.3px;font-family:inherit;}
+.hlp__size-guide-btn:hover{background:rgba(201,169,110,.15);border-color:rgba(201,169,110,.7);transform:translateY(-1px);}
+.hlp__size-guide-btn svg{flex-shrink:0;}
+.hlp__size-guide{margin:0 -16px;padding:0 16px;}
+.hlp__size-guide-inner{background:rgba(201,169,110,.06);border:1px solid rgba(201,169,110,.2);border-radius:14px;padding:14px;margin-bottom:12px;animation:hlp-pop .3s ease;}
+.hlp__size-guide-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;}
+.hlp__size-guide-title{font-size:13px;font-weight:800;color:#c9a96e;}
+.hlp__size-guide-close{width:24px;height:24px;border-radius:50%;background:rgba(0,0,0,.06);border:none;color:#aaa;cursor:pointer;font-size:12px;display:flex;align-items:center;justify-content:center;}
+.hlp__size-guide-tip{display:flex;gap:8px;font-size:11px;color:#888;line-height:1.5;margin-bottom:12px;}
+.hlp__size-guide-tip strong{color:#c9a96e;display:block;margin-bottom:2px;}
+.hlp__size-guide-table-wrap{overflow-x:auto;}
+.hlp__size-guide-table{width:100%;border-collapse:collapse;font-size:12px;}
+.hlp__size-guide-table th{background:rgba(201,169,110,.12);color:#c9a96e;font-weight:700;padding:7px 8px;text-align:center;font-size:10px;letter-spacing:.04em;}
+.hlp__size-guide-table td{padding:6px 8px;text-align:center;color:#ccc;border-bottom:1px solid rgba(0,0,0,.04);}
+.hlp__size-guide-table td:first-child{font-weight:800;color:#e0c070;}
+.hlp__size-guide-table tr:nth-child(even) td{background:rgba(255,255,255,.03);}
+.hlp__size-guide-note{font-size:10px;color:#666;text-align:center;margin-top:8px;line-height:1.5;}
+
+/* ── MODAL GUÍA DE TALLAS PREMIUM ── */
+#hlpSGOverlay{position:fixed;inset:0;z-index:2147483647;background:rgba(5,3,1,.82);backdrop-filter:blur(6px);-webkit-backdrop-filter:blur(6px);display:none;align-items:center;justify-content:center;padding:12px;}
+#hlpSGOverlay.open{display:flex;}
+#hlpSGModal{background:#0f0f0f;border:1px solid rgba(201,169,110,.25);border-radius:20px;max-width:480px;width:100%;max-height:92vh;overflow-y:auto;box-shadow:0 40px 100px rgba(0,0,0,.7);animation:hlpSGin .35s cubic-bezier(.34,1.56,.64,1);scrollbar-width:thin;scrollbar-color:rgba(201,169,110,.3) transparent;}
+@keyframes hlpSGin{from{opacity:0;transform:scale(.86) translateY(24px)}to{opacity:1;transform:scale(1) translateY(0)}}
+#hlpSGModal::-webkit-scrollbar{width:4px;}
+#hlpSGModal::-webkit-scrollbar-thumb{background:rgba(201,169,110,.3);border-radius:4px;}
+.hlpsg-hdr{background:linear-gradient(135deg,#1a1208,#2a1e08);padding:22px 24px 20px;display:flex;align-items:center;justify-content:space-between;border-radius:20px 20px 0 0;position:sticky;top:0;z-index:2;border-bottom:1px solid rgba(201,169,110,.15);}
+.hlpsg-hdr-left{}
+.hlpsg-hdr-title{font-size:17px;font-weight:800;color:#f0e8d8;display:block;margin-bottom:3px;}
+.hlpsg-hdr-sub{font-size:12px;color:#6b6355;}
+.hlpsg-close{background:rgba(0,0,0,.07);border:none;color:rgba(255,255,255,.6);font-size:15px;cursor:pointer;width:30px;height:30px;border-radius:50%;display:flex;align-items:center;justify-content:center;transition:all .15s;flex-shrink:0;}
+.hlpsg-close:hover{background:rgba(0,0,0,.10);color:#fff;}
+.hlpsg-body{padding:22px 24px 28px;}
+.hlpsg-steps{display:flex;flex-direction:column;gap:12px;margin-bottom:20px;}
+.hlpsg-step{display:flex;gap:12px;align-items:flex-start;}
+.hlpsg-step-num{width:26px;height:26px;background:#c9a96e;color:#1a1208;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:800;flex-shrink:0;margin-top:1px;}
+.hlpsg-step-text{font-size:13px;color:#a0947e;line-height:1.6;}
+.hlpsg-step-text strong{color:#e0d0b0;display:block;margin-bottom:2px;}
+.hlpsg-table-wrap{overflow-x:auto;margin-bottom:16px;border-radius:12px;border:1px solid rgba(201,169,110,.2);}
+.hlpsg-table{width:100%;border-collapse:collapse;}
+.hlpsg-table th{background:rgba(201,169,110,.12);color:#c9a96e;font-size:10px;letter-spacing:2px;text-transform:uppercase;padding:11px 14px;text-align:center;font-weight:700;border-bottom:1px solid rgba(201,169,110,.15);}
+.hlpsg-table td{padding:11px 14px;text-align:center;color:#b0a090;border-bottom:1px solid rgba(255,255,255,.04);font-size:14px;transition:background .1s;}
+.hlpsg-table tr:last-child td{border-bottom:none;}
+.hlpsg-table tr:hover td{background:rgba(201,169,110,.06);}
+.hlpsg-table td:first-child{font-size:18px;font-weight:900;color:#e0c070;}
+.hlpsg-tips{display:flex;flex-direction:column;gap:8px;margin-bottom:20px;}
+.hlpsg-tip{display:flex;gap:10px;align-items:flex-start;background:rgba(201,169,110,.06);border:1px solid rgba(201,169,110,.15);border-radius:10px;padding:11px 13px;}
+.hlpsg-tip-icon{font-size:18px;flex-shrink:0;margin-top:1px;}
+.hlpsg-tip-text{font-size:12px;color:#8a7a6a;line-height:1.6;}
+.hlpsg-tip-text strong{color:#c9a96e;display:block;margin-bottom:1px;font-size:12px;}
+.hlpsg-wa-btn{display:flex;align-items:center;justify-content:center;gap:10px;background:linear-gradient(135deg,#0d6b30,#1aab4f);color:#fff;padding:15px;border-radius:12px;font-size:14px;font-weight:700;text-decoration:none;box-shadow:0 4px 20px rgba(37,211,102,.25);transition:all .2s;}
+.hlpsg-wa-btn:hover{transform:translateY(-2px);box-shadow:0 8px 32px rgba(37,211,102,.35);color:#fff;}
+
+
+/* ═══════════════════════════════════════════════
+   v48 — TOPBAR ULTRA SLIM + STEPS SLIM
+   Estrategia Temu/Shein: info mínima arriba,
+   productos visibles inmediatamente
+═══════════════════════════════════════════════ */
+
+/* ── TOPBAR: UNA SOLA FILA, TODO EN UN GOLPE ── */
+.hlp__topbar{
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:8px;
+  padding:8px 14px;
+  background:#0a0f1c;
+  border-bottom:1px solid rgba(201,169,110,.2);
+  min-height:0;
+}
+
+/* Precio */
+.hlp__topbar-price{
+  display:flex;align-items:center;gap:5px;flex-shrink:0;
+}
+.hlp__topbar-label{
+  font-size:9px;font-weight:900;letter-spacing:.1em;
+  color:#000;background:var(--hlp-gold);
+  padding:1px 5px;border-radius:3px;
+  text-transform:uppercase;
+}
+.hlp__topbar-amount{
+  font-size:17px;font-weight:900;color:var(--hlp-gold);
+  line-height:1;
+}
+.hlp__topbar-save{
+  font-size:10px;font-weight:700;
+  color:#fff;background:#d93025;
+  padding:1px 5px;border-radius:3px;
+  white-space:nowrap;
+}
+
+/* Timer inline */
+.hlp__topbar-timer{
+  display:flex;align-items:center;gap:2px;
+  flex-shrink:0;
+}
+.hlp__topbar-timer-icon{font-size:12px;}
+.hlp__topbar-timer-num{
+  font-size:15px;font-weight:900;
+  color:#fff;
+  background:rgba(201,169,110,.15);
+  border:1px solid rgba(201,169,110,.3);
+  border-radius:4px;
+  padding:2px 5px;
+  min-width:26px;text-align:center;
+  font-variant-numeric:tabular-nums;
+  line-height:1.2;
+}
+.hlp__topbar-timer-sep{
+  font-size:14px;font-weight:900;color:var(--hlp-gold);
+  margin:0 1px;animation:hlp-blink 1s step-end infinite;
+}
+
+/* Badges derecha */
+.hlp__topbar-badges{
+  display:flex;flex-direction:column;gap:2px;align-items:flex-end;flex-shrink:0;
+}
+.hlp__topbar-badge{
+  font-size:9px;font-weight:700;
+  color:rgba(255,255,255,.65);
+  white-space:nowrap;
+}
+
+/* ── PASOS SLIM: una línea, todo pequeño ── */
+.hlp__steps-slim{
+  display:flex;align-items:center;justify-content:center;
+  padding:5px 12px;
+  background:rgba(201,169,110,.04);
+  border-bottom:1px solid rgba(201,169,110,.08);
+  gap:6px;
+  overflow:hidden;
+}
+.hlp__step-slim{
+  display:flex;align-items:center;gap:4px;
+  font-size:11px;color:rgba(255,255,255,.3);
+  transition:color .25s;
+  white-space:nowrap;
+}
+.hlp__step-slim.hlp__step--active{color:var(--hlp-gold);}
+.hlp__step-slim.hlp__step--done{color:var(--hlp-green);}
+.hlp__step-dot{
+  width:16px;height:16px;border-radius:50%;
+  background:rgba(0,0,0,.05);
+  border:1px solid rgba(201,169,110,.25);
+  color:rgba(201,169,110,.5);
+  font-size:9px;font-weight:800;
+  display:flex;align-items:center;justify-content:center;
+  flex-shrink:0;transition:all .25s;
+}
+.hlp__step-slim.hlp__step--active .hlp__step-dot{
+  background:var(--hlp-gold);border-color:var(--hlp-gold);color:#000;
+}
+.hlp__step-slim.hlp__step--done .hlp__step-dot{
+  background:var(--hlp-green);border-color:var(--hlp-green);color:#000;
+}
+.hlp__step-slim.hlp__step--done .hlp__step-dot::before{content:'✓';}
+.hlp__step-line{
+  flex:1;height:1px;
+  background:rgba(201,169,110,.15);
+  max-width:28px;
+}
+
+/* ── SCROLL HINT ── */
+.hlp__scroll-hint{
+  display:flex;align-items:center;justify-content:center;gap:8px;
+  padding:4px 14px;
+  background:rgba(201,169,110,.06);
+  border-bottom:1px solid rgba(201,169,110,.06);
+  font-size:11px;color:rgba(255,255,255,.45);
+  animation:hlp-hint-pulse 3s ease-in-out infinite;
+}
+.hlp__scroll-arrow{
+  font-size:16px;color:var(--hlp-gold);opacity:.7;
+  display:inline-block;
+  animation:hlp-bounce 1.5s ease-in-out infinite;
+  transform:rotate(90deg);
+}
+@keyframes hlp-bounce{
+  0%,100%{transform:rotate(90deg) translateX(0);}
+  50%{transform:rotate(90deg) translateX(4px);}
+}
+@keyframes hlp-hint-pulse{
+  0%,100%{opacity:1;}50%{opacity:.6;}
+}
+
+/* ── BUNDLE ajustes ── */
+.hlp__bundle-section{padding:10px 12px 80px;max-width:1100px;margin:0 auto;}
+.hlp__bundle-header{text-align:center;margin-bottom:10px;}
+.hlp__bundle-title{font-size:clamp(17px,3.5vw,26px);font-weight:900;color:var(--hlp-text);margin:0 0 4px;}
+.hlp__bundle-sub{font-size:12px;color:var(--hlp-muted);margin:0 0 12px;line-height:1.4;}
+
+/* ── GRID móvil optimizado ── */
+@media(max-width:600px){
+  .hlp__grid{grid-template-columns:repeat(2,1fr);gap:8px;}
+  .hlp__card-body{padding:8px;}
+  .hlp__card-name{font-size:11px;margin:0 0 5px;line-height:1.3;}
+  .hlp__card-img-wrap{aspect-ratio:1;}
+  /* Hacer que los size buttons sean más táctiles */
+  .hlp__size-btn{min-width:32px;height:30px;font-size:11px;}
+  .hlp__select-btn{padding:8px;font-size:12px;}
+  /* SCROLL HINT solo en móvil */
+  .hlp__scroll-hint{display:flex;}
+}
+@media(min-width:601px){
+  .hlp__scroll-hint{display:none;}
+  .hlp__topbar-badges{flex-direction:row;gap:8px;}
+  .hlp__topbar-badge{font-size:11px;}
+}
+
+/* ── TARJETAS: hover más pronunciado en móvil ── */
+@media(hover:none){
+  .hlp__card:active{transform:scale(.97);}
+}
+
+/* ── URGENCY PULSE en timer cuando queda < 1h ── */
+.hlp__topbar-timer-num.urgent{
+  color:#ff4444;border-color:rgba(255,68,68,.4);
+  background:rgba(255,68,68,.1);
+  animation:hlp-urgent 0.5s step-end infinite;
+}
+@keyframes hlp-urgent{0%,100%{opacity:1;}50%{opacity:.5};}
+
+</style>
+
+<!-- MODAL OVERLAY GUÍA DE TALLAS PREMIUM -->
+<div id="hlpSGOverlay" role="dialog" aria-modal="true" aria-label="Guía de tallas">
+  <div id="hlpSGModal">
+    <div class="hlpsg-hdr">
+      <div class="hlpsg-hdr-left">
+        <span class="hlpsg-hdr-title">📏 Guía de Tallas — Hamsa Shoes</span>
+        <span class="hlpsg-hdr-sub">Encuentra tu talla perfecta en 30 segundos</span>
+      </div>
+      <button class="hlpsg-close" id="hlpSGClose" aria-label="Cerrar">✕</button>
+    </div>
+    <div class="hlpsg-body">
+
+      <!-- CÓMO MEDIR -->
+      <p style="font-size:12px;font-weight:700;color:#c9a96e;letter-spacing:2px;text-transform:uppercase;margin-bottom:12px;">Cómo medir tu pie</p>
+      <div class="hlpsg-steps">
+        <div class="hlpsg-step">
+          <div class="hlpsg-step-num">1</div>
+          <div class="hlpsg-step-text"><strong>Coloca una hoja de papel en el piso</strong>Párate descalza sobre ella con el peso bien distribuido. Mejor hacerlo en la tarde.</div>
+        </div>
+        <div class="hlpsg-step">
+          <div class="hlpsg-step-num">2</div>
+          <div class="hlpsg-step-text"><strong>Marca el talón y el dedo más largo</strong>Usa un lápiz para marcar los dos extremos del pie. No siempre es el dedo gordo el más largo.</div>
+        </div>
+        <div class="hlpsg-step">
+          <div class="hlpsg-step-num">3</div>
+          <div class="hlpsg-step-text"><strong>Mide la distancia en centímetros</strong>Usa una regla. Repite con el otro pie y usa la medida del pie más grande.</div>
+        </div>
+        <div class="hlpsg-step">
+          <div class="hlpsg-step-num">4</div>
+          <div class="hlpsg-step-text"><strong>Busca tu medida en la tabla</strong>¡Listo! Elige la talla que corresponde a tus centímetros.</div>
+        </div>
+      </div>
+
+      <!-- TABLA -->
+      <p style="font-size:12px;font-weight:700;color:#c9a96e;letter-spacing:2px;text-transform:uppercase;margin-bottom:10px;">Tabla de tallas</p>
+      <div class="hlpsg-table-wrap">
+        <table class="hlpsg-table">
+          <thead>
+            <tr><th>Talla</th><th>Pie (cm)</th><th>EUR</th><th>USA</th></tr>
+          </thead>
+          <tbody>
+            <tr><td>35</td><td>22.0 – 22.5</td><td>35</td><td>5</td></tr>
+            <tr><td>36</td><td>22.5 – 23.0</td><td>36</td><td>5.5</td></tr>
+            <tr><td>37</td><td>23.0 – 23.5</td><td>37</td><td>6.5</td></tr>
+            <tr><td>38</td><td>23.5 – 24.0</td><td>38</td><td>7.5</td></tr>
+            <tr><td>39</td><td>24.0 – 24.5</td><td>39</td><td>8.5</td></tr>
+            <tr><td>40</td><td>24.5 – 25.0</td><td>40</td><td>9</td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <!-- TIPS -->
+      <div class="hlpsg-tips">
+        <div class="hlpsg-tip">
+          <div class="hlpsg-tip-icon">💡</div>
+          <div class="hlpsg-tip-text"><strong>Entre dos tallas</strong>Si tienes pie ancho o el empeine alto → elige la talla más grande. Si tienes pie estrecho → la más pequeña.</div>
+        </div>
+        <div class="hlpsg-tip">
+          <div class="hlpsg-tip-icon">👠</div>
+          <div class="hlpsg-tip-text"><strong>Nuestras sandalias</strong>La mayoría tiene hebilla o velcro ajustable — eso da margen extra de comodidad entre tallas.</div>
+        </div>
+        <div class="hlpsg-tip">
+          <div class="hlpsg-tip-icon">🔄</div>
+          <div class="hlpsg-tip-text"><strong>¿Te equivocaste de talla?</strong>No hay problema. El primer cambio es sin costo adicional. Escríbenos con tu número de pedido.</div>
+        </div>
+      </div>
+
+      <!-- WA CTA -->
+      <a href="https://wa.me/573508258757?text=Hola!+Necesito+ayuda+para+elegir+mi+talla+en+el+2x1+de+Hamsa+Shoes+%F0%9F%92%9B" target="_blank" rel="noopener" class="hlpsg-wa-btn">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z"/></svg>
+        ¿Aún con dudas? Escríbenos — respondemos en menos de 1 hora
+      </a>
+
+    </div>
+  </div>
+</div>
+
+<script>
+// ── GUÍA DE TALLAS MODAL — init inmediato ──
+(function(){
+  var overlay = document.getElementById('hlpSGOverlay');
+  var closeBtn = document.getElementById('hlpSGClose');
+  var triggerBtn = document.getElementById('hlpSizeGuideBtn');
+
+  if(!overlay || !triggerBtn) return;
+
+  function openSG(){
+    overlay.classList.add('open');
+    document.body.style.overflow = 'hidden';
+    // Asegurar que el modal está por encima del modal de producto
+    overlay.style.zIndex = '2147483647';
+  }
+  function closeSG(){
+    overlay.classList.remove('open');
+    document.body.style.overflow = '';
+  }
+
+  triggerBtn.addEventListener('click', openSG);
+  if(closeBtn) closeBtn.addEventListener('click', closeSG);
+
+  // Cerrar con clic fuera del modal
+  overlay.addEventListener('click', function(e){
+    if(e.target === overlay) closeSG();
+  });
+
+  // Cerrar con Escape
+  document.addEventListener('keydown', function(e){
+    if(e.key === 'Escape' && overlay.classList.contains('open')) closeSG();
+  });
+})();
+</script>
+
+<script>
+(function(){
+  // ── TIMER persistente por session ──
+  function pad(n){return String(n).padStart(2,'0');}
+  var endTime;
+  try{
+    var s=sessionStorage.getItem('hlp_te');
+    endTime=s?parseInt(s):0;
+    if(!endTime||endTime<Date.now()){
+      endTime=Date.now()+(5+Math.floor(Math.random()*4))*3600000+Math.floor(Math.random()*60)*60000;
+      sessionStorage.setItem('hlp_te',endTime);
+    }
+  }catch(e){endTime=Date.now()+6*3600000;}
+  function tick(){
+    var d=Math.max(0,Math.floor((endTime-Date.now())/1000));
+    var H=document.getElementById('hlpH'),M=document.getElementById('hlpM'),S=document.getElementById('hlpS');
+    if(H)H.textContent=pad(Math.floor(d/3600));
+    if(M)M.textContent=pad(Math.floor((d%3600)/60));
+    if(S)S.textContent=pad(d%60);
+  }
+  tick();setInterval(tick,1000);
+
+  // ── STATE ──
+  var BUNDLE_PRICE={{ bundle_price }};
+  var BUNDLE_QTY=2;
+  var selected={};   // {pid: {variantId,price,title,img,color,size}}
+  var adding=false;
+
+  // Check existing cart items
+  fetch('/cart.js',{headers:{'Accept':'application/json'}})
+    .then(function(r){return r.json();})
+    .then(function(c){
+      if((c.item_count||0)>=1){
+        BUNDLE_QTY=1;
+        var b=document.getElementById('hlpCartBanner');if(b)b.style.display='flex';
+        var t=document.getElementById('hlpNeedTotal');if(t)t.textContent='1';
+        var h=document.getElementById('hlpProgressHint');if(h)h.textContent='Elige 1 par mas para activar la oferta';
+      }
+      renderAll();
+    }).catch(function(){renderAll();});
+
+  function fmt(c){return new Intl.NumberFormat('es-CO',{style:'currency',currency:'COP',minimumFractionDigits:0}).format(c/100);}
+
+  // ── VARIANT RESOLVER ──
+  function getVariant(card){
+    var raw=card.querySelector('.hlp__variants-data');
+    if(!raw)return null;
+    var vv=JSON.parse(raw.textContent);
+    var col=(card.querySelector('.hlp__color-val')||{}).value||'';
+    var sz=(card.querySelector('.hlp__size-val')||{}).value||'';
+    var v=vv.find(function(v){
+      var hc=!col||v.options.indexOf(col)>-1;
+      var hs=!sz||v.options.indexOf(sz)>-1;
+      return hc&&hs;
+    });
+    if(!v&&col)v=vv.find(function(v){return v.options.indexOf(col)>-1;});
+    return v||vv[0];
+  }
+
+  // ── IMAGE SWAP on color change ──
+  function swapCardImage(card,colorVal){
+    var raw=card.querySelector('.hlp__variants-data');if(!raw)return;
+    var vv=JSON.parse(raw.textContent);
+    var v=vv.find(function(v){return v.options.indexOf(colorVal)>-1;});
+    if(!v||!v.featured_image||!v.featured_image.src)return;
+    var img=card.querySelector('.hlp__card-img');if(!img)return;
+    var src=v.featured_image.src.split('?')[0].replace(/(\.[a-z]+)$/i,'_400x$1');
+    img.style.opacity='0';
+    var ni=new Image();
+    ni.onload=function(){img.src=src;img.style.opacity='1';};
+    ni.onerror=function(){img.style.opacity='1';};
+    ni.src=src;
+  }
+
+  // ── RENDER SUMMARY ──
+  // ── PASOS SLIM: actualiza estado + oculta scroll hint ──
+  function updateStepsBar(n){
+    var s1=document.getElementById('hlpStep1'),s2=document.getElementById('hlpStep2'),s3=document.getElementById('hlpStep3');
+    if(!s1)return;
+    function set(el,state){
+      el.classList.remove('hlp__step--active','hlp__step--done');
+      if(state)el.classList.add(state);
+    }
+    if(n===0){set(s1,'hlp__step--active');set(s2,'');set(s3,'');}
+    else if(n===1){
+      set(s1,'hlp__step--done');set(s2,'hlp__step--active');set(s3,'');
+      // ocultar scroll hint cuando ya eligió 1 par
+      var sh=document.getElementById('hlpScrollHint');if(sh)sh.style.display='none';
+    }
+    else{set(s1,'hlp__step--done');set(s2,'hlp__step--done');set(s3,'hlp__step--active');}
+  }
+
+  // ── URGENCY: poner timer en rojo si quedan < 60 minutos ──
+  function checkUrgency(){
+    try{
+      var endT=parseInt(sessionStorage.getItem('hlp_te'));
+      if(!endT)return;
+      var remMs=endT-Date.now();
+      if(remMs>0&&remMs<3600000){
+        document.querySelectorAll('#hlpH,#hlpM,#hlpS').forEach(function(el){
+          el.classList.add('urgent');
+        });
+      }
+    }catch(e){}
+  }
+  setTimeout(checkUrgency,500);
+
+  function renderSummary(){
+    var items=Object.values(selected),count=items.length;
+    var ce=document.getElementById('hlpCount'),fe=document.getElementById('hlpFill'),he=document.getElementById('hlpProgressHint');
+    if(ce)ce.textContent=count;
+    if(fe)fe.style.width=(count/BUNDLE_QTY*100)+'%';
+    updateStepsBar(count);
+    if(he){
+      if(count>=BUNDLE_QTY)he.textContent='Listo para confirmar!';
+      else if(count===0)he.textContent='Toca una foto para comenzar';
+      else{var r=BUNDLE_QTY-count;he.textContent='Falta '+r+' par'+(r>1?'es':'')+' mas!';}
+    }
+    var ie=document.getElementById('hlpItems'),pe=document.getElementById('hlpPricing'),ce2=document.getElementById('hlpCTA'),ct=document.getElementById('hlpCTAText');
+    var orig=items.reduce(function(s,i){return s+(i.price||0);},0);
+    if(ie){
+      if(count>0){
+        ie.innerHTML=items.map(function(i){
+          return '<div class="hlp__summary-item"><img src="'+i.img+'" class="hlp__summary-thumb" alt=""><div class="hlp__summary-info"><div class="hlp__summary-name">'+i.title+'</div><div class="hlp__summary-meta">'+[i.color,i.size].filter(Boolean).join(' · ')+'</div></div><div class="hlp__summary-price">'+fmt(i.price)+'</div></div>';
+        }).join('');
+      }else{ie.innerHTML='<p class="hlp__summary-empty">Selecciona 2 pares para activar el precio especial</p>';}
+    }
+    if(count>=BUNDLE_QTY){
+      if(pe){pe.style.display='flex';var oe=document.getElementById('hlpOrig'),se=document.getElementById('hlpSave');if(oe)oe.textContent=fmt(orig);if(se)se.textContent=orig>BUNDLE_PRICE?'- '+fmt(orig-BUNDLE_PRICE):'Precio especial 2x1';}
+      if(ce2)ce2.disabled=false;
+      if(ct)ct.textContent='Confirmar pedido — $159.900';
+    }else{
+      if(pe)pe.style.display='none';
+      if(ce2)ce2.disabled=true;
+      if(ct){var rem=BUNDLE_QTY-count;ct.textContent='Selecciona '+rem+' par'+(rem>1?'es':'')+' mas';}
+    }
+  }
+
+  // ── RENDER FLOAT CART ──
+  function renderFloat(){
+    var items=Object.values(selected),count=items.length;
+    var fc=document.getElementById('hlpFloatCart'),fct=document.getElementById('hlpFloatCount');
+    var fb=document.getElementById('hlpFloatBtn'),ft=document.getElementById('hlpFloatBtnText');
+    var st=document.getElementById('hlpStickyCTA');
+    if(fct)fct.textContent=count;
+    if(fc){if(count>0){fc.classList.add('hlp--fc-visible');if(st)st.classList.remove('hlp--visible');}else fc.classList.remove('hlp--fc-visible');}
+    for(var i=0;i<2;i++){
+      var slot=document.getElementById('hlpSlot'+i);if(!slot)continue;
+      if(i>=BUNDLE_QTY){slot.style.display='none';continue;}
+      slot.style.display='';
+      var item=items[i];
+      if(item){
+        slot.className='hlp__floatslot hlp__floatslot--filled';
+        slot.innerHTML='<img src="'+item.img+'" class="hlp__floatslot-img" alt=""><div class="hlp__floatslot-chk">&#10003;</div><div class="hlp__floatslot-name">'+item.title.split(' ').slice(0,2).join(' ')+'</div>';
+      }else{
+        slot.className='hlp__floatslot hlp__floatslot--empty';
+        slot.innerHTML='<div class="hlp__floatslot-inner"><span class="hlp__floatslot-num">'+(i+1)+'</span><span class="hlp__floatslot-lbl">Par '+(i+1)+'</span></div>';
+      }
+    }
+    if(fb&&ft){
+      if(count>=BUNDLE_QTY){fb.disabled=false;fb.classList.add('hlp--fc-ready');ft.textContent='Confirmar — $159.900';}
+      else{fb.disabled=true;fb.classList.remove('hlp--fc-ready');var r2=BUNDLE_QTY-count;ft.textContent='Selecciona '+r2+' par'+(r2>1?'es':'')+' mas';}
+    }
+  }
+
+  function renderAll(){renderSummary();renderFloat();}
+
+  // ── STICKY scroll ──
+  var stEl=document.getElementById('hlpStickyCTA'),bEl=document.getElementById('hlp-bundle');
+  window.addEventListener('scroll',function(){
+    if(!stEl||!bEl)return;
+    if(Object.keys(selected).length===0&&bEl.getBoundingClientRect().top<-80)stEl.classList.add('hlp--visible');
+    else stEl.classList.remove('hlp--visible');
+  },{passive:true});
+
+  // ── COLOR SWATCHES (card) ──
+  document.querySelectorAll('.hlp__swatch').forEach(function(sw){
+    sw.addEventListener('click',function(){
+      var card=this.closest('.hlp__card'),pid=card.dataset.pid;
+      card.querySelectorAll('.hlp__swatch').forEach(function(s){s.classList.remove('hlp__swatch--active');});
+      this.classList.add('hlp__swatch--active');
+      var val=this.dataset.value;
+      var ci=card.querySelector('.hlp__color-val');if(ci)ci.value=val;
+      var cl=document.getElementById('hlpColorLbl-'+pid);if(cl)cl.textContent=val;
+      swapCardImage(card,val);
+      if(selected[pid]){
+        selected[pid].color=val;
+        var v=getVariant(card);if(v){selected[pid].variantId=v.id;selected[pid].price=v.price;}
+        var img=card.querySelector('.hlp__card-img');if(img)setTimeout(function(){selected[pid].img=img.src;renderAll();},300);
+        else renderAll();
+      }
+    });
+  });
+
+  // ── SIZE BUTTONS (card) ──
+  document.querySelectorAll('.hlp__size-btn').forEach(function(btn){
+    btn.addEventListener('click',function(){
+      var card=this.closest('.hlp__card'),pid=card.dataset.pid;
+      card.querySelectorAll('.hlp__size-btn').forEach(function(b){b.classList.remove('hlp__size-btn--active');});
+      this.classList.add('hlp__size-btn--active');
+      var val=this.dataset.value;
+      var si=card.querySelector('.hlp__size-val');if(si)si.value=val;
+      var sl=document.getElementById('hlpSizeLbl-'+pid);if(sl)sl.textContent=val;
+      if(selected[pid]){selected[pid].size=val;var v=getVariant(card);if(v){selected[pid].variantId=v.id;selected[pid].price=v.price;}renderAll();}
+    });
+  });
+
+  // ── SELECT BUTTON (card) ──
+  document.querySelectorAll('.hlp__select-btn').forEach(function(btn){
+    btn.addEventListener('click',function(){
+      var card=this.closest('.hlp__card'),pid=card.dataset.pid;
+      var icon=this.querySelector('.hlp__select-btn-icon'),lbl=this.querySelector('.hlp__select-btn-lbl');
+      if(card.classList.contains('hlp--selected')){
+        card.classList.remove('hlp--selected');
+        if(icon)icon.textContent='+';if(lbl)lbl.textContent='Seleccionar este par';
+        delete selected[pid];
+      }else if(Object.keys(selected).length<BUNDLE_QTY){
+        var si=card.querySelector('.hlp__size-val');
+        if(si&&!si.value){
+          var sb=card.querySelector('.hlp__size-btns');
+          if(sb){sb.classList.add('hlp--shake');setTimeout(function(){sb.classList.remove('hlp--shake');},400);}
+          if(lbl){lbl.textContent='Elige tu talla primero';setTimeout(function(){lbl.textContent='Seleccionar este par';},1500);}
+          return;
+        }
+        card.classList.add('hlp--selected');
+        if(icon)icon.textContent='&#10003;';if(lbl)lbl.textContent='Seleccionado!';
+        var v=getVariant(card),img=card.querySelector('.hlp__card-img'),ci=card.querySelector('.hlp__color-val'),ssi=card.querySelector('.hlp__size-val');
+        selected[pid]={variantId:(v&&v.id)||card.querySelector('.hlp__vid').value,price:(v&&v.price)||0,title:card.querySelector('.hlp__card-name').textContent.trim(),img:(img&&img.src)||'',color:(ci&&ci.value)||'',size:(ssi&&ssi.value)||''};
+        if(Object.keys(selected).length>=BUNDLE_QTY)setTimeout(function(){if(!adding)doAddToCart(null,document.getElementById('hlpCTAText'));},400);
+      }else{if(lbl){var o=lbl.textContent;lbl.textContent='Max 2 pares';setTimeout(function(){lbl.textContent=o;},1400);}}
+      renderAll();
+    });
+  });
+
+  // ── CTA BUTTONS ──
+  var ctaFixed=document.getElementById('hlpCTA');if(ctaFixed)ctaFixed.addEventListener('click',function(){doAddToCart(this,document.getElementById('hlpCTAText'));});
+  var ctaFloat=document.getElementById('hlpFloatBtn');if(ctaFloat)ctaFloat.addEventListener('click',function(){doAddToCart(this,document.getElementById('hlpFloatBtnText'));});
+
+  function doAddToCart(btn,textEl){
+    if(Object.keys(selected).length<BUNDLE_QTY||adding)return;
+    adding=true;
+    var items=Object.values(selected).map(function(i){return{id:parseInt(i.variantId),quantity:1};});
+    if(btn)btn.disabled=true;if(textEl)textEl.textContent='Agregando...';
+    if(!window.HamsaBundle||!window.HamsaBundle.addToCart){adding=false;setTimeout(function(){doAddToCart(btn,textEl);},400);return;}
+    window.HamsaBundle.addToCart(items,{
+      onSuccess:function(){adding=false;if(textEl)textEl.textContent='Listo! Revisa tu carrito';if(btn){btn.style.background='#00c853';btn.style.color='#fff';}var dr=document.querySelector('cart-drawer-component');if(dr&&typeof dr.open==='function')dr.open();},
+      onError:function(m){adding=false;if(textEl)textEl.textContent=m||'Error — intenta de nuevo';if(btn){btn.disabled=false;btn.style.background='';}}
+    });
+  }
+
+  // ── WA ──
+  var wa=document.querySelector('.hlp__wa-btn--js');
+  if(wa){var ph=wa.getAttribute('data-wa-phone')||'573508258757';wa.href='https://wa.me/'+ph.replace(/[^0-9]/g,'')+'?text='+encodeURIComponent('Hola Hamsa Shoes! Quiero la OFERTA 2x1 — 2 pares por $159.900 con envio gratis y pago contra entrega. Me ayudan a elegir?');}
+
+  // ═══════════════════════════════════════════════
+  // PHOTO ZOOM MODAL — all in same scope
+  // ═══════════════════════════════════════════════
+  var modal     = document.getElementById('hlpModal');
+  var mBackdrop = document.getElementById('hlpModalBackdrop');
+  var mSheet    = document.getElementById('hlpModalSheet');
+  var mClose    = document.getElementById('hlpModalClose');
+  var mTitle    = document.getElementById('hlpModalTitle');
+  var mTrack    = document.getElementById('hlpModalTrack');
+  var mThumbs   = document.getElementById('hlpModalThumbs');
+  var mDots     = document.getElementById('hlpModalDots');
+  var mCounter  = document.getElementById('hlpModalCounter');
+  var mPrev     = document.getElementById('hlpModalPrev');
+  var mNext     = document.getElementById('hlpModalNext');
+  var mColorWrap= document.getElementById('hlpModalColorWrap');
+  var mColorBtns= document.getElementById('hlpModalColorBtns');
+  var mColorVal = document.getElementById('hlpModalColorVal');
+  var mSizeWrap = document.getElementById('hlpModalSizeWrap');
+  var mSizeBtns = document.getElementById('hlpModalSizeBtns');
+  var mSizeVal  = document.getElementById('hlpModalSizeVal');
+  var mUrgency  = document.getElementById('hlpModalUrgency');
+  var mUrgIcon  = document.getElementById('hlpModalUrgIcon');
+  var mUrgTitle = document.getElementById('hlpModalUrgTitle');
+  var mUrgMsg   = document.getElementById('hlpModalUrgMsg');
+  var mCTA      = document.getElementById('hlpModalCTA');
+  var mCTAText  = document.getElementById('hlpModalCTAText');
+
+  if(!modal){renderAll();return;}
+
+  var mPid='', mImages=[], mSizes=[], mColors=[], mSlide=0, mSize='', mColor='', mTx=0, mTouchX=0, mDragging=false, mDone=false;
+
+  // ── OPEN ──
+  function openModal(wrap){
+    mPid   = wrap.dataset.pid;
+    mDone  = false;
+    mSlide = 0;
+    mSize  = '';
+    mColor = '';
+    mColors = [];
+
+    // Read images from script tag (safe, no attribute encoding issues)
+    var card = document.querySelector('.hlp__card[data-pid="'+mPid+'"]');
+    var imgsTag = card && card.querySelector('.hlp__imgs-data');
+    var szTag   = card && card.querySelector('.hlp__sizes-data');
+    try{mImages = imgsTag ? JSON.parse(imgsTag.textContent) : [];}catch(e){mImages=[];}
+    try{mSizes  = szTag  ? JSON.parse(szTag.textContent)  : [];}catch(e){mSizes=[];}
+
+    // Fallback: use card featured image if no images
+    if(!mImages.length){
+      var fi=card&&card.querySelector('.hlp__card-img');
+      if(fi)mImages=[{src:fi.src,thumb:fi.src}];
+    }
+
+    mTitle.textContent = wrap.dataset.title||'';
+
+    // Build slides
+    mTrack.innerHTML='';
+    mImages.forEach(function(img,i){
+      var sl=document.createElement('div');
+      // First slide visible by default; rest hidden via CSS
+      sl.className='hlp__modal-slide'+(i===0?' hlp--active':'');
+      var im=document.createElement('img');
+      im.src=img.src;im.alt='foto '+(i+1);
+      im.loading=i===0?'eager':'lazy';
+      sl.appendChild(im);mTrack.appendChild(sl);
+    });
+
+    // Thumbnails
+    mThumbs.innerHTML='';
+    if(mImages.length>1){
+      mImages.forEach(function(img,i){
+        var t=document.createElement('div');t.className='hlp__modal-thumb'+(i===0?' hlp--active':'');
+        var ti=document.createElement('img');ti.src=img.thumb||img.src;ti.loading='lazy';
+        t.appendChild(ti);t.addEventListener('click',function(){goSlide(i);});
+        mThumbs.appendChild(t);
+      });
+    }
+
+    // Dots
+    mDots.innerHTML='';
+    if(mImages.length>1){
+      mImages.forEach(function(_,i){
+        var d=document.createElement('span');d.className='hlp__modal-dot'+(i===0?' hlp--active':'');
+        d.addEventListener('click',function(){goSlide(i);});
+        mDots.appendChild(d);
+      });
+    }
+
+    // Size buttons
+    mSizeBtns.innerHTML='';mSizeVal.textContent='';
+    if(mSizes.length>0){
+      mSizeWrap.style.display='block';
+      var existingSize=(card&&card.querySelector('.hlp__size-val')||{}).value||'';
+      mSizes.forEach(function(sz){
+        var b=document.createElement('button');b.type='button';b.className='hlp__modal-size-btn';
+        b.textContent=sz;b.dataset.sz=sz;
+        if(sz===existingSize){b.classList.add('hlp--active');mSize=sz;mSizeVal.textContent=sz;}
+        b.addEventListener('click',function(){
+          mSizeBtns.querySelectorAll('.hlp__modal-size-btn').forEach(function(x){x.classList.remove('hlp--active');});
+          this.classList.add('hlp--active');
+          mSize=this.dataset.sz;mSizeVal.textContent=mSize;
+          updateModalCTA();
+        });
+        mSizeBtns.appendChild(b);
+      });
+    }else{
+      mSizeWrap.style.display='none';
+      mSize='__nosizeopt__';
+    }
+
+    // ── Color buttons in modal ──
+    mColorBtns.innerHTML='';
+    if(mColorWrap) mColorWrap.style.display='none';
+    var colorSwatches = card && card.querySelectorAll('.hlp__swatch');
+    if(colorSwatches && colorSwatches.length > 0){
+      // Build color list from swatches on the card
+      mColors = [];
+      colorSwatches.forEach(function(sw){ mColors.push({val:sw.dataset.value, bg:sw.style.background}); });
+      if(mColors.length > 1){
+        mColorWrap.style.display='block';
+        // Current selected color on card
+        var activeSw = card.querySelector('.hlp__swatch--active');
+        var existingColor = activeSw ? activeSw.dataset.value : mColors[0].val;
+        mColor = existingColor;
+        if(mColorVal) mColorVal.textContent = mColor;
+
+        mColors.forEach(function(c){
+          var btn = document.createElement('button');
+          btn.type='button';
+          btn.className='hlp__modal-color-btn'+(c.val===mColor?' hlp--active':'');
+          btn.dataset.colorVal=c.val;
+
+          var swatch = document.createElement('div');
+          swatch.className='hlp__modal-color-swatch';
+          swatch.style.background=c.bg;
+          if(c.bg==='#f5f0e8'||c.bg.toLowerCase()==='#fff'||c.bg.toLowerCase()==='white'){
+            swatch.style.border='3px solid rgba(255,255,255,.35)';
+          }
+
+          var lbl = document.createElement('span');
+          lbl.className='hlp__modal-color-lbl';
+          lbl.textContent=c.val;
+
+          btn.appendChild(swatch);
+          btn.appendChild(lbl);
+
+          btn.addEventListener('click',function(){
+            mColorBtns.querySelectorAll('.hlp__modal-color-btn').forEach(function(x){x.classList.remove('hlp--active');});
+            this.classList.add('hlp--active');
+            mColor = this.dataset.colorVal;
+            if(mColorVal) mColorVal.textContent=mColor;
+
+            // Sync swatch on card
+            var cardSwatches = card.querySelectorAll('.hlp__swatch');
+            cardSwatches.forEach(function(sw){
+              sw.classList.toggle('hlp__swatch--active', sw.dataset.value===mColor);
+            });
+            var ci=card.querySelector('.hlp__color-val');
+            if(ci) ci.value=mColor;
+            var cl=document.getElementById('hlpColorLbl-'+mPid);
+            if(cl) cl.textContent=mColor;
+
+            // Swap modal main image using variant featured_image
+            swapModalImage(mColor);
+          });
+
+          mColorBtns.appendChild(btn);
+        });
+      }
+    }
+
+    // Already selected?
+    var alreadySel=card&&card.classList.contains('hlp--selected');
+    if(alreadySel){
+      mDone=true;
+      mCTA.className='hlp__modal-cta hlp--done';
+      mCTA.disabled=false;
+      mCTAText.textContent='Ya seleccionado — toca para cerrar';
+      showModalUrgency();
+    }else{
+      mUrgency.style.display='none';
+      mCTA.className='hlp__modal-cta';
+      mCTA.disabled=true;
+      updateModalCTA();
+    }
+
+    goSlide(0);
+    document.body.style.overflow='hidden';
+    modal.classList.add('hlp--open');
+    mSheet.classList.remove('hlp--closing');
+  }
+
+  function updateModalCTA(){
+    var ready=mSize!=='';
+    mCTA.disabled=!ready;
+    if(ready&&!mDone){
+      mCTA.classList.add('hlp--ready');
+      mCTAText.textContent='Agregar talla '+mSize+' a mi pedido';
+    }else if(!ready){
+      mCTA.classList.remove('hlp--ready');
+      mCTAText.textContent='Elige tu talla para continuar';
+    }
+  }
+
+  function showModalUrgency(){
+    var count=Object.keys(selected).length,need=BUNDLE_QTY;
+    mUrgency.style.display='flex';
+    if(count>=need){
+      mUrgIcon.textContent='&#9989;';mUrgTitle.textContent='Pedido completo!';
+      mUrgMsg.textContent='Tienes '+need+' pares. Confirma tu compra abajo.';
+      mUrgency.style.borderColor='rgba(0,200,83,.5)';
+      mUrgency.style.background='linear-gradient(135deg,rgba(0,200,83,.12),rgba(0,200,83,.04))';
+      mUrgTitle.style.color='#00c853';
+    }else{
+      var rem=need-count;
+      mUrgIcon.textContent='&#127881;';
+      mUrgTitle.textContent='Par '+count+' seleccionado!';
+      mUrgMsg.textContent='Ahora elige tu '+( count===1?'2do':'otro')+' par — Oferta 2x1 activa al tener '+need+'. Pocas unidades!';
+      mUrgency.style.borderColor='rgba(201,169,110,.45)';
+      mUrgency.style.background='linear-gradient(135deg,rgba(201,169,110,.15),rgba(201,169,110,.05))';
+      mUrgTitle.style.color='#c9a96e';
+    }
+  }
+
+  // ── CONFIRM from modal ──
+  mCTA.addEventListener('click',function(){
+    if(mDone){closeModal();return;}
+    if(!mSize)return;
+
+    var card=document.querySelector('.hlp__card[data-pid="'+mPid+'"]');
+    if(!card){closeModal();return;}
+
+    // Apply size to card
+    var si=card.querySelector('.hlp__size-val');if(si)si.value=mSize;
+    var sl=document.getElementById('hlpSizeLbl-'+mPid);if(sl)sl.textContent=mSize;
+    card.querySelectorAll('.hlp__size-btn').forEach(function(b){b.classList.toggle('hlp__size-btn--active',b.dataset.value===mSize);});
+
+    // Select the product if not already selected
+    if(!card.classList.contains('hlp--selected')&&Object.keys(selected).length<BUNDLE_QTY){
+      card.classList.add('hlp--selected');
+      var icon=card.querySelector('.hlp__select-btn-icon'),lbl=card.querySelector('.hlp__select-btn-lbl');
+      if(icon)icon.textContent='&#10003;';if(lbl)lbl.textContent='Seleccionado!';
+      var v=getVariant(card),img=card.querySelector('.hlp__card-img'),ci=card.querySelector('.hlp__color-val');
+      // Apply chosen color from modal to card before building selected
+      if(mColor){
+        var ci2=card.querySelector('.hlp__color-val');if(ci2)ci2.value=mColor;
+        var cl2=document.getElementById('hlpColorLbl-'+mPid);if(cl2)cl2.textContent=mColor;
+        card.querySelectorAll('.hlp__swatch').forEach(function(sw){sw.classList.toggle('hlp__swatch--active',sw.dataset.value===mColor);});
+      }
+      selected[mPid]={variantId:(v&&v.id)||card.querySelector('.hlp__vid').value,price:(v&&v.price)||0,title:card.querySelector('.hlp__card-name').textContent.trim(),img:(img&&img.src)||'',color:mColor||(ci&&ci.value)||'',size:mSize};
+    }else if(selected[mPid]){
+      selected[mPid].size=mSize;
+      var v2=getVariant(card);if(v2){selected[mPid].variantId=v2.id;selected[mPid].price=v2.price;}
+    }
+    renderAll();
+
+    // Show confirmation in modal
+    mDone=true;
+    mCTA.className='hlp__modal-cta hlp--done';
+    mCTAText.textContent='Seleccionado — elige otro par!';
+    showModalUrgency();
+
+    // Auto-close and show toast
+    setTimeout(function(){
+      closeModal();
+      showPageToast();
+      // If complete, auto-trigger cart
+      if(Object.keys(selected).length>=BUNDLE_QTY){
+        setTimeout(function(){if(!adding)doAddToCart(null,document.getElementById('hlpCTAText'));},300);
+      }
+    },1500);
+  });
+
+  // ── PAGE TOAST ──
+  function showPageToast(){
+    var count=Object.keys(selected).length,need=BUNDLE_QTY,done=count>=need;
+    var old=document.getElementById('hlpPageToast');if(old)old.remove();
+    var t=document.createElement('div');t.id='hlpPageToast';t.className='hlp__toast';
+    t.style.borderColor=done?'rgba(0,200,83,.5)':'rgba(201,169,110,.5)';
+    var rem=need-count;
+    t.innerHTML='<span style="font-size:26px">'+(done?'&#9989;':'&#127881;')+'</span><div>'
+      +'<strong style="color:'+(done?'#00c853':'#c9a96e')+'">'+(done?'Pedido completo!':'Par '+count+' seleccionado!')+'</strong>'
+      +'<span>'+(done?'Confirma tu compra abajo':'Elige '+rem+' par'+(rem>1?'es':'')+' mas para el 2x1 — Quedan pocas unidades!')+'</span>'
+      +'</div>';
+    document.body.appendChild(t);
+    setTimeout(function(){
+      t.style.transition='opacity .4s';t.style.opacity='0';
+      setTimeout(function(){if(t.parentNode)t.remove();},400);
+      if(!done){var b=document.getElementById('hlp-bundle');if(b)b.scrollIntoView({behavior:'smooth',block:'start'});}
+      else{var s=document.getElementById('hlpSummary');if(s)s.scrollIntoView({behavior:'smooth',block:'center'});}
+    },2800);
+  }
+
+  // ── SLIDE NAV ──
+  // ── SWAP MODAL MAIN IMAGE by color ──
+  function swapModalImage(colorVal){
+    var card=document.querySelector('.hlp__card[data-pid="'+mPid+'"]');
+    if(!card) return;
+    var raw=card.querySelector('.hlp__variants-data');
+    if(!raw) return;
+    var variants;
+    try{variants=JSON.parse(raw.textContent);}catch(e){return;}
+    // Find first variant matching this color that has a featured_image
+    var v=variants.find(function(v){
+      return v.options.indexOf(colorVal)>-1 && v.featured_image && v.featured_image.src;
+    });
+    if(!v||!v.featured_image||!v.featured_image.src) return;
+    // Build a proper Shopify CDN URL at 900px width
+    var rawSrc = v.featured_image.src;
+    // Shopify src already has size — replace with 900x
+    var src = rawSrc.split('?')[0].replace(/(_\d+x\d*|_\d*x\d+)(\.[a-z]+)$/i,'$2').replace(/(\.[a-z]+)$/i,'_900x$1');
+    // Replace the FIRST slide (index 0) with this image
+    var firstSlide = mTrack.querySelector('.hlp__modal-slide');
+    if(!firstSlide) return;
+    var img = firstSlide.querySelector('img');
+    if(!img) return;
+    img.style.opacity='0';
+    var ni=new Image();
+    ni.onload=function(){img.src=ni.src;img.style.opacity='1';};
+    ni.onerror=function(){img.style.opacity='1';};
+    ni.src=src;
+    // Also update first thumbnail
+    var firstThumb=mThumbs.querySelector('.hlp__modal-thumb img');
+    if(firstThumb){
+      var tsrc=rawSrc.split('?')[0].replace(/(_\d+x\d*|_\d*x\d+)(\.[a-z]+)$/i,'$2').replace(/(\.[a-z]+)$/i,'_120x$1');
+      firstThumb.src=tsrc;
+    }
+    // Jump to first slide to show the color image
+    goSlide(0);
+  }
+
+  function goSlide(n){
+    var tot=mImages.length;
+    mSlide=Math.max(0,Math.min(n,tot-1));
+    // Show/hide slides by class - no translateX, works on any width
+    mTrack.querySelectorAll('.hlp__modal-slide').forEach(function(sl,i){
+      sl.classList.toggle('hlp--active',i===mSlide);
+    });
+    if(mCounter)mCounter.textContent=(mSlide+1)+'/'+tot;
+    mDots.querySelectorAll('.hlp__modal-dot').forEach(function(d,i){d.classList.toggle('hlp--active',i===mSlide);});
+    // Scroll thumb into view
+    var thumbs=mThumbs.querySelectorAll('.hlp__modal-thumb');
+    thumbs.forEach(function(t,i){t.classList.toggle('hlp--active',i===mSlide);});
+    if(thumbs[mSlide])thumbs[mSlide].scrollIntoView({behavior:'smooth',block:'nearest',inline:'center'});
+    if(mPrev)mPrev.disabled=mSlide===0;
+    if(mNext)mNext.disabled=mSlide===tot-1;
+  }
+  if(mPrev)mPrev.addEventListener('click',function(){goSlide(mSlide-1);});
+  if(mNext)mNext.addEventListener('click',function(){goSlide(mSlide+1);});
+
+  // ── TOUCH SWIPE on carousel ──
+  // Touch swipe on the carousel area
+  var car=document.getElementById('hlpModalCarousel');
+  if(car){
+    var mTouchStartX=0, mTouchStartY=0, mTouchMoved=false;
+    car.addEventListener('touchstart',function(e){
+      mTouchStartX=e.touches[0].clientX;
+      mTouchStartY=e.touches[0].clientY;
+      mTouchMoved=false;
+    },{passive:true});
+    car.addEventListener('touchmove',function(e){
+      mTouchMoved=true;
+    },{passive:true});
+    car.addEventListener('touchend',function(e){
+      if(!mTouchMoved)return;
+      var dx=e.changedTouches[0].clientX-mTouchStartX;
+      var dy=e.changedTouches[0].clientY-mTouchStartY;
+      // Only swipe if horizontal movement is dominant
+      if(Math.abs(dx)>Math.abs(dy)&&Math.abs(dx)>35){
+        dx<0?goSlide(mSlide+1):goSlide(mSlide-1);
+      }
+      mTouchMoved=false;
+    },{passive:true});
+  }
+
+  // ── CLOSE ──
+  function closeModal(){
+    mSheet.classList.add('hlp--closing');
+    setTimeout(function(){modal.classList.remove('hlp--open');document.body.style.overflow='';},250);
+  }
+  if(mClose)mClose.addEventListener('click',closeModal);
+  if(mBackdrop)mBackdrop.addEventListener('click',closeModal);
+  document.addEventListener('keydown',function(e){if(e.key==='Escape'&&modal.classList.contains('hlp--open'))closeModal();});
+
+  // ── BIND card image clicks ──
+  document.querySelectorAll('.hlp__card-img-wrap').forEach(function(wrap){
+    wrap.addEventListener('click',function(e){
+      // Block if clicking overlay checkmark
+      if(e.target.closest('.hlp__card-overlay'))return;
+      openModal(this);
+    });
+  });
+
+  renderAll();
+})();
+</script>
+
+{% schema %}
+{
+  "name": "🔥 Landing Oferta 2×1",
+  "settings": [
+    { "type": "header", "content": "🦸 Hero" },
+    { "type": "image_picker", "id": "hero_image", "label": "Imagen de fondo hero" },
+    { "type": "text", "id": "eyebrow", "label": "Texto eyebrow", "default": "⚡ OFERTA POR TIEMPO LIMITADO" },
+    { "type": "text", "id": "hero_title", "label": "Título hero", "default": "Lleva 2 Pares por Solo" },
+    { "type": "text", "id": "hero_sub", "label": "Subtítulo hero", "default": "2 pares · Envío gratis · Pago al recibir" },
+    { "type": "header", "content": "💰 Precios" },
+    { "type": "number", "id": "bundle_price", "label": "Precio bundle (centavos)", "info": "$159.900 = 15990000", "default": 15990000 },
+    { "type": "number", "id": "original_price", "label": "Precio original 2 pares (centavos)", "info": "$239.800 = 23980000", "default": 23980000 },
+    { "type": "text", "id": "unit_price", "label": "Precio unitario mostrado", "default": "99.900" },
+    { "type": "header", "content": "🛍️ Bundle de productos" },
+    { "type": "text", "id": "bundle_title", "label": "Título sección bundle", "default": "🛍️ Elige tus 2 Pares" },
+    { "type": "text", "id": "bundle_sub", "label": "Subtítulo bundle", "default": "Toca cualquier foto para ver detalles y elegir tu talla" },
+    { "type": "collection", "id": "lp_collection", "label": "Colección de productos" },
+    { "type": "range", "id": "max_products", "label": "Máximo productos", "min": 4, "max": 24, "step": 2, "default": 12 },
+    { "type": "header", "content": "📸 Galería" },
+    { "type": "text", "id": "gallery_title", "label": "Título galería", "default": "Nuestros Modelos" },
+    { "type": "image_picker", "id": "gallery_image_1", "label": "Foto 1" },
+    { "type": "image_picker", "id": "gallery_image_2", "label": "Foto 2" },
+    { "type": "image_picker", "id": "gallery_image_3", "label": "Foto 3" },
+    { "type": "image_picker", "id": "gallery_image_4", "label": "Foto 4" },
+    { "type": "header", "content": "⭐ Reseñas" },
+    { "type": "text", "id": "review_name_1", "label": "Reseña 1 — nombre", "default": "Valentina R." },
+    { "type": "text", "id": "review_city_1", "label": "Reseña 1 — ciudad", "default": "Bogotá" },
+    { "type": "textarea", "id": "review_text_1", "label": "Reseña 1 — texto", "default": "Me llegaron los 2 pares en 3 días, comodísimos y tal cual a las fotos. El pago contra entrega me dio mucha confianza." },
+    { "type": "text", "id": "review_name_2", "label": "Reseña 2 — nombre", "default": "Camila T." },
+    { "type": "text", "id": "review_city_2", "label": "Reseña 2 — ciudad", "default": "Medellín" },
+    { "type": "textarea", "id": "review_text_2", "label": "Reseña 2 — texto", "default": "Aproveché la oferta 2x1 y quedé encantada. Los zapatos son de excelente calidad y el envío fue rapidísimo." },
+    { "type": "text", "id": "review_name_3", "label": "Reseña 3 — nombre", "default": "Laura M." },
+    { "type": "text", "id": "review_city_3", "label": "Reseña 3 — ciudad", "default": "Cali" },
+    { "type": "textarea", "id": "review_text_3", "label": "Reseña 3 — texto", "default": "Increíble oferta, los 2 pares me costaron menos de lo que esperaba. Definitivamente volvería a comprar." },
+    { "type": "header", "content": "💬 WhatsApp" },
+    { "type": "text", "id": "wa_number", "label": "Número WhatsApp (sin +57)", "default": "3508258757" },
+    { "type": "header", "content": "🎨 Colores" },
+    { "type": "color", "id": "bg_color", "label": "Fondo", "default": "#FDFAF7" },
+    { "type": "color", "id": "card_color", "label": "Tarjetas", "default": "#FFFFFF" },
+    { "type": "color", "id": "text_color", "label": "Texto", "default": "#1C1208" },
+    { "type": "color", "id": "muted_color", "label": "Texto suave", "default": "#7A6E64" },
+    { "type": "color", "id": "gold_color", "label": "Dorado", "default": "#D4527A" },
+    { "type": "color", "id": "danger_color", "label": "Urgencia", "default": "#ff4444" }
+  ],
+  "presets": [{ "name": "🔥 Landing Oferta 2×1" }]
+}
+{% endschema %}

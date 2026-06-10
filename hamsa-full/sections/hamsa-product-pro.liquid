@@ -1,0 +1,307 @@
+{% if product %}
+{%- assign wa_country_clean = section.settings.wa_country | remove: '+' | remove: ' ' -%}
+{%- assign wa_number_clean = section.settings.wa_number | remove: ' ' | remove: '-' -%}
+{%- assign wa_phone = wa_country_clean | append: wa_number_clean -%}
+
+<section class="hpp" id="HamsaPro-{{ section.id }}" style="
+  --gold: {{ section.settings.gold_color }};
+  --bg: {{ section.settings.bg_color }};
+  --card: {{ section.settings.card_color }};
+  --text: {{ section.settings.text_color }};
+  --muted: {{ section.settings.muted_color }};
+  --wa: {{ section.settings.wa_color }};
+  --danger: {{ section.settings.danger_color }};
+  --green: {{ section.settings.green_color }};
+">
+
+<div class="hpp__urgency">
+  <div class="hpp__urgency-left">
+    <span class="hpp__fire">🔥</span>
+    <div class="hpp__urgency-text">
+      <span class="hpp__urgency-label">{{ section.settings.urgency_label | default: 'Oferta termina en' }}</span>
+      <span class="hpp__timer" id="hppTimer-{{ section.id }}">14:59</span>
+    </div>
+  </div>
+  <div class="hpp__urgency-right">
+    <span class="hpp__live-dot"></span>
+    <span class="hpp__live-text" id="hppLive-{{ section.id }}">Cargando...</span>
+  </div>
+</div>
+
+<div class="hpp__stars-row">
+  <span class="hpp__stars">★★★★★</span>
+  <span class="hpp__reviews-count">({{ section.settings.reviews_count | default: 87 }} {{ section.settings.reviews_label | default: 'reseñas' }})</span>
+  <span class="hpp__sold-badge">🛍️ +{{ section.settings.sold_count | default: 342 }} vendidos</span>
+</div>
+
+<div class="hpp__trust">
+  {% if section.settings.trust1 != blank %}
+  <div class="hpp__trust-item"><span class="hpp__trust-icon">🚚</span><div><strong>{{ section.settings.trust1 }}</strong><span>{{ section.settings.trust1_sub | default: 'A toda Colombia' }}</span></div></div>
+  {% endif %}
+  {% if section.settings.trust2 != blank %}
+  <div class="hpp__trust-item"><span class="hpp__trust-icon">💵</span><div><strong>{{ section.settings.trust2 }}</strong><span>{{ section.settings.trust2_sub | default: 'Paga al recibir' }}</span></div></div>
+  {% endif %}
+  {% if section.settings.trust3 != blank %}
+  <div class="hpp__trust-item"><span class="hpp__trust-icon">🔒</span><div><strong>{{ section.settings.trust3 }}</strong><span>{{ section.settings.trust3_sub | default: 'Garantizado' }}</span></div></div>
+  {% endif %}
+  {% if section.settings.trust4 != blank %}
+  <div class="hpp__trust-item"><span class="hpp__trust-icon">↩️</span><div><strong>{{ section.settings.trust4 }}</strong><span>{{ section.settings.trust4_sub | default: 'Sin complicaciones' }}</span></div></div>
+  {% endif %}
+</div>
+
+{% if section.settings.show_stock_bar %}
+<div class="hpp__stock">
+  <div class="hpp__stock-label"><span class="hpp__stock-dot"></span>{{ section.settings.stock_label | default: '¡Solo quedan pocas unidades!' }}</div>
+  <div class="hpp__stock-bar"><div class="hpp__stock-fill" style="width:{{ section.settings.stock_pct | default: 23 }}%"></div></div>
+  <div class="hpp__stock-sub">{{ section.settings.stock_sub | default: 'Alta demanda — se agota rápido' }}</div>
+</div>
+{% endif %}
+
+{% if section.settings.show_wa %}
+<div class="hpp__size-guide-trigger-wrap">
+  <button class="hpp__size-guide-trigger" id="hppSizeGuideBtn-{{ section.id }}" type="button" aria-haspopup="dialog">
+    📏 ¿No sabes tu talla? — Ver guía de tallas →
+  </button>
+</div>
+
+<!-- MODAL GUÍA DE TALLAS -->
+<div id="hppSizeModal-{{ section.id }}" class="hpp__size-modal-overlay" role="dialog" aria-modal="true" aria-label="Guía de tallas" style="display:none;position:fixed;inset:0;z-index:99998;background:rgba(10,8,4,.75);backdrop-filter:blur(4px);align-items:center;justify-content:center;padding:16px;">
+  <div style="background:#FDF8F0;border-radius:20px;max-width:480px;width:100%;max-height:90vh;overflow-y:auto;box-shadow:0 32px 80px rgba(0,0,0,.4);animation:hppSmIn .3s cubic-bezier(.34,1.56,.64,1);">
+    <style>@keyframes hppSmIn{from{opacity:0;transform:scale(.88) translateY(16px)}to{opacity:1;transform:scale(1) translateY(0)}}</style>
+    <div style="background:#D4527A;padding:20px 24px;display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;z-index:2;border-radius:20px 20px 0 0;">
+      <div>
+        <div style="font-size:17px;font-weight:700;color:#F5F0E8;">📏 Guía de Tallas — Hamsa Shoes</div>
+        <div style="font-size:12px;color:#6B6355;margin-top:2px;">Encuentra tu talla perfecta en 30 segundos</div>
+      </div>
+      <button id="hppSizeClose-{{ section.id }}" style="background:rgba(0,0,0,.08);border:none;color:rgba(255,255,255,.7);font-size:16px;cursor:pointer;width:28px;height:28px;border-radius:50%;display:flex;align-items:center;justify-content:center;" aria-label="Cerrar">✕</button>
+    </div>
+    <div style="padding:24px;">
+      <table style="width:100%;border-collapse:collapse;margin-bottom:18px;border-radius:10px;overflow:hidden;border:1px solid #E8DCC8;">
+        <thead><tr>
+          <th style="background:#D4527A;color:#C9A84C;font-size:11px;letter-spacing:2px;text-transform:uppercase;padding:12px 14px;text-align:left;">Talla</th>
+          <th style="background:#D4527A;color:#C9A84C;font-size:11px;letter-spacing:2px;text-transform:uppercase;padding:12px 14px;text-align:left;">Pie (cm)</th>
+          <th style="background:#D4527A;color:#C9A84C;font-size:11px;letter-spacing:2px;text-transform:uppercase;padding:12px 14px;text-align:left;">EUR</th>
+          <th style="background:#D4527A;color:#C9A84C;font-size:11px;letter-spacing:2px;text-transform:uppercase;padding:12px 14px;text-align:left;">USA</th>
+        </tr></thead>
+        <tbody>
+          <tr><td style="padding:11px 14px;font-size:16px;font-weight:700;color:#D4527A;border-bottom:1px solid #F0EAD8;">35</td><td style="padding:11px 14px;font-size:14px;color:#3D3728;border-bottom:1px solid #F0EAD8;">22.0 – 22.5 cm</td><td style="padding:11px 14px;font-size:14px;color:#3D3728;border-bottom:1px solid #F0EAD8;">35</td><td style="padding:11px 14px;font-size:14px;color:#3D3728;border-bottom:1px solid #F0EAD8;">5</td></tr>
+          <tr style="background:#FDFBF6;"><td style="padding:11px 14px;font-size:16px;font-weight:700;color:#D4527A;border-bottom:1px solid #F0EAD8;">36</td><td style="padding:11px 14px;font-size:14px;color:#3D3728;border-bottom:1px solid #F0EAD8;">22.5 – 23.0 cm</td><td style="padding:11px 14px;font-size:14px;color:#3D3728;border-bottom:1px solid #F0EAD8;">36</td><td style="padding:11px 14px;font-size:14px;color:#3D3728;border-bottom:1px solid #F0EAD8;">5.5</td></tr>
+          <tr><td style="padding:11px 14px;font-size:16px;font-weight:700;color:#D4527A;border-bottom:1px solid #F0EAD8;">37</td><td style="padding:11px 14px;font-size:14px;color:#3D3728;border-bottom:1px solid #F0EAD8;">23.0 – 23.5 cm</td><td style="padding:11px 14px;font-size:14px;color:#3D3728;border-bottom:1px solid #F0EAD8;">37</td><td style="padding:11px 14px;font-size:14px;color:#3D3728;border-bottom:1px solid #F0EAD8;">6.5</td></tr>
+          <tr style="background:#FDFBF6;"><td style="padding:11px 14px;font-size:16px;font-weight:700;color:#D4527A;border-bottom:1px solid #F0EAD8;">38</td><td style="padding:11px 14px;font-size:14px;color:#3D3728;border-bottom:1px solid #F0EAD8;">23.5 – 24.0 cm</td><td style="padding:11px 14px;font-size:14px;color:#3D3728;border-bottom:1px solid #F0EAD8;">38</td><td style="padding:11px 14px;font-size:14px;color:#3D3728;border-bottom:1px solid #F0EAD8;">7.5</td></tr>
+          <tr><td style="padding:11px 14px;font-size:16px;font-weight:700;color:#D4527A;border-bottom:1px solid #F0EAD8;">39</td><td style="padding:11px 14px;font-size:14px;color:#3D3728;border-bottom:1px solid #F0EAD8;">24.0 – 24.5 cm</td><td style="padding:11px 14px;font-size:14px;color:#3D3728;border-bottom:1px solid #F0EAD8;">39</td><td style="padding:11px 14px;font-size:14px;color:#3D3728;border-bottom:1px solid #F0EAD8;">8.5</td></tr>
+          <tr style="background:#FDFBF6;"><td style="padding:11px 14px;font-size:16px;font-weight:700;color:#D4527A;">40</td><td style="padding:11px 14px;font-size:14px;color:#3D3728;">24.5 – 25.0 cm</td><td style="padding:11px 14px;font-size:14px;color:#3D3728;">40</td><td style="padding:11px 14px;font-size:14px;color:#3D3728;">9</td></tr>
+        </tbody>
+      </table>
+      <div style="background:#FFF8E8;border:1px solid #E8D5A8;border-radius:8px;padding:12px 14px;font-size:13px;color:#6B5020;line-height:1.6;margin-bottom:10px;"><strong style="color:#C9A84C;">💡 Entre dos tallas:</strong> Si tienes pie ancho → elige la más grande. Si tienes pie estrecho → la más pequeña.</div>
+      <div style="background:#FFF8E8;border:1px solid #E8D5A8;border-radius:8px;padding:12px 14px;font-size:13px;color:#6B5020;line-height:1.6;margin-bottom:16px;"><strong style="color:#C9A84C;">🔄 ¿Te equivocaste?</strong> El primer cambio de talla es sin costo. Escríbenos por WhatsApp con tu número de pedido.</div>
+      <a href="https://wa.me/573508258757?text=Hola!+Necesito+ayuda+para+elegir+mi+talla+en+Hamsa+Shoes+%F0%9F%92%9B" target="_blank" rel="noopener" style="display:flex;align-items:center;justify-content:center;gap:8px;background:#25D366;color:#fff;padding:14px;border-radius:8px;font-size:14px;font-weight:700;text-decoration:none;">💬 ¿Aún con dudas? Escríbenos — respondemos en menos de 1 hora</a>
+    </div>
+  </div>
+</div>
+<script>
+(function(){
+  var btn=document.getElementById('hppSizeGuideBtn-{{ section.id }}');
+  var modal=document.getElementById('hppSizeModal-{{ section.id }}');
+  var closeBtn=document.getElementById('hppSizeClose-{{ section.id }}');
+  if(!btn||!modal) return;
+  function open(){modal.style.display='flex';document.body.style.overflow='hidden';}
+  function close(){modal.style.display='none';document.body.style.overflow='';}
+  btn.addEventListener('click',open);
+  if(closeBtn) closeBtn.addEventListener('click',close);
+  modal.addEventListener('click',function(e){if(e.target===modal)close();});
+  document.addEventListener('keydown',function(e){if(e.key==='Escape'&&modal.style.display==='flex')close();});
+})();
+</script>
+
+<div class="hpp__wa-wrap">
+  <a href="https://wa.me/{{ wa_phone }}" id="hppWaBtn-{{ section.id }}" class="hpp__wa-btn" target="_blank" rel="noopener" data-wa-phone="{{ wa_phone }}" data-wa-title="{{ product.title | escape }}">
+    <span class="hpp__wa-glow"></span>
+    <svg class="hpp__wa-icon" width="22" height="22" viewBox="0 0 24 24" fill="currentColor"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z"/></svg>
+    <div class="hpp__wa-content">
+      <strong>{{ section.settings.wa_text | default: 'Pedir por WhatsApp' }}</strong>
+      <span>{{ section.settings.wa_sub | default: 'Respuesta inmediata · Pago al recibir' }}</span>
+    </div>
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
+  </a>
+</div>
+{% endif %}
+
+{% if section.settings.show_guarantee %}
+<div class="hpp__guarantee">
+  <div class="hpp__guarantee-icon">🛡️</div>
+  <div class="hpp__guarantee-text">
+    <strong>{{ section.settings.guarantee_title | default: 'Compra 100% garantizada' }}</strong>
+    <span>{{ section.settings.guarantee_text | default: 'Si tu pedido no llega o no es el correcto, te lo resolvemos.' }}</span>
+  </div>
+</div>
+{% endif %}
+
+</section>
+
+<style>
+#HamsaPro-{{ section.id }} { background:var(--bg); color:var(--text); font-family:var(--font-body--family,system-ui,sans-serif); padding:0 0 4px; overflow:hidden; }
+#HamsaPro-{{ section.id }} * { box-sizing:border-box; }
+.hpp__urgency { display:flex; align-items:center; justify-content:space-between; gap:12px; background:linear-gradient(135deg,#FFF0F4,#FFE4ED,#FFF0F4); border:1px solid color-mix(in srgb,var(--gold) 35%,transparent); border-radius:12px; padding:12px 16px; margin:16px 0 12px; position:relative; overflow:hidden; }
+.hpp__urgency::before { content:''; position:absolute; inset:0; background:radial-gradient(ellipse 60% 80% at 50% 0%,color-mix(in srgb,var(--gold) 10%,transparent),transparent); pointer-events:none; }
+.hpp__urgency-left { display:flex; align-items:center; gap:10px; }
+.hpp__fire { font-size:22px; animation:hpp-bounce 1.2s infinite; }
+@keyframes hpp-bounce { 0%,100%{transform:scale(1) rotate(-5deg)} 50%{transform:scale(1.15) rotate(5deg)} }
+.hpp__urgency-text { display:flex; flex-direction:column; gap:2px; }
+.hpp__urgency-label { font-size:11px; color:color-mix(in srgb,var(--gold) 70%,#fff); font-weight:600; letter-spacing:.04em; }
+.hpp__timer { font-size:22px; font-weight:800; color:var(--gold); letter-spacing:.06em; font-variant-numeric:tabular-nums; animation:hpp-glow 2s ease-in-out infinite alternate; }
+@keyframes hpp-glow { from{text-shadow:0 0 8px color-mix(in srgb,var(--gold) 40%,transparent)} to{text-shadow:0 0 24px color-mix(in srgb,var(--gold) 80%,transparent),0 0 4px var(--gold)} }
+.hpp__urgency-right { display:flex; align-items:center; gap:7px; font-size:12px; color:var(--muted); }
+.hpp__live-dot { width:8px; height:8px; border-radius:50%; background:var(--green); box-shadow:0 0 6px var(--green); animation:hpp-pulse 1.6s infinite; flex-shrink:0; }
+@keyframes hpp-pulse { 0%,100%{box-shadow:0 0 4px var(--green)} 50%{box-shadow:0 0 10px var(--green)} }
+.hpp__stars-row { display:flex; align-items:center; flex-wrap:wrap; gap:8px; margin:10px 0; }
+.hpp__stars { color:#fbbf24; font-size:16px; letter-spacing:1px; }
+.hpp__reviews-count { font-size:12px; color:var(--muted); }
+.hpp__sold-badge { display:inline-flex; align-items:center; gap:4px; font-size:11px; font-weight:700; padding:3px 10px; border-radius:20px; background:color-mix(in srgb,var(--danger) 15%,transparent); color:var(--danger); border:1px solid color-mix(in srgb,var(--danger) 30%,transparent); }
+.hpp__trust { display:grid; grid-template-columns:1fr 1fr; gap:8px; margin:12px 0; }
+.hpp__trust-item { display:flex; align-items:center; gap:10px; background:var(--card); border:1px solid rgba(0,0,0,.05); border-radius:10px; padding:10px 12px; transition:border-color .2s,transform .2s; }
+.hpp__trust-item:hover { border-color:color-mix(in srgb,var(--gold) 30%,transparent); transform:translateY(-1px); }
+.hpp__trust-icon { font-size:18px; flex-shrink:0; }
+.hpp__trust-item div { display:flex; flex-direction:column; gap:1px; }
+.hpp__trust-item strong { font-size:11px; font-weight:700; color:var(--text); }
+.hpp__trust-item span { font-size:10px; color:var(--muted); }
+.hpp__stock { background:var(--card); border:1px solid rgba(0,0,0,.05); border-radius:10px; padding:12px 14px; margin:10px 0; }
+.hpp__stock-label { display:flex; align-items:center; gap:7px; font-size:12px; font-weight:700; color:var(--danger); margin-bottom:8px; }
+.hpp__stock-dot { width:7px; height:7px; border-radius:50%; background:var(--danger); box-shadow:0 0 6px var(--danger); animation:hpp-pulse 1.6s infinite; flex-shrink:0; }
+.hpp__stock-bar { height:6px; background:rgba(0,0,0,.06); border-radius:3px; overflow:hidden; margin-bottom:6px; }
+.hpp__stock-fill { height:100%; background:linear-gradient(90deg,var(--danger),#ff6b35); border-radius:3px; box-shadow:0 0 8px color-mix(in srgb,var(--danger) 60%,transparent); }
+.hpp__stock-sub { font-size:10px; color:var(--muted); }
+.hpp__wa-wrap { margin:14px 0; }
+.hpp__size-guide-trigger-wrap { margin:10px 0 6px; text-align:center; }
+.hpp__size-guide-trigger { background:none; border:1.5px dashed #C9A84C; color:#C9A84C; font-size:13px; font-weight:600; padding:10px 18px; border-radius:8px; cursor:pointer; font-family:inherit; transition:all .2s; width:100%; letter-spacing:.3px; }
+.hpp__size-guide-trigger:hover { background:rgba(201,168,76,.08); }
+.hpp__wa-btn { display:flex; align-items:center; gap:14px; width:100%; padding:16px 20px; background:linear-gradient(135deg,#0d6b30,#128c3e,#1aab4f); color:#fff; border-radius:14px; text-decoration:none; position:relative; overflow:hidden; box-shadow:0 4px 20px color-mix(in srgb,var(--wa) 40%,transparent),inset 0 1px 0 rgba(0,0,0,.09); transition:transform .2s,box-shadow .2s; }
+.hpp__wa-btn:hover { transform:translateY(-2px); box-shadow:0 8px 32px color-mix(in srgb,var(--wa) 55%,transparent),inset 0 1px 0 rgba(0,0,0,.10); color:#fff; }
+.hpp__wa-glow { position:absolute; inset:0; background:radial-gradient(ellipse 80% 60% at 50% 0%,rgba(0,0,0,.08),transparent); pointer-events:none; }
+.hpp__wa-btn::after { content:''; position:absolute; top:-50%; left:-60%; width:40%; height:200%; background:linear-gradient(90deg,transparent,rgba(0,0,0,.08),transparent); transform:rotate(20deg); animation:hpp-shine 3s infinite; }
+@keyframes hpp-shine { 0%{left:-60%} 100%{left:120%} }
+.hpp__wa-icon { flex-shrink:0; }
+.hpp__wa-content { flex:1; display:flex; flex-direction:column; gap:2px; }
+.hpp__wa-content strong { font-size:15px; font-weight:800; }
+.hpp__wa-content span { font-size:11px; opacity:.85; }
+.hpp__guarantee { display:flex; align-items:flex-start; gap:12px; background:linear-gradient(135deg,color-mix(in srgb,var(--gold) 6%,var(--card)),var(--card)); border:1px solid color-mix(in srgb,var(--gold) 20%,transparent); border-radius:12px; padding:14px 16px; margin:12px 0 4px; }
+.hpp__guarantee-icon { font-size:24px; flex-shrink:0; }
+.hpp__guarantee-text { display:flex; flex-direction:column; gap:3px; }
+.hpp__guarantee-text strong { font-size:13px; font-weight:700; color:var(--gold); }
+.hpp__guarantee-text span { font-size:12px; color:var(--muted); line-height:1.5; }
+</style>
+
+<script>
+(function(){
+  const SID='{{ section.id }}';
+  const te=document.getElementById('hppTimer-'+SID);
+  const le=document.getElementById('hppLive-'+SID);
+  if(te){
+    // Timer persistente con localStorage — no se reinicia al recargar
+    var _tkey='hamsa_ptimer_'+SID;
+    var _dur=({{ section.settings.timer_min | default: 14 }}*60+{{ section.settings.timer_sec | default: 59 }})*1000;
+    var _end;
+    try{
+      var _saved=localStorage.getItem(_tkey);
+      _end=_saved?parseInt(_saved):0;
+      if(!_end||_end<Date.now()){_end=Date.now()+_dur;localStorage.setItem(_tkey,_end);}
+    }catch(e){_end=Date.now()+_dur;}
+    function _tick(){
+      var _rem=Math.max(0,Math.floor((_end-Date.now())/1000));
+      var _m=Math.floor(_rem/60),_s=_rem%60;
+      te.textContent=String(_m).padStart(2,'0')+':'+String(_s).padStart(2,'0');
+      if(_rem===0){try{localStorage.removeItem(_tkey);}catch(e){}}
+    }
+    _tick();setInterval(_tick,1000);
+  }
+  if(le){const N=['Valentina','Camila','Laura','Sofia','Isabella','Daniela','Maria'],C=['Bogota','Medellin','Cali','Cucuta','Bucaramanga'],A=['acaba de comprar este producto','anyadio al carrito','lo pidio por WhatsApp','hizo su pedido hace 3 min'];function up(){const n=N[Math.floor(Math.random()*N.length)],c=C[Math.floor(Math.random()*C.length)],a=A[Math.floor(Math.random()*A.length)];le.style.opacity='0';setTimeout(()=>{le.textContent=n+' de '+c+' '+a;le.style.opacity='1';},300);}le.style.transition='opacity .3s ease';up();setInterval(up,5000);}
+
+  // ── WhatsApp: construir link 100% en JS con encodeURIComponent ──
+  (function(){
+    var waBtn   = document.getElementById('hppWaBtn-' + SID);
+    if(!waBtn) return;
+    var waPhone = waBtn.getAttribute('data-wa-phone') || '573508258757';
+    var title   = waBtn.getAttribute('data-wa-title')  || document.title;
+
+    function buildWaUrl(){
+      // Leer variantes seleccionadas del tema Horizon
+      var opts = [];
+      // Opcion 1: botones de variante seleccionados
+      document.querySelectorAll('[data-option-value][aria-checked="true"], .variant-picker__option--selected').forEach(function(el){
+        opts.push(el.textContent.trim());
+      });
+      // Opcion 2: selects nativos
+      if(!opts.length){
+        document.querySelectorAll('select.product-form__input, select[name*="option"]').forEach(function(s){
+          if(s.value) opts.push(s.options[s.selectedIndex].text.trim());
+        });
+      }
+      var varStr = opts.length ? ' | ' + opts.join(' / ') : '';
+      var msg = 'Hola Hamsa Shoes! Quiero consultar sobre: ' + title + varStr + '. Me ayudan con disponibilidad y pago contra entrega?';
+      return 'https://wa.me/' + waPhone + '?text=' + encodeURIComponent(msg);
+    }
+
+    // Setear URL inicial
+    waBtn.href = buildWaUrl();
+
+    // Actualizar cuando cambia la variante
+    document.addEventListener('change', function(){ waBtn.href = buildWaUrl(); });
+    document.addEventListener('click', function(e){
+      if(e.target.closest('[data-option-value]')){ setTimeout(function(){ waBtn.href = buildWaUrl(); }, 50); }
+    });
+  })();
+})();
+</script>
+
+{% else %}
+  {%- if request.design_mode -%}<div style="background:#111;color:#D4527A;padding:20px;text-align:center;border:2px dashed #D4527A;border-radius:10px;margin:12px 0;font-family:sans-serif;font-size:13px;">🔥 Sección Producto Premium — Visible en la página de producto</div>{%- endif -%}
+{% endif %}
+
+{% schema %}
+{
+  "name": "🔥 Producto Premium",
+  "settings": [
+    { "type": "header", "content": "⏰ Timer urgencia" },
+    { "type": "text", "id": "urgency_label", "label": "Texto timer", "default": "Oferta termina en" },
+    { "type": "range", "id": "timer_min", "label": "Minutos", "min": 5, "max": 59, "step": 1, "default": 14 },
+    { "type": "range", "id": "timer_sec", "label": "Segundos", "min": 0, "max": 59, "step": 1, "default": 59 },
+    { "type": "header", "content": "⭐ Social proof" },
+    { "type": "number", "id": "reviews_count", "label": "Número de reseñas", "default": 87 },
+    { "type": "text", "id": "reviews_label", "label": "Texto reseñas", "default": "reseñas verificadas" },
+    { "type": "number", "id": "sold_count", "label": "Unidades vendidas", "default": 342 },
+    { "type": "header", "content": "🏷️ Badges confianza" },
+    { "type": "text", "id": "trust1", "label": "Badge 1", "default": "Envío gratis" },
+    { "type": "text", "id": "trust1_sub", "label": "Badge 1 sub", "default": "A toda Colombia" },
+    { "type": "text", "id": "trust2", "label": "Badge 2", "default": "Contra entrega" },
+    { "type": "text", "id": "trust2_sub", "label": "Badge 2 sub", "default": "Paga al recibir" },
+    { "type": "text", "id": "trust3", "label": "Badge 3", "default": "Compra segura" },
+    { "type": "text", "id": "trust3_sub", "label": "Badge 3 sub", "default": "Garantizado" },
+    { "type": "text", "id": "trust4", "label": "Badge 4", "default": "Devolución fácil" },
+    { "type": "text", "id": "trust4_sub", "label": "Badge 4 sub", "default": "Sin complicaciones" },
+    { "type": "header", "content": "📊 Stock" },
+    { "type": "checkbox", "id": "show_stock_bar", "label": "Mostrar barra stock", "default": true },
+    { "type": "text", "id": "stock_label", "label": "Texto stock", "default": "¡Solo quedan pocas unidades!" },
+    { "type": "range", "id": "stock_pct", "label": "% stock (visual)", "min": 5, "max": 50, "step": 1, "default": 23 },
+    { "type": "text", "id": "stock_sub", "label": "Sub stock", "default": "Alta demanda — se agota rápido" },
+    { "type": "header", "content": "💬 WhatsApp" },
+    { "type": "checkbox", "id": "show_wa", "label": "Mostrar WhatsApp", "default": true },
+    { "type": "text", "id": "wa_text", "label": "Texto botón WA", "default": "Pedir por WhatsApp" },
+    { "type": "text", "id": "wa_sub", "label": "Subtexto WA", "default": "Respuesta inmediata · Pago al recibir" },
+    { "type": "text", "id": "wa_country", "label": "Código país", "default": "57" },
+    { "type": "text", "id": "wa_number", "label": "Número", "default": "3508258757" },
+    { "type": "header", "content": "🛡️ Garantía" },
+    { "type": "checkbox", "id": "show_guarantee", "label": "Mostrar garantía", "default": true },
+    { "type": "text", "id": "guarantee_title", "label": "Título", "default": "Compra 100% garantizada" },
+    { "type": "textarea", "id": "guarantee_text", "label": "Texto", "default": "Si tu pedido no llega o no es el correcto, te lo resolvemos." },
+    { "type": "header", "content": "🎨 Colores" },
+    { "type": "color", "id": "bg_color", "label": "Fondo", "default": "#FDFAF7" },
+    { "type": "color", "id": "card_color", "label": "Tarjetas", "default": "#FFFFFF" },
+    { "type": "color", "id": "text_color", "label": "Texto", "default": "#1C1208" },
+    { "type": "color", "id": "muted_color", "label": "Suave", "default": "#7A6E64" },
+    { "type": "color", "id": "gold_color", "label": "Dorado", "default": "#D4527A" },
+    { "type": "color", "id": "wa_color", "label": "WhatsApp", "default": "#25D366" },
+    { "type": "color", "id": "danger_color", "label": "Urgencia", "default": "#ff4444" },
+    { "type": "color", "id": "green_color", "label": "Verde activo", "default": "#00c853" }
+  ],
+  "presets": [{ "name": "🔥 Producto Premium" }]
+}
+{% endschema %}

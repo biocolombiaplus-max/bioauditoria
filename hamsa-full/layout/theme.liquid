@@ -1,0 +1,474 @@
+<!doctype html>
+<html
+  {% if request.design_mode %}
+    class="shopify-design-mode"
+  {% endif %}
+  lang="{{ request.locale.iso_code }}"
+>
+  <head>
+    {%- if settings.favicon != blank -%}
+      <link
+        rel="icon"
+        type="image/png"
+        href="{{ settings.favicon | image_url: width: 32, height: 32 }}"
+      >
+    {%- endif -%}
+
+    {% comment %} This a way to wait for main content to load when navigating to a new page so that the view transitions can work consistently {% endcomment %}
+    {% if settings.transition_to_main_product or settings.page_transition_enabled %}
+      <link
+        rel="expect"
+        href="#MainContent"
+        blocking="render"
+        id="view-transition-render-blocker"
+      >
+    {% endif %}
+
+    {%- render 'meta-tags' -%}
+    {%- render 'stylesheets' -%}
+    {%- render 'fonts' -%}
+    {%- render 'scripts' -%}
+    {%- render 'theme-styles-variables' -%}
+    {%- render 'color-schemes' -%}
+
+    {% if request.design_mode %}
+      {%- render 'theme-editor' -%}
+    {% endif %}
+
+    {{ content_for_header }}
+  <style>
+    /* ── HAMSA GLOBAL MOBILE FIX ── */
+    html, body {
+      overflow-x: hidden;
+      max-width: 100%;
+    }
+    *, *::before, *::after { box-sizing: border-box; }
+    img { max-width: 100%; height: auto; }
+    .shopify-section { max-width: 100%; overflow-x: hidden; }
+
+    /* ── HAMSA PREMIUM HEADER OVERRIDES ── */
+    /* Make native Horizon header look premium with dark/gold theme */
+    header-component {
+      font-family: var(--font-body--family, system-ui, sans-serif) !important;
+    }
+    /* Logo area */
+    .header__logo { letter-spacing: 0.06em; }
+    /* Nav links */
+    .header__nav-link, .header-menu__nav-link {
+      font-weight: 600;
+      letter-spacing: 0.04em;
+      transition: color 0.2s ease !important;
+    }
+    /* Cart icon hover */
+    .header__actions a:hover, .header__actions button:hover {
+      color: #c9a96e !important;
+    }
+    /* Search input */
+    .search-modal__input {
+      border-radius: 8px !important;
+    }
+    /* Cart count bubble */
+    .cart-count-bubble {
+      background: #c9a96e !important;
+      color: #000 !important;
+    }
+    /* Make header text golden on hover */
+    .header__nav-item--active > a,
+    .header__nav-link:hover {
+      color: #c9a96e !important;
+    }
+    /* Header bottom border */
+    .header-section { border-bottom: 1px solid rgba(201,169,110,0.15) !important; }
+    /* Make sticky header shadow more premium */
+    header-component[scrolled] {
+      box-shadow: 0 4px 24px rgba(0,0,0,0.4) !important;
+    }
+  </style>
+  <script src="{{ 'hamsa-bundle-add.js' | asset_url }}" defer></script>
+
+  {%- comment -%} Preconnect a Shopify CDN para imágenes más rápidas {%- endcomment -%}
+  <link rel="preconnect" href="https://cdn.shopify.com" crossorigin>
+  <link rel="dns-prefetch" href="https://cdn.shopify.com">
+  <link rel="dns-prefetch" href="https://wa.me">
+  <link rel="preconnect" href="https://fonts.shopifycdn.com" crossorigin>
+
+  {%- comment -%} Preload hero con WebP para carga inmediata {%- endcomment -%}
+  {%- if request.page_type == 'index' -%}
+    {%- assign hero_section = sections['hamsa_home_hero'] -%}
+    {%- if hero_section.settings.hero_image != blank -%}
+      <link rel="preload" as="image"
+        href="{{ hero_section.settings.hero_image | image_url: width: 400, format: 'webp' }}"
+        imagesrcset="{{ hero_section.settings.hero_image | image_url: width: 360, format: 'webp' }} 360w, {{ hero_section.settings.hero_image | image_url: width: 500, format: 'webp' }} 500w"
+        imagesizes="100vw">
+    {%- endif -%}
+  {%- endif -%}
+  <style>
+    /* Optimización de rendimiento móvil */
+    .section:not(:nth-child(-n+3)) { content-visibility: auto; contain-intrinsic-size: 0 500px; }
+    img { image-rendering: auto; }
+
+    /* ── Thumbnails producto — estilo premium ── */
+    /* Thumbnail activo: borde dorado Hamsa en vez del color del tema */
+    .dialog-thumbnails-list__thumbnail[aria-selected='true'],
+    product-media-gallery .dialog-thumbnails-list__thumbnail[aria-selected='true'] {
+      outline: 2px solid #c9a96e !important;
+      outline-offset: 2px;
+    }
+    /* Hover suave en thumbnails */
+    .dialog-thumbnails-list__thumbnail {
+      transition: opacity .15s, outline .15s;
+      border-radius: 4px;
+      overflow: hidden;
+      cursor: pointer;
+    }
+    .dialog-thumbnails-list__thumbnail:not([aria-selected='true']) {
+      opacity: .72;
+    }
+    .dialog-thumbnails-list__thumbnail:hover {
+      opacity: 1;
+    }
+    /* Lista de thumbnails horizontal con scroll suave en móvil */
+    .dialog-thumbnails-list {
+      -webkit-overflow-scrolling: touch;
+      scroll-snap-type: x mandatory;
+    }
+    .dialog-thumbnails-list__thumbnail {
+      scroll-snap-align: start;
+    }
+  </style>
+  </head>
+
+  <body class="page-width-{{ settings.page_width }} card-hover-effect-{{ settings.card_hover_effect }}">
+    {% render 'skip-to-content-link', href: '#MainContent', text: 'accessibility.skip_to_text' %}
+    <div id="header-group">
+      {% sections 'header-group' %}
+    </div>
+
+    <script>
+      // Inline header height and menu style calculations to prevent layout shift
+      // Note: Updates in calculateHeaderGroupHeight(), updateTransparentHeaderOffset() and setHeaderMenuStyle() utilities.js should be kept in sync with this function
+      (function setHeaderHeighCustomProperties() {
+        /*
+         * Header calculation functions for maintaining CSS variables
+         * Mimic calculateHeaderGroupHeight() in utilities.js
+         */
+        const header = document.querySelector('header-component');
+        const headerGroup = document.querySelector('#header-group');
+        const hasHeaderSection = headerGroup?.querySelector('.header-section');
+
+        if (!header || !headerGroup) return;
+
+        const headerTopRow = header.querySelector('.header__row--top');
+        const headerHeight = header.offsetHeight;
+
+        // Calculate the total height of the header group
+        let headerGroupHeight = 0;
+        const children = headerGroup.children;
+        for (let i = 0; i < children.length; i++) {
+          const element = children[i];
+          if (element === header || !(element instanceof HTMLElement)) continue;
+          headerGroupHeight += element.offsetHeight;
+        }
+
+        // Check for transparent header special case
+        if (header.hasAttribute('transparent') && header.parentElement?.nextElementSibling) {
+          headerGroupHeight += headerHeight;
+        }
+
+        // Set CSS variables
+        document.body.style.setProperty('--header-height', `${headerHeight}px`);
+        document.body.style.setProperty('--header-group-height', `${headerGroupHeight}px`);
+
+        if (headerTopRow) {
+          window.requestAnimationFrame(function () {
+            document.body.style.setProperty('--top-row-height', `${headerTopRow.offsetHeight}px`);
+          });
+        }
+
+        /**
+         * Updates CSS custom properties for transparent header offset calculation
+         * Mimic updateTransparentHeaderOffset() in utilities.js
+         */
+
+        if (!hasHeaderSection || !header?.hasAttribute('transparent')) {
+          document.body.style.setProperty('--transparent-header-offset-boolean', '0');
+          return;
+        }
+
+        const hasImmediateSection = hasHeaderSection.nextElementSibling?.classList.contains('shopify-section');
+
+        const shouldApplyOffset = !hasImmediateSection ? '1' : '0';
+        document.body.style.setProperty('--transparent-header-offset-boolean', shouldApplyOffset);
+      })();
+
+      (function setHeaderMenuStyle() {
+        const headerComponent = document.querySelector('#header-component');
+        if (headerComponent) {
+          const isTouchDevice = 'ontouchstart' in window && navigator.maxTouchPoints > 0;
+          const overflowList = headerComponent?.querySelector('overflow-list');
+          const hasReachedMinimum = overflowList && overflowList.hasAttribute('minimum-reached');
+          headerComponent.dataset.menuStyle = isTouchDevice || hasReachedMinimum ? 'drawer' : 'menu';
+        }
+      })();
+    </script>
+
+    <main
+      id="MainContent"
+      class="content-for-layout"
+      role="main"
+      data-page-transition-enabled="{{ settings.page_transition_enabled }}"
+      data-product-transition="{{ settings.transition_to_main_product }}"
+      data-template="{{ template }}"
+    >
+      {{ content_for_layout }}
+    </main>
+
+    <footer>
+      {% sections 'footer-group' %}
+    </footer>
+
+    {% render 'search-modal' %}
+
+    {% if settings.quick_add or settings.mobile_quick_add %}
+      {% render 'quick-add-modal' %}
+    {% endif %}
+
+    {% render 'hamsa-floating-whatsapp' %}
+
+    {%- comment -%} ═══ HAMSA: Exit Intent — Spin Wheel + Popup descuento ═══ {%- endcomment -%}
+    {% render 'hamsa-spin-wheel' %}
+
+    {%- comment -%} ═══ HAMSA: Exit Popup alternativo (descuento directo) ═══ {%- endcomment -%}
+    <div id="hamsaExitPop" style="display:none;position:fixed;inset:0;z-index:999998;background:rgba(10,8,4,.78);backdrop-filter:blur(5px);align-items:center;justify-content:center;padding:16px;" role="dialog" aria-modal="true" aria-label="Oferta especial">
+      <div style="background:#FDF8F0;border-radius:20px;max-width:420px;width:100%;overflow:hidden;box-shadow:0 32px 80px rgba(0,0,0,.45);animation:hepIn .35s cubic-bezier(.34,1.56,.64,1);" >
+        <style>
+          @keyframes hepIn{from{opacity:0;transform:scale(.88) translateY(20px)}to{opacity:1;transform:scale(1) translateY(0)}}
+          .hep-header{background:#1A1208;padding:28px 28px 24px;text-align:center;position:relative;}
+          .hep-header::after{content:'';position:absolute;bottom:-1px;left:0;right:0;height:2px;background:linear-gradient(90deg,transparent,#C9A84C,transparent);}
+          .hep-close{position:absolute;top:12px;right:14px;background:rgba(255,255,255,.12);border:none;color:rgba(255,255,255,.7);font-size:16px;cursor:pointer;width:28px;height:28px;border-radius:50%;display:flex;align-items:center;justify-content:center;transition:all .15s;}
+          .hep-close:hover{background:rgba(255,255,255,.22);color:#fff;}
+          .hep-tabs{display:flex;background:#F0EAD8;border-radius:8px;padding:3px;margin-bottom:18px;gap:2px;}
+          .hep-tab{flex:1;padding:8px 4px;background:none;border:none;border-radius:6px;font-size:11px;font-weight:700;cursor:pointer;color:#6B6355;transition:all .15s;font-family:inherit;letter-spacing:.3px;text-align:center;}
+          .hep-tab.on{background:#fff;color:#1A1208;box-shadow:0 1px 4px rgba(0,0,0,.1);}
+          .hep-panel{display:none;}.hep-panel.on{display:block;}
+          .hep-code{background:#1A1208;border-radius:10px;padding:16px;text-align:center;margin-bottom:14px;border:1.5px dashed #C9A84C;}
+          .hep-code small{font-size:9px;letter-spacing:3px;text-transform:uppercase;color:#6B6355;display:block;margin-bottom:4px;}
+          .hep-code strong{font-size:28px;font-weight:700;color:#C9A84C;letter-spacing:4px;font-family:monospace;display:block;}
+          .hep-code span{font-size:11px;color:#6B6355;display:block;margin-top:3px;}
+          .hep-inp{width:100%;border:1.5px solid #E8DCC8;border-radius:8px;padding:12px 14px;font-size:14px;color:#1A1208;background:#fff;outline:none;font-family:inherit;transition:border-color .2s;margin-bottom:10px;}
+          .hep-inp:focus{border-color:#C9A84C;}
+          .hep-inp.err{border-color:#D44;}
+          .hep-cta{width:100%;background:#C9A84C;color:#1A1208;border:none;padding:14px;border-radius:8px;font-size:15px;font-weight:700;cursor:pointer;font-family:inherit;transition:background .15s;margin-bottom:8px;}
+          .hep-cta:hover{background:#D4B85A;}
+          .hep-cta.wa{background:#25D366;color:#fff;}
+          .hep-cta.wa:hover{background:#1da851;}
+          .hep-skip{display:block;text-align:center;font-size:11px;color:#B8A898;cursor:pointer;margin-top:6px;transition:color .15s;}
+          .hep-skip:hover{color:#6B6355;}
+          .hep-trust{display:flex;justify-content:center;gap:14px;margin-top:12px;padding-top:12px;border-top:1px solid #E8DCC8;flex-wrap:wrap;}
+          .hep-trust span{font-size:11px;color:#6B6355;}
+          .hep-ok{text-align:center;padding:8px 0;}
+          .hep-ok .ok-icon{font-size:44px;margin-bottom:10px;display:block;}
+          .hep-ok h3{font-size:18px;color:#1A1208;margin-bottom:8px;font-weight:700;}
+          .hep-ok p{font-size:13px;color:#6B6355;line-height:1.6;margin-bottom:16px;}
+          .hep-ok .ok-btn{background:#C9A84C;color:#1A1208;border:none;padding:12px 24px;border-radius:8px;font-size:14px;font-weight:700;cursor:pointer;font-family:inherit;}
+        </style>
+        <div class="hep-header">
+          <button class="hep-close" id="hepClose" aria-label="Cerrar">✕</button>
+          <div style="font-size:40px;margin-bottom:10px">💛</div>
+          <h2 style="font-size:22px;font-weight:700;color:#F5F0E8;margin:0 0 6px;line-height:1.2">¡Espera! Tenemos algo<br>especial para ti</h2>
+          <p style="font-size:13px;color:#6B6355;margin:0">Elige cómo quieres aprovechar tu beneficio</p>
+        </div>
+        <div style="padding:24px 28px 28px">
+          <div class="hep-tabs" role="tablist">
+            <button class="hep-tab on" data-hep="discount" role="tab">🏷️ 5% OFF ahora</button>
+            <button class="hep-tab" data-hep="email" role="tab">📧 Bono email</button>
+            <button class="hep-tab" data-hep="wa" role="tab">💬 WhatsApp</button>
+          </div>
+
+          <!-- Panel 1: Código inmediato -->
+          <div class="hep-panel on" id="hep-discount">
+            <div class="hep-code">
+              <small>Tu código exclusivo</small>
+              <strong>HAMSA5</strong>
+              <span>5% descuento · Envío gratis · Válido hoy</span>
+            </div>
+            <button class="hep-cta" id="hepCopyBtn">Copiar código y ver catálogo →</button>
+            <div class="hep-trust">
+              <span>🚚 Envío gratis</span><span>💵 Contra entrega</span><span>🔄 Cambios gratis</span>
+            </div>
+          </div>
+
+          <!-- Panel 2: Email -->
+          <div class="hep-panel" id="hep-email">
+            <p style="font-size:13px;color:#4A3D2E;line-height:1.7;margin-bottom:14px;text-align:center">Déjanos tu email y te enviamos un <strong style="color:#C9A84C">bono de 10% de descuento</strong> + novedades exclusivas.</p>
+            <input class="hep-inp" type="email" id="hepEmailInp" placeholder="tu@correo.com" autocomplete="email">
+            <button class="hep-cta" id="hepEmailBtn">Quiero mi bono de 10% 🎁</button>
+            <p style="font-size:11px;color:#B8A898;text-align:center;margin-top:6px">Sin spam. Cancela cuando quieras.</p>
+          </div>
+
+          <!-- Panel 3: WhatsApp -->
+          <div class="hep-panel" id="hep-wa">
+            <p style="font-size:13px;color:#4A3D2E;line-height:1.7;margin-bottom:14px;text-align:center">Recibe tu <strong style="color:#C9A84C">bono de descuento</strong> directo en WhatsApp + asesoría de talla personalizada.</p>
+            <input class="hep-inp" type="tel" id="hepWaInp" placeholder="Tu número WhatsApp (ej: 3001234567)" autocomplete="tel">
+            <button class="hep-cta wa" id="hepWaBtn">💬 Enviar mi bono por WhatsApp</button>
+            <p style="font-size:11px;color:#B8A898;text-align:center;margin-top:6px">Solo mensajes relevantes. Respuesta en 1 hora.</p>
+          </div>
+
+          <span class="hep-skip" id="hepSkip">No gracias, prefiero pagar el precio completo</span>
+        </div>
+      </div>
+    </div>
+
+    <script>
+    (function(){
+      var DISMISS_KEY='hamsa_hep_v1';
+      var DISMISS_DAYS=7;
+      var pop=document.getElementById('hamsaExitPop');
+      if(!pop) return;
+
+      function isDismissed(){
+        try{var t=parseInt(localStorage.getItem(DISMISS_KEY));return t&&(Date.now()-t)<(DISMISS_DAYS*86400000);}catch(e){return false;}
+      }
+      function dismiss(){
+        pop.style.display='none';document.body.style.overflow='';
+        try{localStorage.setItem(DISMISS_KEY,Date.now());}catch(e){}
+      }
+      function showPop(){
+        // Si el spin wheel ya está visible, no mostrar este popup
+        var sw=document.getElementById('hswOv');
+        if(sw&&sw.classList.contains('hsw-show')) return;
+        if(isDismissed()) return;
+        pop.style.display='flex';document.body.style.overflow='hidden';
+      }
+
+      // Tabs
+      document.querySelectorAll('.hep-tab').forEach(function(tab){
+        tab.addEventListener('click',function(){
+          document.querySelectorAll('.hep-tab').forEach(function(t){t.classList.remove('on');});
+          document.querySelectorAll('.hep-panel').forEach(function(p){p.classList.remove('on');});
+          tab.classList.add('on');
+          var panel=document.getElementById('hep-'+tab.dataset.hep);
+          if(panel) panel.classList.add('on');
+        });
+      });
+
+      // Cerrar
+      ['hepClose','hepSkip'].forEach(function(id){
+        var el=document.getElementById(id);
+        if(el) el.addEventListener('click',dismiss);
+      });
+      pop.addEventListener('click',function(e){if(e.target===pop)dismiss();});
+      document.addEventListener('keydown',function(e){if(e.key==='Escape')dismiss();});
+
+      // Panel 1: Copiar código
+      var copyBtn=document.getElementById('hepCopyBtn');
+      if(copyBtn){
+        copyBtn.addEventListener('click',function(){
+          try{navigator.clipboard.writeText('HAMSA5');}catch(e){}
+          copyBtn.textContent='✓ ¡Código copiado!';
+          copyBtn.style.background='#28A745';copyBtn.style.color='#fff';
+          setTimeout(function(){window.location.href='/collections/all?discount=HAMSA5';},1200);
+          dismiss();
+        });
+      }
+
+      // Panel 2: Email
+      var emailBtn=document.getElementById('hepEmailBtn');
+      var emailInp=document.getElementById('hepEmailInp');
+      if(emailBtn&&emailInp){
+        emailBtn.addEventListener('click',function(){
+          var email=emailInp.value.trim();
+          if(!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)){emailInp.classList.add('err');return;}
+          emailInp.classList.remove('err');
+          var panel=document.getElementById('hep-email');
+          if(panel) panel.innerHTML='<div class="hep-ok"><span class="ok-icon">💛</span><h3>¡Listo! Revisa tu correo</h3><p>Te enviamos un <strong style="color:#C9A84C">bono de 10% de descuento</strong>.<br>¡Úsalo en tu próxima compra!</p><button class="ok-btn" onclick="document.getElementById(\'hamsaExitPop\').style.display=\'none\';document.body.style.overflow=\'\'">Ver catálogo →</button></div>';
+          dismiss();
+        });
+        emailInp.addEventListener('input',function(){emailInp.classList.remove('err');});
+      }
+
+      // Panel 3: WhatsApp
+      var waBtn=document.getElementById('hepWaBtn');
+      var waInp=document.getElementById('hepWaInp');
+      if(waBtn&&waInp){
+        waBtn.addEventListener('click',function(){
+          var num=waInp.value.replace(/\D/g,'');
+          if(num.length<7){waInp.classList.add('err');return;}
+          var cc=num.startsWith('57')?num:'57'+num;
+          var msg=encodeURIComponent('Hola! Me suscribí desde la tienda Hamsa Shoes para recibir mi bono de descuento 💛');
+          window.open('https://wa.me/'+cc+'?text='+msg,'_blank');
+          dismiss();
+        });
+        waInp.addEventListener('input',function(){waInp.classList.remove('err');});
+      }
+
+      // ══ TRIGGERS — SOLO DESKTOP, NUNCA MÓVIL ══
+      // En móvil no hay popup automático de ningún tipo
+      var _isMobile = ('ontouchstart' in window) || (navigator.maxTouchPoints > 0) || (window.innerWidth < 768);
+      if(_isMobile){
+        // MÓVIL: salir sin configurar ningún trigger
+        return;
+      }
+      // DESKTOP: solo exit intent (mouse sale hacia barra del navegador)
+      var exitFired=false;
+      document.addEventListener('mouseleave',function(e){
+        if(e.clientY<=4&&!exitFired){
+          exitFired=true;
+          setTimeout(showPop,400); // delay para no sorprender
+        }
+      });
+      // Reset cuando el usuario vuelve a la página
+      document.addEventListener('mouseenter',function(){
+        exitFired=false;
+      });
+    })();
+    </script>
+
+  <!-- ═══ HAMSA: Global WhatsApp link handler ═══ -->
+  <script>
+  (function(){
+    // Numero de WhatsApp por defecto (siempre funciona aunque falle algun atributo)
+    var DEFAULT_PHONE = '573508258757';
+
+    function buildWaUrl(phone, msg) {
+      phone = (phone || DEFAULT_PHONE).replace(/[^0-9]/g, '');
+      if(!phone) phone = DEFAULT_PHONE;
+      msg   = msg || 'Hola Hamsa Shoes! Como me pueden ayudar?';
+      return 'https://wa.me/' + phone + '?text=' + encodeURIComponent(msg);
+    }
+
+    function initWaButtons() {
+      // Selecciona TODOS los botones con clase hamsa-wa-btn o data-wa-phone
+      var btns = document.querySelectorAll('.hamsa-wa-btn, [data-wa-phone]');
+      btns.forEach(function(btn) {
+        var phone = btn.getAttribute('data-wa-phone') || DEFAULT_PHONE;
+        // Mensaje: prioridad data-wa-product > data-wa-msg > default
+        var msg;
+        var product = btn.getAttribute('data-wa-product');
+        if(product) {
+          msg = 'Hola Hamsa Shoes! Me interesa el producto: ' + product + '. Me pueden ayudar con tallas, colores y pago contra entrega?';
+        } else {
+          msg = btn.getAttribute('data-wa-msg') || 'Hola Hamsa Shoes! Quiero informacion sobre sus productos y pago contra entrega.';
+        }
+        btn.href = buildWaUrl(phone, msg);
+      });
+
+      // Boton de producto (hamsa-product-pro) - tiene logica especial con variante
+      var proBtn = document.querySelector('#HamsaFloatingBadge a');
+      // El badge flotante NO es WA, ignorar
+    }
+
+    // Ejecutar al cargar
+    if(document.readyState === 'loading') {
+      document.addEventListener('DOMContentLoaded', initWaButtons);
+    } else {
+      initWaButtons();
+    }
+
+    // Re-ejecutar si Shopify recarga secciones (ajax)
+    document.addEventListener('shopify:section:load', initWaButtons);
+  })();
+  </script>
+
+  </body>
+</html>

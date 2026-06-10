@@ -1,0 +1,382 @@
+{
+  "sections": {
+    "main": {
+      "type": "custom-liquid",
+      "settings": {
+        "custom_liquid": "",
+        "color_scheme": "",
+        "section_width": "page-width",
+        "padding-block-start": 0,
+        "padding-block-end": 0
+      }
+    },
+    "hamsa_home_hero": {
+      "type": "hamsa-home-hero",
+      "settings": {
+        "hero_image": "shopify://shop_images/mujer_de_25_202603310813.jpg",
+        "image_alt": "Calzado Hamsa",
+        "image_radius": 30,
+        "eyebrow": "Nueva Colección",
+        "heading": "Sandalias que elevan tu estilo",
+        "subtext": "Diseños exclusivos, femeninos y elegantes. Compra fácil con pago contra entrega a todo Colombia.",
+        "badge1": "🚚 Envío gratis",
+        "badge2": "💵 Contra entrega",
+        "badge3": "🔒 Compra segura",
+        "btn1_text": "Ver catálogo",
+        "btn1_url": "shopify://collections/all",
+        "btn2_text": "Ver ofertas",
+        "btn2_url": "shopify://pages/2x1-sandalias-femeninas-colombia",
+        "show_whatsapp": true,
+        "wa_country": "57",
+        "wa_number": "3508258757",
+        "wa_message": "Hola, quiero ver el catálogo de Hamsa Shoes",
+        "floating_badge": "✨ Nueva colección 2025",
+        "floating_stat": "+2.000 clientas felices",
+        "bg_color": "#FDFAF7",
+        "text_color": "#1C1208",
+        "muted_color": "#7A6E64",
+        "gold_color": "#D4527A",
+        "btn_bg": "#D4527A",
+        "btn_text_color": "#FFFFFF",
+        "wa_color": "#25d366",
+        "min_height": 620,
+        "pt": 60,
+        "pb": 60,
+        "pt_mobile": 28,
+        "pb_mobile": 32
+      }
+    },
+    "hamsa_home_products": {
+      "type": "hamsa-home-products",
+      "settings": {
+        "collection": "frontpage",
+        "limit": 8,
+        "columns": "5",
+        "eyebrow": "Más vendidos",
+        "heading": "Nuestras sandalias",
+        "subtext": "Diseños exclusivos para cada ocasión",
+        "btn_text": "Ver todo el catálogo",
+        "btn_url": "shopify://collections/all",
+        "base_reviews": 42,
+        "show_wa": true,
+        "wa_country": "57",
+        "wa_number": "3508258757",
+        "bg_color": "#FDFAF7",
+        "card_bg": "#FFFFFF",
+        "text_color": "#1C1208",
+        "muted_color": "#7A6E64",
+        "gold_color": "#D4527A",
+        "btn_bg": "#D4527A",
+        "btn_text_color": "#FFFFFF",
+        "wa_color": "#25d366",
+        "pt": 64,
+        "pb": 64,
+        "pt_mobile": 40,
+        "pb_mobile": 40
+      }
+    },
+    "hamsa_home_benefits": {
+      "type": "hamsa-home-benefits",
+      "blocks": {
+        "benefit_ynP99t": {
+          "type": "benefit",
+          "settings": {
+            "icon": "star",
+            "title": "Productos Garantizado",
+            "text": "Fácil cambio por talla u otra situación"
+          }
+        },
+        "benefit_WACrJi": {
+          "type": "benefit",
+          "settings": {
+            "icon": "shield",
+            "title": "Pagos Seguros",
+            "text": "Todos los medios de pago con WOMPI"
+          }
+        },
+        "benefit_tMw7rh": {
+          "type": "benefit",
+          "settings": {
+            "icon": "payment",
+            "title": "Pago Contra Entrega",
+            "text": "Recibe tu pedido sin costo adicional."
+          }
+        },
+        "benefit_cUcgyV": {
+          "type": "benefit",
+          "settings": {
+            "icon": "truck",
+            "title": "Envío gratis a Colombia",
+            "text": "Recibe tu pedido sin costo adicional."
+          }
+        }
+      },
+      "block_order": [
+        "benefit_ynP99t",
+        "benefit_WACrJi",
+        "benefit_tMw7rh",
+        "benefit_cUcgyV"
+      ],
+      "settings": {
+        "heading": "Por qué comprarnos",
+        "bg_color": "#FDFAF7",
+        "card_color": "#FFFFFF",
+        "text_color": "#1C1208",
+        "muted_color": "#7A6E64",
+        "gold_color": "#D4527A",
+        "pt": 56,
+        "pb": 56,
+        "pt_mobile": 36,
+        "pb_mobile": 36
+      }
+    },
+    "hamsa_home_banner": {
+      "type": "hamsa-home-banner",
+      "settings": {
+        "image": "shopify://shop_images/mujer_de_25_202603310815_1.jpg",
+        "floating_label": "✨ Nueva temporada",
+        "reverse": false,
+        "radius": 20,
+        "eyebrow": "Editorial Hamsa",
+        "heading": "Sandalias que transforman tu look",
+        "text": "",
+        "btn_text": "Ver colección",
+        "btn_url": "shopify://collections/all",
+        "show_wa": true,
+        "wa_text": "Comprar por WhatsApp",
+        "wa_country": "57",
+        "wa_number": "3508258757",
+        "wa_message": "Hola, quiero comprar",
+        "bg_color": "#FDFAF7",
+        "text_color": "#1C1208",
+        "muted_color": "#7A6E64",
+        "gold_color": "#D4527A",
+        "btn_bg": "#D4527A",
+        "btn_text_color": "#FFFFFF",
+        "wa_color": "#25d366",
+        "overlay_opacity": 0,
+        "pt": 56,
+        "pb": 56,
+        "pt_mobile": 36,
+        "pb_mobile": 36,
+        "height": 520,
+        "height_mobile": 380
+      }
+    },
+    "hamsa_home_testimonials": {
+      "type": "hamsa-home-testimonials",
+      "blocks": {
+        "review_7w67HR": {
+          "type": "review",
+          "settings": {
+            "name": "Valentina M.",
+            "city": "Medellín",
+            "badge": "✅ Compra verificada",
+            "review": "Me llegaron rapidísimo y son exactamente como las fotos. Las usé en una boda y recibí mil piropos. ¡Ya pedí otro par!"
+          }
+        },
+        "review_4Jebaw": {
+          "type": "review",
+          "settings": {
+            "name": "Daniela R.",
+            "city": "Bogotá",
+            "badge": "✅ Compra verificada",
+            "review": "Súper cómodas y de muy buena calidad. El pago contra entrega me dio mucha confianza para comprar. 100% recomendadas."
+          }
+        },
+        "review_MMykKt": {
+          "type": "review",
+          "settings": {
+            "name": "Alejandra C.",
+            "city": "Cali",
+            "badge": "✅ Compra verificada",
+            "review": "Dudé al principio pero me arriesgué y quedé encantada. La talla me quedó perfecta y llegaron en 3 días a Cali."
+          }
+        },
+        "review_n37WPb": {
+          "type": "review",
+          "settings": {
+            "name": "Isabella T.",
+            "city": "Barranquilla",
+            "badge": "✅ Compra verificada",
+            "review": "Hermosas y muy cómodas para caminar todo el día. El servicio de WhatsApp es muy rápido. Ya las recomendé a todas mis amigas."
+          }
+        },
+        "review_zgzDXt": {
+          "type": "review",
+          "settings": {
+            "name": "Natalia G.",
+            "city": "Bucaramanga",
+            "badge": "✅ Compra verificada",
+            "review": "El cambio de talla fue facilísimo, sin complicaciones. La segunda compra también fue perfecta. Son mi sandalia favorita."
+          }
+        }
+      },
+      "block_order": [
+        "review_7w67HR",
+        "review_4Jebaw",
+        "review_MMykKt",
+        "review_n37WPb",
+        "review_zgzDXt"
+      ],
+      "settings": {
+        "heading": "Lo que dicen nuestras clientas",
+        "subtext": "",
+        "bg_color": "#FDFAF7",
+        "card_color": "#FFFFFF",
+        "text_color": "#1C1208",
+        "muted_color": "#7A6E64",
+        "gold_color": "#D4527A",
+        "pt": 56,
+        "pb": 56,
+        "pt_mobile": 36,
+        "pb_mobile": 36
+      }
+    },
+    "hamsa_home_cta": {
+      "type": "hamsa-home-cta",
+      "settings": {
+        "image": "shopify://shop_images/mujer_de_25_202603310813_1.jpg",
+        "eyebrow": "Calzado Hamsa",
+        "heading": "Encuentra tus favoritas hoy",
+        "text": "Sandalias elegantes, femeninas y listas para transformar tu look. Compra rápida, segura y con envío gratis.",
+        "trust1": "Envío gratis",
+        "trust2": "Pago contra entrega",
+        "trust3": "Colombia y Venezuela",
+        "btn_text": "Ver catálogo",
+        "btn_url": "shopify://collections/all",
+        "show_wa": true,
+        "wa_btn_text": "Comprar por WhatsApp",
+        "wa_country": "57",
+        "wa_number": "3508258757",
+        "wa_message": "Hola, quiero comprar en Hamsa Shoes",
+        "bg_color": "#FDFAF7",
+        "text_color": "#1C1208",
+        "muted_color": "#7A6E64",
+        "gold_color": "#D4527A",
+        "btn_bg": "#D4527A",
+        "btn_text_color": "#FFFFFF",
+        "wa_color": "#25d366",
+        "min_height": 480,
+        "min_height_mobile": 420,
+        "pt": 56,
+        "pb": 56,
+        "pt_mobile": 36,
+        "pb_mobile": 36
+      }
+    },
+    "hamsa_floating_badge": {
+      "type": "hamsa-floating-badge",
+      "settings": {
+        "enabled": true,
+        "badge_url": "/pages/oferta-2x1",
+        "position": "right",
+        "bg_color": "#FDFAF7",
+        "text_color": "#ffffff",
+        "accent_color": "#D4527A"
+      }
+    },
+    "hamsa_urgency_ac5351c1": {
+      "type": "hamsa-urgency-strip",
+      "settings": {
+        "bg_color": "#FFF0F4",
+        "text_color": "#D4527A",
+        "icon_color": "#D4527A",
+        "icon1": "🚚",
+        "item1": "Envío GRATIS a toda Colombia",
+        "icon2": "💵",
+        "item2": "Pago contra entrega disponible",
+        "icon3": "🔒",
+        "item3": "Compra 100% segura",
+        "icon4": "↩️",
+        "item4": "Cambio de talla gratis"
+      }
+    },
+    "hamsa_social_d7c842ad": {
+      "type": "hamsa-social-proof",
+      "settings": {
+        "bg_color": "#FDFAF7",
+        "card_color": "#FFFFFF",
+        "text_color": "#1C1208",
+        "accent_color": "#D4527A",
+        "show_counter": true,
+        "counter_start": 1847,
+        "counter_label": "pares vendidos este mes",
+        "show_recent": true,
+        "pt": 20,
+        "pb": 20
+      },
+      "blocks": {
+        "p1": {
+          "type": "purchase",
+          "settings": {
+            "name": "Valentina R.",
+            "city": "Medellín",
+            "flag": "🇨🇴",
+            "product": "Sandalia Hamsa Rosa T.38",
+            "time": "hace 2 minutos",
+            "delay": 1200
+          }
+        },
+        "p2": {
+          "type": "purchase",
+          "settings": {
+            "name": "Camila S.",
+            "city": "Bogotá",
+            "flag": "🇨🇴",
+            "product": "Sandalia Hamsa Dorada T.36",
+            "time": "hace 7 minutos",
+            "delay": 2800
+          }
+        },
+        "p3": {
+          "type": "purchase",
+          "settings": {
+            "name": "Isabella T.",
+            "city": "Cali",
+            "flag": "🇨🇴",
+            "product": "Sandalia Hamsa Nude T.39",
+            "time": "hace 11 minutos",
+            "delay": 4500
+          }
+        }
+      },
+      "block_order": [
+        "p1",
+        "p2",
+        "p3"
+      ]
+    },
+    "hamsa_sizes_e4de9e45": {
+      "type": "hamsa-size-selector",
+      "settings": {
+        "bg_color": "#F8F4F0",
+        "card_color": "#FFFFFF",
+        "accent_color": "#D4527A",
+        "text_color": "#1C1208",
+        "muted_color": "#7A6E64",
+        "heading": "Encuentra tu talla perfecta",
+        "subtext": "Medidas exactas para que tu sandalia quede perfecta",
+        "tip": "¿Entre dos tallas? Pie ancho → elige la más grande. Pie estrecho → la más pequeña. El primer cambio es GRATIS.",
+        "wa_country": "57",
+        "wa_number": "3508258757",
+        "wa_message": "Hola! Necesito ayuda para elegir mi talla",
+        "pt": 48,
+        "pb": 48
+      }
+    }
+  },
+  "order": [
+    "main",
+    "hamsa_urgency_ac5351c1",
+    "hamsa_home_hero",
+    "hamsa_social_d7c842ad",
+    "hamsa_home_products",
+    "hamsa_home_benefits",
+    "hamsa_home_banner",
+    "hamsa_sizes_e4de9e45",
+    "hamsa_home_testimonials",
+    "hamsa_home_cta",
+    "hamsa_floating_badge"
+  ]
+}

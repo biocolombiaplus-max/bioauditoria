@@ -1,0 +1,105 @@
+{% comment %}
+  hamsa-urgency-strip.liquid
+  Barra de urgencia y confianza para aumentar conversión.
+  Muestra: envío gratis, pago contra entrega, countdown, etc.
+{% endcomment %}
+
+<div class="hus-strip" id="HamsaUrgency-{{ section.id }}" style="
+  --bg: {{ section.settings.bg_color }};
+  --text: {{ section.settings.text_color }};
+  --icon: {{ section.settings.icon_color }};
+">
+  <div class="hus-inner">
+    {% if section.settings.item1 != blank %}
+    <div class="hus-item">
+      <span class="hus-emoji">{{ section.settings.icon1 | default: '🚚' }}</span>
+      <span>{{ section.settings.item1 }}</span>
+    </div>
+    <span class="hus-sep">|</span>
+    {% endif %}
+    {% if section.settings.item2 != blank %}
+    <div class="hus-item">
+      <span class="hus-emoji">{{ section.settings.icon2 | default: '💵' }}</span>
+      <span>{{ section.settings.item2 }}</span>
+    </div>
+    <span class="hus-sep">|</span>
+    {% endif %}
+    {% if section.settings.item3 != blank %}
+    <div class="hus-item">
+      <span class="hus-emoji">{{ section.settings.icon3 | default: '🔒' }}</span>
+      <span>{{ section.settings.item3 }}</span>
+    </div>
+    <span class="hus-sep">|</span>
+    {% endif %}
+    {% if section.settings.item4 != blank %}
+    <div class="hus-item">
+      <span class="hus-emoji">{{ section.settings.icon4 | default: '↩️' }}</span>
+      <span>{{ section.settings.item4 }}</span>
+    </div>
+    {% endif %}
+  </div>
+</div>
+
+<style>
+#HamsaUrgency-{{ section.id }} {
+  background: var(--bg);
+  padding: 10px 16px;
+  border-bottom: 1px solid rgba(0,0,0,.08);
+}
+#HamsaUrgency-{{ section.id }} * { box-sizing: border-box; }
+.hus-inner {
+  max-width: 1320px;
+  margin: 0 auto;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-wrap: wrap;
+  gap: 8px 16px;
+}
+.hus-item {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text);
+  white-space: nowrap;
+}
+.hus-emoji { font-size: 15px; }
+.hus-sep {
+  color: var(--text);
+  opacity: .3;
+  font-size: 12px;
+}
+@media (max-width: 600px) {
+  .hus-sep { display: none; }
+  .hus-inner { justify-content: center; gap: 10px 20px; }
+}
+</style>
+
+{% schema %}
+{
+  "name": "Barra de Confianza",
+  "tag": "div",
+  "settings": [
+    { "type": "color", "id": "bg_color", "label": "Fondo", "default": "#FFF0F4" },
+    { "type": "color", "id": "text_color", "label": "Texto", "default": "#D4527A" },
+    { "type": "color", "id": "icon_color", "label": "Iconos", "default": "#D4527A" },
+    { "type": "header", "content": "Ítem 1" },
+    { "type": "text", "id": "icon1", "label": "Emoji 1", "default": "🚚" },
+    { "type": "text", "id": "item1", "label": "Texto 1", "default": "Envío GRATIS a toda Colombia" },
+    { "type": "header", "content": "Ítem 2" },
+    { "type": "text", "id": "icon2", "label": "Emoji 2", "default": "💵" },
+    { "type": "text", "id": "item2", "label": "Texto 2", "default": "Pago contra entrega disponible" },
+    { "type": "header", "content": "Ítem 3" },
+    { "type": "text", "id": "icon3", "label": "Emoji 3", "default": "🔒" },
+    { "type": "text", "id": "item3", "label": "Texto 3", "default": "Compra 100% segura" },
+    { "type": "header", "content": "Ítem 4" },
+    { "type": "text", "id": "icon4", "label": "Emoji 4", "default": "↩️" },
+    { "type": "text", "id": "item4", "label": "Texto 4", "default": "Cambios gratis de talla" }
+  ],
+  "presets": [
+    { "name": "Barra de Confianza" }
+  ]
+}
+{% endschema %}

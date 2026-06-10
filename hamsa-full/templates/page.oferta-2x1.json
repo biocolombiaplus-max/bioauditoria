@@ -1,0 +1,44 @@
+{
+  "sections": {
+    "landing_2x1": {
+      "type": "hamsa-landing-2x1",
+      "settings": {
+        "hero_image": "shopify://shop_images/MUJER_JOVEN_COLOMBIANA_202604061130_2.jpg",
+        "eyebrow": "⚡ OFERTA POR TIEMPO LIMITADO",
+        "hero_title": "Lleva 2 Pares por Solo",
+        "hero_sub": "Elige modelo, talla y color · Envío gratis · Pago al recibir",
+        "bundle_price": 15990000,
+        "original_price": 23980000,
+        "unit_price": "99.900",
+        "bundle_title": "🛍️ Arma tu Pedido 2×1",
+        "bundle_sub": "Selecciona 2 pares — modelo, talla y color para cada uno",
+        "lp_collection": "frontpage",
+        "max_products": 20,
+        "gallery_title": "Nuestros Modelos",
+        "gallery_image_1": "shopify://shop_images/quiero_imagen_de_202604061135_1.jpg",
+        "gallery_image_2": "shopify://shop_images/quiero_una_foto_202603301217_1.jpg",
+        "gallery_image_3": "shopify://shop_images/quiero_una_foto_202603300023.jpg",
+        "gallery_image_4": "shopify://shop_images/quiero_una_foto_202603290844_1.jpg",
+        "review_name_1": "Valentina R.",
+        "review_city_1": "Bogotá",
+        "review_text_1": "Me llegaron los 2 pares en 3 días, comodísimos y tal cual a las fotos. El pago contra entrega me dio mucha confianza.",
+        "review_name_2": "Camila T.",
+        "review_city_2": "Medellín",
+        "review_text_2": "Aproveché la oferta 2x1 y quedé encantada. Los zapatos son de excelente calidad y el envío fue rapidísimo.",
+        "review_name_3": "Laura M.",
+        "review_city_3": "Cali",
+        "review_text_3": "Increíble oferta, los 2 pares me costaron menos de lo que esperaba. Definitivamente volvería a comprar.",
+        "wa_number": "3508258757",
+        "bg_color": "#FDFAF7",
+        "card_color": "#FFFFFF",
+        "text_color": "#1C1208",
+        "muted_color": "#7A6E64",
+        "gold_color": "#D4527A",
+        "danger_color": "#ff4444"
+      }
+    }
+  },
+  "order": [
+    "landing_2x1"
+  ]
+}

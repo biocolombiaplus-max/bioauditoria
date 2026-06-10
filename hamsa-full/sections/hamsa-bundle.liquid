@@ -1,0 +1,785 @@
+{% if product %}
+{%- assign bundle_col = collections[section.settings.bundle_collection] -%}
+{%- assign bundle_products = nil -%}
+{%- if bundle_col != blank and bundle_col.products_count > 0 -%}
+  {%- assign bundle_products = bundle_col.products -%}
+{%- elsif product.collections.first != blank -%}
+  {%- assign bundle_products = product.collections.first.products -%}
+{%- endif -%}
+{%- assign bundle_price = section.settings.bundle_price | default: 15990000 -%}
+{%- assign bundle_qty = section.settings.bundle_qty | default: 2 -%}
+{%- comment -%}
+  Si el cliente ya tiene 1+ pares en el carrito, solo necesita seleccionar 1 más.
+  Calculamos needed_qty server-side en Liquid para que el JS lo reciba correcto
+  desde el primer render — sin fetch asíncrono.
+{%- endcomment -%}
+{%- assign needed_qty = bundle_qty -%}
+{%- assign cart_has_items = false -%}
+{%- if cart.item_count >= 1 -%}
+  {%- assign needed_qty = 1 -%}
+  {%- assign cart_has_items = true -%}
+{%- endif -%}
+
+<section class="hbun" id="HamsaBundle-{{ section.id }}" style="
+  --gold: {{ section.settings.gold_color }};
+  --bg: {{ section.settings.bg_color }};
+  --card: {{ section.settings.card_color }};
+  --text: {{ section.settings.text_color }};
+  --muted: {{ section.settings.muted_color }};
+  --btn: {{ section.settings.btn_bg }};
+  --btn-text: {{ section.settings.btn_text_color }};
+  --danger: {{ section.settings.danger_color }};
+  --border: {{ section.settings.border_color }};
+">
+
+  <!-- ═══ CABECERA ═══ -->
+  <div class="hbun__head">
+    <div class="hbun__badge-row">
+      <span class="hbun__flash">⚡</span>
+      <span class="hbun__badge-pill">OFERTA ESPECIAL</span>
+      <span class="hbun__savings-pill">
+        Ahorras {{ section.settings.savings_label | default: '¡hasta 30%!' }}
+      </span>
+    </div>
+    <h2 class="hbun__title">{{ section.settings.title | default: '🔥 Lleva 2 Pares' }}</h2>
+    <div class="hbun__price-hero">
+      <span class="hbun__price-label">{{ section.settings.price_label | default: 'Precio especial' }}</span>
+      <span class="hbun__price-main">{{ bundle_price | money }}</span>
+      <span class="hbun__price-per">los 2 pares</span>
+    </div>
+    <p class="hbun__sub">{{ section.settings.subtitle | default: 'Elige modelo, talla y color para cada par' }}</p>
+
+    <!-- Banner servidor: visible solo cuando hay items en el carrito -->
+    <div class="hbun__cart-banner" id="hbunCartBanner-{{ section.id }}" style="display:none" role="status">
+      <div class="hbun__cart-banner-left">
+        <span class="hbun__cart-banner-icon">🛒✓</span>
+      </div>
+      <div class="hbun__cart-banner-body">
+        <p class="hbun__cart-banner-title">¡Ya tienes 1 par en tu carrito!</p>
+        <p class="hbun__cart-banner-sub">Elige <strong>1 par más</strong> abajo y la oferta 2×1 se activa sola 🎉</p>
+      </div>
+      <div class="hbun__cart-banner-arrow">↓</div>
+    </div>
+
+    <!-- Progress bar -->
+    <div class="hbun__progress-wrap">
+      <div class="hbun__progress-header">
+        <span class="hbun__progress-count"><span id="hbunCount-{{ section.id }}">0</span>/<span id="hbunNeedLbl-{{ section.id }}">{{ bundle_qty }}</span> pares seleccionados</span>
+        <span class="hbun__progress-hint">{{ section.settings.progress_hint | default: 'Selecciona tus favoritos' }}</span>
+      </div>
+      <div class="hbun__progress-track">
+        <div class="hbun__progress-fill" id="hbunFill-{{ section.id }}" style="width:0%"></div>
+        <div class="hbun__progress-glow"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ═══ GRID DE PRODUCTOS ═══ -->
+  {% if bundle_products %}
+  <div class="hbun__grid">
+    {%- assign shown = 0 -%}
+    {%- for p in bundle_products limit: section.settings.max_products -%}
+      {%- assign shown = shown | plus: 1 -%}
+      {%- assign p_has_color = false -%}
+      {%- assign p_has_size = false -%}
+      {%- for opt in p.options_with_values -%}
+        {%- assign on = opt.name | downcase -%}
+        {%- if on == 'color' or on == 'colour' -%}{%- assign p_has_color = true -%}{%- assign color_opt = opt -%}{%- endif -%}
+        {%- if on == 'talla' or on == 'size' -%}{%- assign p_has_size = true -%}{%- assign size_opt = opt -%}{%- endif -%}
+      {%- endfor -%}
+
+      <div class="hbun__card" data-pid="{{ p.id }}" id="hbunCard{{ p.id }}-{{ section.id }}">
+
+        <!-- Imagen -->
+        <div class="hbun__img-wrap">
+          {% if p.featured_image %}
+            <img src="{{ p.featured_image | image_url: width: 400 }}"
+                 alt="{{ p.title | escape }}" loading="lazy"
+                 width="400" height="400"
+                 width="400" height="400" class="hbun__img">
+          {% else %}
+            <div class="hbun__img-empty">
+              <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" opacity=".3"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg>
+            </div>
+          {% endif %}
+          <div class="hbun__selected-overlay" aria-hidden="true">
+            <div class="hbun__check">✓</div>
+          </div>
+          <div class="hbun__card-badge">
+            {%- assign pct = p.compare_at_price | minus: p.price | times: 100 | divided_by: p.compare_at_price -%}
+            {%- if p.compare_at_price > p.price -%}
+              <span class="hbun__pct">-{{ pct }}%</span>
+            {%- endif -%}
+          </div>
+        </div>
+
+        <!-- Info -->
+        <div class="hbun__card-body">
+          <p class="hbun__card-name">{{ p.title | truncate: 38 }}</p>
+          <div class="hbun__card-price">
+            <span class="hbun__card-price-main">{{ p.price | money }}</span>
+            {%- if p.compare_at_price > p.price -%}
+              <span class="hbun__card-price-old">{{ p.compare_at_price | money }}</span>
+            {%- endif -%}
+          </div>
+
+          {%- if p_has_color -%}
+          <div class="hbun__field">
+            <label class="hbun__label">Color</label>
+            <select class="hbun__select hbun__select--color" data-option="color">
+              {%- for val in color_opt.values -%}
+                <option value="{{ val | escape }}">{{ val }}</option>
+              {%- endfor -%}
+            </select>
+          </div>
+          {%- endif -%}
+
+          {%- if p_has_size -%}
+          <div class="hbun__field">
+            <label class="hbun__label">Talla</label>
+            <select class="hbun__select hbun__select--size" data-option="size">
+              {%- for val in size_opt.values -%}
+                <option value="{{ val | escape }}">{{ val }}</option>
+              {%- endfor -%}
+            </select>
+          </div>
+          {%- endif -%}
+
+          <input type="hidden" class="hbun__vid" value="{{ p.selected_or_first_available_variant.id }}">
+          <script type="application/json" class="hbun__variants">{{ p.variants | json }}</script>
+
+          <button type="button" class="hbun__select-btn" data-pid="{{ p.id }}">
+            <span class="hbun__select-btn-icon">+</span>
+            <span class="hbun__select-btn-text">Seleccionar</span>
+          </button>
+        </div>
+      </div>
+    {%- endfor -%}
+  </div>
+  {% endif %}
+
+  <!-- ═══ RESUMEN + CTA ═══ -->
+  <div class="hbun__summary">
+    <div class="hbun__summary-items" id="hbunItems-{{ section.id }}">
+      <p class="hbun__summary-hint">
+        👆 Selecciona {{ needed_qty }} par{% if needed_qty > 1 %}es{% endif %} para activar el precio especial
+      </p>
+    </div>
+    <div class="hbun__pricing" id="hbunPricing-{{ section.id }}" style="display:none">
+      <div class="hbun__pricing-row">
+        <span>Precio normal:</span>
+        <span id="hbunOrig-{{ section.id }}" class="hbun__pricing-orig">—</span>
+      </div>
+      <div class="hbun__pricing-row hbun__pricing-row--save">
+        <span>🎁 Tu ahorro:</span>
+        <span id="hbunSave-{{ section.id }}">—</span>
+      </div>
+      <div class="hbun__pricing-row hbun__pricing-row--total">
+        <span>Total oferta:</span>
+        <span id="hbunTotal-{{ section.id }}">{{ bundle_price | money }}</span>
+      </div>
+    </div>
+    <button type="button" class="hbun__cta" id="hbunCTA-{{ section.id }}" disabled>
+      <span class="hbun__cta-glow"></span>
+      <span class="hbun__cta-text" id="hbunCTAText-{{ section.id }}">
+        Selecciona {{ needed_qty }} par{% if needed_qty > 1 %}es{% endif %} para continuar
+      </span>
+    </button>
+    <div class="hbun__trust-strip">
+      <span>🔒 Pago seguro</span>
+      <span>🚚 Envío gratis</span>
+      <span>💵 Contra entrega</span>
+    </div>
+  </div>
+
+</section>
+
+<style>
+#HamsaBundle-{{ section.id }} {
+  background: var(--bg);
+  color: var(--text);
+  font-family: var(--font-body--family, system-ui, sans-serif);
+  border-radius: 16px;
+  overflow: hidden;
+  margin: 20px 0;
+  border: 1px solid color-mix(in srgb, var(--gold) 20%, transparent);
+  box-shadow: 0 0 0 1px rgba(255,255,255,.03);
+}
+#HamsaBundle-{{ section.id }} * { box-sizing: border-box; }
+
+/* ─── HEADER ─── */
+.hbun__head {
+  padding: 24px 20px 16px;
+  background: linear-gradient(180deg,
+    color-mix(in srgb, var(--gold) 8%, var(--bg)) 0%,
+    var(--bg) 100%
+  );
+  border-bottom: 1px solid color-mix(in srgb, var(--gold) 12%, transparent);
+}
+.hbun__badge-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 12px;
+  flex-wrap: wrap;
+}
+.hbun__flash {
+  font-size: 18px;
+  animation: hbun-flash 1.4s ease-in-out infinite alternate;
+}
+@keyframes hbun-flash {
+  from { filter: brightness(1); }
+  to { filter: brightness(1.5) drop-shadow(0 0 6px #ffd700); }
+}
+.hbun__badge-pill {
+  background: var(--gold);
+  color: #000;
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: .12em;
+  padding: 4px 12px;
+  border-radius: 20px;
+}
+.hbun__savings-pill {
+  background: color-mix(in srgb, var(--danger) 15%, transparent);
+  color: var(--danger);
+  border: 1px solid color-mix(in srgb, var(--danger) 30%, transparent);
+  font-size: 11px;
+  font-weight: 700;
+  padding: 4px 10px;
+  border-radius: 20px;
+}
+.hbun__title {
+  font-size: clamp(1.3rem, 4vw, 1.8rem);
+  font-weight: 800;
+  margin: 0 0 10px;
+  letter-spacing: -0.02em;
+}
+.hbun__price-hero {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  flex-wrap: wrap;
+  margin-bottom: 6px;
+}
+.hbun__price-label { font-size: 12px; color: var(--muted); }
+.hbun__price-main {
+  font-size: 2rem;
+  font-weight: 800;
+  color: var(--gold);
+  text-shadow: 0 0 20px color-mix(in srgb, var(--gold) 40%, transparent);
+}
+.hbun__price-per { font-size: 13px; color: var(--muted); }
+.hbun__sub { font-size: 13px; color: var(--muted); margin: 0 0 16px; }
+
+/* Progress */
+.hbun__progress-wrap { margin-top: 4px; }
+.hbun__progress-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 8px;
+}
+.hbun__progress-count {
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--text);
+}
+.hbun__progress-count span { color: var(--gold); }
+.hbun__progress-hint { font-size: 11px; color: var(--muted); }
+.hbun__progress-track {
+  height: 6px;
+  background: rgba(0,0,0,.06);
+  border-radius: 3px;
+  overflow: hidden;
+  position: relative;
+}
+.hbun__progress-fill {
+  height: 100%;
+  background: linear-gradient(90deg, var(--gold), #ffd700);
+  border-radius: 3px;
+  transition: width .5s cubic-bezier(.4,0,.2,1);
+  box-shadow: 0 0 8px color-mix(in srgb, var(--gold) 60%, transparent);
+}
+
+/* ─── GRID ─── */
+.hbun__grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+  gap: 10px;
+  padding: 16px 16px 12px;
+}
+.hbun__card {
+  background: var(--card);
+  border: 2px solid transparent;
+  border-radius: 12px;
+  overflow: hidden;
+  cursor: pointer;
+  transition: border-color .2s, transform .2s, box-shadow .2s;
+}
+.hbun__card:hover {
+  border-color: color-mix(in srgb, var(--gold) 40%, transparent);
+  transform: translateY(-2px);
+  box-shadow: 0 8px 20px rgba(0,0,0,.25);
+}
+.hbun__card.hbun--selected {
+  border-color: var(--gold);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--gold) 20%, transparent), 0 8px 24px rgba(0,0,0,.3);
+}
+
+/* IMG */
+.hbun__img-wrap {
+  position: relative;
+  aspect-ratio: 1;
+  overflow: hidden;
+  background: #1a1a1a;
+}
+.hbun__img { width:100%; height:100%; object-fit:cover; display:block; transition: transform .3s ease, opacity .25s ease; }
+.hbun__card:hover .hbun__img { transform: scale(1.04); }
+.hbun__img-empty { width:100%; height:100%; display:flex; align-items:center; justify-content:center; }
+.hbun__selected-overlay {
+  position: absolute; inset: 0;
+  background: color-mix(in srgb, var(--gold) 25%, transparent);
+  display: flex; align-items: center; justify-content: center;
+  opacity: 0; transition: opacity .25s;
+}
+.hbun__card.hbun--selected .hbun__selected-overlay { opacity: 1; }
+.hbun__check {
+  width: 40px; height: 40px; border-radius: 50%;
+  background: var(--gold); color: #000;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 20px; font-weight: 800;
+  box-shadow: 0 4px 12px rgba(0,0,0,.3);
+}
+.hbun__card-badge { position: absolute; top: 8px; left: 8px; }
+.hbun__pct {
+  background: var(--danger); color: #fff;
+  font-size: 10px; font-weight: 700; padding: 2px 7px; border-radius: 4px;
+}
+
+/* BODY */
+.hbun__card-body { padding: 10px; }
+.hbun__card-name {
+  font-size: 11px; font-weight: 600; color: var(--text);
+  margin: 0 0 5px; line-height: 1.4;
+  overflow: hidden; display: -webkit-box;
+  -webkit-line-clamp: 2; -webkit-box-orient: vertical;
+}
+.hbun__card-price { display: flex; align-items: baseline; gap: 5px; margin-bottom: 8px; flex-wrap: wrap; }
+.hbun__card-price-main { font-size: 14px; font-weight: 700; color: var(--gold); }
+.hbun__card-price-old { font-size: 11px; text-decoration: line-through; color: var(--muted); }
+.hbun__field { margin-bottom: 6px; }
+.hbun__label { display: block; font-size: 10px; font-weight: 600; color: var(--muted); margin-bottom: 3px; text-transform: uppercase; letter-spacing: .06em; }
+.hbun__select {
+  width: 100%; padding: 5px 8px; font-size: 11px;
+  background: color-mix(in srgb, var(--gold) 5%, var(--bg));
+  border: 1px solid color-mix(in srgb, var(--gold) 20%, transparent);
+  border-radius: 6px; color: var(--text); cursor: pointer;
+  transition: border-color .2s;
+}
+.hbun__select:focus { outline: none; border-color: var(--gold); }
+.hbun__select-btn {
+  width: 100%; display: flex; align-items: center; justify-content: center; gap: 6px;
+  padding: 8px; background: var(--gold); color: #000;
+  font-size: 11px; font-weight: 700; border: none; border-radius: 7px;
+  cursor: pointer; transition: opacity .2s, transform .2s; margin-top: 4px;
+}
+.hbun__select-btn:hover { opacity: .85; transform: translateY(-1px); }
+.hbun__card.hbun--selected .hbun__select-btn {
+  background: #00c853; color: #fff;
+}
+.hbun__select-btn-icon { font-size: 14px; font-weight: 800; line-height: 1; }
+
+/* ─── SUMMARY ─── */
+.hbun__summary {
+  padding: 16px 20px 20px;
+  border-top: 1px solid color-mix(in srgb, var(--gold) 12%, transparent);
+  background: color-mix(in srgb, var(--gold) 3%, var(--bg));
+}
+.hbun__summary-hint { font-size: 13px; color: var(--muted); text-align: center; padding: 8px 0 16px; }
+.hbun__summary-items { margin-bottom: 12px; }
+.hbun__item-row {
+  display: flex; align-items: center; gap: 10px;
+  padding: 8px 0;
+  border-bottom: 1px solid rgba(0,0,0,.04);
+  font-size: 12px;
+}
+.hbun__item-thumb {
+  width: 38px; height: 38px; border-radius: 6px; object-fit: cover; flex-shrink: 0;
+}
+.hbun__item-info { flex: 1; }
+.hbun__item-name { font-weight: 600; color: var(--text); margin-bottom: 2px; }
+.hbun__item-meta { color: var(--muted); font-size: 10px; }
+.hbun__item-price { font-weight: 700; color: var(--gold); }
+
+.hbun__pricing { margin-bottom: 16px; display: flex; flex-direction: column; gap: 8px; }
+.hbun__pricing-row { display: flex; justify-content: space-between; font-size: 13px; color: var(--muted); }
+.hbun__pricing-row--save { color: #00c853; font-weight: 600; }
+.hbun__pricing-row--total {
+  font-size: 18px; font-weight: 800; color: var(--text);
+  padding-top: 12px; border-top: 1px solid rgba(0,0,0,.06);
+}
+.hbun__pricing-row--total span:last-child { color: var(--gold); }
+.hbun__pricing-orig { text-decoration: line-through; }
+
+/* CTA BUTTON */
+.hbun__cta {
+  width: 100%; padding: 18px; margin-bottom: 12px;
+  background: linear-gradient(135deg, var(--btn) 0%, color-mix(in srgb, var(--btn) 80%, #ffd700) 100%);
+  color: var(--btn-text);
+  font-size: 16px; font-weight: 800;
+  border: none; border-radius: 12px; cursor: pointer;
+  position: relative; overflow: hidden;
+  transition: opacity .2s, transform .2s, box-shadow .2s;
+  box-shadow:
+    0 4px 20px color-mix(in srgb, var(--btn) 40%, transparent),
+    inset 0 1px 0 rgba(0,0,0,.10);
+  letter-spacing: .02em;
+}
+.hbun__cta:not(:disabled):hover {
+  transform: translateY(-2px);
+  box-shadow:
+    0 8px 32px color-mix(in srgb, var(--btn) 55%, transparent),
+    inset 0 1px 0 rgba(255,255,255,.25);
+}
+.hbun__cta:disabled { opacity: .6; cursor: wait; }
+
+/* Banner carrito existente */
+.hbun__cart-banner {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  background: linear-gradient(135deg, rgba(0,200,83,.12), rgba(0,200,83,.04));
+  border: 1.5px solid rgba(0,200,83,.4);
+  border-radius: 12px;
+  padding: 12px 16px;
+  margin-bottom: 16px;
+  animation: hbun-banner-in .4s cubic-bezier(.34,1.56,.64,1);
+}
+@keyframes hbun-banner-in {
+  from { opacity:0; transform:translateY(-8px) scale(.97); }
+  to   { opacity:1; transform:none; }
+}
+.hbun__cart-banner-left { flex-shrink: 0; }
+.hbun__cart-banner-icon { font-size: 22px; }
+.hbun__cart-banner-body { flex: 1; min-width: 0; }
+.hbun__cart-banner-title {
+  font-size: 14px; font-weight: 800; color: #00c853; margin: 0 0 3px; line-height: 1.2;
+}
+.hbun__cart-banner-sub { font-size: 12px; color: #aaa; margin: 0; line-height: 1.4; }
+.hbun__cart-banner-sub strong { color: #fff; }
+.hbun__cart-banner-arrow {
+  font-size: 20px; color: #00c853; flex-shrink: 0;
+  animation: hbun-arrow-bounce .8s ease-in-out infinite;
+}
+@keyframes hbun-arrow-bounce {
+  0%,100% { transform: translateY(0); }
+  50%      { transform: translateY(4px); }
+}
+.hbun__cta.is-loading { 
+  background: linear-gradient(135deg, #1a7a3a, #00c853) !important;
+  color: #fff !important;
+  pointer-events: none;
+}
+.hbun__cta-glow {
+  position: absolute; inset: 0;
+  background: radial-gradient(ellipse 80% 60% at 50% 0%, rgba(255,255,255,.18), transparent);
+  pointer-events: none;
+}
+.hbun__cta:not(:disabled)::after {
+  content: '';
+  position: absolute;
+  top: -50%; left: -60%;
+  width: 40%; height: 200%;
+  background: linear-gradient(90deg, transparent, rgba(0,0,0,.09), transparent);
+  transform: rotate(20deg);
+  animation: hbun-shine 2.5s infinite;
+}
+@keyframes hbun-shine {
+  0% { left: -60%; }
+  100% { left: 120%; }
+}
+
+.hbun__trust-strip {
+  display: flex; justify-content: center; gap: 16px;
+  font-size: 11px; color: var(--muted); flex-wrap: wrap;
+}
+
+@media (max-width: 480px) {
+  .hbun__grid { grid-template-columns: 1fr 1fr; gap: 8px; }
+  .hbun__head { padding: 18px 14px 14px; }
+  .hbun__summary { padding: 14px 14px 18px; }
+  .hbun__cta { font-size: 14px; padding: 15px; }
+}
+</style>
+
+<script>
+(function(){
+  'use strict';
+
+  var SID          = '{{ section.id }}';
+  var BUNDLE_PRICE = {{ bundle_price }};
+  var selected     = {};
+  var NEED         = 2;   // cuántos debe seleccionar (2 vacío, 1 si ya tiene 1)
+  var adding       = false;
+
+  /* ── Formato moneda COP ── */
+  function fmt(cents) {
+    return new Intl.NumberFormat('es-CO', {
+      style: 'currency', currency: 'COP', minimumFractionDigits: 0
+    }).format(cents / 100);
+  }
+
+  /* ── Obtener variante según selects ── */
+  function getVariant(card) {
+    var variants = JSON.parse(card.querySelector('.hbun__variants').textContent);
+    var color = (card.querySelector('.hbun__select--color') || {}).value || '';
+    var size  = (card.querySelector('.hbun__select--size')  || {}).value || '';
+    var match = variants.find(function(v) {
+      var okC = !color || v.options.includes(color);
+      var okS = !size  || v.options.includes(size);
+      return okC && okS;
+    });
+    return match || variants[0];
+  }
+
+  /* ── Inicializar leyendo carrito real ──
+     Leemos /cart.js primero y configuramos NEED antes de pintar nada.
+     El bundle se mantiene oculto hasta que sepamos el estado del carrito. */
+  fetch('/cart.js', { headers: { 'Accept': 'application/json' } })
+    .then(function(r) { return r.json(); })
+    .then(function(cart) {
+      if ((cart.item_count || 0) >= 1) {
+        NEED = 1;
+        /* Mostrar banner verde */
+        var banner = document.getElementById('hbunCartBanner-' + SID);
+        if (banner) banner.style.display = 'flex';
+        /* Actualizar label del progress */
+        var lbl = document.getElementById('hbunNeedLbl-' + SID);
+        if (lbl) lbl.textContent = '1';
+      }
+      /* Mostrar el bundle ahora que sabemos el contexto */
+      var wrap = document.getElementById('HamsaBundle-' + SID);
+      if (wrap) wrap.style.opacity = '1';
+      updateUI();
+    })
+    .catch(function() {
+      var wrap = document.getElementById('HamsaBundle-' + SID);
+      if (wrap) wrap.style.opacity = '1';
+      updateUI();
+    });
+
+  /* ── Actualizar UI ── */
+  function updateUI() {
+    var count   = Object.keys(selected).length;
+    var countEl = document.getElementById('hbunCount-' + SID);
+    var fillEl  = document.getElementById('hbunFill-' + SID);
+    var ctaEl   = document.getElementById('hbunCTA-' + SID);
+    var ctaTxt  = document.getElementById('hbunCTAText-' + SID);
+    var itemsEl = document.getElementById('hbunItems-' + SID);
+    var priceEl = document.getElementById('hbunPricing-' + SID);
+
+    if (countEl) countEl.textContent = count;
+    if (fillEl)  fillEl.style.width  = Math.min(count / NEED * 100, 100) + '%';
+
+    var items     = Object.values(selected);
+    var origTotal = items.reduce(function(s, i) { return s + (i.price || 0); }, 0);
+    var savings   = origTotal - BUNDLE_PRICE;
+
+    /* Resumen de seleccionados */
+    if (count > 0 && itemsEl) {
+      itemsEl.innerHTML = items.map(function(i) {
+        return '<div class="hbun__item-row">'
+          + '<img src="' + i.img + '" class="hbun__item-thumb" alt="">'
+          + '<div class="hbun__item-info">'
+            + '<div class="hbun__item-name">' + i.title + '</div>'
+            + '<div class="hbun__item-meta">' + [i.color, i.size].filter(Boolean).join(' · ') + '</div>'
+          + '</div>'
+          + '<div class="hbun__item-price">' + fmt(i.price) + '</div>'
+        + '</div>';
+      }).join('');
+    } else if (itemsEl) {
+      itemsEl.innerHTML = '<p class="hbun__summary-hint">👆 Selecciona '
+        + NEED + ' par' + (NEED > 1 ? 'es' : '')
+        + ' para activar el precio especial</p>';
+    }
+
+    if (count >= NEED) {
+      /* Completado: mostrar precio y habilitar CTA */
+      if (priceEl) {
+        priceEl.style.display = 'flex';
+        document.getElementById('hbunOrig-' + SID).textContent  = fmt(origTotal);
+        document.getElementById('hbunSave-' + SID).textContent  = savings > 0 ? '-' + fmt(savings) : 'Precio especial';
+        document.getElementById('hbunTotal-' + SID).textContent = fmt(BUNDLE_PRICE);
+      }
+      if (ctaEl && !adding) {
+        ctaEl.disabled = false;
+        ctaTxt.textContent = '🛍️ Agregar y completar oferta — ' + fmt(BUNDLE_PRICE);
+      }
+      /* Auto-agregar al carrito y abrir drawer */
+      if (!adding) {
+        adding = true;
+        setTimeout(doAddAndOpen, 350);
+      }
+    } else {
+      if (priceEl) priceEl.style.display = 'none';
+      if (ctaEl) {
+        ctaEl.disabled = true;
+        var rem = NEED - count;
+        ctaTxt.textContent = 'Selecciona ' + rem + ' par' + (rem !== 1 ? 'es' : '') + ' más para continuar';
+      }
+    }
+  }
+
+  /* ── Agregar al carrito y abrir drawer ── */
+  function doAddAndOpen() {
+    if (Object.keys(selected).length < NEED) { adding = false; return; }
+    if (!window.HamsaBundle || !window.HamsaBundle.addToCart) {
+      setTimeout(doAddAndOpen, 400); return;
+    }
+
+    var btn  = document.getElementById('hbunCTA-' + SID);
+    var txt  = document.getElementById('hbunCTAText-' + SID);
+    var items = Object.values(selected).map(function(i) {
+      return { id: parseInt(i.variantId, 10), quantity: 1 };
+    });
+
+    if (btn) btn.disabled = true;
+    if (txt) txt.textContent = 'Agregando al carrito...';
+
+    window.HamsaBundle.addToCart(items, {
+      onSuccess: function() {
+        adding = false;
+        if (txt) txt.textContent = '✓ ¡Listo! Revisa tu carrito';
+        if (btn) { btn.style.background = '#00c853'; btn.style.color = '#000'; }
+        var drawer = document.querySelector('cart-drawer-component');
+        if (drawer && typeof drawer.open === 'function') drawer.open();
+      },
+      onError: function(msg) {
+        adding = false;
+        if (txt) txt.textContent = msg || 'Error — toca el botón para reintentar';
+        if (btn) btn.disabled = false;
+      }
+    });
+  }
+
+  /* ── Click en botón seleccionar ── */
+  document.querySelectorAll('#HamsaBundle-' + SID + ' .hbun__select-btn').forEach(function(btn) {
+    btn.addEventListener('click', function() {
+      var card = this.closest('.hbun__card');
+      var pid  = card.dataset.pid;
+      var isSel = card.classList.contains('hbun--selected');
+
+      if (isSel) {
+        /* Deseleccionar */
+        card.classList.remove('hbun--selected');
+        this.querySelector('.hbun__select-btn-icon').textContent = '+';
+        this.querySelector('.hbun__select-btn-text').textContent = 'Seleccionar';
+        delete selected[pid];
+        adding = false;
+
+      } else if (Object.keys(selected).length < NEED) {
+        /* Seleccionar */
+        card.classList.add('hbun--selected');
+        this.querySelector('.hbun__select-btn-icon').textContent = '✓';
+        this.querySelector('.hbun__select-btn-text').textContent = 'Seleccionado';
+        var v   = getVariant(card);
+        var img = card.querySelector('.hbun__img');
+        selected[pid] = {
+          variantId: v ? v.id : card.querySelector('.hbun__vid').value,
+          price:     v ? v.price : 0,
+          title:     (card.querySelector('.hbun__card-name') || {}).textContent || '',
+          img:       img ? img.src : '',
+          color:     (card.querySelector('.hbun__select--color') || {}).value || '',
+          size:      (card.querySelector('.hbun__select--size')  || {}).value || ''
+        };
+      } else {
+        /* Ya tiene los necesarios */
+        var btnTxt = this.querySelector('.hbun__select-btn-text');
+        btnTxt.textContent = 'Ya tienes ' + NEED;
+        setTimeout(function() { btnTxt.textContent = 'Seleccionar'; }, 1500);
+      }
+
+      updateUI();
+    });
+  });
+
+  /* ── Swap imagen al cambiar variante ── */
+  document.querySelectorAll('#HamsaBundle-' + SID + ' .hbun__select').forEach(function(sel) {
+    sel.addEventListener('change', function() {
+      var card = this.closest('.hbun__card');
+      var pid  = card.dataset.pid;
+      var v    = getVariant(card);
+      if (!v || !v.featured_image || !v.featured_image.src) return;
+      var imgEl = card.querySelector('.hbun__img');
+      if (!imgEl) return;
+      var src = v.featured_image.src.split('?')[0].replace(/(\.[a-z]+)$/i, '_500x$1');
+      imgEl.style.opacity = '0';
+      var tmp = new Image();
+      tmp.onload  = function() { imgEl.src = src; imgEl.style.opacity = '1'; };
+      tmp.onerror = function() { imgEl.style.opacity = '1'; };
+      tmp.src = src;
+      /* Actualizar variante si ya estaba seleccionada */
+      if (selected[pid] && v) {
+        selected[pid].variantId = v.id;
+        selected[pid].price = v.price;
+        selected[pid].color = (card.querySelector('.hbun__select--color') || {}).value || '';
+        selected[pid].size  = (card.querySelector('.hbun__select--size')  || {}).value || '';
+        updateUI();
+      }
+    });
+  });
+
+  /* ── CTA backup: click manual ── */
+  var ctaEl = document.getElementById('hbunCTA-' + SID);
+  if (ctaEl) {
+    ctaEl.addEventListener('click', function() {
+      if (adding || Object.keys(selected).length < NEED) return;
+      adding = true;
+      doAddAndOpen();
+    });
+  }
+
+  /* Bundle oculto hasta que /cart.js responda */
+  var wrap = document.getElementById('HamsaBundle-' + SID);
+  if (wrap) wrap.style.opacity = '0';
+
+})();
+</script>
+
+{% else %}
+  {%- if request.design_mode -%}
+    <div style="background:#111;color:#c9a96e;padding:20px;text-align:center;border:2px dashed #c9a96e;border-radius:10px;margin:16px 0;font-family:sans-serif;font-size:13px;">
+      🛍️ Bundle Oferta — Visible en la página de producto
+    </div>
+  {%- endif -%}
+{% endif %}
+
+{% schema %}
+{
+  "name": "🛍️ Bundle Oferta",
+  "settings": [
+    { "type": "header", "content": "🏷️ Configuración del Bundle" },
+    { "type": "text", "id": "title", "label": "Título", "default": "🔥 Lleva 2 Pares" },
+    { "type": "text", "id": "subtitle", "label": "Subtítulo", "default": "Elige modelo, talla y color para cada par" },
+    { "type": "text", "id": "price_label", "label": "Etiqueta precio", "default": "Precio especial" },
+    { "type": "number", "id": "bundle_price", "label": "Precio bundle (centavos COP)", "info": "$159.900 = 15990000", "default": 15990000 },
+    { "type": "range", "id": "bundle_qty", "label": "Cantidad de pares", "min": 2, "max": 4, "step": 1, "default": 2 },
+    { "type": "text", "id": "savings_label", "label": "Etiqueta ahorro", "default": "¡hasta 30%!" },
+    { "type": "text", "id": "progress_hint", "label": "Texto bajo progreso", "default": "Selecciona tus favoritos" },
+    { "type": "collection", "id": "bundle_collection", "label": "Colección de productos del bundle", "info": "Si está vacío, usa la colección del producto actual" },
+    { "type": "range", "id": "max_products", "label": "Máximo de productos a mostrar", "min": 2, "max": 12, "step": 1, "default": 8 },
+    { "type": "header", "content": "🎨 Colores" },
+    { "type": "color", "id": "bg_color", "label": "Fondo", "default": "#FDFAF7" },
+    { "type": "color", "id": "card_color", "label": "Fondo tarjetas", "default": "#FFFFFF" },
+    { "type": "color", "id": "border_color", "label": "Borde", "default": "#E8D8CC" },
+    { "type": "color", "id": "text_color", "label": "Texto", "default": "#1C1208" },
+    { "type": "color", "id": "muted_color", "label": "Texto suave", "default": "#7A6E64" },
+    { "type": "color", "id": "gold_color", "label": "Dorado", "default": "#D4527A" },
+    { "type": "color", "id": "btn_bg", "label": "Botón fondo", "default": "#D4527A" },
+    { "type": "color", "id": "btn_text_color", "label": "Botón texto", "default": "#FFFFFF" },
+    { "type": "color", "id": "danger_color", "label": "Urgencia/rojo", "default": "#ff4444" }
+  ],
+  "presets": [{ "name": "🛍️ Bundle Oferta" }]
+}
+{% endschema %}

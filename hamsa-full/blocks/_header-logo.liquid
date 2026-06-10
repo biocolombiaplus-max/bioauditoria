@@ -1,0 +1,468 @@
+{% liquid
+  assign block_settings = block.settings
+
+  comment
+    Determinar si usar logo inverso según header transparente
+  endcomment
+  assign use_inverse_logo = false
+  if section.settings.enable_transparent_header_home and template.name == 'index' and section.settings.home_color_scheme == 'inverse'
+    assign use_inverse_logo = true
+  elsif section.settings.enable_transparent_header_product and template.name == 'product' and section.settings.product_color_scheme == 'inverse'
+    assign use_inverse_logo = true
+  elsif section.settings.enable_transparent_header_collection and template.name == 'collection' and section.settings.collection_color_scheme == 'inverse'
+    assign use_inverse_logo = true
+  endif
+
+  if use_inverse_logo
+    if settings.logo_inverse != blank
+      assign inverse_logo = settings.logo_inverse
+    else
+      assign inverse_logo = settings.logo
+    endif
+  endif
+
+  comment
+    Logo dimensions — usa override del bloque si está configurado, si no usa la configuración global del tema
+  endcomment
+  assign active_logo_height = block_settings.logo_height_override
+  assign active_logo_height_mobile = block_settings.logo_height_mobile_override
+  if active_logo_height == 0 or active_logo_height == blank
+    assign active_logo_height = settings.logo_height | default: 40
+  endif
+  if active_logo_height_mobile == 0 or active_logo_height_mobile == blank
+    assign active_logo_height_mobile = settings.logo_height_mobile | default: 32
+  endif
+
+  comment
+    Logo source — usa override del bloque si está configurado, si no usa el logo global del tema
+  endcomment
+  assign active_logo = block_settings.logo_override
+  if active_logo == blank
+    assign active_logo = settings.logo
+  endif
+
+  assign logo_width = active_logo_height | times: active_logo.aspect_ratio | ceil
+  assign logo_width_mobile = active_logo_height_mobile | times: active_logo.aspect_ratio | ceil
+  assign logo_style = '--hhl-h: ' | append: active_logo_height | append: 'px; --hhl-w: ' | append: logo_width | append: 'px; --hhl-hm: ' | append: active_logo_height_mobile | append: 'px; --hhl-wm: ' | append: logo_width_mobile | append: 'px;'
+
+  if use_inverse_logo
+    assign inv_w = active_logo_height | times: inverse_logo.aspect_ratio | ceil
+    assign inv_wm = active_logo_height_mobile | times: inverse_logo.aspect_ratio | ceil
+    assign inv_style = '--hhl-h: ' | append: active_logo_height | append: 'px; --hhl-w: ' | append: inv_w | append: 'px; --hhl-hm: ' | append: active_logo_height_mobile | append: 'px; --hhl-wm: ' | append: inv_wm | append: 'px;'
+  endif
+
+  comment
+    Texto decorativo (tagline bajo el logo)
+  endcomment
+  assign show_tagline = false
+  if block_settings.show_tagline and block_settings.tagline != blank
+    assign show_tagline = true
+  endif
+
+  comment
+    Accent color desde el bloque (dorado por defecto)
+  endcomment
+  assign accent = block_settings.accent_color | default: '#c9a96e'
+%}
+
+<a
+  {% if template.name == 'index' and block_settings.hide_logo_on_home_page %}
+    data-hidden-on-home-page
+  {% endif %}
+  href="{{ routes.root_url }}"
+  class="size-style spacing-style header-logo hhl"
+  style="
+    {% render 'size-style', settings: block_settings %}
+    {% render 'spacing-style', settings: block_settings %}
+    --font-family: var(--font-body--family);
+    --font-style: var(--font-body--style);
+    --font-weight: 700;
+    --hhl-accent: {{ accent }};
+    --hhl-gap: {{ block_settings.logo_text_gap | default: 8 }}px;
+  "
+  {{ block.shopify_attributes }}
+  aria-label="{{ shop.name }}"
+>
+
+  {%- comment -%} ── CONTENEDOR LOGO + TAGLINE ── {%- endcomment -%}
+  <span class="hhl__wrap {% if show_tagline %}hhl__wrap--has-tagline{% endif %}">
+
+    {%- comment -%} ── IMAGEN DEL LOGO ── {%- endcomment -%}
+    <span class="hhl__img-wrap hhl__img-wrap--original" data-testid="header-logo">
+      {%- if active_logo != blank -%}
+        <img
+          src="{{ active_logo | image_url: height: active_logo_height }}"
+          alt="{{ active_logo.alt | default: shop.name }}"
+          width="{{ logo_width }}"
+          height="{{ active_logo_height }}"
+          loading="eager"
+          fetchpriority="high"
+          class="hhl__img"
+          style="{{ logo_style }}"
+        >
+      {%- else -%}
+        {%- comment -%} Fallback: nombre de la tienda con estilo premium {%- endcomment -%}
+        <span class="hhl__text-logo">
+          {%- if block_settings.logo_text != blank -%}
+            {{ block_settings.logo_text }}
+          {%- else -%}
+            {{ shop.name }}
+          {%- endif -%}
+        </span>
+      {%- endif -%}
+    </span>
+
+    {%- comment -%} ── LOGO INVERSO (para headers transparentes) ── {%- endcomment -%}
+    {%- if use_inverse_logo -%}
+      <span class="hhl__img-wrap hhl__img-wrap--inverse" data-testid="header-logo-inverse">
+        <img
+          src="{{ inverse_logo | image_url: height: active_logo_height }}"
+          alt="{{ inverse_logo.alt | default: shop.name }}"
+          width="{{ inv_w }}"
+          height="{{ active_logo_height }}"
+          loading="eager"
+          class="hhl__img"
+          style="{{ inv_style }}"
+        >
+      </span>
+    {%- endif -%}
+
+    {%- comment -%} ── TAGLINE BAJO EL LOGO ── {%- endcomment -%}
+    {%- if show_tagline -%}
+      <span class="hhl__tagline">{{ block_settings.tagline }}</span>
+    {%- endif -%}
+
+  </span>
+
+  {%- comment -%} ── SEPARADOR VERTICAL DECORATIVO (opcional) ── {%- endcomment -%}
+  {%- if block_settings.show_divider and block_settings.divider_text != blank -%}
+    <span class="hhl__divider" aria-hidden="true">
+      <span class="hhl__divider-line"></span>
+      <span class="hhl__divider-text">{{ block_settings.divider_text }}</span>
+    </span>
+  {%- endif -%}
+
+</a>
+
+{% stylesheet %}
+/* ══════════════════════════════════════════════
+   HAMSA PREMIUM LOGO BLOCK — _header-logo
+   Mantiene 100% compatibilidad con Horizon 3.x
+══════════════════════════════════════════════ */
+
+.hhl {
+  display: flex;
+  height: 100%;
+  align-items: center;
+  gap: var(--hhl-gap, 8px);
+  text-decoration: none;
+  margin-inline: calc(-1 * var(--padding-inline-start, 0px));
+  flex-shrink: 0;
+  transition: opacity 0.2s ease;
+
+  &:hover {
+    text-decoration: none;
+    opacity: 0.85;
+  }
+
+  &[data-hidden-on-home-page] {
+    display: none;
+
+    #header-component:is(
+        [sticky='always']:not([data-scroll-direction='none']),
+        [sticky='scroll-up'][data-scroll-direction='up']
+      )
+      & {
+      display: flex;
+    }
+  }
+}
+
+/* WRAPPER logo + tagline */
+.hhl__wrap {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: 2px;
+}
+
+/* IMAGEN */
+.hhl__img-wrap {
+  display: flex;
+  align-items: center;
+}
+
+.hhl__img {
+  object-fit: contain;
+  display: block;
+  /* Mobile dimensions */
+  height: var(--hhl-hm);
+  width: var(--hhl-wm);
+  max-width: none;
+  transition: opacity 0.25s ease, transform 0.25s ease;
+}
+
+@media screen and (min-width: 750px) {
+  .hhl__img {
+    height: var(--hhl-h);
+    width: var(--hhl-w);
+  }
+}
+
+.hhl:hover .hhl__img {
+  transform: scale(1.02);
+}
+
+/* TEXTO FALLBACK cuando no hay imagen */
+.hhl__text-logo {
+  font-family: var(--font-body--family, system-ui);
+  font-weight: 800;
+  font-size: clamp(1.1rem, 3vw, 1.6rem);
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--color-foreground);
+  background: linear-gradient(
+    135deg,
+    var(--color-foreground) 0%,
+    var(--hhl-accent) 100%
+  );
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  line-height: 1;
+}
+
+/* TAGLINE */
+.hhl__tagline {
+  font-size: 9px;
+  font-weight: 500;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: var(--hhl-accent);
+  line-height: 1;
+  opacity: 0.85;
+  white-space: nowrap;
+}
+
+@media screen and (max-width: 749px) {
+  .hhl__tagline {
+    font-size: 8px;
+    letter-spacing: 0.12em;
+  }
+  .hhl__wrap--has-tagline .hhl__tagline {
+    display: none; /* Ocultar tagline en móvil para ahorrar espacio */
+  }
+}
+
+/* SEPARADOR VERTICAL */
+.hhl__divider {
+  display: none;
+  align-items: center;
+  gap: 10px;
+  color: var(--hhl-accent);
+  opacity: 0.6;
+}
+
+@media screen and (min-width: 750px) {
+  .hhl__divider {
+    display: flex;
+  }
+}
+
+.hhl__divider-line {
+  display: block;
+  width: 1px;
+  height: 28px;
+  background: currentColor;
+  opacity: 0.4;
+}
+
+.hhl__divider-text {
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  white-space: nowrap;
+  opacity: 1;
+}
+
+/* LOGO INVERSO */
+.hhl:has(.hhl__img-wrap--inverse) .hhl__img-wrap--original {
+  display: var(--header-logo-display, flex);
+}
+.hhl__img-wrap--inverse {
+  display: var(--header-logo-inverse-display, none);
+}
+
+/* Compatibilidad con clases nativas de Horizon */
+.header-logo__image { object-fit: contain; }
+.header-logo__image-container--inverse { display: var(--header-logo-inverse-display, none); }
+{% endstylesheet %}
+
+{% schema %}
+{
+  "name": "Logo",
+  "tag": null,
+  "class": "header-logo",
+  "settings": [
+    {
+      "type": "header",
+      "content": "🖼️ Logo personalizado"
+    },
+    {
+      "type": "paragraph",
+      "content": "Sube tu logo aquí para sobreescribir el logo global del tema. Si no subes ninguno, se usará el logo configurado en Ajustes del tema → Logo y favicon."
+    },
+    {
+      "type": "image_picker",
+      "id": "logo_override",
+      "label": "Logo personalizado (sobreescribe el global)"
+    },
+    {
+      "type": "header",
+      "content": "📐 Tamaño del logo"
+    },
+    {
+      "type": "paragraph",
+      "content": "Si dejas en 0, se usará el tamaño definido en Ajustes del tema → Logo y favicon."
+    },
+    {
+      "type": "range",
+      "id": "logo_height_override",
+      "label": "Alto del logo — Desktop (px)",
+      "min": 0,
+      "max": 120,
+      "step": 2,
+      "unit": "px",
+      "default": 0
+    },
+    {
+      "type": "range",
+      "id": "logo_height_mobile_override",
+      "label": "Alto del logo — Móvil (px)",
+      "min": 0,
+      "max": 80,
+      "step": 2,
+      "unit": "px",
+      "default": 0
+    },
+    {
+      "type": "header",
+      "content": "✏️ Texto alternativo (si no hay logo)"
+    },
+    {
+      "type": "text",
+      "id": "logo_text",
+      "label": "Texto del logo (si no subes imagen)",
+      "default": "HAMSA SHOES",
+      "info": "Solo visible si no hay imagen. Se mostrará con efecto degradado dorado."
+    },
+    {
+      "type": "header",
+      "content": "🏷️ Tagline bajo el logo"
+    },
+    {
+      "type": "checkbox",
+      "id": "show_tagline",
+      "label": "Mostrar tagline bajo el logo",
+      "default": false
+    },
+    {
+      "type": "text",
+      "id": "tagline",
+      "label": "Texto del tagline",
+      "default": "ZAPATOS Y SANDALIAS FEMENINAS"
+    },
+    {
+      "type": "header",
+      "content": "➕ Separador decorativo (desktop)"
+    },
+    {
+      "type": "checkbox",
+      "id": "show_divider",
+      "label": "Mostrar separador vertical + texto",
+      "default": false
+    },
+    {
+      "type": "text",
+      "id": "divider_text",
+      "label": "Texto junto al separador",
+      "default": "Cúcuta · Colombia"
+    },
+    {
+      "type": "header",
+      "content": "🎨 Color"
+    },
+    {
+      "type": "color",
+      "id": "accent_color",
+      "label": "Color acento (tagline, separador)",
+      "default": "#c9a96e"
+    },
+    {
+      "type": "range",
+      "id": "logo_text_gap",
+      "label": "Espacio logo ↔ separador (px)",
+      "min": 0,
+      "max": 40,
+      "step": 2,
+      "unit": "px",
+      "default": 12
+    },
+    {
+      "type": "header",
+      "content": "👁️ Visibilidad"
+    },
+    {
+      "type": "checkbox",
+      "id": "hide_logo_on_home_page",
+      "label": "Ocultar logo en el inicio (solo mostrar con scroll)",
+      "info": "Útil si el hero ya tiene el nombre de la marca visible."
+    },
+    {
+      "type": "header",
+      "content": "📏 Espaciado interior"
+    },
+    {
+      "type": "range",
+      "id": "padding-block-start",
+      "label": "Espacio arriba",
+      "min": 0,
+      "max": 40,
+      "step": 1,
+      "unit": "px",
+      "default": 0
+    },
+    {
+      "type": "range",
+      "id": "padding-block-end",
+      "label": "Espacio abajo",
+      "min": 0,
+      "max": 40,
+      "step": 1,
+      "unit": "px",
+      "default": 0
+    },
+    {
+      "type": "range",
+      "id": "padding-inline-start",
+      "label": "Espacio izquierda",
+      "min": 0,
+      "max": 40,
+      "step": 1,
+      "unit": "px",
+      "default": 0
+    },
+    {
+      "type": "range",
+      "id": "padding-inline-end",
+      "label": "Espacio derecha",
+      "min": 0,
+      "max": 40,
+      "step": 1,
+      "unit": "px",
+      "default": 0
+    }
+  ]
+}
+{% endschema %}

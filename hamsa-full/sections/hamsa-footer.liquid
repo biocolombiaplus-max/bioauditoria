@@ -1,0 +1,392 @@
+{% liquid
+  assign wa_phone_footer = section.settings.wa_country | append: section.settings.wa_number
+  assign wa_link = 'https://wa.me/' | append: wa_phone_footer
+  assign footer_menu = linklists[section.settings.footer_menu].links
+%}
+
+<footer class="hfoot" id="HamsaFooter-{{ section.id }}" style="
+  --bg: {{ section.settings.bg_color }};
+  --bg2: {{ section.settings.bg2_color }};
+  --gold: {{ section.settings.gold_color }};
+  --text: {{ section.settings.text_color }};
+  --muted: {{ section.settings.muted_color }};
+  --border: {{ section.settings.border_color }};
+  --wa: {{ section.settings.wa_color }};
+">
+
+  <!-- TRUST BAR TOP -->
+  <div class="hfoot-trust">
+    <div class="hfoot-trust__inner">
+      <div class="hfoot-trust__item">
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="1" y="3" width="15" height="13"/><polygon points="16 8 20 8 23 11 23 16 16 16 16 8"/><circle cx="5.5" cy="18.5" r="2.5"/><circle cx="18.5" cy="18.5" r="2.5"/></svg>
+        <div>
+          <strong>{{ section.settings.trust1_title | default: 'Envío gratis' }}</strong>
+          <span>{{ section.settings.trust1_text | default: 'A toda Colombia' }}</span>
+        </div>
+      </div>
+      <div class="hfoot-trust__item">
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="1" y="4" width="22" height="16" rx="2"/><line x1="1" y1="10" x2="23" y2="10"/></svg>
+        <div>
+          <strong>{{ section.settings.trust2_title | default: 'Pago contra entrega' }}</strong>
+          <span>{{ section.settings.trust2_text | default: 'Paga cuando recibas' }}</span>
+        </div>
+      </div>
+      <div class="hfoot-trust__item">
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+        <div>
+          <strong>{{ section.settings.trust3_title | default: 'Compra segura' }}</strong>
+          <span>{{ section.settings.trust3_text | default: 'Datos protegidos' }}</span>
+        </div>
+      </div>
+      <div class="hfoot-trust__item">
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="currentColor"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z"/></svg>
+        <div>
+          <strong>{{ section.settings.trust4_title | default: 'Atención WhatsApp' }}</strong>
+          <span>{{ section.settings.trust4_text | default: 'Respuesta rápida' }}</span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- MAIN FOOTER -->
+  <div class="hfoot-main">
+    <div class="hfoot-main__inner">
+
+      <!-- BRAND COL -->
+      <div class="hfoot-col hfoot-col--brand">
+        {%- if section.settings.logo != blank -%}
+          <a href="/" class="hfoot-logo">
+            {{ section.settings.logo | image_url: width: 300 | image_tag:
+              class: 'hfoot-logo__img',
+              alt: shop.name,
+              loading: 'lazy',
+              width: section.settings.logo_width
+            }}
+          </a>
+        {%- else -%}
+          <a href="/" class="hfoot-logo hfoot-logo--text">{{ shop.name }}</a>
+        {%- endif -%}
+
+        {%- if section.settings.brand_text != blank -%}
+          <p class="hfoot-brand-text">{{ section.settings.brand_text }}</p>
+        {%- endif -%}
+
+        <!-- PILLS -->
+        <div class="hfoot-pills">
+          {%- if section.settings.pill1 != blank -%}<span class="hfoot-pill">{{ section.settings.pill1 }}</span>{%- endif -%}
+          {%- if section.settings.pill2 != blank -%}<span class="hfoot-pill">{{ section.settings.pill2 }}</span>{%- endif -%}
+          {%- if section.settings.pill3 != blank -%}<span class="hfoot-pill">{{ section.settings.pill3 }}</span>{%- endif -%}
+        </div>
+
+        <!-- SOCIAL -->
+        <div class="hfoot-social">
+          {%- if section.settings.instagram != blank -%}
+            <a href="{{ section.settings.instagram }}" target="_blank" rel="noopener" class="hfoot-social__icon" aria-label="Instagram">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="2" width="20" height="20" rx="5"/><circle cx="12" cy="12" r="4"/><circle cx="17.5" cy="6.5" r="1" fill="currentColor" stroke="none"/></svg>
+            </a>
+          {%- endif -%}
+          {%- if section.settings.facebook != blank -%}
+            <a href="{{ section.settings.facebook }}" target="_blank" rel="noopener" class="hfoot-social__icon" aria-label="Facebook">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><path d="M18 2h-3a5 5 0 0 0-5 5v3H7v4h3v8h4v-8h3l1-4h-4V7a1 1 0 0 1 1-1h3z"/></svg>
+            </a>
+          {%- endif -%}
+          {%- if section.settings.tiktok != blank -%}
+            <a href="{{ section.settings.tiktok }}" target="_blank" rel="noopener" class="hfoot-social__icon" aria-label="TikTok">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><path d="M19.59 6.69a4.83 4.83 0 01-3.77-4.25V2h-3.45v13.67a2.89 2.89 0 01-2.88 2.5 2.89 2.89 0 01-2.89-2.89 2.89 2.89 0 012.89-2.89c.28 0 .54.04.79.1V9.01a6.3 6.3 0 00-.79-.05 6.34 6.34 0 00-6.34 6.34 6.34 6.34 0 006.34 6.34 6.34 6.34 0 006.33-6.34V8.69a8.2 8.2 0 004.79 1.52V6.76a4.85 4.85 0 01-1.02-.07z"/></svg>
+            </a>
+          {%- endif -%}
+          <a href="{{ wa_link }}" class="hamsa-wa-btn" data-wa-phone="{{ wa_phone_footer }}" data-wa-msg="{{ section.settings.wa_message | escape }}" target="_blank" rel="noopener" class="hfoot-social__icon hfoot-social__icon--wa" aria-label="WhatsApp">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z"/></svg>
+          </a>
+        </div>
+      </div>
+
+      <!-- LINKS COL -->
+      <div class="hfoot-col">
+        <h4 class="hfoot-col__title">{{ section.settings.links_title | default: 'Navegación' }}</h4>
+        <ul class="hfoot-links">
+          {%- for link in footer_menu -%}
+            <li><a href="{{ link.url }}" class="hfoot-link">{{ link.title }}</a></li>
+          {%- endfor -%}
+        </ul>
+      </div>
+
+      <!-- HELP COL -->
+      <div class="hfoot-col">
+        <h4 class="hfoot-col__title">{{ section.settings.help_title | default: 'Información' }}</h4>
+        <ul class="hfoot-links">
+          {%- if section.settings.help1 != blank -%}<li><span class="hfoot-link-static">{{ section.settings.help1 }}</span></li>{%- endif -%}
+          {%- if section.settings.help2 != blank -%}<li><span class="hfoot-link-static">{{ section.settings.help2 }}</span></li>{%- endif -%}
+          {%- if section.settings.help3 != blank -%}<li><span class="hfoot-link-static">{{ section.settings.help3 }}</span></li>{%- endif -%}
+          {%- if section.settings.help4 != blank -%}<li><span class="hfoot-link-static">{{ section.settings.help4 }}</span></li>{%- endif -%}
+        </ul>
+      </div>
+
+      <!-- CONTACT COL -->
+      <div class="hfoot-col">
+        <h4 class="hfoot-col__title">{{ section.settings.contact_title | default: 'Contacto' }}</h4>
+        {%- if section.settings.contact_text != blank -%}
+          <p class="hfoot-contact-text">{{ section.settings.contact_text }}</p>
+        {%- endif -%}
+        {%- if section.settings.email != blank -%}
+          <a href="mailto:{{ section.settings.email }}" class="hfoot-contact-item">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/></svg>
+            {{ section.settings.email }}
+          </a>
+        {%- endif -%}
+        <a href="{{ wa_link }}" class="hamsa-wa-btn" data-wa-phone="{{ wa_phone_footer }}" data-wa-msg="{{ section.settings.wa_message | escape }}" target="_blank" rel="noopener" class="hfoot-wa-btn">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z"/></svg>
+          {{ section.settings.wa_btn_text | default: 'Hablar por WhatsApp' }}
+        </a>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- BOTTOM BAR -->
+  <div class="hfoot-bottom">
+    <div class="hfoot-bottom__inner">
+      <span class="hfoot-copyright">{{ section.settings.copyright_text | default: '© 2025 Hamsa Shoes. Todos los derechos reservados.' }}</span>
+      <div class="hfoot-bottom__links">
+        {%- if section.settings.policy1_text != blank -%}
+          <a href="{{ section.settings.policy1_url }}" class="hfoot-bottom__link">{{ section.settings.policy1_text }}</a>
+        {%- endif -%}
+        {%- if section.settings.policy2_text != blank -%}
+          <a href="{{ section.settings.policy2_url }}" class="hfoot-bottom__link">{{ section.settings.policy2_text }}</a>
+        {%- endif -%}
+      </div>
+      <div class="hfoot-payment">
+        {%- for type in shop.enabled_payment_types -%}
+          {{ type | payment_type_svg_tag: class: 'hfoot-payment__icon' }}
+        {%- endfor -%}
+      </div>
+    </div>
+  </div>
+
+</footer>
+
+<style>
+#HamsaFooter-{{ section.id }} {
+  background: var(--bg);
+  color: var(--text);
+  font-family: var(--font-body--family, system-ui, sans-serif);
+  overflow: hidden;
+}
+#HamsaFooter-{{ section.id }} * { box-sizing: border-box; }
+
+/* TRUST BAR */
+.hfoot-trust {
+  background: var(--bg2);
+  border-top: 1px solid var(--border);
+  border-bottom: 1px solid var(--border);
+  padding: 24px 20px;
+}
+.hfoot-trust__inner {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 20px;
+  max-width: 1320px;
+  margin: 0 auto;
+}
+.hfoot-trust__item {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  color: var(--gold);
+}
+.hfoot-trust__item svg { flex-shrink: 0; }
+.hfoot-trust__item div { display: flex; flex-direction: column; gap: 2px; }
+.hfoot-trust__item strong {
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--text);
+  letter-spacing: .02em;
+}
+.hfoot-trust__item span { font-size: 11px; color: var(--muted); }
+
+/* MAIN */
+.hfoot-main { padding: {{ section.settings.pt }}px 20px {{ section.settings.pb }}px; }
+.hfoot-main__inner {
+  display: grid;
+  grid-template-columns: 1.5fr 1fr 1fr 1.2fr;
+  gap: 40px;
+  max-width: 1320px;
+  margin: 0 auto;
+}
+
+/* LOGO */
+.hfoot-logo { display: block; margin-bottom: 16px; }
+.hfoot-logo__img {
+  height: {{ section.settings.logo_height | default: 48 }}px;
+  width: auto;
+  max-width: {{ section.settings.logo_width | default: 180 }}px;
+  object-fit: contain;
+}
+.hfoot-logo--text {
+  font-size: 22px;
+  font-weight: 800;
+  color: var(--text);
+  text-decoration: none;
+  margin-bottom: 16px;
+  display: block;
+}
+.hfoot-brand-text { font-size: 13px; color: var(--muted); line-height: 1.7; margin: 0 0 16px; max-width: 28ch; }
+
+.hfoot-pills { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 20px; }
+.hfoot-pill {
+  font-size: 10px;
+  font-weight: 600;
+  padding: 4px 10px;
+  border-radius: 20px;
+  border: 1px solid color-mix(in srgb, var(--gold) 30%, transparent);
+  color: var(--gold);
+  letter-spacing: .04em;
+}
+
+.hfoot-social { display: flex; gap: 8px; }
+.hfoot-social__icon {
+  width: 36px; height: 36px;
+  display: flex; align-items: center; justify-content: center;
+  border-radius: 8px;
+  border: 1px solid var(--border);
+  color: var(--muted);
+  text-decoration: none;
+  transition: color .2s, border-color .2s, background .2s;
+}
+.hfoot-social__icon:hover { color: var(--gold); border-color: color-mix(in srgb, var(--gold) 40%, transparent); background: color-mix(in srgb, var(--gold) 6%, transparent); }
+.hfoot-social__icon--wa { color: #25D366; border-color: rgba(37,211,102,.3); }
+.hfoot-social__icon--wa:hover { background: rgba(37,211,102,.1); border-color: #25D366; color: #25D366; }
+
+/* COLS */
+.hfoot-col__title {
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: .12em;
+  text-transform: uppercase;
+  color: var(--gold);
+  margin: 0 0 16px;
+}
+.hfoot-links { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 10px; }
+.hfoot-link {
+  font-size: 13px; color: var(--muted); text-decoration: none;
+  transition: color .2s; display: flex; align-items: center; gap: 6px;
+}
+.hfoot-link:hover { color: var(--gold); }
+.hfoot-link-static { font-size: 13px; color: var(--muted); }
+
+.hfoot-contact-text { font-size: 13px; color: var(--muted); line-height: 1.6; margin: 0 0 14px; }
+.hfoot-contact-item {
+  display: flex; align-items: center; gap: 7px;
+  font-size: 12px; color: var(--muted); text-decoration: none;
+  margin-bottom: 14px; transition: color .2s;
+}
+.hfoot-contact-item:hover { color: var(--gold); }
+.hfoot-wa-btn {
+  display: flex; align-items: center; gap: 8px;
+  width: 100%; padding: 12px 16px;
+  background: #25D366; color: #fff;
+  font-size: 13px; font-weight: 700;
+  border-radius: 8px; text-decoration: none;
+  transition: opacity .2s, transform .2s;
+}
+.hfoot-wa-btn:hover { opacity: .88; transform: translateY(-1px); }
+
+/* BOTTOM */
+.hfoot-bottom {
+  background: var(--bg2);
+  border-top: 1px solid var(--border);
+  padding: 16px 20px;
+}
+.hfoot-bottom__inner {
+  display: flex; align-items: center; justify-content: space-between;
+  gap: 16px; flex-wrap: wrap;
+  max-width: 1320px; margin: 0 auto;
+}
+.hfoot-copyright { font-size: 12px; color: var(--muted); }
+.hfoot-bottom__links { display: flex; gap: 16px; }
+.hfoot-bottom__link { font-size: 12px; color: var(--muted); text-decoration: none; transition: color .2s; }
+.hfoot-bottom__link:hover { color: var(--gold); }
+.hfoot-payment { display: flex; gap: 6px; align-items: center; }
+.hfoot-payment__icon { height: 22px; width: auto; border-radius: 3px; }
+
+/* RESPONSIVE */
+@media (max-width: 1000px) {
+  .hfoot-trust__inner { grid-template-columns: repeat(2, 1fr); }
+  .hfoot-main__inner { grid-template-columns: 1fr 1fr; gap: 32px; }
+}
+@media (max-width: 600px) {
+  .hfoot-trust__inner { grid-template-columns: 1fr 1fr; gap: 14px; }
+  .hfoot-trust__item { gap: 10px; }
+  .hfoot-trust__item strong { font-size: 11px; }
+  .hfoot-main { padding: 36px 16px 36px; }
+  .hfoot-main__inner { grid-template-columns: 1fr; gap: 28px; }
+  .hfoot-bottom__inner { flex-direction: column; align-items: flex-start; gap: 10px; }
+  .hfoot-payment { flex-wrap: wrap; }
+}
+</style>
+
+{% schema %}
+{
+  "name": "🔻 Footer Premium",
+  "settings": [
+    { "type": "header", "content": "🖼️ Logo" },
+    { "type": "image_picker", "id": "logo", "label": "Logo" },
+    { "type": "range", "id": "logo_width", "label": "Ancho logo (px)", "min": 60, "max": 300, "step": 10, "default": 180 },
+    { "type": "range", "id": "logo_height", "label": "Alto logo (px)", "min": 24, "max": 80, "step": 4, "default": 48 },
+    { "type": "header", "content": "📝 Texto de marca" },
+    { "type": "textarea", "id": "brand_text", "label": "Descripción de la marca", "default": "Hamsa Shoes es una tienda de sandalias y zapatos femeninos elegantes con despachos desde Cúcuta a toda Colombia y Venezuela." },
+    { "type": "text", "id": "pill1", "label": "Pill 1", "default": "🚚 Envío gratis" },
+    { "type": "text", "id": "pill2", "label": "Pill 2", "default": "💵 Contra entrega" },
+    { "type": "text", "id": "pill3", "label": "Pill 3", "default": "📦 Desde Cúcuta" },
+    { "type": "header", "content": "🌐 Redes sociales" },
+    { "type": "url", "id": "instagram", "label": "Instagram URL" },
+    { "type": "url", "id": "facebook", "label": "Facebook URL" },
+    { "type": "url", "id": "tiktok", "label": "TikTok URL" },
+    { "type": "header", "content": "🔗 Menú de enlaces" },
+    { "type": "link_list", "id": "footer_menu", "label": "Menú del footer", "default": "main-menu" },
+    { "type": "text", "id": "links_title", "label": "Título columna enlaces", "default": "Navegación" },
+    { "type": "header", "content": "ℹ️ Columna info" },
+    { "type": "text", "id": "help_title", "label": "Título columna info", "default": "Información" },
+    { "type": "text", "id": "help1", "label": "Info 1", "default": "📦 Envíos a toda Colombia" },
+    { "type": "text", "id": "help2", "label": "Info 2", "default": "💬 Atención por WhatsApp" },
+    { "type": "text", "id": "help3", "label": "Info 3", "default": "🔄 Cambios según políticas" },
+    { "type": "text", "id": "help4", "label": "Info 4", "default": "🌍 Colombia y Venezuela" },
+    { "type": "header", "content": "📞 Contacto" },
+    { "type": "text", "id": "contact_title", "label": "Título columna contacto", "default": "Contacto" },
+    { "type": "textarea", "id": "contact_text", "label": "Texto de contacto", "default": "Habla con nuestro equipo para resolver dudas, elegir talla o comprar por WhatsApp." },
+    { "type": "text", "id": "email", "label": "Email de contacto" },
+    { "type": "text", "id": "wa_btn_text", "label": "Texto botón WhatsApp", "default": "Hablar por WhatsApp" },
+    { "type": "header", "content": "💬 WhatsApp" },
+    { "type": "text", "id": "wa_country", "label": "Código de país", "default": "57" },
+    { "type": "text", "id": "wa_number", "label": "Número WhatsApp", "default": "3508258757" },
+    { "type": "text", "id": "wa_message", "label": "Mensaje WhatsApp", "default": "Hola, quiero información sobre Hamsa Shoes" },
+    { "type": "header", "content": "🏅 Barra de trust (iconos superiores)" },
+    { "type": "text", "id": "trust1_title", "label": "Trust 1 título", "default": "Envío gratis" },
+    { "type": "text", "id": "trust1_text", "label": "Trust 1 texto", "default": "A toda Colombia" },
+    { "type": "text", "id": "trust2_title", "label": "Trust 2 título", "default": "Pago contra entrega" },
+    { "type": "text", "id": "trust2_text", "label": "Trust 2 texto", "default": "Paga cuando recibas" },
+    { "type": "text", "id": "trust3_title", "label": "Trust 3 título", "default": "Compra segura" },
+    { "type": "text", "id": "trust3_text", "label": "Trust 3 texto", "default": "Datos protegidos" },
+    { "type": "text", "id": "trust4_title", "label": "Trust 4 título", "default": "Atención WhatsApp" },
+    { "type": "text", "id": "trust4_text", "label": "Trust 4 texto", "default": "Respuesta rápida" },
+    { "type": "header", "content": "📜 Parte inferior" },
+    { "type": "text", "id": "copyright_text", "label": "Texto copyright", "default": "© 2025 Hamsa Shoes. Todos los derechos reservados." },
+    { "type": "text", "id": "policy1_text", "label": "Política 1 texto", "default": "Política de privacidad" },
+    { "type": "url", "id": "policy1_url", "label": "Política 1 enlace" },
+    { "type": "text", "id": "policy2_text", "label": "Política 2 texto", "default": "Términos y condiciones" },
+    { "type": "url", "id": "policy2_url", "label": "Política 2 enlace" },
+    { "type": "header", "content": "🎨 Colores" },
+    { "type": "color", "id": "bg_color", "label": "Fondo principal", "default": "#1C1208" },
+    { "type": "color", "id": "bg2_color", "label": "Fondo secundario (trust bar + bottom)", "default": "#2A1F15" },
+    { "type": "color", "id": "text_color", "label": "Texto", "default": "#1C1208" },
+    { "type": "color", "id": "muted_color", "label": "Texto suave", "default": "#7A6E64" },
+    { "type": "color", "id": "gold_color", "label": "Acento dorado", "default": "#D4527A" },
+    { "type": "color", "id": "border_color", "label": "Color bordes", "default": "#E8D8CC" },
+    { "type": "color", "id": "wa_color", "label": "Color WhatsApp", "default": "#25D366" },
+    { "type": "header", "content": "📐 Espaciado" },
+    { "type": "range", "id": "pt", "label": "Padding top", "min": 20, "max": 100, "step": 4, "default": 56 },
+    { "type": "range", "id": "pb", "label": "Padding bottom", "min": 20, "max": 100, "step": 4, "default": 48 }
+  ],
+  "presets": [{ "name": "🔻 Footer Premium" }]
+}
+{% endschema %}

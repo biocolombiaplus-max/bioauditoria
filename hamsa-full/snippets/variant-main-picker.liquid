@@ -1,0 +1,415 @@
+{%- doc -%}
+  Renders a default variant picker, used to display the variant picker in the variants block.
+
+  @param {object} product_resource - The product object.
+  @param {object} [block] - The block object
+{%- enddoc -%}
+
+{% assign block_settings = block.settings %}
+
+{% unless product_resource.has_only_default_variant %}
+  {% liquid
+    assign button_background_brightness = section.settings.color_scheme.settings.foreground | color_brightness
+    if button_background_brightness < 105
+      assign strikethrough_color_mix = '#000'
+    else
+      assign strikethrough_color_mix = '#fff'
+    endif
+  %}
+  <variant-picker
+    class="variant-picker spacing-style variant-picker--{{ block_settings.alignment }}"
+    style="--color-strikethrough-mix: {{ strikethrough_color_mix }}; {% render 'spacing-style', settings: block_settings %}"
+    data-section-id="{{ section.id }}"
+    data-product-id="{{ product_resource.id }}"
+    data-block-id="{{ block.id }}"
+    data-product-url="{{ product_resource.url }}"
+    ref="mainVariantPicker"
+    {% if product.id == product_resource.id %}
+      data-template-product-match="true"
+    {% endif %}
+    {{ block.shopify_attributes }}
+    {% if request.visual_preview_mode %}
+      data-shopify-visual-preview
+    {% endif %}
+  >
+    <form class="variant-picker__form">
+      {%- for product_option in product_resource.options_with_values -%}
+        {%- liquid
+          assign swatch_count = product_option.values | map: 'swatch' | compact | size
+          assign variant_style = block_settings.variant_style
+
+          if swatch_count > 0 and block_settings.show_swatches
+            if block_settings.variant_style == 'dropdown'
+              assign variant_style = 'swatch_dropdown'
+            else
+              assign variant_style = 'swatch'
+            endif
+          endif
+
+          if variant_style == 'buttons' and settings.variant_button_width == 'equal-width-buttons'
+            assign fieldset_id = section.id | append: '-' | append: product_resource.id | append: '-' | append: product_option.name | handleize
+            assign option_id_attribute = 'data-option-id="' | append: fieldset_id | append: '"'
+            assign longest_value = 0
+          endif
+        -%}
+
+        {%- if product_option.values.size == 1 and variant_style != 'swatch' -%}
+          <div
+            class="variant-option"
+            data-testid="variant-option-single"
+          >
+            {{- product_option.name | escape -}}
+            <span
+              class="variant-option__swatch-value"
+              data-testid="variant-option-single-value"
+            >
+              {{- product_option.selected_value -}}
+            </span>
+          </div>
+        {%- elsif variant_style == 'swatch' or block_settings.variant_style == 'buttons' -%}
+          {%- assign fieldset_index = forloop.index0 -%}
+          <fieldset
+            class="variant-option variant-option--buttons{% if variant_style == 'swatch' %} variant-option--swatches{% else %} variant-option--{{ settings.variant_button_width }}{% endif %}"
+            data-fieldset-index="{{ fieldset_index }}"
+            ref="fieldsets[]"
+            {{ option_id_attribute }}
+          >
+            <legend>
+              {{ product_option.name | escape -}}
+              {%- if variant_style == 'swatch' -%}
+                <span class="variant-option__swatch-value">{{ product_option.selected_value }}</span>
+              {%- endif %}
+            </legend>
+            {%- for product_option_value in product_option.values -%}
+              {% if product_option_value.size > longest_value and option_id_attribute %}
+                {% assign longest_value = product_option_value.size %}
+              {% endif %}
+              <label
+                class="variant-option__button-label{% if variant_style == 'swatch' %} variant-option__button-label--has-swatch{% endif %}"
+              >
+                <input
+                  type="radio"
+                  name="{{ product_option.name | escape }}-{{ block.id }}-{{ product_resource.id }}"
+                  value="{{ product_option_value | escape }}"
+                  aria-label="{{ product_option_value.name }}"
+                  {% if product_option_value.available == false %}
+                    aria-disabled="true"
+                  {% endif %}
+                  data-previous-checked="false"
+                  data-fieldset-index="{{ fieldset_index }}"
+                  data-input-index="{{ forloop.index0 }}"
+                  data-input-id="{{ product_option.position }}-{{ forloop.index0 }}"
+                  data-option-value-id="{{ product_option_value.id }}"
+                  data-option-available="{{ product_option_value.available }}"
+                  data-connected-product-url="{{ product_option_value.product_url }}"
+                  {% if product_option_value.variant.id %}
+                    data-variant-id="{{ product_option_value.variant.id }}"
+                  {% endif %}
+                  {% if product_option_value.selected %}
+                    data-current-checked="true"
+                    checked
+                  {% else %}
+                    data-current-checked="false"
+                  {% endif %}
+                >
+                {% if variant_style == 'swatch' %}
+                  {% liquid
+                    assign featured_media = product_option_value.variant.featured_media
+
+                    # If the variant has no featured media, and we have a combined listing product, then fall back to
+                    # using the featured media of the child product that is linked to this option value.
+                    if featured_media == blank and product_option_value.product_url
+                      assign featured_media = product_option_value.variant.product.featured_media
+                    endif
+                  %}
+
+                  {% render 'swatch',
+                    swatch: product_option_value.swatch,
+                    variant_image: featured_media,
+                    mode: 'unscaled'
+                  %}
+                {% else %}
+                  {% if product_option_value.available == true %}
+                    <span
+                      class="variant-option__button-label__pill"
+                      data-key="variant-option-pill"
+                    ></span>
+                  {% endif %}
+                  <span
+                    class="variant-option__button-label__text"
+                    data-key="variant-option-text"
+                  >
+                    {{- product_option_value | escape -}}
+                  </span>
+                {% endif %}
+                {% render 'strikethrough-variant', product_option: product_option_value %}
+              </label>
+            {%- endfor -%}
+            {% if option_id_attribute %}
+              {% style %}
+                [data-option-id="{{ fieldset_id }}"] {
+                  --variant-ch: {{ longest_value | times: 0.65 }}em;
+                }
+              {% endstyle %}
+            {% endif %}
+          </fieldset>
+        {%- elsif block_settings.variant_style == 'dropdowns' -%}
+          {%
+            # There is an opportunity to build a custom select component that will allow us to style the select element further (animation for dropdown, swatches shown in the dropdown options, etc)
+            # It's too bad as it mean rebuilding baked in behaviours but I think we've already done that for the locale selectors
+            # in dawn. So it might mean more time spent in setting it up but worth it for future updates/styling.
+          %}
+          {% liquid
+            assign property_being_updated = false
+            if settings.variant_swatch_width != settings.variant_swatch_height
+              assign property_being_updated = true
+              # (original width / original height) x new height (20px at the moment) = new width
+              assign new_width = settings.variant_swatch_width | times: 1.0 | divided_by: settings.variant_swatch_height | times: 20
+            endif
+          %}
+
+          <div class="variant-option variant-option--dropdowns">
+            <label for="Option-{{ block.id }}-{{ forloop.index0 }}">{{ product_option.name | escape }}</label>
+            <div
+              class="variant-option__select-wrapper"
+              style="
+                {%- if property_being_updated  -%}
+                  --variant-picker-swatch-width: clamp(10px,{{ new_width }}px, 50px);
+                {%- endif -%}
+              "
+            >
+              <select
+                id="Option-{{ block.id }}-{{ forloop.index0 }}"
+                name="options[{{ product_option.name | escape }}]"
+                class="variant-option__select"
+              >
+                {%- for product_option_value in product_option.values -%}
+                  <option
+                    value="{{ product_option_value | escape }}"
+                    data-input-id="{{ product_option.position }}-{{ forloop.index0 }}"
+                    data-option-value-id="{{ product_option_value.id }}"
+                    data-variant-id="{{ product_option_value.variant.id }}"
+                    data-connected-product-url="{{ product_option_value.product_url }}"
+                    {% if product_option_value.selected %}
+                      selected="selected"
+                    {% endif %}
+                  >
+                    {% if product_option_value.available == false %}
+                      {{ product_option_value | escape }} - {{ 'content.unavailable' | t }}
+                    {% else %}
+                      {{ product_option_value | escape }}
+                    {% endif %}
+                  </option>
+                {%- endfor -%}
+              </select>
+              <svg
+                aria-hidden="true"
+                focusable="false"
+                class="icon icon-caret"
+                viewBox="0 0 10 6"
+              >
+                {%- render 'icon', icon: 'caret' -%}
+              </svg>
+            </div>
+          </div>
+        {%- endif -%}
+      {%- endfor -%}
+
+      <script type="application/json">
+        {{ product_resource.selected_or_first_available_variant | json }}
+      </script>
+    </form>
+  </variant-picker>
+{% endunless %}
+
+{% stylesheet %}
+  /* Variant picker container styles - unique to main variant picker */
+  .variant-picker {
+    width: 100%;
+  }
+
+  .variant-picker__form {
+    width: 100%;
+  }
+
+  .variant-picker[data-shopify-visual-preview] {
+    min-width: 300px;
+    padding-inline-start: max(4px, var(--padding-inline-start));
+  }
+
+  /* Dropdown variant option styles */
+  .variant-option__select-wrapper {
+    display: flex;
+    position: relative;
+    border: var(--style-border-width-inputs) solid var(--color-border);
+    border-radius: var(--style-border-radius-inputs);
+    align-items: center;
+    margin-top: var(--margin-2xs);
+    overflow: clip;
+  }
+
+  .variant-option__select-wrapper:has(.swatch) {
+    --variant-picker-swatch-width: 20px;
+    --variant-picker-swatch-height: 20px;
+  }
+
+  .variant-option__select-wrapper:hover {
+    border-color: var(--color-variant-hover-border);
+  }
+
+  .variant-option__select:focus-visible {
+    outline: var(--focus-outline-width) solid currentcolor;
+    outline-offset: var(--focus-outline-offset);
+  }
+
+  .variant-option__select {
+    padding-block: var(--padding-md);
+    padding-inline: var(--padding-lg) calc(var(--padding-lg) + var(--icon-size-2xs));
+    appearance: none;
+    border: 0;
+    width: 100%;
+    margin: 0;
+    cursor: pointer;
+  }
+
+  .variant-option__select-wrapper .icon {
+    position: absolute;
+    right: var(--padding-md);
+    top: 50%;
+    transform: translateY(-50%);
+    width: var(--icon-size-2xs);
+    height: var(--icon-size-2xs);
+    pointer-events: none;
+  }
+
+  .variant-option__select--has-swatch {
+    padding-inline-start: calc((2 * var(--padding-sm)) + var(--variant-picker-swatch-width));
+  }
+
+  .variant-option__select-wrapper .swatch {
+    position: absolute;
+    top: 50%;
+    left: var(--padding-md);
+    transform: translateY(-50%);
+  }
+
+  /* Variant picker alignment modifiers */
+  .variant-picker--center,
+  .variant-picker--center .variant-option {
+    text-align: center;
+    align-items: center;
+    justify-content: center;
+    width: 100%;
+  }
+
+  .variant-picker--right,
+  .variant-picker--right .variant-option {
+    text-align: right;
+    justify-content: right;
+  }
+{% endstylesheet %}
+
+{%- comment -%} ══ GUÍA DE TALLAS — snippet inyectado ══ {%- endcomment -%}
+<style>
+.hsg-trigger{display:inline-flex;align-items:center;gap:5px;font-size:12px;font-weight:600;color:#888;cursor:pointer;background:none;border:none;padding:0;text-decoration:underline;text-underline-offset:3px;text-decoration-style:dotted;transition:color .2s;margin-top:6px;}
+.hsg-trigger:hover{color:#c9a96e;}
+.hsg-trigger svg{flex-shrink:0;}
+.hsg-overlay{position:fixed;inset:0;z-index:99999;display:flex;align-items:flex-end;justify-content:center;pointer-events:none;opacity:0;transition:opacity .25s;}
+.hsg-overlay.hsg--open{pointer-events:all;opacity:1;}
+.hsg-backdrop{position:absolute;inset:0;background:rgba(0,0,0,.65);backdrop-filter:blur(3px);}
+.hsg-sheet{position:relative;z-index:1;width:100%;max-width:520px;background:#111;border-radius:20px 20px 0 0;padding:0 0 24px;transform:translateY(100%);transition:transform .32s cubic-bezier(.34,1.2,.64,1);max-height:92vh;overflow-y:auto;-webkit-overflow-scrolling:touch;}
+.hsg-overlay.hsg--open .hsg-sheet{transform:translateY(0);}
+.hsg-drag{width:36px;height:4px;border-radius:2px;background:rgba(255,255,255,.18);margin:10px auto 0;}
+.hsg-header{display:flex;align-items:center;justify-content:space-between;padding:14px 20px 12px;border-bottom:1px solid rgba(255,255,255,.07);position:sticky;top:0;background:#111;z-index:2;}
+.hsg-header h3{font-size:15px;font-weight:800;color:#f0f0f0;margin:0;}
+.hsg-close{width:30px;height:30px;border-radius:50%;background:rgba(255,255,255,.09);border:none;color:#f0f0f0;font-size:16px;cursor:pointer;display:flex;align-items:center;justify-content:center;}
+.hsg-body{padding:16px 20px 0;}
+.hsg-tip{display:flex;align-items:flex-start;gap:10px;background:rgba(201,169,110,.08);border:1px solid rgba(201,169,110,.25);border-radius:12px;padding:12px 14px;margin-bottom:16px;font-size:12px;color:#aaa;line-height:1.5;}
+.hsg-tip strong{display:block;color:#c9a96e;font-size:13px;margin-bottom:3px;}
+.hsg-tip-icon{font-size:20px;flex-shrink:0;margin-top:1px;}
+.hsg-steps{display:flex;flex-direction:column;gap:6px;margin-bottom:16px;}
+.hsg-step{display:flex;align-items:center;gap:10px;font-size:12px;color:#aaa;}
+.hsg-step-num{width:22px;height:22px;border-radius:50%;background:rgba(201,169,110,.15);border:1px solid rgba(201,169,110,.35);color:#c9a96e;font-size:10px;font-weight:800;display:flex;align-items:center;justify-content:center;flex-shrink:0;}
+.hsg-table-wrap{overflow-x:auto;-webkit-overflow-scrolling:touch;margin-bottom:16px;}
+.hsg-table{width:100%;border-collapse:collapse;font-size:12px;}
+.hsg-table th{background:rgba(201,169,110,.15);color:#c9a96e;font-weight:700;padding:9px 10px;text-align:center;font-size:11px;letter-spacing:.04em;border-bottom:1px solid rgba(201,169,110,.2);}
+.hsg-table td{padding:8px 10px;text-align:center;color:#ccc;border-bottom:1px solid rgba(255,255,255,.05);}
+.hsg-table tr:last-child td{border-bottom:none;}
+.hsg-table tr:nth-child(even) td{background:rgba(255,255,255,.03);}
+.hsg-table td:first-child{font-weight:700;color:#e0c070;background:rgba(201,169,110,.07);}
+.hsg-note{font-size:11px;color:#666;text-align:center;line-height:1.6;margin-top:4px;}
+</style>
+
+<button class="hsg-trigger" type="button" id="hsgTrigger-{{ section.id }}" aria-haspopup="dialog">
+  <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M12 8v4m0 4h.01"/></svg>
+  Guía de tallas
+</button>
+
+<div class="hsg-overlay" id="hsgOverlay" role="dialog" aria-modal="true" aria-label="Guía de tallas">
+  <div class="hsg-backdrop" id="hsgBackdrop"></div>
+  <div class="hsg-sheet">
+    <div class="hsg-drag"></div>
+    <div class="hsg-header">
+      <h3>📏 Guía de Tallas — Mujer Colombia</h3>
+      <button class="hsg-close" id="hsgClose" type="button" aria-label="Cerrar">&#10005;</button>
+    </div>
+    <div class="hsg-body">
+      <div class="hsg-tip">
+        <span class="hsg-tip-icon">💡</span>
+        <div>
+          <strong>¿Cómo elegir tu talla correcta?</strong>
+          Mide el largo de tu pie descalza sobre una superficie plana. Coloca el talón contra la pared, marca el punto más largo del pie y mide en centímetros.
+        </div>
+      </div>
+      <div class="hsg-steps">
+        <div class="hsg-step"><span class="hsg-step-num">1</span>Coloca tu pie sobre una hoja de papel en el suelo.</div>
+        <div class="hsg-step"><span class="hsg-step-num">2</span>Traza el contorno de tu pie con un lápiz.</div>
+        <div class="hsg-step"><span class="hsg-step-num">3</span>Mide desde el talón hasta el dedo más largo.</div>
+        <div class="hsg-step"><span class="hsg-step-num">4</span>Busca tu medida en la tabla y elige esa talla.</div>
+      </div>
+      <div class="hsg-table-wrap">
+        <table class="hsg-table">
+          <thead>
+            <tr>
+              <th>Talla CO</th>
+              <th>Pie (cm)</th>
+              <th>Talla EUR</th>
+              <th>Talla US</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr><td>34</td><td>21.5 – 22.0</td><td>34</td><td>4</td></tr>
+            <tr><td>35</td><td>22.0 – 22.5</td><td>35</td><td>5</td></tr>
+            <tr><td>36</td><td>22.5 – 23.0</td><td>36</td><td>6</td></tr>
+            <tr><td>37</td><td>23.0 – 23.5</td><td>37</td><td>6.5</td></tr>
+            <tr><td>38</td><td>23.5 – 24.0</td><td>38</td><td>7.5</td></tr>
+            <tr><td>39</td><td>24.0 – 24.5</td><td>39</td><td>8.5</td></tr>
+            <tr><td>40</td><td>24.5 – 25.0</td><td>40</td><td>9</td></tr>
+            <tr><td>41</td><td>25.0 – 25.5</td><td>41</td><td>9.5</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <p class="hsg-note">✅ Horma normal · Si estás entre dos tallas, elige la más grande<br>¿Duda? Escríbenos por WhatsApp y te ayudamos a elegir</p>
+    </div>
+  </div>
+</div>
+
+<script>
+(function(){
+  var trigger = document.getElementById('hsgTrigger-{{ section.id }}');
+  var overlay = document.getElementById('hsgOverlay');
+  var backdrop = document.getElementById('hsgBackdrop');
+  var closeBtn = document.getElementById('hsgClose');
+  if(!trigger||!overlay) return;
+  function open(){ overlay.classList.add('hsg--open'); document.body.style.overflow='hidden'; }
+  function close(){ overlay.classList.remove('hsg--open'); document.body.style.overflow=''; }
+  trigger.addEventListener('click', open);
+  backdrop.addEventListener('click', close);
+  closeBtn.addEventListener('click', close);
+  document.addEventListener('keydown',function(e){ if(e.key==='Escape') close(); });
+  // Touch swipe down to close
+  var sy=0;
+  overlay.querySelector('.hsg-sheet').addEventListener('touchstart',function(e){sy=e.touches[0].clientY;},{passive:true});
+  overlay.querySelector('.hsg-sheet').addEventListener('touchend',function(e){if(e.changedTouches[0].clientY-sy>60)close();},{passive:true});
+})();
+</script>
