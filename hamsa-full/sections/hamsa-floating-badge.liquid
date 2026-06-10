@@ -7,7 +7,7 @@
     <!-- Urgency strip -->
     <div class="hfb2__strip">
       <span class="hfb2__strip-dot"></span>
-      <span>⏰ Solo hoy · Quedan pocas unidades</span>
+      <span>⏰ Oferta · Pocas unidades</span>
     </div>
 
     <!-- Main content -->
@@ -70,23 +70,41 @@
 @media (max-width: 767px) {
   .hfb2 {
     {% if section.settings.position == 'left' %}left: 8px;{% else %}right: 8px;{% endif %}
-    bottom: 72px;
+    bottom: 68px;
   }
-  .hfb2__card { width: 188px; border-radius: 14px; }
-  .hfb2__strip { font-size: 9px; padding: 4px 9px; }
-  .hfb2__body { padding: 9px 9px 7px; gap: 8px; }
-  .hfb2__tag { font-size: 7.5px; margin-bottom: 3px; }
-  .hfb2__deal-main { font-size: 26px; }
-  .hfb2__price { font-size: 11px; }
-  .hfb2__old { font-size: 9px; }
-  .hfb2__save { font-size: 9px; padding: 2px 5px; }
-  .hfb2__timer-label { font-size: 7px; }
-  .hfb2__digit { font-size: 11px; min-width: 18px; padding: 2px 4px; }
-  .hfb2__colon { font-size: 11px; }
-  .hfb2__cta { font-size: 9px; padding: 4px 8px; }
-  .hfb2__trust { padding: 0 8px 8px; gap: 3px; }
-  .hfb2__trust span { font-size: 8px; padding: 2px 5px; }
-  .hfb2__close { top: -6px; right: -6px; width: 18px; height: 18px; font-size: 9px; }
+  /* Card más compacta en móvil */
+  .hfb2__card { width: 168px; border-radius: 14px; }
+  /* Strip simplificado — una sola línea sin desborde */
+  .hfb2__strip {
+    font-size: 8.5px; padding: 3px 8px;
+    white-space: nowrap; overflow: hidden;
+  }
+  .hfb2__strip span:last-child {
+    overflow: hidden; text-overflow: ellipsis;
+    display: block; white-space: nowrap;
+  }
+  /* Body más compacto */
+  .hfb2__body { padding: 8px 8px 6px; gap: 7px; }
+  .hfb2__tag { font-size: 7px; letter-spacing: .10em; margin-bottom: 2px; }
+  .hfb2__deal { gap: 5px; margin-bottom: 3px; }
+  .hfb2__deal-main { font-size: 24px; }
+  .hfb2__price { font-size: 10.5px; }
+  .hfb2__old { font-size: 8.5px; }
+  .hfb2__save { font-size: 8px; padding: 2px 5px; }
+  /* Timer más pequeño */
+  .hfb2__timer-label { font-size: 6.5px; }
+  .hfb2__timer { gap: 1px; }
+  .hfb2__digit { font-size: 10px; min-width: 16px; padding: 2px 3px; border-radius: 4px; }
+  .hfb2__colon { font-size: 10px; }
+  /* CTA compacto */
+  .hfb2__cta { font-size: 8.5px; padding: 4px 7px; gap: 3px; }
+  .hfb2__cta svg { width: 10px; height: 10px; }
+  /* Trust pills — solo 2 visibles */
+  .hfb2__trust { padding: 0 7px 7px; gap: 3px; }
+  .hfb2__trust span { font-size: 7.5px; padding: 2px 5px; }
+  .hfb2__trust span:nth-child(3) { display: none; }
+  /* Botón cerrar */
+  .hfb2__close { top: -7px; right: -7px; width: 18px; height: 18px; font-size: 8px; }
 }
 
 /* CARD */
