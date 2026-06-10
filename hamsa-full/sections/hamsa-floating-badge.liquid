@@ -1,215 +1,312 @@
 {% if section.settings.enabled %}
-<div class="hfb" id="HamsaFloatingBadge" aria-label="Oferta especial 2x1">
-  <a href="{{ section.settings.badge_url | default: '/pages/oferta-2x1' }}" class="hfb__link" aria-label="Ver oferta 2 pares por $159.900">
-    <span class="hfb__pulse-ring"></span>
-    <span class="hfb__pulse-ring hfb__pulse-ring--2"></span>
-    <div class="hfb__inner">
-      <span class="hfb__fire">🔥</span>
-      <div class="hfb__text-wrap">
-        <span class="hfb__tag">OFERTA</span>
-        <span class="hfb__main">2×1</span>
+<div class="hfb2" id="HamsaFloatingBadge" role="complementary" aria-label="Oferta especial 2×1">
+  <button class="hfb2__close" id="hfb2Close" aria-label="Cerrar oferta">✕</button>
+
+  <a href="{{ section.settings.badge_url | default: '/pages/oferta-2x1' }}" class="hfb2__card" aria-label="Ver oferta 2 pares por $159.900">
+
+    <!-- Urgency strip -->
+    <div class="hfb2__strip">
+      <span class="hfb2__strip-dot"></span>
+      <span>⏰ Solo hoy · Quedan pocas unidades</span>
+    </div>
+
+    <!-- Main content -->
+    <div class="hfb2__body">
+      <!-- Left: deal info -->
+      <div class="hfb2__left">
+        <div class="hfb2__tag">OFERTA EXCLUSIVA</div>
+        <div class="hfb2__deal">
+          <span class="hfb2__deal-main">2×1</span>
+          <div class="hfb2__deal-prices">
+            <span class="hfb2__price">$159.900</span>
+            <span class="hfb2__old">$239.800</span>
+          </div>
+        </div>
+        <div class="hfb2__save">🎁 Ahorras $79.900</div>
       </div>
-      <div class="hfb__detail">
-        <span class="hfb__price">$159.900</span>
-        <span class="hfb__sub">2 pares</span>
+
+      <!-- Right: timer + cta -->
+      <div class="hfb2__right">
+        <div class="hfb2__timer-label">Termina en</div>
+        <div class="hfb2__timer">
+          <span class="hfb2__digit" id="hfb2H">23</span>
+          <span class="hfb2__colon">:</span>
+          <span class="hfb2__digit" id="hfb2M">59</span>
+          <span class="hfb2__colon">:</span>
+          <span class="hfb2__digit" id="hfb2S">59</span>
+        </div>
+        <div class="hfb2__cta">
+          Ver oferta
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
+        </div>
       </div>
     </div>
-    <span class="hfb__arrow">›</span>
+
+    <!-- Trust pills -->
+    <div class="hfb2__trust">
+      <span>🚚 Envío gratis</span>
+      <span>💵 Contra entrega</span>
+      <span>🔒 Seguro</span>
+    </div>
+
   </a>
+
+  <!-- Tab (minimized state) -->
+  <button class="hfb2__tab" id="hfb2Tab" aria-label="Ver oferta 2×1" style="display:none">
+    🔥 2×1 $159.900
+  </button>
 </div>
 
 <style>
-/* ─── FLOATING BADGE ─── */
-.hfb {
+/* ═══ FLOATING BADGE PREMIUM ═══ */
+.hfb2 {
   position: fixed;
-  {{ section.settings.position }}: 24px;
-  {% if section.settings.position == 'right' %}left: auto; right: 20px;{% else %}left: 20px; right: auto;{% endif %}
-  z-index: 9998;
-  bottom: 80px;
+  {% if section.settings.position == 'left' %}left: 16px; right: auto;{% else %}right: 16px; left: auto;{% endif %}
+  bottom: 88px;
+  z-index: 9997;
+  font-family: var(--font-body--family, system-ui, sans-serif);
+  filter: drop-shadow(0 12px 40px rgba(192,64,95,.5));
 }
-
 @media (max-width: 767px) {
-  .hfb {
-    bottom: 72px;
-    {% if section.settings.position == 'right' %}right: 12px;{% else %}left: 12px;{% endif %}
+  .hfb2 {
+    {% if section.settings.position == 'left' %}left: 10px;{% else %}right: 10px;{% endif %}
+    bottom: 80px;
   }
 }
 
-.hfb__link {
+/* CARD */
+.hfb2__card {
+  display: block;
+  width: 220px;
+  background: linear-gradient(135deg, #C0405F 0%, #D4527A 50%, #B03050 100%);
+  border-radius: 18px;
+  text-decoration: none;
+  color: #fff;
+  overflow: hidden;
+  border: 1.5px solid rgba(255,255,255,.25);
+  animation: hfb2-float 3.5s ease-in-out infinite;
+  transition: transform .25s cubic-bezier(.34,1.56,.64,1), filter .25s;
+}
+.hfb2__card:hover {
+  transform: translateY(-4px) scale(1.02);
+  filter: drop-shadow(0 18px 50px rgba(192,64,95,.7));
+  color: #fff;
+}
+@keyframes hfb2-float {
+  0%,100% { transform: translateY(0); }
+  50%      { transform: translateY(-7px); }
+}
+
+/* URGENCY STRIP */
+.hfb2__strip {
+  background: rgba(0,0,0,.25);
+  padding: 5px 10px;
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: .04em;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  text-transform: uppercase;
+  color: rgba(255,255,255,.95);
+}
+.hfb2__strip-dot {
+  width: 6px; height: 6px; border-radius: 50%;
+  background: #4ADE80; flex-shrink: 0;
+  box-shadow: 0 0 0 0 rgba(74,222,128,.5);
+  animation: hfb2-dot 1.5s infinite;
+}
+@keyframes hfb2-dot {
+  0%   { box-shadow: 0 0 0 0 rgba(74,222,128,.5); }
+  70%  { box-shadow: 0 0 0 7px rgba(74,222,128,0); }
+  100% { box-shadow: 0 0 0 0 rgba(74,222,128,0); }
+}
+
+/* BODY */
+.hfb2__body {
   display: flex;
   align-items: center;
   gap: 10px;
-  background: {{ section.settings.bg_color }};
-  color: {{ section.settings.text_color }};
-  border-radius: 60px;
-  padding: 10px 18px 10px 12px;
-  text-decoration: none;
-  box-shadow:
-    0 8px 32px rgba(0,0,0,.35),
-    0 0 0 2px {{ section.settings.accent_color }},
-    0 0 24px color-mix(in srgb, {{ section.settings.accent_color }} 50%, transparent);
-  position: relative;
-  overflow: visible;
-  animation: hfb-float 3s ease-in-out infinite;
-  transition: transform .2s, box-shadow .2s;
+  padding: 12px 12px 10px;
+}
+.hfb2__left { flex: 1; }
+.hfb2__tag {
+  font-size: 8.5px; font-weight: 800;
+  letter-spacing: .14em; text-transform: uppercase;
+  color: rgba(255,255,255,.75);
+  margin-bottom: 4px;
+}
+.hfb2__deal {
+  display: flex; align-items: center; gap: 8px;
+  margin-bottom: 5px;
+}
+.hfb2__deal-main {
+  font-size: 32px; font-weight: 900;
+  line-height: 1; letter-spacing: -.03em;
+  color: #fff;
+  text-shadow: 0 2px 8px rgba(0,0,0,.3);
+}
+.hfb2__deal-prices { display: flex; flex-direction: column; gap: 1px; }
+.hfb2__price { font-size: 12px; font-weight: 800; color: #FFD700; line-height: 1.2; }
+.hfb2__old  { font-size: 10px; text-decoration: line-through; color: rgba(255,255,255,.55); line-height: 1.2; }
+.hfb2__save {
+  font-size: 10px; font-weight: 700;
+  background: rgba(74,222,128,.2);
+  border: 1px solid rgba(74,222,128,.4);
+  color: #6EE7B7;
+  border-radius: 6px; padding: 2px 7px;
+  display: inline-block;
+}
+
+/* RIGHT: timer + cta */
+.hfb2__right {
+  display: flex; flex-direction: column;
+  align-items: center; gap: 4px;
+  flex-shrink: 0;
+}
+.hfb2__timer-label {
+  font-size: 8px; font-weight: 700;
+  letter-spacing: .08em; text-transform: uppercase;
+  color: rgba(255,255,255,.65);
+}
+.hfb2__timer {
+  display: flex; align-items: center; gap: 2px;
+}
+.hfb2__digit {
+  background: rgba(0,0,0,.3);
+  border-radius: 5px;
+  padding: 3px 5px;
+  font-size: 13px; font-weight: 800;
+  min-width: 22px; text-align: center;
+  color: #fff; line-height: 1;
+  font-variant-numeric: tabular-nums;
+}
+.hfb2__colon { font-size: 13px; font-weight: 800; color: rgba(255,255,255,.6); }
+
+.hfb2__cta {
+  display: flex; align-items: center; gap: 4px;
+  background: #FFD700;
+  color: #1C1208;
+  font-size: 10px; font-weight: 800;
+  padding: 5px 10px; border-radius: 20px;
+  letter-spacing: .04em;
+  white-space: nowrap;
+  margin-top: 2px;
+  transition: background .2s, transform .2s;
+}
+.hfb2__card:hover .hfb2__cta {
+  background: #fff;
+  transform: scale(1.04);
+}
+
+/* TRUST PILLS */
+.hfb2__trust {
+  display: flex; gap: 4px;
+  padding: 0 10px 10px;
+  flex-wrap: wrap;
+}
+.hfb2__trust span {
+  font-size: 9px; font-weight: 600;
+  background: rgba(255,255,255,.15);
+  border-radius: 20px; padding: 3px 7px;
+  color: rgba(255,255,255,.9);
   white-space: nowrap;
 }
 
-.hfb__link:hover {
-  transform: scale(1.06) translateY(-3px);
-  box-shadow:
-    0 14px 40px rgba(0,0,0,.45),
-    0 0 0 2px {{ section.settings.accent_color }},
-    0 0 40px color-mix(in srgb, {{ section.settings.accent_color }} 70%, transparent);
-  color: {{ section.settings.text_color }};
-}
-
-@keyframes hfb-float {
-  0%, 100% { transform: translateY(0px); }
-  50% { transform: translateY(-6px); }
-}
-
-/* Pulse rings */
-.hfb__pulse-ring {
-  position: absolute;
-  inset: -4px;
-  border-radius: 60px;
-  border: 2px solid {{ section.settings.accent_color }};
-  opacity: 0;
-  animation: hfb-ring 2.5s ease-out infinite;
-  pointer-events: none;
-}
-.hfb__pulse-ring--2 {
-  animation-delay: 1.25s;
-}
-@keyframes hfb-ring {
-  0% { opacity: .7; transform: scale(1); }
-  100% { opacity: 0; transform: scale(1.35); }
-}
-
-.hfb__fire {
-  font-size: 22px;
-  animation: hfb-fire 1.2s infinite alternate;
-  flex-shrink: 0;
-}
-@keyframes hfb-fire {
-  from { transform: scale(1) rotate(-4deg); }
-  to { transform: scale(1.12) rotate(4deg); }
-}
-
-.hfb__text-wrap {
-  display: flex;
-  flex-direction: column;
-  align-items: flex-start;
-  line-height: 1;
-  gap: 1px;
-}
-.hfb__tag {
-  font-size: 9px;
-  font-weight: 800;
-  letter-spacing: .12em;
-  color: {{ section.settings.accent_color }};
-  text-transform: uppercase;
-}
-.hfb__main {
-  font-size: 26px;
-  font-weight: 900;
-  letter-spacing: -.01em;
-  color: {{ section.settings.text_color }};
-  line-height: 1;
-  font-family: var(--font-primary--family, sans-serif);
-}
-
-.hfb__detail {
-  display: flex;
-  flex-direction: column;
-  align-items: flex-start;
-  gap: 1px;
-  border-left: 1px solid color-mix(in srgb, {{ section.settings.text_color }} 20%, transparent);
-  padding-left: 10px;
-  margin-left: 2px;
-}
-.hfb__price {
-  font-size: 13px;
-  font-weight: 800;
-  color: {{ section.settings.accent_color }};
-  line-height: 1;
-}
-.hfb__sub {
-  font-size: 9px;
-  color: color-mix(in srgb, {{ section.settings.text_color }} 60%, transparent);
-  letter-spacing: .04em;
-  text-transform: uppercase;
-}
-
-.hfb__arrow {
-  font-size: 22px;
-  font-weight: 700;
-  color: {{ section.settings.accent_color }};
-  margin-left: 2px;
-  animation: hfb-arrow 1s ease-in-out infinite alternate;
-}
-@keyframes hfb-arrow {
-  from { transform: translateX(0); }
-  to { transform: translateX(4px); }
-}
-
-/* Close button */
-.hfb__close {
+/* CLOSE BUTTON */
+.hfb2__close {
   position: absolute;
   top: -8px;
-  right: -8px;
-  width: 20px;
-  height: 20px;
-  border-radius: 50%;
-  background: #333;
-  border: 1px solid rgba(0,0,0,.09);
-  color: #aaa;
-  font-size: 11px;
-  line-height: 1;
-  cursor: pointer;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  z-index: 2;
-  transition: background .2s;
+  {% if section.settings.position == 'left' %}right: -8px;{% else %}right: -8px;{% endif %}
+  width: 22px; height: 22px; border-radius: 50%;
+  background: #fff; border: 2px solid #D4527A;
+  color: #D4527A; font-size: 10px; font-weight: 700;
+  cursor: pointer; display: flex; align-items: center; justify-content: center;
+  z-index: 3; transition: background .2s, color .2s;
+  line-height: 1; padding: 0;
 }
-.hfb__close:hover { background: #555; color: #fff; }
+.hfb2__close:hover { background: #D4527A; color: #fff; }
 
-.hfb--hidden { display: none !important; }
+/* TAB (minimized) */
+.hfb2__tab {
+  background: linear-gradient(135deg, #C0405F, #D4527A);
+  color: #FFD700;
+  border: none; cursor: pointer;
+  padding: 10px 16px; border-radius: 30px;
+  font-size: 12px; font-weight: 800;
+  box-shadow: 0 4px 20px rgba(192,64,95,.45);
+  animation: hfb2-float 3.5s ease-in-out infinite;
+  white-space: nowrap;
+  font-family: inherit;
+}
+.hfb2__tab:hover { transform: scale(1.04); }
+
+/* HIDDEN */
+.hfb2--hidden { display: none !important; }
 </style>
 
 <script>
 (function(){
-  const badge = document.getElementById('HamsaFloatingBadge');
-  if (!badge) return;
+  var badge   = document.getElementById('HamsaFloatingBadge');
+  var closeBtn = document.getElementById('hfb2Close');
+  var tab     = document.getElementById('hfb2Tab');
+  var card    = badge ? badge.querySelector('.hfb2__card') : null;
+  if (!badge || !card) return;
 
-  // Add close button
-  const closeBtn = document.createElement('button');
-  closeBtn.className = 'hfb__close';
-  closeBtn.innerHTML = '✕';
-  closeBtn.setAttribute('aria-label', 'Cerrar');
-  badge.querySelector('.hfb__link').appendChild(closeBtn);
+  /* ── Timer ── */
+  var KEY = 'hfb2tmr';
+  var SECS = 23 * 3600 + 59 * 60 + 59;
+  function loadTimer() {
+    try {
+      var d = JSON.parse(localStorage.getItem(KEY) || 'null');
+      if (d && d.exp > Date.now()) return Math.floor((d.exp - Date.now()) / 1000);
+    } catch(e) {}
+    var exp = Date.now() + SECS * 1000;
+    try { localStorage.setItem(KEY, JSON.stringify({exp:exp})); } catch(e) {}
+    return SECS;
+  }
+  var remaining = loadTimer();
+  function pad(n) { return n < 10 ? '0' + n : '' + n; }
+  function tick() {
+    if (remaining <= 0) { remaining = SECS; try { localStorage.removeItem(KEY); } catch(e) {} }
+    var h = Math.floor(remaining / 3600);
+    var m = Math.floor((remaining % 3600) / 60);
+    var s = remaining % 60;
+    var dH = document.getElementById('hfb2H');
+    var dM = document.getElementById('hfb2M');
+    var dS = document.getElementById('hfb2S');
+    if (dH) dH.textContent = pad(h);
+    if (dM) dM.textContent = pad(m);
+    if (dS) dS.textContent = pad(s);
+    remaining--;
+  }
+  tick();
+  setInterval(tick, 1000);
 
-  closeBtn.addEventListener('click', function(e) {
-    e.preventDefault();
-    e.stopPropagation();
-    badge.classList.add('hfb--hidden');
-    try { sessionStorage.setItem('hfb_closed', '1'); } catch(err) {}
+  /* ── Close / minimize ── */
+  closeBtn && closeBtn.addEventListener('click', function(e) {
+    e.preventDefault(); e.stopPropagation();
+    card.style.display = 'none';
+    closeBtn.style.display = 'none';
+    if (tab) tab.style.display = 'flex';
+    try { sessionStorage.setItem('hfb2_min', '1'); } catch(err) {}
   });
 
-  // Check if closed this session
+  tab && tab.addEventListener('click', function() {
+    card.style.display = 'block';
+    closeBtn.style.display = 'flex';
+    tab.style.display = 'none';
+    try { sessionStorage.removeItem('hfb2_min'); } catch(err) {}
+  });
+
+  /* Check minimized state */
   try {
-    if (sessionStorage.getItem('hfb_closed') === '1') {
-      badge.classList.add('hfb--hidden');
+    if (sessionStorage.getItem('hfb2_min') === '1') {
+      card.style.display = 'none';
+      closeBtn.style.display = 'none';
+      if (tab) tab.style.display = 'flex';
     }
   } catch(err) {}
-
-  // Only show on homepage
-  const isHome = window.location.pathname === '/' || window.location.pathname === '';
-  if (!isHome) {
-    badge.classList.add('hfb--hidden');
-  }
 })();
 </script>
 {% endif %}
@@ -229,10 +326,7 @@
         { "value": "left", "label": "Izquierda" }
       ],
       "default": "right"
-    },
-    { "type": "color", "id": "bg_color", "label": "Color de fondo", "default": "#FDFAF7" },
-    { "type": "color", "id": "text_color", "label": "Color de texto", "default": "#ffffff" },
-    { "type": "color", "id": "accent_color", "label": "Color acento (dorado/neón)", "default": "#D4527A" }
+    }
   ],
   "presets": [{ "name": "🔥 Badge 2×1 Flotante" }]
 }
