@@ -27,7 +27,6 @@
         "timer_min": 14,
         "timer_sec": 59,
         "reviews_count": 87,
-        "reviews_label": "reseñas verificadas",
         "sold_count": 342,
         "trust1": "Envío gratis",
         "trust1_sub": "A toda Colombia sin costo",
@@ -38,9 +37,9 @@
         "trust4": "Cambio de talla",
         "trust4_sub": "Sin complicaciones",
         "show_stock_bar": true,
-        "stock_label": "¡Alta demanda! Pocas unidades",
+        "stock_label": "¡Alta demanda! Pocas unidades disponibles",
         "stock_pct": 23,
-        "stock_sub": "Se agota rápido",
+        "stock_sub": "⚡ Se agota rápido — Asegura el tuyo ahora",
         "show_wa": true,
         "wa_number": "3508258757",
         "wa_text": "Pedir por WhatsApp",
@@ -54,14 +53,15 @@
       "type": "hamsa-bundle",
       "settings": {
         "bg_color": "#FDFAF7",
-        "title": "🔥 Lleva 2 Pares por Solo $159.900",
+        "title": "🔥 Lleva 2 Pares y Ahorra $79.900",
         "savings_label": "¡Ahorras $79.900!",
         "compare_price": "$239.800",
-        "bundle_price": 15990000,
+        "bundle_price": "15990000",
         "bundle_qty": 2,
-        "limit": 6,
-        "btn_text": "Agregar 2×1 al carrito",
-        "btn_sub": "⚡ Precio especial aplicado automáticamente"
+        "limit": 12,
+        "btn_text": "Agregar los 2 pares al carrito",
+        "timer_min": 14,
+        "timer_sec": 59
       }
     }
   },
