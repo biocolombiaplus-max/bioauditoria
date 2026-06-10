@@ -6,16 +6,38 @@
      CSS GLOBAL: centrar botón Realised ODS
 ═══════════════════════════════════════════ -->
 <style>
-/* Centrar botón Pagar Contra Entrega (Realised ODS) */
+/* ── Realised ODS: centrado y estilizado ── */
 realised-ods-button,
 .realised-ods-button,
-[class*="realised"],
-.realised-button,
-.realised-cod-btn,
-buy-buttons > * { display:block; width:100% !important; text-align:center !important; }
+[class*="realised-ods"],
+[class*="realised_ods"] {
+  display: block !important;
+  width: 100% !important;
+  text-align: center !important;
+  margin: 0 auto !important;
+}
 realised-ods-button button,
 .realised-ods-button button,
-[class*="realised"] button { width:100% !important; max-width:100% !important; }
+[class*="realised-ods"] button,
+[class*="realised_ods"] button {
+  display: block !important;
+  width: 100% !important;
+  max-width: 100% !important;
+  margin: 0 auto !important;
+  border-radius: 50px !important;
+  font-weight: 800 !important;
+  font-size: 15px !important;
+  padding: 14px 20px !important;
+  box-shadow: 0 6px 20px rgba(0,0,0,.2) !important;
+  cursor: pointer !important;
+}
+/* Ocultar el botón ODS nativo — lo mostramos dentro de nuestra sección */
+buy-buttons realised-ods-button,
+buy-buttons .realised-ods-button,
+buy-buttons [class*="realised-ods"] { display: none !important; }
+#hcv-ods-native-wrap realised-ods-button,
+#hcv-ods-native-wrap .realised-ods-button,
+#hcv-ods-native-wrap [class*="realised-ods"] { display: block !important; }
 </style>
 
 <div class="hcv5" id="HamsaCV5">
@@ -76,11 +98,12 @@ realised-ods-button button,
         <span>Pagas cuando recibes el paquete · Sin tarjeta · Sin riesgo</span>
       </div>
     </div>
-    <!-- El botón de Realised ODS aparece aquí automáticamente -->
+    <!-- Botón que dispara Realised ODS (o fallback WhatsApp) -->
     <div class="hcv5__realised-slot" id="hcvRealisedSlot">
-      <!-- Realised ODS inyecta su botón dentro del form del producto arriba.
-           Este botón alternativo funciona si la app no está activa -->
-      <a href="https://wa.me/{{ hc_wa }}?text={{ hc_msg }}" class="hcv5__cod-btn" target="_blank" rel="noopener">
+      <!-- Clon del botón Realised ODS se moverá aquí via JS -->
+      <div id="hcv-ods-native-wrap" style="width:100%"></div>
+      <!-- Fallback si Realised ODS no está instalado -->
+      <a href="https://wa.me/{{ hc_wa }}?text={{ hc_msg }}" class="hcv5__cod-btn" id="hcvCodFallback" target="_blank" rel="noopener" style="display:none">
         🛒 Pagar Contra Entrega — Paga al recibir
       </a>
     </div>
@@ -527,6 +550,56 @@ realised-ods-button button,
   }
   ['Bogotá','Medellín','Cali','Barranquilla'].forEach(addCity);
   setTimeout(function(){showToast();setInterval(showToast,Math.random()*12e3+8e3);},1500);
+
+  /* REALISED ODS — mover botón al slot de nuestra sección */
+  function moveODSBtn(){
+    var wrap=document.getElementById('hcv-ods-native-wrap');
+    var fallback=document.getElementById('hcvCodFallback');
+    if(!wrap)return;
+    // Selectores posibles del botón Realised ODS
+    var odsEl=document.querySelector('buy-buttons realised-ods-button')||
+              document.querySelector('buy-buttons .realised-ods-button')||
+              document.querySelector('[data-realised-ods]')||
+              document.querySelector('form[action="/cart/add"] [class*="realised"]');
+    if(odsEl){
+      // Clonar y mover al slot
+      var clone=odsEl.cloneNode(true);
+      clone.style.cssText='display:block!important;width:100%!important';
+      wrap.innerHTML='';
+      wrap.appendChild(clone);
+      // Clic en el clon => clic en el original para activar la app
+      clone.addEventListener('click',function(e){
+        e.preventDefault();e.stopPropagation();
+        odsEl.querySelector('button')?odsEl.querySelector('button').click():odsEl.click();
+      });
+      // También interceptar botones internos del clon
+      var innerBtns=clone.querySelectorAll('button,a');
+      innerBtns.forEach(function(b){
+        b.addEventListener('click',function(e){
+          e.preventDefault();e.stopPropagation();
+          odsEl.querySelector('button')?odsEl.querySelector('button').click():odsEl.click();
+        });
+      });
+      if(fallback)fallback.style.display='none';
+    } else {
+      // No hay Realised ODS — mostrar fallback WhatsApp
+      wrap.style.display='none';
+      if(fallback)fallback.style.display='block';
+    }
+  }
+  // Intentar mover ODS cuando el DOM esté listo y también tras carga dinámica
+  if(document.readyState==='loading'){
+    document.addEventListener('DOMContentLoaded',function(){setTimeout(moveODSBtn,800);});
+  } else {
+    setTimeout(moveODSBtn,800);
+  }
+  // Observer por si la app inyecta el botón tarde (apps externas)
+  var odsObs=new MutationObserver(function(){
+    var wrap=document.getElementById('hcv-ods-native-wrap');
+    if(wrap&&wrap.children.length===0)moveODSBtn();
+  });
+  odsObs.observe(document.body,{childList:true,subtree:true});
+  setTimeout(function(){odsObs.disconnect();},8000);
 
   /* PAGO 5% */
   var payBtn=document.getElementById('hcvPayNow');
