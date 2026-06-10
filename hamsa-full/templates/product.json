@@ -211,12 +211,15 @@
                   "blocks": {}
                 }
               },
-              "block_order": []
+              "block_order": [
+                "quantity",
+                "add-to-cart",
+                "accelerated-checkout"
+              ]
             },
             "text_aEtTtq": {
               "type": "text",
               "name": "Product description",
-              "disabled": true,
               "settings": {
                 "text": "{{ closest.product.description }}",
                 "width": "100%",
