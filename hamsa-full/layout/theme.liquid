@@ -492,5 +492,9 @@
   })();
   </script>
 
+  {% if template == 'product' %}
+    {%- render 'hamsa-conversion', product: product -%}
+  {% endif %}
+
   </body>
 </html>

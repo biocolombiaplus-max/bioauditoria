@@ -1,0 +1,259 @@
+{% comment %}hamsa-conversion — inyectado en theme.liquid para páginas de producto{% endcomment %}
+{%- assign hc_wa = "573508258757" -%}
+{%- assign hc_msg = "Hola, quiero pedir: " | append: product.title | url_encode -%}
+
+<div class="hc" id="HamsaConversion">
+
+<!-- ══ 1. BARRA URGENCIA ══ -->
+<div class="hc__urgency">
+  <div class="hc__u-left">
+    <span class="hc__udot"></span>
+    <span class="hc__ulabel">⏰ Precio especial termina en:</span>
+    <span class="hc__utimer">
+      <b id="hcH">14</b>:<b id="hcM">59</b>:<b id="hcS">59</b>
+    </span>
+  </div>
+  <div class="hc__viewers">
+    <span class="hc__vdot"></span>
+    <span id="hcVC">12</span> viendo ahora
+  </div>
+</div>
+
+<!-- ══ 2. SOCIAL PROOF ══ -->
+<div class="hc__social">
+  <span class="hc__stars">★★★★★</span>
+  <span class="hc__slabel">87 reseñas verificadas</span>
+  <span class="hc__sep">·</span>
+  <span class="hc__slabel">+342 vendidos</span>
+  <span class="hc__sep">·</span>
+  <span class="hc__top">🏆 Top Colombia</span>
+</div>
+
+<!-- ══ 3. TRUST BADGES ══ -->
+<div class="hc__trust">
+  <div class="hc__ti"><span>🚚</span><strong>Envío gratis</strong><small>A toda Colombia</small></div>
+  <div class="hc__ti"><span>💵</span><strong>Contra entrega</strong><small>Paga al recibir</small></div>
+  <div class="hc__ti"><span>🔒</span><strong>Compra segura</strong><small>100% protegida</small></div>
+  <div class="hc__ti"><span>🔄</span><strong>Cambio gratis</strong><small>Sin preguntas</small></div>
+</div>
+
+<!-- ══ 4. STOCK URGENCIA ══ -->
+<div class="hc__stock">
+  <div class="hc__stock-top">
+    <span>🔥 ¡Alta demanda! Pocas unidades disponibles</span>
+    <span>23% disponible</span>
+  </div>
+  <div class="hc__stock-bar"><div class="hc__stock-fill" style="width:23%"></div></div>
+  <div class="hc__stock-sub">⚡ Se agota rápido — Asegura el tuyo ahora</div>
+</div>
+
+<!-- ══ 5. WHATSAPP ══ -->
+<a href="https://wa.me/{{ hc_wa }}?text={{ hc_msg }}" class="hc__wa" target="_blank" rel="noopener">
+  <svg viewBox="0 0 24 24" fill="currentColor" width="22" height="22" style="flex-shrink:0">
+    <path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z"/>
+  </svg>
+  <div>
+    <span class="hc__wa-main">Pedir por WhatsApp</span>
+    <span class="hc__wa-sub">Respuesta inmediata · Pago al recibir</span>
+  </div>
+  <span style="font-size:20px;font-weight:700">→</span>
+</a>
+
+<!-- ══ 6. GARANTÍA ══ -->
+<div class="hc__guarantee">
+  <span style="font-size:28px;flex-shrink:0">🛡️</span>
+  <div>
+    <strong>Compra 100% garantizada</strong>
+    <span>Si tu pedido no llega o no es el correcto, te lo resolvemos sin preguntas.</span>
+  </div>
+</div>
+
+<!-- ══ 7. LIVE FOMO ══ -->
+<div id="hcLive" aria-live="polite" style="margin:0 20px 12px;min-height:0"></div>
+
+<!-- ══ 8. RESEÑAS ══ -->
+<div class="hc__reviews">
+  <div class="hc__rev-head">
+    <span style="color:#F59E0B;font-size:16px">★★★★★</span>
+    <strong>4.9 / 5</strong>
+    <span style="font-size:12px;color:#7A6E64">(87 reseñas verificadas)</span>
+  </div>
+
+  <div class="hc__review">
+    <div class="hc__rev-row">
+      <span class="hc__av" style="background:#D4527A">M</span>
+      <div><strong>María C.</strong><span class="hc__rstars">★★★★★</span></div>
+      <span class="hc__badge">✓ Compra verificada</span>
+    </div>
+    <p>"Me llegaron en 3 días, preciosas! El material es de muy buena calidad, exactamente como las fotos. Ya pedí otro par 😍"</p>
+    <small>hace 2 días · Bogotá</small>
+  </div>
+
+  <div class="hc__review">
+    <div class="hc__rev-row">
+      <span class="hc__av" style="background:#7C3AED">L</span>
+      <div><strong>Laura M.</strong><span class="hc__rstars">★★★★★</span></div>
+      <span class="hc__badge">✓ Compra verificada</span>
+    </div>
+    <p>"Aproveché la oferta 2×1 y quedé feliz. El taco es cómodo para todo el día y el envío fue rapidísimo. 100% recomendado"</p>
+    <small>hace 5 días · Medellín</small>
+  </div>
+
+  <div class="hc__review">
+    <div class="hc__rev-row">
+      <span class="hc__av" style="background:#059669">A</span>
+      <div><strong>Andrea R.</strong><span class="hc__rstars">★★★★★</span></div>
+      <span class="hc__badge">✓ Compra verificada</span>
+    </div>
+    <p>"Pagué al recibir, sin riesgo. La sandalia es divina, ya quiero comprar otra. Muy buena atención por WhatsApp también."</p>
+    <small>hace 1 semana · Cali</small>
+  </div>
+</div>
+
+</div><!-- /.hc -->
+
+<!-- ══ STICKY BAR MÓVIL ══ -->
+<div class="hc__sticky" id="hcSticky">
+  <div class="hc__sticky-price">
+    <span class="hc__sp-main">{{ product.price | money }}</span>
+    {% if product.compare_at_price > product.price %}
+      <span class="hc__sp-old">{{ product.compare_at_price | money }}</span>
+    {% endif %}
+  </div>
+  <a href="https://wa.me/{{ hc_wa }}?text={{ hc_msg }}" class="hc__sticky-btn" target="_blank" rel="noopener">
+    💚 Pedir ahora
+  </a>
+</div>
+
+<style>
+.hc{font-family:var(--font-body--family,system-ui,sans-serif);color:#1C1208;background:#FDFAF7;padding-bottom:8px}
+.hc *{box-sizing:border-box}
+
+/* URGENCY */
+.hc__urgency{display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px;background:linear-gradient(135deg,#1C1208,#2D1A10);color:#fff;padding:10px 20px}
+.hc__udot,.hc__vdot{width:8px;height:8px;border-radius:50%;flex-shrink:0;box-shadow:0 0 0 0 rgba(74,222,128,.5);animation:hc-pulse 1.5s infinite}
+.hc__udot{background:#4ADE80}
+.hc__vdot{background:#F59E0B;width:6px;height:6px;animation-delay:.5s}
+@keyframes hc-pulse{0%{box-shadow:0 0 0 0 rgba(74,222,128,.5)}70%{box-shadow:0 0 0 8px rgba(74,222,128,0)}100%{box-shadow:0 0 0 0 rgba(74,222,128,0)}}
+.hc__u-left{display:flex;align-items:center;gap:8px}
+.hc__ulabel{font-size:12px;font-weight:700;color:rgba(255,255,255,.85);white-space:nowrap}
+.hc__utimer{font-size:18px;font-weight:900;color:#FFD700;font-variant-numeric:tabular-nums;letter-spacing:.02em}
+.hc__utimer b{font-weight:900}
+.hc__viewers{display:flex;align-items:center;gap:6px;font-size:11px;color:rgba(255,255,255,.7);white-space:nowrap}
+
+/* SOCIAL */
+.hc__social{display:flex;align-items:center;gap:8px;flex-wrap:wrap;padding:10px 20px;background:#fff;border-bottom:1px solid rgba(212,82,122,.08)}
+.hc__stars{color:#F59E0B;font-size:13px;letter-spacing:1px}
+.hc__slabel{font-size:12px;font-weight:600;color:#7A6E64}
+.hc__sep{color:rgba(0,0,0,.2);font-size:14px}
+.hc__top{background:linear-gradient(135deg,#FFD700,#F59E0B);border-radius:20px;padding:2px 8px;font-size:11px;font-weight:700;color:#1C1208}
+
+/* TRUST */
+.hc__trust{display:grid;grid-template-columns:repeat(4,1fr);gap:1px;background:rgba(212,82,122,.1);border-top:1px solid rgba(212,82,122,.08);border-bottom:1px solid rgba(212,82,122,.08);overflow:hidden}
+.hc__ti{background:#fff;display:flex;flex-direction:column;align-items:center;text-align:center;padding:14px 8px;gap:4px}
+.hc__ti>span{font-size:22px}
+.hc__ti>strong{font-size:11px;font-weight:700;color:#1C1208;display:block}
+.hc__ti>small{font-size:10px;color:#7A6E64;display:block;line-height:1.3}
+
+/* STOCK */
+.hc__stock{padding:14px 20px;background:linear-gradient(135deg,#FFF5F7,#FFF0F4);border-bottom:1px solid rgba(212,82,122,.1)}
+.hc__stock-top{display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;font-size:12px;font-weight:700;color:#C0405F}
+.hc__stock-bar{height:8px;background:rgba(212,82,122,.15);border-radius:20px;overflow:hidden}
+.hc__stock-fill{height:100%;background:linear-gradient(90deg,#C0405F,#D4527A);border-radius:20px;animation:hc-stock 2s ease-out}
+@keyframes hc-stock{from{width:0}}
+.hc__stock-sub{font-size:11px;color:#7A6E64;margin-top:6px;font-weight:600}
+
+/* WHATSAPP */
+.hc__wa{display:flex;align-items:center;gap:14px;margin:16px 20px;background:linear-gradient(135deg,#075E54,#128C7E,#25D366);color:#fff;text-decoration:none;padding:14px 20px;border-radius:14px;box-shadow:0 6px 24px rgba(37,211,102,.35);transition:transform .25s,box-shadow .25s}
+.hc__wa:hover{transform:translateY(-3px);box-shadow:0 10px 32px rgba(37,211,102,.5);color:#fff}
+.hc__wa>div{flex:1}
+.hc__wa-main{display:block;font-size:15px;font-weight:800}
+.hc__wa-sub{display:block;font-size:11px;color:rgba(255,255,255,.8);margin-top:2px}
+
+/* GUARANTEE */
+.hc__guarantee{display:flex;align-items:flex-start;gap:14px;margin:0 20px 16px;background:#fff;border:1.5px solid rgba(212,82,122,.2);border-radius:12px;padding:14px}
+.hc__guarantee>div strong{display:block;font-size:13px;font-weight:800;color:#1C1208;margin-bottom:4px}
+.hc__guarantee>div span{font-size:12px;color:#7A6E64;line-height:1.5}
+
+/* LIVE TOAST */
+.hc__toast{display:flex;align-items:center;gap:10px;background:#fff;border:1px solid rgba(212,82,122,.15);border-radius:10px;padding:10px 14px;font-size:12px;color:#1C1208;animation:hc-slide .4s ease;box-shadow:0 2px 12px rgba(0,0,0,.06)}
+@keyframes hc-slide{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:translateY(0)}}
+
+/* REVIEWS */
+.hc__reviews{padding:20px 20px 8px;border-top:1px solid rgba(212,82,122,.08)}
+.hc__rev-head{display:flex;align-items:center;gap:8px;margin-bottom:16px;flex-wrap:wrap}
+.hc__rev-head strong{font-size:16px;font-weight:800;color:#1C1208}
+.hc__review{background:#fff;border:1px solid rgba(212,82,122,.1);border-radius:12px;padding:14px;margin-bottom:12px}
+.hc__rev-row{display:flex;align-items:center;gap:10px;margin-bottom:8px;flex-wrap:wrap}
+.hc__av{width:36px;height:36px;border-radius:50%;flex-shrink:0;display:flex;align-items:center;justify-content:center;color:#fff;font-size:16px;font-weight:800}
+.hc__rev-row>div{flex:1}
+.hc__rev-row strong{display:block;font-size:13px;font-weight:700;color:#1C1208}
+.hc__rstars{color:#F59E0B;font-size:11px}
+.hc__badge{font-size:10px;color:#059669;font-weight:600;background:rgba(5,150,105,.08);padding:2px 8px;border-radius:20px;white-space:nowrap}
+.hc__review p{font-size:13px;color:#7A6E64;line-height:1.6;margin:0 0 6px}
+.hc__review small{font-size:11px;color:rgba(0,0,0,.35)}
+
+/* STICKY (móvil) */
+.hc__sticky{display:none;position:fixed;bottom:56px;left:0;right:0;z-index:9996;background:#fff;border-top:1px solid rgba(212,82,122,.2);padding:10px 16px;align-items:center;gap:12px;box-shadow:0 -4px 20px rgba(0,0,0,.1)}
+.hc__sticky-price{flex:1}
+.hc__sp-main{font-size:18px;font-weight:800;color:#D4527A;display:block}
+.hc__sp-old{font-size:12px;text-decoration:line-through;color:#7A6E64}
+.hc__sticky-btn{background:linear-gradient(135deg,#128C7E,#25D366);color:#fff;font-size:14px;font-weight:800;padding:12px 20px;border-radius:50px;text-decoration:none;white-space:nowrap;box-shadow:0 4px 16px rgba(37,211,102,.4)}
+
+@media(max-width:767px){
+  .hc__sticky{display:flex}
+  .hc__trust{grid-template-columns:repeat(2,1fr)}
+  .hc__urgency{padding:8px 14px}
+  .hc__ulabel{font-size:11px}
+  .hc__utimer{font-size:16px}
+  .hc__wa{margin:12px 14px;padding:12px 16px}
+  .hc__guarantee{margin:0 14px 12px}
+  .hc__reviews{padding:16px 14px}
+  .hc__stock{padding:12px 14px}
+  .hc__social{padding:8px 14px}
+  body{padding-bottom:56px}
+}
+</style>
+
+<script>
+(function(){
+  /* TIMER */
+  var KEY='hctmr',SECS=14*60+59;
+  function loadT(){try{var d=JSON.parse(localStorage.getItem(KEY)||'null');if(d&&d.exp>Date.now())return Math.floor((d.exp-Date.now())/1000);}catch(e){}var exp=Date.now()+SECS*1000;try{localStorage.setItem(KEY,JSON.stringify({exp:exp}));}catch(e){}return SECS;}
+  var rem=loadT();
+  function pad(n){return n<10?'0'+n:''+n;}
+  function tick(){
+    if(rem<=0){rem=SECS;try{localStorage.removeItem(KEY);}catch(e){}}
+    var h=Math.floor(rem/3600),m=Math.floor((rem%3600)/60),s=rem%60;
+    var eH=document.getElementById('hcH'),eM=document.getElementById('hcM'),eS=document.getElementById('hcS');
+    if(eH)eH.textContent=pad(h);
+    if(eM)eM.textContent=pad(m);
+    if(eS)eS.textContent=pad(s);
+    rem--;
+  }
+  tick();setInterval(tick,1000);
+
+  /* VIEWERS */
+  var vcEl=document.getElementById('hcVC');
+  var vc=Math.floor(Math.random()*15)+8;
+  if(vcEl)vcEl.textContent=vc;
+  setInterval(function(){vc=Math.max(6,Math.min(28,vc+(Math.random()<.5?1:-1)));if(vcEl)vcEl.textContent=vc;},7000);
+
+  /* LIVE FOMO */
+  var cities=['Bogotá','Medellín','Cali','Barranquilla','Bucaramanga','Pereira','Cartagena','Santa Marta'];
+  var names=['María','Laura','Andrea','Valentina','Camila','Daniela','Sofía','Paula'];
+  var feed=document.getElementById('hcLive');
+  var tt=null;
+  function showToast(){
+    if(!feed)return;
+    var c=cities[Math.floor(Math.random()*cities.length)],n=names[Math.floor(Math.random()*names.length)],mn=Math.floor(Math.random()*25)+2;
+    var msgs=['¡Acaba de comprar! <strong>'+n+'</strong> de '+c+' hace '+mn+' min','<strong>'+n+'</strong> de '+c+' aprovechó la oferta 2×1 🎉','¡Vendido! <strong>'+n+'</strong> en '+c+' aseguró su par ✓'];
+    var t=document.createElement('div');
+    t.className='hc__toast';
+    t.innerHTML='<span style="font-size:18px">🛍️</span><span>'+msgs[Math.floor(Math.random()*msgs.length)]+'</span>';
+    feed.innerHTML='';feed.appendChild(t);
+    clearTimeout(tt);tt=setTimeout(function(){if(feed)feed.innerHTML='';},5000);
+  }
+  setTimeout(function(){showToast();setInterval(showToast,Math.random()*15000+20000);},Math.random()*6000+4000);
+})();
+</script>
