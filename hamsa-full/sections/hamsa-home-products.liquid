@@ -30,7 +30,7 @@
     {% if col != blank and col.products_count > 0 %}
       <div class="hhp-grid hhp-grid--{{ section.settings.columns }}">
         {% for product in col.products limit: section.settings.limit %}
-          {%- assign purl = product.url -%}
+          {%- assign purl = '/products/' | append: product.handle -%}
           {%- assign has_sale = false -%}
           {%- if product.compare_at_price > product.price -%}{%- assign has_sale = true -%}{%- endif -%}
           {%- assign pct = 0 -%}

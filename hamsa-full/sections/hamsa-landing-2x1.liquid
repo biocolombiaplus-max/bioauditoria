@@ -429,10 +429,10 @@
 .hlp__size-btn{min-width:36px;height:32px;padding:0 8px;font-size:12px;font-weight:700;background:rgba(0,0,0,.05);border:1.5px solid rgba(0,0,0,.08);border-radius:6px;color:var(--hlp-muted);cursor:pointer;transition:all .2s}
 .hlp__size-btn:hover{border-color:var(--hlp-gold);color:var(--hlp-gold);background:rgba(201,169,110,.08)}
 .hlp__size-btn.hlp__size-btn--active{background:var(--hlp-gold);color:#000;border-color:var(--hlp-gold);font-weight:800}
-.hlp__select-btn{width:100%;display:flex;align-items:center;justify-content:center;gap:6px;padding:10px;font-size:13px;font-weight:700;background:var(--hlp-gold);color:#000;border:none;border-radius:10px;cursor:pointer;transition:opacity .2s,transform .2s;margin-top:8px}
+.hlp__select-btn{width:100%;display:flex;align-items:center;justify-content:center;gap:6px;padding:10px 8px;font-size:12px;font-weight:700;background:var(--hlp-gold);color:#000;border:none;border-radius:10px;cursor:pointer;transition:background .25s,opacity .2s,transform .2s;margin-top:8px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .hlp__select-btn:hover{opacity:.88;transform:translateY(-1px)}
-.hlp__card.hlp--selected .hlp__select-btn{background:var(--hlp-green);color:#fff}
-.hlp__select-btn-icon{font-size:16px;font-weight:800}
+.hlp__card.hlp--selected .hlp__select-btn{background:var(--hlp-green);color:#fff;font-size:11.5px}
+.hlp__select-btn-icon{font-size:15px;font-weight:800;flex-shrink:0}
 .hlp__no-products{text-align:center;padding:48px;color:var(--hlp-muted);font-size:15px}
 .hlp__summary{background:var(--hlp-card);border:1px solid color-mix(in srgb,var(--hlp-gold) 20%,transparent);border-radius:20px;padding:24px;max-width:500px;margin:0 auto}
 .hlp__summary-step-pill{display:inline-block;background:rgba(201,169,110,.12);border:1px solid rgba(201,169,110,.3);color:var(--hlp-gold);font-size:11px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;padding:4px 12px;border-radius:20px;margin-bottom:16px}
@@ -1159,7 +1159,7 @@
           return;
         }
         card.classList.add('hlp--selected');
-        if(icon)icon.textContent='&#10003;';if(lbl)lbl.textContent='Seleccionado!';
+        if(icon)icon.textContent='✓';if(lbl)lbl.textContent='¡Agregado! Elige 1 más';
         var v=getVariant(card),img=card.querySelector('.hlp__card-img'),ci=card.querySelector('.hlp__color-val'),ssi=card.querySelector('.hlp__size-val');
         selected[pid]={variantId:(v&&v.id)||card.querySelector('.hlp__vid').value,price:(v&&v.price)||0,title:card.querySelector('.hlp__card-name').textContent.trim(),img:(img&&img.src)||'',color:(ci&&ci.value)||'',size:(ssi&&ssi.value)||''};
         if(Object.keys(selected).length>=BUNDLE_QTY)setTimeout(function(){if(!adding)doAddToCart(null,document.getElementById('hlpCTAText'));},400);
@@ -1396,14 +1396,14 @@
     var count=Object.keys(selected).length,need=BUNDLE_QTY;
     mUrgency.style.display='flex';
     if(count>=need){
-      mUrgIcon.textContent='&#9989;';mUrgTitle.textContent='Pedido completo!';
+      mUrgIcon.textContent='✅';mUrgTitle.textContent='Pedido completo!';
       mUrgMsg.textContent='Tienes '+need+' pares. Confirma tu compra abajo.';
       mUrgency.style.borderColor='rgba(0,200,83,.5)';
       mUrgency.style.background='linear-gradient(135deg,rgba(0,200,83,.12),rgba(0,200,83,.04))';
       mUrgTitle.style.color='#00c853';
     }else{
       var rem=need-count;
-      mUrgIcon.textContent='&#127881;';
+      mUrgIcon.textContent='🎉';
       mUrgTitle.textContent='Par '+count+' seleccionado!';
       mUrgMsg.textContent='Ahora elige tu '+( count===1?'2do':'otro')+' par — Oferta 2x1 activa al tener '+need+'. Pocas unidades!';
       mUrgency.style.borderColor='rgba(201,169,110,.45)';
@@ -1429,7 +1429,7 @@
     if(!card.classList.contains('hlp--selected')&&Object.keys(selected).length<BUNDLE_QTY){
       card.classList.add('hlp--selected');
       var icon=card.querySelector('.hlp__select-btn-icon'),lbl=card.querySelector('.hlp__select-btn-lbl');
-      if(icon)icon.textContent='&#10003;';if(lbl)lbl.textContent='Seleccionado!';
+      if(icon)icon.textContent='✓';if(lbl)lbl.textContent='¡Agregado! Elige 1 más';
       var v=getVariant(card),img=card.querySelector('.hlp__card-img'),ci=card.querySelector('.hlp__color-val');
       // Apply chosen color from modal to card before building selected
       if(mColor){
