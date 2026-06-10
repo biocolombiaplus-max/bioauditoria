@@ -1,0 +1,284 @@
+{% assign col = collections[section.settings.collection] %}
+
+<section class="hhp-section" id="HamsaProducts-{{ section.id }}" style="
+  --bg: {{ section.settings.bg_color }};
+  --card-bg: {{ section.settings.card_bg }};
+  --gold: {{ section.settings.gold_color }};
+  --text: {{ section.settings.text_color }};
+  --muted: {{ section.settings.muted_color }};
+  --btn-bg: {{ section.settings.btn_bg }};
+  --btn-text: {{ section.settings.btn_text_color }};
+  --wa: {{ section.settings.wa_color }};
+">
+
+  <div class="hhp-container">
+
+    <div class="hhp-head">
+      {% if section.settings.eyebrow != blank %}
+        <div class="hhp-eyebrow">
+          <span></span>{{ section.settings.eyebrow }}<span></span>
+        </div>
+      {% endif %}
+      {% if section.settings.heading != blank %}
+        <h2 class="hhp-title">{{ section.settings.heading }}</h2>
+      {% endif %}
+      {% if section.settings.subtext != blank %}
+        <p class="hhp-sub">{{ section.settings.subtext }}</p>
+      {% endif %}
+    </div>
+
+    {% if col != blank and col.products_count > 0 %}
+      <div class="hhp-grid hhp-grid--{{ section.settings.columns }}">
+        {% for product in col.products limit: section.settings.limit %}
+          {%- assign first_var = product.selected_or_first_available_variant -%}
+          {%- assign has_sale = false -%}
+          {%- if product.compare_at_price > product.price -%}{%- assign has_sale = true -%}{%- endif -%}
+          {%- assign pct = 0 -%}
+          {%- if has_sale -%}{%- assign pct = product.compare_at_price | minus: product.price | times: 100 | divided_by: product.compare_at_price -%}{%- endif -%}
+
+          <article class="hhp-card">
+
+            <a href="{{ product.url }}" class="hhp-card__img-link">
+              {% if product.featured_image %}
+                <img src="{{ product.featured_image | image_url: width: 300, format: 'webp' }}"
+                     srcset="{{ product.featured_image | image_url: width: 180, format: 'webp' }} 180w,
+                             {{ product.featured_image | image_url: width: 300, format: 'webp' }} 300w,
+                             {{ product.featured_image | image_url: width: 400, format: 'webp' }} 400w"
+                     sizes="(max-width:600px) calc(50vw - 24px), 300px"
+                     alt="{{ product.title | escape }}"
+                     loading="lazy" width="300" height="300" decoding="async"
+                     class="hhp-card__img hhp-card__img--main">
+                {% if product.images.size > 1 %}
+                  <img src="{{ product.images[1] | image_url: width: 300 }}"
+                       srcset="{{ product.images[1] | image_url: width: 200 }} 200w,
+                               {{ product.images[1] | image_url: width: 300 }} 300w,
+                               {{ product.images[1] | image_url: width: 400 }} 400w"
+                       sizes="(max-width:600px) calc(50vw - 24px), 300px"
+                       alt="{{ product.title | escape }}"
+                       loading="lazy" width="300" height="300"
+                       class="hhp-card__img hhp-card__img--hover">
+                {% endif %}
+              {% else %}
+                <div class="hhp-card__img-empty"></div>
+              {% endif %}
+
+              <div class="hhp-card__badges">
+                {% if has_sale %}<span class="hhp-badge hhp-badge--sale">-{{ pct }}%</span>{% endif %}
+                {% unless product.available %}<span class="hhp-badge hhp-badge--sold">Agotado</span>{% endunless %}
+              </div>
+            </a>
+
+            <div class="hhp-card__body">
+              <a href="{{ product.url }}" class="hhp-card__title">{{ product.title | truncate: 45 }}</a>
+
+              <div class="hhp-card__stars">
+                <span>★★★★★</span>
+                <span class="hhp-card__rev">({{ section.settings.base_reviews | plus: forloop.index }})</span>
+              </div>
+
+              <div class="hhp-card__price">
+                <span class="hhp-card__price--main">{{ product.price | money }}</span>
+                {% if has_sale %}
+                  <span class="hhp-card__price--old">{{ product.compare_at_price | money }}</span>
+                {% endif %}
+              </div>
+
+              <div class="hhp-card__actions">
+                <a href="{{ product.url }}" class="hhp-card__btn-primary">Ver producto</a>
+                {% if section.settings.show_wa %}
+                  <a href="https://wa.me/{{ section.settings.wa_country }}{{ section.settings.wa_number }}" class="hamsa-wa-btn" data-wa-phone="{{ section.settings.wa_country }}{{ section.settings.wa_number }}" data-wa-product="{{ product.title | escape }}"
+                     class="hhp-card__btn-wa" target="_blank" rel="noopener" aria-label="WhatsApp">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z"/></svg>
+                  </a>
+                {% endif %}
+              </div>
+            </div>
+          </article>
+        {% endfor %}
+      </div>
+
+      {% if section.settings.btn_text != blank and section.settings.btn_url != blank %}
+        <div class="hhp-footer">
+          <a href="{{ section.settings.btn_url }}" class="hhp-footer__btn">
+            {{ section.settings.btn_text }}
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
+          </a>
+        </div>
+      {% endif %}
+
+    {% else %}
+      <div class="hhp-empty">
+        <p>Selecciona una colección en la configuración para mostrar productos.</p>
+      </div>
+    {% endif %}
+
+  </div>
+</section>
+
+<style>
+#HamsaProducts-{{ section.id }} {
+  background: var(--bg);
+  padding: {{ section.settings.pt }}px 0 {{ section.settings.pb }}px;
+  overflow: hidden;
+}
+#HamsaProducts-{{ section.id }} * { box-sizing: border-box; }
+.hhp-container { max-width: 1380px; margin: 0 auto; padding: 0 20px; }
+
+.hhp-head { text-align: center; margin-bottom: 40px; }
+.hhp-eyebrow {
+  display: inline-flex; align-items: center; gap: 10px;
+  font-size: 11px; font-weight: 700; letter-spacing: .15em;
+  text-transform: uppercase; color: var(--gold); margin-bottom: 12px;
+}
+.hhp-eyebrow span { width: 24px; height: 1px; background: var(--gold); display: block; }
+.hhp-title {
+  font-size: clamp(1.6rem, 3vw, 2.4rem); font-weight: 800;
+  letter-spacing: -0.02em; margin: 0 0 10px; color: var(--text);
+}
+.hhp-sub { font-size: 15px; color: var(--muted); max-width: 52ch; margin: 0 auto; }
+
+/* GRID */
+.hhp-grid {
+  display: grid;
+  gap: 16px;
+}
+.hhp-grid--2 { grid-template-columns: repeat(2, 1fr); }
+.hhp-grid--3 { grid-template-columns: repeat(3, 1fr); }
+.hhp-grid--4 { grid-template-columns: repeat(4, 1fr); }
+.hhp-grid--5 { grid-template-columns: repeat(5, 1fr); }
+
+/* CARD */
+.hhp-card {
+  background: var(--card-bg); box-shadow: 0 2px 12px rgba(0,0,0,.08);
+  border-radius: 12px;
+  overflow: hidden;
+  border: 1px solid rgba(0,0,0,.08);
+  transition: transform .25s ease, box-shadow .25s ease, border-color .25s ease;
+}
+.hhp-card:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 16px 40px rgba(0,0,0,.3);
+  border-color: color-mix(in srgb, var(--gold) 35%, transparent);
+}
+
+/* IMAGE */
+.hhp-card__img-link { display: block; position: relative; aspect-ratio: 4/5; overflow: hidden; background: #1a1a1a; }
+.hhp-card__img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; display: block; transition: opacity .35s ease, transform .4s ease; }
+.hhp-card__img--main { opacity: 1; }
+.hhp-card__img--hover { opacity: 0; }
+.hhp-card:hover .hhp-card__img--main { opacity: 0; transform: scale(1.04); }
+.hhp-card:hover .hhp-card__img--hover { opacity: 1; }
+.hhp-card__img-empty { position: absolute; inset: 0; background: #1a1a1a; }
+
+.hhp-card__badges { position: absolute; top: 10px; left: 10px; display: flex; flex-direction: column; gap: 4px; z-index: 2; }
+.hhp-badge { font-size: 11px; font-weight: 700; padding: 3px 8px; border-radius: 4px; letter-spacing: .04em; }
+.hhp-badge--sale { background: var(--gold); color: #000; }
+.hhp-badge--sold { background: rgba(0,0,0,.7); color: #fff; }
+
+/* BODY */
+.hhp-card__body { padding: 12px; }
+.hhp-card__title {
+  display: block; font-size: 13px; font-weight: 600; line-height: 1.4;
+  color: var(--text); text-decoration: none; margin-bottom: 6px;
+  overflow: hidden; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical;
+}
+.hhp-card__title:hover { color: var(--gold); }
+.hhp-card__stars { display: flex; align-items: center; gap: 4px; margin-bottom: 7px; }
+.hhp-card__stars span:first-child { color: var(--gold); font-size: 12px; }
+.hhp-card__rev { font-size: 11px; color: var(--muted); }
+.hhp-card__price { display: flex; align-items: baseline; gap: 6px; flex-wrap: wrap; margin-bottom: 10px; }
+.hhp-card__price--main { font-size: 16px; font-weight: 700; color: var(--gold); }
+.hhp-card__price--old { font-size: 12px; text-decoration: line-through; color: var(--muted); }
+.hhp-card__actions { display: flex; gap: 8px; align-items: center; }
+.hhp-card__btn-primary {
+  flex: 1; text-align: center; padding: 9px 12px; background: var(--btn-bg); color: var(--btn-text);
+  font-size: 12px; font-weight: 700; text-decoration: none; border-radius: 6px;
+  transition: opacity .2s, transform .2s;
+}
+.hhp-card__btn-primary:hover { opacity: .85; transform: translateY(-1px); }
+.hhp-card__btn-wa {
+  width: 36px; height: 36px; display: flex; align-items: center; justify-content: center;
+  background: var(--wa); color: #fff; border-radius: 6px; text-decoration: none;
+  flex-shrink: 0; transition: opacity .2s;
+}
+.hhp-card__btn-wa:hover { opacity: .85; }
+
+/* FOOTER */
+.hhp-footer { text-align: center; margin-top: 40px; }
+.hhp-footer__btn {
+  display: inline-flex; align-items: center; gap: 8px;
+  padding: 14px 32px; background: transparent;
+  border: 2px solid var(--gold); color: var(--gold);
+  font-size: 14px; font-weight: 700; text-decoration: none; border-radius: 8px;
+  transition: background .2s, color .2s, transform .2s;
+}
+.hhp-footer__btn:hover { background: var(--gold); color: #000; transform: translateY(-2px); }
+
+.hhp-empty {
+  text-align: center; padding: 48px; border: 2px dashed color-mix(in srgb, var(--gold) 25%, transparent);
+  border-radius: 12px; color: var(--muted); font-size: 14px;
+}
+
+/* RESPONSIVE */
+@media (max-width: 1100px) {
+  .hhp-grid--5 { grid-template-columns: repeat(4, 1fr); }
+}
+@media (max-width: 900px) {
+  .hhp-grid--4, .hhp-grid--5 { grid-template-columns: repeat(3, 1fr); }
+  #HamsaProducts-{{ section.id }} { padding: {{ section.settings.pt_mobile }}px 0 {{ section.settings.pb_mobile }}px; }
+}
+@media (max-width: 600px) {
+  .hhp-grid--3, .hhp-grid--4, .hhp-grid--5 { grid-template-columns: repeat(2, 1fr); gap: 10px; }
+  .hhp-grid--2 { grid-template-columns: repeat(2, 1fr); gap: 10px; }
+  .hhp-container { padding: 0 12px; }
+  .hhp-card__body { padding: 10px; }
+  .hhp-card__title { font-size: 12px; }
+  .hhp-card__btn-primary { font-size: 11px; padding: 8px; }
+}
+</style>
+
+{% schema %}
+{
+  "name": "🛍️ Productos Destacados",
+  "settings": [
+    { "type": "header", "content": "🗂️ Colección" },
+    { "type": "collection", "id": "collection", "label": "Colección a mostrar" },
+    { "type": "range", "id": "limit", "label": "Cantidad de productos", "min": 4, "max": 20, "step": 2, "default": 8 },
+    { "type": "select", "id": "columns", "label": "Columnas (escritorio)", "default": "5",
+      "options": [
+        { "value": "2", "label": "2 columnas" },
+        { "value": "3", "label": "3 columnas" },
+        { "value": "4", "label": "4 columnas" },
+        { "value": "5", "label": "5 columnas" }
+      ]
+    },
+    { "type": "header", "content": "✏️ Textos" },
+    { "type": "text", "id": "eyebrow", "label": "Texto pequeño", "default": "Más vendidos" },
+    { "type": "text", "id": "heading", "label": "Título", "default": "Nuestras sandalias" },
+    { "type": "text", "id": "subtext", "label": "Subtítulo", "default": "Diseños exclusivos para cada ocasión" },
+    { "type": "text", "id": "btn_text", "label": "Botón ver más texto", "default": "Ver todo el catálogo" },
+    { "type": "url", "id": "btn_url", "label": "Botón ver más enlace" },
+    { "type": "header", "content": "⭐ Reseñas" },
+    { "type": "number", "id": "base_reviews", "label": "Número base de reseñas", "default": 42 },
+    { "type": "header", "content": "💬 WhatsApp en tarjetas" },
+    { "type": "checkbox", "id": "show_wa", "label": "Mostrar botón WhatsApp", "default": true },
+    { "type": "text", "id": "wa_country", "label": "Código de país", "default": "57" },
+    { "type": "text", "id": "wa_number", "label": "Número WhatsApp", "default": "3508258757" },
+    { "type": "header", "content": "🎨 Colores" },
+    { "type": "color", "id": "bg_color", "label": "Fondo sección", "default": "#FDFAF7" },
+    { "type": "color", "id": "card_bg", "label": "Fondo tarjeta", "default": "#FFFFFF" },
+    { "type": "color", "id": "text_color", "label": "Texto", "default": "#1C1208" },
+    { "type": "color", "id": "muted_color", "label": "Texto suave", "default": "#7A6E64" },
+    { "type": "color", "id": "gold_color", "label": "Color acento", "default": "#D4527A" },
+    { "type": "color", "id": "btn_bg", "label": "Fondo botón", "default": "#D4527A" },
+    { "type": "color", "id": "btn_text_color", "label": "Texto botón", "default": "#FFFFFF" },
+    { "type": "color", "id": "wa_color", "label": "Color WhatsApp", "default": "#25D366" },
+    { "type": "header", "content": "📐 Espaciado" },
+    { "type": "range", "id": "pt", "label": "Padding top desktop", "min": 20, "max": 120, "step": 4, "default": 64 },
+    { "type": "range", "id": "pb", "label": "Padding bottom desktop", "min": 20, "max": 120, "step": 4, "default": 64 },
+    { "type": "range", "id": "pt_mobile", "label": "Padding top móvil", "min": 20, "max": 80, "step": 4, "default": 40 },
+    { "type": "range", "id": "pb_mobile", "label": "Padding bottom móvil", "min": 20, "max": 80, "step": 4, "default": 40 }
+  ],
+  "presets": [{ "name": "🛍️ Productos Destacados" }]
+}
+{% endschema %}

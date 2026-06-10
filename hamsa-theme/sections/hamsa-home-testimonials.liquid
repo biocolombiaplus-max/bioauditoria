@@ -1,0 +1,123 @@
+<section class="hht-section" id="HamsaTestimonials-{{ section.id }}" style="
+  --bg: {{ section.settings.bg_color }};
+  --card: {{ section.settings.card_color }};
+  --gold: {{ section.settings.gold_color }};
+  --text: {{ section.settings.text_color }};
+  --muted: {{ section.settings.muted_color }};
+">
+  <div class="hht-container">
+    {% if section.settings.heading != blank %}
+      <div class="hht-head">
+        <h2 class="hht-title">{{ section.settings.heading }}</h2>
+        {% if section.settings.subtext != blank %}<p class="hht-sub">{{ section.settings.subtext }}</p>{% endif %}
+      </div>
+    {% endif %}
+    <div class="hht-grid">
+      {% for block in section.blocks %}
+        <div class="hht-card" {{ block.shopify_attributes }}>
+          <div class="hht-card__stars">★★★★★</div>
+          {% if block.settings.review != blank %}
+            <p class="hht-card__review">"{{ block.settings.review }}"</p>
+          {% endif %}
+          <div class="hht-card__footer">
+            <div class="hht-card__avatar">
+              {% if block.settings.photo != blank %}
+                {{ block.settings.photo | image_url: width: 80 | image_tag: class: 'hht-card__photo', alt: block.settings.name, loading: 'lazy' }}
+              {% else %}
+                <div class="hht-card__initial">{{ block.settings.name | slice: 0 }}</div>
+              {% endif %}
+            </div>
+            <div>
+              <div class="hht-card__name">{{ block.settings.name }}</div>
+              <div class="hht-card__loc">{{ block.settings.city }}{% if block.settings.badge != blank %} · <span class="hht-badge">{{ block.settings.badge }}</span>{% endif %}</div>
+            </div>
+          </div>
+        </div>
+      {% endfor %}
+    </div>
+  </div>
+</section>
+
+<style>
+#HamsaTestimonials-{{ section.id }} {
+  background: var(--bg); overflow: hidden;
+  padding: {{ section.settings.pt }}px 0 {{ section.settings.pb }}px;
+}
+#HamsaTestimonials-{{ section.id }} * { box-sizing: border-box; }
+.hht-container { max-width: 1320px; margin: 0 auto; padding: 0 20px; }
+.hht-head { text-align: center; margin-bottom: 40px; }
+.hht-title { font-size: clamp(1.6rem,3vw,2.4rem); font-weight: 800; letter-spacing: -0.02em; margin: 0 0 10px; color: var(--text); }
+.hht-sub { font-size: 15px; color: var(--muted); max-width: 52ch; margin: 0 auto; }
+.hht-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; }
+.hht-card {
+  background: var(--card); border-radius: 16px; padding: 24px;
+  border: 1px solid rgba(0,0,0,.08); box-shadow: 0 2px 12px rgba(0,0,0,.06);
+  transition: transform .25s, border-color .25s;
+  display: flex; flex-direction: column;
+}
+.hht-card:hover { transform: translateY(-4px); border-color: color-mix(in srgb, var(--gold) 30%, transparent); }
+.hht-card__stars { color: var(--gold); font-size: 16px; margin-bottom: 12px; }
+.hht-card__review { font-size: 14px; line-height: 1.7; color: var(--text); flex: 1; margin: 0 0 20px; }
+.hht-card__footer { display: flex; align-items: center; gap: 12px; }
+.hht-card__avatar { width: 44px; height: 44px; border-radius: 50%; overflow: hidden; flex-shrink: 0; }
+.hht-card__photo { width:100%; height:100%; object-fit:cover; display:block; }
+.hht-card__initial {
+  width:100%; height:100%; display:flex; align-items:center; justify-content:center;
+  background: color-mix(in srgb, var(--gold) 20%, transparent);
+  color: var(--gold); font-weight: 700; font-size: 18px; text-transform: uppercase;
+}
+.hht-card__name { font-size: 13px; font-weight: 700; color: var(--text); }
+.hht-card__loc { font-size: 11px; color: var(--muted); display: flex; align-items: center; gap: 4px; margin-top: 2px; }
+.hht-badge { background: color-mix(in srgb, var(--gold) 20%, transparent); color: var(--gold); padding: 2px 6px; border-radius: 4px; font-size: 10px; font-weight: 600; }
+@media (max-width: 900px) {
+  .hht-grid { grid-template-columns: repeat(2, 1fr); }
+  #HamsaTestimonials-{{ section.id }} { padding: {{ section.settings.pt_mobile }}px 0 {{ section.settings.pb_mobile }}px; }
+}
+@media (max-width: 560px) {
+  .hht-grid { grid-template-columns: 1fr; }
+  .hht-container { padding: 0 14px; }
+}
+</style>
+
+{% schema %}
+{
+  "name": "⭐ Testimonios",
+  "max_blocks": 9,
+  "blocks": [
+    {
+      "type": "review",
+      "name": "Reseña",
+      "settings": [
+        { "type": "image_picker", "id": "photo", "label": "Foto del cliente" },
+        { "type": "text", "id": "name", "label": "Nombre", "default": "Camila R." },
+        { "type": "text", "id": "city", "label": "Ciudad", "default": "Bogotá" },
+        { "type": "text", "id": "badge", "label": "Badge (ej: Compra verificada)" },
+        { "type": "textarea", "id": "review", "label": "Reseña", "default": "Llegaron hermosas, tal como se ven en las fotos. Muy buena calidad y llegaron rápido." }
+      ]
+    }
+  ],
+  "settings": [
+    { "type": "text", "id": "heading", "label": "Título", "default": "Lo que dicen nuestras clientas" },
+    { "type": "text", "id": "subtext", "label": "Subtítulo" },
+    { "type": "color", "id": "bg_color", "label": "Fondo", "default": "#FDFAF7" },
+    { "type": "color", "id": "card_color", "label": "Fondo tarjeta", "default": "#F7F3EF" },
+    { "type": "color", "id": "text_color", "label": "Texto", "default": "#1C1208" },
+    { "type": "color", "id": "muted_color", "label": "Texto suave", "default": "#7A6E64" },
+    { "type": "color", "id": "gold_color", "label": "Acento", "default": "#D4527A" },
+    { "type": "range", "id": "pt", "label": "Padding top desktop", "min": 20, "max": 120, "step": 4, "default": 56 },
+    { "type": "range", "id": "pb", "label": "Padding bottom desktop", "min": 20, "max": 120, "step": 4, "default": 56 },
+    { "type": "range", "id": "pt_mobile", "label": "Padding top móvil", "min": 20, "max": 80, "step": 4, "default": 36 },
+    { "type": "range", "id": "pb_mobile", "label": "Padding bottom móvil", "min": 20, "max": 80, "step": 4, "default": 36 }
+  ],
+  "presets": [
+    {
+      "name": "⭐ Testimonios",
+      "blocks": [
+        { "type": "review", "settings": { "name": "Valentina M.", "city": "Medellín", "badge": "Compra verificada", "review": "Me encantaron, son muy elegantes y cómodas. El envío llegó súper rápido y bien empacado." } },
+        { "type": "review", "settings": { "name": "Laura P.", "city": "Bogotá", "badge": "Clienta feliz", "review": "Exactamente como en las fotos. Ya les compré dos veces y siempre quedo feliz." } },
+        { "type": "review", "settings": { "name": "Sofía T.", "city": "Cali", "badge": "Top reseña", "review": "Atención por WhatsApp muy rápida. Me ayudaron a escoger la talla y acerté perfecto." } }
+      ]
+    }
+  ]
+}
+{% endschema %}

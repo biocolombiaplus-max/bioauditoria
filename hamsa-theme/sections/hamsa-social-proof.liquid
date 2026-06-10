@@ -1,0 +1,161 @@
+{% comment %}
+  hamsa-social-proof.liquid
+  Barra de prueba social: ventas recientes, clientes activos, etc.
+  Aumenta conversión mostrando actividad real o simulada.
+{% endcomment %}
+
+<div class="hsp-section" id="HamsaSocialProof-{{ section.id }}" style="
+  --bg: {{ section.settings.bg_color }};
+  --text: {{ section.settings.text_color }};
+  --accent: {{ section.settings.accent_color }};
+  --card: {{ section.settings.card_color }};
+">
+  <div class="hsp-container">
+    <!-- Contador de ventas animado -->
+    {% if section.settings.show_counter %}
+    <div class="hsp-counter">
+      <div class="hsp-counter-pulse"></div>
+      <span class="hsp-counter-num" id="hspCounter-{{ section.id }}">{{ section.settings.counter_start }}</span>
+      <span class="hsp-counter-label">{{ section.settings.counter_label | default: 'pares vendidos este mes' }}</span>
+    </div>
+    {% endif %}
+    
+    <!-- Notificaciones de compra reciente -->
+    {% if section.settings.show_recent %}
+    <div class="hsp-recent-wrap">
+      {% for block in section.blocks %}
+        <div class="hsp-toast" data-delay="{{ block.settings.delay }}" {{ block.shopify_attributes }}>
+          <div class="hsp-toast-icon">{{ block.settings.flag | default: '🇨🇴' }}</div>
+          <div class="hsp-toast-text">
+            <strong>{{ block.settings.name }}</strong> de <span>{{ block.settings.city }}</span>
+            <br><small>compró {{ block.settings.product | default: 'un par de sandalias' }} hace {{ block.settings.time | default: '2 minutos' }}</small>
+          </div>
+        </div>
+      {% endfor %}
+    </div>
+    {% endif %}
+  </div>
+</div>
+
+<style>
+#HamsaSocialProof-{{ section.id }} {
+  background: var(--bg);
+  padding: {{ section.settings.pt }}px 20px {{ section.settings.pb }}px;
+}
+#HamsaSocialProof-{{ section.id }} * { box-sizing: border-box; }
+.hsp-container {
+  max-width: 900px; margin: 0 auto;
+  display: flex; flex-wrap: wrap; align-items: center; justify-content: center; gap: 16px;
+}
+.hsp-counter {
+  display: flex; align-items: center; gap: 10px;
+  background: var(--card);
+  border: 1px solid rgba(0,0,0,.08);
+  border-radius: 50px; padding: 10px 20px;
+  font-size: 14px; color: var(--text); font-weight: 600;
+}
+.hsp-counter-pulse {
+  width: 10px; height: 10px; border-radius: 50%;
+  background: var(--accent);
+  box-shadow: 0 0 0 0 color-mix(in srgb, var(--accent) 40%, transparent);
+  animation: hsp-pulse 2s infinite;
+}
+@keyframes hsp-pulse {
+  0% { box-shadow: 0 0 0 0 color-mix(in srgb, var(--accent) 40%, transparent); }
+  70% { box-shadow: 0 0 0 10px transparent; }
+  100% { box-shadow: 0 0 0 0 transparent; }
+}
+.hsp-counter-num { font-size: 22px; font-weight: 900; color: var(--accent); }
+.hsp-recent-wrap { display: flex; gap: 8px; flex-wrap: wrap; justify-content: center; }
+.hsp-toast {
+  display: flex; align-items: center; gap: 10px;
+  background: var(--card);
+  border: 1px solid rgba(0,0,0,.07);
+  border-radius: 12px; padding: 10px 14px;
+  font-size: 12px; color: var(--text);
+  animation: hsp-fadein 0.5s ease forwards;
+  opacity: 0;
+}
+@keyframes hsp-fadein {
+  from { opacity: 0; transform: translateY(6px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+.hsp-toast-icon { font-size: 20px; flex-shrink: 0; }
+.hsp-toast-text strong { font-weight: 700; display: block; margin-bottom: 1px; }
+.hsp-toast-text small { color: color-mix(in srgb, var(--text) 60%, transparent); }
+</style>
+
+<script>
+(function(){
+  // Animar el contador
+  var cEl = document.getElementById('hspCounter-{{ section.id }}');
+  if(cEl) {
+    var start = parseInt(cEl.textContent) || 342;
+    var end = start + Math.floor(Math.random() * 20) + 5;
+    var duration = 2000;
+    var startTime = null;
+    function animate(ts) {
+      if(!startTime) startTime = ts;
+      var progress = Math.min((ts - startTime) / duration, 1);
+      var eased = 1 - Math.pow(1 - progress, 3);
+      cEl.textContent = Math.floor(start + (end - start) * eased);
+      if(progress < 1) requestAnimationFrame(animate);
+    }
+    setTimeout(function(){ requestAnimationFrame(animate); }, 800);
+  }
+  
+  // Mostrar toasts con delay
+  var toasts = document.querySelectorAll('#HamsaSocialProof-{{ section.id }} .hsp-toast');
+  toasts.forEach(function(t, i){
+    var delay = parseInt(t.getAttribute('data-delay') || (i * 1200 + 1000));
+    setTimeout(function(){
+      t.style.opacity = '1';
+      t.style.animation = 'hsp-fadein 0.5s ease forwards';
+    }, delay);
+  });
+})();
+</script>
+
+{% schema %}
+{
+  "name": "Prueba Social",
+  "tag": "div",
+  "settings": [
+    { "type": "color", "id": "bg_color", "label": "Fondo", "default": "#FDFAF7" },
+    { "type": "color", "id": "card_color", "label": "Tarjeta", "default": "#FFFFFF" },
+    { "type": "color", "id": "text_color", "label": "Texto", "default": "#1C1208" },
+    { "type": "color", "id": "accent_color", "label": "Acento", "default": "#D4527A" },
+    { "type": "checkbox", "id": "show_counter", "label": "Mostrar contador ventas", "default": true },
+    { "type": "number", "id": "counter_start", "label": "Número inicial ventas", "default": 342 },
+    { "type": "text", "id": "counter_label", "label": "Etiqueta contador", "default": "pares vendidos este mes" },
+    { "type": "checkbox", "id": "show_recent", "label": "Mostrar compras recientes", "default": true },
+    { "type": "header", "content": "Espaciado" },
+    { "type": "range", "id": "pt", "label": "Padding top", "min": 10, "max": 80, "step": 4, "default": 24 },
+    { "type": "range", "id": "pb", "label": "Padding bottom", "min": 10, "max": 80, "step": 4, "default": 24 }
+  ],
+  "blocks": [
+    {
+      "name": "Compra Reciente",
+      "type": "purchase",
+      "settings": [
+        { "type": "text", "id": "name", "label": "Nombre", "default": "Laura M." },
+        { "type": "text", "id": "city", "label": "Ciudad", "default": "Bogotá" },
+        { "type": "text", "id": "flag", "label": "Emoji", "default": "🇨🇴" },
+        { "type": "text", "id": "product", "label": "Producto", "default": "Sandalia Hamsa Dorada T.37" },
+        { "type": "text", "id": "time", "label": "Hace cuánto", "default": "5 minutos" },
+        { "type": "number", "id": "delay", "label": "Delay aparición (ms)", "default": 1000 }
+      ]
+    }
+  ],
+  "presets": [
+    {
+      "name": "Prueba Social",
+      "blocks": [
+        { "type": "purchase", "settings": { "name": "Valentina R.", "city": "Medellín", "product": "Sandalia Hamsa Rosa T.38", "time": "2 minutos", "delay": 1000 } },
+        { "type": "purchase", "settings": { "name": "Camila S.", "city": "Cali", "product": "Sandalia Hamsa Beige T.36", "time": "7 minutos", "delay": 2500 } },
+        { "type": "purchase", "settings": { "name": "Isabella T.", "city": "Bogotá", "product": "Sandalia Hamsa Negra T.39", "time": "12 minutos", "delay": 4000 } }
+      ]
+    }
+  ]
+}
+{% endschema %}

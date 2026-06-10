@@ -1,0 +1,262 @@
+{% comment %}
+  hamsa-cart-boost.liquid
+  Seccion que aparece en la pagina del carrito (/cart)
+  — Muestra confianza, urgencia y ofrece 5% adicional por pago inmediato
+{% endcomment %}
+
+{%- if cart.item_count > 0 -%}
+
+{%- liquid
+  assign items_total = cart.items_subtotal_price
+  assign item_count  = cart.item_count
+  assign has_two     = false
+  if item_count >= 2
+    assign has_two = true
+  endif
+-%}
+
+<div class="hcb" id="HamsaCartBoost">
+
+  <!-- BARRA DE CONFIANZA -->
+  <div class="hcb__trust">
+    <div class="hcb__trust-item">
+      <span class="hcb__trust-icon">🚚</span>
+      <span>Envio gratis</span>
+    </div>
+    <div class="hcb__trust-sep"></div>
+    <div class="hcb__trust-item">
+      <span class="hcb__trust-icon">💵</span>
+      <span>Pago contra entrega</span>
+    </div>
+    <div class="hcb__trust-sep"></div>
+    <div class="hcb__trust-item">
+      <span class="hcb__trust-icon">🔒</span>
+      <span>Compra segura</span>
+    </div>
+    <div class="hcb__trust-sep"></div>
+    <div class="hcb__trust-item">
+      <span class="hcb__trust-icon">↩️</span>
+      <span>Cambios gratis</span>
+    </div>
+  </div>
+
+  {%- if has_two -%}
+  <!-- OFERTA ACTIVA -->
+  <div class="hcb__deal hcb__deal--active">
+    <div class="hcb__deal-icon">✅</div>
+    <div class="hcb__deal-text">
+      <p class="hcb__deal-title">¡Oferta 2x1 activa!</p>
+      <p class="hcb__deal-sub">El descuento ya esta aplicado en tu total</p>
+    </div>
+  </div>
+  {%- else -%}
+  <!-- MOTIVAR A AGREGAR 2DO PAR -->
+  <a href="/pages/oferta-2x1" class="hcb__deal hcb__deal--cta">
+    <div class="hcb__deal-icon">🔥</div>
+    <div class="hcb__deal-text">
+      <p class="hcb__deal-title">¡Agrega 1 par mas y paga solo $159.900 los 2!</p>
+      <p class="hcb__deal-sub">Ahorras $79.900 &bull; Ver oferta 2x1 →</p>
+    </div>
+  </a>
+  {%- endif -%}
+
+  <!-- OFERTA PAGO INMEDIATO 5% -->
+  {%- assign descuento_pago = cart.total_price | times: 5 | divided_by: 100 -%}
+  {%- assign precio_con_desc = cart.total_price | minus: descuento_pago -%}
+  <div class="hcb__instant" id="hcbInstant">
+    <div class="hcb__instant-badge">OFERTA ESPECIAL</div>
+    <div class="hcb__instant-body">
+      <div class="hcb__instant-left">
+        <p class="hcb__instant-title">
+          💳 Paga ahora online y obtén<br>
+          <strong>5% de descuento adicional</strong>
+        </p>
+        <p class="hcb__instant-sub">
+          Total con descuento: <strong class="hcb__instant-price">{{ precio_con_desc | money }}</strong>
+          <span class="hcb__instant-original">{{ cart.total_price | money }}</span>
+        </p>
+        <p class="hcb__instant-note">Solo aplica pagando online en este momento</p>
+      </div>
+      <button class="hcb__instant-btn" id="hcbInstantBtn" type="button">
+        Pagar<br>ahora
+      </button>
+    </div>
+  </div>
+
+  <!-- CONTADOR DE URGENCIA -->
+  <div class="hcb__urgency">
+    <span class="hcb__urgency-dot"></span>
+    <span class="hcb__urgency-text">
+      <strong id="hcbPeople">{{ 3 | plus: item_count }}</strong> personas tienen productos similares en su carrito ahora mismo
+    </span>
+  </div>
+
+</div>
+
+<style>
+/* ── BASE ── */
+.hcb{
+  max-width:600px;margin:0 auto 24px;
+  font-family:var(--font-body--family,system-ui,sans-serif);
+}
+.hcb *{box-sizing:border-box}
+
+/* ── CONFIANZA ── */
+.hcb__trust{
+  display:flex;align-items:center;justify-content:center;
+  flex-wrap:wrap;gap:0;
+  background:#111;border:1px solid rgba(255,255,255,.07);
+  border-radius:12px;padding:12px 14px;
+  margin-bottom:12px;
+}
+.hcb__trust-item{
+  display:flex;align-items:center;gap:5px;
+  font-size:11px;color:#aaa;font-weight:500;
+  padding:0 10px;
+}
+.hcb__trust-icon{font-size:14px}
+.hcb__trust-sep{width:1px;height:20px;background:rgba(0,0,0,.07)}
+
+/* ── DEAL BANNER ── */
+.hcb__deal{
+  display:flex;align-items:center;gap:12px;
+  border-radius:12px;padding:12px 14px;
+  margin-bottom:12px;
+  text-decoration:none;color:inherit;
+}
+.hcb__deal--active{
+  background:rgba(0,200,83,.08);
+  border:1px solid rgba(0,200,83,.25);
+}
+.hcb__deal--cta{
+  background:rgba(201,169,110,.08);
+  border:1px solid rgba(201,169,110,.25);
+  cursor:pointer;transition:background .2s;
+}
+.hcb__deal--cta:hover{background:rgba(201,169,110,.14)}
+.hcb__deal-icon{font-size:24px;flex-shrink:0}
+.hcb__deal-title{
+  font-size:13px;font-weight:700;
+  color:#1C1208;margin:0 0 2px;line-height:1.3;
+}
+.hcb__deal--active .hcb__deal-title{color:#00c853}
+.hcb__deal-sub{font-size:11px;color:#888;margin:0}
+
+/* ── PAGO INMEDIATO ── */
+.hcb__instant{
+  position:relative;
+  background:linear-gradient(135deg,#0a1628,#0d1f3c);
+  border:2px solid #2563eb;
+  border-radius:14px;
+  padding:16px 14px 14px;
+  margin-bottom:10px;
+  overflow:hidden;
+}
+.hcb__instant::before{
+  content:'';position:absolute;inset:0;
+  background:radial-gradient(ellipse 80% 60% at 50% 0%,rgba(37,99,235,.15),transparent);
+  pointer-events:none;
+}
+.hcb__instant-badge{
+  position:absolute;top:0;right:16px;
+  background:#2563eb;color:#fff;
+  font-size:9px;font-weight:800;letter-spacing:.1em;
+  padding:3px 10px;border-radius:0 0 8px 8px;
+}
+.hcb__instant-body{display:flex;align-items:center;gap:12px}
+.hcb__instant-left{flex:1;min-width:0}
+.hcb__instant-title{
+  font-size:13px;font-weight:600;color:#e0e8ff;
+  line-height:1.35;margin:0 0 6px;
+}
+.hcb__instant-title strong{color:#60a5fa;font-size:14px}
+.hcb__instant-sub{
+  font-size:12px;color:#aaa;margin:0 0 4px;
+}
+.hcb__instant-price{color:#34d399;font-size:15px}
+.hcb__instant-original{
+  font-size:11px;color:#666;text-decoration:line-through;margin-left:4px;
+}
+.hcb__instant-note{font-size:10px;color:#666;margin:0}
+.hcb__instant-btn{
+  flex-shrink:0;
+  background:#2563eb;color:#fff;
+  border:none;border-radius:10px;
+  padding:12px 16px;
+  font-size:12px;font-weight:800;
+  cursor:pointer;text-align:center;line-height:1.3;
+  transition:background .15s,transform .1s;
+  white-space:nowrap;
+}
+.hcb__instant-btn:hover{background:#1d4ed8;transform:translateY(-1px)}
+.hcb__instant-btn:active{transform:scale(.96)}
+
+/* ── URGENCIA ── */
+.hcb__urgency{
+  display:flex;align-items:center;gap:8px;
+  padding:0 4px;
+  font-size:11px;color:#888;
+}
+.hcb__urgency-dot{
+  width:7px;height:7px;border-radius:50%;flex-shrink:0;
+  background:#00c853;box-shadow:0 0 6px #00c853;
+  animation:hcb-pulse 2s infinite;
+}
+@keyframes hcb-pulse{0%,100%{opacity:1}50%{opacity:.4}}
+.hcb__urgency strong{color:#1C1208}
+
+@media(max-width:480px){
+  .hcb__trust-item span:not(.hcb__trust-icon){display:none}
+  .hcb__trust-item{padding:0 6px}
+}
+</style>
+
+<script>
+(function(){
+  var btn = document.getElementById('hcbInstantBtn');
+  if(!btn) return;
+
+  /* Al hacer clic en "Pagar ahora": aplicar codigo de descuento 5%
+     y redirigir al checkout.
+     
+     IMPORTANTE: Debes crear en Shopify un codigo de descuento
+     llamado PAGO5 con 5% de descuento para que esto funcione.
+     Admin > Descuentos > Crear > Codigo de descuento > 5% > guardar como PAGO5
+  */
+  btn.addEventListener('click', function(){
+    btn.textContent = 'Procesando...';
+    btn.disabled = true;
+
+    /* Aplicar el codigo de descuento PAGO5 via fetch */
+    fetch('/discount/PAGO5', { method: 'GET' })
+      .then(function(){
+        /* Redirigir al checkout con el descuento aplicado */
+        window.location.href = '/checkout';
+      })
+      .catch(function(){
+        /* Si falla el descuento, ir al checkout de todas formas */
+        window.location.href = '/checkout';
+      });
+  });
+
+  /* Variar el numero de personas cada 10s para crear urgencia real */
+  var base = parseInt(document.getElementById('hcbPeople').textContent) || 5;
+  setInterval(function(){
+    var variation = Math.floor(Math.random() * 3) - 1; /* -1, 0 o +1 */
+    var newNum = Math.max(2, Math.min(12, base + variation));
+    base = newNum;
+    var el = document.getElementById('hcbPeople');
+    if(el) el.textContent = newNum;
+  }, 8000);
+})();
+</script>
+
+{%- endif -%}
+
+{% schema %}
+{
+  "name": "Boost Carrito Hamsa",
+  "settings": [],
+  "presets": [{ "name": "Boost Carrito Hamsa" }]
+}
+{% endschema %}

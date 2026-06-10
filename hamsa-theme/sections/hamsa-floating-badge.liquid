@@ -1,0 +1,239 @@
+{% if section.settings.enabled %}
+<div class="hfb" id="HamsaFloatingBadge" aria-label="Oferta especial 2x1">
+  <a href="{{ section.settings.badge_url | default: '/pages/oferta-2x1' }}" class="hfb__link" aria-label="Ver oferta 2 pares por $159.900">
+    <span class="hfb__pulse-ring"></span>
+    <span class="hfb__pulse-ring hfb__pulse-ring--2"></span>
+    <div class="hfb__inner">
+      <span class="hfb__fire">🔥</span>
+      <div class="hfb__text-wrap">
+        <span class="hfb__tag">OFERTA</span>
+        <span class="hfb__main">2×1</span>
+      </div>
+      <div class="hfb__detail">
+        <span class="hfb__price">$159.900</span>
+        <span class="hfb__sub">2 pares</span>
+      </div>
+    </div>
+    <span class="hfb__arrow">›</span>
+  </a>
+</div>
+
+<style>
+/* ─── FLOATING BADGE ─── */
+.hfb {
+  position: fixed;
+  {{ section.settings.position }}: 24px;
+  {% if section.settings.position == 'right' %}left: auto; right: 20px;{% else %}left: 20px; right: auto;{% endif %}
+  z-index: 9998;
+  bottom: 80px;
+}
+
+@media (max-width: 767px) {
+  .hfb {
+    bottom: 72px;
+    {% if section.settings.position == 'right' %}right: 12px;{% else %}left: 12px;{% endif %}
+  }
+}
+
+.hfb__link {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  background: {{ section.settings.bg_color }};
+  color: {{ section.settings.text_color }};
+  border-radius: 60px;
+  padding: 10px 18px 10px 12px;
+  text-decoration: none;
+  box-shadow:
+    0 8px 32px rgba(0,0,0,.35),
+    0 0 0 2px {{ section.settings.accent_color }},
+    0 0 24px color-mix(in srgb, {{ section.settings.accent_color }} 50%, transparent);
+  position: relative;
+  overflow: visible;
+  animation: hfb-float 3s ease-in-out infinite;
+  transition: transform .2s, box-shadow .2s;
+  white-space: nowrap;
+}
+
+.hfb__link:hover {
+  transform: scale(1.06) translateY(-3px);
+  box-shadow:
+    0 14px 40px rgba(0,0,0,.45),
+    0 0 0 2px {{ section.settings.accent_color }},
+    0 0 40px color-mix(in srgb, {{ section.settings.accent_color }} 70%, transparent);
+  color: {{ section.settings.text_color }};
+}
+
+@keyframes hfb-float {
+  0%, 100% { transform: translateY(0px); }
+  50% { transform: translateY(-6px); }
+}
+
+/* Pulse rings */
+.hfb__pulse-ring {
+  position: absolute;
+  inset: -4px;
+  border-radius: 60px;
+  border: 2px solid {{ section.settings.accent_color }};
+  opacity: 0;
+  animation: hfb-ring 2.5s ease-out infinite;
+  pointer-events: none;
+}
+.hfb__pulse-ring--2 {
+  animation-delay: 1.25s;
+}
+@keyframes hfb-ring {
+  0% { opacity: .7; transform: scale(1); }
+  100% { opacity: 0; transform: scale(1.35); }
+}
+
+.hfb__fire {
+  font-size: 22px;
+  animation: hfb-fire 1.2s infinite alternate;
+  flex-shrink: 0;
+}
+@keyframes hfb-fire {
+  from { transform: scale(1) rotate(-4deg); }
+  to { transform: scale(1.12) rotate(4deg); }
+}
+
+.hfb__text-wrap {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  line-height: 1;
+  gap: 1px;
+}
+.hfb__tag {
+  font-size: 9px;
+  font-weight: 800;
+  letter-spacing: .12em;
+  color: {{ section.settings.accent_color }};
+  text-transform: uppercase;
+}
+.hfb__main {
+  font-size: 26px;
+  font-weight: 900;
+  letter-spacing: -.01em;
+  color: {{ section.settings.text_color }};
+  line-height: 1;
+  font-family: var(--font-primary--family, sans-serif);
+}
+
+.hfb__detail {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 1px;
+  border-left: 1px solid color-mix(in srgb, {{ section.settings.text_color }} 20%, transparent);
+  padding-left: 10px;
+  margin-left: 2px;
+}
+.hfb__price {
+  font-size: 13px;
+  font-weight: 800;
+  color: {{ section.settings.accent_color }};
+  line-height: 1;
+}
+.hfb__sub {
+  font-size: 9px;
+  color: color-mix(in srgb, {{ section.settings.text_color }} 60%, transparent);
+  letter-spacing: .04em;
+  text-transform: uppercase;
+}
+
+.hfb__arrow {
+  font-size: 22px;
+  font-weight: 700;
+  color: {{ section.settings.accent_color }};
+  margin-left: 2px;
+  animation: hfb-arrow 1s ease-in-out infinite alternate;
+}
+@keyframes hfb-arrow {
+  from { transform: translateX(0); }
+  to { transform: translateX(4px); }
+}
+
+/* Close button */
+.hfb__close {
+  position: absolute;
+  top: -8px;
+  right: -8px;
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  background: #333;
+  border: 1px solid rgba(255,255,255,.15);
+  color: #aaa;
+  font-size: 11px;
+  line-height: 1;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 2;
+  transition: background .2s;
+}
+.hfb__close:hover { background: #555; color: #fff; }
+
+.hfb--hidden { display: none !important; }
+</style>
+
+<script>
+(function(){
+  const badge = document.getElementById('HamsaFloatingBadge');
+  if (!badge) return;
+
+  // Add close button
+  const closeBtn = document.createElement('button');
+  closeBtn.className = 'hfb__close';
+  closeBtn.innerHTML = '✕';
+  closeBtn.setAttribute('aria-label', 'Cerrar');
+  badge.querySelector('.hfb__link').appendChild(closeBtn);
+
+  closeBtn.addEventListener('click', function(e) {
+    e.preventDefault();
+    e.stopPropagation();
+    badge.classList.add('hfb--hidden');
+    try { sessionStorage.setItem('hfb_closed', '1'); } catch(err) {}
+  });
+
+  // Check if closed this session
+  try {
+    if (sessionStorage.getItem('hfb_closed') === '1') {
+      badge.classList.add('hfb--hidden');
+    }
+  } catch(err) {}
+
+  // Only show on homepage
+  const isHome = window.location.pathname === '/' || window.location.pathname === '';
+  if (!isHome) {
+    badge.classList.add('hfb--hidden');
+  }
+})();
+</script>
+{% endif %}
+
+{% schema %}
+{
+  "name": "🔥 Badge 2×1 Flotante",
+  "settings": [
+    { "type": "checkbox", "id": "enabled", "label": "Activar badge flotante", "default": true },
+    { "type": "url", "id": "badge_url", "label": "URL al hacer clic", "info": "Ejemplo: /pages/oferta-2x1" },
+    {
+      "type": "select",
+      "id": "position",
+      "label": "Posición",
+      "options": [
+        { "value": "right", "label": "Derecha" },
+        { "value": "left", "label": "Izquierda" }
+      ],
+      "default": "right"
+    },
+    { "type": "color", "id": "bg_color", "label": "Color de fondo", "default": "#FDFAF7" },
+    { "type": "color", "id": "text_color", "label": "Color de texto", "default": "#1C1208" },
+    { "type": "color", "id": "accent_color", "label": "Color acento (dorado/neón)", "default": "#D4527A" }
+  ],
+  "presets": [{ "name": "🔥 Badge 2×1 Flotante" }]
+}
+{% endschema %}
