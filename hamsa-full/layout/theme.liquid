@@ -45,6 +45,10 @@
       -moz-osx-font-smoothing: grayscale;
       text-rendering: optimizeLegibility;
     }
+    /* Espacio para barra fija 2×1 en móvil */
+    @media (max-width: 767px) {
+      body { padding-bottom: 56px; }
+    }
     *, *::before, *::after { box-sizing: border-box; }
     img { max-width: 100%; height: auto; }
     .shopify-section { max-width: 100%; overflow-x: hidden; }

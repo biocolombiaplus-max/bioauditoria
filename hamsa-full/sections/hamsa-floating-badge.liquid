@@ -1,113 +1,97 @@
 {% if section.settings.enabled %}
 <div class="hfb2" id="HamsaFloatingBadge" role="complementary" aria-label="Oferta especial 2×1">
-  <button class="hfb2__close" id="hfb2Close" aria-label="Cerrar oferta">✕</button>
 
-  <a href="{{ section.settings.badge_url | default: '/pages/oferta-2x1' }}" class="hfb2__card" aria-label="Ver oferta 2 pares por $159.900">
+  <!-- ══ DESKTOP: tarjeta flotante ══ -->
+  <div class="hfb2__desktop">
+    <button class="hfb2__close" id="hfb2Close" aria-label="Cerrar oferta">✕</button>
 
-    <!-- Urgency strip -->
-    <div class="hfb2__strip">
-      <span class="hfb2__strip-dot"></span>
-      <span>⏰ Oferta · Pocas unidades</span>
-    </div>
-
-    <!-- Main content -->
-    <div class="hfb2__body">
-      <!-- Left: deal info -->
-      <div class="hfb2__left">
-        <div class="hfb2__tag">OFERTA EXCLUSIVA</div>
-        <div class="hfb2__deal">
-          <span class="hfb2__deal-main">2×1</span>
-          <div class="hfb2__deal-prices">
-            <span class="hfb2__price">$159.900</span>
-            <span class="hfb2__old">$239.800</span>
+    <a href="{{ section.settings.badge_url | default: '/pages/oferta-2x1' }}" class="hfb2__card">
+      <div class="hfb2__strip">
+        <span class="hfb2__strip-dot"></span>
+        <span>⏰ Oferta · Pocas unidades</span>
+      </div>
+      <div class="hfb2__body">
+        <div class="hfb2__left">
+          <div class="hfb2__tag">OFERTA EXCLUSIVA</div>
+          <div class="hfb2__deal">
+            <span class="hfb2__deal-main">2×1</span>
+            <div class="hfb2__deal-prices">
+              <span class="hfb2__price">$159.900</span>
+              <span class="hfb2__old">$239.800</span>
+            </div>
+          </div>
+          <div class="hfb2__save">🎁 Ahorras $79.900</div>
+        </div>
+        <div class="hfb2__right">
+          <div class="hfb2__timer-label">Termina en</div>
+          <div class="hfb2__timer">
+            <span class="hfb2__digit" id="hfb2H">23</span>
+            <span class="hfb2__colon">:</span>
+            <span class="hfb2__digit" id="hfb2M">59</span>
+            <span class="hfb2__colon">:</span>
+            <span class="hfb2__digit" id="hfb2S">59</span>
+          </div>
+          <div class="hfb2__cta">
+            Ver oferta
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
           </div>
         </div>
-        <div class="hfb2__save">🎁 Ahorras $79.900</div>
       </div>
+      <div class="hfb2__trust">
+        <span>🚚 Envío gratis</span>
+        <span>💵 Contra entrega</span>
+        <span>🔒 Seguro</span>
+      </div>
+    </a>
 
-      <!-- Right: timer + cta -->
-      <div class="hfb2__right">
-        <div class="hfb2__timer-label">Termina en</div>
-        <div class="hfb2__timer">
-          <span class="hfb2__digit" id="hfb2H">23</span>
-          <span class="hfb2__colon">:</span>
-          <span class="hfb2__digit" id="hfb2M">59</span>
-          <span class="hfb2__colon">:</span>
-          <span class="hfb2__digit" id="hfb2S">59</span>
-        </div>
-        <div class="hfb2__cta">
-          Ver oferta
-          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
+    <button class="hfb2__tab" id="hfb2Tab" aria-label="Ver oferta 2×1" style="display:none">
+      🔥 2×1 $159.900
+    </button>
+  </div>
+
+  <!-- ══ MOBILE: barra fija inferior ══ -->
+  <a href="{{ section.settings.badge_url | default: '/pages/oferta-2x1' }}" class="hfb2__bar" id="hfb2Bar">
+    <div class="hfb2__bar-left">
+      <span class="hfb2__bar-dot"></span>
+      <div class="hfb2__bar-deal">
+        <span class="hfb2__bar-2x1">2×1</span>
+        <div class="hfb2__bar-prices">
+          <span class="hfb2__bar-price">$159.900</span>
+          <span class="hfb2__bar-old">$239.800</span>
         </div>
       </div>
     </div>
-
-    <!-- Trust pills -->
-    <div class="hfb2__trust">
-      <span>🚚 Envío gratis</span>
-      <span>💵 Contra entrega</span>
-      <span>🔒 Seguro</span>
+    <div class="hfb2__bar-timer">
+      <span class="hfb2__bar-tdigit" id="hfb2BM">59</span>
+      <span class="hfb2__bar-tcolon">:</span>
+      <span class="hfb2__bar-tdigit" id="hfb2BS">59</span>
     </div>
-
+    <div class="hfb2__bar-cta">Ver oferta →</div>
+    <button class="hfb2__bar-close" id="hfb2BarClose" aria-label="Cerrar">✕</button>
   </a>
 
-  <!-- Tab (minimized state) -->
-  <button class="hfb2__tab" id="hfb2Tab" aria-label="Ver oferta 2×1" style="display:none">
-    🔥 2×1 $159.900
-  </button>
 </div>
 
 <style>
-/* ═══ FLOATING BADGE PREMIUM ═══ */
+/* ═══════════════════════════════════
+   DESKTOP FLOATING CARD
+═══════════════════════════════════ */
 .hfb2 {
+  font-family: var(--font-body--family, system-ui, sans-serif);
+  z-index: 9997;
+}
+
+/* Desktop card wrapper */
+.hfb2__desktop {
   position: fixed;
   {% if section.settings.position == 'left' %}left: 16px; right: auto;{% else %}right: 16px; left: auto;{% endif %}
   bottom: 88px;
-  z-index: 9997;
-  font-family: var(--font-body--family, system-ui, sans-serif);
   filter: drop-shadow(0 12px 40px rgba(192,64,95,.5));
 }
-@media (max-width: 767px) {
-  .hfb2 {
-    {% if section.settings.position == 'left' %}left: 8px;{% else %}right: 8px;{% endif %}
-    bottom: 68px;
-  }
-  /* Card más compacta en móvil */
-  .hfb2__card { width: 168px; border-radius: 14px; }
-  /* Strip simplificado — una sola línea sin desborde */
-  .hfb2__strip {
-    font-size: 8.5px; padding: 3px 8px;
-    white-space: nowrap; overflow: hidden;
-  }
-  .hfb2__strip span:last-child {
-    overflow: hidden; text-overflow: ellipsis;
-    display: block; white-space: nowrap;
-  }
-  /* Body más compacto */
-  .hfb2__body { padding: 8px 8px 6px; gap: 7px; }
-  .hfb2__tag { font-size: 7px; letter-spacing: .10em; margin-bottom: 2px; }
-  .hfb2__deal { gap: 5px; margin-bottom: 3px; }
-  .hfb2__deal-main { font-size: 24px; }
-  .hfb2__price { font-size: 10.5px; }
-  .hfb2__old { font-size: 8.5px; }
-  .hfb2__save { font-size: 8px; padding: 2px 5px; }
-  /* Timer más pequeño */
-  .hfb2__timer-label { font-size: 6.5px; }
-  .hfb2__timer { gap: 1px; }
-  .hfb2__digit { font-size: 10px; min-width: 16px; padding: 2px 3px; border-radius: 4px; }
-  .hfb2__colon { font-size: 10px; }
-  /* CTA compacto */
-  .hfb2__cta { font-size: 8.5px; padding: 4px 7px; gap: 3px; }
-  .hfb2__cta svg { width: 10px; height: 10px; }
-  /* Trust pills — solo 2 visibles */
-  .hfb2__trust { padding: 0 7px 7px; gap: 3px; }
-  .hfb2__trust span { font-size: 7.5px; padding: 2px 5px; }
-  .hfb2__trust span:nth-child(3) { display: none; }
-  /* Botón cerrar */
-  .hfb2__close { top: -7px; right: -7px; width: 18px; height: 18px; font-size: 8px; }
-}
 
-/* CARD */
+/* Mobile bar hidden on desktop */
+.hfb2__bar { display: none; }
+
 .hfb2__card {
   display: block;
   width: 220px;
@@ -130,22 +114,17 @@
   50%      { transform: translateY(-7px); }
 }
 
-/* URGENCY STRIP */
 .hfb2__strip {
   background: rgba(0,0,0,.25);
   padding: 5px 10px;
-  font-size: 10px;
-  font-weight: 700;
-  letter-spacing: .04em;
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  text-transform: uppercase;
-  color: rgba(255,255,255,.95);
+  font-size: 10px; font-weight: 700; letter-spacing: .04em;
+  text-transform: uppercase; color: rgba(255,255,255,.95);
+  display: flex; align-items: center; gap: 6px;
+  white-space: nowrap;
 }
 .hfb2__strip-dot {
-  width: 6px; height: 6px; border-radius: 50%;
-  background: #4ADE80; flex-shrink: 0;
+  width: 6px; height: 6px; border-radius: 50%; flex-shrink: 0;
+  background: #4ADE80;
   box-shadow: 0 0 0 0 rgba(74,222,128,.5);
   animation: hfb2-dot 1.5s infinite;
 }
@@ -155,140 +134,124 @@
   100% { box-shadow: 0 0 0 0 rgba(74,222,128,0); }
 }
 
-/* BODY */
-.hfb2__body {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  padding: 12px 12px 10px;
-}
+.hfb2__body { display: flex; align-items: center; gap: 10px; padding: 12px 12px 10px; }
 .hfb2__left { flex: 1; }
-.hfb2__tag {
-  font-size: 8.5px; font-weight: 800;
-  letter-spacing: .14em; text-transform: uppercase;
-  color: rgba(255,255,255,.75);
-  margin-bottom: 4px;
-}
-.hfb2__deal {
-  display: flex; align-items: center; gap: 8px;
-  margin-bottom: 5px;
-}
-.hfb2__deal-main {
-  font-size: 32px; font-weight: 900;
-  line-height: 1; letter-spacing: -.03em;
-  color: #fff;
-  text-shadow: 0 2px 8px rgba(0,0,0,.3);
-}
+.hfb2__tag { font-size: 8.5px; font-weight: 800; letter-spacing: .14em; text-transform: uppercase; color: rgba(255,255,255,.75); margin-bottom: 4px; }
+.hfb2__deal { display: flex; align-items: center; gap: 8px; margin-bottom: 5px; }
+.hfb2__deal-main { font-size: 32px; font-weight: 900; line-height: 1; letter-spacing: -.03em; color: #fff; text-shadow: 0 2px 8px rgba(0,0,0,.3); }
 .hfb2__deal-prices { display: flex; flex-direction: column; gap: 1px; }
 .hfb2__price { font-size: 12px; font-weight: 800; color: #FFD700; line-height: 1.2; }
 .hfb2__old  { font-size: 10px; text-decoration: line-through; color: rgba(255,255,255,.55); line-height: 1.2; }
-.hfb2__save {
-  font-size: 10px; font-weight: 700;
-  background: rgba(74,222,128,.2);
-  border: 1px solid rgba(74,222,128,.4);
-  color: #6EE7B7;
-  border-radius: 6px; padding: 2px 7px;
-  display: inline-block;
-}
+.hfb2__save { font-size: 10px; font-weight: 700; background: rgba(74,222,128,.2); border: 1px solid rgba(74,222,128,.4); color: #6EE7B7; border-radius: 6px; padding: 2px 7px; display: inline-block; }
 
-/* RIGHT: timer + cta */
-.hfb2__right {
-  display: flex; flex-direction: column;
-  align-items: center; gap: 4px;
-  flex-shrink: 0;
-}
-.hfb2__timer-label {
-  font-size: 8px; font-weight: 700;
-  letter-spacing: .08em; text-transform: uppercase;
-  color: rgba(255,255,255,.65);
-}
-.hfb2__timer {
-  display: flex; align-items: center; gap: 2px;
-}
-.hfb2__digit {
-  background: rgba(0,0,0,.3);
-  border-radius: 5px;
-  padding: 3px 5px;
-  font-size: 13px; font-weight: 800;
-  min-width: 22px; text-align: center;
-  color: #fff; line-height: 1;
-  font-variant-numeric: tabular-nums;
-}
+.hfb2__right { display: flex; flex-direction: column; align-items: center; gap: 4px; flex-shrink: 0; }
+.hfb2__timer-label { font-size: 8px; font-weight: 700; letter-spacing: .08em; text-transform: uppercase; color: rgba(255,255,255,.65); }
+.hfb2__timer { display: flex; align-items: center; gap: 2px; }
+.hfb2__digit { background: rgba(0,0,0,.3); border-radius: 5px; padding: 3px 5px; font-size: 13px; font-weight: 800; min-width: 22px; text-align: center; color: #fff; line-height: 1; font-variant-numeric: tabular-nums; }
 .hfb2__colon { font-size: 13px; font-weight: 800; color: rgba(255,255,255,.6); }
+.hfb2__cta { display: flex; align-items: center; gap: 4px; background: #FFD700; color: #1C1208; font-size: 10px; font-weight: 800; padding: 5px 10px; border-radius: 20px; letter-spacing: .04em; white-space: nowrap; margin-top: 2px; transition: background .2s, transform .2s; }
+.hfb2__card:hover .hfb2__cta { background: #fff; transform: scale(1.04); }
 
-.hfb2__cta {
-  display: flex; align-items: center; gap: 4px;
-  background: #FFD700;
-  color: #1C1208;
-  font-size: 10px; font-weight: 800;
-  padding: 5px 10px; border-radius: 20px;
-  letter-spacing: .04em;
-  white-space: nowrap;
-  margin-top: 2px;
-  transition: background .2s, transform .2s;
-}
-.hfb2__card:hover .hfb2__cta {
-  background: #fff;
-  transform: scale(1.04);
-}
+.hfb2__trust { display: flex; gap: 4px; padding: 0 10px 10px; flex-wrap: wrap; }
+.hfb2__trust span { font-size: 9px; font-weight: 600; background: rgba(255,255,255,.15); border-radius: 20px; padding: 3px 7px; color: rgba(255,255,255,.9); white-space: nowrap; }
 
-/* TRUST PILLS */
-.hfb2__trust {
-  display: flex; gap: 4px;
-  padding: 0 10px 10px;
-  flex-wrap: wrap;
-}
-.hfb2__trust span {
-  font-size: 9px; font-weight: 600;
-  background: rgba(255,255,255,.15);
-  border-radius: 20px; padding: 3px 7px;
-  color: rgba(255,255,255,.9);
-  white-space: nowrap;
-}
-
-/* CLOSE BUTTON */
 .hfb2__close {
-  position: absolute;
-  top: -8px;
-  {% if section.settings.position == 'left' %}right: -8px;{% else %}right: -8px;{% endif %}
+  position: absolute; top: -8px; right: -8px;
   width: 22px; height: 22px; border-radius: 50%;
   background: #fff; border: 2px solid #D4527A;
   color: #D4527A; font-size: 10px; font-weight: 700;
   cursor: pointer; display: flex; align-items: center; justify-content: center;
-  z-index: 3; transition: background .2s, color .2s;
-  line-height: 1; padding: 0;
+  z-index: 3; transition: background .2s, color .2s; line-height: 1; padding: 0;
 }
 .hfb2__close:hover { background: #D4527A; color: #fff; }
 
-/* TAB (minimized) */
 .hfb2__tab {
   background: linear-gradient(135deg, #C0405F, #D4527A);
-  color: #FFD700;
-  border: none; cursor: pointer;
+  color: #FFD700; border: none; cursor: pointer;
   padding: 10px 16px; border-radius: 30px;
   font-size: 12px; font-weight: 800;
   box-shadow: 0 4px 20px rgba(192,64,95,.45);
   animation: hfb2-float 3.5s ease-in-out infinite;
-  white-space: nowrap;
-  font-family: inherit;
+  white-space: nowrap; font-family: inherit;
 }
 .hfb2__tab:hover { transform: scale(1.04); }
 
-/* HIDDEN */
+/* ═══════════════════════════════════
+   MOBILE BOTTOM BAR
+═══════════════════════════════════ */
+@media (max-width: 767px) {
+  /* Ocultar tarjeta desktop en móvil */
+  .hfb2__desktop { display: none !important; }
+
+  /* Barra fija inferior */
+  .hfb2__bar {
+    display: flex;
+    align-items: center;
+    position: fixed;
+    left: 0; right: 0; bottom: 0;
+    height: 56px;
+    background: linear-gradient(135deg, #B03050 0%, #D4527A 60%, #C0405F 100%);
+    color: #fff;
+    text-decoration: none;
+    padding: 0 12px 0 14px;
+    gap: 10px;
+    z-index: 9997;
+    box-shadow: 0 -3px 20px rgba(192,64,95,.5);
+    border-top: 1px solid rgba(255,255,255,.2);
+  }
+
+  /* Punto verde pulsante */
+  .hfb2__bar-dot {
+    width: 7px; height: 7px; border-radius: 50%; flex-shrink: 0;
+    background: #4ADE80;
+    box-shadow: 0 0 0 0 rgba(74,222,128,.5);
+    animation: hfb2-dot 1.5s infinite;
+  }
+
+  /* Izquierda: 2×1 + precio */
+  .hfb2__bar-left { display: flex; align-items: center; gap: 8px; flex-shrink: 0; }
+  .hfb2__bar-deal { display: flex; align-items: center; gap: 7px; }
+  .hfb2__bar-2x1 { font-size: 22px; font-weight: 900; line-height: 1; letter-spacing: -.02em; color: #fff; }
+  .hfb2__bar-prices { display: flex; flex-direction: column; }
+  .hfb2__bar-price { font-size: 13px; font-weight: 800; color: #FFD700; line-height: 1.2; white-space: nowrap; }
+  .hfb2__bar-old { font-size: 10px; text-decoration: line-through; color: rgba(255,255,255,.55); line-height: 1.2; white-space: nowrap; }
+
+  /* Centro: timer MM:SS */
+  .hfb2__bar-timer { display: flex; align-items: center; gap: 2px; flex-shrink: 0; }
+  .hfb2__bar-tdigit { background: rgba(0,0,0,.3); border-radius: 4px; padding: 3px 5px; font-size: 13px; font-weight: 800; min-width: 22px; text-align: center; color: #fff; font-variant-numeric: tabular-nums; }
+  .hfb2__bar-tcolon { font-size: 13px; font-weight: 800; color: rgba(255,255,255,.7); padding: 0 1px; }
+
+  /* CTA */
+  .hfb2__bar-cta {
+    flex: 1;
+    text-align: right;
+    font-size: 13px; font-weight: 800;
+    background: #FFD700;
+    color: #1C1208;
+    padding: 8px 14px;
+    border-radius: 24px;
+    white-space: nowrap;
+    letter-spacing: .01em;
+  }
+
+  /* Cerrar */
+  .hfb2__bar-close {
+    background: none; border: none; color: rgba(255,255,255,.7);
+    font-size: 14px; cursor: pointer; padding: 4px; flex-shrink: 0;
+    display: flex; align-items: center; justify-content: center;
+    line-height: 1;
+  }
+  .hfb2__bar-close:hover { color: #fff; }
+}
+
 .hfb2--hidden { display: none !important; }
 </style>
 
 <script>
 (function(){
-  var badge   = document.getElementById('HamsaFloatingBadge');
-  var closeBtn = document.getElementById('hfb2Close');
-  var tab     = document.getElementById('hfb2Tab');
-  var card    = badge ? badge.querySelector('.hfb2__card') : null;
-  if (!badge || !card) return;
-
-  /* ── Timer ── */
   var KEY = 'hfb2tmr';
   var SECS = 23 * 3600 + 59 * 60 + 59;
+
   function loadTimer() {
     try {
       var d = JSON.parse(localStorage.getItem(KEY) || 'null');
@@ -298,46 +261,76 @@
     try { localStorage.setItem(KEY, JSON.stringify({exp:exp})); } catch(e) {}
     return SECS;
   }
+
   var remaining = loadTimer();
   function pad(n) { return n < 10 ? '0' + n : '' + n; }
+
   function tick() {
     if (remaining <= 0) { remaining = SECS; try { localStorage.removeItem(KEY); } catch(e) {} }
     var h = Math.floor(remaining / 3600);
     var m = Math.floor((remaining % 3600) / 60);
     var s = remaining % 60;
+    /* Desktop digits */
     var dH = document.getElementById('hfb2H');
     var dM = document.getElementById('hfb2M');
     var dS = document.getElementById('hfb2S');
     if (dH) dH.textContent = pad(h);
     if (dM) dM.textContent = pad(m);
     if (dS) dS.textContent = pad(s);
+    /* Mobile bar digits (MM:SS only) */
+    var bM = document.getElementById('hfb2BM');
+    var bS = document.getElementById('hfb2BS');
+    if (bM) bM.textContent = pad(m);
+    if (bS) bS.textContent = pad(s);
     remaining--;
   }
   tick();
   setInterval(tick, 1000);
 
-  /* ── Close / minimize ── */
-  closeBtn && closeBtn.addEventListener('click', function(e) {
-    e.preventDefault(); e.stopPropagation();
-    card.style.display = 'none';
-    closeBtn.style.display = 'none';
-    if (tab) tab.style.display = 'flex';
-    try { sessionStorage.setItem('hfb2_min', '1'); } catch(err) {}
-  });
+  /* ── Desktop close/minimize ── */
+  var closeBtn = document.getElementById('hfb2Close');
+  var tab      = document.getElementById('hfb2Tab');
+  var desktop  = document.querySelector('.hfb2__desktop');
+  var card     = desktop ? desktop.querySelector('.hfb2__card') : null;
 
-  tab && tab.addEventListener('click', function() {
-    card.style.display = 'block';
-    closeBtn.style.display = 'flex';
-    tab.style.display = 'none';
-    try { sessionStorage.removeItem('hfb2_min'); } catch(err) {}
-  });
-
-  /* Check minimized state */
-  try {
-    if (sessionStorage.getItem('hfb2_min') === '1') {
+  if (closeBtn && card) {
+    closeBtn.addEventListener('click', function(e) {
+      e.preventDefault(); e.stopPropagation();
       card.style.display = 'none';
       closeBtn.style.display = 'none';
       if (tab) tab.style.display = 'flex';
+      try { sessionStorage.setItem('hfb2_min', '1'); } catch(err) {}
+    });
+  }
+  if (tab && card) {
+    tab.addEventListener('click', function() {
+      card.style.display = 'block';
+      closeBtn && (closeBtn.style.display = 'flex');
+      tab.style.display = 'none';
+      try { sessionStorage.removeItem('hfb2_min'); } catch(err) {}
+    });
+  }
+  try {
+    if (sessionStorage.getItem('hfb2_min') === '1' && card) {
+      card.style.display = 'none';
+      closeBtn && (closeBtn.style.display = 'none');
+      if (tab) tab.style.display = 'flex';
+    }
+  } catch(err) {}
+
+  /* ── Mobile bar close ── */
+  var barClose = document.getElementById('hfb2BarClose');
+  var bar      = document.getElementById('hfb2Bar');
+  if (barClose && bar) {
+    barClose.addEventListener('click', function(e) {
+      e.preventDefault(); e.stopPropagation();
+      bar.style.display = 'none';
+      try { sessionStorage.setItem('hfb2_bar_closed', '1'); } catch(err) {}
+    });
+  }
+  try {
+    if (sessionStorage.getItem('hfb2_bar_closed') === '1' && bar) {
+      bar.style.display = 'none';
     }
   } catch(err) {}
 })();
@@ -353,7 +346,7 @@
     {
       "type": "select",
       "id": "position",
-      "label": "Posición",
+      "label": "Posición (escritorio)",
       "options": [
         { "value": "right", "label": "Derecha" },
         { "value": "left", "label": "Izquierda" }
