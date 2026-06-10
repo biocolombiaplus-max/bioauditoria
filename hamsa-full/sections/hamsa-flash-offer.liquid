@@ -1,0 +1,176 @@
+{% comment %}hamsa-flash-offer — Oferta flash 2x1 llamativa, sección home{% endcomment %}
+<section class="hfo" id="HamsaFlashOffer-{{ section.id }}">
+
+  <div class="hfo__inner">
+    {% if section.settings.image != blank %}
+    <div class="hfo__img-side">
+      {{ section.settings.image | image_url: width: 600, format: 'webp' | image_tag:
+        class: 'hfo__img',
+        loading: 'lazy',
+        widths: '300, 500, 700',
+        sizes: '(max-width:749px) 100vw, 50vw',
+        alt: section.settings.heading | default: 'Oferta 2x1'
+      }}
+    </div>
+    {% endif %}
+
+    <div class="hfo__content">
+      <div class="hfo__badge-row">
+        <span class="hfo__pulse"></span>
+        <span class="hfo__badge-txt">{{ section.settings.badge | default: '⚡ OFERTA ACTIVA AHORA' }}</span>
+      </div>
+
+      {% if section.settings.eyebrow != blank %}
+        <div class="hfo__eyebrow">{{ section.settings.eyebrow }}</div>
+      {% endif %}
+
+      <h2 class="hfo__title">{{ section.settings.heading }}</h2>
+
+      <div class="hfo__price-block">
+        <span class="hfo__price">{{ section.settings.price }}</span>
+        <div class="hfo__compare-wrap">
+          <span class="hfo__compare">{{ section.settings.compare_price }}</span>
+          <span class="hfo__savings">{{ section.settings.savings }}</span>
+        </div>
+      </div>
+
+      {% if section.settings.timer_label != blank %}
+      <div class="hfo__timer-block">
+        <span class="hfo__timer-label">{{ section.settings.timer_label }}</span>
+        <div class="hfo__timer-digits">
+          <div class="hfo__digit-box"><span id="hfoH-{{ section.id }}">23</span><small>hrs</small></div>
+          <span class="hfo__colon">:</span>
+          <div class="hfo__digit-box"><span id="hfoM-{{ section.id }}">59</span><small>min</small></div>
+          <span class="hfo__colon">:</span>
+          <div class="hfo__digit-box"><span id="hfoS-{{ section.id }}">59</span><small>seg</small></div>
+        </div>
+      </div>
+      {% endif %}
+
+      <ul class="hfo__perks">
+        {% if section.settings.perk1 != blank %}<li>✓ {{ section.settings.perk1 }}</li>{% endif %}
+        {% if section.settings.perk2 != blank %}<li>✓ {{ section.settings.perk2 }}</li>{% endif %}
+        {% if section.settings.perk3 != blank %}<li>✓ {{ section.settings.perk3 }}</li>{% endif %}
+        {% if section.settings.perk4 != blank %}<li>✓ {{ section.settings.perk4 }}</li>{% endif %}
+      </ul>
+
+      <div class="hfo__actions">
+        {% if section.settings.btn_text != blank %}
+        <a href="{{ section.settings.btn_url }}" class="hfo__btn-primary">{{ section.settings.btn_text }}</a>
+        {% endif %}
+        {% if section.settings.wa_number != blank %}
+        <a href="https://wa.me/57{{ section.settings.wa_number }}?text={{ section.settings.wa_msg | url_encode }}"
+           target="_blank" rel="noopener" class="hfo__btn-wa">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z"/></svg>
+          {{ section.settings.wa_text | default: 'Pedir por WhatsApp' }}
+        </a>
+        {% endif %}
+      </div>
+    </div>
+  </div>
+
+</section>
+
+<style>
+#HamsaFlashOffer-{{ section.id }} {
+  background: linear-gradient(135deg, #1C1208, #2A1A10);
+  overflow: hidden;
+  padding: {{ section.settings.pt }}px 20px {{ section.settings.pb }}px;
+}
+#HamsaFlashOffer-{{ section.id }} * { box-sizing:border-box; }
+.hfo__inner { max-width:1100px; margin:0 auto; display:grid; grid-template-columns:1fr 1fr; gap:48px; align-items:center; }
+.hfo__img-side { border-radius:20px; overflow:hidden; aspect-ratio:4/5; box-shadow:0 32px 80px rgba(0,0,0,.5); }
+.hfo__img { width:100%; height:100%; object-fit:cover; display:block; }
+.hfo__content { color:#fff; }
+.hfo__badge-row { display:flex; align-items:center; gap:8px; margin-bottom:14px; }
+.hfo__pulse { width:8px; height:8px; border-radius:50%; background:#FFD700; animation:hfopulse 1.5s infinite; flex-shrink:0; }
+@keyframes hfopulse { 0%,100%{box-shadow:0 0 0 0 rgba(255,215,0,.6)} 50%{box-shadow:0 0 0 8px transparent} }
+.hfo__badge-txt { font-size:11px; font-weight:800; letter-spacing:.15em; text-transform:uppercase; color:#FFD700; }
+.hfo__eyebrow { font-size:13px; font-weight:600; color:rgba(255,255,255,.7); margin-bottom:8px; }
+.hfo__title { font-size:clamp(1.6rem,3.5vw,2.6rem); font-weight:900; line-height:1.1; margin:0 0 18px; letter-spacing:-.02em; }
+.hfo__price-block { display:flex; align-items:baseline; gap:12px; flex-wrap:wrap; margin-bottom:18px; }
+.hfo__price { font-size:clamp(2rem,5vw,3rem); font-weight:900; color:#FFD700; }
+.hfo__compare-wrap { display:flex; flex-direction:column; gap:2px; }
+.hfo__compare { font-size:14px; text-decoration:line-through; color:rgba(255,255,255,.5); }
+.hfo__savings { font-size:13px; font-weight:700; color:#4ADE80; }
+.hfo__timer-block { background:rgba(255,255,255,.08); border:1px solid rgba(255,215,0,.25); border-radius:12px; padding:12px 16px; margin-bottom:18px; display:inline-block; }
+.hfo__timer-label { font-size:11px; color:rgba(255,255,255,.7); display:block; margin-bottom:8px; font-weight:600; letter-spacing:.05em; text-transform:uppercase; }
+.hfo__timer-digits { display:flex; align-items:center; gap:8px; }
+.hfo__digit-box { display:flex; flex-direction:column; align-items:center; gap:2px; background:rgba(0,0,0,.3); border-radius:8px; padding:6px 10px; min-width:44px; }
+.hfo__digit-box span { font-size:22px; font-weight:900; color:#FFD700; font-variant-numeric:tabular-nums; line-height:1; }
+.hfo__digit-box small { font-size:9px; color:rgba(255,255,255,.5); text-transform:uppercase; letter-spacing:.08em; }
+.hfo__colon { font-size:20px; font-weight:900; color:rgba(255,255,255,.4); margin-bottom:12px; }
+.hfo__perks { list-style:none; padding:0; margin:0 0 24px; display:flex; flex-direction:column; gap:6px; }
+.hfo__perks li { font-size:13px; color:rgba(255,255,255,.85); display:flex; align-items:center; gap:6px; }
+.hfo__perks li::before { content:none; }
+.hfo__actions { display:flex; flex-direction:column; gap:10px; }
+.hfo__btn-primary {
+  display:flex; align-items:center; justify-content:center;
+  background:linear-gradient(135deg,#C0405F,#D4527A);
+  color:#fff; padding:16px 28px; border-radius:14px;
+  font-size:16px; font-weight:800; text-decoration:none;
+  box-shadow:0 4px 20px rgba(212,82,122,.5);
+  transition:transform .15s, box-shadow .15s;
+}
+.hfo__btn-primary:hover { transform:translateY(-2px); box-shadow:0 8px 32px rgba(212,82,122,.6); color:#fff; }
+.hfo__btn-wa {
+  display:flex; align-items:center; justify-content:center; gap:8px;
+  background:#25D366; color:#fff; padding:13px 28px; border-radius:14px;
+  font-size:14px; font-weight:700; text-decoration:none;
+  transition:background .15s;
+}
+.hfo__btn-wa:hover { background:#1DA851; color:#fff; }
+@media(max-width:749px) {
+  .hfo__inner { grid-template-columns:1fr; gap:24px; }
+  .hfo__img-side { aspect-ratio:16/9; }
+}
+</style>
+
+<script>
+(function(){
+  var SID='{{ section.id }}';
+  var hEl=document.getElementById('hfoH-'+SID),mEl=document.getElementById('hfoM-'+SID),sEl=document.getElementById('hfoS-'+SID);
+  if(!hEl) return;
+  var key='hfo_end_'+SID, stored=localStorage.getItem(key);
+  var end=stored?parseInt(stored):Date.now()+{{ section.settings.timer_hours | default: 23 }}*3600000+{{ section.settings.timer_mins | default: 59 }}*60000;
+  if(!stored) localStorage.setItem(key,end);
+  function tick(){
+    var r=Math.max(0,end-Date.now());
+    if(r===0){localStorage.removeItem(key);end=Date.now()+86400000;localStorage.setItem(key,end);}
+    var h=Math.floor(r/3600000),m=Math.floor((r%3600000)/60000),s=Math.floor((r%60000)/1000);
+    hEl.textContent=h<10?'0'+h:h; mEl.textContent=m<10?'0'+m:m; sEl.textContent=s<10?'0'+s:s;
+  }
+  tick(); setInterval(tick,1000);
+})();
+</script>
+
+{% schema %}
+{
+  "name": "Oferta Flash 2×1",
+  "tag": "section",
+  "settings": [
+    { "type": "image_picker", "id": "image", "label": "Imagen producto" },
+    { "type": "text", "id": "badge", "label": "Badge superior", "default": "⚡ OFERTA ACTIVA AHORA" },
+    { "type": "text", "id": "eyebrow", "label": "Eyebrow", "default": "Solo por tiempo limitado" },
+    { "type": "text", "id": "heading", "label": "Título", "default": "2 Pares por Solo $159.900" },
+    { "type": "text", "id": "price", "label": "Precio", "default": "$159.900" },
+    { "type": "text", "id": "compare_price", "label": "Precio tachado", "default": "$239.800" },
+    { "type": "text", "id": "savings", "label": "Ahorro", "default": "¡Ahorras $79.900!" },
+    { "type": "text", "id": "timer_label", "label": "Label timer (vacío = sin timer)", "default": "La oferta termina en:" },
+    { "type": "number", "id": "timer_hours", "label": "Horas iniciales", "default": 23 },
+    { "type": "number", "id": "timer_mins", "label": "Minutos iniciales", "default": 59 },
+    { "type": "text", "id": "perk1", "label": "Perk 1", "default": "Envío GRATIS a toda Colombia" },
+    { "type": "text", "id": "perk2", "label": "Perk 2", "default": "Pago contra entrega disponible" },
+    { "type": "text", "id": "perk3", "label": "Perk 3", "default": "Elige modelos, tallas y colores diferentes" },
+    { "type": "text", "id": "perk4", "label": "Perk 4", "default": "Cambio de talla sin costo" },
+    { "type": "url", "id": "btn_url", "label": "URL botón" },
+    { "type": "text", "id": "btn_text", "label": "Texto botón", "default": "🔥 Ver oferta 2×1 ahora" },
+    { "type": "text", "id": "wa_number", "label": "Número WA", "default": "3508258757" },
+    { "type": "text", "id": "wa_text", "label": "Texto WA", "default": "Pedir 2×1 por WhatsApp" },
+    { "type": "text", "id": "wa_msg", "label": "Mensaje WA", "default": "Hola! Quiero aprovechar la oferta 2x1" },
+    { "type": "range", "id": "pt", "label": "Padding top", "min": 32, "max": 100, "step": 4, "default": 64 },
+    { "type": "range", "id": "pb", "label": "Padding bottom", "min": 32, "max": 100, "step": 4, "default": 64 }
+  ],
+  "presets": [{ "name": "Oferta Flash 2×1" }]
+}
+{% endschema %}

@@ -16,22 +16,22 @@
         "hero_image": "shopify://shop_images/mujer_de_25_202603310813.jpg",
         "image_alt": "Calzado Hamsa",
         "image_radius": 30,
-        "eyebrow": "✨ Colección 2025",
+        "eyebrow": "✨ Colección 2025 — Nuevos ingresos",
         "heading": "Sandalias que te hacen brillar",
-        "subtext": "Diseños exclusivos para la mujer colombiana. Envío gratis, pago al recibir y cambio de talla sin costo.",
+        "subtext": "Diseños exclusivos para la mujer colombiana. Envío gratis · Pago al recibir · Cambio de talla gratis.",
         "badge1": "🚚 Envío gratis",
         "badge2": "💵 Contra entrega",
-        "badge3": "🔒 Compra segura",
+        "badge3": "⭐ +2.400 felices",
         "btn1_text": "🛍️ Ver colección",
         "btn1_url": "shopify://collections/all",
-        "btn2_text": "💥 Oferta 2×1",
+        "btn2_text": "🔥 Oferta 2×1",
         "btn2_url": "shopify://pages/2x1-sandalias-femeninas-colombia",
         "show_whatsapp": true,
         "wa_country": "57",
         "wa_number": "3508258757",
         "wa_message": "Hola, quiero ver el catálogo de Hamsa Shoes",
-        "floating_badge": "⭐ Nuevo ingreso",
-        "floating_stat": "+2.400 clientas felices",
+        "floating_badge": "🆕 Nuevo ingreso",
+        "floating_stat": "+2.400 clientas nos recomiendan",
         "bg_color": "#FDFAF7",
         "text_color": "#1C1208",
         "muted_color": "#7A6E64",
@@ -52,9 +52,9 @@
         "collection": "frontpage",
         "limit": 8,
         "columns": "4",
-        "eyebrow": "Los más vendidos",
-        "heading": "Las sandalias favoritas de Colombia",
-        "subtext": "Más de 2.400 mujeres ya las tienen. ¿Cuál es la tuya?",
+        "eyebrow": "Las favoritas del momento",
+        "heading": "Las más deseadas de Colombia",
+        "subtext": "Cada modelo es un diseño exclusivo. ¿Cuál es la tuya?",
         "btn_text": "Ver todo el catálogo",
         "btn_url": "shopify://collections/all",
         "base_reviews": 42,
@@ -118,7 +118,7 @@
         "benefit_cUcgyV"
       ],
       "settings": {
-        "heading": "¿Por qué elegir Hamsa Shoes?",
+        "heading": "¿Por qué +2.400 mujeres eligen Hamsa?",
         "bg_color": "#FDFAF7",
         "card_color": "#FFFFFF",
         "text_color": "#1C1208",
@@ -220,8 +220,8 @@
         "review_zgzDXt"
       ],
       "settings": {
-        "heading": "Lo que dicen nuestras clientas",
-        "subtext": "Más de 2.400 colombianas ya son parte de la familia Hamsa",
+        "heading": "Ellas ya lo tienen — y no paran de recomendarnos",
+        "subtext": "Reseñas reales de clientas en toda Colombia",
         "bg_color": "#FDFAF7",
         "card_color": "#FFFFFF",
         "text_color": "#1C1208",
@@ -237,13 +237,13 @@
       "type": "hamsa-home-cta",
       "settings": {
         "image": "shopify://shop_images/mujer_de_25_202603310813_1.jpg",
-        "eyebrow": "¿Lista para lucir espectacular?",
-        "heading": "Encuentra tus sandalias perfectas hoy",
-        "text": "Miles de mujeres en Colombia ya las tienen. Paga al recibir, envío gratis, cambio de talla sin costo.",
-        "trust1": "Envío gratis",
-        "trust2": "Pago contra entrega",
-        "trust3": "Cambio de talla gratis",
-        "btn_text": "🛍️ Comprar ahora",
+        "eyebrow": "¿Lista para lucir increíble?",
+        "heading": "Tu sandalia perfecta te está esperando",
+        "text": "Más de 2.400 mujeres colombianas ya las tienen. Paga al recibir, envío gratis, cambio de talla sin costo. ¡Tu turno!",
+        "trust1": "✓ Envío gratis",
+        "trust2": "✓ Pago contra entrega",
+        "trust3": "✓ Cambio de talla gratis",
+        "btn_text": "🛍️ Comprar ahora — Envío gratis",
         "btn_url": "shopify://collections/all",
         "show_wa": true,
         "wa_btn_text": "Comprar por WhatsApp",
@@ -364,18 +364,177 @@
         "pt": 48,
         "pb": 48
       }
+    },
+    "hamsa_ann_f15119d6": {
+      "type": "hamsa-announcement-premium",
+      "settings": {
+        "color1": "#C0405F",
+        "color2": "#D4527A",
+        "color3": "#E8748A",
+        "text_color": "#FFFFFF",
+        "sep_color": "#FFD700",
+        "text": "🚚 ENVÍO GRATIS a toda Colombia | 💵 PAGO CONTRA ENTREGA — paga al recibir | ✨ +2.400 mujeres ya las tienen | ↩️ CAMBIO DE TALLA sin costo | 🔒 COMPRA 100% GARANTIZADA | 🔥 OFERTA 2×1 — 2 pares por $159.900 | ⚡ DESPACHO en 24-48 horas",
+        "font_size": 12,
+        "font_weight": "700",
+        "text_transform": "uppercase",
+        "letter_spacing": 8,
+        "speed": 35,
+        "py": 10
+      }
+    },
+    "hamsa_trust_ea666365": {
+      "type": "hamsa-trust-bar",
+      "settings": {
+        "bg_color": "#FFFFFF",
+        "text_color": "#1C1208",
+        "accent_color": "#D4527A",
+        "border_color": "#EDE0D8",
+        "py": 18
+      },
+      "blocks": {
+        "t1": {
+          "type": "trust",
+          "settings": {
+            "icon": "🚚",
+            "title": "Envío GRATIS",
+            "sub": "A toda Colombia"
+          }
+        },
+        "t2": {
+          "type": "trust",
+          "settings": {
+            "icon": "💵",
+            "title": "Contra entrega",
+            "sub": "Paga al recibir"
+          }
+        },
+        "t3": {
+          "type": "trust",
+          "settings": {
+            "icon": "↩️",
+            "title": "Cambio gratis",
+            "sub": "Sin complicaciones"
+          }
+        },
+        "t4": {
+          "type": "trust",
+          "settings": {
+            "icon": "🔒",
+            "title": "Compra segura",
+            "sub": "100% protegida"
+          }
+        },
+        "t5": {
+          "type": "trust",
+          "settings": {
+            "icon": "⭐",
+            "title": "+2.400 clientas",
+            "sub": "Nos recomiendan"
+          }
+        }
+      },
+      "block_order": [
+        "t1",
+        "t2",
+        "t3",
+        "t4",
+        "t5"
+      ]
+    },
+    "hamsa_hiw_e74bd6aa": {
+      "type": "hamsa-how-it-works",
+      "settings": {
+        "bg_color": "#F8F4F0",
+        "card_color": "#FFFFFF",
+        "accent_color": "#D4527A",
+        "text_color": "#1C1208",
+        "muted_color": "#7A6E64",
+        "eyebrow": "Tan fácil como 1, 2, 3",
+        "heading": "Tu pedido en 3 pasos simples",
+        "subtext": "Comprar en Hamsa Shoes es rápido, seguro y sin complicaciones",
+        "cta_text": "Ver colección →",
+        "cta_url": "/collections/all",
+        "pt": 64,
+        "pb": 64
+      },
+      "blocks": {
+        "s1": {
+          "type": "step",
+          "settings": {
+            "icon": "👟",
+            "title": "Elige tu modelo",
+            "text": "Explora nuestra colección y elige el modelo y talla perfecta para ti"
+          }
+        },
+        "s2": {
+          "type": "step",
+          "settings": {
+            "icon": "🛒",
+            "title": "Haz tu pedido",
+            "text": "Agrega al carrito o escríbenos por WhatsApp. Sin tarjeta de crédito requerida"
+          }
+        },
+        "s3": {
+          "type": "step",
+          "settings": {
+            "icon": "📦",
+            "title": "Recibe en casa",
+            "text": "Enviamos a toda Colombia en 2-5 días. Paga cuando el paquete llega a tu puerta"
+          }
+        },
+        "s4": {
+          "type": "step",
+          "settings": {
+            "icon": "💛",
+            "title": "Lúcelas con amor",
+            "text": "¡Disfruta tus sandalias! Cambio de talla gratis si necesitas"
+          }
+        }
+      },
+      "block_order": [
+        "s1",
+        "s2",
+        "s3",
+        "s4"
+      ]
+    },
+    "hamsa_flash_32071879": {
+      "type": "hamsa-flash-offer",
+      "settings": {
+        "badge": "⚡ OFERTA POR TIEMPO LIMITADO",
+        "eyebrow": "Solo por tiempo limitado",
+        "heading": "2 Pares por Solo $159.900",
+        "price": "$159.900",
+        "compare_price": "$239.800",
+        "savings": "¡Ahorras $79.900!",
+        "timer_label": "⏰ La oferta termina en:",
+        "timer_hours": 23,
+        "timer_mins": 59,
+        "perk1": "Envío GRATIS a toda Colombia",
+        "perk2": "Pago contra entrega disponible",
+        "perk3": "Elige modelos, tallas y colores diferentes",
+        "perk4": "Cambio de talla sin costo",
+        "btn_url": "/pages/oferta-2x1",
+        "btn_text": "🔥 Quiero mis 2 pares ahora",
+        "wa_number": "3508258757",
+        "wa_text": "Pedir 2×1 por WhatsApp",
+        "wa_msg": "Hola! Quiero aprovechar la oferta 2x1 de Hamsa Shoes",
+        "pt": 64,
+        "pb": 64
+      }
     }
   },
   "order": [
-    "main",
-    "hamsa_urgency_ac5351c1",
+    "hamsa_ann_f15119d6",
     "hamsa_home_hero",
-    "hamsa_social_d7c842ad",
+    "hamsa_trust_ea666365",
     "hamsa_home_products",
+    "hamsa_hiw_e74bd6aa",
     "hamsa_home_benefits",
     "hamsa_home_banner",
-    "hamsa_sizes_e4de9e45",
+    "hamsa_flash_32071879",
     "hamsa_home_testimonials",
+    "hamsa_sizes_e4de9e45",
     "hamsa_home_cta",
     "hamsa_floating_badge"
   ]

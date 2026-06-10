@@ -1,0 +1,74 @@
+{% comment %}hamsa-trust-bar — Barra de confianza animada horizontal{% endcomment %}
+<div class="htb" id="HamsaTrustBar-{{ section.id }}" style="
+  --bg: {{ section.settings.bg_color }};
+  --text: {{ section.settings.text_color }};
+  --rose: {{ section.settings.accent_color }};
+  --border: {{ section.settings.border_color }};
+">
+  <div class="htb__inner">
+    {% for block in section.blocks %}
+    <div class="htb__item" {{ block.shopify_attributes }}>
+      <span class="htb__icon">{{ block.settings.icon }}</span>
+      <div class="htb__text">
+        <strong>{{ block.settings.title }}</strong>
+        {% if block.settings.sub != blank %}<span>{{ block.settings.sub }}</span>{% endif %}
+      </div>
+    </div>
+    {% unless forloop.last %}<span class="htb__sep"></span>{% endunless %}
+    {% endfor %}
+  </div>
+</div>
+<style>
+#HamsaTrustBar-{{ section.id }} {
+  background:var(--bg); border-top:1px solid var(--border); border-bottom:1px solid var(--border);
+  padding:{{ section.settings.py }}px 20px; overflow:hidden;
+}
+.htb__inner { max-width:1200px; margin:0 auto; display:flex; align-items:center; justify-content:center; flex-wrap:wrap; gap:8px 24px; }
+.htb__item { display:flex; align-items:center; gap:10px; }
+.htb__icon { font-size:22px; flex-shrink:0; }
+.htb__text { display:flex; flex-direction:column; gap:1px; }
+.htb__text strong { font-size:13px; font-weight:700; color:var(--text); white-space:nowrap; }
+.htb__text span { font-size:11px; color:color-mix(in srgb,var(--text) 60%,transparent); white-space:nowrap; }
+.htb__sep { width:1px; height:32px; background:var(--border); flex-shrink:0; }
+@media(max-width:600px) {
+  .htb__sep { display:none; }
+  .htb__inner { gap:12px 20px; justify-content:flex-start; }
+  .htb__text strong { font-size:12px; }
+}
+</style>
+{% schema %}
+{
+  "name": "Barra de Confianza",
+  "tag": "div",
+  "settings": [
+    { "type": "color", "id": "bg_color", "label": "Fondo", "default": "#FFFFFF" },
+    { "type": "color", "id": "text_color", "label": "Texto", "default": "#1C1208" },
+    { "type": "color", "id": "accent_color", "label": "Acento", "default": "#D4527A" },
+    { "type": "color", "id": "border_color", "label": "Borde", "default": "#EDE0D8" },
+    { "type": "range", "id": "py", "label": "Padding vertical", "min": 10, "max": 32, "step": 2, "default": 18 }
+  ],
+  "blocks": [
+    {
+      "name": "Item de confianza",
+      "type": "trust",
+      "settings": [
+        { "type": "text", "id": "icon", "label": "Emoji", "default": "🚚" },
+        { "type": "text", "id": "title", "label": "Título", "default": "Envío gratis" },
+        { "type": "text", "id": "sub", "label": "Subtítulo", "default": "A toda Colombia" }
+      ]
+    }
+  ],
+  "presets": [
+    {
+      "name": "Barra de Confianza",
+      "blocks": [
+        { "type": "trust", "settings": { "icon": "🚚", "title": "Envío GRATIS", "sub": "A toda Colombia" } },
+        { "type": "trust", "settings": { "icon": "💵", "title": "Contra entrega", "sub": "Paga al recibir" } },
+        { "type": "trust", "settings": { "icon": "↩️", "title": "Cambio gratis", "sub": "De talla" } },
+        { "type": "trust", "settings": { "icon": "🔒", "title": "Compra segura", "sub": "100% protegida" } },
+        { "type": "trust", "settings": { "icon": "⭐", "title": "+2.400 clientas", "sub": "Nos recomiendan" } }
+      ]
+    }
+  ]
+}
+{% endschema %}

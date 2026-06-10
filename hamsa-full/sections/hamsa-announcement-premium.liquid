@@ -1,0 +1,84 @@
+{% comment %}hamsa-announcement-premium — Barra premium nivel mundial, mobile-first{% endcomment %}
+<div class="hap-wrap" id="HamsaAnnouncement-{{ section.id }}">
+
+  <!-- MARQUEE CONTINUO -->
+  <div class="hap-marquee-track">
+    <div class="hap-marquee-inner" id="hapMarquee-{{ section.id }}">
+      {% assign items = section.settings.text | split: '|' %}
+      {% for item in items %}<span class="hap-item">{{ item | strip }}</span><span class="hap-sep">✦</span>{% endfor %}
+      {% for item in items %}<span class="hap-item">{{ item | strip }}</span><span class="hap-sep">✦</span>{% endfor %}
+    </div>
+  </div>
+
+</div>
+
+<style>
+#HamsaAnnouncement-{{ section.id }} {
+  background: linear-gradient(135deg, {{ section.settings.color1 }}, {{ section.settings.color2 }}, {{ section.settings.color3 }});
+  overflow: hidden;
+  padding: {{ section.settings.py }}px 0;
+  position: relative;
+}
+.hap-marquee-track {
+  overflow: hidden;
+  white-space: nowrap;
+  -webkit-mask-image: linear-gradient(90deg, transparent, black 8%, black 92%, transparent);
+  mask-image: linear-gradient(90deg, transparent, black 8%, black 92%, transparent);
+}
+.hap-marquee-inner {
+  display: inline-flex;
+  align-items: center;
+  gap: 0;
+  animation: hapScroll {{ section.settings.speed }}s linear infinite;
+  will-change: transform;
+}
+@keyframes hapScroll {
+  from { transform: translateX(0); }
+  to   { transform: translateX(-50%); }
+}
+.hap-item {
+  display: inline-block;
+  font-size: {{ section.settings.font_size }}px;
+  font-weight: {{ section.settings.font_weight }};
+  color: {{ section.settings.text_color }};
+  letter-spacing: {% assign ls = section.settings.letter_spacing | divided_by: 100.0 %}{{ ls }}em;
+  text-transform: {{ section.settings.text_transform }};
+  padding: 0 20px;
+  white-space: nowrap;
+}
+.hap-sep {
+  color: {{ section.settings.sep_color }};
+  font-size: {{ section.settings.font_size | times: 0.7 | round }}px;
+  opacity: .7;
+  flex-shrink: 0;
+}
+@media (prefers-reduced-motion: reduce) {
+  .hap-marquee-inner { animation: none; }
+}
+</style>
+
+{% schema %}
+{
+  "name": "Barra Anuncios Premium",
+  "tag": "div",
+  "settings": [
+    { "type": "header", "content": "Colores del gradiente" },
+    { "type": "color", "id": "color1", "label": "Color 1", "default": "#C0405F" },
+    { "type": "color", "id": "color2", "label": "Color 2", "default": "#D4527A" },
+    { "type": "color", "id": "color3", "label": "Color 3", "default": "#E8748A" },
+    { "type": "color", "id": "text_color", "label": "Texto", "default": "#FFFFFF" },
+    { "type": "color", "id": "sep_color", "label": "Separador", "default": "#FFD700" },
+    { "type": "header", "content": "Textos (separar con |)" },
+    { "type": "textarea", "id": "text", "label": "Mensajes (usa | para separar)", "default": "🚚 ENVÍO GRATIS a toda Colombia | 💵 PAGO CONTRA ENTREGA — sin riesgo | ✨ +2.400 clientas felices | ↩️ CAMBIO DE TALLA gratis | 🔒 COMPRA 100% SEGURA | 🎁 OFERTA 2×1 activa — 2 pares por $159.900 | ⚡ DESPACHO en 24-48 horas" },
+    { "type": "header", "content": "Tipografía" },
+    { "type": "range", "id": "font_size", "label": "Tamaño fuente", "min": 10, "max": 16, "step": 1, "default": 12 },
+    { "type": "select", "id": "font_weight", "label": "Peso fuente", "options": [{"value":"600","label":"Semi-bold"},{"value":"700","label":"Bold"},{"value":"800","label":"Extra-bold"}], "default": "700" },
+    { "type": "select", "id": "text_transform", "label": "Transformación", "options": [{"value":"uppercase","label":"MAYÚSCULAS"},{"value":"none","label":"Normal"}], "default": "uppercase" },
+    { "type": "range", "id": "letter_spacing", "label": "Espaciado letras (em)", "min": 0, "max": 20, "step": 1, "default": 8, "info": "Dividido por 100" },
+    { "type": "header", "content": "Velocidad y tamaño" },
+    { "type": "range", "id": "speed", "label": "Velocidad (seg para 1 vuelta)", "min": 15, "max": 80, "step": 5, "default": 35 },
+    { "type": "range", "id": "py", "label": "Padding vertical (px)", "min": 6, "max": 20, "step": 1, "default": 10 }
+  ],
+  "presets": [{ "name": "Barra Anuncios Premium" }]
+}
+{% endschema %}
