@@ -282,8 +282,8 @@
         "</div>" +
         '<fieldset><legend>Marca e Identidad Visual</legend>' +
         '<div class="form-grid">' +
-          '<div class="field"><label>Color Primario</label><input type="color" id="f_colorPrimario" value="' + (tenant.colorPrimario || "#0b6e4f") + '"/></div>' +
-          '<div class="field"><label>Color Secundario</label><input type="color" id="f_colorSecundario" value="' + (tenant.colorSecundario || "#0f172a") + '"/></div>' +
+          '<div class="field"><label>Color Primario</label><input type="color" id="f_colorPrimario" value="' + (tenant.colorPrimario || "#f97316") + '"/></div>' +
+          '<div class="field"><label>Color Secundario</label><input type="color" id="f_colorSecundario" value="' + (tenant.colorSecundario || "#2e1065") + '"/></div>' +
           '<div class="field"><label>Logo del Laboratorio</label><input type="file" id="f_logo" accept="image/*"/></div>' +
         "</div>" +
         '<div id="logo-preview" style="margin-top:8px">' + (logoTemp ? '<img src="' + logoTemp + '" style="height:52px;border-radius:8px"/>' : '<span class="text-muted">Sin logo cargado</span>') + "</div>" +

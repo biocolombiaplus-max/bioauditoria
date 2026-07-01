@@ -14,7 +14,7 @@
 
       root.innerHTML =
         '<div class="card"><div class="card-header"><h3 class="card-title">Órdenes Listas para Reportar (' + orders.length + ')</h3></div>' +
-        '<p class="text-muted" style="margin-top:0">Desde aquí puedes descargar el PDF profesional o enviarlo por correo al paciente/médico remitente. El envío de correo en este entorno de demostración se simula: se registra la trazabilidad y se abre tu cliente de correo con el mensaje listo, adjuntando manualmente el PDF descargado.</p>' +
+        '<p class="text-muted" style="margin-top:0">Desde aquí puedes descargar el PDF profesional o enviarlo por correo al paciente/médico remitente. El envío abre Gmail, Outlook/Hotmail o tu correo predeterminado ya redactado — solo debes adjuntar el PDF que se descarga automáticamente.</p>' +
         '<div class="table-wrap"><table><thead><tr><th>N° Orden</th><th>Paciente</th><th>Estado</th><th>Enviado</th><th>Acciones</th></tr></thead><tbody>' +
         (orders.length ? orders.map(rowHtml).join("") : '<tr><td colspan="5" class="text-muted">Aún no hay resultados validados o preliminares para reportar.</td></tr>') +
         "</tbody></table></div></div>";
@@ -50,7 +50,12 @@
         (hasPreliminar ? '<option value="preliminar">Informe Preliminar (resultados anticipados)</option>' : "") +
       "</select></div>" +
       '<div class="field"><label>Mensaje</label><textarea id="send-msg">Estimado(a) ' + U.esc(U.nombreCompleto(pac)) + ',\n\nAdjuntamos sus resultados de laboratorio correspondientes a la orden ' + order.numeroOrden + '.\n\n' + U.esc(tenant.nombre) + "</textarea></div>" +
-      '<div class="flex gap-2 justify-between"><button class="btn btn-ghost" data-modal-close>Cancelar</button><button class="btn btn-primary" id="send-go">' + U.icon("send") + " Descargar PDF y Abrir Correo</button></div>"
+      '<div class="flex gap-2 justify-between"><button class="btn btn-ghost" data-modal-close>Cancelar</button><button class="btn btn-primary" id="send-go">' + U.icon("download") + " 1. Descargar PDF</button></div>" +
+      '<div id="send-step2" class="hidden" style="margin-top:16px;border-top:1px solid var(--border);padding-top:14px">' +
+      '<p style="margin:0 0 4px"><b>2. Elige dónde enviarlo</b></p>' +
+      '<p class="text-muted" style="margin:0 0 4px;font-size:12.5px">Se abrirá el correo ya redactado — solo adjunta el PDF que acabas de descargar antes de darle enviar.</p>' +
+      U.emailProviderButtonsHtml("send") +
+      "</div>"
     );
     wrap.querySelector("#send-go").addEventListener("click", async function () {
       var email = wrap.querySelector("#send-email").value.trim();
@@ -64,10 +69,12 @@
       order.enviado = true; order.fechaEnvio = S.nowISO();
       S.saveOrder(order);
       S.addAudit(session.tenantId, session.nombre, session.rol, "SEND_REPORT", "orden", order.id, "Envió el informe (" + tipo + ") de la orden " + order.numeroOrden + " a " + email + ".");
-      var mailto = "mailto:" + encodeURIComponent(email) + "?subject=" + encodeURIComponent("Resultados de Laboratorio - Orden " + order.numeroOrden + " - " + tenant.nombre) + "&body=" + encodeURIComponent(msg + "\n\n(Adjunte el archivo PDF que se acaba de descargar a su equipo)");
-      window.open(mailto, "_blank");
-      U.toast("PDF descargado y cliente de correo abierto. Adjunta el archivo antes de enviar.", "success");
-      U.closeModal(wrap);
+      btn.disabled = false; btn.textContent = "PDF descargado ✓";
+      var asunto = "Resultados de Laboratorio - Orden " + order.numeroOrden + " - " + tenant.nombre;
+      var cuerpo = msg + "\n\n(Adjunte el archivo PDF que se acaba de descargar a su equipo)";
+      wrap.querySelector("#send-step2").classList.remove("hidden");
+      U.wireEmailProviderButtons(wrap, "send", email, asunto, cuerpo);
+      U.toast("PDF descargado. Elige por dónde enviarlo.", "success");
       onDone();
     });
   }

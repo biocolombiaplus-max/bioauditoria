@@ -58,9 +58,9 @@
       resolucionHabilitacion: "Resolución 000000 de 2024 - Secretaría de Salud",
       codigoREPS: "1100100000-01",
       bacteriologoResponsable: { nombre: "Laura Gómez Pérez", registro: "TP-BACT 12345 CTBBTQ" },
-      logoDataUrl: "",
-      colorPrimario: "#0b6e4f",
-      colorSecundario: "#0f172a",
+      logoDataUrl: "assets/logo.svg",
+      colorPrimario: "#f97316",
+      colorSecundario: "#2e1065",
       claveAdmin: "ADMIN2026",
       creadoEn: nowISO()
     };
@@ -184,7 +184,7 @@
     var db = loadDB();
     var id = uid("lab");
     var tenant = Object.assign({
-      id: id, nivel: 1, colorPrimario: "#0b6e4f", colorSecundario: "#0f172a", logoDataUrl: "",
+      id: id, nivel: 1, colorPrimario: "#f97316", colorSecundario: "#2e1065", logoDataUrl: "",
       claveAdmin: "ADMIN" + Math.floor(1000 + Math.random() * 9000), creadoEn: nowISO()
     }, data, { id: id });
     db.tenants[id] = tenant;

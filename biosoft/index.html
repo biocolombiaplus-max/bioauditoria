@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1"/>
 <title>BIOsoft — Sistema de Gestión de Laboratorio Clínico</title>
 <meta name="description" content="BIOsoft: software de laboratorio clínico multi-país (Colombia, Venezuela, Ecuador) para pacientes, resultados, validación y reportes profesionales."/>
-<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='14' fill='%230b6e4f'/%3E%3Ctext x='32' y='42' font-family='Arial,sans-serif' font-weight='800' font-size='26' fill='white' text-anchor='middle'%3EBS%3C/text%3E%3C/svg%3E"/>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Cdefs%3E%3ClinearGradient id='g' x1='0' y1='0' x2='1' y2='1'%3E%3Cstop offset='0' stop-color='%23fbbf24'/%3E%3Cstop offset='1' stop-color='%237c3aed'/%3E%3C/linearGradient%3E%3C/defs%3E%3Crect width='64' height='64' rx='14' fill='%232e1065'/%3E%3Cpath d='M14 34 L26 46 L50 18' stroke='url(%23g)' stroke-width='8' fill='none' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E"/>
 <link rel="stylesheet" href="css/styles.css"/>
 </head>
 <body>
@@ -18,7 +18,7 @@
       <div class="login-card">
         <div class="login-hero">
           <div>
-            <div class="flex items-center gap-2"><div class="avatar" style="border-radius:8px;background:#fff;color:var(--brand-primary,#0b6e4f)">BS</div><b style="font-size:15px">BIOsoft</b></div>
+            <div class="flex items-center gap-2"><img src="assets/logo.svg" style="width:34px;height:34px"/><b style="font-size:15px">BIOsoft</b></div>
             <h1>El sistema de laboratorio clínico más completo para Latinoamérica</h1>
             <p class="tagline">Pacientes, resultados, validación, trazabilidad y reportes en PDF de nivel mundial — personalizado con tu marca. Diseñado para Colombia, Venezuela y Ecuador.</p>
             <ul>
@@ -32,8 +32,14 @@
           <a class="btn btn-outline" style="background:transparent;color:#fff;border-color:rgba(255,255,255,.4);width:fit-content" href="landing.html">Conocer más sobre BIOsoft →</a>
         </div>
         <div class="login-form">
-          <h2>Iniciar Sesión</h2>
-          <p class="text-muted" style="margin-top:-8px">Selecciona un rol de demostración o ingresa tus credenciales.</p>
+          <h2>¡Bienvenido a BIOsoft! 👋</h2>
+          <p class="text-muted" style="margin-top:-8px">Descubre en segundos todo lo que el sistema puede hacer por tu laboratorio.</p>
+
+          <button class="btn btn-primary btn-block btn-glow-brand" id="btn-demo-quick" style="font-size:16.5px;padding:17px 20px;margin:18px 0 8px">🚀 Entrar a la Demo Gratis</button>
+          <p class="text-muted" style="text-align:center;font-size:12px;margin:0">Sin registro · Datos de ejemplo · Explora todo el sistema ahora mismo</p>
+
+          <div class="divider-row"><div class="line"></div><span>o inicia sesión con tu cuenta</span><div class="line"></div></div>
+
           <div class="role-tabs">
             <div class="role-tab active" data-user="admin.demo" data-pass="Demo2026*">Administrador</div>
             <div class="role-tab" data-user="laura.gomez" data-pass="Bacterio2026*">Bacterióloga</div>
@@ -45,9 +51,8 @@
             <div class="field"><label>Usuario</label><input id="login-username" required autocomplete="username"/></div>
             <div class="field"><label>Contraseña</label><input id="login-password" type="password" required autocomplete="current-password"/></div>
             <p id="login-error" class="text-danger hidden" style="font-size:13px"></p>
-            <button class="btn btn-primary btn-block" type="submit">Ingresar</button>
+            <button class="btn btn-outline btn-block" type="submit">Ingresar</button>
           </form>
-          <button class="btn btn-outline btn-block" id="btn-demo-quick" style="margin-top:10px">Entrar directo a la Demo</button>
           <div class="demo-creds">
             <b>Credenciales de demostración</b><br/>
             Admin: <b>admin.demo</b> / Demo2026*<br/>

@@ -190,16 +190,56 @@
         S.updatePatient(patient.id, data);
         S.addAudit(session.tenantId, session.nombre, session.rol, "UPDATE_PATIENT", "paciente", patient.id, "Actualizó datos del paciente " + U.nombreCompleto(data));
         U.toast("Paciente actualizado.", "success");
+        U.closeModal(wrap);
+        onSaved();
       } else {
         var created = S.createPatient(Object.assign(data, { creadoPor: session.username }));
         S.addAudit(session.tenantId, session.nombre, session.rol, "CREATE_PATIENT", "paciente", created.id, "Registró al paciente " + U.nombreCompleto(data));
         U.toast("Paciente registrado.", "success");
+        U.closeModal(wrap);
+        onSaved();
+        if (created.email) ofrecerCorreoRegistro(created);
       }
-      U.closeModal(wrap);
-      onSaved();
     });
   }
   window.BIO_openPatientForm = openPatientForm;
+
+  function ofrecerCorreoRegistro(patient) {
+    var session = BIO_AUTH.getSession();
+    var tenant = BIO_AUTH.currentTenant();
+    var asunto = "Confirmación de Registro — " + tenant.nombre;
+    var cuerpo =
+      "Estimado(a) " + U.nombreCompleto(patient) + ",\n\n" +
+      "Le confirmamos que su registro en " + tenant.nombre + " se realizó exitosamente el " + U.fmtFechaCorta(patient.creadoEn) + ".\n\n" +
+      "Datos registrados:\n" +
+      "- Documento: " + patient.tipoDocumento + " " + patient.numeroDocumento + "\n" +
+      "- EPS / Asegurador: " + (patient.eps || "Particular") + "\n" +
+      "- Médico remitente: " + (patient.medicoRemitente || "—") + "\n\n" +
+      "Si su información es correcta, no necesita hacer nada más. Si detecta algún error, por favor respóndanos a este correo o comuníquese con nosotros.\n\n" +
+      "Gracias por confiar en " + tenant.nombre + " para el cuidado de su salud.\n\n" +
+      "Atentamente,\n" + tenant.nombre + "\n" +
+      (tenant.direccion || "") + (tenant.telefonos ? " · " + tenant.telefonos : "") + "\n" +
+      (tenant.email || "") + (tenant.sitioWeb ? " · " + tenant.sitioWeb : "");
+
+    var wrap = U.openModal(
+      '<h3 class="modal-title">' + U.icon("send") + " Enviar Correo de Confirmación de Registro</h3>" +
+      '<p class="text-muted">Elige con qué correo enviar este mensaje profesional ya redactado para <b>' + U.esc(patient.email) + "</b>, confirmando el registro de " + U.esc(U.nombreCompleto(patient)) + " en " + U.esc(tenant.nombre) + ".</p>" +
+      '<div class="card" style="background:var(--surface-2);box-shadow:none;font-size:12.5px;white-space:pre-wrap;max-height:260px;overflow-y:auto">' + U.esc(cuerpo) + "</div>" +
+      U.emailProviderButtonsHtml("regmail") +
+      '<div class="flex gap-2 justify-between" style="margin-top:14px">' +
+      '<button class="btn btn-ghost" data-modal-close>Omitir</button>' +
+      "</div>",
+      { lg: true }
+    );
+    U.wireEmailProviderButtons(wrap, "regmail", patient.email, asunto, cuerpo);
+    wrap.querySelectorAll('[id^="regmail-"]').forEach(function (btn) {
+      btn.addEventListener("click", function () {
+        S.addAudit(session.tenantId, session.nombre, session.rol, "SEND_REGISTRATION_EMAIL", "paciente", patient.id, "Envió correo de confirmación de registro a " + patient.email + ".");
+        U.toast("Correo abierto para enviar la confirmación.", "success");
+        U.closeModal(wrap);
+      });
+    });
+  }
 
   function inp(id, label, value, required, type) {
     return '<div class="field"><label>' + label + (required ? ' *' : '') + '</label><input id="f_' + id + '" type="' + (type || "text") + '" value="' + U.esc(value || "") + '" ' + (required ? "required" : "") + "/></div>";

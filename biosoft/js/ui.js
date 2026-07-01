@@ -113,9 +113,9 @@
   function applyTenantTheme(tenant) {
     var root = document.documentElement;
     if (!tenant) return;
-    root.style.setProperty("--brand-primary", tenant.colorPrimario || "#0b6e4f");
-    root.style.setProperty("--brand-secondary", tenant.colorSecundario || "#0f172a");
-    var dark = shadeColor(tenant.colorPrimario || "#0b6e4f", -18);
+    root.style.setProperty("--brand-primary", tenant.colorPrimario || "#f97316");
+    root.style.setProperty("--brand-secondary", tenant.colorSecundario || "#2e1065");
+    var dark = shadeColor(tenant.colorPrimario || "#f97316", -18);
     root.style.setProperty("--brand-primary-dark", dark);
   }
   function shadeColor(hex, percent) {
@@ -159,10 +159,41 @@
     setTimeout(function () { URL.revokeObjectURL(url); }, 60000);
   }
 
+  /* Enlaces de composición directa en Gmail/Outlook (web), para no depender de
+     que el usuario tenga un cliente de correo configurado por defecto en su
+     equipo — el problema más común al usar simplemente "mailto:". */
+  function emailLinks(to, subject, body) {
+    var enc = encodeURIComponent;
+    return {
+      gmail: "https://mail.google.com/mail/?view=cm&fs=1&to=" + enc(to) + "&su=" + enc(subject) + "&body=" + enc(body),
+      outlook: "https://outlook.live.com/mail/0/deeplink/compose?to=" + enc(to) + "&subject=" + enc(subject) + "&body=" + enc(body),
+      mailto: "mailto:" + enc(to) + "?subject=" + enc(subject) + "&body=" + enc(body)
+    };
+  }
+
+  function emailProviderButtonsHtml(idPrefix) {
+    return '<div class="flex gap-2 wrap" style="margin-top:10px">' +
+      '<button type="button" class="btn btn-outline btn-sm" id="' + idPrefix + '-gmail">📧 Abrir en Gmail</button>' +
+      '<button type="button" class="btn btn-outline btn-sm" id="' + idPrefix + '-outlook">📧 Abrir en Outlook / Hotmail</button>' +
+      '<button type="button" class="btn btn-ghost btn-sm" id="' + idPrefix + '-mailto">Mi correo predeterminado</button>' +
+      "</div>";
+  }
+
+  function wireEmailProviderButtons(root, idPrefix, to, subject, body) {
+    var links = emailLinks(to, subject, body);
+    var g = root.querySelector("#" + idPrefix + "-gmail");
+    var o = root.querySelector("#" + idPrefix + "-outlook");
+    var m = root.querySelector("#" + idPrefix + "-mailto");
+    if (g) g.addEventListener("click", function () { window.open(links.gmail, "_blank"); });
+    if (o) o.addEventListener("click", function () { window.open(links.outlook, "_blank"); });
+    if (m) m.addEventListener("click", function () { window.open(links.mailto, "_blank"); });
+  }
+
   global.BIO_UI = {
     icon: icon, esc: esc, toast: toast, openModal: openModal, closeModal: closeModal,
     calcEdad: calcEdad, fmtFecha: fmtFecha, fmtFechaCorta: fmtFechaCorta, nombreCompleto: nombreCompleto,
     applyTenantTheme: applyTenantTheme, dataUrlToBlob: dataUrlToBlob, openDataUrlInNewTab: openDataUrlInNewTab,
-    downloadBytes: downloadBytes, normalizar: normalizar
+    downloadBytes: downloadBytes, normalizar: normalizar, emailLinks: emailLinks,
+    emailProviderButtonsHtml: emailProviderButtonsHtml, wireEmailProviderButtons: wireEmailProviderButtons
   };
 })(window);
