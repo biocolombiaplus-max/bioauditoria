@@ -1,0 +1,102 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1"/>
+<title>BIOsoft — Sistema de Gestión de Laboratorio Clínico</title>
+<meta name="description" content="BIOsoft: software de laboratorio clínico multi-país (Colombia, Venezuela, Ecuador) para pacientes, resultados, validación y reportes profesionales."/>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='14' fill='%230b6e4f'/%3E%3Ctext x='32' y='42' font-family='Arial,sans-serif' font-weight='800' font-size='26' fill='white' text-anchor='middle'%3EBS%3C/text%3E%3C/svg%3E"/>
+<link rel="stylesheet" href="css/styles.css"/>
+</head>
+<body>
+
+  <div id="demo-banner" class="demo-banner hidden">MODO DEMOSTRACIÓN — Los datos de este entorno son de ejemplo y se restablecen en tu navegador</div>
+
+  <!-- ======================= LOGIN ======================= -->
+  <div id="login-screen">
+    <div class="login-wrap">
+      <div class="login-card">
+        <div class="login-hero">
+          <div>
+            <div class="flex items-center gap-2"><div class="avatar" style="border-radius:8px;background:#fff;color:var(--brand-primary,#0b6e4f)">BS</div><b style="font-size:15px">BIOsoft</b></div>
+            <h1>El sistema de laboratorio clínico más completo para Latinoamérica</h1>
+            <p class="tagline">Pacientes, resultados, validación, trazabilidad y reportes en PDF de nivel mundial — personalizado con tu marca. Diseñado para Colombia, Venezuela y Ecuador.</p>
+            <ul>
+              <li>✓ Registro clínico y usuarios por bacteriólogo con clave propia</li>
+              <li>✓ Validación de resultados con trazabilidad total y clave de administrador para correcciones</li>
+              <li>✓ Resultados preliminares y reportes en PDF con tu logo y colores</li>
+              <li>✓ Hojas de trabajo diarias, imprimibles o en pantalla</li>
+              <li>✓ Catálogo de exámenes por secciones de primer y segundo nivel</li>
+            </ul>
+          </div>
+          <a class="btn btn-outline" style="background:transparent;color:#fff;border-color:rgba(255,255,255,.4);width:fit-content" href="landing.html">Conocer más sobre BIOsoft →</a>
+        </div>
+        <div class="login-form">
+          <h2>Iniciar Sesión</h2>
+          <p class="text-muted" style="margin-top:-8px">Selecciona un rol de demostración o ingresa tus credenciales.</p>
+          <div class="role-tabs">
+            <div class="role-tab active" data-user="admin.demo" data-pass="Demo2026*">Administrador</div>
+            <div class="role-tab" data-user="laura.gomez" data-pass="Bacterio2026*">Bacterióloga</div>
+            <div class="role-tab" data-user="andres.rios" data-pass="Bacterio2026*">Bacteriólogo Nivel 2</div>
+            <div class="role-tab" data-user="recepcion.demo" data-pass="Recepcion2026*">Recepción</div>
+            <div class="role-tab" data-user="biosoft" data-pass="BIOsoft#2026">Superadmin BIOsoft</div>
+          </div>
+          <form id="login-form">
+            <div class="field"><label>Usuario</label><input id="login-username" required autocomplete="username"/></div>
+            <div class="field"><label>Contraseña</label><input id="login-password" type="password" required autocomplete="current-password"/></div>
+            <p id="login-error" class="text-danger hidden" style="font-size:13px"></p>
+            <button class="btn btn-primary btn-block" type="submit">Ingresar</button>
+          </form>
+          <button class="btn btn-outline btn-block" id="btn-demo-quick" style="margin-top:10px">Entrar directo a la Demo</button>
+          <div class="demo-creds">
+            <b>Credenciales de demostración</b><br/>
+            Admin: <b>admin.demo</b> / Demo2026*<br/>
+            Bacterióloga (Hematología, Química…): <b>laura.gomez</b> / Bacterio2026*<br/>
+            Bacteriólogo (Inmunología, Hormonas…): <b>andres.rios</b> / Bacterio2026*<br/>
+            Recepción: <b>recepcion.demo</b> / Recepcion2026*<br/>
+            Clave admin para correcciones del laboratorio demo: <b>ADMIN2026</b>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ======================= APP SHELL ======================= -->
+  <div id="app-shell" class="hidden">
+    <div id="app-inner" style="display:flex;width:100%">
+      <aside class="sidebar" id="sidebar"></aside>
+      <div class="main-col">
+        <header class="topbar">
+          <div class="flex items-center gap-3">
+            <button class="burger" id="burger"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 6h16M4 12h16M4 18h16"/></svg></button>
+            <span class="title" id="topbar-title">Panel Principal</span>
+          </div>
+          <div class="user-chip" id="user-chip">
+            <div class="flex-col" style="text-align:right">
+              <span style="font-weight:700;font-size:13px" id="user-chip-name"></span>
+              <span class="text-muted" style="font-size:11px" id="user-chip-role"></span>
+            </div>
+            <div class="avatar" id="user-avatar"></div>
+          </div>
+        </header>
+        <main class="content" id="content"></main>
+      </div>
+    </div>
+  </div>
+
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.8.2/jspdf.plugin.autotable.min.js"></script>
+  <script src="js/catalog.js"></script>
+  <script src="js/store.js"></script>
+  <script src="js/auth.js"></script>
+  <script src="js/ui.js"></script>
+  <script src="js/pdf.js"></script>
+  <script src="js/views-dashboard-patients.js"></script>
+  <script src="js/views-orders.js"></script>
+  <script src="js/views-results.js"></script>
+  <script src="js/views-worksheets.js"></script>
+  <script src="js/views-reports.js"></script>
+  <script src="js/views-admin.js"></script>
+  <script src="js/router.js"></script>
+</body>
+</html>

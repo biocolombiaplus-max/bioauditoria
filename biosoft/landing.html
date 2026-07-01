@@ -1,0 +1,137 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1"/>
+<title>BIOsoft — Software Premium para Laboratorios Clínicos (Colombia, Venezuela, Ecuador)</title>
+<meta name="description" content="BIOsoft es el software de gestión para laboratorios clínicos: pacientes, resultados, validación, trazabilidad y reportes PDF profesionales, personalizable con tu marca."/>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='14' fill='%230b6e4f'/%3E%3Ctext x='32' y='42' font-family='Arial,sans-serif' font-weight='800' font-size='26' fill='white' text-anchor='middle'%3EBS%3C/text%3E%3C/svg%3E"/>
+<link rel="stylesheet" href="css/styles.css"/>
+<style>
+  body { background: #fff; }
+  .lp-nav { position: sticky; top: 0; z-index: 20; background: rgba(255,255,255,.9); backdrop-filter: blur(6px); border-bottom: 1px solid var(--border); }
+  .lp-nav-inner { max-width: 1180px; margin: 0 auto; display: flex; align-items: center; justify-content: space-between; padding: 14px 24px; }
+  .lp-logo { font-family: 'Poppins',sans-serif; font-weight: 800; font-size: 20px; color: var(--brand-secondary); display:flex; align-items:center; gap:8px; }
+  .lp-logo span { color: var(--brand-primary); }
+  .lp-wrap { max-width: 1180px; margin: 0 auto; padding: 0 24px; }
+  .lp-hero { padding: 70px 24px 40px; text-align: center; background: radial-gradient(ellipse at top, color-mix(in srgb, var(--brand-primary) 10%, white), #fff 60%); }
+  .lp-hero h1 { font-size: 46px; max-width: 820px; margin: 0 auto 18px; line-height: 1.15; }
+  .lp-hero h1 span { color: var(--brand-primary); }
+  .lp-hero p { max-width: 640px; margin: 0 auto 28px; color: var(--text-muted); font-size: 17px; }
+  .lp-cta-row { display: flex; gap: 14px; justify-content: center; flex-wrap: wrap; }
+  .lp-badges { display:flex; gap:10px; justify-content:center; margin-top:26px; flex-wrap:wrap; }
+  .lp-badges span { background: var(--surface-2); border:1px solid var(--border); padding:6px 14px; border-radius:20px; font-size:12.5px; font-weight:700; color:var(--text-muted); }
+  .lp-section { padding: 60px 24px; }
+  .lp-section h2 { text-align: center; font-size: 30px; margin-bottom: 8px; }
+  .lp-section .lead { text-align: center; color: var(--text-muted); max-width: 640px; margin: 0 auto 40px; }
+  .lp-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(260px,1fr)); gap: 20px; }
+  .lp-feature { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 24px; box-shadow: var(--shadow-sm); }
+  .lp-feature .lp-ic { width: 42px; height: 42px; border-radius: 12px; background: color-mix(in srgb, var(--brand-primary) 12%, white); color: var(--brand-primary); display:flex; align-items:center; justify-content:center; margin-bottom: 14px; }
+  .lp-feature h3 { font-size: 16px; margin: 0 0 6px; }
+  .lp-feature p { font-size: 13.5px; color: var(--text-muted); margin: 0; line-height: 1.5; }
+  .lp-mock { background: var(--brand-secondary); border-radius: 24px; padding: 26px; color: #fff; }
+  .lp-mock-window { background: #101827; border-radius: 14px; overflow: hidden; border: 1px solid rgba(255,255,255,.08); }
+  .lp-mock-bar { display:flex; gap:6px; padding: 10px 14px; background: #0b1220; }
+  .lp-mock-bar i { width:10px;height:10px;border-radius:50%;background:#475569; display:block; }
+  .lp-mock-body { padding: 20px; display:grid; grid-template-columns: 150px 1fr; gap:14px; }
+  .lp-mock-side { background: rgba(255,255,255,.04); border-radius:10px; padding:12px; font-size:11px; }
+  .lp-mock-side div { padding:7px 8px; border-radius:6px; margin-bottom:4px; }
+  .lp-mock-side div.active { background: var(--brand-primary); }
+  .lp-mock-card { background: rgba(255,255,255,.05); border-radius: 10px; padding: 14px; margin-bottom: 10px; font-size: 11px; }
+  .lp-mock-card .row { display:flex; justify-content:space-between; padding: 5px 0; border-bottom: 1px solid rgba(255,255,255,.06); }
+  .lp-sections-list { display:flex; flex-wrap:wrap; gap:8px; justify-content:center; }
+  .lp-sections-list span { background: var(--surface-2); border:1px solid var(--border); border-radius:20px; padding:7px 14px; font-size:12.5px; font-weight:600; }
+  .lp-steps { counter-reset: step; }
+  .lp-step { display:flex; gap:16px; align-items:flex-start; margin-bottom: 22px; }
+  .lp-step .num { counter-increment: step; content: counter(step); width:36px;height:36px;border-radius:50%; background: var(--brand-primary); color:#fff; display:flex;align-items:center;justify-content:center; font-weight:800; flex-shrink:0; }
+  .lp-step .num::before { content: counter(step); }
+  .lp-final { background: linear-gradient(135deg, var(--brand-primary), var(--brand-primary-dark)); color:#fff; text-align:center; padding: 70px 24px; border-radius: 28px; margin: 0 24px 60px; }
+  .lp-final h2 { font-size: 30px; margin-bottom: 10px; }
+  .lp-final p { opacity:.92; margin-bottom: 26px; }
+  .lp-footer { text-align:center; padding: 30px; color: var(--text-muted); font-size: 12.5px; border-top:1px solid var(--border); }
+</style>
+</head>
+<body>
+
+  <nav class="lp-nav"><div class="lp-nav-inner">
+    <div class="lp-logo"><span>BIO</span>soft</div>
+    <div class="flex gap-3"><a class="btn btn-ghost btn-sm" href="#funciones">Funciones</a><a class="btn btn-ghost btn-sm" href="#secciones">Secciones</a><a class="btn btn-primary btn-sm" href="index.html">Ver Demo en Vivo</a></div>
+  </div></nav>
+
+  <section class="lp-hero">
+    <div class="lp-badges">
+      <span>🇨🇴 Colombia</span><span>🇻🇪 Venezuela</span><span>🇪🇨 Ecuador</span><span>Primer y Segundo Nivel</span>
+    </div>
+    <h1>El software de laboratorio clínico <span>premium</span>, a la medida de tu marca</h1>
+    <p>BIOsoft gestiona pacientes, resultados, validación por bacteriólogo, trazabilidad total y reportes en PDF de nivel mundial — 100% personalizable con tu logo, colores, NIT y datos de contacto.</p>
+    <div class="lp-cta-row">
+      <a class="btn btn-primary" href="index.html">Entrar a la Demo Interactiva</a>
+      <a class="btn btn-outline" href="mailto:biomarketing.salud@gmail.com?subject=Quiero%20una%20demo%20de%20BIOsoft">Solicitar una Demo Personalizada</a>
+    </div>
+  </section>
+
+  <section class="lp-wrap" style="margin-bottom:60px">
+    <div class="lp-mock">
+      <div class="lp-mock-window">
+        <div class="lp-mock-bar"><i></i><i></i><i></i></div>
+        <div class="lp-mock-body">
+          <div class="lp-mock-side">
+            <div class="active">Panel Principal</div><div>Pacientes</div><div>Órdenes</div><div>Resultados</div><div>Hojas de Trabajo</div><div>Reportes</div><div>Usuarios</div><div>Configuración</div>
+          </div>
+          <div>
+            <div class="lp-mock-card"><b>Hemograma IV — María Rojas</b><div class="row"><span>Hemoglobina</span><span>13.2 g/dL</span></div><div class="row"><span>Leucocitos</span><span>6.8 x10³/µL</span></div><div class="row"><span>Plaquetas</span><span>260 x10³/µL</span></div></div>
+            <div class="lp-mock-card"><b>Glucosa Basal — Carlos Martínez</b><div class="row"><span>Glucosa</span><span style="color:#f87171;font-weight:700">128 mg/dL — ALTO</span></div></div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section class="lp-section" id="funciones">
+    <h2>Todo lo que un laboratorio moderno necesita</h2>
+    <p class="lead">Un sistema completo, pensado desde la operación diaria hasta la gerencia del laboratorio.</p>
+    <div class="lp-grid">
+      <div class="lp-feature"><div class="lp-ic">👤</div><h3>Registro completo de pacientes</h3><p>Datos clínicos, EPS/asegurador, médico remitente, procedencia y campos específicos de Colombia, Venezuela y Ecuador.</p></div>
+      <div class="lp-feature"><div class="lp-ic">🧪</div><h3>Captura de resultados por bacteriólogo</h3><p>Cada bacteriólogo tiene usuario y clave, y solo ve las secciones que tiene asignadas. Interfaz rápida pensada para ahorrar tiempo.</p></div>
+      <div class="lp-feature"><div class="lp-ic">✅</div><h3>Validación y resultados preliminares</h3><p>Valida exámenes uno a uno o por orden completa; envía resultados preliminares cuando algunos exámenes están listos antes que otros.</p></div>
+      <div class="lp-feature"><div class="lp-ic">🔒</div><h3>Trazabilidad y control de correcciones</h3><p>Toda edición queda registrada con usuario, fecha y hora. Corregir un resultado ya validado exige la clave del administrador.</p></div>
+      <div class="lp-feature"><div class="lp-ic">📄</div><h3>Reportes en PDF de nivel mundial</h3><p>Informe con tu logo, colores institucionales, NIT, dirección y firma del bacteriólogo responsable — listo para enviar o imprimir.</p></div>
+      <div class="lp-feature"><div class="lp-ic">🖨️</div><h3>Hojas de trabajo diarias</h3><p>Genera e imprime hojas de trabajo por sección y fecha, o diligéncialas directamente en pantalla para mayor agilidad.</p></div>
+      <div class="lp-feature"><div class="lp-ic">🎨</div><h3>100% personalizable por cliente</h3><p>Cada laboratorio tiene su propio nombre, NIT, dirección, teléfonos, correo, sitio web, logo y colores institucionales.</p></div>
+      <div class="lp-feature"><div class="lp-ic">📱</div><h3>Se ve perfecto en PC y celular</h3><p>Diseño responsivo pensado para recepción, bacteriólogos en el laboratorio y administradores en movimiento.</p></div>
+    </div>
+  </section>
+
+  <section class="lp-section" id="secciones" style="background:var(--surface-2)">
+    <h2>Todas las secciones del laboratorio</h2>
+    <p class="lead">Catálogo de exámenes organizado por sección, con código de referencia CUPS editable y niveles de complejidad 1 y 2.</p>
+    <div class="lp-sections-list" id="sections-list"></div>
+  </section>
+
+  <section class="lp-section">
+    <h2>Así de simple para tu equipo</h2>
+    <p class="lead">Un flujo pensado para reducir errores y ahorrar tiempo en el día a día del laboratorio.</p>
+    <div class="lp-wrap lp-steps" style="max-width:640px">
+      <div class="lp-step"><div class="num"></div><div><b>Recepción registra al paciente y la orden</b><p class="text-muted">Selecciona los exámenes por sección desde un catálogo completo (primer y segundo nivel).</p></div></div>
+      <div class="lp-step"><div class="num"></div><div><b>El bacteriólogo captura resultados</b><p class="text-muted">Ingresa a su bandeja de trabajo, ve solo sus secciones asignadas y guarda como borrador, preliminar o validado.</p></div></div>
+      <div class="lp-step"><div class="num"></div><div><b>Se valida y firma electrónicamente</b><p class="text-muted">Cada validación queda registrada con usuario, fecha y hora en la trazabilidad del sistema.</p></div></div>
+      <div class="lp-step"><div class="num"></div><div><b>Se genera el PDF y se envía</b><p class="text-muted">Descarga o envía por correo el informe final o preliminar, con la marca de tu laboratorio.</p></div></div>
+    </div>
+  </section>
+
+  <section class="lp-final lp-wrap">
+    <h2>Lleva tu laboratorio al siguiente nivel</h2>
+    <p>Explora la demo interactiva completa con datos de ejemplo, o solicita una versión personalizada con tu marca.</p>
+    <div class="lp-cta-row"><a class="btn" style="background:#fff;color:var(--brand-primary)" href="index.html">Entrar a la Demo</a></div>
+  </section>
+
+  <footer class="lp-footer">BIOsoft™ · Un producto de BIOMarketing · biomarketing.salud@gmail.com<br/>© 2026 Todos los derechos reservados.</footer>
+
+  <script src="js/catalog.js"></script>
+  <script>
+    document.getElementById("sections-list").innerHTML = BIO_CATALOG.SECCIONES.map(function (s) {
+      return "<span>" + s.nombre + "</span>";
+    }).join("");
+  </script>
+</body>
+</html>

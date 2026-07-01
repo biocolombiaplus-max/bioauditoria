@@ -1,0 +1,195 @@
+/* BIOsoft — Shell de la aplicación, navegación y arranque */
+(function (global) {
+  "use strict";
+
+  var NAV = {
+    superadmin: [
+      { sec: "BIOSOFT", items: [
+        { route: "tenants", label: "Laboratorios Cliente", icon: "building" },
+        { route: "dashboard", label: "Resumen Global", icon: "home" }
+      ]}
+    ],
+    admin: [
+      { sec: "GENERAL", items: [{ route: "dashboard", label: "Panel Principal", icon: "home" }] },
+      { sec: "OPERACIÓN", items: [
+        { route: "pacientes", label: "Pacientes", icon: "users" },
+        { route: "ordenes", label: "Órdenes de Laboratorio", icon: "clipboard" },
+        { route: "resultados", label: "Resultados", icon: "flask" },
+        { route: "hojas-trabajo", label: "Hojas de Trabajo", icon: "printer" },
+        { route: "reportes", label: "Reportes y Envíos", icon: "send" }
+      ]},
+      { sec: "ADMINISTRACIÓN", items: [
+        { route: "usuarios", label: "Usuarios y Bacteriólogos", icon: "users" },
+        { route: "config", label: "Configuración del Laboratorio", icon: "settings" },
+        { route: "auditoria", label: "Trazabilidad", icon: "history" }
+      ]}
+    ],
+    bacteriologo: [
+      { sec: "GENERAL", items: [{ route: "dashboard", label: "Panel Principal", icon: "home" }] },
+      { sec: "OPERACIÓN", items: [
+        { route: "resultados", label: "Bandeja de Resultados", icon: "flask" },
+        { route: "hojas-trabajo", label: "Hojas de Trabajo", icon: "printer" }
+      ]}
+    ],
+    recepcion: [
+      { sec: "GENERAL", items: [{ route: "dashboard", label: "Panel Principal", icon: "home" }] },
+      { sec: "OPERACIÓN", items: [
+        { route: "pacientes", label: "Pacientes", icon: "users" },
+        { route: "ordenes", label: "Órdenes de Laboratorio", icon: "clipboard" },
+        { route: "hojas-trabajo", label: "Hojas de Trabajo", icon: "printer" },
+        { route: "reportes", label: "Reportes y Envíos", icon: "send" }
+      ]}
+    ]
+  };
+
+  var ROLE_LABEL = { superadmin: "Super Administrador BIOsoft", admin: "Administrador de Laboratorio", bacteriologo: "Bacteriólogo(a)", recepcion: "Recepción / Toma de Muestras" };
+
+  function iniciales(nombre) {
+    return (nombre || "?").split(" ").filter(Boolean).slice(0, 2).map(function (w) { return w[0]; }).join("").toUpperCase();
+  }
+
+  function renderShell() {
+    var session = BIO_AUTH.getSession();
+    var tenant = BIO_AUTH.currentTenant();
+    BIO_UI.applyTenantTheme(tenant);
+
+    document.getElementById("demo-banner").classList.toggle("hidden", !(tenant && tenant.id === "demo"));
+
+    var sidebar = document.getElementById("sidebar");
+    var brandName = tenant ? tenant.nombre : "BIOsoft";
+    var brandSub = session.rol === "superadmin" ? "Consola de Socios" : "Sistema de Gestión de Laboratorio";
+    sidebar.innerHTML =
+      '<div class="sidebar-brand">' +
+        (tenant && tenant.logoDataUrl ? '<img src="' + tenant.logoDataUrl + '"/>' : '<div class="avatar" style="border-radius:8px">' + iniciales(brandName) + '</div>') +
+        '<div><div class="name">' + BIO_UI.esc(brandName) + '</div><div class="sub">' + brandSub + '</div></div>' +
+      '</div>' +
+      '<nav class="sidebar-nav" id="sidebar-nav"></nav>' +
+      '<div class="sidebar-foot">BIOsoft™ · Impulsado por BIOMarketing<br/>Cumplimiento normativo CO · VE · EC</div>';
+
+    var navHost = document.getElementById("sidebar-nav");
+    var groups = NAV[session.rol] || [];
+    var html = "";
+    groups.forEach(function (g) {
+      html += '<div class="sidebar-section-title">' + g.sec + '</div>';
+      g.items.forEach(function (it) {
+        html += '<a class="nav-link" data-route="' + it.route + '">' + BIO_UI.icon(it.icon) + '<span>' + it.label + '</span></a>';
+      });
+    });
+    navHost.innerHTML = html;
+    navHost.querySelectorAll(".nav-link").forEach(function (a) {
+      a.addEventListener("click", function () {
+        location.hash = "#/" + a.dataset.route;
+        sidebar.classList.remove("open");
+      });
+    });
+
+    document.getElementById("user-chip-name").textContent = session.nombre;
+    document.getElementById("user-chip-role").textContent = ROLE_LABEL[session.rol] || session.rol;
+    document.getElementById("user-avatar").textContent = iniciales(session.nombre);
+  }
+
+  var ROUTE_TITLES = {
+    dashboard: "Panel Principal", pacientes: "Pacientes", ordenes: "Órdenes de Laboratorio",
+    resultados: "Resultados de Laboratorio", "hojas-trabajo": "Hojas de Trabajo Diarias",
+    reportes: "Reportes y Envío de Resultados", usuarios: "Usuarios y Bacteriólogos",
+    config: "Configuración del Laboratorio", auditoria: "Trazabilidad y Auditoría", tenants: "Laboratorios Cliente"
+  };
+
+  var ALLOWED_ROUTES = {
+    superadmin: ["tenants", "dashboard"],
+    admin: ["dashboard", "pacientes", "ordenes", "resultados", "hojas-trabajo", "reportes", "usuarios", "config", "auditoria"],
+    bacteriologo: ["dashboard", "resultados", "hojas-trabajo"],
+    recepcion: ["dashboard", "pacientes", "ordenes", "hojas-trabajo", "reportes"]
+  };
+
+  function currentRoute() {
+    var h = location.hash.replace(/^#\//, "").split("/");
+    return { name: h[0] || "dashboard", param: h[1] };
+  }
+
+  function renderRoute() {
+    var session = BIO_AUTH.getSession();
+    if (!session) { showLogin(); return; }
+    var r = currentRoute();
+    var allowed = ALLOWED_ROUTES[session.rol] || [];
+    if (allowed.indexOf(r.name) === -1) { r.name = allowed[0]; location.hash = "#/" + r.name; }
+
+    document.querySelectorAll(".nav-link").forEach(function (a) { a.classList.toggle("active", a.dataset.route === r.name); });
+    document.getElementById("topbar-title").textContent = ROUTE_TITLES[r.name] || "BIOsoft";
+
+    var content = document.getElementById("content");
+    content.innerHTML = "";
+    var renderer = BIO_VIEWS[r.name];
+    if (renderer) renderer(content, r.param);
+    else content.innerHTML = '<div class="card">Módulo no encontrado.</div>';
+  }
+
+  function showLogin() {
+    document.getElementById("app-shell").classList.add("hidden");
+    document.getElementById("login-screen").classList.remove("hidden");
+    document.getElementById("demo-banner").classList.add("hidden");
+  }
+  function showApp() {
+    document.getElementById("login-screen").classList.add("hidden");
+    document.getElementById("app-shell").classList.remove("hidden");
+    renderShell();
+    renderRoute();
+  }
+
+  function boot() {
+    BIO_STORE.seedIfEmpty();
+    wireLogin();
+    document.getElementById("burger").addEventListener("click", function () {
+      document.getElementById("sidebar").classList.toggle("open");
+    });
+    document.getElementById("user-chip").addEventListener("click", function () {
+      var s = BIO_AUTH.getSession();
+      BIO_UI.openModal(
+        '<h3 class="modal-title">' + BIO_UI.esc(s.nombre) + '</h3>' +
+        '<p class="text-muted" style="margin-top:2px">' + (ROLE_LABEL[s.rol] || s.rol) + '</p>' +
+        '<div class="field" style="margin-top:16px"><button class="btn btn-outline btn-block" id="btn-logout">' + BIO_UI.icon("logout") + ' Cerrar sesión</button></div>'
+      ).querySelector("#btn-logout").addEventListener("click", function () {
+        BIO_AUTH.logout();
+        location.hash = "";
+        document.querySelectorAll(".modal").forEach(function (m) { m.remove(); });
+        showLogin();
+      });
+    });
+    window.addEventListener("hashchange", renderRoute);
+    if (BIO_AUTH.getSession()) showApp(); else showLogin();
+  }
+
+  function wireLogin() {
+    var form = document.getElementById("login-form");
+    var tabs = document.querySelectorAll(".role-tab");
+    tabs.forEach(function (tab) {
+      tab.addEventListener("click", function () {
+        tabs.forEach(function (t) { t.classList.remove("active"); });
+        tab.classList.add("active");
+        document.getElementById("login-username").value = tab.dataset.user;
+        document.getElementById("login-password").value = tab.dataset.pass;
+      });
+    });
+    document.getElementById("btn-demo-quick").addEventListener("click", function () {
+      document.getElementById("login-username").value = "admin.demo";
+      document.getElementById("login-password").value = "Demo2026*";
+      form.requestSubmit();
+    });
+    form.addEventListener("submit", function (e) {
+      e.preventDefault();
+      var u = document.getElementById("login-username").value.trim();
+      var p = document.getElementById("login-password").value;
+      var res = BIO_AUTH.login(u, p);
+      var errBox = document.getElementById("login-error");
+      if (!res.ok) { errBox.textContent = res.error; errBox.classList.remove("hidden"); return; }
+      errBox.classList.add("hidden");
+      form.reset();
+      location.hash = "#/dashboard";
+      showApp();
+    });
+  }
+
+  document.addEventListener("DOMContentLoaded", boot);
+
+  global.BIO_ROUTER = { renderShell: renderShell, renderRoute: renderRoute, showApp: showApp, showLogin: showLogin };
+})(window);
