@@ -49,14 +49,59 @@
   .lp-final h2 { font-size: 30px; margin-bottom: 10px; }
   .lp-final p { opacity:.92; margin-bottom: 26px; }
   .lp-footer { text-align:center; padding: 30px; color: var(--text-muted); font-size: 12.5px; border-top:1px solid var(--border); }
+
+  /* ---------- Botones con efecto de luz ---------- */
+  @keyframes glowGreen {
+    0%, 100% { box-shadow: 0 0 10px 0 rgba(37,211,102,.55), 0 0 0 0 rgba(37,211,102,.35); }
+    50% { box-shadow: 0 0 32px 8px rgba(37,211,102,.8), 0 0 60px 18px rgba(37,211,102,.3); }
+  }
+  @keyframes glowBrand {
+    0%, 100% { box-shadow: 0 0 10px 0 color-mix(in srgb, var(--brand-primary) 55%, transparent), 0 0 0 0 transparent; }
+    50% { box-shadow: 0 0 30px 8px color-mix(in srgb, var(--brand-primary) 70%, transparent), 0 0 55px 16px color-mix(in srgb, var(--brand-primary) 25%, transparent); }
+  }
+  .btn-whatsapp {
+    background: linear-gradient(135deg,#25D366,#128C4A); color:#fff; border:none;
+    animation: glowGreen 2.2s ease-in-out infinite; font-size:15px; padding:14px 26px;
+  }
+  .btn-whatsapp:hover { filter: brightness(1.07); }
+  .btn-glow-brand { animation: glowBrand 2.2s ease-in-out infinite; }
+  .wa-float {
+    position: fixed; right: 22px; bottom: 22px; z-index: 60; width: 62px; height: 62px; border-radius: 50%;
+    background: linear-gradient(135deg,#25D366,#128C4A); display:flex; align-items:center; justify-content:center;
+    box-shadow: var(--shadow-lg); animation: glowGreen 2.2s ease-in-out infinite; text-decoration:none;
+  }
+  .wa-float svg { width: 30px; height: 30px; fill: #fff; }
+
+  /* ---------- Precios ---------- */
+  .price-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(230px,1fr)); gap: 18px; align-items: stretch; }
+  .price-card { background: var(--surface); border: 1.5px solid var(--border); border-radius: var(--radius); padding: 26px 22px; text-align:center; display:flex; flex-direction:column; position:relative; }
+  .price-card.destacado { border-color: var(--brand-primary); box-shadow: 0 0 0 3px color-mix(in srgb, var(--brand-primary) 15%, transparent), var(--shadow-md); transform: translateY(-6px); }
+  .price-card .tag { position:absolute; top:-13px; left:50%; transform:translateX(-50%); background:var(--brand-primary); color:#fff; font-size:11px; font-weight:800; padding:4px 14px; border-radius:20px; letter-spacing:.03em; }
+  .price-card h3 { margin: 6px 0 2px; font-size:18px; }
+  .price-card .users { color: var(--text-muted); font-size:12.5px; margin-bottom:14px; }
+  .price-card .amount { font-family:'Poppins',sans-serif; font-weight:800; font-size:34px; color:var(--brand-secondary); }
+  .price-card .amount small { font-size:13px; font-weight:600; color:var(--text-muted); }
+  .price-card ul { list-style:none; padding:0; margin:16px 0 22px; text-align:left; font-size:13px; color:var(--text-muted); display:flex; flex-direction:column; gap:8px; flex:1; }
+  .price-card ul li:before { content:"✓ "; color: var(--success); font-weight:800; }
+  .price-note { text-align:center; max-width:620px; margin:34px auto 0; background:var(--surface-2); border:1px dashed var(--border); border-radius:12px; padding:16px 20px; font-size:13.5px; color:var(--text-muted); }
+  .pay-grid { display:grid; grid-template-columns: repeat(auto-fit, minmax(260px,1fr)); gap:18px; max-width:760px; margin:30px auto 0; }
+  .pay-card { background:#fff; border:1.5px solid var(--border); border-radius:var(--radius); padding:22px; text-align:center; }
+  .pay-card b { display:block; font-size:16px; margin-bottom:6px; }
+  .pay-card .num { font-family:'Poppins',sans-serif; font-weight:800; font-size:20px; color:var(--brand-primary); margin:6px 0; }
+  .trust-row { display:flex; flex-wrap:wrap; justify-content:center; gap:10px; margin-top:24px; }
+  .trust-row span { font-size:12px; color:var(--text-muted); background:var(--surface-2); border:1px solid var(--border); border-radius:20px; padding:6px 14px; font-weight:600; }
 </style>
 </head>
 <body>
 
   <nav class="lp-nav"><div class="lp-nav-inner">
     <div class="lp-logo"><span>BIO</span>soft</div>
-    <div class="flex gap-3"><a class="btn btn-ghost btn-sm" href="#funciones">Funciones</a><a class="btn btn-ghost btn-sm" href="#secciones">Secciones</a><a class="btn btn-primary btn-sm" href="index.html">Ver Demo en Vivo</a></div>
+    <div class="flex gap-3"><a class="btn btn-ghost btn-sm" href="#funciones">Funciones</a><a class="btn btn-ghost btn-sm" href="#secciones">Secciones</a><a class="btn btn-ghost btn-sm" href="#precios">Precios</a><a class="btn btn-primary btn-sm" href="index.html">Ver Demo en Vivo</a></div>
   </div></nav>
+
+  <a class="wa-float" id="wa-float" href="#" target="_blank" rel="noopener" aria-label="Escríbenos por WhatsApp">
+    <svg viewBox="0 0 32 32"><path d="M16.04 3C9.37 3 3.96 8.36 3.96 15c0 2.26.62 4.38 1.7 6.2L3 29l7.98-2.1a12.9 12.9 0 0 0 5.06 1.02c6.67 0 12.08-5.36 12.08-12S22.71 3 16.04 3Zm0 21.9c-1.7 0-3.34-.45-4.77-1.3l-.34-.2-4.73 1.24 1.26-4.6-.22-.36a9.75 9.75 0 0 1-1.5-5.18c0-5.42 4.43-9.82 9.9-9.82 5.28 0 9.9 4.4 9.9 9.82 0 5.42-4.62 10.4-9.5 10.4Zm5.44-7.34c-.3-.15-1.77-.87-2.04-.97-.27-.1-.47-.15-.67.15-.2.3-.77.97-.94 1.17-.17.2-.35.22-.65.07-.3-.15-1.24-.46-2.36-1.46-.87-.78-1.46-1.74-1.63-2.04-.17-.3-.02-.46.13-.6.13-.13.3-.35.45-.52.15-.17.2-.3.3-.5.1-.2.05-.37-.02-.52-.07-.15-.67-1.62-.92-2.22-.24-.58-.49-.5-.67-.5h-.57c-.2 0-.52.07-.79.37-.27.3-1.04 1.02-1.04 2.5s1.07 2.9 1.22 3.1c.15.2 2.1 3.2 5.08 4.49.71.31 1.26.49 1.69.63.71.23 1.36.19 1.87.12.57-.09 1.77-.72 2.02-1.42.25-.7.25-1.3.17-1.42-.07-.13-.27-.2-.57-.35Z"/></svg>
+  </a>
 
   <section class="lp-hero">
     <div class="lp-badges">
@@ -65,8 +110,8 @@
     <h1>El software de laboratorio clínico <span>premium</span>, a la medida de tu marca</h1>
     <p>BIOsoft gestiona pacientes, resultados, validación por bacteriólogo, trazabilidad total y reportes en PDF de nivel mundial — 100% personalizable con tu logo, colores, NIT y datos de contacto.</p>
     <div class="lp-cta-row">
-      <a class="btn btn-primary" href="index.html">Entrar a la Demo Interactiva</a>
-      <a class="btn btn-outline" href="mailto:biomarketing.salud@gmail.com?subject=Quiero%20una%20demo%20de%20BIOsoft">Solicitar una Demo Personalizada</a>
+      <a class="btn btn-whatsapp wa-link" href="#" target="_blank" rel="noopener">📲 Contratar por WhatsApp</a>
+      <a class="btn btn-outline" href="index.html">Ver Demo en Vivo</a>
     </div>
   </section>
 
@@ -119,10 +164,48 @@
     </div>
   </section>
 
+  <section class="lp-section" id="precios" style="background:var(--surface-2)">
+    <h2>Precios claros, según el tamaño de tu laboratorio</h2>
+    <p class="lead">Un solo pago de activación para empezar, y luego una mensualidad que crece con tu equipo — sin sorpresas.</p>
+    <div class="lp-wrap"><div class="price-grid" id="price-grid"></div></div>
+    <div class="price-note">🔧 <b>Pago único de activación: $180.000 COP</b> — incluye implementación (marca, logo, colores, catálogo de exámenes) y capacitación de tu equipo. Aplica una sola vez, sin importar el plan que elijas.</div>
+    <div class="trust-row">
+      <span>🔒 Pago seguro con Wompi</span>
+      <span>⚡ Activación ágil</span>
+      <span>💬 Soporte directo por WhatsApp</span>
+      <span>🇨🇴🇻🇪🇪🇨 Hecho para Colombia, Venezuela y Ecuador</span>
+    </div>
+  </section>
+
+  <section class="lp-section" id="pagos">
+    <h2>Empieza hoy mismo</h2>
+    <p class="lead">Escríbenos por WhatsApp para confirmar tu plan, o realiza el pago de activación directamente.</p>
+    <div class="lp-cta-row" style="margin-bottom: 30px">
+      <a class="btn btn-whatsapp wa-link" href="#" target="_blank" rel="noopener">📲 Escribir por WhatsApp</a>
+    </div>
+    <div class="pay-grid">
+      <div class="pay-card">
+        <b>💜 Pagar con Nequi</b>
+        <p class="text-muted" style="margin:0;font-size:13px">Envía tu pago al número:</p>
+        <div class="num">305 545 7420</div>
+        <p class="text-muted" style="margin:0;font-size:13px">A nombre de Juan Cáceres</p>
+      </div>
+      <div class="pay-card">
+        <b>🌐 Pagar con Wompi</b>
+        <p class="text-muted" style="margin:0 0 12px;font-size:13px">Tarjeta, PSE, Nequi, Bancolombia y más</p>
+        <a class="btn btn-primary btn-glow-brand" href="https://checkout.wompi.co/l/SU2JN5" target="_blank" rel="noopener">Ir a Pagar con Wompi</a>
+      </div>
+    </div>
+    <p class="text-muted" style="text-align:center;margin-top:20px;font-size:12.5px">Después de tu pago, envíanos el comprobante por WhatsApp y activamos tu cuenta.</p>
+  </section>
+
   <section class="lp-final lp-wrap">
     <h2>Lleva tu laboratorio al siguiente nivel</h2>
-    <p>Explora la demo interactiva completa con datos de ejemplo, o solicita una versión personalizada con tu marca.</p>
-    <div class="lp-cta-row"><a class="btn" style="background:#fff;color:var(--brand-primary)" href="index.html">Entrar a la Demo</a></div>
+    <p>Explora la demo interactiva completa con datos de ejemplo, o contrátanos ahora mismo por WhatsApp.</p>
+    <div class="lp-cta-row">
+      <a class="btn btn-whatsapp wa-link" href="#" target="_blank" rel="noopener">📲 Contratar por WhatsApp</a>
+      <a class="btn" style="background:#fff;color:var(--brand-primary)" href="index.html">Entrar a la Demo</a>
+    </div>
   </section>
 
   <footer class="lp-footer">BIOsoft™ · Un producto de BIOMarketing · biomarketing.salud@gmail.com<br/>© 2026 Todos los derechos reservados.</footer>
@@ -131,6 +214,38 @@
   <script>
     document.getElementById("sections-list").innerHTML = BIO_CATALOG.SECCIONES.map(function (s) {
       return "<span>" + s.nombre + "</span>";
+    }).join("");
+
+    var WA_NUMBER = "573505457420";
+    function waLink(mensaje) { return "https://wa.me/" + WA_NUMBER + "?text=" + encodeURIComponent(mensaje); }
+    document.querySelectorAll(".wa-link, #wa-float").forEach(function (a) {
+      a.href = waLink("Hola, quiero conocer más sobre BIOsoft para mi laboratorio y ver la demo.");
+    });
+
+    var PLANES = [
+      { nombre: "Individual", usuarios: "1 usuario", precio: "120.000", destacado: false,
+        items: ["Todos los módulos incluidos", "Pacientes y órdenes ilimitadas", "Reportes PDF con tu marca", "Soporte por WhatsApp"] },
+      { nombre: "Esencial", usuarios: "Hasta 3 usuarios", precio: "220.000", destacado: false,
+        items: ["Todo lo del plan Individual", "Ideal para laboratorios pequeños", "Varios bacteriólogos y recepción", "Hojas de trabajo y stickers"] },
+      { nombre: "Profesional", usuarios: "Hasta 6 usuarios", precio: "380.000", destacado: true,
+        items: ["Todo lo del plan Esencial", "El más elegido por laboratorios en crecimiento", "Exámenes remitidos a otros laboratorios", "Valores de referencia personalizables"] },
+      { nombre: "Laboratorio Plus", usuarios: "Hasta 10 usuarios", precio: "580.000", destacado: false,
+        items: ["Todo lo del plan Profesional", "Para laboratorios de alto volumen", "Múltiples secciones y turnos", "Soporte prioritario"] },
+      { nombre: "Empresarial", usuarios: "Más de 10 usuarios / multisede", precio: "Cotización", destacado: false,
+        items: ["Múltiples sedes o sucursales", "Volumen y condiciones a la medida", "Acompañamiento dedicado", "Hablemos de tu caso"] }
+    ];
+    document.getElementById("price-grid").innerHTML = PLANES.map(function (p) {
+      var esCotizacion = p.precio === "Cotización";
+      var msg = esCotizacion
+        ? "Hola, quiero una cotización personalizada de BIOsoft para mi laboratorio (" + p.usuarios + ")."
+        : "Hola, quiero contratar el Plan " + p.nombre + " de BIOsoft (" + p.usuarios + ").";
+      return '<div class="price-card ' + (p.destacado ? "destacado" : "") + '">' +
+        (p.destacado ? '<span class="tag">Más elegido</span>' : "") +
+        "<h3>" + p.nombre + "</h3><div class='users'>" + p.usuarios + "</div>" +
+        (esCotizacion ? '<div class="amount">A la medida</div>' : '<div class="amount">$' + p.precio + " <small>/mes</small></div>") +
+        "<ul>" + p.items.map(function (it) { return "<li>" + it + "</li>"; }).join("") + "</ul>" +
+        '<a class="btn ' + (p.destacado ? "btn-whatsapp" : "btn-primary") + '" href="' + waLink(msg) + '" target="_blank" rel="noopener">' + (esCotizacion ? "Solicitar Cotización" : "Elegir por WhatsApp") + "</a>" +
+        "</div>";
     }).join("");
   </script>
 </body>
