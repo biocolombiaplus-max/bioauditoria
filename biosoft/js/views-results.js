@@ -283,12 +283,42 @@
     }
 
     function confirmValidation(onOk) {
-      var wrap = U.openModal(
-        '<h3 class="modal-title">Confirmar Validación</h3>' +
-        '<p class="text-muted">Al validar, usted certifica con su usuario y clave (' + U.esc(BIO_AUTH.getSession().nombre) + ') que revisó y aprueba estos resultados. Esta acción queda registrada con fecha y hora en la trazabilidad, y su firma se incluirá en el informe.</p>' +
-        '<div class="flex gap-2 justify-between"><button class="btn btn-ghost" data-modal-close>Cancelar</button><button class="btn btn-primary" id="btn-ok-validate">' + U.icon("check") + " Confirmar y Firmar</button></div>"
-      );
-      wrap.querySelector("#btn-ok-validate").addEventListener("click", function () { U.closeModal(wrap); onOk(); });
+      var me = S.listUsers(session.tenantId).filter(function (u) { return u.id === session.userId; })[0];
+      var firmaTemp = me && me.firmaDataUrl ? me.firmaDataUrl : "";
+
+      function render() {
+        var card = wrap.querySelector(".modal-card");
+        card.innerHTML =
+          '<h3 class="modal-title">Confirmar Validación</h3>' +
+          '<p class="text-muted">Al validar, usted certifica con su usuario y clave (' + U.esc(session.nombre) + ') que revisó y aprueba estos resultados. Esta acción queda registrada con fecha y hora en la trazabilidad.</p>' +
+          '<div class="card" style="background:var(--surface-2);box-shadow:none;text-align:center">' +
+          (firmaTemp
+            ? '<p class="text-muted" style="margin:0 0 8px;font-size:12px">Esta firma se imprimirá en el informe</p><img src="' + firmaTemp + '" style="height:70px;background:#fff;border:1px solid var(--border);border-radius:8px;padding:6px"/>' +
+              '<p style="margin:10px 0 0;font-weight:700">' + U.esc(session.nombre) + "</p>" +
+              '<p class="text-muted" style="margin:0;font-size:12px">' + (me && me.registroProfesional ? "Registro Profesional: " + U.esc(me.registroProfesional) : "") + "</p>"
+            : '<p class="text-muted" style="margin:0 0 10px">Aún no tienes una firma escaneada cargada. Puedes agregarla ahora para que aparezca en tus informes validados:</p>' +
+              '<input type="file" id="firma-rapida" accept="image/*"/>') +
+          "</div>" +
+          '<div class="flex gap-2 justify-between" style="margin-top:14px"><button class="btn btn-ghost" data-modal-close>Cancelar</button><button class="btn btn-primary" id="btn-ok-validate">' + U.icon("check") + " Confirmar y Firmar</button></div>";
+
+        var fq = wrap.querySelector("#firma-rapida");
+        if (fq) fq.addEventListener("change", function (e) {
+          var file = e.target.files[0];
+          if (!file) return;
+          var reader = new FileReader();
+          reader.onload = function (ev) {
+            firmaTemp = ev.target.result;
+            if (me) { S.updateUser(me.id, { firmaDataUrl: firmaTemp }); }
+            render();
+          };
+          reader.readAsDataURL(file);
+        });
+        wrap.querySelector("[data-modal-close]").addEventListener("click", function () { U.closeModal(wrap); });
+        wrap.querySelector("#btn-ok-validate").addEventListener("click", function () { U.closeModal(wrap); onOk(); });
+      }
+
+      var wrap = U.openModal("");
+      render();
     }
 
     build();
