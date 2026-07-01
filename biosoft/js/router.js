@@ -45,6 +45,9 @@
 
   var ROLE_LABEL = { superadmin: "Super Administrador BIOsoft", admin: "Administrador de Laboratorio", bacteriologo: "Bacteriólogo(a)", recepcion: "Recepción / Toma de Muestras" };
 
+  var WA_NUMBER = "573505457420";
+  function waLink(mensaje) { return "https://wa.me/" + WA_NUMBER + "?text=" + encodeURIComponent(mensaje); }
+
   function iniciales(nombre) {
     return (nombre || "?").split(" ").filter(Boolean).slice(0, 2).map(function (w) { return w[0]; }).join("").toUpperCase();
   }
@@ -54,7 +57,13 @@
     var tenant = BIO_AUTH.currentTenant();
     BIO_UI.applyTenantTheme(tenant);
 
-    document.getElementById("demo-banner").classList.toggle("hidden", !(tenant && tenant.id === "demo"));
+    var esDemo = !!(tenant && tenant.id === "demo");
+    document.getElementById("demo-banner").classList.toggle("hidden", !esDemo);
+    var waFloat = document.getElementById("wa-float-demo");
+    waFloat.classList.toggle("hidden", !esDemo);
+    if (esDemo) {
+      waFloat.href = waLink("Hola, ya vi la demo de BIOsoft y estoy interesado(a) en adquirirla para mi laboratorio. ¿Me ayudas con la activación?");
+    }
 
     var sidebar = document.getElementById("sidebar");
     var brandName = tenant ? tenant.nombre : "BIOsoft";
@@ -163,6 +172,14 @@
 
   function wireLogin() {
     var form = document.getElementById("login-form");
+    var toggleBtn = document.getElementById("btn-toggle-login");
+    var existingBlock = document.getElementById("existing-login-block");
+    toggleBtn.addEventListener("click", function () {
+      var abierto = !existingBlock.classList.contains("hidden");
+      existingBlock.classList.toggle("hidden");
+      toggleBtn.textContent = abierto ? "¿Ya adquiriste BIOsoft para tu laboratorio? Inicia sesión aquí →" : "← Ocultar inicio de sesión";
+      if (!abierto) existingBlock.scrollIntoView({ behavior: "smooth", block: "nearest" });
+    });
     var tabs = document.querySelectorAll(".role-tab");
     tabs.forEach(function (tab) {
       tab.addEventListener("click", function () {
