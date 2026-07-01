@@ -75,6 +75,7 @@
     var order = S.getOrder(orderId);
     if (!order) { root.innerHTML = '<div class="card">Orden no encontrada.</div>'; return; }
     var pac = S.getPatient(order.patientId);
+    var tenant = BIO_AUTH.currentTenant();
 
     function build() {
       root.innerHTML =
@@ -89,7 +90,7 @@
     }
 
     function buildExamCard(ex, idx) {
-      var exCat = C.examenPorId(ex.examId);
+      var exCat = C.examenEfectivo(ex.examId, tenant);
       var editable = puedeEditar(session, ex.seccion);
       var locked = ex.estado === "validado" || ex.estado === "remitido";
       var modoRemision = !!ex.remitido;

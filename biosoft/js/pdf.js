@@ -116,7 +116,7 @@
 
       var body = [];
       bySeccion[seccionId].forEach(function (ex) {
-        var exCat = C.examenPorId(ex.examId);
+        var exCat = C.examenEfectivo(ex.examId, tenant);
         exCat.parametros.forEach(function (p) {
           var val = (ex.valores.filter(function (v) { return v.codigo === p.codigo; })[0] || {}).valor || "-";
           var flag = C.calcularFlag(p, val);

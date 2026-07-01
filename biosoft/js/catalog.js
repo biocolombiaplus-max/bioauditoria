@@ -511,6 +511,40 @@
     return "";
   }
 
+  /* Cada laboratorio puede tener sus propios valores de referencia (según
+     equipo/metodología). Los ajustes se guardan por laboratorio (tenant) y
+     se combinan aquí con los valores de fábrica del catálogo, sin modificar
+     el catálogo global compartido. */
+  function overrideKey(examId, codigo) { return examId + "::" + codigo; }
+
+  function parametroEfectivo(examId, param, tenant) {
+    var overrides = tenant && tenant.refOverrides ? tenant.refOverrides[overrideKey(examId, param.codigo)] : null;
+    return overrides ? Object.assign({}, param, overrides) : param;
+  }
+
+  function examenEfectivo(examId, tenant) {
+    var exCat = examenPorId(examId);
+    if (!exCat) return exCat;
+    if (!tenant || !tenant.refOverrides) return exCat;
+    var clone = Object.assign({}, exCat);
+    clone.parametros = exCat.parametros.map(function (p) { return parametroEfectivo(examId, p, tenant); });
+    return clone;
+  }
+
+  function tieneOverride(examId, tenant) {
+    if (!tenant || !tenant.refOverrides) return false;
+    return examenPorId(examId).parametros.some(function (p) { return !!tenant.refOverrides[overrideKey(examId, p.codigo)]; });
+  }
+
+  function setOverride(tenant, examId, codigo, patch) {
+    tenant.refOverrides = tenant.refOverrides || {};
+    tenant.refOverrides[overrideKey(examId, codigo)] = patch;
+  }
+
+  function clearOverride(tenant, examId, codigo) {
+    if (tenant.refOverrides) delete tenant.refOverrides[overrideKey(examId, codigo)];
+  }
+
   global.BIO_CATALOG = {
     SECCIONES: SECCIONES,
     TUBOS: TUBOS,
@@ -524,6 +558,11 @@
     seccionNombre: seccionNombre,
     examenPorId: examenPorId,
     tuboInfo: tuboInfo,
-    calcularFlag: calcularFlag
+    calcularFlag: calcularFlag,
+    examenEfectivo: examenEfectivo,
+    parametroEfectivo: parametroEfectivo,
+    tieneOverride: tieneOverride,
+    setOverride: setOverride,
+    clearOverride: clearOverride
   };
 })(window);

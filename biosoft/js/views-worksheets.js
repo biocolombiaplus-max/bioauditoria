@@ -55,7 +55,7 @@
           '<th>Resultado(s)</th><th>Observaciones</th></tr></thead><tbody>' +
           items.map(function (it) {
             var pac = S.getPatient(it.order.patientId);
-            var exCat = C.examenPorId(it.ex.examId);
+            var exCat = C.examenEfectivo(it.ex.examId, tenant);
             return "<tr><td>" + it.order.numeroOrden + (it.order.prioridad === "Urgente" ? ' <span class="badge badge-urgente">URG</span>' : "") + "</td><td>" + (pac ? U.esc(U.nombreCompleto(pac)) : "—") + "</td><td>" + (pac ? U.calcEdad(pac.fechaNacimiento) + "/" + pac.sexo[0] : "") + "</td><td>" + U.esc(exCat.nombre) + '<div class="text-muted" style="font-size:11px">' + exCat.parametros.map(function (p) { return p.nombre; }).join(", ") + "</div></td>" +
               '<td style="min-width:160px;border-left:1px dashed #cbd5e1">&nbsp;</td><td style="min-width:140px">&nbsp;</td></tr>';
           }).join("") + "</tbody></table></div>" +
@@ -66,7 +66,7 @@
         var host = sheet.querySelector("#hw-cards");
         items.forEach(function (it) {
           var pac = S.getPatient(it.order.patientId);
-          var exCat = C.examenPorId(it.ex.examId);
+          var exCat = C.examenEfectivo(it.ex.examId, tenant);
           var valuesMap = {};
           it.ex.valores.forEach(function (v) { valuesMap[v.codigo] = v.valor; });
           var div = document.createElement("div");

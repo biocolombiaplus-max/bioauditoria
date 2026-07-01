@@ -124,6 +124,138 @@
   };
 
   // ------------------------------------------------------------------
+  // VALORES DE REFERENCIA DEL CATÁLOGO (personalizables por laboratorio)
+  // ------------------------------------------------------------------
+  window.BIO_VIEWS.catalogo = function (root) {
+    var session = BIO_AUTH.getSession();
+    var filtroSeccion = "todas";
+    var busqueda = "";
+    var tenant;
+
+    function build() {
+      tenant = S.getTenant(session.tenantId);
+      var exams = C.EXAMENES.filter(function (e) {
+        var okSec = filtroSeccion === "todas" || e.seccion === filtroSeccion;
+        var okBusq = !busqueda || U.normalizar(e.nombre).indexOf(U.normalizar(busqueda)) !== -1 || e.cups.indexOf(busqueda) !== -1;
+        return okSec && okBusq;
+      });
+      root.innerHTML =
+        '<div class="card"><div class="card-header"><h3 class="card-title">Valores de Referencia del Catálogo</h3></div>' +
+        '<p class="text-muted" style="margin-top:0">Cada laboratorio puede usar equipos o metodologías distintas, por lo que los valores normales pueden variar. Ajusta aquí los rangos de tu laboratorio sin afectar el catálogo general de BIOsoft; los cambios se aplican de inmediato en la captura de resultados y en los informes.</p>' +
+        '<div class="flex gap-2 wrap" style="margin-bottom:14px">' +
+        '<input id="cat-busqueda" placeholder="Buscar examen por nombre o código CUPS…" style="max-width:320px" value="' + U.esc(busqueda) + '"/>' +
+        '<select id="cat-seccion"><option value="todas">Todas las secciones</option>' + C.SECCIONES.map(function (s) { return '<option value="' + s.id + '" ' + (s.id === filtroSeccion ? "selected" : "") + ">" + s.nombre + "</option>"; }).join("") + "</select>" +
+        "</div>" +
+        '<div class="table-wrap"><table><thead><tr><th>Examen</th><th>Sección</th><th># Parámetros</th><th>Estado</th><th></th></tr></thead><tbody>' +
+        (exams.length ? exams.map(rowHtml).join("") : '<tr><td colspan="5" class="text-muted">Sin resultados.</td></tr>') +
+        "</tbody></table></div></div>";
+
+      document.getElementById("cat-busqueda").addEventListener("input", function (e) { busqueda = e.target.value; build(); });
+      document.getElementById("cat-seccion").addEventListener("change", function (e) { filtroSeccion = e.target.value; build(); });
+      root.querySelectorAll("[data-editexam]").forEach(function (b) { b.addEventListener("click", function () { openExamEditor(b.dataset.editexam, build); }); });
+    }
+
+    function rowHtml(e) {
+      var personalizado = C.tieneOverride(e.id, tenant);
+      return "<tr><td>" + U.esc(e.nombre) + "<div class='text-muted' style='font-size:11px'>CUPS " + e.cups + "</div></td><td>" + C.seccionNombre(e.seccion) + "</td><td>" + e.parametros.length + "</td>" +
+        "<td>" + (personalizado ? '<span class="badge badge-preliminar">Personalizado</span>' : '<span class="text-muted">Valores de fábrica</span>') + "</td>" +
+        '<td><button class="btn btn-outline btn-sm" data-editexam="' + e.id + '">' + U.icon("edit") + " Editar valores</button></td></tr>";
+    }
+    build();
+  };
+
+  function openExamEditor(examId, onDone) {
+    var session = BIO_AUTH.getSession();
+    var tenant = S.getTenant(session.tenantId);
+    var exCat = C.examenPorId(examId);
+    var efectivo = C.examenEfectivo(examId, tenant);
+
+    function paramRow(p, idx) {
+      var base = exCat.parametros[idx];
+      if (p.tipo === "numerico") {
+        var overNum = p.min !== base.min || p.max !== base.max || p.refText !== base.refText;
+        return '<tr data-prow="' + p.codigo + '">' +
+          "<td>" + U.esc(p.nombre) + '<div class="text-muted" style="font-size:11px">' + (p.unidad || "") + "</div></td>" +
+          '<td><input type="number" step="any" data-min value="' + p.min + '" style="width:90px"/></td>' +
+          '<td><input type="number" step="any" data-max value="' + p.max + '" style="width:90px"/></td>' +
+          '<td><input data-reftext value="' + U.esc(p.refText) + '"/></td>' +
+          '<td class="text-muted" style="font-size:11px">Fábrica: ' + base.min + " - " + base.max + "</td>" +
+          "<td>" + (overNum ? '<button class="btn btn-ghost btn-sm" data-reset="' + p.codigo + '">Restablecer</button>' : "") + "</td></tr>";
+      }
+      if (p.tipo === "cualitativo" || p.tipo === "descriptivo") {
+        var overCual = p.normal !== base.normal || p.refText !== base.refText;
+        return '<tr data-prow="' + p.codigo + '">' +
+          "<td>" + U.esc(p.nombre) + "</td>" +
+          '<td colspan="2">' +
+          (p.tipo === "cualitativo"
+            ? '<label class="text-muted" style="font-size:11px">Valor normal</label><select data-normal>' + p.opciones.map(function (o) { return "<option " + (o === p.normal ? "selected" : "") + ">" + o + "</option>"; }).join("") + "</select>"
+            : '<span class="text-muted" style="font-size:11px">Campo descriptivo (sin interpretación automática)</span>') +
+          "</td>" +
+          '<td><input data-reftext value="' + U.esc(p.refText) + '"/></td>' +
+          '<td class="text-muted" style="font-size:11px">Fábrica: ' + U.esc(base.normal || "—") + "</td>" +
+          "<td>" + (overCual ? '<button class="btn btn-ghost btn-sm" data-reset="' + p.codigo + '">Restablecer</button>' : "") + "</td></tr>";
+      }
+      return '<tr data-prow="' + p.codigo + '"><td>' + U.esc(p.nombre) + '</td><td colspan="4" class="text-muted">Campo de texto libre (sin valores de referencia numéricos)</td><td></td></tr>';
+    }
+
+    var wrap = U.openModal(
+      '<h3 class="modal-title">Valores de Referencia — ' + U.esc(exCat.nombre) + '</h3>' +
+      '<p class="text-muted" style="margin-top:0">Sección: ' + C.seccionNombre(exCat.seccion) + " · CUPS " + exCat.cups + "</p>" +
+      '<div class="table-wrap"><table><thead><tr><th>Parámetro</th><th>Mínimo</th><th>Máximo</th><th>Texto de referencia</th><th>Original</th><th></th></tr></thead><tbody>' +
+      efectivo.parametros.map(paramRow).join("") +
+      "</tbody></table></div>" +
+      '<div class="flex gap-2 justify-between" style="margin-top:14px"><button class="btn btn-ghost" data-modal-close>Cerrar</button><button class="btn btn-primary" id="cat-guardar">' + U.icon("check") + " Guardar Cambios</button></div>",
+      { lg: true }
+    );
+
+    wrap.querySelectorAll("[data-reset]").forEach(function (btn) {
+      btn.addEventListener("click", function () {
+        C.clearOverride(tenant, examId, btn.dataset.reset);
+        S.saveTenant(tenant);
+        S.addAudit(session.tenantId, session.nombre, session.rol, "RESET_REF_RANGE", "catalogo", examId + ":" + btn.dataset.reset, "Restableció el valor de referencia de fábrica de " + btn.dataset.reset + " en " + exCat.nombre + ".");
+        U.toast("Restablecido a valores de fábrica.", "success");
+        U.closeModal(wrap);
+        onDone();
+        openExamEditor(examId, onDone);
+      });
+    });
+
+    wrap.querySelector("#cat-guardar").addEventListener("click", function () {
+      var cambios = 0;
+      exCat.parametros.forEach(function (base) {
+        var row = wrap.querySelector('[data-prow="' + base.codigo + '"]');
+        if (!row) return;
+        if (base.tipo === "numerico") {
+          var min = parseFloat(row.querySelector("[data-min]").value);
+          var max = parseFloat(row.querySelector("[data-max]").value);
+          var refText = row.querySelector("[data-reftext]").value.trim();
+          if (isNaN(min) || isNaN(max)) return;
+          if (min === base.min && max === base.max && refText === base.refText) { C.clearOverride(tenant, examId, base.codigo); return; }
+          C.setOverride(tenant, examId, base.codigo, { min: min, max: max, refText: refText || (min + " - " + max + " " + (base.unidad || "")) });
+          cambios++;
+        } else if (base.tipo === "cualitativo") {
+          var normalSel = row.querySelector("[data-normal]");
+          var refText2 = row.querySelector("[data-reftext]").value.trim();
+          var normal = normalSel ? normalSel.value : base.normal;
+          if (normal === base.normal && refText2 === base.refText) { C.clearOverride(tenant, examId, base.codigo); return; }
+          C.setOverride(tenant, examId, base.codigo, { normal: normal, refText: refText2 || ("Normal: " + normal) });
+          cambios++;
+        } else if (base.tipo === "descriptivo") {
+          var refText3 = row.querySelector("[data-reftext]").value.trim();
+          if (refText3 === base.refText) { C.clearOverride(tenant, examId, base.codigo); return; }
+          C.setOverride(tenant, examId, base.codigo, { refText: refText3 });
+          cambios++;
+        }
+      });
+      S.saveTenant(tenant);
+      S.addAudit(session.tenantId, session.nombre, session.rol, "UPDATE_REF_RANGE", "catalogo", examId, "Actualizó valores de referencia de " + exCat.nombre + " (" + cambios + " parámetro(s) personalizado(s)).");
+      U.toast("Valores de referencia guardados para tu laboratorio.", "success");
+      U.closeModal(wrap);
+      onDone();
+    });
+  }
+
+  // ------------------------------------------------------------------
   // CONFIGURACIÓN DEL LABORATORIO
   // ------------------------------------------------------------------
   window.BIO_VIEWS.config = function (root) {
