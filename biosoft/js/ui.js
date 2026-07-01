@@ -129,9 +129,40 @@
     } catch (e) { return hex; }
   }
 
+  function normalizar(s) {
+    return String(s || "").normalize("NFD").replace(/[̀-ͯ]/g, "").toLowerCase();
+  }
+
+  function dataUrlToBlob(dataUrl) {
+    var parts = dataUrl.split(",");
+    var mimeMatch = parts[0].match(/:(.*?);/);
+    var mime = mimeMatch ? mimeMatch[1] : "application/octet-stream";
+    var binary = atob(parts[1]);
+    var bytes = new Uint8Array(binary.length);
+    for (var i = 0; i < binary.length; i++) bytes[i] = binary.charCodeAt(i);
+    return new Blob([bytes], { type: mime });
+  }
+
+  function openDataUrlInNewTab(dataUrl) {
+    var blob = dataUrlToBlob(dataUrl);
+    var url = URL.createObjectURL(blob);
+    window.open(url, "_blank");
+    setTimeout(function () { URL.revokeObjectURL(url); }, 60000);
+  }
+
+  function downloadBytes(bytes, filename, mime) {
+    var blob = new Blob([bytes], { type: mime || "application/pdf" });
+    var url = URL.createObjectURL(blob);
+    var a = document.createElement("a");
+    a.href = url; a.download = filename;
+    document.body.appendChild(a); a.click(); a.remove();
+    setTimeout(function () { URL.revokeObjectURL(url); }, 60000);
+  }
+
   global.BIO_UI = {
     icon: icon, esc: esc, toast: toast, openModal: openModal, closeModal: closeModal,
     calcEdad: calcEdad, fmtFecha: fmtFecha, fmtFechaCorta: fmtFechaCorta, nombreCompleto: nombreCompleto,
-    applyTenantTheme: applyTenantTheme
+    applyTenantTheme: applyTenantTheme, dataUrlToBlob: dataUrlToBlob, openDataUrlInNewTab: openDataUrlInNewTab,
+    downloadBytes: downloadBytes, normalizar: normalizar
   };
 })(window);

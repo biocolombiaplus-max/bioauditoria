@@ -16,6 +16,13 @@
     return new Date().toISOString();
   }
 
+  function firmaDemo(texto) {
+    return "data:image/svg+xml;utf8," + encodeURIComponent(
+      '<svg xmlns="http://www.w3.org/2000/svg" width="220" height="70">' +
+      '<text x="8" y="46" font-family="\'Segoe Script\', \'Brush Script MT\', cursive" font-size="30" fill="#1e3a8a" transform="rotate(-4 10 45)">' + texto + "</text></svg>"
+    );
+  }
+
   function loadDB() {
     var raw = localStorage.getItem(DB_KEY);
     if (!raw) return null;
@@ -58,11 +65,12 @@
       creadoEn: nowISO()
     };
 
+    var uAdmin = { id: uid("usr"), tenantId: "demo", username: "admin.demo", password: "Demo2026*", nombre: "Carolina Restrepo (Administradora)", rol: "admin", secciones: [], activo: true, creadoEn: nowISO() };
+    var uLaura = { id: uid("usr"), tenantId: "demo", username: "laura.gomez", password: "Bacterio2026*", nombre: "Laura Gómez Pérez", rol: "bacteriologo", secciones: ["hematologia", "coagulacion", "banco", "quimica", "uroanalisis", "coprologia", "pruebasrapidas", "gases"], registroProfesional: "TP-BACT 12345 CTBBTQ", firmaDataUrl: firmaDemo("Laura Gómez"), activo: true, creadoEn: nowISO() };
+    var uAndres = { id: uid("usr"), tenantId: "demo", username: "andres.rios", password: "Bacterio2026*", nombre: "Andrés Ríos Molano", rol: "bacteriologo", secciones: ["inmunologia", "microbiologia", "hormonas", "marcadores", "especiales"], registroProfesional: "TP-BACT 67890 CTBBTQ", firmaDataUrl: firmaDemo("A. Ríos M."), activo: true, creadoEn: nowISO() };
     db.users.push(
       { id: uid("usr"), tenantId: null, username: "biosoft", password: "BIOsoft#2026", nombre: "Soporte BIOsoft", rol: "superadmin", secciones: [], activo: true, creadoEn: nowISO() },
-      { id: uid("usr"), tenantId: "demo", username: "admin.demo", password: "Demo2026*", nombre: "Carolina Restrepo (Administradora)", rol: "admin", secciones: [], activo: true, creadoEn: nowISO() },
-      { id: uid("usr"), tenantId: "demo", username: "laura.gomez", password: "Bacterio2026*", nombre: "Laura Gómez Pérez", rol: "bacteriologo", secciones: ["hematologia", "coagulacion", "banco", "quimica", "uroanalisis", "coprologia", "pruebasrapidas", "gases"], activo: true, creadoEn: nowISO() },
-      { id: uid("usr"), tenantId: "demo", username: "andres.rios", password: "Bacterio2026*", nombre: "Andrés Ríos Molano", rol: "bacteriologo", secciones: ["inmunologia", "microbiologia", "hormonas", "marcadores", "especiales"], activo: true, creadoEn: nowISO() },
+      uAdmin, uLaura, uAndres,
       { id: uid("usr"), tenantId: "demo", username: "recepcion.demo", password: "Recepcion2026*", nombre: "Juliana Torres (Recepción)", rol: "recepcion", secciones: [], activo: true, creadoEn: nowISO() }
     );
 
@@ -72,8 +80,13 @@
     var p4 = { id: uid("pac"), tenantId: "demo", tipoDocumento: "VCI", numeroDocumento: "V-18234567", primerNombre: "José", segundoNombre: "Luis", primerApellido: "Fernández", segundoApellido: "", fechaNacimiento: "1988-01-15", sexo: "Masculino", pais: "VE", ciudad: "Bogotá D.C.", direccion: "Calle 63 # 9-30", telefono: "", celular: "3187778899", email: "jose.fernandez@example.com", tipoAfiliacion: "Particular", eps: "Particular", medicoRemitente: "Dra. Ana Beltrán", procedencia: "Ambulatorio", ocupacion: "Comerciante", observaciones: "Paciente migrante, sin afiliación aún", creadoEn: nowISO(), creadoPor: "recepcion.demo" };
     db.patients.push(p1, p2, p3, p4);
 
-    function item(examId, estado, valores, validadoPor, fechaValidacion) {
-      return { examId: examId, seccion: BIO_CATALOG.examenPorId(examId).seccion, estado: estado, valores: valores || [], observaciones: "", validadoPor: validadoPor || "", fechaValidacion: fechaValidacion || "", ingresadoPor: "", fechaIngreso: "", version: 1, correcciones: [] };
+    function item(examId, estado, valores, validador, fechaValidacion) {
+      return {
+        examId: examId, seccion: BIO_CATALOG.examenPorId(examId).seccion, estado: estado, valores: valores || [], observaciones: "",
+        validadoPor: validador ? validador.nombre : "", validadoPorUserId: validador ? validador.id : "", fechaValidacion: fechaValidacion || "",
+        ingresadoPor: "", fechaIngreso: "", version: 1, correcciones: [],
+        remitido: false, laboratorioRemision: "", pdfRemitidoDataUrl: "", pdfRemitidoNombre: ""
+      };
     }
 
     var today = new Date();
@@ -89,9 +102,9 @@
             { codigo: "NEUT", valor: "55" }, { codigo: "LINF", valor: "35" }, { codigo: "MONO", valor: "5" },
             { codigo: "EOS", valor: "3" }, { codigo: "BASO", valor: "1" }, { codigo: "PLT", valor: "260" },
             { codigo: "VCM", valor: "88" }, { codigo: "HCM", valor: "29" }, { codigo: "CHCM", valor: "34" }, { codigo: "RDW", valor: "12.8" }
-          ], "laura.gomez", nowISO()),
-          item("QUI-001", "validado", [{ codigo: "GLU", valor: "128" }], "laura.gomez", nowISO()),
-          item("QUI-008", "validado", [{ codigo: "CREA", valor: "0.9" }], "laura.gomez", nowISO())
+          ], uLaura, nowISO()),
+          item("QUI-001", "validado", [{ codigo: "GLU", valor: "128" }], uLaura, nowISO()),
+          item("QUI-008", "validado", [{ codigo: "CREA", valor: "0.9" }], uLaura, nowISO())
         ],
         estadoGeneral: "validado", enviado: true, fechaEnvio: nowISO(), creadoEn: nowISO(), creadoPor: "recepcion.demo"
       },
@@ -99,10 +112,10 @@
         id: uid("ord"), tenantId: "demo", numeroOrden: "20260002", patientId: p2.id, fechaOrden: hoyStr + "T09:00:00",
         prioridad: "Rutina", procedencia: "Consulta Externa", medicoRemitente: "Dra. Ana Beltrán", diagnostico: "Chequeo lipídico",
         examenes: [
-          item("QUI-004", "validado", [{ codigo: "COLT", valor: "215" }], "laura.gomez", nowISO()),
-          item("QUI-005", "validado", [{ codigo: "HDL", valor: "38" }], "laura.gomez", nowISO()),
-          item("QUI-006", "validado", [{ codigo: "LDL", valor: "142" }], "laura.gomez", nowISO()),
-          item("QUI-007", "validado", [{ codigo: "TGD", valor: "190" }], "laura.gomez", nowISO()),
+          item("QUI-004", "validado", [{ codigo: "COLT", valor: "215" }], uLaura, nowISO()),
+          item("QUI-005", "validado", [{ codigo: "HDL", valor: "38" }], uLaura, nowISO()),
+          item("QUI-006", "validado", [{ codigo: "LDL", valor: "142" }], uLaura, nowISO()),
+          item("QUI-007", "validado", [{ codigo: "TGD", valor: "190" }], uLaura, nowISO()),
           item("URO-001", "pendiente", [])
         ],
         estadoGeneral: "parcial", enviado: false, fechaEnvio: "", creadoEn: nowISO(), creadoPor: "recepcion.demo"
@@ -120,8 +133,8 @@
         id: uid("ord"), tenantId: "demo", numeroOrden: "20260004", patientId: p4.id, fechaOrden: hoyStr + "T11:45:00",
         prioridad: "Rutina", procedencia: "Ambulatorio", medicoRemitente: "Dra. Ana Beltrán", diagnostico: "Evaluación tiroidea y prostática",
         examenes: [
-          item("HOR-001", "validado", [{ codigo: "TSH", valor: "2.1" }], "andres.rios", nowISO()),
-          item("HOR-002", "validado", [{ codigo: "T4L", valor: "1.2" }], "andres.rios", nowISO()),
+          item("HOR-001", "validado", [{ codigo: "TSH", valor: "2.1" }], uAndres, nowISO()),
+          item("HOR-002", "validado", [{ codigo: "T4L", valor: "1.2" }], uAndres, nowISO()),
           item("MAR-001", "preliminar", [{ codigo: "PSA", valor: "1.8" }])
         ],
         estadoGeneral: "parcial", enviado: false, fechaEnvio: "", creadoEn: nowISO(), creadoPor: "recepcion.demo"
@@ -272,7 +285,8 @@
 
   function recalcEstadoGeneral(order) {
     var estados = order.examenes.map(function (e) { return e.estado; });
-    if (estados.every(function (e) { return e === "validado"; })) order.estadoGeneral = "validado";
+    var terminado = function (e) { return e === "validado" || e === "remitido"; };
+    if (estados.every(terminado)) order.estadoGeneral = "validado";
     else if (estados.every(function (e) { return e === "pendiente"; })) order.estadoGeneral = "pendiente";
     else order.estadoGeneral = "parcial";
     return order.estadoGeneral;

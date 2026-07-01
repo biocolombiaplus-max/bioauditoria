@@ -38,6 +38,7 @@
     var patients = S.listPatients(session.tenantId);
     var selectedExams = []; // {examId}
     var activeSection = C.SECCIONES[0].id;
+    var searchTerm = "";
 
     root.innerHTML =
       '<div class="card">' +
@@ -57,11 +58,13 @@
       "</div>" +
 
       '<div class="card" style="margin-top:16px">' +
-        '<div class="card-header"><h3 class="card-title">Selección de Exámenes por Sección</h3><span class="text-muted" id="sel-count">0 seleccionados</span></div>' +
+        '<div class="card-header"><h3 class="card-title">Selección de Exámenes</h3><span class="text-muted" id="sel-count">0 seleccionados</span></div>' +
+        '<div class="field" style="margin-bottom:12px"><input id="exam-search" placeholder="Buscar examen por nombre o código CUPS en todas las secciones…"/></div>' +
         '<div class="exam-picker">' +
           '<div class="exam-picker-sections" id="sec-list"></div>' +
           '<div class="exam-picker-list" id="exam-list"></div>' +
         "</div>" +
+        '<p class="text-muted" style="font-size:11.5px;margin:10px 0 0">' + U.esc(C.CATALOG_DISCLAIMER) + "</p>" +
         '<div class="flex wrap gap-2" id="chips" style="margin-top:14px"></div>' +
       "</div>" +
 
@@ -71,32 +74,59 @@
 
     document.getElementById("btn-cancel").addEventListener("click", function () { location.hash = "#/ordenes"; });
     document.getElementById("btn-new-patient-inline").addEventListener("click", function () {
-      window.BIO_openPatientForm(null, function () { location.hash = "#/ordenes/nueva"; window.BIO_ROUTER_forceReload && window.BIO_ROUTER_forceReload(); BIO_ROUTER.renderRoute(); });
+      window.BIO_openPatientForm(null, function () { location.hash = "#/ordenes/nueva"; BIO_ROUTER.renderRoute(); });
     });
+    document.getElementById("exam-search").addEventListener("input", function (e) { searchTerm = e.target.value; renderSections(); renderExams(); });
 
     function renderSections() {
       document.getElementById("sec-list").innerHTML = C.SECCIONES.map(function (s) {
-        return '<div class="sec-item ' + (s.id === activeSection ? "active" : "") + '" data-sec="' + s.id + '">' + s.nombre + "</div>";
+        var count = selectedExams.filter(function (id) { return C.examenPorId(id).seccion === s.id; }).length;
+        return '<div class="sec-item ' + (!searchTerm && s.id === activeSection ? "active" : "") + '" data-sec="' + s.id + '">' + s.nombre + (count ? ' <span class="badge badge-validado" style="margin-left:4px">' + count + "</span>" : "") + "</div>";
       }).join("");
       document.querySelectorAll(".sec-item").forEach(function (el) {
-        el.addEventListener("click", function () { activeSection = el.dataset.sec; renderSections(); renderExams(); });
+        el.addEventListener("click", function () {
+          activeSection = el.dataset.sec; searchTerm = ""; document.getElementById("exam-search").value = "";
+          renderSections(); renderExams();
+        });
       });
     }
+
     function renderExams() {
-      var exams = C.EXAMENES.filter(function (e) { return e.seccion === activeSection; });
-      document.getElementById("exam-list").innerHTML = exams.map(function (e) {
+      var term = U.normalizar(searchTerm.trim());
+      var pool = term
+        ? C.EXAMENES.filter(function (e) { return U.normalizar(e.nombre).indexOf(term) !== -1 || e.cups.indexOf(term) !== -1; })
+        : C.EXAMENES.filter(function (e) { return e.seccion === activeSection; });
+      var allChecked = pool.length > 0 && pool.every(function (e) { return selectedExams.indexOf(e.id) !== -1; });
+
+      var rowsHtml = pool.map(function (e) {
         var checked = selectedExams.indexOf(e.id) !== -1;
+        var tubo = C.tuboInfo(e.tubo);
         return '<label class="exam-row"><input type="checkbox" data-exam="' + e.id + '" ' + (checked ? "checked" : "") + '/>' +
-          '<div class="grow"><div>' + U.esc(e.nombre) + '</div><div class="meta">CUPS ' + e.cups + ' · Nivel ' + e.nivel + " · " + U.esc(e.muestra) + "</div></div></label>";
-      }).join("") || '<p class="text-muted">Sin exámenes en esta sección.</p>';
+          '<div class="grow"><div>' + U.esc(e.nombre) + (term ? ' <span class="text-muted" style="font-size:11px">— ' + C.seccionNombre(e.seccion) + "</span>" : "") + "</div>" +
+          '<div class="meta"><span style="display:inline-block;width:8px;height:8px;border-radius:50%;background:' + tubo.color + ';margin-right:5px;vertical-align:middle"></span>CUPS ' + e.cups + " · Nivel " + e.nivel + " · " + U.esc(tubo.nombre) + "</div></div></label>";
+      }).join("") || '<p class="text-muted" style="padding:14px">Sin resultados para tu búsqueda.</p>';
+
+      document.getElementById("exam-list").innerHTML =
+        '<div class="flex justify-between items-center" style="padding:4px 10px 10px">' +
+        '<span class="text-muted" style="font-size:11.5px">' + pool.length + " examen(es)</span>" +
+        (pool.length ? '<button class="btn btn-ghost btn-sm" id="btn-select-all">' + (allChecked ? "Quitar todos" : "Seleccionar todos") + "</button>" : "") +
+        "</div>" + rowsHtml;
+
       document.querySelectorAll("[data-exam]").forEach(function (chk) {
         chk.addEventListener("change", function () {
           var id = chk.dataset.exam;
           if (chk.checked) selectedExams.push(id); else selectedExams = selectedExams.filter(function (x) { return x !== id; });
-          renderChips();
+          renderChips(); renderSections();
         });
       });
+      var btnAll = document.getElementById("btn-select-all");
+      if (btnAll) btnAll.addEventListener("click", function () {
+        if (allChecked) selectedExams = selectedExams.filter(function (id) { return !pool.some(function (e) { return e.id === id; }); });
+        else pool.forEach(function (e) { if (selectedExams.indexOf(e.id) === -1) selectedExams.push(e.id); });
+        renderExams(); renderChips(); renderSections();
+      });
     }
+
     function renderChips() {
       document.getElementById("sel-count").textContent = selectedExams.length + " seleccionados";
       document.getElementById("chips").innerHTML = selectedExams.map(function (id) {
@@ -106,7 +136,7 @@
       document.querySelectorAll("[data-remove]").forEach(function (b) {
         b.addEventListener("click", function () {
           selectedExams = selectedExams.filter(function (x) { return x !== b.dataset.remove; });
-          renderChips(); renderExams();
+          renderChips(); renderExams(); renderSections();
         });
       });
     }
@@ -127,14 +157,36 @@
         diagnostico: document.getElementById("f_diagnostico").value,
         examenes: selectedExams.map(function (id) {
           var exCat = C.examenPorId(id);
-          return { examId: id, seccion: exCat.seccion, estado: "pendiente", valores: [], observaciones: "", validadoPor: "", fechaValidacion: "", ingresadoPor: "", fechaIngreso: "", version: 1, correcciones: [] };
+          return {
+            examId: id, seccion: exCat.seccion, estado: "pendiente", valores: [], observaciones: "",
+            validadoPor: "", validadoPorUserId: "", fechaValidacion: "", ingresadoPor: "", fechaIngreso: "", version: 1, correcciones: [],
+            remitido: false, laboratorioRemision: "", pdfRemitidoDataUrl: "", pdfRemitidoNombre: ""
+          };
         }),
         estadoGeneral: "pendiente", creadoPor: session.username
       };
       var created = S.createOrder(order);
       S.addAudit(session.tenantId, session.nombre, session.rol, "CREATE_ORDER", "orden", created.id, "Creó la orden " + created.numeroOrden + " con " + selectedExams.length + " examen(es).");
       U.toast("Orden " + created.numeroOrden + " creada.", "success");
-      location.hash = "#/ordenes/" + created.id;
+      ofrecerStickers(created);
+    });
+  }
+
+  function ofrecerStickers(order) {
+    var pac = S.getPatient(order.patientId);
+    var tenant = BIO_AUTH.currentTenant();
+    var wrap = U.openModal(
+      '<h3 class="modal-title">Orden ' + order.numeroOrden + " creada</h3>" +
+      '<p class="text-muted">¿Deseas imprimir ahora los stickers para rotular los tubos de esta orden?</p>' +
+      '<div class="flex gap-2 justify-between">' +
+      '<button class="btn btn-ghost" id="btn-skip">Continuar sin imprimir</button>' +
+      '<button class="btn btn-primary" id="btn-stickers-now">' + U.icon("printer") + " Imprimir Stickers</button></div>"
+    );
+    wrap.querySelector("#btn-skip").addEventListener("click", function () { U.closeModal(wrap); location.hash = "#/ordenes/" + order.id; });
+    wrap.querySelector("#btn-stickers-now").addEventListener("click", function () {
+      U.closeModal(wrap);
+      window.BIO_PDF.previewStickers(order, pac, tenant);
+      location.hash = "#/ordenes/" + order.id;
     });
   }
 
@@ -148,7 +200,8 @@
     root.innerHTML =
       '<div class="card">' +
         '<div class="card-header"><h3 class="card-title">Orden ' + order.numeroOrden + " — " + window.BIO_badgeEstado(order.estadoGeneral) + '</h3>' +
-        '<div class="flex gap-2"><a class="btn btn-ghost btn-sm" id="btn-back">Volver</a>' +
+        '<div class="flex gap-2 wrap"><a class="btn btn-ghost btn-sm" id="btn-back">Volver</a>' +
+        '<button class="btn btn-outline btn-sm" id="btn-stickers">' + U.icon("printer") + " Imprimir Stickers</button>" +
         '<button class="btn btn-outline btn-sm" id="btn-preview">' + U.icon("file") + " Ver / Descargar PDF</button></div></div>" +
         '<div class="form-grid">' +
           field("Paciente", pac ? U.nombreCompleto(pac) + " (" + pac.tipoDocumento + " " + pac.numeroDocumento + ")" : "—") +
@@ -162,10 +215,13 @@
         "</div></div>" +
 
       '<div class="card" style="margin-top:16px"><div class="card-header"><h3 class="card-title">Exámenes de la Orden</h3></div>' +
-        '<div class="table-wrap"><table><thead><tr><th>Examen</th><th>Sección</th><th>Estado</th><th>Validado por</th><th>Fecha validación</th><th></th></tr></thead><tbody>' +
+        '<div class="table-wrap"><table><thead><tr><th>Examen</th><th>Sección</th><th>Tubo</th><th>Estado</th><th>Validado / Remitido por</th><th>Fecha</th><th></th></tr></thead><tbody>' +
         order.examenes.map(function (ex, idx) {
           var exCat = C.examenPorId(ex.examId);
-          return "<tr><td>" + U.esc(exCat.nombre) + "</td><td>" + C.seccionNombre(ex.seccion) + "</td><td>" + window.BIO_badgeEstado(ex.estado === "en_proceso" ? "pendiente" : ex.estado) + "</td>" +
+          var tubo = C.tuboInfo(exCat.tubo);
+          return "<tr><td>" + U.esc(exCat.nombre) + "</td><td>" + C.seccionNombre(ex.seccion) + "</td>" +
+            '<td><span style="display:inline-block;width:9px;height:9px;border-radius:50%;background:' + tubo.color + ';margin-right:5px;vertical-align:middle"></span>' + U.esc(tubo.nombre) + "</td>" +
+            "<td>" + window.BIO_badgeEstado(ex.estado === "en_proceso" ? "pendiente" : ex.estado) + "</td>" +
             "<td>" + (ex.validadoPor || "—") + "</td><td>" + (ex.fechaValidacion ? U.fmtFecha(ex.fechaValidacion) : "—") + "</td>" +
             '<td><button class="btn btn-outline btn-sm" data-goresult="' + idx + '">Ir a captura</button></td></tr>';
         }).join("") +
@@ -173,6 +229,7 @@
 
     document.getElementById("btn-back").addEventListener("click", function () { location.hash = "#/ordenes"; });
     document.getElementById("btn-preview").addEventListener("click", function () { window.BIO_PDF.previewOrModal(order, pac, tenant); });
+    document.getElementById("btn-stickers").addEventListener("click", function () { window.BIO_PDF.previewStickers(order, pac, tenant); });
     root.querySelectorAll("[data-goresult]").forEach(function (b) {
       b.addEventListener("click", function () { location.hash = "#/resultados/" + order.id; });
     });

@@ -9,7 +9,7 @@
 
     function build() {
       var orders = S.listOrders(session.tenantId).filter(function (o) {
-        return o.examenes.some(function (ex) { return ex.estado === "validado" || ex.estado === "preliminar"; });
+        return o.examenes.some(function (ex) { return ex.estado === "validado" || ex.estado === "remitido" || ex.estado === "preliminar"; });
       });
 
       root.innerHTML =
@@ -39,7 +39,7 @@
     var session = BIO_AUTH.getSession();
     var pac = S.getPatient(order.patientId);
     var tenant = BIO_AUTH.currentTenant();
-    var hasValidado = order.examenes.some(function (ex) { return ex.estado === "validado"; });
+    var hasValidado = order.examenes.some(function (ex) { return ex.estado === "validado" || ex.estado === "remitido"; });
     var hasPreliminar = order.examenes.some(function (ex) { return ex.estado === "preliminar"; });
 
     var wrap = U.openModal(
@@ -52,13 +52,15 @@
       '<div class="field"><label>Mensaje</label><textarea id="send-msg">Estimado(a) ' + U.esc(U.nombreCompleto(pac)) + ',\n\nAdjuntamos sus resultados de laboratorio correspondientes a la orden ' + order.numeroOrden + '.\n\n' + U.esc(tenant.nombre) + "</textarea></div>" +
       '<div class="flex gap-2 justify-between"><button class="btn btn-ghost" data-modal-close>Cancelar</button><button class="btn btn-primary" id="send-go">' + U.icon("send") + " Descargar PDF y Abrir Correo</button></div>"
     );
-    wrap.querySelector("#send-go").addEventListener("click", function () {
+    wrap.querySelector("#send-go").addEventListener("click", async function () {
       var email = wrap.querySelector("#send-email").value.trim();
       var tipo = wrap.querySelector("#send-tipo").value;
       var msg = wrap.querySelector("#send-msg").value;
       if (!email) { U.toast("Ingresa un correo electrónico válido.", "error"); return; }
-      var doc = window.BIO_PDF.buildResultadosPDF(order, pac, tenant, tipo);
-      doc.save("Resultados_" + order.numeroOrden + "_" + (tipo === "final" ? "Final" : "Preliminar") + ".pdf");
+      var btn = wrap.querySelector("#send-go");
+      btn.disabled = true; btn.textContent = "Generando PDF…";
+      var bytes = await window.BIO_PDF.buildResultadosPDF(order, pac, tenant, tipo);
+      U.downloadBytes(bytes, "Resultados_" + order.numeroOrden + "_" + (tipo === "final" ? "Final" : "Preliminar") + ".pdf");
       order.enviado = true; order.fechaEnvio = S.nowISO();
       S.saveOrder(order);
       S.addAudit(session.tenantId, session.nombre, session.rol, "SEND_REPORT", "orden", order.id, "Envió el informe (" + tipo + ") de la orden " + order.numeroOrden + " a " + email + ".");

@@ -72,8 +72,9 @@
   }
 
   function badgeEstado(estado) {
-    var labels = { pendiente: "Pendiente", parcial: "Parcial", preliminar: "Preliminar", validado: "Validado" };
-    return '<span class="badge badge-' + estado + '">' + (labels[estado] || estado) + "</span>";
+    var labels = { pendiente: "Pendiente", parcial: "Parcial", preliminar: "Preliminar", validado: "Validado", remitido: "Remitido" };
+    var clases = { remitido: "enviado" };
+    return '<span class="badge badge-' + (clases[estado] || estado) + '">' + (labels[estado] || estado) + "</span>";
   }
   window.BIO_badgeEstado = badgeEstado;
 

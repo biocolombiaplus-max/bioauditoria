@@ -39,6 +39,7 @@
     function openForm(user) {
       var isEdit = !!user;
       user = user || { rol: "bacteriologo", secciones: [], activo: true };
+      var firmaTemp = user.firmaDataUrl || "";
       var wrap = U.openModal(
         '<h3 class="modal-title">' + (isEdit ? "Editar Usuario" : "Nuevo Usuario") + '</h3>' +
         '<form id="user-form">' +
@@ -49,6 +50,7 @@
             F.sel("rol", "Rol", ["admin", "bacteriologo", "recepcion"].map(function (r) { return '<option value="' + r + '" ' + (r === user.rol ? "selected" : "") + ">" + ROL_LABEL[r] + "</option>"; }).join("")) +
           "</div>" +
           '<div id="secciones-box" class="field"></div>' +
+          '<div id="firma-box"></div>' +
           '<div class="flex gap-2 justify-between" style="margin-top:6px">' +
             '<button type="button" class="btn btn-ghost" data-modal-close>Cancelar</button>' +
             '<button type="submit" class="btn btn-primary">' + U.icon("check") + " Guardar</button>" +
@@ -65,8 +67,33 @@
             return '<div class="checkbox-row"><input type="checkbox" data-sec="' + s.id + '" ' + (checked ? "checked" : "") + '/><label style="margin:0">' + s.nombre + "</label></div>";
           }).join("") + "</div>";
       }
-      wrap.querySelector("#f_rol").addEventListener("change", renderSecciones);
+      function renderFirma() {
+        var rol = wrap.querySelector("#f_rol").value;
+        var box = wrap.querySelector("#firma-box");
+        if (rol !== "bacteriologo" && rol !== "admin") { box.innerHTML = ""; return; }
+        box.innerHTML =
+          '<fieldset><legend>Firma y Registro Profesional</legend>' +
+          '<p class="text-muted" style="margin-top:0;font-size:12.5px">Esta firma se imprimirá en los informes de resultados que este usuario valide, junto con su registro profesional, según lo exige la normativa de habilitación.</p>' +
+          '<div class="form-grid">' +
+            F.inp("registroProfesional", "Registro Profesional (Tarjeta Profesional)", user.registroProfesional, false) +
+            '<div class="field"><label>Firma Escaneada (imagen)</label><input type="file" id="f_firmaFile" accept="image/*"/></div>' +
+          "</div>" +
+          '<div id="firma-preview" style="margin-top:8px">' + (firmaTemp ? '<img src="' + firmaTemp + '" style="height:60px;background:#fff;border:1px solid var(--border);border-radius:8px;padding:4px"/>' : '<span class="text-muted">Sin firma cargada</span>') + "</div>" +
+          "</fieldset>";
+        wrap.querySelector("#f_firmaFile").addEventListener("change", function (e) {
+          var file = e.target.files[0];
+          if (!file) return;
+          var reader = new FileReader();
+          reader.onload = function (ev) {
+            firmaTemp = ev.target.result;
+            wrap.querySelector("#firma-preview").innerHTML = '<img src="' + firmaTemp + '" style="height:60px;background:#fff;border:1px solid var(--border);border-radius:8px;padding:4px"/>';
+          };
+          reader.readAsDataURL(file);
+        });
+      }
+      wrap.querySelector("#f_rol").addEventListener("change", function () { renderSecciones(); renderFirma(); });
       renderSecciones();
+      renderFirma();
 
       wrap.querySelector("#user-form").addEventListener("submit", function (e) {
         e.preventDefault();
@@ -75,6 +102,10 @@
         var data = { nombre: g("nombre"), username: g("username"), rol: g("rol"), secciones: secciones, tenantId: session.tenantId, activo: true };
         var pass = g("password");
         if (pass) data.password = pass;
+        if (data.rol === "bacteriologo" || data.rol === "admin") {
+          data.registroProfesional = g("registroProfesional");
+          data.firmaDataUrl = firmaTemp;
+        }
         if (!data.nombre || !data.username || (!isEdit && !pass)) { U.toast("Completa nombre, usuario y contraseña.", "error"); return; }
         if (isEdit) {
           S.updateUser(user.id, data);
