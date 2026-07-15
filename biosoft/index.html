@@ -116,6 +116,25 @@
   .lp-shot-frame img { width: 100%; display: block; }
   .lp-shot-caption { text-align: center; font-size: 13.5px; color: var(--text-muted); margin-top: 16px; }
   .lp-shot-caption b { color: var(--text); }
+
+  .lp-pdf-section { padding-top: 66px; }
+  .lp-pdf-kicker { text-align: center; font-weight: 700; font-size: 14.5px; color: var(--lp-pink); margin-bottom: 6px; }
+  .lp-pdf-showcase { max-width: 1080px; margin: 40px auto 0; display: grid; grid-template-columns: 1.15fr 1fr; gap: 40px; align-items: center; }
+  .lp-pdf-image-wrap { position: relative; }
+  .lp-pdf-image { width: 100%; display: block; border-radius: 10px; box-shadow: 0 30px 70px -16px rgba(76,29,149,.4), 0 12px 30px -10px rgba(0,0,0,.2); border: 1px solid rgba(15,23,42,.06); }
+  .lp-pdf-callout {
+    position: absolute; background: #0f172a; color: #fff; font-size: 11.5px; font-weight: 700; padding: 7px 12px;
+    border-radius: 20px; white-space: nowrap; box-shadow: var(--shadow-md);
+  }
+  .lp-pdf-callout-firma { left: 2%; top: 78.5%; }
+  .lp-pdf-callout-qr { right: 1%; top: 76.5%; }
+  .lp-pdf-side { display: flex; flex-direction: column; gap: 14px; }
+  .lp-pdf-feature { display: flex; align-items: center; gap: 10px; font-size: 14.5px; font-weight: 600; color: var(--text); }
+  .lp-pdf-feature span { font-size: 18px; }
+  @media (max-width: 900px) {
+    .lp-pdf-showcase { grid-template-columns: 1fr; }
+    .lp-pdf-callout { font-size: 10px; padding: 5px 9px; }
+  }
   .lp-sections-list { display:flex; flex-wrap:wrap; gap:8px; justify-content:center; }
   .lp-sections-list span { background: var(--surface-2); border:1px solid var(--border); border-radius:20px; padding:7px 14px; font-size:12.5px; font-weight:600; }
   .lp-steps { counter-reset: step; }
@@ -249,6 +268,28 @@
           </div>
           <p class="lp-shot-caption"><b>Reportes y Envíos</b> — PDF profesional, listo para enviar</p>
         </div>
+      </div>
+    </div>
+  </section>
+
+  <section class="lp-section lp-pdf-section" id="pdf-pro">
+    <div class="lp-pdf-kicker">😩 ¿Sigues entregando resultados en Word o Excel?</div>
+    <h2>El informe que tus pacientes merecen ver</h2>
+    <p class="lead">Ese es el dolor N°1 de los laboratorios pequeños: reportes que no se ven profesionales. BIOsoft genera un PDF con tu marca, la firma digital de tu bacteriólogo y un código QR de verificación — igual que los grandes laboratorios clínicos del mundo.</p>
+    <div class="lp-pdf-showcase">
+      <div class="lp-pdf-image-wrap">
+        <img src="assets/screenshots/informe-pdf.jpg" alt="Informe de resultados de laboratorio en PDF, con firma digital del bacteriólogo y código QR de verificación" class="lp-pdf-image"/>
+        <div class="lp-pdf-callout lp-pdf-callout-firma">✍️ Firma digital del bacteriólogo</div>
+        <div class="lp-pdf-callout lp-pdf-callout-qr">🔳 Código QR de verificación</div>
+      </div>
+      <div class="lp-pdf-side">
+        <div class="lp-pdf-feature"><span>✅</span> 100% profesional, con tu logo y colores institucionales</div>
+        <div class="lp-pdf-feature"><span>✍️</span> Firma digital de cada bacteriólogo responsable</div>
+        <div class="lp-pdf-feature"><span>🔳</span> Código QR de validación en cada informe</div>
+        <div class="lp-pdf-feature"><span>📲</span> Envío directo por WhatsApp al paciente</div>
+        <div class="lp-pdf-feature"><span>✉️</span> Envío por Gmail u Outlook en un clic</div>
+        <a class="btn btn-primary btn-glow-brand btn-block" href="assets/muestra-informe-biosoft.pdf" target="_blank" rel="noopener" download>📄 Descargar informe de ejemplo</a>
+        <p class="text-muted" style="font-size:11.5px;text-align:center;margin-top:8px">Es un PDF real, generado con BIOsoft. Así vas a entregar tus resultados desde el primer día.</p>
       </div>
     </div>
   </section>

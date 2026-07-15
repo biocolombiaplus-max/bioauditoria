@@ -77,6 +77,8 @@ button { font-family: inherit; }
   50% { box-shadow: 0 0 30px 8px color-mix(in srgb, var(--brand-primary) 70%, transparent), 0 0 55px 16px color-mix(in srgb, var(--brand-primary) 25%, transparent); }
 }
 .btn-glow-brand { animation: glowBrandPulse 2.2s ease-in-out infinite; }
+.btn-whatsapp { background: linear-gradient(135deg,#25D366,#128C4A); color:#fff; border:none; }
+.btn-whatsapp:hover { filter: brightness(1.07); }
 .divider-row { display: flex; align-items: center; gap: 10px; margin: 18px 0; }
 .divider-row .line { flex: 1; height: 1px; background: var(--border); }
 .divider-row span { font-size: 12px; color: var(--text-muted); white-space: nowrap; }

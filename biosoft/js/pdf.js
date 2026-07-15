@@ -16,6 +16,26 @@
     return bytes;
   }
 
+  function buildQrDataUrl(texto, sizePx) {
+    if (!window.qrcode) return null;
+    var qr = window.qrcode(0, "M");
+    qr.addData(texto);
+    qr.make();
+    var count = qr.getModuleCount();
+    var canvas = document.createElement("canvas");
+    canvas.width = sizePx; canvas.height = sizePx;
+    var ctx = canvas.getContext("2d");
+    var cell = sizePx / count;
+    ctx.fillStyle = "#ffffff"; ctx.fillRect(0, 0, sizePx, sizePx);
+    ctx.fillStyle = "#0f172a";
+    for (var r = 0; r < count; r++) {
+      for (var c = 0; c < count; c++) {
+        if (qr.isDark(r, c)) ctx.fillRect(Math.round(c * cell), Math.round(r * cell), Math.ceil(cell), Math.ceil(cell));
+      }
+    }
+    return canvas.toDataURL("image/png");
+  }
+
   function firmantesDe(order, tenant, examsToShow) {
     var ids = [];
     examsToShow.forEach(function (ex) {
@@ -159,8 +179,9 @@
     }
 
     var firmantes = firmantesDe(order, tenant, examsToShow);
+    var signBlockTop = y;
     firmantes.forEach(function (f) {
-      if (y > 700) { doc.addPage(); y = margin; }
+      if (y > 700) { doc.addPage(); y = margin; signBlockTop = y; }
       if (f.firmaDataUrl) { try { doc.addImage(f.firmaDataUrl, "PNG", margin, y - 30, 110, 38); } catch (e) {} }
       doc.setDrawColor(180, 180, 180); doc.line(margin, y + 10, margin + 190, y + 10);
       doc.setFont("helvetica", "bold"); doc.setFontSize(9); doc.setTextColor(20, 20, 20);
@@ -170,6 +191,22 @@
       doc.text("Bacteriólogo(a) y Laboratorista Clínico", margin, y + 44);
       y += 62;
     });
+
+    try {
+      var qrTexto = "BIOsoft | Documento validado electrónicamente\n" +
+        "Laboratorio: " + tenant.nombre + "\nOrden: " + order.numeroOrden +
+        "\nPaciente: " + patient.tipoDocumento + " " + patient.numeroDocumento +
+        "\nValidado: " + new Date().toLocaleString("es-CO");
+      var qrDataUrl = buildQrDataUrl(qrTexto, 220);
+      var qrSize = 58;
+      var qrX = pageW - margin - qrSize;
+      var qrY = signBlockTop - 34;
+      doc.addImage(qrDataUrl, "PNG", qrX, qrY, qrSize, qrSize);
+      doc.setDrawColor(210, 210, 210); doc.setLineWidth(0.6); doc.rect(qrX - 2, qrY - 2, qrSize + 4, qrSize + 4);
+      doc.setFont("helvetica", "bold"); doc.setFontSize(6.3); doc.setTextColor(120, 120, 120);
+      doc.text("DOCUMENTO VALIDADO", qrX + qrSize / 2, qrY + qrSize + 9, { align: "center" });
+      doc.text("ELECTRÓNICAMENTE", qrX + qrSize / 2, qrY + qrSize + 16, { align: "center" });
+    } catch (e) {}
 
     doc.setFontSize(7); doc.setTextColor(140, 140, 140);
     doc.text("Documento generado electrónicamente por BIOsoft — " + new Date().toLocaleString("es-CO") + ". Los resultados deben interpretarse en conjunto con la clínica del paciente.", margin, 770, { maxWidth: pageW - margin * 2 });
