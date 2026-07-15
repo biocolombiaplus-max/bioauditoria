@@ -269,6 +269,8 @@ tbody tr:hover { background: var(--surface-2); }
 @media (max-width: 640px) {
   .content { padding: 16px 14px 50px; }
   .login-form { padding: 30px 22px; }
+  #topbar-buy-cta .cta-text { display: none; }
+  .topbar { padding: 0 12px; gap: 8px; }
   .card { padding: 16px; }
 }
 

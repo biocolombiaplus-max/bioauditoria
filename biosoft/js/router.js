@@ -59,10 +59,14 @@
 
     var esDemo = !!(tenant && tenant.id === "demo");
     document.getElementById("demo-banner").classList.toggle("hidden", !esDemo);
+    var mensajeCompra = "Hola, ya vi la demo de BIOsoft y estoy interesado(a) en adquirirla para mi laboratorio. ¿Me ayudas con la activación?";
     var waFloat = document.getElementById("wa-float-demo");
     waFloat.classList.toggle("hidden", !esDemo);
+    var buyCta = document.getElementById("topbar-buy-cta");
+    buyCta.classList.toggle("hidden", !esDemo);
     if (esDemo) {
-      waFloat.href = waLink("Hola, ya vi la demo de BIOsoft y estoy interesado(a) en adquirirla para mi laboratorio. ¿Me ayudas con la activación?");
+      waFloat.href = waLink(mensajeCompra);
+      buyCta.href = waLink(mensajeCompra);
     }
 
     var sidebar = document.getElementById("sidebar");

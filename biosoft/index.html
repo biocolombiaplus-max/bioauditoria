@@ -18,7 +18,7 @@
       <div class="login-card">
         <div class="login-hero">
           <div>
-            <div class="flex items-center gap-2"><img src="assets/logo.svg" style="width:34px;height:34px"/><b style="font-size:15px">BIOsoft</b></div>
+            <div class="flex items-center gap-2"><img src="assets/logo.svg" alt="BIOsoft" style="width:34px;height:34px"/><b style="font-size:15px">BIOsoft</b></div>
             <h1>El sistema de laboratorio clínico más completo para Latinoamérica</h1>
             <p class="tagline">Pacientes, resultados, validación, trazabilidad y reportes en PDF de nivel mundial — personalizado con tu marca. Diseñado para Colombia, Venezuela y Ecuador.</p>
             <ul>
@@ -83,12 +83,15 @@
             <button class="burger" id="burger"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 6h16M4 12h16M4 18h16"/></svg></button>
             <span class="title" id="topbar-title">Panel Principal</span>
           </div>
-          <div class="user-chip" id="user-chip">
-            <div class="flex-col" style="text-align:right">
-              <span style="font-weight:700;font-size:13px" id="user-chip-name"></span>
-              <span class="text-muted" style="font-size:11px" id="user-chip-role"></span>
+          <div class="flex items-center gap-3">
+            <a id="topbar-buy-cta" class="btn btn-primary btn-sm btn-glow-brand hidden" href="#" target="_blank" rel="noopener">💬 <span class="cta-text">Adquirir BIOsoft</span></a>
+            <div class="user-chip" id="user-chip">
+              <div class="flex-col" style="text-align:right">
+                <span style="font-weight:700;font-size:13px" id="user-chip-name"></span>
+                <span class="text-muted" style="font-size:11px" id="user-chip-role"></span>
+              </div>
+              <div class="avatar" id="user-avatar"></div>
             </div>
-            <div class="avatar" id="user-avatar"></div>
           </div>
         </header>
         <main class="content" id="content"></main>
