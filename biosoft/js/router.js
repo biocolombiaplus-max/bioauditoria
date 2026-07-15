@@ -93,7 +93,7 @@
     navHost.querySelectorAll(".nav-link").forEach(function (a) {
       a.addEventListener("click", function () {
         location.hash = "#/" + a.dataset.route;
-        sidebar.classList.remove("open");
+        document.getElementById("app-inner").classList.remove("sidebar-open");
       });
     });
 
@@ -155,7 +155,13 @@
     BIO_STORE.seedIfEmpty();
     wireLogin();
     document.getElementById("burger").addEventListener("click", function () {
-      document.getElementById("sidebar").classList.toggle("open");
+      document.getElementById("app-inner").classList.toggle("sidebar-open");
+    });
+    document.getElementById("sidebar-backdrop").addEventListener("click", function () {
+      document.getElementById("app-inner").classList.remove("sidebar-open");
+    });
+    document.getElementById("sidebar-close").addEventListener("click", function () {
+      document.getElementById("app-inner").classList.remove("sidebar-open");
     });
     document.getElementById("user-chip").addEventListener("click", function () {
       var s = BIO_AUTH.getSession();

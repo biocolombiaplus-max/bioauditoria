@@ -34,6 +34,7 @@
   body { background: #fff; }
   .lp-nav { position: sticky; top: 0; z-index: 20; background: rgba(255,255,255,.9); backdrop-filter: blur(6px); border-bottom: 1px solid var(--border); }
   .lp-nav-inner { max-width: 1180px; margin: 0 auto; display: flex; align-items: center; justify-content: space-between; padding: 14px 24px; }
+  .lp-nav-divider { width: 1px; height: 22px; background: var(--border); margin: 0 2px; }
   .lp-logo { font-family: 'Poppins',sans-serif; font-weight: 800; font-size: 20px; color: var(--brand-secondary); display:flex; align-items:center; gap:8px; }
   .lp-logo span { color: var(--brand-primary); }
   .lp-wrap { max-width: 1180px; margin: 0 auto; padding: 0 24px; }
@@ -113,6 +114,28 @@
   .pay-card .num { font-family:'Poppins',sans-serif; font-weight:800; font-size:20px; color:var(--brand-primary); margin:6px 0; }
   .trust-row { display:flex; flex-wrap:wrap; justify-content:center; gap:10px; margin-top:24px; }
   .trust-row span { font-size:12px; color:var(--text-muted); background:var(--surface-2); border:1px solid var(--border); border-radius:20px; padding:6px 14px; font-weight:600; }
+
+  /* ---------- Responsive ---------- */
+  @media (max-width: 760px) {
+    .lp-nav-inner { padding: 10px 14px; gap: 8px; }
+    .lp-logo { font-size: 16px; gap: 6px; }
+    .lp-logo img { height: 24px !important; }
+    .lp-nav-link, .lp-nav-divider, .lp-nav-login { display: none; }
+    .lp-nav-inner .btn-primary { padding: 8px 12px; font-size: 12.5px; }
+    .lp-hero { padding: 40px 16px 28px; }
+    .lp-hero h1 { font-size: 28px; }
+    .lp-hero p { font-size: 14.5px; }
+    .lp-section { padding: 40px 16px; }
+    .lp-section h2 { font-size: 23px; }
+    .lp-final { margin: 0 12px 40px; padding: 40px 16px; }
+    .lp-mock-body { grid-template-columns: 1fr; }
+    .lp-mock-side { display: flex; flex-wrap: wrap; gap: 4px; }
+    .lp-mock-side div { margin-bottom: 0; }
+  }
+  @media (max-width: 480px) {
+    .lp-cta-row { flex-direction: column; align-items: stretch; }
+    .lp-cta-row .btn { width: 100%; }
+  }
 </style>
 </head>
 <body>
@@ -120,12 +143,12 @@
   <nav class="lp-nav"><div class="lp-nav-inner">
     <div class="lp-logo"><img src="assets/logo.svg" alt="BIOsoft, software para laboratorio clínico" style="height:32px;width:auto"/><span>BIO</span>soft</div>
     <div class="flex items-center gap-3">
-      <a class="btn btn-ghost btn-sm" href="#funciones">Funciones</a>
-      <a class="btn btn-ghost btn-sm" href="#secciones">Secciones</a>
-      <a class="btn btn-ghost btn-sm" href="#precios">Precios</a>
-      <span style="width:1px;height:22px;background:var(--border);margin:0 2px"></span>
-      <a class="btn btn-outline btn-sm" href="index.html" style="font-size:12.5px">Iniciar Sesión</a>
-      <a class="btn btn-primary btn-sm btn-glow-brand" href="index.html">🚀 Ver Demo Gratis</a>
+      <a class="btn btn-ghost btn-sm lp-nav-link" href="#funciones">Funciones</a>
+      <a class="btn btn-ghost btn-sm lp-nav-link" href="#secciones">Secciones</a>
+      <a class="btn btn-ghost btn-sm lp-nav-link" href="#precios">Precios</a>
+      <span class="lp-nav-divider"></span>
+      <a class="btn btn-outline btn-sm lp-nav-login" href="index.html" style="font-size:12.5px">Iniciar Sesión</a>
+      <a class="btn btn-primary btn-sm btn-glow-brand" href="index.html">🚀 <span class="lp-nav-demo-text">Ver Demo Gratis</span></a>
     </div>
   </div></nav>
 
