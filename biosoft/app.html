@@ -1,0 +1,125 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1"/>
+<title>BIOsoft — Sistema de Gestión de Laboratorio Clínico</title>
+<meta name="description" content="BIOsoft: software de laboratorio clínico multi-país (Colombia, Venezuela, Ecuador) para pacientes, resultados, validación y reportes profesionales."/>
+<link rel="icon" type="image/png" href="assets/favicon-biosoft.png"/>
+<link rel="stylesheet" href="css/styles.css"/>
+</head>
+<body>
+
+  <div id="demo-banner" class="demo-banner hidden">MODO DEMOSTRACIÓN — Los datos de este entorno son de ejemplo y se restablecen en tu navegador</div>
+
+  <!-- ======================= LOGIN ======================= -->
+  <div id="login-screen">
+    <div class="login-wrap">
+      <div class="login-card">
+        <div class="login-hero">
+          <div>
+            <div class="flex items-center gap-2"><img src="assets/logo-biosoft.png" alt="BIOsoft" style="width:36px;height:36px;border-radius:50%;object-fit:cover"/><b style="font-size:15px">BIOsoft</b></div>
+            <h1>El sistema de laboratorio clínico más completo para Latinoamérica</h1>
+            <p class="tagline">Pacientes, resultados, validación, trazabilidad y reportes en PDF de nivel mundial — personalizado con tu marca. Diseñado para Colombia, Venezuela y Ecuador.</p>
+            <ul>
+              <li>✓ Registro clínico y usuarios por bacteriólogo con clave propia</li>
+              <li>✓ Validación de resultados con trazabilidad total y clave de administrador para correcciones</li>
+              <li>✓ Resultados preliminares y reportes en PDF con tu logo y colores</li>
+              <li>✓ Hojas de trabajo diarias, imprimibles o en pantalla</li>
+              <li>✓ Catálogo de exámenes por secciones de primer y segundo nivel</li>
+            </ul>
+          </div>
+          <a class="btn btn-outline" style="background:transparent;color:#fff;border-color:rgba(255,255,255,.4);width:fit-content" href="index.html">Conocer más sobre BIOsoft →</a>
+        </div>
+        <div class="login-form">
+          <div class="hero-cta-wrap">
+            <span class="pro-pill">✨ Software premium para laboratorios clínicos</span>
+            <h2 style="margin:14px 0 4px">Descubre BIOsoft en 30 segundos</h2>
+            <p class="text-muted" style="margin:0 0 20px">Explora el sistema completo con datos de ejemplo: pacientes, resultados, validación y reportes en PDF. Sin registro, sin tarjeta, sin compromiso.</p>
+            <button class="btn btn-primary btn-block btn-glow-brand" id="btn-demo-quick" style="font-size:17.5px;padding:19px 20px">🚀 Ver Demo Gratis Ahora</button>
+            <div class="hero-cta-badges">
+              <span>✓ 100% gratis</span><span>✓ Sin registro</span><span>✓ Acceso inmediato</span>
+            </div>
+          </div>
+
+          <button type="button" class="link-toggle-login" id="btn-toggle-login">¿Ya adquiriste BIOsoft para tu laboratorio? Inicia sesión aquí →</button>
+
+          <div class="existing-login hidden" id="existing-login-block">
+            <div class="divider-row"><div class="line"></div><span>Acceso para clientes con software adquirido</span><div class="line"></div></div>
+            <div class="role-tabs">
+              <div class="role-tab active" data-user="admin.demo" data-pass="Demo2026*">Administrador</div>
+              <div class="role-tab" data-user="laura.gomez" data-pass="Bacterio2026*">Bacterióloga</div>
+              <div class="role-tab" data-user="andres.rios" data-pass="Bacterio2026*">Bacteriólogo Nivel 2</div>
+              <div class="role-tab" data-user="recepcion.demo" data-pass="Recepcion2026*">Recepción</div>
+              <div class="role-tab" data-user="biosoft" data-pass="BIOsoft#2026">Superadmin BIOsoft</div>
+            </div>
+            <form id="login-form">
+              <div class="field"><label>Usuario</label><input id="login-username" required autocomplete="username"/></div>
+              <div class="field"><label>Contraseña</label><input id="login-password" type="password" required autocomplete="current-password"/></div>
+              <p id="login-error" class="text-danger hidden" style="font-size:13px"></p>
+              <button class="btn btn-outline btn-block" type="submit">Ingresar</button>
+            </form>
+            <div class="demo-creds">
+              <b>Credenciales de demostración</b><br/>
+              Admin: <b>admin.demo</b> / Demo2026*<br/>
+              Bacterióloga (Hematología, Química…): <b>laura.gomez</b> / Bacterio2026*<br/>
+              Bacteriólogo (Inmunología, Hormonas…): <b>andres.rios</b> / Bacterio2026*<br/>
+              Recepción: <b>recepcion.demo</b> / Recepcion2026*<br/>
+              Clave admin para correcciones del laboratorio demo: <b>ADMIN2026</b>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ======================= APP SHELL ======================= -->
+  <div id="app-shell" class="hidden">
+    <div id="app-inner" style="display:flex;width:100%">
+      <div class="sidebar-backdrop" id="sidebar-backdrop"></div>
+      <aside class="sidebar" id="sidebar"></aside>
+      <button class="sidebar-close" id="sidebar-close" aria-label="Cerrar menú">✕</button>
+      <div class="main-col">
+        <header class="topbar">
+          <div class="flex items-center gap-3">
+            <button class="burger" id="burger"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 6h16M4 12h16M4 18h16"/></svg></button>
+            <span class="title" id="topbar-title">Panel Principal</span>
+          </div>
+          <div class="flex items-center gap-3">
+            <a id="topbar-buy-cta" class="btn btn-primary btn-sm btn-glow-brand hidden" href="#" target="_blank" rel="noopener">💬 <span class="cta-text">Adquirir BIOsoft</span></a>
+            <div class="user-chip" id="user-chip">
+              <div class="flex-col" style="text-align:right">
+                <span style="font-weight:700;font-size:13px" id="user-chip-name"></span>
+                <span class="text-muted" style="font-size:11px" id="user-chip-role"></span>
+              </div>
+              <div class="avatar" id="user-avatar"></div>
+            </div>
+          </div>
+        </header>
+        <main class="content" id="content"></main>
+      </div>
+    </div>
+    <a class="wa-float hidden" id="wa-float-demo" href="#" target="_blank" rel="noopener" aria-label="Escríbenos por WhatsApp: ya vi la demo">
+      <svg viewBox="0 0 32 32"><path d="M16.04 3C9.37 3 3.96 8.36 3.96 15c0 2.26.62 4.38 1.7 6.2L3 29l7.98-2.1a12.9 12.9 0 0 0 5.06 1.02c6.67 0 12.08-5.36 12.08-12S22.71 3 16.04 3Zm0 21.9c-1.7 0-3.34-.45-4.77-1.3l-.34-.2-4.73 1.24 1.26-4.6-.22-.36a9.75 9.75 0 0 1-1.5-5.18c0-5.42 4.43-9.82 9.9-9.82 5.28 0 9.9 4.4 9.9 9.82 0 5.42-4.62 10.4-9.5 10.4Zm5.44-7.34c-.3-.15-1.77-.87-2.04-.97-.27-.1-.47-.15-.67.15-.2.3-.77.97-.94 1.17-.17.2-.35.22-.65.07-.3-.15-1.24-.46-2.36-1.46-.87-.78-1.46-1.74-1.63-2.04-.17-.3-.02-.46.13-.6.13-.13.3-.35.45-.52.15-.17.2-.3.3-.5.1-.2.05-.37-.02-.52-.07-.15-.67-1.62-.92-2.22-.24-.58-.49-.5-.67-.5h-.57c-.2 0-.52.07-.79.37-.27.3-1.04 1.02-1.04 2.5s1.07 2.9 1.22 3.1c.15.2 2.1 3.2 5.08 4.49.71.31 1.26.49 1.69.63.71.23 1.36.19 1.87.12.57-.09 1.77-.72 2.02-1.42.25-.7.25-1.3.17-1.42-.07-.13-.27-.2-.57-.35Z"/></svg>
+      <span class="wa-float-tip">¿Ya viste la demo? Escríbenos y activa tu BIOsoft</span>
+    </a>
+  </div>
+
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.8.2/jspdf.plugin.autotable.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf-lib/1.17.1/pdf-lib.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jsbarcode/3.11.5/JsBarcode.all.min.js"></script>
+  <script src="js/catalog.js"></script>
+  <script src="js/store.js"></script>
+  <script src="js/auth.js"></script>
+  <script src="js/ui.js"></script>
+  <script src="js/pdf.js"></script>
+  <script src="js/views-dashboard-patients.js"></script>
+  <script src="js/views-orders.js"></script>
+  <script src="js/views-results.js"></script>
+  <script src="js/views-worksheets.js"></script>
+  <script src="js/views-reports.js"></script>
+  <script src="js/views-admin.js"></script>
+  <script src="js/router.js"></script>
+</body>
+</html>

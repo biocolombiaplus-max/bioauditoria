@@ -74,7 +74,7 @@
     var brandSub = session.rol === "superadmin" ? "Consola de Socios" : "Sistema de Gestión de Laboratorio";
     sidebar.innerHTML =
       '<div class="sidebar-brand">' +
-        (tenant && tenant.logoDataUrl ? '<img src="' + tenant.logoDataUrl + '"/>' : (!tenant ? '<img src="assets/logo.svg"/>' : '<div class="avatar" style="border-radius:8px">' + iniciales(brandName) + '</div>')) +
+        (tenant && tenant.logoDataUrl ? '<img src="' + tenant.logoDataUrl + '"/>' : (!tenant ? '<img src="assets/logo-biosoft.png"/>' : '<div class="avatar" style="border-radius:8px">' + iniciales(brandName) + '</div>')) +
         '<div><div class="name">' + BIO_UI.esc(brandName) + '</div><div class="sub">' + brandSub + '</div></div>' +
       '</div>' +
       '<nav class="sidebar-nav" id="sidebar-nav"></nav>' +
