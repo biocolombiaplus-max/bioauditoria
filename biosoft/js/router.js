@@ -99,7 +99,12 @@
 
     document.getElementById("user-chip-name").textContent = session.nombre;
     document.getElementById("user-chip-role").textContent = ROLE_LABEL[session.rol] || session.rol;
-    document.getElementById("user-avatar").textContent = iniciales(session.nombre);
+    var avatarEl = document.getElementById("user-avatar");
+    if (session.fotoUrl) {
+      avatarEl.innerHTML = '<img src="' + session.fotoUrl + '" alt="' + BIO_UI.esc(session.nombre) + '"/>';
+    } else {
+      avatarEl.textContent = iniciales(session.nombre);
+    }
   }
 
   var ROUTE_TITLES = {

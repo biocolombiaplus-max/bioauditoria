@@ -58,20 +58,20 @@
       resolucionHabilitacion: "Resolución 000000 de 2024 - Secretaría de Salud",
       codigoREPS: "1100100000-01",
       bacteriologoResponsable: { nombre: "Laura Gómez Pérez", registro: "TP-BACT 12345 CTBBTQ" },
-      logoDataUrl: "assets/logo.svg",
+      logoDataUrl: "assets/logo-biosoft.png",
       colorPrimario: "#f97316",
       colorSecundario: "#2e1065",
       claveAdmin: "ADMIN2026",
       creadoEn: nowISO()
     };
 
-    var uAdmin = { id: uid("usr"), tenantId: "demo", username: "admin.demo", password: "Demo2026*", nombre: "Carolina Restrepo (Administradora)", rol: "admin", secciones: [], activo: true, creadoEn: nowISO() };
-    var uLaura = { id: uid("usr"), tenantId: "demo", username: "laura.gomez", password: "Bacterio2026*", nombre: "Laura Gómez Pérez", rol: "bacteriologo", secciones: ["hematologia", "coagulacion", "banco", "quimica", "uroanalisis", "coprologia", "pruebasrapidas", "gases"], registroProfesional: "TP-BACT 12345 CTBBTQ", firmaDataUrl: firmaDemo("Laura Gómez"), activo: true, creadoEn: nowISO() };
-    var uAndres = { id: uid("usr"), tenantId: "demo", username: "andres.rios", password: "Bacterio2026*", nombre: "Andrés Ríos Molano", rol: "bacteriologo", secciones: ["inmunologia", "microbiologia", "hormonas", "marcadores", "especiales"], registroProfesional: "TP-BACT 67890 CTBBTQ", firmaDataUrl: firmaDemo("A. Ríos M."), activo: true, creadoEn: nowISO() };
+    var uAdmin = { id: uid("usr"), tenantId: "demo", username: "admin.demo", password: "Demo2026*", nombre: "Carolina Restrepo (Administradora)", rol: "admin", secciones: [], fotoUrl: "assets/avatars/admin-mujer.svg", activo: true, creadoEn: nowISO() };
+    var uLaura = { id: uid("usr"), tenantId: "demo", username: "laura.gomez", password: "Bacterio2026*", nombre: "Laura Gómez Pérez", rol: "bacteriologo", secciones: ["hematologia", "coagulacion", "banco", "quimica", "uroanalisis", "coprologia", "pruebasrapidas", "gases"], registroProfesional: "TP-BACT 12345 CTBBTQ", firmaDataUrl: firmaDemo("Laura Gómez"), fotoUrl: "assets/avatars/bacteriologa.svg", activo: true, creadoEn: nowISO() };
+    var uAndres = { id: uid("usr"), tenantId: "demo", username: "andres.rios", password: "Bacterio2026*", nombre: "Andrés Ríos Molano", rol: "bacteriologo", secciones: ["inmunologia", "microbiologia", "hormonas", "marcadores", "especiales"], registroProfesional: "TP-BACT 67890 CTBBTQ", firmaDataUrl: firmaDemo("A. Ríos M."), fotoUrl: "assets/avatars/bacteriologo.svg", activo: true, creadoEn: nowISO() };
     db.users.push(
       { id: uid("usr"), tenantId: null, username: "biosoft", password: "BIOsoft#2026", nombre: "Soporte BIOsoft", rol: "superadmin", secciones: [], activo: true, creadoEn: nowISO() },
       uAdmin, uLaura, uAndres,
-      { id: uid("usr"), tenantId: "demo", username: "recepcion.demo", password: "Recepcion2026*", nombre: "Juliana Torres (Recepción)", rol: "recepcion", secciones: [], activo: true, creadoEn: nowISO() }
+      { id: uid("usr"), tenantId: "demo", username: "recepcion.demo", password: "Recepcion2026*", nombre: "Juliana Torres (Recepción)", rol: "recepcion", secciones: [], fotoUrl: "assets/avatars/recepcion.svg", activo: true, creadoEn: nowISO() }
     );
 
     var p1 = { id: uid("pac"), tenantId: "demo", tipoDocumento: "CC", numeroDocumento: "1010123456", primerNombre: "María", segundoNombre: "Fernanda", primerApellido: "Rojas", segundoApellido: "Cárdenas", fechaNacimiento: "1990-04-12", sexo: "Femenino", pais: "CO", ciudad: "Bogotá D.C.", direccion: "Calle 80 # 20-15", telefono: "", celular: "3011234567", email: "maria.rojas@example.com", tipoAfiliacion: "Contributivo", eps: "Nueva EPS", medicoRemitente: "Dr. Jorge Salamanca", procedencia: "Ambulatorio", ocupacion: "Contadora", observaciones: "", creadoEn: nowISO(), creadoPor: "recepcion.demo" };

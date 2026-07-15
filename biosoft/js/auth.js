@@ -8,7 +8,7 @@
     var user = BIO_STORE.findUser(username);
     if (!user || !user.activo) return { ok: false, error: "Usuario no encontrado o inactivo." };
     if (user.password !== password) return { ok: false, error: "Contraseña incorrecta." };
-    var session = { userId: user.id, username: user.username, nombre: user.nombre, rol: user.rol, tenantId: user.tenantId, secciones: user.secciones || [], iniciadoEn: BIO_STORE.nowISO() };
+    var session = { userId: user.id, username: user.username, nombre: user.nombre, rol: user.rol, tenantId: user.tenantId, secciones: user.secciones || [], fotoUrl: user.fotoUrl || "", iniciadoEn: BIO_STORE.nowISO() };
     sessionStorage.setItem(SESSION_KEY, JSON.stringify(session));
     BIO_STORE.addAudit(user.tenantId, user.nombre, user.rol, "LOGIN", "sesion", user.id, "Inicio de sesión exitoso.");
     return { ok: true, session: session };
