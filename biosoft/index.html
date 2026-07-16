@@ -100,10 +100,6 @@ fbq('track', 'PageView');
   .lp-modal-plan .amount { font-family: 'Poppins',sans-serif; font-weight: 800; font-size: 22px; color: var(--brand-secondary); }
   .lp-modal-plan .amount-usd { font-size: 11px; color: var(--text-muted); margin-bottom: 10px; }
   .lp-modal-plan button { margin-top: auto; }
-  .lp-pay-summary { background: var(--surface-2); border: 1px dashed var(--border); border-radius: 12px; padding: 16px 18px; margin-bottom: 16px; }
-  .lp-pay-summary .row { display: flex; justify-content: space-between; align-items: baseline; padding: 6px 0; font-size: 13.5px; }
-  .lp-pay-summary .row small { color: var(--text-muted); margin-left: 6px; }
-  .lp-pay-summary .row.total { border-top: 1px solid var(--border); margin-top: 6px; padding-top: 12px; font-weight: 800; font-size: 15px; }
   @media (max-width: 640px) { .lp-modal-plans { grid-template-columns: 1fr; } }
   .lp-badges { display:flex; gap:10px; justify-content:center; margin-top:26px; flex-wrap:wrap; }
   .lp-badges span { background: rgba(255,255,255,.08); border:1px solid rgba(255,255,255,.16); padding:6px 14px; border-radius:20px; font-size:12.5px; font-weight:700; color:rgba(255,255,255,.85); backdrop-filter: blur(6px); }
@@ -482,17 +478,11 @@ fbq('track', 'PageView');
       if (typeof window.fbq === "function") window.fbq("track", nombre, params || {});
     }
     document.addEventListener("click", function (e) {
-      var waEl = e.target.closest(".wa-link, #wa-float, #wa-cotizacion, #pay-wa-confirm");
+      var waEl = e.target.closest(".wa-link, #wa-float, #wa-cotizacion");
       if (waEl) trackFbEvent("Contact", { content_name: "WhatsApp" });
       var demoEl = e.target.closest('a[href="app.html"]');
       if (demoEl) trackFbEvent("ViewContent", { content_name: "Demo Gratis" });
     });
-
-    // Wompi: llave pública activa (comercios.wompi.co → Desarrollo → Programadores)
-    var WOMPI_PUBLIC_KEY = "pub_prod_ePakM1CIHRH6Cg2Y7XacjvTxmLeJsEG2";
-    // ===== TODO: reemplaza esta con tu Client ID real antes de recibir pagos en USD =====
-    // PayPal: developer.paypal.com → My Apps & Credentials → tu app → "Client ID" (nunca el Secret)
-    var PAYPAL_CLIENT_ID = "REEMPLAZA_TU_CLIENT_ID_DE_PAYPAL";
 
     var IMPLEMENTACION = { cop: 380000, copFmt: "380.000", usd: 100 };
     var PLANES = [
@@ -516,9 +506,7 @@ fbq('track', 'PageView');
     }).join("");
     document.getElementById("wa-cotizacion").href = waLink("Hola, mi laboratorio necesita más de 10 usuarios o varias sedes. ¿Me ayudas con una cotización personalizada de BIOsoft?");
 
-    // ===== Flujo "Iniciar Ya": elegir plan → datos del laboratorio → pago =====
-    function esc(s) { return String(s == null ? "" : s).replace(/[&<>"']/g, function (c) { return { "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]; }); }
-
+    // ===== Flujo "Iniciar Ya": elegir plan → directo a WhatsApp =====
     function lpModal(innerHtml) {
       var wrap = document.createElement("div");
       wrap.className = "modal";
@@ -534,125 +522,34 @@ fbq('track', 'PageView');
       trackFbEvent("InitiateCheckout");
       var wrap = lpModal(
         '<h3 class="modal-title">Elige tu plan para continuar</h3>' +
-        '<p class="text-muted" style="margin:0 0 18px">Selecciona el plan según el número de usuarios de tu laboratorio. En el siguiente paso confirmas tus datos.</p>' +
+        '<p class="text-muted" style="margin:0 0 18px">Selecciona el plan según el número de usuarios de tu laboratorio. Te llevamos directo a WhatsApp para resolver cualquier duda y confirmar la activación.</p>' +
         '<div class="lp-modal-plans">' +
         PLANES.map(function (p, i) {
           return '<div class="lp-modal-plan ' + (p.destacado ? "destacado" : "") + '">' +
             (p.destacado ? '<span class="tag">Recomendado</span>' : "") +
             "<h4>" + p.nombre + "</h4><div class='users'>" + p.usuarios + "</div>" +
             '<div class="amount">$' + p.precioFmt + '</div><div class="amount-usd">≈ $' + p.usd + ' USD /mes</div>' +
-            '<button class="btn btn-outline btn-sm" data-plan="' + i + '">Elegir este plan</button>' +
+            '<button class="btn ' + (p.destacado ? "btn-whatsapp" : "btn-outline") + ' btn-sm" data-plan="' + i + '">Quiero este plan →</button>' +
             "</div>";
         }).join("") +
         "</div>"
       );
       wrap.querySelectorAll("[data-plan]").forEach(function (b) {
-        b.addEventListener("click", function () { lpCloseModal(wrap); abrirFormularioLead(Number(b.dataset.plan)); });
+        b.addEventListener("click", function () {
+          var p = PLANES[Number(b.dataset.plan)];
+          var totalCOP = IMPLEMENTACION.cop + p.precio;
+          var totalUSD = IMPLEMENTACION.usd + p.usd;
+          var mensaje = "Hola 👋 Quiero adquirir BIOsoft.\n\n" +
+            "Plan elegido: " + p.nombre + " (" + p.usuarios + ")" +
+            "\nImplementación (pago único): $" + IMPLEMENTACION.copFmt + " COP" +
+            "\nMensualidad: $" + p.precioFmt + " COP" +
+            "\nTotal para empezar: $" + totalCOP.toLocaleString("es-CO") + " COP (≈ $" + totalUSD + " USD)" +
+            "\n\n¿Me ayudas a activar mi cuenta?";
+          trackFbEvent("Lead", { content_name: "Plan " + p.nombre, value: totalUSD, currency: "USD" });
+          lpCloseModal(wrap);
+          window.open(waLink(mensaje), "_blank");
+        });
       });
-    }
-
-    function abrirFormularioLead(planIdx) {
-      var p = PLANES[planIdx];
-      var wrap = lpModal(
-        '<h3 class="modal-title">Cuéntanos de tu laboratorio</h3>' +
-        '<p class="text-muted" style="margin:0 0 16px">Plan seleccionado: <b>' + esc(p.nombre) + "</b> (" + esc(p.usuarios) + ")</p>" +
-        '<form id="lead-form">' +
-        '<div class="field"><label>Nombre del laboratorio</label><input id="lead-lab" required/></div>' +
-        '<div class="field"><label>Nombre de contacto</label><input id="lead-contact" required/></div>' +
-        '<div class="form-grid">' +
-        '<div class="field"><label>Ciudad</label><input id="lead-city" required/></div>' +
-        '<div class="field"><label>País</label><select id="lead-country"><option>Colombia</option><option>Venezuela</option><option>Ecuador</option><option>Otro</option></select></div>' +
-        "</div>" +
-        '<div class="form-grid">' +
-        '<div class="field"><label>WhatsApp</label><input id="lead-whatsapp" type="tel" placeholder="Ej: 3001234567" required/></div>' +
-        '<div class="field"><label>Correo electrónico</label><input id="lead-email" type="email" required/></div>' +
-        "</div>" +
-        '<div class="flex gap-2 justify-between" style="margin-top:6px">' +
-        '<button type="button" class="btn btn-ghost" data-modal-close>← Cambiar plan</button>' +
-        '<button type="submit" class="btn btn-primary btn-glow-brand">Continuar al pago →</button>' +
-        "</div></form>"
-      );
-      wrap.querySelector("#lead-form").addEventListener("submit", function (e) {
-        e.preventDefault();
-        var lead = {
-          lab: wrap.querySelector("#lead-lab").value.trim(),
-          contact: wrap.querySelector("#lead-contact").value.trim(),
-          city: wrap.querySelector("#lead-city").value.trim(),
-          country: wrap.querySelector("#lead-country").value,
-          whatsapp: wrap.querySelector("#lead-whatsapp").value.trim(),
-          email: wrap.querySelector("#lead-email").value.trim()
-        };
-        trackFbEvent("Lead", { content_name: "Plan " + p.nombre, value: IMPLEMENTACION.usd + p.usd, currency: "USD" });
-        lpCloseModal(wrap);
-        abrirPago(planIdx, lead);
-      });
-    }
-
-    function abrirPago(planIdx, lead) {
-      var p = PLANES[planIdx];
-      var totalCOP = IMPLEMENTACION.cop + p.precio;
-      var totalUSD = IMPLEMENTACION.usd + p.usd;
-      var referencia = "BIOSOFT-" + Date.now();
-      var descripcion = "BIOsoft - Implementación + Plan " + p.nombre + " (" + lead.lab + ")";
-      var mensajeWa = "Hola 👋 Quiero activar BIOsoft.\n\n" +
-        "Laboratorio: " + lead.lab + "\nContacto: " + lead.contact + "\nCiudad/País: " + lead.city + ", " + lead.country +
-        "\nWhatsApp: " + lead.whatsapp + "\nCorreo: " + lead.email +
-        "\nPlan elegido: " + p.nombre + " (" + p.usuarios + ")" +
-        "\nTotal a pagar hoy: $" + totalCOP.toLocaleString("es-CO") + " COP (≈ $" + totalUSD + " USD)" +
-        "\n\n¿Me ayudas a confirmar el pago y activar mi cuenta?";
-
-      var wrap = lpModal(
-        '<h3 class="modal-title">Activa tu BIOsoft</h3>' +
-        '<p class="text-muted" style="margin:0 0 14px">Plan <b>' + esc(p.nombre) + "</b> — " + esc(p.usuarios) + "</p>" +
-        '<div class="lp-pay-summary">' +
-        '<div class="row"><span>Implementación (pago único)</span><span>$' + IMPLEMENTACION.copFmt + ' COP <small>≈ $' + IMPLEMENTACION.usd + ' USD</small></span></div>' +
-        '<div class="row"><span>Primer mes — Plan ' + esc(p.nombre) + '</span><span>$' + p.precioFmt + ' COP <small>≈ $' + p.usd + ' USD</small></span></div>' +
-        '<div class="row total"><span>Total hoy</span><span>$' + totalCOP.toLocaleString("es-CO") + ' COP <small>≈ $' + totalUSD + ' USD</small></span></div>' +
-        "</div>" +
-        '<a class="btn btn-primary btn-block" id="pay-wompi" target="_blank" rel="noopener">💳 Pagar con Wompi (COP)</a>' +
-        '<div id="paypal-button-container" style="margin-top:12px"></div>' +
-        '<a class="btn btn-whatsapp btn-block" id="pay-wa-confirm" target="_blank" rel="noopener" style="margin-top:12px">📲 Prefiero confirmar por WhatsApp</a>' +
-        '<p class="text-muted" style="font-size:11.5px;margin-top:14px;text-align:center">Al confirmar, te contactaremos por WhatsApp o correo para iniciar la personalización de tu BIOsoft.</p>'
-      );
-
-      wrap.querySelector("#pay-wompi").href =
-        "https://checkout.wompi.co/p/?public-key=" + encodeURIComponent(WOMPI_PUBLIC_KEY) +
-        "&currency=COP&amount-in-cents=" + (totalCOP * 100) +
-        "&reference=" + encodeURIComponent(referencia) +
-        "&redirect-url=" + encodeURIComponent(location.origin + location.pathname);
-      wrap.querySelector("#pay-wa-confirm").href = waLink(mensajeWa);
-
-      cargarBotonPayPal(totalUSD, descripcion, referencia);
-    }
-
-    var paypalSdkCargado = false;
-    function cargarBotonPayPal(totalUSD, descripcion, referencia) {
-      var contenedor = document.getElementById("paypal-button-container");
-      function render() {
-        try {
-          window.paypal.Buttons({
-            style: { color: "gold", shape: "rect", label: "paypal", height: 45 },
-            createOrder: function (data, actions) {
-              return actions.order.create({ purchase_units: [{ amount: { value: totalUSD.toFixed(2), currency_code: "USD" }, description: descripcion, custom_id: referencia }] });
-            },
-            onApprove: function (data, actions) {
-              return actions.order.capture().then(function () {
-                contenedor.innerHTML = '<p style="text-align:center;color:var(--success);font-weight:700">✓ Pago recibido. ¡Gracias! Te contactaremos por WhatsApp para activar tu cuenta.</p>';
-              });
-            }
-          }).render("#paypal-button-container");
-        } catch (err) {
-          contenedor.innerHTML = '<p class="text-muted" style="font-size:12px;text-align:center">El botón de PayPal no está disponible en este momento. Usa Wompi o WhatsApp para continuar.</p>';
-        }
-      }
-      if (window.paypal) { render(); return; }
-      if (paypalSdkCargado) return;
-      paypalSdkCargado = true;
-      var s = document.createElement("script");
-      s.src = "https://www.paypal.com/sdk/js?client-id=" + encodeURIComponent(PAYPAL_CLIENT_ID) + "&currency=USD";
-      s.onload = render;
-      s.onerror = function () { contenedor.innerHTML = '<p class="text-muted" style="font-size:12px;text-align:center">El botón de PayPal no está disponible en este momento. Usa Wompi o WhatsApp para continuar.</p>'; };
-      document.head.appendChild(s);
     }
 
     ["btn-iniciar-ya-hero", "btn-iniciar-ya-final"].forEach(function (id) {
