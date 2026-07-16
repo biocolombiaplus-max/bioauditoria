@@ -147,6 +147,27 @@ fbq('track', 'PageView');
   .lp-pdf-side { display: flex; flex-direction: column; gap: 14px; }
   .lp-pdf-feature { display: flex; align-items: center; gap: 10px; font-size: 14.5px; font-weight: 600; color: var(--text); }
   .lp-pdf-feature span { font-size: 18px; }
+
+  .lp-compare-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 22px; max-width: 980px; margin: 0 auto; }
+  .lp-compare-col { border-radius: var(--radius); padding: 26px 24px; }
+  .lp-compare-bad { background: var(--surface-2); border: 1.5px solid var(--border); }
+  .lp-compare-good { background: linear-gradient(160deg, color-mix(in srgb, var(--lp-purple) 8%, white), color-mix(in srgb, var(--lp-orange) 6%, white)); border: 1.5px solid color-mix(in srgb, var(--lp-purple) 30%, transparent); box-shadow: 0 16px 40px -18px rgba(124,58,237,.35); }
+  .lp-compare-head { font-weight: 800; font-size: 16px; margin-bottom: 14px; }
+  .lp-compare-col ul { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 12px; font-size: 14px; line-height: 1.45; }
+  .lp-compare-bad li { color: var(--text-muted); padding-left: 22px; position: relative; }
+  .lp-compare-bad li::before { content: "✕"; position: absolute; left: 0; color: var(--danger); font-weight: 800; }
+  .lp-compare-good li { color: var(--text); font-weight: 500; padding-left: 22px; position: relative; }
+  .lp-compare-good li::before { content: "✓"; position: absolute; left: 0; color: var(--success); font-weight: 800; }
+  @media (max-width: 760px) { .lp-compare-grid { grid-template-columns: 1fr; } }
+
+  .lp-faq { max-width: 760px; margin: 0 auto; }
+  .lp-faq-item { border-bottom: 1px solid var(--border); padding: 18px 0; }
+  .lp-faq-item summary { cursor: pointer; font-weight: 700; font-size: 15px; list-style: none; display: flex; justify-content: space-between; align-items: center; gap: 12px; }
+  .lp-faq-item summary::-webkit-details-marker { display: none; }
+  .lp-faq-item summary::after { content: "+"; font-size: 20px; font-weight: 400; color: var(--lp-purple); flex-shrink: 0; transition: transform .15s ease; }
+  .lp-faq-item[open] summary::after { transform: rotate(45deg); }
+  .lp-faq-item p { margin: 12px 0 0; color: var(--text-muted); font-size: 14px; line-height: 1.6; }
+
   @media (max-width: 900px) {
     .lp-pdf-showcase { grid-template-columns: 1fr; }
     .lp-pdf-callout { font-size: 10px; padding: 5px 9px; }
@@ -250,7 +271,7 @@ fbq('track', 'PageView');
       <span>🇨🇴 Colombia</span><span>🇻🇪 Venezuela</span><span>🇪🇨 Ecuador</span><span>Primer y Segundo Nivel</span>
     </div>
     <h1>El software de laboratorio clínico <span>premium</span>, hecho para bacteriólogos y bioanalistas</h1>
-    <p>BIOsoft gestiona pacientes, resultados, validación por bacteriólogo, trazabilidad total y reportes en PDF de nivel mundial — 100% personalizado con tu logo, colores, firmas y catálogo de exámenes. No es un software genérico: se configura a la medida de tu laboratorio.</p>
+    <p>Deja de armar y enviar resultados a mano en Word o Excel. BIOsoft gestiona pacientes, resultados, validación por bacteriólogo, trazabilidad total y reportes en PDF de nivel mundial — 100% personalizado con tu logo, colores, firmas y catálogo de exámenes, con pago mensual accesible, sin la inversión millonaria que piden otros software.</p>
     <div class="lp-cta-row">
       <a class="btn btn-primary btn-glow-brand" href="app.html">🚀 Ver Demo Gratis Ahora</a>
       <a class="btn btn-whatsapp wa-link" href="#" target="_blank" rel="noopener">🛒 Comprar por WhatsApp</a>
@@ -325,6 +346,33 @@ fbq('track', 'PageView');
     </div>
   </section>
 
+  <section class="lp-section lp-compare-section">
+    <h2>¿Por qué cambiar a BIOsoft?</h2>
+    <p class="lead">Así de simple es la diferencia entre seguir haciéndolo manual (o pagando de más por otro software) y trabajar con BIOsoft.</p>
+    <div class="lp-compare-grid">
+      <div class="lp-compare-col lp-compare-bad">
+        <div class="lp-compare-head">😩 Sin BIOsoft</div>
+        <ul>
+          <li>Resultados armados a mano en Word o Excel</li>
+          <li>Enviar cada informe uno por uno, manualmente</li>
+          <li>Riesgo constante de error humano y de digitación</li>
+          <li>Otros software exigen una inversión inicial grande</li>
+          <li>Sistemas genéricos que no se ajustan a tu laboratorio</li>
+        </ul>
+      </div>
+      <div class="lp-compare-col lp-compare-good">
+        <div class="lp-compare-head">🚀 Con BIOsoft</div>
+        <ul>
+          <li>Resultados validados y en PDF profesional en segundos</li>
+          <li>Envío directo por WhatsApp o correo en un clic</li>
+          <li>Trazabilidad total: usuario, fecha y hora de cada acción</li>
+          <li>Pago mensual accesible, sin inversión millonaria</li>
+          <li>100% personalizado: tu logo, tus colores, tu catálogo</li>
+        </ul>
+      </div>
+    </div>
+  </section>
+
   <section class="lp-section" id="secciones" style="background:var(--surface-2)">
     <h2>Todas las secciones del laboratorio</h2>
     <p class="lead">Catálogo de exámenes organizado por sección, con código de referencia CUPS editable y niveles de complejidad 1 y 2.</p>
@@ -378,6 +426,33 @@ fbq('track', 'PageView');
     <p class="text-muted" style="text-align:center;margin-top:20px;font-size:12.5px">Después de tu pago, envíanos el comprobante por WhatsApp y activamos tu cuenta.</p>
   </section>
 
+  <section class="lp-section" id="preguntas" style="background:var(--surface-2)">
+    <h2>Preguntas frecuentes</h2>
+    <p class="lead">Antes de decidir, resolvemos las dudas más comunes de quienes están por dar el salto digital.</p>
+    <div class="lp-faq">
+      <details class="lp-faq-item" open>
+        <summary>¿Necesito hacer una inversión grande para empezar?</summary>
+        <p>No. A diferencia de otros software de laboratorio que piden inversiones millonarias, BIOsoft solo pide una cuota única de implementación ($380.000 COP / ≈$100 USD) y luego una mensualidad accesible según el número de usuarios. Sin letras pequeñas.</p>
+      </details>
+      <details class="lp-faq-item">
+        <summary>¿El software se adapta a mi laboratorio o es genérico?</summary>
+        <p>Se configura 100% a tu medida: tu logo, tus colores institucionales, tu catálogo de exámenes y las firmas digitales de tus bacteriólogos. No es una plantilla — es tu software.</p>
+      </details>
+      <details class="lp-faq-item">
+        <summary>¿Qué pasa si mi equipo no es experto en tecnología?</summary>
+        <p>BIOsoft está pensado para reemplazar el papel, Word y Excel con una interfaz simple. La mayoría de los equipos lo aprenden a usar el primer día, y siempre tienes soporte directo por WhatsApp.</p>
+      </details>
+      <details class="lp-faq-item">
+        <summary>¿Es seguro enviar resultados por WhatsApp o correo?</summary>
+        <p>Sí. Cada resultado se valida y se firma digitalmente antes de enviarse, con trazabilidad completa (usuario, fecha y hora) y un código QR de verificación en cada PDF.</p>
+      </details>
+      <details class="lp-faq-item">
+        <summary>¿Qué pasa si mi laboratorio crece y necesito más usuarios?</summary>
+        <p>Cambias de plan cuando lo necesites, desde 1 usuario hasta laboratorios de alto volumen. El sistema crece contigo, sin perder tu configuración ni tus datos.</p>
+      </details>
+    </div>
+  </section>
+
   <section class="lp-final lp-wrap">
     <h2>Lleva tu laboratorio al siguiente nivel</h2>
     <p>Explora la demo interactiva completa con datos de ejemplo, o contrátanos ahora mismo por WhatsApp.</p>
@@ -413,17 +488,17 @@ fbq('track', 'PageView');
       if (demoEl) trackFbEvent("ViewContent", { content_name: "Demo Gratis" });
     });
 
-    // ===== TODO: reemplaza estas dos llaves con las tuyas antes de recibir pagos reales =====
-    // Wompi: comercios.wompi.co → Desarrolladores → Llaves API → "Llave pública" (empieza con pub_prod_ o pub_test_)
-    var WOMPI_PUBLIC_KEY = "pub_prod_REEMPLAZA_TU_LLAVE_PUBLICA";
+    // Wompi: llave pública activa (comercios.wompi.co → Desarrollo → Programadores)
+    var WOMPI_PUBLIC_KEY = "pub_prod_ePakM1CIHRH6Cg2Y7XacjvTxmLeJsEG2";
+    // ===== TODO: reemplaza esta con tu Client ID real antes de recibir pagos en USD =====
     // PayPal: developer.paypal.com → My Apps & Credentials → tu app → "Client ID" (nunca el Secret)
     var PAYPAL_CLIENT_ID = "REEMPLAZA_TU_CLIENT_ID_DE_PAYPAL";
 
     var IMPLEMENTACION = { cop: 380000, copFmt: "380.000", usd: 100 };
     var PLANES = [
-      { nombre: "Básico", usuarios: "Hasta 2 usuarios", precio: 120000, precioFmt: "120.000", usd: 45, destacado: false,
+      { nombre: "Básico", usuarios: "1 usuario", precio: 120000, precioFmt: "120.000", usd: 45, destacado: false,
         items: ["Registro de pacientes y órdenes ilimitadas", "Resultados, validación y trazabilidad", "Reportes en PDF con tu marca", "Envío por correo y WhatsApp", "Soporte por WhatsApp"] },
-      { nombre: "Intermedio", usuarios: "Hasta 5 usuarios", precio: 180000, precioFmt: "180.000", usd: 60, destacado: true,
+      { nombre: "Intermedio", usuarios: "2 a 5 usuarios", precio: 180000, precioFmt: "180.000", usd: 60, destacado: true,
         items: ["Todo lo del plan Básico", "Firma digital de cada bacteriólogo", "Exámenes remitidos a otros laboratorios", "Hojas de trabajo diarias y stickers de muestra", "Soporte prioritario"] },
       { nombre: "Plus", usuarios: "Hasta 10 usuarios", precio: 250000, precioFmt: "250.000", usd: 80, destacado: false,
         items: ["Todo lo del plan Intermedio", "Valores de referencia personalizables por examen", "Trazabilidad y auditoría avanzada", "Ideal para laboratorios de alto volumen", "Soporte VIP prioritario"] }
