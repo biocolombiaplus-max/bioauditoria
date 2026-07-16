@@ -12,6 +12,22 @@
 <meta property="og:image" content="assets/logo-biosoft.png"/>
 <link rel="icon" type="image/png" href="assets/favicon-biosoft.png"/>
 <link rel="stylesheet" href="css/styles.css"/>
+<!-- ===== Meta Pixel Code ===== -->
+<!-- TODO: reemplaza PIXEL_ID_AQUI con tu ID real de Pixel (Events Manager de Meta Business Suite) -->
+<script>
+!function(f,b,e,v,n,t,s)
+{if(f.fbq)return;n=f.fbq=function(){n.callMethod?
+n.callMethod.apply(n,arguments):n.queue.push(arguments)};
+if(!f._fbq)f._fbq=n;n.push=n;n.loaded=!0;n.version='2.0';
+n.queue=[];t=b.createElement(e);t.async=!0;
+t.src=v;s=b.getElementsByTagName(e)[0];
+s.parentNode.insertBefore(t,s)}(window, document,'script',
+'https://connect.facebook.net/en_US/fbevents.js');
+fbq('init', 'PIXEL_ID_AQUI');
+fbq('track', 'PageView');
+</script>
+<noscript><img height="1" width="1" style="display:none" src="https://www.facebook.com/tr?id=PIXEL_ID_AQUI&ev=PageView&noscript=1"/></noscript>
+<!-- ===== Fin Meta Pixel Code ===== -->
 <script type="application/ld+json">
 {
   "@context": "https://schema.org",
@@ -386,6 +402,17 @@
       a.href = waLink("Hola 👋 Quiero adquirir BIOsoft para mi laboratorio. ¿Me ayudan a empezar?");
     });
 
+    // ===== Meta Pixel: eventos personalizados en los puntos clave de conversión =====
+    function trackFbEvent(nombre, params) {
+      if (typeof window.fbq === "function") window.fbq("track", nombre, params || {});
+    }
+    document.addEventListener("click", function (e) {
+      var waEl = e.target.closest(".wa-link, #wa-float, #wa-cotizacion, #pay-wa-confirm");
+      if (waEl) trackFbEvent("Contact", { content_name: "WhatsApp" });
+      var demoEl = e.target.closest('a[href="app.html"]');
+      if (demoEl) trackFbEvent("ViewContent", { content_name: "Demo Gratis" });
+    });
+
     // ===== TODO: reemplaza estas dos llaves con las tuyas antes de recibir pagos reales =====
     // Wompi: comercios.wompi.co → Desarrolladores → Llaves API → "Llave pública" (empieza con pub_prod_ o pub_test_)
     var WOMPI_PUBLIC_KEY = "pub_prod_REEMPLAZA_TU_LLAVE_PUBLICA";
@@ -429,6 +456,7 @@
     function lpCloseModal(wrap) { if (wrap && wrap.parentNode) wrap.parentNode.removeChild(wrap); }
 
     function abrirSeleccionPlan() {
+      trackFbEvent("InitiateCheckout");
       var wrap = lpModal(
         '<h3 class="modal-title">Elige tu plan para continuar</h3>' +
         '<p class="text-muted" style="margin:0 0 18px">Selecciona el plan según el número de usuarios de tu laboratorio. En el siguiente paso confirmas tus datos.</p>' +
@@ -479,6 +507,7 @@
           whatsapp: wrap.querySelector("#lead-whatsapp").value.trim(),
           email: wrap.querySelector("#lead-email").value.trim()
         };
+        trackFbEvent("Lead", { content_name: "Plan " + p.nombre, value: IMPLEMENTACION.usd + p.usd, currency: "USD" });
         lpCloseModal(wrap);
         abrirPago(planIdx, lead);
       });
