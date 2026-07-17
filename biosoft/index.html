@@ -99,7 +99,7 @@ fbq('track', 'PageView');
   .lp-modal-plan .users { font-size: 11.5px; color: var(--text-muted); margin-bottom: 8px; }
   .lp-modal-plan .amount { font-family: 'Poppins',sans-serif; font-weight: 800; font-size: 22px; color: var(--brand-secondary); }
   .lp-modal-plan .amount-usd { font-size: 11px; color: var(--text-muted); margin-bottom: 10px; }
-  .lp-modal-plan button { margin-top: auto; }
+  .lp-modal-plan-actions { margin-top: auto; }
   @media (max-width: 640px) { .lp-modal-plans { grid-template-columns: 1fr; } }
   .lp-badges { display:flex; gap:10px; justify-content:center; margin-top:26px; flex-wrap:wrap; }
   .lp-badges span { background: rgba(255,255,255,.08); border:1px solid rgba(255,255,255,.16); padding:6px 14px; border-radius:20px; font-size:12.5px; font-weight:700; color:rgba(255,255,255,.85); backdrop-filter: blur(6px); }
@@ -222,10 +222,23 @@ fbq('track', 'PageView');
   .price-card ul { list-style:none; padding:0; margin:16px 0 22px; text-align:left; font-size:13px; color:var(--text-muted); display:flex; flex-direction:column; gap:8px; flex:1; }
   .price-card ul li:before { content:"✓ "; color: var(--success); font-weight:800; }
   .price-note { text-align:center; max-width:620px; margin:34px auto 0; background:var(--surface-2); border:1px dashed var(--border); border-radius:12px; padding:16px 20px; font-size:13.5px; color:var(--text-muted); }
-  .pay-grid { display:grid; grid-template-columns: repeat(auto-fit, minmax(260px,1fr)); gap:18px; max-width:760px; margin:30px auto 0; }
-  .pay-card { background:#fff; border:1.5px solid var(--border); border-radius:var(--radius); padding:22px; text-align:center; }
-  .pay-card b { display:block; font-size:16px; margin-bottom:6px; }
-  .pay-card .num { font-family:'Poppins',sans-serif; font-weight:800; font-size:20px; color:var(--brand-primary); margin:6px 0; }
+  .lp-pay-total { background: var(--surface-2); border:1px solid var(--border); border-radius:10px; padding:10px 12px; margin:4px 0 14px; font-size:12.5px; }
+  .lp-pay-total b { display:block; font-size:16px; color: var(--brand-secondary); font-family:'Poppins',sans-serif; }
+  .lp-pay-total span { color: var(--text-muted); font-size:11.5px; }
+  .btn-pay-wompi {
+    display:flex; align-items:center; justify-content:center; gap:8px; width:100%; text-decoration:none;
+    background: linear-gradient(135deg, #001489, #0038FF 55%, #00C2FF); color:#fff; font-weight:800;
+    padding:13px 16px; border-radius:10px; font-size:14.5px; box-shadow: 0 10px 26px -10px rgba(0,56,255,.55);
+    transition: transform .15s ease, box-shadow .15s ease; box-sizing:border-box;
+  }
+  .btn-pay-wompi:hover { transform: translateY(-2px); box-shadow: 0 14px 32px -10px rgba(0,56,255,.6); }
+  .lp-pay-cards { font-size:10.5px; color:var(--text-muted); margin-top:8px; letter-spacing:.01em; }
+  .lp-modal-plan-wa, .price-card .lp-modal-plan-wa {
+    display:block; text-align:center; margin-top:10px; font-size:12px; font-weight:700; color:var(--text-muted);
+    background:none; border:none; cursor:pointer; text-decoration:underline; padding:2px;
+  }
+  .lp-modal-plan-wa:hover { color: var(--brand-primary); }
+  .lp-modal-trust { text-align:center; max-width:560px; margin:20px auto 0; font-size:12px; color:var(--text-muted); background:var(--surface-2); border:1px solid var(--border); border-radius:12px; padding:12px 16px; }
   .trust-row { display:flex; flex-wrap:wrap; justify-content:center; gap:10px; margin-top:24px; }
   .trust-row span { font-size:12px; color:var(--text-muted); background:var(--surface-2); border:1px solid var(--border); border-radius:20px; padding:6px 14px; font-weight:600; }
 
@@ -425,33 +438,11 @@ fbq('track', 'PageView');
     <p style="text-align:center;font-size:13px;color:var(--text-muted);margin-top:18px">¿Tu laboratorio necesita más de 10 usuarios o varias sedes? <a href="#" id="wa-cotizacion" target="_blank" rel="noopener" style="color:var(--brand-primary);font-weight:700">Solicita una cotización personalizada →</a></p>
     <div class="price-note">🎯 <b>Cuota única de implementación: $380.000 COP</b> <span class="text-muted">(≈ $120 USD)</span> — con este pago comenzamos a personalizar tu BIOsoft: cargamos el logo, colores y datos de tu laboratorio, configuramos el catálogo de exámenes y las firmas de tus bacteriólogos, y capacitamos a tu equipo. <b>No es un software genérico — es tu software, hecho a tu medida.</b> Se paga una sola vez, sin importar el plan que elijas.</div>
     <div class="trust-row">
-      <span>🔒 Activación segura por WhatsApp</span>
+      <span>🔒 Pago seguro con Wompi (tarjetas y más)</span>
       <span>🎨 Personalización incluida</span>
       <span>💬 Soporte directo por WhatsApp</span>
       <span>🇨🇴🇻🇪🇪🇨 Hecho para Colombia, Venezuela y Ecuador</span>
     </div>
-  </section>
-
-  <section class="lp-section" id="pagos">
-    <h2>Empieza hoy mismo</h2>
-    <p class="lead">Escríbenos por WhatsApp para confirmar tu plan, o realiza el pago de activación directamente.</p>
-    <div class="lp-cta-row" style="margin-bottom: 30px">
-      <a class="btn btn-whatsapp wa-link" href="#" target="_blank" rel="noopener">📲 Escribir por WhatsApp</a>
-    </div>
-    <div class="pay-grid">
-      <div class="pay-card">
-        <b>💜 Pagar con Nequi</b>
-        <p class="text-muted" style="margin:0;font-size:13px">Envía tu pago al número:</p>
-        <div class="num">350 545 7420</div>
-        <p class="text-muted" style="margin:0;font-size:13px">A nombre de Juan Cáceres</p>
-      </div>
-      <div class="pay-card">
-        <b>🌐 Pagar con Wompi</b>
-        <p class="text-muted" style="margin:0 0 12px;font-size:13px">Tarjeta, PSE, Nequi, Bancolombia y más</p>
-        <a class="btn btn-primary btn-glow-brand" href="https://checkout.wompi.co/l/SU2JN5" target="_blank" rel="noopener">Ir a Pagar con Wompi</a>
-      </div>
-    </div>
-    <p class="text-muted" style="text-align:center;margin-top:20px;font-size:12.5px">Después de tu pago, envíanos el comprobante por WhatsApp y activamos tu cuenta.</p>
   </section>
 
   <section class="lp-section" id="preguntas" style="background:var(--surface-2)">
@@ -519,21 +510,30 @@ fbq('track', 'PageView');
     var IMPLEMENTACION = { cop: 380000, copFmt: "380.000", usd: 120 };
     var PLANES = [
       { nombre: "Básico", usuarios: "1 usuario", precio: 120000, precioFmt: "120.000", usd: 45, destacado: false,
+        wompiLink: "https://checkout.wompi.co/l/ZrQT4t",
         items: ["Registro de pacientes y órdenes ilimitadas", "Resultados, validación y trazabilidad", "Reportes en PDF con tu marca", "Envío por correo y WhatsApp", "Soporte por WhatsApp"] },
       { nombre: "Intermedio", usuarios: "2 a 5 usuarios", precio: 180000, precioFmt: "180.000", usd: 60, destacado: true,
+        wompiLink: "https://checkout.wompi.co/l/HZZJ7T",
         items: ["Todo lo del plan Básico", "Firma digital de cada bacteriólogo", "Exámenes remitidos a otros laboratorios", "Hojas de trabajo diarias y stickers de muestra", "Soporte prioritario"] },
       { nombre: "Plus", usuarios: "Hasta 10 usuarios", precio: 250000, precioFmt: "250.000", usd: 80, destacado: false,
+        wompiLink: "https://checkout.wompi.co/l/eEh3KM",
         items: ["Todo lo del plan Intermedio", "Valores de referencia personalizables por examen", "Trazabilidad y auditoría avanzada", "Ideal para laboratorios de alto volumen", "Soporte VIP prioritario"] }
     ];
+    var TARJETAS_TXT = "💳 Aceptamos Visa, Mastercard y American Express (crédito y débito), PSE, Nequi, Bancolombia y otros medios de pago";
     document.getElementById("price-grid").innerHTML = PLANES.map(function (p) {
       var msg = "Hola, quiero contratar el Plan " + p.nombre + " de BIOsoft (" + p.usuarios + "). ¿Me ayudas con la implementación?";
+      var totalCOP = IMPLEMENTACION.cop + p.precio;
+      var totalUSD = IMPLEMENTACION.usd + p.usd;
       return '<div class="price-card ' + (p.destacado ? "destacado" : "") + '">' +
         (p.destacado ? '<span class="tag">Recomendado</span>' : "") +
         "<h3>" + p.nombre + "</h3><div class='users'>" + p.usuarios + "</div>" +
         '<div class="amount">$' + p.precioFmt + " <small>/mes</small></div>" +
         '<div class="amount-usd">≈ $' + p.usd + " USD/mes</div>" +
         "<ul>" + p.items.map(function (it) { return "<li>" + it + "</li>"; }).join("") + "</ul>" +
-        '<a class="btn ' + (p.destacado ? "btn-whatsapp" : "btn-primary") + '" href="' + waLink(msg) + '" target="_blank" rel="noopener">Elegir por WhatsApp</a>' +
+        '<div class="lp-pay-total">Pago inicial: <b>$' + totalCOP.toLocaleString("es-CO") + ' COP</b><span>≈ $' + totalUSD + ' USD · implementación + primer mes</span></div>' +
+        '<a class="btn-pay-wompi" href="' + p.wompiLink + '" target="_blank" rel="noopener" data-pay-grid="' + p.nombre + '">💳 Pagar ahora con Wompi</a>' +
+        '<div class="lp-pay-cards">' + TARJETAS_TXT + '</div>' +
+        '<a class="lp-modal-plan-wa" href="' + waLink(msg) + '" target="_blank" rel="noopener">¿Dudas? Habla con nosotros por WhatsApp</a>' +
         "</div>";
     }).join("");
     document.getElementById("wa-cotizacion").href = waLink("Hola, mi laboratorio necesita más de 10 usuarios o varias sedes. ¿Me ayudas con una cotización personalizada de BIOsoft?");
@@ -554,19 +554,32 @@ fbq('track', 'PageView');
       trackFbEvent("InitiateCheckout");
       var wrap = lpModal(
         '<h3 class="modal-title">Elige tu plan para continuar</h3>' +
-        '<p class="text-muted" style="margin:0 0 18px">Selecciona el plan según el número de usuarios de tu laboratorio. Te llevamos directo a WhatsApp para resolver cualquier duda y confirmar la activación.</p>' +
+        '<p class="text-muted" style="margin:0 0 18px">Selecciona el plan según el número de usuarios de tu laboratorio y paga de una vez de forma segura, o escríbenos por WhatsApp si tienes dudas antes de pagar.</p>' +
         '<div class="lp-modal-plans">' +
         PLANES.map(function (p, i) {
+          var totalCOP = IMPLEMENTACION.cop + p.precio;
+          var totalUSD = IMPLEMENTACION.usd + p.usd;
           return '<div class="lp-modal-plan ' + (p.destacado ? "destacado" : "") + '">' +
             (p.destacado ? '<span class="tag">Recomendado</span>' : "") +
             "<h4>" + p.nombre + "</h4><div class='users'>" + p.usuarios + "</div>" +
             '<div class="amount">$' + p.precioFmt + '</div><div class="amount-usd">≈ $' + p.usd + ' USD /mes</div>' +
-            '<button class="btn ' + (p.destacado ? "btn-whatsapp" : "btn-outline") + ' btn-sm" data-plan="' + i + '">Quiero este plan →</button>' +
-            "</div>";
+            '<div class="lp-pay-total">Pago inicial: <b>$' + totalCOP.toLocaleString("es-CO") + ' COP</b><span>≈ $' + totalUSD + ' USD · implementación + primer mes</span></div>' +
+            '<div class="lp-modal-plan-actions">' +
+            '<a class="btn-pay-wompi" href="' + p.wompiLink + '" target="_blank" rel="noopener" data-plan="' + i + '" data-pay="1">💳 Pagar ahora con Wompi</a>' +
+            '<button class="lp-modal-plan-wa" data-plan="' + i + '" data-wa="1" type="button">¿Dudas? Habla con nosotros por WhatsApp</button>' +
+            "</div></div>";
         }).join("") +
-        "</div>"
+        "</div>" +
+        '<div class="lp-modal-trust">' + TARJETAS_TXT + ' · Pago procesado de forma segura y encriptada por Wompi.</div>'
       );
-      wrap.querySelectorAll("[data-plan]").forEach(function (b) {
+      wrap.querySelectorAll("[data-pay]").forEach(function (a) {
+        a.addEventListener("click", function () {
+          var p = PLANES[Number(a.dataset.plan)];
+          var totalUSD = IMPLEMENTACION.usd + p.usd;
+          trackFbEvent("InitiatePayment", { content_name: "Plan " + p.nombre, value: totalUSD, currency: "USD" });
+        });
+      });
+      wrap.querySelectorAll("[data-wa]").forEach(function (b) {
         b.addEventListener("click", function () {
           var p = PLANES[Number(b.dataset.plan)];
           var totalCOP = IMPLEMENTACION.cop + p.precio;
