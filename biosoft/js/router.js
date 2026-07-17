@@ -16,7 +16,8 @@
         { route: "ordenes", label: "Órdenes de Laboratorio", icon: "clipboard" },
         { route: "resultados", label: "Resultados", icon: "flask" },
         { route: "hojas-trabajo", label: "Hojas de Trabajo", icon: "printer" },
-        { route: "reportes", label: "Reportes y Envíos", icon: "send" }
+        { route: "reportes", label: "Reportes y Envíos", icon: "send" },
+        { route: "productividad", label: "Productividad Mensual", icon: "activity" }
       ]},
       { sec: "ADMINISTRACIÓN", items: [
         { route: "usuarios", label: "Usuarios y Bacteriólogos", icon: "users" },
@@ -112,12 +113,12 @@
     resultados: "Resultados de Laboratorio", "hojas-trabajo": "Hojas de Trabajo Diarias",
     reportes: "Reportes y Envío de Resultados", usuarios: "Usuarios y Bacteriólogos",
     config: "Configuración del Laboratorio", auditoria: "Trazabilidad y Auditoría", tenants: "Laboratorios Cliente",
-    catalogo: "Valores de Referencia del Catálogo"
+    catalogo: "Valores de Referencia del Catálogo", productividad: "Productividad Mensual"
   };
 
   var ALLOWED_ROUTES = {
     superadmin: ["tenants", "dashboard"],
-    admin: ["dashboard", "pacientes", "ordenes", "resultados", "hojas-trabajo", "reportes", "usuarios", "config", "auditoria", "catalogo"],
+    admin: ["dashboard", "pacientes", "ordenes", "resultados", "hojas-trabajo", "reportes", "productividad", "usuarios", "config", "auditoria", "catalogo"],
     bacteriologo: ["dashboard", "resultados", "hojas-trabajo"],
     recepcion: ["dashboard", "pacientes", "ordenes", "hojas-trabajo", "reportes"]
   };
