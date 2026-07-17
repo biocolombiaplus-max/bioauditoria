@@ -1,0 +1,46 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    function autenticado() {
+      return request.auth != null;
+    }
+    function perfil() {
+      return get(/databases/$(database)/documents/userProfiles/$(request.auth.uid)).data;
+    }
+    function esDeEsteLab(tenantId) {
+      return autenticado() && perfil().tenantId == tenantId;
+    }
+
+    // Cada usuario autenticado solo puede leer SU PROPIO perfil (para saber a
+    // qué laboratorio pertenece). Solo se crea una vez, al aprovisionar la
+    // cuenta (el propio usuario recién creado escribe su documento).
+    match /userProfiles/{uid} {
+      allow read: if autenticado() && request.auth.uid == uid;
+      allow create: if autenticado() && request.auth.uid == uid;
+      allow update, delete: if false;
+    }
+
+    match /tenants/{tenantId} {
+      allow read, update: if esDeEsteLab(tenantId);
+      // La creación ocurre en el mismo flujo de aprovisionamiento, por el
+      // usuario recién autenticado que se convertirá en su administrador.
+      allow create: if autenticado();
+      allow delete: if false;
+
+      match /users/{userId} {
+        allow read, write: if esDeEsteLab(tenantId);
+      }
+      match /patients/{patientId} {
+        allow read, write: if esDeEsteLab(tenantId);
+      }
+      match /orders/{orderId} {
+        allow read, write: if esDeEsteLab(tenantId);
+      }
+      match /auditLog/{logId} {
+        allow read, create: if esDeEsteLab(tenantId);
+        allow update, delete: if false;
+      }
+    }
+  }
+}

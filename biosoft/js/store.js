@@ -8,6 +8,169 @@
 
   var DB_KEY = "biosoft_db_v1";
 
+  /* ---------------------------------------------------------------------
+     MODO REAL (Firebase) — laboratorios clientes reales, con datos en
+     Firestore accesibles desde cualquier dispositivo. El modo Demo (arriba)
+     no cambia en absoluto: sigue siendo 100% localStorage.
+     realCache espeja en memoria los datos del laboratorio actual mientras
+     dura la sesión; se mantiene sincronizado con Firestore vía onSnapshot. */
+  var MODE = "demo"; // "demo" | "real"
+  var FB_TENANT_ID = null;
+  var realCache = null;
+  var realUnsubs = [];
+  var onRealtimeChangeCb = null;
+
+  function fbColl(coll) {
+    return global.BIO_FB.db.collection("tenants").doc(FB_TENANT_ID).collection(coll);
+  }
+  function fbWrite(coll, id, data) {
+    if (MODE !== "real") return;
+    fbColl(coll).doc(id).set(data).catch(function (e) { console.error("BIOsoft Firestore write error (" + coll + "/" + id + "):", e); });
+  }
+  function fbWriteTenant(tenant) {
+    if (MODE !== "real") return;
+    global.BIO_FB.db.collection("tenants").doc(tenant.id).set(tenant).catch(function (e) { console.error("BIOsoft Firestore write error (tenant):", e); });
+  }
+
+  function onRealtimeChange(cb) { onRealtimeChangeCb = cb; }
+
+  /* Se llama justo después de un login real exitoso. Devuelve una promesa que
+     resuelve cuando realCache ya tiene los datos iniciales del laboratorio
+     (para que el primer render no encuentre datos vacíos). */
+  function initRealtime(tenantId) {
+    MODE = "real";
+    FB_TENANT_ID = tenantId;
+    realCache = emptyDB();
+    var db = global.BIO_FB.db;
+
+    function attach(coll, arrKey, isMap) {
+      return fbColl(coll).get().then(function (snap) {
+        snap.forEach(function (doc) { pushDoc(doc); });
+        var unsub = fbColl(coll).onSnapshot(function (snap) {
+          snap.docChanges().forEach(function (change) {
+            if (change.type === "removed") removeDoc(change.doc.id);
+            else pushDoc(change.doc);
+          });
+          if (onRealtimeChangeCb) onRealtimeChangeCb();
+        });
+        realUnsubs.push(unsub);
+      });
+      function pushDoc(doc) {
+        var data = doc.data();
+        if (isMap) { realCache[arrKey][doc.id] = data; return; }
+        var idx = realCache[arrKey].findIndex(function (x) { return x.id === doc.id; });
+        if (idx >= 0) realCache[arrKey][idx] = data; else realCache[arrKey].push(data);
+      }
+      function removeDoc(id) {
+        if (isMap) { delete realCache[arrKey][id]; return; }
+        realCache[arrKey] = realCache[arrKey].filter(function (x) { return x.id !== id; });
+      }
+    }
+
+    var tenantPromise = db.collection("tenants").doc(tenantId).get().then(function (doc) {
+      if (doc.exists) realCache.tenants[tenantId] = doc.data();
+      var unsub = db.collection("tenants").doc(tenantId).onSnapshot(function (doc) {
+        if (doc.exists) realCache.tenants[tenantId] = doc.data();
+        if (onRealtimeChangeCb) onRealtimeChangeCb();
+      });
+      realUnsubs.push(unsub);
+    });
+
+    return Promise.all([
+      tenantPromise,
+      attach("users", "users", false),
+      attach("patients", "patients", false),
+      attach("orders", "orders", false),
+      attach("auditLog", "auditLog", false)
+    ]).then(function () { return realCache; });
+  }
+
+  function stopRealtime() {
+    realUnsubs.forEach(function (u) { try { u(); } catch (e) {} });
+    realUnsubs = [];
+    MODE = "demo";
+    FB_TENANT_ID = null;
+    realCache = null;
+  }
+
+  /* Crea un laboratorio real nuevo (o un usuario nuevo dentro de uno ya
+     existente) con su propia cuenta de Firebase Authentication. Usa una
+     instancia secundaria de Firebase para no afectar la sesión de quien
+     está creando la cuenta (superadmin o el admin del laboratorio). */
+  function provisionRealAccount(opts) {
+    var secondary = global.BIO_FB.secondaryAuth();
+    return secondary.auth.createUserWithEmailAndPassword(opts.userData.username, opts.userData.password)
+      .then(function (cred) {
+        var newUid = cred.user.uid;
+        var tenantId = opts.tenantId;
+        var tenant = null;
+        if (!tenantId) {
+          tenantId = uid("lab");
+          tenant = Object.assign({
+            id: tenantId, nivel: 1, colorPrimario: "#f97316", colorSecundario: "#2e1065", logoDataUrl: "",
+            claveAdmin: "ADMIN" + Math.floor(1000 + Math.random() * 9000), creadoEn: nowISO()
+          }, opts.tenantData, { id: tenantId });
+        }
+        var userObj = Object.assign({ activo: true, secciones: [], creadoEn: nowISO() }, opts.userData, { id: newUid, tenantId: tenantId });
+        delete userObj.password;
+        return secondary.db.collection("userProfiles").doc(newUid).set({ tenantId: tenantId, rol: userObj.rol })
+          .then(function () { if (tenant) return secondary.db.collection("tenants").doc(tenantId).set(tenant); })
+          .then(function () { return secondary.db.collection("tenants").doc(tenantId).collection("users").doc(newUid).set(userObj); })
+          .then(function () {
+            var detalle = tenant ? "Se creó el laboratorio cliente " + tenant.nombre + "." : "Se creó el usuario " + userObj.nombre + ".";
+            var entry = { id: uid("log"), tenantId: tenantId, fecha: nowISO(), usuario: "Soporte BIOsoft", rol: "superadmin", accion: tenant ? "CREATE_TENANT" : "CREATE_USER", entidad: tenant ? "laboratorio" : "usuario", entidadId: tenant ? tenantId : newUid, detalle: detalle };
+            return secondary.db.collection("tenants").doc(tenantId).collection("auditLog").doc(entry.id).set(entry);
+          })
+          .then(function () {
+            secondary.cleanup();
+            return { tenant: tenant, user: userObj, tenantId: tenantId };
+          });
+      })
+      .catch(function (err) { secondary.cleanup(); throw err; });
+  }
+
+  /* Autentica un correo/contraseña de laboratorio real y ubica su perfil
+     (a qué tenant pertenece). No toca el login Demo en absoluto. */
+  function loginReal(email, password) {
+    return global.BIO_FB.auth.signInWithEmailAndPassword(email, password).then(function (cred) {
+      var uidAuth = cred.user.uid;
+      return global.BIO_FB.db.collection("userProfiles").doc(uidAuth).get().then(function (doc) {
+        if (!doc.exists) throw new Error("Esta cuenta no tiene un laboratorio asociado.");
+        return initRealtime(doc.data().tenantId).then(function () {
+          var user = realCache.users.filter(function (u) { return u.id === uidAuth; })[0];
+          if (!user) throw new Error("No se encontró el usuario del laboratorio.");
+          return user;
+        });
+      });
+    });
+  }
+
+  function logoutReal() {
+    if (MODE === "real") { global.BIO_FB.auth.signOut().catch(function () {}); }
+    stopRealtime();
+  }
+
+  /* Al recargar la página, sessionStorage conserva la sesión pero realCache
+     se pierde (es memoria, no disco). Espera a que Firebase confirme que la
+     sesión de Auth sigue viva y vuelve a poblar realCache sin pedir clave. */
+  function waitForAuthReady() {
+    return new Promise(function (resolve) {
+      var settled = false;
+      var unsub = global.BIO_FB.auth.onAuthStateChanged(function (u) {
+        if (settled) return;
+        settled = true;
+        resolve(u);
+        if (typeof unsub === "function") unsub();
+      });
+    });
+  }
+  function restoreRealtime(tenantId) {
+    return waitForAuthReady().then(function (user) {
+      if (!user) throw new Error("La sesión de Firebase expiró.");
+      return initRealtime(tenantId);
+    });
+  }
+
   function uid(prefix) {
     return (prefix ? prefix + "-" : "") + Date.now().toString(36) + Math.random().toString(36).slice(2, 8);
   }
@@ -24,12 +187,14 @@
   }
 
   function loadDB() {
+    if (MODE === "real") return realCache;
     var raw = localStorage.getItem(DB_KEY);
     if (!raw) return null;
     try { return JSON.parse(raw); } catch (e) { return null; }
   }
 
   function saveDB(db) {
+    if (MODE === "real") { realCache = db; return; }
     localStorage.setItem(DB_KEY, JSON.stringify(db));
   }
 
@@ -156,6 +321,7 @@
     if (extra) entry.extra = extra;
     db.auditLog.unshift(entry);
     saveDB(db);
+    fbWrite("auditLog", entry.id, entry);
     return entry;
   }
 
@@ -179,6 +345,7 @@
     var db = loadDB();
     db.tenants[tenant.id] = tenant;
     saveDB(db);
+    fbWriteTenant(tenant);
   }
   function createTenant(data) {
     var db = loadDB();
@@ -208,6 +375,7 @@
     var user = Object.assign({ id: uid("usr"), activo: true, secciones: [], creadoEn: nowISO() }, data);
     db.users.push(user);
     saveDB(db);
+    fbWrite("users", user.id, user);
     return user;
   }
   function updateUser(id, patch) {
@@ -216,6 +384,7 @@
     if (!u) return null;
     Object.assign(u, patch);
     saveDB(db);
+    fbWrite("users", u.id, u);
     return u;
   }
 
@@ -235,6 +404,7 @@
     var p = Object.assign({ id: uid("pac"), creadoEn: nowISO() }, data);
     db.patients.push(p);
     saveDB(db);
+    fbWrite("patients", p.id, p);
     return p;
   }
   function updatePatient(id, patch) {
@@ -243,6 +413,7 @@
     if (!p) return null;
     Object.assign(p, patch);
     saveDB(db);
+    fbWrite("patients", p.id, p);
     return p;
   }
 
@@ -274,6 +445,7 @@
     var o = Object.assign({ id: uid("ord"), creadoEn: nowISO(), enviado: false, fechaEnvio: "" }, data);
     db.orders.push(o);
     saveDB(db);
+    fbWrite("orders", o.id, o);
     return o;
   }
   function saveOrder(order) {
@@ -281,6 +453,7 @@
     var idx = db.orders.findIndex(function (o) { return o.id === order.id; });
     if (idx >= 0) db.orders[idx] = order; else db.orders.push(order);
     saveDB(db);
+    fbWrite("orders", order.id, order);
   }
 
   function recalcEstadoGeneral(order) {
@@ -317,6 +490,14 @@
     nextOrderNumber: nextOrderNumber,
     createOrder: createOrder,
     saveOrder: saveOrder,
-    recalcEstadoGeneral: recalcEstadoGeneral
+    recalcEstadoGeneral: recalcEstadoGeneral,
+    isRealMode: function () { return MODE === "real"; },
+    initRealtime: initRealtime,
+    stopRealtime: stopRealtime,
+    onRealtimeChange: onRealtimeChange,
+    provisionRealAccount: provisionRealAccount,
+    loginReal: loginReal,
+    logoutReal: logoutReal,
+    restoreRealtime: restoreRealtime
   };
 })(window);

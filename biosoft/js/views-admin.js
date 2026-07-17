@@ -107,14 +107,40 @@
           data.firmaDataUrl = firmaTemp;
         }
         if (!data.nombre || !data.username || (!isEdit && !pass)) { U.toast("Completa nombre, usuario y contraseña.", "error"); return; }
+        var esReal = S.isRealMode();
+
         if (isEdit) {
+          if (esReal) delete data.password; // el cambio de clave de una cuenta real se hace por Firebase, no aquí
           S.updateUser(user.id, data);
           S.addAudit(session.tenantId, session.nombre, session.rol, "UPDATE_USER", "usuario", user.id, "Actualizó al usuario " + data.nombre + ".");
-        } else {
-          if (S.findUser(data.username)) { U.toast("Ese nombre de usuario ya existe.", "error"); return; }
-          var created = S.createUser(data);
-          S.addAudit(session.tenantId, session.nombre, session.rol, "CREATE_USER", "usuario", created.id, "Creó al usuario " + data.nombre + " (" + ROL_LABEL[data.rol] + ").");
+          U.toast("Usuario guardado.", "success");
+          U.closeModal(wrap);
+          build();
+          return;
         }
+
+        if (esReal) {
+          if (data.username.indexOf("@") === -1) { U.toast("En un laboratorio real, el usuario debe ser un correo electrónico válido.", "error"); return; }
+          if (pass.length < 6) { U.toast("La contraseña debe tener al menos 6 caracteres.", "error"); return; }
+          var submitBtn = wrap.querySelector('button[type="submit"]');
+          submitBtn.disabled = true; submitBtn.textContent = "Creando…";
+          S.provisionRealAccount({ tenantId: session.tenantId, userData: data }).then(function (res) {
+            // No hace falta reflejarlo aquí a mano: el listener de Firestore ya
+            // está escuchando esta colección y lo agrega solo en cuanto llega.
+            U.toast("Usuario guardado.", "success");
+            U.closeModal(wrap);
+            build();
+          }).catch(function (err) {
+            submitBtn.disabled = false; submitBtn.textContent = "Guardar";
+            var msg = (err && err.code === "auth/email-already-in-use") ? "Ese correo ya tiene una cuenta." : (err && err.message) || "No se pudo crear el usuario.";
+            U.toast(msg, "error");
+          });
+          return;
+        }
+
+        if (S.findUser(data.username)) { U.toast("Ese nombre de usuario ya existe.", "error"); return; }
+        var created = S.createUser(data);
+        S.addAudit(session.tenantId, session.nombre, session.rol, "CREATE_USER", "usuario", created.id, "Creó al usuario " + data.nombre + " (" + ROL_LABEL[data.rol] + ").");
         U.toast("Usuario guardado.", "success");
         U.closeModal(wrap);
         build();
@@ -379,6 +405,7 @@
     function openNewTenant() {
       var wrap = U.openModal(
         '<h3 class="modal-title">Crear Nuevo Laboratorio Cliente</h3>' +
+        '<p class="text-muted" style="margin-top:0">Esto crea una cuenta real, accesible desde cualquier dispositivo (no es una cuenta demo).</p>' +
         '<form id="tenant-form">' +
           '<div class="form-grid">' +
             F.inp("nombre", "Nombre del Laboratorio", "", true) +
@@ -388,7 +415,7 @@
             F.sel("nivel", "Nivel", [1, 2].map(function (n) { return "<option value='" + n + "'>Nivel " + n + "</option>"; }).join("")) +
           "</div>" +
           '<fieldset><legend>Usuario Administrador Inicial</legend><div class="form-grid">' +
-            F.inp("adminNombre", "Nombre del Administrador", "", true) + F.inp("adminUser", "Usuario", "", true) + F.inp("adminPass", "Contraseña", "", true) +
+            F.inp("adminNombre", "Nombre del Administrador", "", true) + F.inp("adminUser", "Correo electrónico (será su usuario)", "", true, "email") + F.inp("adminPass", "Contraseña (mínimo 6 caracteres)", "", true) +
           "</div></fieldset>" +
           '<div class="flex gap-2 justify-between"><button type="button" class="btn btn-ghost" data-modal-close>Cancelar</button><button type="submit" class="btn btn-primary">' + U.icon("check") + " Crear Laboratorio</button></div>" +
         "</form>", { lg: true }
@@ -397,13 +424,22 @@
         e.preventDefault();
         var g = function (id) { return wrap.querySelector("#f_" + id).value.trim(); };
         if (!g("nombre") || !g("adminUser") || !g("adminPass")) { U.toast("Completa los campos obligatorios.", "error"); return; }
-        if (S.findUser(g("adminUser"))) { U.toast("Ese usuario administrador ya existe.", "error"); return; }
-        var tenant = S.createTenant({ nombre: g("nombre"), nit: g("nit"), pais: g("pais"), direccion: g("direccion"), telefonos: g("telefonos"), email: g("email"), nivel: parseInt(g("nivel"), 10) });
-        S.createUser({ tenantId: tenant.id, username: g("adminUser"), password: g("adminPass"), nombre: g("adminNombre"), rol: "admin", secciones: [] });
-        S.addAudit(tenant.id, "Soporte BIOsoft", "superadmin", "CREATE_TENANT", "laboratorio", tenant.id, "Se creó el laboratorio cliente " + tenant.nombre + ".");
-        U.toast("Laboratorio creado. Clave de administrador para correcciones: " + tenant.claveAdmin, "success");
-        U.closeModal(wrap);
-        build();
+        if (g("adminUser").indexOf("@") === -1) { U.toast("El usuario del administrador debe ser un correo electrónico válido.", "error"); return; }
+        if (g("adminPass").length < 6) { U.toast("La contraseña debe tener al menos 6 caracteres.", "error"); return; }
+        var submitBtn = wrap.querySelector('button[type="submit"]');
+        submitBtn.disabled = true; submitBtn.textContent = "Creando…";
+        S.provisionRealAccount({
+          tenantData: { nombre: g("nombre"), nit: g("nit"), pais: g("pais"), direccion: g("direccion"), telefonos: g("telefonos"), email: g("email"), nivel: parseInt(g("nivel"), 10) },
+          userData: { username: g("adminUser"), password: g("adminPass"), nombre: g("adminNombre"), rol: "admin", secciones: [] }
+        }).then(function (res) {
+          U.toast("Laboratorio creado. Clave de administrador para correcciones: " + res.tenant.claveAdmin, "success");
+          U.closeModal(wrap);
+          build();
+        }).catch(function (err) {
+          submitBtn.disabled = false; submitBtn.textContent = "Crear Laboratorio";
+          var msg = (err && err.code === "auth/email-already-in-use") ? "Ese correo ya tiene una cuenta." : (err && err.message) || "No se pudo crear el laboratorio.";
+          U.toast(msg, "error");
+        });
       });
     }
     build();

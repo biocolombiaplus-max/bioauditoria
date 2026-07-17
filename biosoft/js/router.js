@@ -158,6 +158,7 @@
 
   function boot() {
     BIO_STORE.seedIfEmpty();
+    BIO_STORE.onRealtimeChange(function () { renderRoute(); });
     wireLogin();
     document.getElementById("burger").addEventListener("click", function () {
       document.getElementById("app-inner").classList.toggle("sidebar-open");
@@ -182,7 +183,9 @@
       });
     });
     window.addEventListener("hashchange", renderRoute);
-    if (BIO_AUTH.getSession()) showApp(); else showLogin();
+    if (BIO_AUTH.getSession()) {
+      BIO_AUTH.rehydrate().then(function (ok) { if (ok) showApp(); else showLogin(); });
+    } else showLogin();
   }
 
   function wireLogin() {
@@ -213,13 +216,18 @@
       e.preventDefault();
       var u = document.getElementById("login-username").value.trim();
       var p = document.getElementById("login-password").value;
-      var res = BIO_AUTH.login(u, p);
       var errBox = document.getElementById("login-error");
-      if (!res.ok) { errBox.textContent = res.error; errBox.classList.remove("hidden"); return; }
-      errBox.classList.add("hidden");
-      form.reset();
-      location.hash = "#/dashboard";
-      showApp();
+      var submitBtn = form.querySelector('button[type="submit"]');
+      var textoOriginal = submitBtn.textContent;
+      submitBtn.disabled = true; submitBtn.textContent = "Ingresando…";
+      BIO_AUTH.login(u, p).then(function (res) {
+        submitBtn.disabled = false; submitBtn.textContent = textoOriginal;
+        if (!res.ok) { errBox.textContent = res.error; errBox.classList.remove("hidden"); return; }
+        errBox.classList.add("hidden");
+        form.reset();
+        location.hash = "#/dashboard";
+        showApp();
+      });
     });
   }
 
