@@ -114,14 +114,14 @@ fbq('track', 'PageView');
   .lp-feature p { font-size: 13.5px; color: var(--text-muted); margin: 0; line-height: 1.5; }
   .lp-showcase { padding: 70px 24px 76px; position: relative; overflow: hidden; }
   .lp-showcase-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 28px; margin-top: 36px; align-items: start; }
-  .lp-shot-1 .lp-shot-frame, .lp-shot-3 .lp-shot-frame { transform: translateY(16px); }
+  .lp-shot:nth-child(odd) .lp-shot-frame { transform: translateY(16px); }
   .lp-shot-frame {
     background: #0b1220; border-radius: 14px; overflow: hidden; border: 1px solid rgba(15,23,42,.08);
     box-shadow: 0 24px 54px -10px rgba(76,29,149,.35), 0 10px 24px -8px rgba(0,0,0,.25);
     transition: transform .25s ease, box-shadow .25s ease;
   }
   .lp-shot:hover .lp-shot-frame { transform: translateY(4px) scale(1.015); box-shadow: 0 30px 64px -8px rgba(249,115,22,.3), 0 14px 30px -8px rgba(0,0,0,.3); }
-  .lp-shot-1:hover .lp-shot-frame, .lp-shot-3:hover .lp-shot-frame { transform: translateY(10px) scale(1.015); }
+  .lp-shot:nth-child(odd):hover .lp-shot-frame { transform: translateY(10px) scale(1.015); }
   .lp-shot-bar { display: flex; align-items: center; gap: 6px; padding: 10px 12px; background: #0b1220; border-bottom: 1px solid rgba(255,255,255,.06); }
   .lp-shot-bar i { width: 9px; height: 9px; border-radius: 50%; background: #475569; display: block; }
   .lp-shot-bar .lp-shot-url { margin-left: 8px; font-size: 10.5px; color: #94a3b8; background: rgba(255,255,255,.06); padding: 3px 12px; border-radius: 8px; }
@@ -235,7 +235,7 @@ fbq('track', 'PageView');
     .lp-final { margin: 0 12px 40px; padding: 40px 16px; }
     .lp-showcase { padding: 44px 16px 50px; }
     .lp-showcase-grid { grid-template-columns: 1fr; gap: 34px; margin-top: 26px; }
-    .lp-shot-1 .lp-shot-frame, .lp-shot-3 .lp-shot-frame { transform: none; }
+    .lp-shot:nth-child(odd) .lp-shot-frame { transform: none; }
   }
   @media (max-width: 480px) {
     .lp-cta-row { flex-direction: column; align-items: stretch; }
@@ -278,28 +278,42 @@ fbq('track', 'PageView');
   <section class="lp-showcase" id="demo-preview">
     <div class="lp-wrap">
       <h2>Así se ve BIOsoft por dentro</h2>
-      <p class="lead">Capturas reales del sistema — no maquetas. Esto es exactamente lo que tú y tu equipo van a usar todos los días.</p>
+      <p class="lead">Capturas reales del sistema — no maquetas. Todo el proceso del laboratorio, de principio a fin: desde que llega el paciente hasta que recibe su resultado, con trazabilidad y sin errores.</p>
       <div class="lp-showcase-grid">
-        <div class="lp-shot lp-shot-1">
+        <div class="lp-shot">
           <div class="lp-shot-frame">
             <div class="lp-shot-bar"><i></i><i></i><i></i><span class="lp-shot-url">app.biosoft</span></div>
             <img src="assets/screenshots/dashboard.jpg" alt="Panel principal de BIOsoft con métricas de pacientes, órdenes y resultados del día" loading="lazy"/>
           </div>
-          <p class="lp-shot-caption"><b>Panel Principal</b> — métricas del día en tiempo real</p>
+          <p class="lp-shot-caption"><b>1. Registro del Paciente</b> — la orden y sus exámenes quedan listos apenas el paciente llega</p>
         </div>
-        <div class="lp-shot lp-shot-2">
+        <div class="lp-shot">
+          <div class="lp-shot-frame">
+            <div class="lp-shot-bar"><i></i><i></i><i></i><span class="lp-shot-url">app.biosoft</span></div>
+            <img src="assets/screenshots/captura-hematologia.jpg" alt="Captura de resultados de Hematología por el bacteriólogo, con valores de referencia automáticos" loading="lazy"/>
+          </div>
+          <p class="lp-shot-caption"><b>2. Ingreso de Resultados — Hematología</b> — el bacteriólogo digita y el sistema muestra la referencia al instante</p>
+        </div>
+        <div class="lp-shot">
+          <div class="lp-shot-frame">
+            <div class="lp-shot-bar"><i></i><i></i><i></i><span class="lp-shot-url">app.biosoft</span></div>
+            <img src="assets/screenshots/captura-quimica.jpg" alt="Captura de resultados de Química Sanguínea por el bioanalista, examen por examen" loading="lazy"/>
+          </div>
+          <p class="lp-shot-caption"><b>3. Ingreso de Resultados — Química Sanguínea</b> — cada examen se guarda como borrador, preliminar o validado</p>
+        </div>
+        <div class="lp-shot">
           <div class="lp-shot-frame">
             <div class="lp-shot-bar"><i></i><i></i><i></i><span class="lp-shot-url">app.biosoft</span></div>
             <img src="assets/screenshots/resultados.jpg" alt="Bandeja de resultados de laboratorio con prioridad y estado de validación" loading="lazy"/>
           </div>
-          <p class="lp-shot-caption"><b>Bandeja de Resultados</b> — prioridad, sección y estado al instante</p>
+          <p class="lp-shot-caption"><b>4. Validación y Trazabilidad</b> — prioridad, sección y estado de cada examen, todo auditado</p>
         </div>
-        <div class="lp-shot lp-shot-3">
+        <div class="lp-shot">
           <div class="lp-shot-frame">
             <div class="lp-shot-bar"><i></i><i></i><i></i><span class="lp-shot-url">app.biosoft</span></div>
             <img src="assets/screenshots/reportes.jpg" alt="Reportes y envío de resultados de laboratorio en PDF profesional" loading="lazy"/>
           </div>
-          <p class="lp-shot-caption"><b>Reportes y Envíos</b> — PDF profesional, listo para enviar</p>
+          <p class="lp-shot-caption"><b>5. Entrega del Resultado</b> — PDF profesional por WhatsApp, correo o impreso para reclamar en el laboratorio</p>
         </div>
       </div>
     </div>
