@@ -6,19 +6,19 @@
   "use strict";
 
   var SECCIONES = [
-    { id: "hematologia", nombre: "Hematología", icono: "droplet" },
-    { id: "coagulacion", nombre: "Coagulación / Hemostasia", icono: "activity" },
-    { id: "banco", nombre: "Banco de Sangre / Inmunohematología", icono: "shield" },
-    { id: "quimica", nombre: "Química Sanguínea", icono: "flask" },
-    { id: "uroanalisis", nombre: "Uroanálisis", icono: "beaker" },
-    { id: "coprologia", nombre: "Coprología y Parasitología", icono: "leaf" },
-    { id: "inmunologia", nombre: "Inmunología y Serología", icono: "shield-check" },
-    { id: "microbiologia", nombre: "Microbiología y Bacteriología", icono: "microscope" },
-    { id: "hormonas", nombre: "Endocrinología (Hormonas)", icono: "atom" },
-    { id: "marcadores", nombre: "Marcadores Tumorales", icono: "target" },
-    { id: "gases", nombre: "Gases Arteriales y Electrolitos", icono: "wind" },
-    { id: "especiales", nombre: "Química Especial (Segundo Nivel)", icono: "flask-conical" },
-    { id: "pruebasrapidas", nombre: "Pruebas Rápidas / POCT", icono: "zap" }
+    { id: "hematologia", nombre: "Hematología", icono: "droplet", emoji: "🩸" },
+    { id: "coagulacion", nombre: "Coagulación / Hemostasia", icono: "activity", emoji: "🧬" },
+    { id: "banco", nombre: "Banco de Sangre / Inmunohematología", icono: "shield", emoji: "🛡️" },
+    { id: "quimica", nombre: "Química Sanguínea", icono: "flask", emoji: "🧪" },
+    { id: "uroanalisis", nombre: "Uroanálisis", icono: "beaker", emoji: "💧" },
+    { id: "coprologia", nombre: "Coprología y Parasitología", icono: "leaf", emoji: "🦠" },
+    { id: "inmunologia", nombre: "Inmunología y Serología", icono: "shield-check", emoji: "🧫" },
+    { id: "microbiologia", nombre: "Microbiología y Bacteriología", icono: "microscope", emoji: "🔬" },
+    { id: "hormonas", nombre: "Endocrinología (Hormonas)", icono: "atom", emoji: "⚛️" },
+    { id: "marcadores", nombre: "Marcadores Tumorales", icono: "target", emoji: "🎯" },
+    { id: "gases", nombre: "Gases Arteriales y Electrolitos", icono: "wind", emoji: "💨" },
+    { id: "especiales", nombre: "Química Especial (Segundo Nivel)", icono: "flask-conical", emoji: "⚗️" },
+    { id: "pruebasrapidas", nombre: "Pruebas Rápidas / POCT", icono: "zap", emoji: "⚡" }
   ];
 
   /* Tipos de tubo/recipiente para toma de muestra, usados en la captura de

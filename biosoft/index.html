@@ -103,6 +103,10 @@ fbq('track', 'PageView');
   @media (max-width: 640px) { .lp-modal-plans { grid-template-columns: 1fr; } }
   .lp-badges { display:flex; gap:10px; justify-content:center; margin-top:26px; flex-wrap:wrap; }
   .lp-badges span { background: rgba(255,255,255,.08); border:1px solid rgba(255,255,255,.16); padding:6px 14px; border-radius:20px; font-size:12.5px; font-weight:700; color:rgba(255,255,255,.85); backdrop-filter: blur(6px); }
+  .lp-flags-row { display:flex; align-items:center; gap:8px; justify-content:center; margin-top:12px; flex-wrap:wrap; }
+  .lp-flags-row .flag-chip { width:36px; height:36px; display:flex; align-items:center; justify-content:center; font-size:18px; background: rgba(255,255,255,.06); border:1px solid rgba(255,255,255,.14); border-radius:50%; backdrop-filter: blur(6px); transition: transform .2s ease, background .2s ease; cursor:default; }
+  .lp-flags-row .flag-chip:hover { transform: translateY(-3px) scale(1.08); background: rgba(255,255,255,.14); }
+  .lp-flags-row .lp-badge-latam { display:inline-flex; align-items:center; gap:6px; background: linear-gradient(135deg, color-mix(in srgb, var(--lp-orange) 28%, transparent), color-mix(in srgb, var(--lp-purple) 28%, transparent)); border:1px solid rgba(255,255,255,.28); padding:7px 16px; border-radius:20px; font-size:12.5px; font-weight:700; color:#fff; }
   .lp-section { padding: 60px 24px; }
   .lp-section h2 { text-align: center; font-size: 30px; margin-bottom: 8px; }
   .lp-section .lead { text-align: center; color: var(--text-muted); max-width: 640px; margin: 0 auto 40px; }
@@ -168,8 +172,12 @@ fbq('track', 'PageView');
     .lp-pdf-showcase { grid-template-columns: 1fr; }
     .lp-pdf-callout { font-size: 10px; padding: 5px 9px; }
   }
-  .lp-sections-list { display:flex; flex-wrap:wrap; gap:8px; justify-content:center; }
-  .lp-sections-list span { background: var(--surface-2); border:1px solid var(--border); border-radius:20px; padding:7px 14px; font-size:12.5px; font-weight:600; }
+  .lp-sections-list { display:flex; flex-wrap:wrap; gap:10px; justify-content:center; }
+  .lp-sections-list span { background: var(--surface); border:1.5px solid var(--border); border-radius:24px; padding:9px 18px 9px 14px; font-size:13px; font-weight:600; display:inline-flex; align-items:center; gap:8px; box-shadow: 0 4px 14px -8px rgba(15,23,42,.15); transition: transform .18s ease, box-shadow .18s ease, border-color .18s ease; }
+  .lp-sections-list span:hover { transform: translateY(-3px); border-color: color-mix(in srgb, var(--lp-purple) 40%, var(--border)); box-shadow: 0 12px 24px -10px rgba(124,58,237,.28); }
+  .lp-sections-list span .ic-emoji { font-size:16px; }
+  .lp-sections-note { text-align:center; max-width:600px; margin:28px auto 0; font-size:14px; color: var(--text-muted); }
+  .lp-sections-note b { color: var(--text); }
   .lp-steps { counter-reset: step; }
   .lp-step { display:flex; gap:16px; align-items:flex-start; margin-bottom: 22px; }
   .lp-step .num { counter-increment: step; content: counter(step); width:36px;height:36px;border-radius:50%; background: var(--brand-primary); color:#fff; display:flex;align-items:center;justify-content:center; font-weight:800; flex-shrink:0; }
@@ -265,6 +273,14 @@ fbq('track', 'PageView');
     <img src="assets/logo-biosoft.png" alt="BIOsoft, software para laboratorio clínico" class="lp-hero-logo"/>
     <div class="lp-badges">
       <span>🇨🇴 Colombia</span><span>🇻🇪 Venezuela</span><span>🇪🇨 Ecuador</span><span>Primer y Segundo Nivel</span>
+    </div>
+    <div class="lp-flags-row">
+      <span class="flag-chip" title="México">🇲🇽</span>
+      <span class="flag-chip" title="Perú">🇵🇪</span>
+      <span class="flag-chip" title="Argentina">🇦🇷</span>
+      <span class="flag-chip" title="Bolivia">🇧🇴</span>
+      <span class="flag-chip" title="Brasil">🇧🇷</span>
+      <span class="lp-badge-latam">🌎 Toda Suramérica y Centroamérica</span>
     </div>
     <h1>El software de laboratorio clínico <span>premium</span>, hecho para bacteriólogos y bioanalistas</h1>
     <p>Deja de armar y enviar resultados a mano en Word o Excel. BIOsoft gestiona pacientes, resultados, validación por bacteriólogo, trazabilidad total y reportes en PDF de nivel mundial — 100% personalizado con tu logo, colores, firmas y catálogo de exámenes, con pago mensual accesible, sin la inversión millonaria que piden otros software.</p>
@@ -387,6 +403,7 @@ fbq('track', 'PageView');
     <h2>Todas las secciones del laboratorio</h2>
     <p class="lead">Catálogo de exámenes organizado por sección, con código de referencia CUPS editable y niveles de complejidad 1 y 2.</p>
     <div class="lp-sections-list" id="sections-list"></div>
+    <p class="lp-sections-note">¿Tu laboratorio maneja secciones, exámenes o flujos distintos a los de aquí? <b>BIOsoft se adapta al 100% a lo que cada laboratorio necesite.</b></p>
   </section>
 
   <section class="lp-section">
@@ -478,7 +495,7 @@ fbq('track', 'PageView');
   <script src="js/catalog.js"></script>
   <script>
     document.getElementById("sections-list").innerHTML = BIO_CATALOG.SECCIONES.map(function (s) {
-      return "<span>" + s.nombre + "</span>";
+      return "<span><span class='ic-emoji'>" + (s.emoji || "🧪") + "</span>" + s.nombre + "</span>";
     }).join("");
 
     var WA_NUMBER = "573505457420";
