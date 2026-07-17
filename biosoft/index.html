@@ -173,10 +173,17 @@ fbq('track', 'PageView');
     .lp-pdf-callout { font-size: 10px; padding: 5px 9px; }
   }
   .lp-sections-grid { display:grid; grid-template-columns: repeat(auto-fill, minmax(230px,1fr)); gap:14px; max-width: 1000px; margin: 0 auto; }
-  .lp-sections-grid .sec-card { background: var(--surface); border:1px solid var(--border); border-radius: 14px; padding: 16px; display:flex; align-items:center; gap:13px; box-shadow: var(--shadow-sm); transition: transform .2s ease, box-shadow .2s ease, border-color .2s ease; }
+  .lp-sections-grid .sec-card { background: var(--surface); border:1px solid var(--border); border-radius: 14px; padding: 16px; display:flex; align-items:center; gap:13px; box-shadow: var(--shadow-sm); transition: transform .2s ease, box-shadow .2s ease, border-color .2s ease; cursor:pointer; position:relative; }
   .lp-sections-grid .sec-card:hover { transform: translateY(-4px); box-shadow: 0 16px 32px -14px rgba(124,58,237,.3); border-color: color-mix(in srgb, var(--lp-purple) 35%, var(--border)); }
   .lp-sections-grid .sec-ic { width:42px; height:42px; flex-shrink:0; border-radius:12px; background: linear-gradient(135deg, rgba(251,146,60,.18), rgba(168,85,247,.18)); font-size:20px; display:flex; align-items:center; justify-content:center; }
   .lp-sections-grid .sec-name { font-size:13.5px; font-weight:700; line-height:1.3; }
+  .lp-sections-grid .sec-hint { font-size:11px; font-weight:600; color: var(--lp-purple); margin-top:3px; opacity:0; transform: translateX(-4px); transition: opacity .2s ease, transform .2s ease; }
+  .lp-sections-grid .sec-card:hover .sec-hint { opacity:1; transform:translateX(0); }
+  .lp-sec-modal-card { background: var(--surface-2); border:1px solid var(--border); border-radius:12px; padding:16px; }
+  .lp-sec-modal-head { display:flex; justify-content:space-between; align-items:flex-start; margin-bottom:12px; gap:10px; }
+  .lp-sec-modal-head .chip { background:#fff; margin-top:8px; }
+  .lp-sec-modal-card table input, .lp-sec-modal-card table select { font-size:13px; padding:6px 8px; }
+  .lp-sec-modal-foot { text-align:center; font-size:12px; color:var(--text-muted); margin-top:14px; }
   .lp-sections-note { text-align:center; max-width:600px; margin:32px auto 0; font-size:14px; color: var(--text-muted); }
   .lp-sections-note b { color: var(--text); }
   .lp-steps { counter-reset: step; }
@@ -524,8 +531,66 @@ fbq('track', 'PageView');
   <script src="js/catalog.js?v=2"></script>
   <script>
     document.getElementById("sections-list").innerHTML = BIO_CATALOG.SECCIONES.map(function (s) {
-      return "<div class='sec-card'><div class='sec-ic'>" + (s.emoji || "🧪") + "</div><div class='sec-name'>" + s.nombre + "</div></div>";
+      return "<div class='sec-card' data-sec='" + s.id + "'><div class='sec-ic'>" + (s.emoji || "🧪") + "</div>" +
+        "<div><div class='sec-name'>" + s.nombre + "</div><div class='sec-hint'>👁 Ver cómo se captura →</div></div></div>";
     }).join("");
+    document.querySelectorAll("#sections-list [data-sec]").forEach(function (card) {
+      card.addEventListener("click", function () { abrirVistaSeccion(card.dataset.sec); });
+    });
+
+    function abrirVistaSeccion(seccionId) {
+      var seccion = BIO_CATALOG.SECCIONES.filter(function (s) { return s.id === seccionId; })[0];
+      if (!seccion) return;
+      var ex = BIO_CATALOG.EXAMENES.filter(function (e) { return e.seccion === seccionId; })
+        .sort(function (a, b) { return (b.parametros || []).length - (a.parametros || []).length; })[0];
+      if (!ex) return;
+      var tubo = BIO_CATALOG.tuboInfo(ex.tubo);
+
+      var rowsHtml = ex.parametros.map(function (p) {
+        var inputHtml;
+        if (p.tipo === "numerico") {
+          var medio = (typeof p.min === "number" && typeof p.max === "number") ? (p.min + p.max) / 2 : "";
+          inputHtml = '<input type="number" step="any" data-param="' + p.codigo + '" placeholder="' + (medio !== "" ? "Ej: " + (Math.round(medio * 10) / 10) : "Ingresa el valor") + '"/>';
+        } else if (p.tipo === "cualitativo") {
+          inputHtml = '<select data-param="' + p.codigo + '"><option value="">— Seleccionar —</option>' + (p.opciones || []).map(function (o) { return "<option>" + o + "</option>"; }).join("") + "</select>";
+        } else {
+          inputHtml = '<input data-param="' + p.codigo + '" placeholder="Describe el hallazgo"/>';
+        }
+        return "<tr><td>" + p.nombre + "</td><td style='min-width:150px'>" + inputHtml + "</td><td>" + (p.unidad || "—") + "</td><td>" + (p.refText || "—") + '</td><td class="flag-cell" data-flagfor="' + p.codigo + '"></td></tr>';
+      }).join("");
+
+      var wrap = lpModal(
+        '<h3 class="modal-title">' + (seccion.emoji || "🧪") + " " + seccion.nombre + '</h3>' +
+        '<p class="text-muted" style="margin:0 0 16px">Así de fácil ve tu bacteriólogo o bioanalista la captura de resultados — con valores de referencia automáticos. Escribe un valor y mira la interpretación en tiempo real 👇</p>' +
+        '<div class="lp-sec-modal-card">' +
+        '<div class="lp-sec-modal-head">' +
+        "<div><b style='font-size:15px'>" + ex.nombre + "</b><div class='text-muted' style='font-size:12px'>" + seccion.nombre + " · CUPS " + ex.cups + " · Muestra: " + ex.muestra + "</div>" +
+        "<span class='chip'><span style='width:9px;height:9px;border-radius:50%;background:" + tubo.color + ";display:inline-block'></span>" + tubo.nombre + "</span></div>" +
+        '<span class="badge badge-pendiente">PENDIENTE</span>' +
+        "</div>" +
+        '<div class="table-wrap"><table><thead><tr><th>Parámetro</th><th>Resultado</th><th>Unidad</th><th>Valor de Referencia</th><th>Interpretación</th></tr></thead><tbody>' + rowsHtml + "</tbody></table></div>" +
+        "</div>" +
+        '<p class="lp-sec-modal-foot">Esta es la interfaz real que usa tu equipo — no una maqueta.</p>' +
+        '<div class="lp-cta-row" style="margin-top:14px;justify-content:center">' +
+        '<a class="btn btn-primary btn-glow-brand" href="app.html">🚀 Ver Demo Gratis</a>' +
+        '<a class="btn btn-whatsapp wa-link" href="#" target="_blank" rel="noopener">🛒 Comprar por WhatsApp</a>' +
+        "</div>",
+        { lg: true }
+      );
+      wrap.querySelectorAll("[data-param]").forEach(function (inputEl) {
+        var evName = inputEl.tagName === "SELECT" ? "change" : "input";
+        inputEl.addEventListener(evName, function () {
+          var p = ex.parametros.filter(function (pp) { return pp.codigo === inputEl.dataset.param; })[0];
+          var flag = BIO_CATALOG.calcularFlag(p, inputEl.value);
+          var cell = wrap.querySelector("[data-flagfor='" + p.codigo + "']");
+          cell.innerHTML = flag ? '<span class="flag-' + flag.toLowerCase() + '">' + flag + "</span>" : "";
+        });
+      });
+      wrap.querySelectorAll(".wa-link").forEach(function (a) {
+        a.href = waLink("Hola 👋 vi cómo se captura " + seccion.nombre + " en BIOsoft y quiero adquirirlo para mi laboratorio.");
+      });
+      trackFbEvent("ViewContent", { content_name: "Vista sección: " + seccion.nombre });
+    }
 
     var WA_NUMBER = "573505457420";
     function waLink(mensaje) { return "https://wa.me/" + WA_NUMBER + "?text=" + encodeURIComponent(mensaje); }
@@ -576,10 +641,10 @@ fbq('track', 'PageView');
     document.getElementById("wa-cotizacion").href = waLink("Hola, mi laboratorio necesita más de 10 usuarios o varias sedes. ¿Me ayudas con una cotización personalizada de BIOsoft?");
 
     // ===== Flujo "Iniciar Ya": elegir plan → directo a WhatsApp =====
-    function lpModal(innerHtml) {
+    function lpModal(innerHtml, opts) {
       var wrap = document.createElement("div");
       wrap.className = "modal";
-      wrap.innerHTML = '<div class="overlay-bd" data-close="1"></div><div class="modal-card">' + innerHtml + "</div>";
+      wrap.innerHTML = '<div class="overlay-bd" data-close="1"></div><div class="modal-card' + (opts && opts.lg ? " modal-lg" : "") + '">' + innerHtml + "</div>";
       document.body.appendChild(wrap);
       wrap.addEventListener("click", function (e) { if (e.target.dataset.close) lpCloseModal(wrap); });
       wrap.querySelectorAll("[data-modal-close]").forEach(function (b) { b.addEventListener("click", function () { lpCloseModal(wrap); }); });
