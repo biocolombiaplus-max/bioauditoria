@@ -222,6 +222,20 @@ fbq('track', 'PageView');
   .price-card ul { list-style:none; padding:0; margin:16px 0 22px; text-align:left; font-size:13px; color:var(--text-muted); display:flex; flex-direction:column; gap:8px; flex:1; }
   .price-card ul li:before { content:"✓ "; color: var(--success); font-weight:800; }
   .price-note { text-align:center; max-width:620px; margin:34px auto 0; background:var(--surface-2); border:1px dashed var(--border); border-radius:12px; padding:16px 20px; font-size:13.5px; color:var(--text-muted); }
+  .lp-onetime-banner { max-width:700px; margin:0 auto 34px; text-align:center; background: linear-gradient(135deg, color-mix(in srgb, var(--lp-orange) 12%, #fff), color-mix(in srgb, var(--lp-purple) 12%, #fff)); border:1.5px solid color-mix(in srgb, var(--lp-purple) 32%, var(--border)); border-radius:18px; padding:22px 28px; box-shadow: 0 18px 38px -20px rgba(124,58,237,.35); }
+  .lp-onetime-tag { display:inline-block; background: linear-gradient(90deg,var(--lp-orange),var(--lp-purple)); color:#fff; font-weight:800; font-size:11.5px; letter-spacing:.04em; padding:6px 16px; border-radius:20px; margin-bottom:12px; }
+  .lp-onetime-banner p { margin:0; font-size:15.5px; color: var(--text); line-height:1.55; }
+  .lp-value-stack { max-width:740px; margin:38px auto 0; background:var(--surface); border:1px solid var(--border); border-radius:18px; padding:28px 30px; box-shadow: var(--shadow-sm); }
+  .lp-value-stack h4 { text-align:center; margin:0 0 20px; font-size:17px; }
+  .lp-value-grid { display:grid; grid-template-columns: repeat(auto-fit,minmax(260px,1fr)); gap:16px; margin-bottom:20px; }
+  .lp-value-grid > div { display:flex; gap:10px; align-items:flex-start; font-size:13.5px; }
+  .lp-value-grid .lp-value-check { color: var(--success); font-weight:800; flex-shrink:0; }
+  .lp-value-grid b { display:block; font-size:13.5px; }
+  .lp-value-grid span { display:block; color:var(--text-muted); font-size:12.5px; margin-top:2px; line-height:1.4; }
+  .lp-value-foot { text-align:center; font-size:13px; color:var(--text-muted); margin:0; padding-top:16px; border-top:1px dashed var(--border); line-height:1.6; }
+  .lp-value-foot b { color:var(--text); }
+  .lp-roi-line { max-width:660px; margin:24px auto 0; text-align:center; font-size:13.5px; color:var(--text-muted); background: color-mix(in srgb, var(--lp-orange) 8%, transparent); border:1px solid color-mix(in srgb, var(--lp-orange) 28%, var(--border)); border-radius:12px; padding:13px 20px; line-height:1.55; }
+  .lp-roi-line b { color: var(--text); }
   .lp-pay-total { background: var(--surface-2); border:1px solid var(--border); border-radius:10px; padding:10px 12px; margin:4px 0 14px; font-size:12.5px; }
   .lp-pay-total b { display:block; font-size:16px; color: var(--brand-secondary); font-family:'Poppins',sans-serif; }
   .lp-pay-total span { color: var(--text-muted); font-size:11.5px; }
@@ -434,11 +448,27 @@ fbq('track', 'PageView');
   <section class="lp-section" id="precios" style="background:var(--surface-2)">
     <h2>Precios claros, según el número de usuarios</h2>
     <p class="lead">Un pago único de implementación para dejar el software 100% a tu medida, y luego una mensualidad simple que crece con tu equipo — sin sorpresas.</p>
+    <div class="lp-onetime-banner">
+      <span class="lp-onetime-tag">💰 ESTO SE PAGA UNA SOLA VEZ</span>
+      <p>Tu <b>única inversión inicial</b> es de <b>$380.000 COP (≈ $120 USD)</b>. La pagas <b>una sola vez en toda la vida de tu laboratorio con BIOsoft</b> — nunca se vuelve a cobrar, sin importar el plan que elijas ni cuántos años sigas usando el software.</p>
+    </div>
     <div class="lp-wrap"><div class="price-grid" id="price-grid"></div></div>
     <p style="text-align:center;font-size:13px;color:var(--text-muted);margin-top:18px">¿Tu laboratorio necesita más de 10 usuarios o varias sedes? <a href="#" id="wa-cotizacion" target="_blank" rel="noopener" style="color:var(--brand-primary);font-weight:700">Solicita una cotización personalizada →</a></p>
-    <div class="price-note">🎯 <b>Cuota única de implementación: $380.000 COP</b> <span class="text-muted">(≈ $120 USD)</span> — con este pago comenzamos a personalizar tu BIOsoft: cargamos el logo, colores y datos de tu laboratorio, configuramos el catálogo de exámenes y las firmas de tus bacteriólogos, y capacitamos a tu equipo. <b>No es un software genérico — es tu software, hecho a tu medida.</b> Se paga una sola vez, sin importar el plan que elijas.</div>
+    <div class="lp-value-stack">
+      <h4>¿Qué te da ese pago único de $380.000?</h4>
+      <div class="lp-value-grid">
+        <div><span class="lp-value-check">✓</span><div><b>Personalización 100%</b><span>Tu logo, tus colores y los datos de tu laboratorio, listos</span></div></div>
+        <div><span class="lp-value-check">✓</span><div><b>Tu catálogo de exámenes</b><span>Configurado con tus valores de referencia reales</span></div></div>
+        <div><span class="lp-value-check">✓</span><div><b>Firmas digitales</b><span>De cada uno de tus bacteriólogos, listas para firmar resultados</span></div></div>
+        <div><span class="lp-value-check">✓</span><div><b>Capacitación de tu equipo</b><span>Para que empiecen a usarlo desde el primer día</span></div></div>
+        <div><span class="lp-value-check">✓</span><div><b>Acompañamiento inicial</b><span>Te ayudamos en tu primera semana para que la transición sea sin traumas</span></div></div>
+      </div>
+      <p class="lp-value-foot">Todo esto — que otros proveedores cobran por separado o exigen en contratos de inversión millonaria — está incluido en tu único pago de <b>$380.000 COP</b>. <b>No es una cuota más: es lo que hace que BIOsoft deje de ser un software genérico y se convierta en el sistema de tu laboratorio.</b></p>
+    </div>
+    <p class="lp-roi-line">⏱️ Si tu equipo pierde aunque sea <b>20 minutos al día</b> armando resultados a mano en Word o Excel, son <b>+10 horas al mes</b> que podrías dedicar a atender más pacientes. Ese tiempo — y los errores que evitas — valen mucho más que los $380.000 de implementación, y solo los pagas una vez.</p>
     <div class="trust-row">
       <span>🔒 Pago seguro con Wompi (tarjetas y más)</span>
+      <span>💰 Implementación: pago único, nunca se repite</span>
       <span>🎨 Personalización incluida</span>
       <span>💬 Soporte directo por WhatsApp</span>
       <span>🇨🇴🇻🇪🇪🇨 Hecho para Colombia, Venezuela y Ecuador</span>
@@ -554,7 +584,7 @@ fbq('track', 'PageView');
       trackFbEvent("InitiateCheckout");
       var wrap = lpModal(
         '<h3 class="modal-title">Elige tu plan para continuar</h3>' +
-        '<p class="text-muted" style="margin:0 0 18px">Selecciona el plan según el número de usuarios de tu laboratorio y paga de una vez de forma segura, o escríbenos por WhatsApp si tienes dudas antes de pagar.</p>' +
+        '<p class="text-muted" style="margin:0 0 18px">Selecciona el plan según el número de usuarios de tu laboratorio y paga de una vez de forma segura, o escríbenos por WhatsApp si tienes dudas antes de pagar. <b>La implementación se paga una sola vez</b>, solo tu mensualidad se repite cada mes.</p>' +
         '<div class="lp-modal-plans">' +
         PLANES.map(function (p, i) {
           var totalCOP = IMPLEMENTACION.cop + p.precio;
@@ -563,7 +593,7 @@ fbq('track', 'PageView');
             (p.destacado ? '<span class="tag">Recomendado</span>' : "") +
             "<h4>" + p.nombre + "</h4><div class='users'>" + p.usuarios + "</div>" +
             '<div class="amount">$' + p.precioFmt + '</div><div class="amount-usd">≈ $' + p.usd + ' USD /mes</div>' +
-            '<div class="lp-pay-total">Pago inicial: <b>$' + totalCOP.toLocaleString("es-CO") + ' COP</b><span>≈ $' + totalUSD + ' USD · implementación + primer mes</span></div>' +
+            '<div class="lp-pay-total">Pago inicial: <b>$' + totalCOP.toLocaleString("es-CO") + ' COP</b><span>≈ $' + totalUSD + ' USD · implementación (pago único) + primer mes</span></div>' +
             '<div class="lp-modal-plan-actions">' +
             '<a class="btn-pay-wompi" href="' + p.wompiLink + '" target="_blank" rel="noopener" data-plan="' + i + '" data-pay="1">💳 Pagar ahora con Wompi</a>' +
             '<button class="lp-modal-plan-wa" data-plan="' + i + '" data-wa="1" type="button">¿Dudas? Habla con nosotros por WhatsApp</button>' +
