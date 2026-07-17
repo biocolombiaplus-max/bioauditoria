@@ -11,7 +11,7 @@
 <meta property="og:type" content="website"/>
 <meta property="og:image" content="assets/logo-biosoft.png"/>
 <link rel="icon" type="image/png" href="assets/favicon-biosoft.png"/>
-<link rel="stylesheet" href="css/styles.css"/>
+<link rel="stylesheet" href="css/styles.css?v=2"/>
 <!-- ===== Meta Pixel Code ===== -->
 <!-- Meta Pixel activo -->
 <script>
@@ -172,11 +172,12 @@ fbq('track', 'PageView');
     .lp-pdf-showcase { grid-template-columns: 1fr; }
     .lp-pdf-callout { font-size: 10px; padding: 5px 9px; }
   }
-  .lp-sections-list { display:flex; flex-wrap:wrap; gap:10px; justify-content:center; }
-  .lp-sections-list span { background: var(--surface); border:1.5px solid var(--border); border-radius:24px; padding:9px 18px 9px 14px; font-size:13px; font-weight:600; display:inline-flex; align-items:center; gap:8px; box-shadow: 0 4px 14px -8px rgba(15,23,42,.15); transition: transform .18s ease, box-shadow .18s ease, border-color .18s ease; }
-  .lp-sections-list span:hover { transform: translateY(-3px); border-color: color-mix(in srgb, var(--lp-purple) 40%, var(--border)); box-shadow: 0 12px 24px -10px rgba(124,58,237,.28); }
-  .lp-sections-list span .ic-emoji { font-size:16px; }
-  .lp-sections-note { text-align:center; max-width:600px; margin:28px auto 0; font-size:14px; color: var(--text-muted); }
+  .lp-sections-grid { display:grid; grid-template-columns: repeat(auto-fill, minmax(230px,1fr)); gap:14px; max-width: 1000px; margin: 0 auto; }
+  .lp-sections-grid .sec-card { background: var(--surface); border:1px solid var(--border); border-radius: 14px; padding: 16px; display:flex; align-items:center; gap:13px; box-shadow: var(--shadow-sm); transition: transform .2s ease, box-shadow .2s ease, border-color .2s ease; }
+  .lp-sections-grid .sec-card:hover { transform: translateY(-4px); box-shadow: 0 16px 32px -14px rgba(124,58,237,.3); border-color: color-mix(in srgb, var(--lp-purple) 35%, var(--border)); }
+  .lp-sections-grid .sec-ic { width:42px; height:42px; flex-shrink:0; border-radius:12px; background: linear-gradient(135deg, rgba(251,146,60,.18), rgba(168,85,247,.18)); font-size:20px; display:flex; align-items:center; justify-content:center; }
+  .lp-sections-grid .sec-name { font-size:13.5px; font-weight:700; line-height:1.3; }
+  .lp-sections-note { text-align:center; max-width:600px; margin:32px auto 0; font-size:14px; color: var(--text-muted); }
   .lp-sections-note b { color: var(--text); }
   .lp-steps { counter-reset: step; }
   .lp-step { display:flex; gap:16px; align-items:flex-start; margin-bottom: 22px; }
@@ -402,7 +403,7 @@ fbq('track', 'PageView');
   <section class="lp-section" id="secciones" style="background:var(--surface-2)">
     <h2>Todas las secciones del laboratorio</h2>
     <p class="lead">Catálogo de exámenes organizado por sección, con código de referencia CUPS editable y niveles de complejidad 1 y 2.</p>
-    <div class="lp-sections-list" id="sections-list"></div>
+    <div class="lp-sections-grid" id="sections-list"></div>
     <p class="lp-sections-note">¿Tu laboratorio maneja secciones, exámenes o flujos distintos a los de aquí? <b>BIOsoft se adapta al 100% a lo que cada laboratorio necesite.</b></p>
   </section>
 
@@ -422,9 +423,9 @@ fbq('track', 'PageView');
     <p class="lead">Un pago único de implementación para dejar el software 100% a tu medida, y luego una mensualidad simple que crece con tu equipo — sin sorpresas.</p>
     <div class="lp-wrap"><div class="price-grid" id="price-grid"></div></div>
     <p style="text-align:center;font-size:13px;color:var(--text-muted);margin-top:18px">¿Tu laboratorio necesita más de 10 usuarios o varias sedes? <a href="#" id="wa-cotizacion" target="_blank" rel="noopener" style="color:var(--brand-primary);font-weight:700">Solicita una cotización personalizada →</a></p>
-    <div class="price-note">🎯 <b>Cuota única de implementación: $380.000 COP</b> <span class="text-muted">(≈ $100 USD)</span> — con este pago comenzamos a personalizar tu BIOsoft: cargamos el logo, colores y datos de tu laboratorio, configuramos el catálogo de exámenes y las firmas de tus bacteriólogos, y capacitamos a tu equipo. <b>No es un software genérico — es tu software, hecho a tu medida.</b> Se paga una sola vez, sin importar el plan que elijas.</div>
+    <div class="price-note">🎯 <b>Cuota única de implementación: $380.000 COP</b> <span class="text-muted">(≈ $120 USD)</span> — con este pago comenzamos a personalizar tu BIOsoft: cargamos el logo, colores y datos de tu laboratorio, configuramos el catálogo de exámenes y las firmas de tus bacteriólogos, y capacitamos a tu equipo. <b>No es un software genérico — es tu software, hecho a tu medida.</b> Se paga una sola vez, sin importar el plan que elijas.</div>
     <div class="trust-row">
-      <span>🔒 Pago seguro con Wompi</span>
+      <span>🔒 Activación segura por WhatsApp</span>
       <span>🎨 Personalización incluida</span>
       <span>💬 Soporte directo por WhatsApp</span>
       <span>🇨🇴🇻🇪🇪🇨 Hecho para Colombia, Venezuela y Ecuador</span>
@@ -459,7 +460,7 @@ fbq('track', 'PageView');
     <div class="lp-faq">
       <details class="lp-faq-item" open>
         <summary>¿Necesito hacer una inversión grande para empezar?</summary>
-        <p>No. A diferencia de otros software de laboratorio que piden inversiones millonarias, BIOsoft solo pide una cuota única de implementación ($380.000 COP / ≈$100 USD) y luego una mensualidad accesible según el número de usuarios. Sin letras pequeñas.</p>
+        <p>No. A diferencia de otros software de laboratorio que piden inversiones millonarias, BIOsoft solo pide una cuota única de implementación ($380.000 COP / ≈$120 USD) y luego una mensualidad accesible según el número de usuarios. Sin letras pequeñas.</p>
       </details>
       <details class="lp-faq-item">
         <summary>¿El software se adapta a mi laboratorio o es genérico?</summary>
@@ -492,10 +493,10 @@ fbq('track', 'PageView');
 
   <footer class="lp-footer">BIOsoft™ · Un producto de BIOMarketing · biomarketing.salud@gmail.com<br/>© 2026 Todos los derechos reservados.</footer>
 
-  <script src="js/catalog.js"></script>
+  <script src="js/catalog.js?v=2"></script>
   <script>
     document.getElementById("sections-list").innerHTML = BIO_CATALOG.SECCIONES.map(function (s) {
-      return "<span><span class='ic-emoji'>" + (s.emoji || "🧪") + "</span>" + s.nombre + "</span>";
+      return "<div class='sec-card'><div class='sec-ic'>" + (s.emoji || "🧪") + "</div><div class='sec-name'>" + s.nombre + "</div></div>";
     }).join("");
 
     var WA_NUMBER = "573505457420";
@@ -515,7 +516,7 @@ fbq('track', 'PageView');
       if (demoEl) trackFbEvent("ViewContent", { content_name: "Demo Gratis" });
     });
 
-    var IMPLEMENTACION = { cop: 380000, copFmt: "380.000", usd: 100 };
+    var IMPLEMENTACION = { cop: 380000, copFmt: "380.000", usd: 120 };
     var PLANES = [
       { nombre: "Básico", usuarios: "1 usuario", precio: 120000, precioFmt: "120.000", usd: 45, destacado: false,
         items: ["Registro de pacientes y órdenes ilimitadas", "Resultados, validación y trazabilidad", "Reportes en PDF con tu marca", "Envío por correo y WhatsApp", "Soporte por WhatsApp"] },
