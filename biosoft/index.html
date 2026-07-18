@@ -184,6 +184,8 @@ fbq('track', 'PageView');
   .lp-sec-modal-head .chip { background:#fff; margin-top:8px; }
   .lp-sec-modal-card table input, .lp-sec-modal-card table select { font-size:13px; padding:6px 8px; }
   .lp-sec-modal-foot { text-align:center; font-size:12px; color:var(--text-muted); margin-top:14px; }
+  .lp-sec-personaliza { margin-top:16px; background: linear-gradient(135deg, color-mix(in srgb, var(--lp-orange) 10%, #fff), color-mix(in srgb, var(--lp-purple) 10%, #fff)); border:1.5px solid color-mix(in srgb, var(--lp-purple) 28%, var(--border)); border-radius:14px; padding:14px 18px; font-size:13px; line-height:1.55; color:var(--text); }
+  .lp-sec-personaliza b { color: var(--brand-secondary); }
   .lp-sections-note { text-align:center; max-width:600px; margin:32px auto 0; font-size:14px; color: var(--text-muted); }
   .lp-sections-note b { color: var(--text); }
   .lp-steps { counter-reset: step; }
@@ -529,6 +531,7 @@ fbq('track', 'PageView');
   <footer class="lp-footer">BIOsoft™ · Un producto de BIOMarketing · biomarketing.salud@gmail.com<br/>© 2026 Todos los derechos reservados.</footer>
 
   <script src="js/catalog.js?v=2"></script>
+  <script src="js/planes.js?v=1"></script>
   <script>
     document.getElementById("sections-list").innerHTML = BIO_CATALOG.SECCIONES.map(function (s) {
       return "<div class='sec-card' data-sec='" + s.id + "'><div class='sec-ic'>" + (s.emoji || "🧪") + "</div>" +
@@ -571,6 +574,7 @@ fbq('track', 'PageView');
         '<div class="table-wrap"><table><thead><tr><th>Parámetro</th><th>Resultado</th><th>Unidad</th><th>Valor de Referencia</th><th>Interpretación</th></tr></thead><tbody>' + rowsHtml + "</tbody></table></div>" +
         "</div>" +
         '<p class="lp-sec-modal-foot">Esta es la interfaz real que usa tu equipo — no una maqueta.</p>' +
+        '<div class="lp-sec-personaliza">🎨 <b>Esto es un ejemplo de demostración.</b> Cuando decidas ser parte de BIOsoft, configuramos y personalizamos <b>los campos y parámetros que tu laboratorio realmente maneja</b>, y también <b>el formato del informe</b> que recibe tu paciente — con tu logo, tus colores y a tu manera. Esa es nuestra promesa: <b>todo se adapta a las necesidades de cada cliente</b>, no al revés.</div>' +
         '<div class="lp-cta-row" style="margin-top:14px;justify-content:center">' +
         '<a class="btn btn-primary btn-glow-brand" href="app.html">🚀 Ver Demo Gratis</a>' +
         '<a class="btn btn-whatsapp wa-link" href="#" target="_blank" rel="noopener">🛒 Comprar por WhatsApp</a>' +
@@ -609,19 +613,9 @@ fbq('track', 'PageView');
       if (demoEl) trackFbEvent("ViewContent", { content_name: "Demo Gratis" });
     });
 
-    var IMPLEMENTACION = { cop: 380000, copFmt: "380.000", usd: 120 };
-    var PLANES = [
-      { nombre: "Básico", usuarios: "1 usuario", precio: 120000, precioFmt: "120.000", usd: 45, destacado: false,
-        wompiLink: "https://checkout.wompi.co/l/ZrQT4t",
-        items: ["Registro de pacientes y órdenes ilimitadas", "Resultados, validación y trazabilidad", "Reportes en PDF con tu marca", "Envío por correo y WhatsApp", "Soporte por WhatsApp"] },
-      { nombre: "Intermedio", usuarios: "2 a 5 usuarios", precio: 180000, precioFmt: "180.000", usd: 60, destacado: true,
-        wompiLink: "https://checkout.wompi.co/l/HZZJ7T",
-        items: ["Todo lo del plan Básico", "Firma digital de cada bacteriólogo", "Exámenes remitidos a otros laboratorios", "Hojas de trabajo diarias y stickers de muestra", "Soporte prioritario"] },
-      { nombre: "Plus", usuarios: "Hasta 10 usuarios", precio: 250000, precioFmt: "250.000", usd: 80, destacado: false,
-        wompiLink: "https://checkout.wompi.co/l/eEh3KM",
-        items: ["Todo lo del plan Intermedio", "Valores de referencia personalizables por examen", "Trazabilidad y auditoría avanzada", "Ideal para laboratorios de alto volumen", "Soporte VIP prioritario"] }
-    ];
-    var TARJETAS_TXT = "💳 Aceptamos Visa, Mastercard y American Express (crédito y débito), PSE, Nequi, Bancolombia y otros medios de pago";
+    var IMPLEMENTACION = BIO_PLANES.IMPLEMENTACION;
+    var PLANES = BIO_PLANES.PLANES;
+    var TARJETAS_TXT = BIO_PLANES.TARJETAS_TXT;
     document.getElementById("price-grid").innerHTML = PLANES.map(function (p) {
       var msg = "Hola, quiero contratar el Plan " + p.nombre + " de BIOsoft (" + p.usuarios + "). ¿Me ayudas con la implementación?";
       var totalCOP = IMPLEMENTACION.cop + p.precio;
