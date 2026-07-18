@@ -224,7 +224,19 @@ tbody tr:hover { background: var(--surface-2); }
   text-underline-offset: 2px;
 }
 .link-toggle-login:hover { color: var(--brand-primary); }
-.existing-login { margin-top: 6px; }
+.existing-login {
+  margin-top: 14px; background: var(--surface-2); border: 1px solid var(--border);
+  border-radius: var(--radius); padding: 22px 20px;
+}
+.demo-roles-toggle { margin-top: 18px; }
+.demo-roles-toggle summary {
+  cursor: pointer; font-size: 12.5px; font-weight: 700; color: var(--text-muted);
+  list-style: none; padding: 8px 0;
+}
+.demo-roles-toggle summary::-webkit-details-marker { display: none; }
+.demo-roles-toggle summary:hover { color: var(--brand-primary); }
+.demo-roles-toggle[open] summary { color: var(--brand-primary); margin-bottom: 4px; }
+.demo-roles-toggle .role-tabs { margin-top: 10px; }
 
 /* ---------------- Modal / Toast ---------------- */
 .modal { position: fixed; inset: 0; z-index: 60; display: flex; align-items: center; justify-content: center; padding: 16px; }
@@ -291,6 +303,9 @@ tbody tr:hover { background: var(--surface-2); }
   #topbar-buy-cta .cta-text { display: none; }
   .topbar { padding: 0 12px; gap: 8px; }
   .card { padding: 16px; }
+  .existing-login { padding: 18px 16px; }
+  .role-tabs { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+  .role-tab { text-align: center; padding: 9px 10px; }
 }
 
 /* ---------------- Impresión ---------------- */

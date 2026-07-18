@@ -52,27 +52,30 @@
 
           <div class="existing-login hidden" id="existing-login-block">
             <div class="divider-row"><div class="line"></div><span>Acceso para clientes con software adquirido</span><div class="line"></div></div>
-            <div class="role-tabs">
-              <div class="role-tab active" data-user="admin.demo" data-pass="Demo2026*">Administrador</div>
-              <div class="role-tab" data-user="laura.gomez" data-pass="Bacterio2026*">Bacterióloga</div>
-              <div class="role-tab" data-user="andres.rios" data-pass="Bacterio2026*">Bacteriólogo Nivel 2</div>
-              <div class="role-tab" data-user="recepcion.demo" data-pass="Recepcion2026*">Recepción</div>
-              <div class="role-tab" data-user="biosoft" data-pass="BIOsoft#2026">Superadmin BIOsoft</div>
-            </div>
             <form id="login-form">
               <div class="field"><label>Usuario</label><input id="login-username" required autocomplete="username"/></div>
               <div class="field"><label>Contraseña</label><input id="login-password" type="password" required autocomplete="current-password"/></div>
               <p id="login-error" class="text-danger hidden" style="font-size:13px"></p>
-              <button class="btn btn-outline btn-block" type="submit">Ingresar</button>
+              <button class="btn btn-primary btn-block" type="submit">Ingresar</button>
             </form>
-            <div class="demo-creds">
-              <b>Credenciales de demostración</b><br/>
-              Admin: <b>admin.demo</b> / Demo2026*<br/>
-              Bacterióloga (Hematología, Química…): <b>laura.gomez</b> / Bacterio2026*<br/>
-              Bacteriólogo (Inmunología, Hormonas…): <b>andres.rios</b> / Bacterio2026*<br/>
-              Recepción: <b>recepcion.demo</b> / Recepcion2026*<br/>
-              Clave admin para correcciones del laboratorio demo: <b>ADMIN2026</b>
-            </div>
+            <details class="demo-roles-toggle">
+              <summary>🧪 ¿Solo quieres explorar? Prueba la demo con otro rol</summary>
+              <div class="role-tabs">
+                <div class="role-tab active" data-user="admin.demo" data-pass="Demo2026*">Administrador</div>
+                <div class="role-tab" data-user="laura.gomez" data-pass="Bacterio2026*">Bacterióloga</div>
+                <div class="role-tab" data-user="andres.rios" data-pass="Bacterio2026*">Bacteriólogo Nivel 2</div>
+                <div class="role-tab" data-user="recepcion.demo" data-pass="Recepcion2026*">Recepción</div>
+                <div class="role-tab" data-user="biosoft" data-pass="BIOsoft#2026">Superadmin BIOsoft</div>
+              </div>
+              <div class="demo-creds">
+                <b>Credenciales de demostración</b><br/>
+                Admin: <b>admin.demo</b> / Demo2026*<br/>
+                Bacterióloga (Hematología, Química…): <b>laura.gomez</b> / Bacterio2026*<br/>
+                Bacteriólogo (Inmunología, Hormonas…): <b>andres.rios</b> / Bacterio2026*<br/>
+                Recepción: <b>recepcion.demo</b> / Recepcion2026*<br/>
+                Clave admin para correcciones del laboratorio demo: <b>ADMIN2026</b>
+              </div>
+            </details>
           </div>
         </div>
       </div>
