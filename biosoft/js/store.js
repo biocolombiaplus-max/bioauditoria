@@ -136,7 +136,12 @@
       var uidAuth = cred.user.uid;
       return global.BIO_FB.db.collection("userProfiles").doc(uidAuth).get().then(function (doc) {
         if (!doc.exists) throw new Error("Esta cuenta no tiene un laboratorio asociado.");
-        return initRealtime(doc.data().tenantId).then(function () {
+        var perfil = doc.data();
+        if (perfil.rol === "superadmin") {
+          MODE = "real"; // habilita fbWrite/onSnapshot para el CRM sin tenant asociado
+          return { id: uidAuth, username: email, nombre: perfil.nombre || "Soporte BIOsoft", rol: "superadmin", tenantId: null, secciones: [] };
+        }
+        return initRealtime(perfil.tenantId).then(function () {
           var user = realCache.users.filter(function (u) { return u.id === uidAuth; })[0];
           if (!user) throw new Error("No se encontró el usuario del laboratorio.");
           return user;
@@ -148,6 +153,33 @@
   function logoutReal() {
     if (MODE === "real") { global.BIO_FB.auth.signOut().catch(function () {}); }
     stopRealtime();
+  }
+
+  // -----------------------------------------------------------------------
+  // CRM (leads y clientes de BIOsoft) — colección Firestore independiente,
+  // solo accesible por el superadmin real. No pasa por el "espejo" de
+  // tenant: cada función habla directo con Firestore y devuelve Promesas.
+  // -----------------------------------------------------------------------
+  function crmColl() { return global.BIO_FB.db.collection("crmClientes"); }
+
+  function crmList() {
+    return crmColl().get().then(function (snap) {
+      var out = [];
+      snap.forEach(function (doc) { out.push(doc.data()); });
+      out.sort(function (a, b) { return (b.creadoEn || "").localeCompare(a.creadoEn || ""); });
+      return out;
+    });
+  }
+  function crmWatch(onChange) {
+    return crmColl().onSnapshot(function () { onChange(); }, function (err) { console.error("BIOsoft CRM listener error:", err); });
+  }
+  function crmCreate(data) {
+    var id = uid("crm");
+    var doc = Object.assign({ estado: "nuevo", creadoEn: nowISO() }, data, { id: id });
+    return crmColl().doc(id).set(doc).then(function () { return doc; });
+  }
+  function crmUpdate(id, patch) {
+    return crmColl().doc(id).update(patch);
   }
 
   /* Al recargar la página, sessionStorage conserva la sesión pero realCache
@@ -170,6 +202,15 @@
       return initRealtime(tenantId);
     });
   }
+  /* Igual que restoreRealtime, pero para el superadmin (que no tiene tenant):
+     solo confirma que Firebase Auth sigue vivo, sin poblar ningún espejo. */
+  function restoreSuperadminSession() {
+    return waitForAuthReady().then(function (user) {
+      if (!user) throw new Error("La sesión de Firebase expiró.");
+      MODE = "real";
+      return true;
+    });
+  }
 
   function uid(prefix) {
     return (prefix ? prefix + "-" : "") + Date.now().toString(36) + Math.random().toString(36).slice(2, 8);
@@ -186,11 +227,17 @@
     );
   }
 
-  function loadDB() {
-    if (MODE === "real") return realCache;
+  function loadDemoDB() {
     var raw = localStorage.getItem(DB_KEY);
     if (!raw) return null;
     try { return JSON.parse(raw); } catch (e) { return null; }
+  }
+
+  function loadDB() {
+    // El superadmin real no tiene tenant propio (realCache queda null): se le
+    // devuelve una base vacía en vez de null para que ninguna vista truene.
+    if (MODE === "real") return realCache || emptyDB();
+    return loadDemoDB();
   }
 
   function saveDB(db) {
@@ -316,9 +363,11 @@
   // AUDITORÍA
   // ---------------------------------------------------------------------
   function addAudit(tenantId, usuario, rol, accion, entidad, entidadId, detalle, extra) {
-    var db = loadDB();
     var entry = { id: uid("log"), tenantId: tenantId, fecha: nowISO(), usuario: usuario, rol: rol, accion: accion, entidad: entidad, entidadId: entidadId, detalle: detalle };
     if (extra) entry.extra = extra;
+    // El superadmin no tiene laboratorio (tenantId null): no hay dónde espejar el log localmente.
+    if (!tenantId) return entry;
+    var db = loadDB();
     db.auditLog.unshift(entry);
     saveDB(db);
     fbWrite("auditLog", entry.id, entry);
@@ -367,7 +416,11 @@
     return db.users.filter(function (u) { return tenantId ? u.tenantId === tenantId : true; });
   }
   function findUser(username) {
-    var db = loadDB();
+    // Siempre revisa la tabla Demo (localStorage), sin importar el MODE actual:
+    // se usa para decidir si un intento de login es un usuario demo, incluso
+    // si ya hay (o hubo) una sesión real activa en esta misma pestaña.
+    var db = loadDemoDB();
+    if (!db) return null;
     return db.users.filter(function (u) { return u.username.toLowerCase() === String(username).toLowerCase(); })[0];
   }
   function createUser(data) {
@@ -498,6 +551,8 @@
     provisionRealAccount: provisionRealAccount,
     loginReal: loginReal,
     logoutReal: logoutReal,
-    restoreRealtime: restoreRealtime
+    restoreRealtime: restoreRealtime,
+    restoreSuperadminSession: restoreSuperadminSession,
+    crm: { list: crmList, watch: crmWatch, create: crmCreate, update: crmUpdate }
   };
 })(window);

@@ -5,6 +5,7 @@
   var NAV = {
     superadmin: [
       { sec: "BIOSOFT", items: [
+        { route: "crm", label: "Clientes (CRM)", icon: "send" },
         { route: "tenants", label: "Laboratorios Cliente", icon: "building" },
         { route: "dashboard", label: "Resumen Global", icon: "home" }
       ]}
@@ -113,11 +114,11 @@
     resultados: "Resultados de Laboratorio", "hojas-trabajo": "Hojas de Trabajo Diarias",
     reportes: "Reportes y Envío de Resultados", usuarios: "Usuarios y Bacteriólogos",
     config: "Configuración del Laboratorio", auditoria: "Trazabilidad y Auditoría", tenants: "Laboratorios Cliente",
-    catalogo: "Valores de Referencia del Catálogo", productividad: "Productividad Mensual"
+    catalogo: "Valores de Referencia del Catálogo", productividad: "Productividad Mensual", crm: "Clientes (CRM)"
   };
 
   var ALLOWED_ROUTES = {
-    superadmin: ["tenants", "dashboard"],
+    superadmin: ["crm", "tenants", "dashboard"],
     admin: ["dashboard", "pacientes", "ordenes", "resultados", "hojas-trabajo", "reportes", "productividad", "usuarios", "config", "auditoria", "catalogo"],
     bacteriologo: ["dashboard", "resultados", "hojas-trabajo"],
     recepcion: ["dashboard", "pacientes", "ordenes", "hojas-trabajo", "reportes"]
@@ -226,7 +227,7 @@
         if (!res.ok) { errBox.textContent = res.error; errBox.classList.remove("hidden"); return; }
         errBox.classList.add("hidden");
         form.reset();
-        location.hash = "#/dashboard";
+        location.hash = res.session.rol === "superadmin" ? "#/crm" : "#/dashboard";
         showApp();
       });
     });

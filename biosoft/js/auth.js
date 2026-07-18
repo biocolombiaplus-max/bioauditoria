@@ -69,7 +69,8 @@
   function rehydrate() {
     var s = getSession();
     if (!s || !s.real) return Promise.resolve(true);
-    return BIO_STORE.restoreRealtime(s.tenantId).then(function () { return true; }).catch(function () {
+    var restaurar = s.rol === "superadmin" ? BIO_STORE.restoreSuperadminSession() : BIO_STORE.restoreRealtime(s.tenantId);
+    return restaurar.then(function () { return true; }).catch(function () {
       sessionStorage.removeItem(SESSION_KEY);
       return false;
     });
