@@ -645,7 +645,7 @@ fbq('track', 'PageView');
     function lpModal(innerHtml, opts) {
       var wrap = document.createElement("div");
       wrap.className = "modal";
-      wrap.innerHTML = '<div class="overlay-bd" data-close="1"></div><div class="modal-card' + (opts && opts.lg ? " modal-lg" : "") + '">' + innerHtml + "</div>";
+      wrap.innerHTML = '<div class="overlay-bd" data-close="1"></div><button type="button" class="lp-modal-x" data-close="1" aria-label="Cerrar">✕</button><div class="modal-card' + (opts && opts.lg ? " modal-lg" : "") + '">' + innerHtml + "</div>";
       document.body.appendChild(wrap);
       wrap.addEventListener("click", function (e) { if (e.target.dataset.close) lpCloseModal(wrap); });
       wrap.querySelectorAll("[data-modal-close]").forEach(function (b) { b.addEventListener("click", function () { lpCloseModal(wrap); }); });
