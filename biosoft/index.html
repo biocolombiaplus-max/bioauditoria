@@ -629,6 +629,7 @@ fbq('track', 'PageView');
         '<div class="lp-pay-total">Pago inicial: <b>$' + totalCOP.toLocaleString("es-CO") + ' COP</b><span>≈ $' + totalUSD + ' USD · implementación + primer mes</span></div>' +
         '<a class="btn-pay-wompi" href="' + p.wompiLink + '" target="_blank" rel="noopener" data-pay-grid="' + p.nombre + '">💳 Pagar ahora con Wompi</a>' +
         '<div class="lp-pay-cards">' + TARJETAS_TXT + '</div>' +
+        '<a class="lp-modal-plan-wa" href="activar.html?plan=' + p.id + '">✅ Ya pagué, completar mis datos →</a>' +
         '<a class="lp-modal-plan-wa" href="' + waLink(msg) + '" target="_blank" rel="noopener">¿Dudas? Habla con nosotros por WhatsApp</a>' +
         "</div>";
     }).join("");
@@ -662,6 +663,7 @@ fbq('track', 'PageView');
             '<div class="lp-pay-total">Pago inicial: <b>$' + totalCOP.toLocaleString("es-CO") + ' COP</b><span>≈ $' + totalUSD + ' USD · implementación (pago único) + primer mes</span></div>' +
             '<div class="lp-modal-plan-actions">' +
             '<a class="btn-pay-wompi" href="' + p.wompiLink + '" target="_blank" rel="noopener" data-plan="' + i + '" data-pay="1">💳 Pagar ahora con Wompi</a>' +
+            '<a class="lp-modal-plan-wa" href="activar.html?plan=' + p.id + '">✅ Ya pagué, completar mis datos →</a>' +
             '<button class="lp-modal-plan-wa" data-plan="' + i + '" data-wa="1" type="button">¿Dudas? Habla con nosotros por WhatsApp</button>' +
             "</div></div>";
         }).join("") +

@@ -1,0 +1,116 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1"/>
+<title>Activa tu BIOsoft — Formulario de Personalización</title>
+<meta name="description" content="Completa tus datos para que activemos y personalicemos tu BIOsoft: laboratorio, contacto, plan y logo."/>
+<meta name="robots" content="noindex, nofollow"/>
+<link rel="icon" type="image/png" href="assets/favicon-biosoft.png"/>
+<link rel="stylesheet" href="css/styles.css?v=2"/>
+<style>
+  body { background: var(--bg); }
+  .act-wrap { max-width: 760px; margin: 0 auto; padding: 32px 16px 60px; }
+  .act-header { display: flex; align-items: center; gap: 12px; margin-bottom: 22px; }
+  .act-header img { height: 44px; width: 44px; border-radius: 50%; object-fit: cover; }
+  .act-header b { font-size: 17px; }
+  .act-intro { background: linear-gradient(135deg, color-mix(in srgb, var(--brand-primary) 10%, transparent), color-mix(in srgb, var(--brand-secondary, #2e1065) 8%, transparent)); border: 1px solid var(--border); border-radius: var(--radius); padding: 18px 20px; margin-bottom: 20px; }
+  .act-intro h1 { font-size: 20px; margin: 0 0 6px; }
+  .act-intro p { margin: 0; color: var(--text-muted); font-size: 14px; }
+  .act-logo-row { display: flex; align-items: center; gap: 14px; flex-wrap: wrap; }
+  #act-logo-preview img { height: 64px; width: 64px; border-radius: 10px; object-fit: cover; border: 1px solid var(--border); }
+  .act-upsell { background: var(--surface-2); border: 1px dashed var(--border); border-radius: var(--radius-sm); padding: 12px 14px; margin-top: 10px; font-size: 13px; }
+  .act-upsell label { display: flex; gap: 8px; align-items: flex-start; cursor: pointer; }
+  .act-success { text-align: center; padding: 40px 16px; }
+  .act-success .ic-ok { font-size: 52px; }
+  .act-success h2 { margin: 10px 0 8px; }
+  .act-success p { color: var(--text-muted); max-width: 480px; margin: 0 auto 6px; }
+  .hidden { display: none !important; }
+</style>
+</head>
+<body>
+
+<div class="act-wrap">
+  <div class="act-header">
+    <img src="assets/logo-biosoft.png" alt="BIOsoft"/>
+    <b>BIOsoft</b>
+  </div>
+
+  <div id="act-form-block">
+    <div class="act-intro">
+      <h1>Activemos tu BIOsoft 🎉</h1>
+      <p>Este NO es el sistema definitivo: es el paso para que personalicemos <b>tu</b> BIOsoft. Cuéntanos de tu laboratorio, tu plan y tu marca — en <b>7 a 10 días hábiles</b> tendrás todo funcionando, con tu logo, tus colores y el catálogo que necesitas. Todo se adapta a ti; esto es solo el punto de partida.</p>
+    </div>
+
+    <div class="card">
+      <form id="act-form">
+        <fieldset>
+          <legend>Tu Laboratorio</legend>
+          <div class="form-grid">
+            <div class="field"><label>Nombre del Laboratorio *</label><input id="f_labNombre" required/></div>
+            <div class="field"><label>NIT / RIF / RUC</label><input id="f_labNit"/></div>
+            <div class="field"><label>Ciudad</label><input id="f_labCiudad"/></div>
+            <div class="field"><label>País</label><select id="f_labPais"></select></div>
+          </div>
+        </fieldset>
+
+        <fieldset>
+          <legend>Contacto para la Activación</legend>
+          <div class="form-grid">
+            <div class="field"><label>Tu Nombre *</label><input id="f_contNombre" required/></div>
+            <div class="field"><label>Cargo</label><input id="f_contCargo"/></div>
+            <div class="field"><label>WhatsApp (con indicativo, solo números) *</label><input id="f_contWhatsapp" required placeholder="573001234567"/></div>
+            <div class="field"><label>Correo Electrónico *</label><input id="f_contCorreo" type="email" required/></div>
+          </div>
+        </fieldset>
+
+        <fieldset>
+          <legend>Plan Contratado</legend>
+          <div class="form-grid">
+            <div class="field"><label>Plan</label><select id="f_plan"></select></div>
+          </div>
+        </fieldset>
+
+        <div class="field">
+          <label>Secciones que maneja tu laboratorio</label>
+          <div class="form-grid" id="act-secciones"></div>
+        </div>
+
+        <fieldset>
+          <legend>Tu Marca</legend>
+          <div class="act-logo-row">
+            <div class="field" style="margin-bottom:0"><label>Logo de tu Laboratorio</label><input type="file" id="f_logo" accept="image/*"/></div>
+            <div id="act-logo-preview"><span class="text-muted" style="font-size:13px">Sin logo cargado</span></div>
+          </div>
+          <div class="act-upsell">
+            <label><input type="checkbox" id="f_pedirLogo"/> <span>¿No tienes logo todavía? Podemos diseñarte uno profesional por <b>$40.000 COP (≈$10 USD)</b>, pago único — marca esta casilla y te contactamos por WhatsApp para definirlo.</span></label>
+          </div>
+        </fieldset>
+
+        <div class="field"><label>Notas o instrucciones especiales (opcional)</label><textarea id="f_notas" rows="3" placeholder="Ej: formato de reporte que ya usan, casos especiales de tu laboratorio, etc."></textarea></div>
+
+        <p id="act-error" class="text-danger hidden" style="font-size:13px"></p>
+        <button type="submit" class="btn btn-primary btn-block" id="act-submit">Enviar mis datos de activación</button>
+      </form>
+    </div>
+  </div>
+
+  <div id="act-success-block" class="card act-success hidden">
+    <div class="ic-ok">✅</div>
+    <h2>¡Listo! Recibimos tus datos</h2>
+    <p>En <b>7 a 10 días hábiles</b> tendrás tu BIOsoft personalizado y funcionando, con tu logo, tus colores y el catálogo de tu laboratorio. Te escribiremos por WhatsApp para confirmar cualquier detalle.</p>
+    <p class="text-muted" style="font-size:13px">Recuerda: la demo que viste es solo un ejemplo — tu sistema real se adapta 100% a lo que tu laboratorio necesita.</p>
+  </div>
+</div>
+
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
+<script src="js/firebase-config.js?v=1"></script>
+<script src="js/catalog.js?v=2"></script>
+<script src="js/planes.js?v=1"></script>
+<script src="js/store.js?v=2"></script>
+<script src="js/ui.js?v=2"></script>
+<script src="js/activar.js?v=1"></script>
+</body>
+</html>

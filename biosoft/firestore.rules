@@ -24,11 +24,22 @@ service cloud.firestore {
       allow update, delete: if false;
     }
 
-    // CRM interno (leads y clientes de BIOsoft) — solo lo gestiona el
-    // superadmin real (BioColombia Plus / BIOsoft), autenticado con su
-    // propia cuenta de Firebase.
+    // CRM interno (leads y clientes de BIOsoft) — leer, editar y borrar solo
+    // lo puede hacer el superadmin real. Crear también lo puede hacer
+    // cualquier visitante SIN sesión desde el formulario público de
+    // activación (activar.html): el cliente aún no tiene cuenta, así que se
+    // valida que el documento nazca en estado "nuevo" y con la forma mínima
+    // esperada, para evitar que se inyecten leads ya "activos" o corruptos.
     match /crmClientes/{clienteId} {
-      allow read, write: if esSuperadmin();
+      allow read, update, delete: if esSuperadmin();
+      allow create: if esSuperadmin() || (
+        request.resource.data.estado == "nuevo" &&
+        request.resource.data.origen == "formulario_publico" &&
+        request.resource.data.laboratorio is map &&
+        request.resource.data.contacto is map &&
+        request.resource.data.contacto.nombre is string &&
+        request.resource.data.contacto.nombre.size() > 0
+      );
     }
 
     match /tenants/{tenantId} {
