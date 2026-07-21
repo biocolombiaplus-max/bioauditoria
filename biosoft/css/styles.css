@@ -258,6 +258,26 @@ tbody tr:hover { background: var(--surface-2); }
 .toast.success { background: var(--success); }
 @keyframes toast-in { from { transform: translateY(10px); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
 
+/* ---------------- CRM: toggle de vista y tablero Kanban ---------------- */
+.crm-view-toggle { display: inline-flex; border: 1px solid var(--border); border-radius: 8px; overflow: hidden; }
+.crm-view-toggle button {
+  border: none; background: #fff; color: var(--text-muted); font-size: 12.5px; font-weight: 700;
+  padding: 7px 12px; cursor: pointer;
+}
+.crm-view-toggle button.active { background: var(--brand-primary); color: #fff; }
+.kanban-board { display: grid; grid-template-columns: repeat(4, minmax(220px, 1fr)); gap: 14px; overflow-x: auto; padding-bottom: 4px; }
+.kanban-col { background: var(--surface-2); border: 1px solid var(--border); border-radius: var(--radius-sm); min-width: 220px; display: flex; flex-direction: column; }
+.kanban-col-head { font-size: 12.5px; font-weight: 800; color: var(--text-muted); padding: 12px 12px 8px; }
+.kanban-col-body { padding: 0 10px 10px; flex: 1; min-height: 80px; transition: background .15s ease; border-radius: 0 0 var(--radius-sm) var(--radius-sm); }
+.kanban-col-body.drop-hover { background: color-mix(in srgb, var(--brand-primary) 10%, transparent); }
+.kanban-empty { font-size: 12px; padding: 14px 4px; text-align: center; }
+.kanban-card {
+  background: #fff; border: 1px solid var(--border); border-radius: var(--radius-sm); padding: 10px 12px;
+  margin-bottom: 10px; cursor: grab; box-shadow: var(--shadow-sm);
+}
+.kanban-card.dragging { opacity: .4; }
+@media (max-width: 900px) { .kanban-board { grid-template-columns: repeat(4, minmax(200px, 1fr)); } }
+
 /* ---------------- Catálogo de exámenes (selector) ---------------- */
 .exam-picker { display: grid; grid-template-columns: 220px 1fr; gap: 0; border: 1px solid var(--border); border-radius: var(--radius-sm); overflow: hidden; height: 420px; }
 .exam-picker-sections { background: var(--surface-2); overflow-y: auto; border-right: 1px solid var(--border); }

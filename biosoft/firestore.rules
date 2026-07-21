@@ -42,6 +42,12 @@ service cloud.firestore {
       );
     }
 
+    // Plantillas de mensajes de WhatsApp reutilizables del CRM — de uso
+    // exclusivo del superadmin.
+    match /crmPlantillas/{plantillaId} {
+      allow read, write: if esSuperadmin();
+    }
+
     match /tenants/{tenantId} {
       allow read, update: if esDeEsteLab(tenantId);
       // La creación ocurre en el mismo flujo de aprovisionamiento, por el

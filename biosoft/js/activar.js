@@ -14,6 +14,16 @@
 
   var params = new URLSearchParams(location.search);
   var planPreseleccionado = params.get("plan");
+
+  /* Si el anuncio de Meta Ads (u otra campaña) apunta aquí con parámetros
+     utm_*, los guardamos junto al lead para que el CRM sepa de dónde vino,
+     sin necesitar el formulario nativo de leads de Meta (que sí requeriría
+     un servidor para recibir el webhook). */
+  var origenDetalle = {
+    utmSource: params.get("utm_source") || "",
+    utmMedium: params.get("utm_medium") || "",
+    utmCampaign: params.get("utm_campaign") || ""
+  };
   document.getElementById("f_plan").innerHTML = BIO_PLANES.PLANES.map(function (p) {
     return '<option value="' + p.id + '" ' + (p.id === planPreseleccionado ? "selected" : "") + '>' + p.nombre + " (" + p.usuarios + ") — $" + p.precioFmt + "/mes</option>";
   }).join("");
@@ -72,6 +82,7 @@
 
     var data = {
       origen: "formulario_publico",
+      origenDetalle: origenDetalle,
       laboratorio: { nombre: labNombre, nit: g("f_labNit"), ciudad: g("f_labCiudad"), pais: document.getElementById("f_labPais").value },
       contacto: { nombre: contNombre, cargo: g("f_contCargo"), whatsapp: whatsapp, correo: correo },
       planId: planId,

@@ -182,6 +182,34 @@
     return crmColl().doc(id).update(patch);
   }
 
+  // -----------------------------------------------------------------------
+  // Plantillas de mensajes de WhatsApp reutilizables (solo superadmin).
+  // -----------------------------------------------------------------------
+  function plantillasColl() { return global.BIO_FB.db.collection("crmPlantillas"); }
+
+  function plantillasList() {
+    return plantillasColl().get().then(function (snap) {
+      var out = [];
+      snap.forEach(function (doc) { out.push(doc.data()); });
+      out.sort(function (a, b) { return (a.creadoEn || "").localeCompare(b.creadoEn || ""); });
+      return out;
+    });
+  }
+  function plantillasWatch(onChange) {
+    return plantillasColl().onSnapshot(function () { onChange(); }, function (err) { console.error("BIOsoft plantillas listener error:", err); });
+  }
+  function plantillasCreate(data) {
+    var id = uid("tpl");
+    var doc = Object.assign({ creadoEn: nowISO() }, data, { id: id });
+    return plantillasColl().doc(id).set(doc).then(function () { return doc; });
+  }
+  function plantillasUpdate(id, patch) {
+    return plantillasColl().doc(id).update(patch);
+  }
+  function plantillasDelete(id) {
+    return plantillasColl().doc(id).delete();
+  }
+
   /* Al recargar la página, sessionStorage conserva la sesión pero realCache
      se pierde (es memoria, no disco). Espera a que Firebase confirme que la
      sesión de Auth sigue viva y vuelve a poblar realCache sin pedir clave. */
@@ -553,6 +581,7 @@
     logoutReal: logoutReal,
     restoreRealtime: restoreRealtime,
     restoreSuperadminSession: restoreSuperadminSession,
-    crm: { list: crmList, watch: crmWatch, create: crmCreate, update: crmUpdate }
+    crm: { list: crmList, watch: crmWatch, create: crmCreate, update: crmUpdate },
+    plantillas: { list: plantillasList, watch: plantillasWatch, create: plantillasCreate, update: plantillasUpdate, remove: plantillasDelete }
   };
 })(window);
