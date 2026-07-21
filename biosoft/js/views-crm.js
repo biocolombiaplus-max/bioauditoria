@@ -71,14 +71,20 @@
     var unsubClientes = null, unsubPlantillas = null;
 
     function cargar() {
-      Promise.all([S.crm.list(), S.plantillas.list()]).then(function (res) {
-        clientes = res[0];
-        plantillas = res[1];
+      S.crm.list().then(function (list) {
+        clientes = list;
+        return S.plantillas.list().catch(function (err) {
+          console.error("BIOsoft: no se pudieron cargar las plantillas ->", err.code, err.message);
+          return [];
+        });
+      }).then(function (list) {
+        plantillas = list;
         cargando = false;
         build();
       }).catch(function (err) {
         cargando = false;
-        root.innerHTML = '<div class="card"><p class="text-muted">No se pudo cargar el CRM: ' + U.esc(err.message || String(err)) + '</p></div>';
+        console.error("BIOsoft: no se pudo cargar crmClientes ->", err.code, err.message);
+        root.innerHTML = '<div class="card"><p class="text-muted">No se pudo cargar el CRM (crmClientes): ' + U.esc(err.message || String(err)) + (err.code ? " — código: " + U.esc(err.code) : "") + '</p></div>';
       });
     }
 
