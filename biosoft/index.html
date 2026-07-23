@@ -151,6 +151,11 @@ fbq('track', 'PageView');
   .lp-pdf-callout-firma { left: 2%; top: 78.5%; }
   .lp-pdf-callout-qr { right: 1%; top: 76.5%; }
   .lp-pdf-side { display: flex; flex-direction: column; gap: 14px; }
+  .lp-nuevo-badge {
+    position: absolute; top: -14px; left: 18px; z-index: 2; background: linear-gradient(135deg, var(--lp-orange), var(--lp-pink));
+    color: #fff; font-size: 12.5px; font-weight: 800; padding: 7px 16px; border-radius: 20px; box-shadow: var(--shadow-md);
+    animation: glowBrandPulse 2.2s ease-in-out infinite;
+  }
   .lp-pdf-feature { display: flex; align-items: center; gap: 10px; font-size: 14.5px; font-weight: 600; color: var(--text); }
   .lp-pdf-feature span { font-size: 18px; }
 
@@ -403,6 +408,28 @@ fbq('track', 'PageView');
         <div class="lp-pdf-feature"><span>✉️</span> Envío por Gmail u Outlook en un clic</div>
         <a class="btn btn-primary btn-glow-brand btn-block" href="assets/muestra-informe-biosoft.pdf" target="_blank" rel="noopener" download>📄 Descargar informe de ejemplo</a>
         <p class="text-muted" style="font-size:11.5px;text-align:center;margin-top:8px">Es un PDF real, generado con BIOsoft. Así vas a entregar tus resultados desde el primer día.</p>
+      </div>
+    </div>
+  </section>
+
+  <section class="lp-section lp-pdf-section" id="control-calidad">
+    <div class="lp-pdf-kicker">🤖 NUEVO — Análisis Inteligente</div>
+    <h2>Control de Calidad con IA, como los grandes laboratorios</h2>
+    <p class="lead">Química Sanguínea y Hematología ahora con curvas de Levey-Jennings y las reglas de Westgard completas. BIOsoft analiza cada dato que ingresas y te dice al instante si tu control está bien, en aviso o si debes repetir la prueba — con la recomendación exacta de qué revisar.</p>
+    <div class="lp-pdf-showcase">
+      <div class="lp-pdf-image-wrap">
+        <span class="lp-nuevo-badge">✨ NUEVO</span>
+        <img src="assets/screenshots/control-calidad.jpg" alt="Módulo de Control de Calidad de BIOsoft con gráfica de Levey-Jennings, reglas de Westgard y recomendaciones inteligentes" class="lp-pdf-image"/>
+      </div>
+      <div class="lp-pdf-side">
+        <div class="lp-pdf-feature"><span>🧠</span> Análisis inteligente que detecta errores antes de liberar resultados</div>
+        <div class="lp-pdf-feature"><span>📈</span> Gráficas de Levey-Jennings modernas y en tiempo real</div>
+        <div class="lp-pdf-feature"><span>⚡</span> Reglas de Westgard completas (1-3s, 2-2s, R-4s, 4-1s, 10x)</div>
+        <div class="lp-pdf-feature"><span>💡</span> Recomendación específica: error aleatorio o sistemático, y qué hacer</div>
+        <div class="lp-pdf-feature"><span>📱</span> Úsalo como app desde cualquier celular, en pleno laboratorio</div>
+        <div class="lp-pdf-feature"><span>🧪</span> Química Sanguínea y Hematología, con más secciones en camino</div>
+        <a class="btn btn-primary btn-glow-brand btn-block" href="app.html">🚀 Ver Demo Gratis</a>
+        <p class="text-muted" style="font-size:11.5px;text-align:center;margin-top:8px">Ningún otro software de laboratorio en tu rango de precio tiene esto — así de simple.</p>
       </div>
     </div>
   </section>

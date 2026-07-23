@@ -242,7 +242,7 @@
   }
 
   function inp(id, label, value, required, type) {
-    return '<div class="field"><label>' + label + (required ? ' *' : '') + '</label><input id="f_' + id + '" type="' + (type || "text") + '" value="' + U.esc(value || "") + '" ' + (required ? "required" : "") + "/></div>";
+    return '<div class="field"><label>' + label + (required ? ' *' : '') + '</label><input id="f_' + id + '" type="' + (type || "text") + '" value="' + U.esc(value || "") + '" ' + (type === "number" ? 'step="any"' : "") + " " + (required ? "required" : "") + "/></div>";
   }
   function sel(id, label, optionsHtml) {
     return '<div class="field"><label>' + label + '</label><select id="f_' + id + '">' + optionsHtml + "</select></div>";
