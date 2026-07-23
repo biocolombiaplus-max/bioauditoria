@@ -83,7 +83,9 @@
       attach("orders", "orders", false),
       attach("auditLog", "auditLog", false),
       attach("qcControles", "qcControles", false),
-      attach("qcLecturas", "qcLecturas", false)
+      attach("qcLecturas", "qcLecturas", false),
+      attach("preciosExamenes", "preciosExamenes", false),
+      attach("cotizaciones", "cotizaciones", false)
     ]).then(function () { return realCache; });
   }
 
@@ -276,7 +278,7 @@
   }
 
   function emptyDB() {
-    return { tenants: {}, users: [], patients: [], orders: [], auditLog: [], qcControles: [], qcLecturas: [] };
+    return { tenants: {}, users: [], patients: [], orders: [], auditLog: [], qcControles: [], qcLecturas: [], preciosExamenes: [], cotizaciones: [] };
   }
 
   // ---------------------------------------------------------------------
@@ -590,6 +592,40 @@
     return l;
   }
 
+  // ---------------------------------------------------------------------
+  // COTIZADOR DE EXÁMENES — lista de precios por examen y cotizaciones
+  // generadas, por laboratorio (tenant).
+  // ---------------------------------------------------------------------
+  function listPrecios(tenantId) {
+    var db = loadDB();
+    return db.preciosExamenes.filter(function (p) { return p.tenantId === tenantId; });
+  }
+  function setPrecio(tenantId, examId, precio) {
+    var db = loadDB();
+    var reg = db.preciosExamenes.filter(function (p) { return p.tenantId === tenantId && p.examId === examId; })[0];
+    if (reg) { reg.precio = precio; reg.actualizadoEn = nowISO(); }
+    else { reg = { id: uid("prc"), tenantId: tenantId, examId: examId, precio: precio, actualizadoEn: nowISO() }; db.preciosExamenes.push(reg); }
+    saveDB(db);
+    fbWrite("preciosExamenes", reg.id, reg);
+    return reg;
+  }
+  function bulkSetPrecios(tenantId, pares) {
+    // pares: [{ examId, precio }]
+    return pares.map(function (par) { return setPrecio(tenantId, par.examId, par.precio); });
+  }
+  function listCotizaciones(tenantId) {
+    var db = loadDB();
+    return db.cotizaciones.filter(function (c) { return c.tenantId === tenantId; }).sort(function (a, b) { return b.creadoEn.localeCompare(a.creadoEn); });
+  }
+  function createCotizacion(data) {
+    var db = loadDB();
+    var c = Object.assign({ id: uid("cot"), creadoEn: nowISO() }, data);
+    db.cotizaciones.push(c);
+    saveDB(db);
+    fbWrite("cotizaciones", c.id, c);
+    return c;
+  }
+
   global.BIO_STORE = {
     seedIfEmpty: seedIfEmpty,
     loadDB: loadDB,
@@ -630,6 +666,10 @@
     qc: {
       listControles: listQCControles, getControl: getQCControl, createControl: createQCControl, updateControl: updateQCControl,
       listLecturas: listQCLecturas, createLectura: createQCLectura
+    },
+    cotizador: {
+      listPrecios: listPrecios, setPrecio: setPrecio, bulkSetPrecios: bulkSetPrecios,
+      listCotizaciones: listCotizaciones, createCotizacion: createCotizacion
     }
   };
 })(window);

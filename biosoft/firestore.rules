@@ -74,6 +74,12 @@ service cloud.firestore {
       match /qcLecturas/{lecturaId} {
         allow read, write: if esDeEsteLab(tenantId);
       }
+      match /preciosExamenes/{precioId} {
+        allow read, write: if esDeEsteLab(tenantId);
+      }
+      match /cotizaciones/{cotizacionId} {
+        allow read, write: if esDeEsteLab(tenantId);
+      }
     }
   }
 }

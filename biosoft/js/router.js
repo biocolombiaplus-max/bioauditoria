@@ -19,7 +19,8 @@
         { route: "hojas-trabajo", label: "Hojas de Trabajo", icon: "printer" },
         { route: "reportes", label: "Reportes y Envíos", icon: "send" },
         { route: "productividad", label: "Productividad Mensual", icon: "activity" },
-        { route: "calidad", label: "Control de Calidad", icon: "shield" }
+        { route: "calidad", label: "Control de Calidad", icon: "shield" },
+        { route: "cotizador", label: "Cotizaciones", icon: "file" }
       ]},
       { sec: "ADMINISTRACIÓN", items: [
         { route: "usuarios", label: "Usuarios y Bacteriólogos", icon: "users" },
@@ -42,7 +43,8 @@
         { route: "pacientes", label: "Pacientes", icon: "users" },
         { route: "ordenes", label: "Órdenes de Laboratorio", icon: "clipboard" },
         { route: "hojas-trabajo", label: "Hojas de Trabajo", icon: "printer" },
-        { route: "reportes", label: "Reportes y Envíos", icon: "send" }
+        { route: "reportes", label: "Reportes y Envíos", icon: "send" },
+        { route: "cotizador", label: "Cotizaciones", icon: "file" }
       ]}
     ]
   };
@@ -117,14 +119,14 @@
     reportes: "Reportes y Envío de Resultados", usuarios: "Usuarios y Bacteriólogos",
     config: "Configuración del Laboratorio", auditoria: "Trazabilidad y Auditoría", tenants: "Laboratorios Cliente",
     catalogo: "Valores de Referencia del Catálogo", productividad: "Productividad Mensual", crm: "Clientes (CRM)",
-    calidad: "Control de Calidad"
+    calidad: "Control de Calidad", cotizador: "Cotizador de Exámenes"
   };
 
   var ALLOWED_ROUTES = {
     superadmin: ["crm", "tenants", "dashboard"],
-    admin: ["dashboard", "pacientes", "ordenes", "resultados", "hojas-trabajo", "reportes", "productividad", "calidad", "usuarios", "config", "auditoria", "catalogo"],
+    admin: ["dashboard", "pacientes", "ordenes", "resultados", "hojas-trabajo", "reportes", "productividad", "calidad", "cotizador", "usuarios", "config", "auditoria", "catalogo"],
     bacteriologo: ["dashboard", "resultados", "hojas-trabajo", "calidad"],
-    recepcion: ["dashboard", "pacientes", "ordenes", "hojas-trabajo", "reportes"]
+    recepcion: ["dashboard", "pacientes", "ordenes", "hojas-trabajo", "reportes", "cotizador"]
   };
 
   function currentRoute() {
