@@ -68,6 +68,12 @@ service cloud.firestore {
         allow read, create: if esDeEsteLab(tenantId);
         allow update, delete: if false;
       }
+      match /qcControles/{controlId} {
+        allow read, write: if esDeEsteLab(tenantId);
+      }
+      match /qcLecturas/{lecturaId} {
+        allow read, write: if esDeEsteLab(tenantId);
+      }
     }
   }
 }

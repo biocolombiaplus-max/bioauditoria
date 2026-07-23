@@ -18,7 +18,8 @@
         { route: "resultados", label: "Resultados", icon: "flask" },
         { route: "hojas-trabajo", label: "Hojas de Trabajo", icon: "printer" },
         { route: "reportes", label: "Reportes y Envíos", icon: "send" },
-        { route: "productividad", label: "Productividad Mensual", icon: "activity" }
+        { route: "productividad", label: "Productividad Mensual", icon: "activity" },
+        { route: "calidad", label: "Control de Calidad", icon: "shield" }
       ]},
       { sec: "ADMINISTRACIÓN", items: [
         { route: "usuarios", label: "Usuarios y Bacteriólogos", icon: "users" },
@@ -31,7 +32,8 @@
       { sec: "GENERAL", items: [{ route: "dashboard", label: "Panel Principal", icon: "home" }] },
       { sec: "OPERACIÓN", items: [
         { route: "resultados", label: "Bandeja de Resultados", icon: "flask" },
-        { route: "hojas-trabajo", label: "Hojas de Trabajo", icon: "printer" }
+        { route: "hojas-trabajo", label: "Hojas de Trabajo", icon: "printer" },
+        { route: "calidad", label: "Control de Calidad", icon: "shield" }
       ]}
     ],
     recepcion: [
@@ -114,13 +116,14 @@
     resultados: "Resultados de Laboratorio", "hojas-trabajo": "Hojas de Trabajo Diarias",
     reportes: "Reportes y Envío de Resultados", usuarios: "Usuarios y Bacteriólogos",
     config: "Configuración del Laboratorio", auditoria: "Trazabilidad y Auditoría", tenants: "Laboratorios Cliente",
-    catalogo: "Valores de Referencia del Catálogo", productividad: "Productividad Mensual", crm: "Clientes (CRM)"
+    catalogo: "Valores de Referencia del Catálogo", productividad: "Productividad Mensual", crm: "Clientes (CRM)",
+    calidad: "Control de Calidad"
   };
 
   var ALLOWED_ROUTES = {
     superadmin: ["crm", "tenants", "dashboard"],
-    admin: ["dashboard", "pacientes", "ordenes", "resultados", "hojas-trabajo", "reportes", "productividad", "usuarios", "config", "auditoria", "catalogo"],
-    bacteriologo: ["dashboard", "resultados", "hojas-trabajo"],
+    admin: ["dashboard", "pacientes", "ordenes", "resultados", "hojas-trabajo", "reportes", "productividad", "calidad", "usuarios", "config", "auditoria", "catalogo"],
+    bacteriologo: ["dashboard", "resultados", "hojas-trabajo", "calidad"],
     recepcion: ["dashboard", "pacientes", "ordenes", "hojas-trabajo", "reportes"]
   };
 

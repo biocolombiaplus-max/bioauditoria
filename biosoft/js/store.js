@@ -81,7 +81,9 @@
       attach("users", "users", false),
       attach("patients", "patients", false),
       attach("orders", "orders", false),
-      attach("auditLog", "auditLog", false)
+      attach("auditLog", "auditLog", false),
+      attach("qcControles", "qcControles", false),
+      attach("qcLecturas", "qcLecturas", false)
     ]).then(function () { return realCache; });
   }
 
@@ -274,7 +276,7 @@
   }
 
   function emptyDB() {
-    return { tenants: {}, users: [], patients: [], orders: [], auditLog: [] };
+    return { tenants: {}, users: [], patients: [], orders: [], auditLog: [], qcControles: [], qcLecturas: [] };
   }
 
   // ---------------------------------------------------------------------
@@ -546,6 +548,48 @@
     return order.estadoGeneral;
   }
 
+  // ---------------------------------------------------------------------
+  // CONTROL DE CALIDAD (Westgard) — controles por lote/nivel y sus lecturas
+  // diarias, por laboratorio (tenant).
+  // ---------------------------------------------------------------------
+  function listQCControles(tenantId) {
+    var db = loadDB();
+    return db.qcControles.filter(function (c) { return c.tenantId === tenantId; }).sort(function (a, b) { return (a.seccion + a.analitoNombre).localeCompare(b.seccion + b.analitoNombre); });
+  }
+  function getQCControl(id) {
+    var db = loadDB();
+    return db.qcControles.filter(function (c) { return c.id === id; })[0];
+  }
+  function createQCControl(data) {
+    var db = loadDB();
+    var c = Object.assign({ id: uid("qcc"), activo: true, creadoEn: nowISO() }, data);
+    db.qcControles.push(c);
+    saveDB(db);
+    fbWrite("qcControles", c.id, c);
+    return c;
+  }
+  function updateQCControl(id, patch) {
+    var db = loadDB();
+    var c = db.qcControles.filter(function (x) { return x.id === id; })[0];
+    if (!c) return null;
+    Object.assign(c, patch);
+    saveDB(db);
+    fbWrite("qcControles", c.id, c);
+    return c;
+  }
+  function listQCLecturas(controlId) {
+    var db = loadDB();
+    return db.qcLecturas.filter(function (l) { return l.controlId === controlId; }).sort(function (a, b) { return a.fecha.localeCompare(b.fecha); });
+  }
+  function createQCLectura(data) {
+    var db = loadDB();
+    var l = Object.assign({ id: uid("qcl"), creadoEn: nowISO() }, data);
+    db.qcLecturas.push(l);
+    saveDB(db);
+    fbWrite("qcLecturas", l.id, l);
+    return l;
+  }
+
   global.BIO_STORE = {
     seedIfEmpty: seedIfEmpty,
     loadDB: loadDB,
@@ -582,6 +626,10 @@
     restoreRealtime: restoreRealtime,
     restoreSuperadminSession: restoreSuperadminSession,
     crm: { list: crmList, watch: crmWatch, create: crmCreate, update: crmUpdate },
-    plantillas: { list: plantillasList, watch: plantillasWatch, create: plantillasCreate, update: plantillasUpdate, remove: plantillasDelete }
+    plantillas: { list: plantillasList, watch: plantillasWatch, create: plantillasCreate, update: plantillasUpdate, remove: plantillasDelete },
+    qc: {
+      listControles: listQCControles, getControl: getQCControl, createControl: createQCControl, updateControl: updateQCControl,
+      listLecturas: listQCLecturas, createLectura: createQCLectura
+    }
   };
 })(window);
