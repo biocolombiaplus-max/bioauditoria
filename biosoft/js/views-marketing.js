@@ -188,7 +188,7 @@
       kicker: CATEGORIAS[1].kicker, titulo: CATEGORIAS[1].titulo, subtitulo: CATEGORIAS[1].subtitulo,
       c1: CATEGORIAS[1].c1, c2: CATEGORIAS[1].c2, mostrarGuia: true,
       posicionTexto: "arriba", tituloTam: "mediano",
-      fondos: [], fondoActivoId: null, fondoImg: null
+      fondos: [], fondoActivoId: null, fondoImg: null, logoImg: null
     };
 
     function buildImagenesHtml() {
@@ -291,6 +291,12 @@
 
       renderSwatches();
       renderGaleria();
+
+      if (tenant && tenant.logoDataUrl && !mktgState.logoImg) {
+        var logoImg = new Image();
+        logoImg.onload = function () { mktgState.logoImg = logoImg; redibujar(); };
+        logoImg.src = tenant.logoDataUrl;
+      }
 
       $("mktg-categoria").addEventListener("change", function (e) {
         var cat = CATEGORIAS.filter(function (c) { return c.id === e.target.value; })[0];
@@ -401,8 +407,14 @@
       totalH += lineasTitulo.length * tituloLineH;
       totalH += w * 0.02 + lineasSub.length * subLineH;
 
+      var footerLogoD = st.logoImg ? w * 0.11 : 0;
+      var footerLogoGap = st.logoImg ? w * 0.06 : 0;
+      var footerNameH = w * 0.05;
+      var footerPhoneH = (tenant && (tenant.telefonos || tenant.whatsapp)) ? w * 0.045 : 0;
+      var footerBlockH = footerLogoD + footerLogoGap + footerNameH + footerPhoneH + w * 0.05;
+
       var zoneTop = margenTop;
-      var zoneBottom = h - margenBottom - h * 0.05;
+      var zoneBottom = h - margenBottom - footerBlockH;
       var y;
       if (st.posicionTexto === "centro") y = zoneTop + Math.max(0, (zoneBottom - zoneTop - totalH) / 2);
       else if (st.posicionTexto === "abajo") y = Math.max(zoneTop, zoneBottom - totalH);
@@ -440,10 +452,32 @@
         y += subLineH;
       });
 
-      // Pie con nombre del laboratorio
+      // Pie con logo y nombre del laboratorio
       var footerY = h - margenBottom;
+      if (st.logoImg) {
+        var logoD = w * 0.11;
+        var logoCy = footerY - w * 0.06 - logoD / 2;
+        ctx.save();
+        ctx.beginPath();
+        ctx.arc(cx, logoCy, logoD / 2, 0, Math.PI * 2);
+        ctx.closePath();
+        ctx.fillStyle = "rgba(255,255,255,.95)";
+        ctx.fill();
+        ctx.clip();
+        var li = st.logoImg;
+        var lesc = Math.max(logoD / li.width, logoD / li.height);
+        var lw = li.width * lesc, lh = li.height * lesc;
+        ctx.drawImage(li, cx - lw / 2, logoCy - lh / 2, lw, lh);
+        ctx.restore();
+        ctx.beginPath();
+        ctx.arc(cx, logoCy, logoD / 2, 0, Math.PI * 2);
+        ctx.strokeStyle = "rgba(255,255,255,.85)";
+        ctx.lineWidth = Math.max(2, w * 0.003);
+        ctx.stroke();
+      }
       ctx.font = "700 " + Math.round(w * 0.036) + "px Poppins, Arial, sans-serif";
       ctx.fillStyle = "#fff";
+      ctx.textAlign = "center";
       ctx.fillText((tenant && tenant.nombre) || "BIOsoft", cx, footerY);
       if (tenant && (tenant.telefonos || tenant.whatsapp)) {
         ctx.font = "500 " + Math.round(w * 0.028) + "px Arial, sans-serif";
