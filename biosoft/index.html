@@ -107,10 +107,19 @@ fbq('track', 'PageView');
   .lp-modal-plan .amount-usd { font-size: 11px; color: var(--text-muted); margin-bottom: 10px; }
   .lp-modal-plan-actions { margin-top: auto; }
   @media (max-width: 640px) { .lp-modal-plans { grid-template-columns: 1fr; } }
-  .lp-hero-countries { display:flex; align-items:center; justify-content:center; gap:8px; margin-top:24px; flex-wrap:wrap; }
-  .lp-hero-flag-main { font-size:28px; line-height:1; filter: drop-shadow(0 2px 6px rgba(0,0,0,.35)); }
-  .lp-hero-countries-text { font-size:14.5px; font-weight:700; color:#fff; margin-left:6px; }
-  .lp-hero-latam { margin: 10px auto 0; max-width:480px; font-size:12px; color:rgba(255,255,255,.55); font-weight:600; letter-spacing:.01em; }
+  .lp-ai-badge {
+    display:inline-flex; align-items:center; gap:8px; margin: 14px auto 20px; padding: 9px 22px;
+    border-radius: 30px; font-size: 13.5px; font-weight: 800; color:#fff; letter-spacing:.02em;
+    background: linear-gradient(135deg, rgba(124,58,237,.4), rgba(236,72,153,.35));
+    border: 1px solid rgba(255,255,255,.35); backdrop-filter: blur(6px);
+    animation: lpAiGlow 2.4s ease-in-out infinite;
+  }
+  @keyframes lpAiGlow {
+    0%, 100% { box-shadow: 0 0 16px rgba(168,85,247,.3); }
+    50% { box-shadow: 0 0 32px rgba(236,72,153,.5); }
+  }
+  .lp-hero-countries-line { margin: 22px auto 0; font-size:14.5px; font-weight:700; color:rgba(255,255,255,.82); }
+  .lp-trust-bar { margin: 22px auto 0; max-width:600px; font-size:12px; color:rgba(255,255,255,.5); font-weight:600; letter-spacing:.01em; }
   .lp-scroll-cue {
     display:flex; flex-direction:column; align-items:center; gap:4px; margin-top:34px;
     color: rgba(255,255,255,.5); font-size:11.5px; font-weight:700; text-decoration:none;
@@ -325,20 +334,16 @@ fbq('track', 'PageView');
 
   <section class="lp-hero">
     <img src="assets/logo-biosoft.png" alt="BIOsoft, software para laboratorio clínico" class="lp-hero-logo"/>
-    <div class="lp-hero-countries">
-      <span class="lp-hero-flag-main" title="Colombia">🇨🇴</span>
-      <span class="lp-hero-flag-main" title="Venezuela">🇻🇪</span>
-      <span class="lp-hero-flag-main" title="Ecuador">🇪🇨</span>
-      <span class="lp-hero-countries-text">Colombia · Venezuela · Ecuador</span>
-    </div>
-    <p class="lp-hero-latam">🌎 + México, Perú, Argentina, Bolivia, Brasil y toda Latinoamérica · Primer y Segundo Nivel</p>
-    <h1>El software de laboratorio clínico <span>premium</span>, hecho para bacteriólogos y bioanalistas</h1>
-    <p>Deja de armar y enviar resultados a mano en Word o Excel. BIOsoft gestiona pacientes, resultados, validación por bacteriólogo, trazabilidad total y reportes en PDF de nivel mundial — 100% personalizado con tu logo, colores, firmas y catálogo de exámenes, con pago mensual accesible, sin la inversión millonaria que piden otros software.</p>
+    <div class="lp-ai-badge">🤖 <span>Con Inteligencia Artificial</span></div>
+    <h1>El software de laboratorio clínico con <span>Inteligencia Artificial</span>, hecho para bacteriólogos y bioanalistas</h1>
+    <p>Deja de armar resultados a mano en Word o Excel. BIOsoft gestiona pacientes, resultados, validación por bacteriólogo y reportes en PDF de nivel mundial — y ahora analiza tu Control de Calidad con Inteligencia Artificial, detectando errores antes de liberar resultados. 100% personalizado, con pago mensual accesible.</p>
+    <p class="lp-hero-countries-line">🇨🇴 Colombia · 🇻🇪 Venezuela · 🇪🇨 Ecuador · 🌎 y toda Latinoamérica</p>
     <div class="lp-cta-row">
       <a class="btn btn-primary btn-glow-brand" href="app.html">🚀 Ver Demo Gratis Ahora</a>
       <a class="btn btn-whatsapp wa-link" href="#" target="_blank" rel="noopener">🛒 Comprar por WhatsApp</a>
     </div>
     <button type="button" class="lp-btn-iniciar-ya" id="btn-iniciar-ya-hero">🔥 Iniciar Ya</button>
+    <p class="lp-trust-bar">🤖 Análisis con IA &nbsp;·&nbsp; 🔒 100% Seguro &nbsp;·&nbsp; ⚡ Activación en 7 días &nbsp;·&nbsp; 📱 App para tu celular</p>
     <a href="#demo-preview" class="lp-scroll-cue" aria-label="Desplázate para ver más">
       <span>Descubre más</span>
       <span class="lp-scroll-chevron">⌄</span>
