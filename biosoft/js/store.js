@@ -85,7 +85,9 @@
       attach("qcControles", "qcControles", false),
       attach("qcLecturas", "qcLecturas", false),
       attach("preciosExamenes", "preciosExamenes", false),
-      attach("cotizaciones", "cotizaciones", false)
+      attach("cotizaciones", "cotizaciones", false),
+      attach("reglasRemarketing", "reglasRemarketing", false),
+      attach("remarketingContactos", "remarketingContactos", false)
     ]).then(function () { return realCache; });
   }
 
@@ -278,7 +280,7 @@
   }
 
   function emptyDB() {
-    return { tenants: {}, users: [], patients: [], orders: [], auditLog: [], qcControles: [], qcLecturas: [], preciosExamenes: [], cotizaciones: [] };
+    return { tenants: {}, users: [], patients: [], orders: [], auditLog: [], qcControles: [], qcLecturas: [], preciosExamenes: [], cotizaciones: [], reglasRemarketing: [], remarketingContactos: [] };
   }
 
   // ---------------------------------------------------------------------
@@ -626,6 +628,47 @@
     return c;
   }
 
+  // ---------------------------------------------------------------------
+  // MARKETING DIGITAL — reglas de remarketing (recall clínico) y registro de
+  // contactos ya enviados, por laboratorio (tenant).
+  // ---------------------------------------------------------------------
+  function listReglasRemarketing(tenantId) {
+    var db = loadDB();
+    return db.reglasRemarketing.filter(function (r) { return r.tenantId === tenantId; });
+  }
+  function bulkCreateReglasRemarketing(tenantId, reglas) {
+    var db = loadDB();
+    var creadas = reglas.map(function (r) {
+      var reg = Object.assign({}, r, { id: uid("rmk"), tenantId: tenantId, creadoEn: nowISO() });
+      db.reglasRemarketing.push(reg);
+      return reg;
+    });
+    saveDB(db);
+    creadas.forEach(function (reg) { fbWrite("reglasRemarketing", reg.id, reg); });
+    return creadas;
+  }
+  function updateReglaRemarketing(id, patch) {
+    var db = loadDB();
+    var reg = db.reglasRemarketing.filter(function (r) { return r.id === id; })[0];
+    if (!reg) return null;
+    Object.assign(reg, patch);
+    saveDB(db);
+    fbWrite("reglasRemarketing", reg.id, reg);
+    return reg;
+  }
+  function listRemarketingContactos(tenantId) {
+    var db = loadDB();
+    return db.remarketingContactos.filter(function (c) { return c.tenantId === tenantId; });
+  }
+  function registrarContactoRemarketing(data) {
+    var db = loadDB();
+    var c = Object.assign({ id: uid("rkc"), fecha: nowISO() }, data);
+    db.remarketingContactos.push(c);
+    saveDB(db);
+    fbWrite("remarketingContactos", c.id, c);
+    return c;
+  }
+
   global.BIO_STORE = {
     seedIfEmpty: seedIfEmpty,
     loadDB: loadDB,
@@ -670,6 +713,10 @@
     cotizador: {
       listPrecios: listPrecios, setPrecio: setPrecio, bulkSetPrecios: bulkSetPrecios,
       listCotizaciones: listCotizaciones, createCotizacion: createCotizacion
+    },
+    remarketing: {
+      listReglas: listReglasRemarketing, bulkCreateReglas: bulkCreateReglasRemarketing, updateRegla: updateReglaRemarketing,
+      listContactos: listRemarketingContactos, registrarContacto: registrarContactoRemarketing
     }
   };
 })(window);

@@ -355,6 +355,33 @@ tbody tr:hover { background: var(--surface-2); }
   .role-tab { text-align: center; padding: 9px 10px; }
 }
 
+/* ---------------- Marketing Digital ---------------- */
+.callout-ia {
+  margin-top: 14px; background: linear-gradient(135deg, color-mix(in srgb, var(--brand-primary) 10%, #fff), color-mix(in srgb, var(--brand-secondary) 10%, #fff));
+  border: 1.5px solid color-mix(in srgb, var(--brand-secondary) 26%, var(--border)); border-radius: 14px; padding: 16px 20px; font-size: 13.5px; line-height: 1.55; color: var(--text);
+}
+.callout-ia b { color: var(--brand-secondary); }
+
+.switch { position: relative; display: inline-block; width: 42px; height: 24px; }
+.switch input { opacity: 0; width: 0; height: 0; }
+.switch .slider { position: absolute; cursor: pointer; inset: 0; background: #cbd5e1; border-radius: 24px; transition: background .2s ease; }
+.switch .slider::before { content: ""; position: absolute; height: 18px; width: 18px; left: 3px; top: 3px; background: #fff; border-radius: 50%; transition: transform .2s ease; box-shadow: 0 1px 3px rgba(0,0,0,.2); }
+.switch input:checked + .slider { background: var(--brand-primary); }
+.switch input:checked + .slider::before { transform: translateX(18px); }
+
+.mktg-editor { display: grid; grid-template-columns: 340px 1fr; gap: 24px; margin-top: 10px; align-items: start; }
+.mktg-controls { display: flex; flex-direction: column; gap: 12px; }
+.mktg-controls textarea { resize: vertical; font-family: inherit; }
+.mktg-swatches { display: flex; gap: 8px; flex-wrap: wrap; }
+.mktg-swatch { width: 34px; height: 34px; border-radius: 50%; border: 2px solid #fff; box-shadow: 0 0 0 1px var(--border); cursor: pointer; transition: transform .15s ease; padding: 0; }
+.mktg-swatch:hover { transform: scale(1.12); }
+.mktg-canvas-wrap { display: flex; justify-content: center; align-items: flex-start; background: var(--surface-2); border-radius: var(--radius-sm); border: 1px solid var(--border); padding: 20px; position: sticky; top: 12px; }
+.mktg-canvas-wrap canvas { width: 100%; max-width: 300px; height: auto; border-radius: 14px; box-shadow: 0 20px 44px -16px rgba(15,23,42,.35); display: block; }
+@media (max-width: 900px) {
+  .mktg-editor { grid-template-columns: 1fr; }
+  .mktg-canvas-wrap { position: static; }
+}
+
 /* ---------------- Impresión ---------------- */
 @media print {
   .no-print, .sidebar, .topbar, .demo-banner, .toast-stack { display: none !important; }

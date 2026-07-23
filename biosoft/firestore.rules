@@ -80,6 +80,12 @@ service cloud.firestore {
       match /cotizaciones/{cotizacionId} {
         allow read, write: if esDeEsteLab(tenantId);
       }
+      match /reglasRemarketing/{reglaId} {
+        allow read, write: if esDeEsteLab(tenantId);
+      }
+      match /remarketingContactos/{contactoId} {
+        allow read, write: if esDeEsteLab(tenantId);
+      }
     }
   }
 }
