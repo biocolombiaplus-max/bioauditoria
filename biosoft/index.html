@@ -174,6 +174,22 @@ fbq('track', 'PageView');
   .lp-pdf-feature { display: flex; align-items: center; gap: 10px; font-size: 14.5px; font-weight: 600; color: var(--text); }
   .lp-pdf-feature span { font-size: 18px; }
 
+  .lp-cot-urgencia {
+    margin-top: 6px; background: linear-gradient(135deg, color-mix(in srgb, var(--lp-orange) 14%, #fff), color-mix(in srgb, var(--lp-pink) 12%, #fff));
+    border: 1.5px solid color-mix(in srgb, var(--lp-pink) 34%, var(--border)); border-radius: 16px; padding: 16px 20px;
+    box-shadow: 0 16px 36px -18px rgba(236,72,153,.35); animation: lpUrgPulse 2.4s ease-in-out infinite;
+  }
+  @keyframes lpUrgPulse {
+    0%, 100% { box-shadow: 0 16px 36px -18px rgba(236,72,153,.35); }
+    50% { box-shadow: 0 16px 44px -14px rgba(236,72,153,.55); }
+  }
+  .lp-cot-urgencia-tag { display:inline-block; background: linear-gradient(90deg,var(--lp-pink),var(--lp-orange)); color:#fff; font-weight:800; font-size:11px; letter-spacing:.03em; padding:5px 14px; border-radius:20px; margin-bottom:10px; }
+  .lp-cot-urgencia p { margin: 0 0 8px; font-size: 13.5px; line-height: 1.55; color: var(--text); }
+  .lp-cot-urgencia ul { list-style:none; margin:0; padding:0; display:flex; flex-direction:column; gap:6px; }
+  .lp-cot-urgencia li { font-size:13px; font-weight:700; color: var(--text); padding-left:20px; position:relative; }
+  .lp-cot-urgencia li::before { content:"🎁"; position:absolute; left:0; top:-1px; font-size:12px; }
+  .lp-cot-urgencia b { color: var(--brand-secondary); }
+
   .lp-compare-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 22px; max-width: 980px; margin: 0 auto; }
   .lp-compare-col { border-radius: var(--radius); padding: 26px 24px; }
   .lp-compare-bad { background: var(--surface-2); border: 1.5px solid var(--border); }
@@ -445,6 +461,36 @@ fbq('track', 'PageView');
     </div>
   </section>
 
+  <section class="lp-section lp-pdf-section" id="cotizador">
+    <div class="lp-pdf-kicker">😰 ¿Pierdes clientes por no cotizar a tiempo?</div>
+    <h2>Cotiza exámenes en segundos — no dejes que un cliente se vaya con la competencia</h2>
+    <p class="lead">Cotizar es uno de los procesos que más tiempo le quita a un laboratorio, y la razón número 1 por la que se pierden clientes: mensajes que no se contestan a tiempo, precios que hay que buscar uno por uno. El nuevo Cotizador de BIOsoft busca, selecciona y envía una cotización profesional por WhatsApp o correo en menos de un minuto.</p>
+    <div class="lp-pdf-showcase">
+      <div class="lp-pdf-image-wrap">
+        <span class="lp-nuevo-badge">✨ NUEVO</span>
+        <img src="assets/screenshots/cotizador.jpg" alt="Módulo de Cotización de Exámenes de BIOsoft, con selección rápida de exámenes y precios" class="lp-pdf-image"/>
+      </div>
+      <div class="lp-pdf-side">
+        <div class="lp-pdf-feature"><span>🔎</span> Busca y selecciona exámenes al instante, rápido e intuitivo</div>
+        <div class="lp-pdf-feature"><span>💲</span> Pon tus propios precios, uno por uno o cargando un Excel completo</div>
+        <div class="lp-pdf-feature"><span>📄</span> Genera una cotización profesional en PDF con tu marca</div>
+        <div class="lp-pdf-feature"><span>📲</span> Envío inmediato por WhatsApp o correo, con un clic</div>
+        <div class="lp-pdf-feature"><span>🗂️</span> Historial de todas tus cotizaciones, listas para reenviar</div>
+        <div class="lp-cot-urgencia">
+          <span class="lp-cot-urgencia-tag">🔥 Cupos limitados esta semana</span>
+          <p>Quienes reserven <b>BIOsoft esta semana</b> reciben incluidos, sin costo adicional:</p>
+          <ul>
+            <li>Módulo de Cotización de Exámenes</li>
+            <li>Control de Calidad con Inteligencia Artificial</li>
+            <li>Aplicación móvil para tu celular</li>
+          </ul>
+        </div>
+        <a class="btn btn-primary btn-glow-brand btn-block" href="app.html">🚀 Ver Demo Gratis</a>
+        <a class="btn btn-whatsapp btn-block" id="wa-cotizador-lp" href="#" target="_blank" rel="noopener">🔥 Reservar esta semana por WhatsApp</a>
+      </div>
+    </div>
+  </section>
+
   <section class="lp-section" id="funciones">
     <h2>Todo lo que un laboratorio moderno necesita</h2>
     <p class="lead">Un sistema completo, pensado desde la operación diaria hasta la gerencia del laboratorio.</p>
@@ -678,6 +724,7 @@ fbq('track', 'PageView');
         "</div>";
     }).join("");
     document.getElementById("wa-cotizacion").href = waLink("Hola, mi laboratorio necesita más de 10 usuarios o varias sedes. ¿Me ayudas con una cotización personalizada de BIOsoft?");
+    document.getElementById("wa-cotizador-lp").href = waLink("Hola 👋 quiero reservar esta semana BIOsoft con el módulo de Cotización de Exámenes + Control de Calidad con IA + App móvil incluidos. ¿Me ayudan a activarlo?");
 
     // ===== Flujo "Iniciar Ya": elegir plan → directo a WhatsApp =====
     function lpModal(innerHtml, opts) {
