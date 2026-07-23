@@ -196,6 +196,20 @@ fbq('track', 'PageView');
   .lp-cot-urgencia b { color: var(--brand-secondary); }
   .lp-mktg-subtitulo { text-align: center; font-size: 20px; margin: 0 0 8px; }
 
+  .lp-countdown-box {
+    max-width: 640px; margin: 30px auto 0; text-align: center; background: linear-gradient(135deg, color-mix(in srgb, var(--lp-purple) 12%, #fff), color-mix(in srgb, var(--lp-orange) 10%, #fff));
+    border: 1.5px solid color-mix(in srgb, var(--lp-purple) 30%, var(--border)); border-radius: 20px; padding: 26px 24px;
+    box-shadow: 0 20px 44px -18px rgba(124,58,237,.35);
+  }
+  .lp-countdown-tag { display:inline-block; background: linear-gradient(90deg,var(--lp-pink),var(--lp-orange)); color:#fff; font-weight:800; font-size:11.5px; letter-spacing:.04em; padding:6px 16px; border-radius:20px; margin-bottom:6px; }
+  .lp-countdown-box p { margin: 4px 0 18px; font-size: 14.5px; color: var(--text); }
+  .lp-countdown-box p b { color: var(--brand-secondary); }
+  .lp-countdown { display: flex; justify-content: center; gap: 12px; flex-wrap: wrap; }
+  .lp-countdown-unit { background: #0f172a; color: #fff; border-radius: 14px; padding: 12px 6px; width: 78px; box-shadow: 0 10px 24px -10px rgba(15,23,42,.5); }
+  .lp-countdown-num { font-family: 'Poppins', sans-serif; font-weight: 800; font-size: 30px; line-height: 1; font-variant-numeric: tabular-nums; }
+  .lp-countdown-label { font-size: 10px; font-weight: 700; letter-spacing: .06em; text-transform: uppercase; color: rgba(255,255,255,.6); margin-top: 4px; }
+  @media (max-width: 480px) { .lp-countdown-unit { width: 64px; padding: 10px 4px; } .lp-countdown-num { font-size: 24px; } }
+
   .lp-compare-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 22px; max-width: 980px; margin: 0 auto; }
   .lp-compare-col { border-radius: var(--radius); padding: 26px 24px; }
   .lp-compare-bad { background: var(--surface-2); border: 1.5px solid var(--border); }
@@ -541,6 +555,40 @@ fbq('track', 'PageView');
     </div>
   </section>
 
+  <section class="lp-section lp-pdf-section" id="inventario">
+    <div class="lp-pdf-kicker">🆕 NUEVO SERVICIO</div>
+    <h2>Controla tus reactivos e inventario como los grandes laboratorios</h2>
+    <p class="lead">Configura cuánto reactivo consume cada examen y BIOsoft descuenta el stock solo, cada vez que se ingresa un resultado. Olvídate de las planillas de Excel: ten tu Kardex, tus costos y tus alertas de vencimiento en un solo lugar — 100% personalizado a la forma de trabajar de tu laboratorio.</p>
+    <div class="lp-pdf-showcase">
+      <div class="lp-pdf-image-wrap">
+        <span class="lp-nuevo-badge">✨ NUEVO</span>
+        <img src="assets/screenshots/inventario.jpg" alt="Módulo de Control de Inventario y Reactivos de BIOsoft, con alertas de stock bajo, costos y Kardex profesional" class="lp-pdf-image"/>
+      </div>
+      <div class="lp-pdf-side">
+        <div class="lp-pdf-feature"><span>🧪</span> Descuento automático de reactivos por cada examen realizado</div>
+        <div class="lp-pdf-feature"><span>📋</span> Kardex profesional de cada movimiento: entradas, salidas y ajustes</div>
+        <div class="lp-pdf-feature"><span>💰</span> Costeo promedio ponderado y reporte de gasto de reactivos en PDF</div>
+        <div class="lp-pdf-feature"><span>⏳</span> Alertas de stock mínimo y vencimiento de lotes</div>
+        <div class="lp-pdf-feature"><span>📦</span> Inventario valorizado a costo, listo para tu contador</div>
+      </div>
+    </div>
+
+    <div class="lp-countdown-box">
+      <span class="lp-countdown-tag">🎁 Incluido sin costo si reservas esta semana</span>
+      <p>Este nuevo servicio de <b>Control de Inventario y Reactivos</b> se lo regalamos a quienes adquieran BIOsoft antes de que termine esta semana.</p>
+      <div class="lp-countdown" id="lp-countdown">
+        <div class="lp-countdown-unit"><div class="lp-countdown-num" id="cd-dias">00</div><div class="lp-countdown-label">Días</div></div>
+        <div class="lp-countdown-unit"><div class="lp-countdown-num" id="cd-horas">00</div><div class="lp-countdown-label">Horas</div></div>
+        <div class="lp-countdown-unit"><div class="lp-countdown-num" id="cd-min">00</div><div class="lp-countdown-label">Min</div></div>
+        <div class="lp-countdown-unit"><div class="lp-countdown-num" id="cd-seg">00</div><div class="lp-countdown-label">Seg</div></div>
+      </div>
+    </div>
+    <div class="lp-cta-row" style="margin-top:20px">
+      <a class="btn btn-primary btn-glow-brand" href="app.html">🚀 Ver Demo Gratis</a>
+      <a class="btn btn-whatsapp" id="wa-inventario-lp" href="#" target="_blank" rel="noopener">🔥 Reservar esta semana por WhatsApp</a>
+    </div>
+  </section>
+
   <section class="lp-section" id="funciones">
     <h2>Todo lo que un laboratorio moderno necesita</h2>
     <p class="lead">Un sistema completo, pensado desde la operación diaria hasta la gerencia del laboratorio.</p>
@@ -776,6 +824,32 @@ fbq('track', 'PageView');
     document.getElementById("wa-cotizacion").href = waLink("Hola, mi laboratorio necesita más de 10 usuarios o varias sedes. ¿Me ayudas con una cotización personalizada de BIOsoft?");
     document.getElementById("wa-cotizador-lp").href = waLink("Hola 👋 quiero reservar esta semana BIOsoft con el módulo de Cotización de Exámenes + Control de Calidad con IA + App móvil incluidos. ¿Me ayudan a activarlo?");
     document.getElementById("wa-marketing-lp").href = waLink("Hola 👋 vi el módulo de Marketing Digital con IA (Remarketing + Creador de Imágenes) de BIOsoft y quiero activarlo esta semana con acompañamiento personalizado. ¿Me ayudan?");
+    document.getElementById("wa-inventario-lp").href = waLink("Hola 👋 vi el módulo de Control de Inventario y Reactivos con Kardex de BIOsoft y quiero reservarlo esta semana para que me lo incluyan sin costo. ¿Me ayudan a activarlo?");
+
+    // ===== Cuenta regresiva hasta el fin de esta semana (domingo 23:59) =====
+    function finDeEstaSemana() {
+      var ahora = new Date();
+      var diasHastaDomingo = (7 - ahora.getDay()) % 7;
+      var fin = new Date(ahora.getFullYear(), ahora.getMonth(), ahora.getDate() + diasHastaDomingo, 23, 59, 59, 0);
+      if (fin <= ahora) fin.setDate(fin.getDate() + 7);
+      return fin;
+    }
+    function actualizarCountdown() {
+      var el = document.getElementById("lp-countdown");
+      if (!el) return;
+      var restante = finDeEstaSemana() - new Date();
+      var dias = Math.floor(restante / 864e5);
+      var horas = Math.floor((restante % 864e5) / 36e5);
+      var min = Math.floor((restante % 36e5) / 6e4);
+      var seg = Math.floor((restante % 6e4) / 1000);
+      var pad = function (n) { return String(Math.max(0, n)).padStart(2, "0"); };
+      document.getElementById("cd-dias").textContent = pad(dias);
+      document.getElementById("cd-horas").textContent = pad(horas);
+      document.getElementById("cd-min").textContent = pad(min);
+      document.getElementById("cd-seg").textContent = pad(seg);
+    }
+    actualizarCountdown();
+    setInterval(actualizarCountdown, 1000);
 
     // ===== Flujo "Iniciar Ya": elegir plan → directo a WhatsApp =====
     function lpModal(innerHtml, opts) {
