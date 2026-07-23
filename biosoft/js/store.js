@@ -173,9 +173,17 @@
   // solo accesible por el superadmin real. No pasa por el "espejo" de
   // tenant: cada función habla directo con Firestore y devuelve Promesas.
   // -----------------------------------------------------------------------
+  // Firebase puede no estar disponible (SDK bloqueado, sin internet, etc.).
+  // Estas funciones nunca deben lanzar de forma síncrona: siempre devuelven
+  // una promesa rechazada (o un unsubscribe vacío) para que el .catch() del
+  // llamador pueda mostrar un mensaje amigable en vez de tronar la vista.
+  function firebaseDisponible() { return !!global.BIO_FB; }
+  function errorFirebaseNoDisponible() { return new Error("No se pudo conectar con el servidor. Verifica tu conexión a internet."); }
+
   function crmColl() { return global.BIO_FB.db.collection("crmClientes"); }
 
   function crmList() {
+    if (!firebaseDisponible()) return Promise.reject(errorFirebaseNoDisponible());
     return crmColl().get().then(function (snap) {
       var out = [];
       snap.forEach(function (doc) { out.push(doc.data()); });
@@ -184,14 +192,17 @@
     });
   }
   function crmWatch(onChange) {
+    if (!firebaseDisponible()) return function () {};
     return crmColl().onSnapshot(function () { onChange(); }, function (err) { console.error("BIOsoft CRM listener error:", err); });
   }
   function crmCreate(data) {
+    if (!firebaseDisponible()) return Promise.reject(errorFirebaseNoDisponible());
     var id = uid("crm");
     var doc = Object.assign({ estado: "nuevo", creadoEn: nowISO() }, data, { id: id });
     return crmColl().doc(id).set(doc).then(function () { return doc; });
   }
   function crmUpdate(id, patch) {
+    if (!firebaseDisponible()) return Promise.reject(errorFirebaseNoDisponible());
     return crmColl().doc(id).update(patch);
   }
 
@@ -201,6 +212,7 @@
   function plantillasColl() { return global.BIO_FB.db.collection("crmPlantillas"); }
 
   function plantillasList() {
+    if (!firebaseDisponible()) return Promise.reject(errorFirebaseNoDisponible());
     return plantillasColl().get().then(function (snap) {
       var out = [];
       snap.forEach(function (doc) { out.push(doc.data()); });
@@ -209,17 +221,21 @@
     });
   }
   function plantillasWatch(onChange) {
+    if (!firebaseDisponible()) return function () {};
     return plantillasColl().onSnapshot(function () { onChange(); }, function (err) { console.error("BIOsoft plantillas listener error:", err); });
   }
   function plantillasCreate(data) {
+    if (!firebaseDisponible()) return Promise.reject(errorFirebaseNoDisponible());
     var id = uid("tpl");
     var doc = Object.assign({ creadoEn: nowISO() }, data, { id: id });
     return plantillasColl().doc(id).set(doc).then(function () { return doc; });
   }
   function plantillasUpdate(id, patch) {
+    if (!firebaseDisponible()) return Promise.reject(errorFirebaseNoDisponible());
     return plantillasColl().doc(id).update(patch);
   }
   function plantillasDelete(id) {
+    if (!firebaseDisponible()) return Promise.reject(errorFirebaseNoDisponible());
     return plantillasColl().doc(id).delete();
   }
 

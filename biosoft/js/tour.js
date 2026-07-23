@@ -100,11 +100,15 @@
     tooltip.style.left = left + "px";
   }
 
+  var renderToken = 0;
+
   function render() {
+    var miToken = ++renderToken;
     var step = steps[idx];
     if (step.tipo === "modal") {
       spotlight.style.display = "none";
       tooltip.style.display = "none";
+      tooltip.innerHTML = "";
       modalWrap.style.display = "flex";
       modalWrap.innerHTML =
         '<div class="tour-modal-card">' +
@@ -120,10 +124,12 @@
     }
 
     modalWrap.style.display = "none";
+    modalWrap.innerHTML = "";
     if (isMobile()) abrirSidebarMobile(!!step.mobile);
 
     requestAnimationFrame(function () {
       setTimeout(function () {
+        if (miToken !== renderToken) return; // una llamada a render() más nueva ya tomó el control
         var rect = posicionarSpot(step.target);
         if (!rect) { siguiente(); return; }
         spotlight.style.display = "block";
