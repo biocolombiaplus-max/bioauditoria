@@ -189,6 +189,7 @@ fbq('track', 'PageView');
   .lp-cot-urgencia li { font-size:13px; font-weight:700; color: var(--text); padding-left:20px; position:relative; }
   .lp-cot-urgencia li::before { content:"🎁"; position:absolute; left:0; top:-1px; font-size:12px; }
   .lp-cot-urgencia b { color: var(--brand-secondary); }
+  .lp-mktg-subtitulo { text-align: center; font-size: 20px; margin: 0 0 8px; }
 
   .lp-compare-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 22px; max-width: 980px; margin: 0 auto; }
   .lp-compare-col { border-radius: var(--radius); padding: 26px 24px; }
@@ -491,6 +492,50 @@ fbq('track', 'PageView');
     </div>
   </section>
 
+  <section class="lp-section lp-pdf-section" id="marketing-digital">
+    <div class="lp-pdf-kicker">🤖 EXCLUSIVO EN BIOSOFT — Ningún otro software de laboratorio lo tiene</div>
+    <h2>Un equipo de Inteligencia Artificial trabajando 24/7 para traerte pacientes</h2>
+    <p class="lead">Mientras tú atiendes el laboratorio, BIOsoft revisa solo tu base de pacientes, cruza edad, género e historial de exámenes, y te dice exactamente a quién contactar hoy para que vuelva — con el mensaje ya redactado. Tú solo apruebas el envío con un clic, manteniendo el control total. Además, crea imágenes profesionales para tus redes en segundos.</p>
+
+    <h3 class="lp-mktg-subtitulo">🎯 Remarketing con IA — pacientes que ya no vuelven, ahora sí</h3>
+    <div class="lp-pdf-showcase">
+      <div class="lp-pdf-image-wrap">
+        <span class="lp-nuevo-badge">✨ NUEVO</span>
+        <img src="assets/screenshots/marketing-remarketing.jpg" alt="Módulo de Remarketing con Inteligencia Artificial de BIOsoft, detectando pacientes para contactar según edad, género e historial" class="lp-pdf-image"/>
+      </div>
+      <div class="lp-pdf-side">
+        <div class="lp-pdf-feature"><span>🧠</span> Detecta solo qué pacientes deben repetir un examen, según edad y género</div>
+        <div class="lp-pdf-feature"><span>✍️</span> El mensaje ya viene redactado — tú solo lo apruebas y envías</div>
+        <div class="lp-pdf-feature"><span>📲</span> Envío en un clic por WhatsApp o correo, sin buscar nada manualmente</div>
+        <div class="lp-pdf-feature"><span>🔁</span> Evita mensajes repetidos: recuerda a quién ya contactaste</div>
+        <div class="lp-pdf-feature"><span>⚙️</span> Reglas 100% editables: tú decides examen, edad, género y frecuencia</div>
+      </div>
+    </div>
+
+    <h3 class="lp-mktg-subtitulo" style="margin-top:46px">🎨 Creador de Imágenes — contenido premium para tus redes en segundos</h3>
+    <div class="lp-pdf-showcase">
+      <div class="lp-pdf-side">
+        <div class="lp-pdf-feature"><span>🖼️</span> Plantillas listas: urgente, promoción, información, jornada de salud y marca propia</div>
+        <div class="lp-pdf-feature"><span>📐</span> Formatos exactos para Estado de WhatsApp, Instagram y TikTok</div>
+        <div class="lp-pdf-feature"><span>🛡️</span> Respeta los márgenes seguros de cada red, para que nada se tape</div>
+        <div class="lp-pdf-feature"><span>🎨</span> Cambia colores, fondo, título y texto en tiempo real</div>
+        <div class="lp-pdf-feature"><span>⬇️</span> Descárgala en PNG, lista para publicar donde quieras</div>
+      </div>
+      <div class="lp-pdf-image-wrap">
+        <img src="assets/screenshots/marketing-creador.jpg" alt="Creador de Imágenes de BIOsoft con plantillas premium para WhatsApp, Instagram y TikTok, respetando márgenes seguros" class="lp-pdf-image"/>
+      </div>
+    </div>
+
+    <div class="lp-cot-urgencia" style="max-width:700px;margin:36px auto 0">
+      <span class="lp-cot-urgencia-tag">🔥 Cupos limitados esta semana</span>
+      <p>Si activas <b>BIOsoft esta semana</b>, te acompañamos personalmente a configurar tus primeras reglas de remarketing y tu primera plantilla de imagen — <b>sin costo adicional</b>.</p>
+    </div>
+    <div class="lp-cta-row" style="margin-top:20px">
+      <a class="btn btn-primary btn-glow-brand" href="app.html">🚀 Ver Demo Gratis</a>
+      <a class="btn btn-whatsapp" id="wa-marketing-lp" href="#" target="_blank" rel="noopener">🔥 Activar esta semana por WhatsApp</a>
+    </div>
+  </section>
+
   <section class="lp-section" id="funciones">
     <h2>Todo lo que un laboratorio moderno necesita</h2>
     <p class="lead">Un sistema completo, pensado desde la operación diaria hasta la gerencia del laboratorio.</p>
@@ -725,6 +770,7 @@ fbq('track', 'PageView');
     }).join("");
     document.getElementById("wa-cotizacion").href = waLink("Hola, mi laboratorio necesita más de 10 usuarios o varias sedes. ¿Me ayudas con una cotización personalizada de BIOsoft?");
     document.getElementById("wa-cotizador-lp").href = waLink("Hola 👋 quiero reservar esta semana BIOsoft con el módulo de Cotización de Exámenes + Control de Calidad con IA + App móvil incluidos. ¿Me ayudan a activarlo?");
+    document.getElementById("wa-marketing-lp").href = waLink("Hola 👋 vi el módulo de Marketing Digital con IA (Remarketing + Creador de Imágenes) de BIOsoft y quiero activarlo esta semana con acompañamiento personalizado. ¿Me ayudan?");
 
     // ===== Flujo "Iniciar Ya": elegir plan → directo a WhatsApp =====
     function lpModal(innerHtml, opts) {
