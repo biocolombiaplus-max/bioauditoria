@@ -86,6 +86,15 @@ service cloud.firestore {
       match /remarketingContactos/{contactoId} {
         allow read, write: if esDeEsteLab(tenantId);
       }
+      match /insumos/{insumoId} {
+        allow read, write: if esDeEsteLab(tenantId);
+      }
+      match /recetasReactivos/{recetaId} {
+        allow read, write: if esDeEsteLab(tenantId);
+      }
+      match /kardexInventario/{movimientoId} {
+        allow read, write: if esDeEsteLab(tenantId);
+      }
     }
   }
 }

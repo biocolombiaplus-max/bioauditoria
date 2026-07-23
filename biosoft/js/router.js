@@ -21,7 +21,8 @@
         { route: "productividad", label: "Productividad Mensual", icon: "activity" },
         { route: "calidad", label: "Control de Calidad", icon: "shield" },
         { route: "cotizador", label: "Cotizaciones", icon: "file" },
-        { route: "marketing", label: "Marketing Digital", icon: "trending" }
+        { route: "marketing", label: "Marketing Digital", icon: "trending" },
+        { route: "inventario", label: "Inventario y Reactivos", icon: "layers" }
       ]},
       { sec: "ADMINISTRACIÓN", items: [
         { route: "usuarios", label: "Usuarios y Bacteriólogos", icon: "users" },
@@ -121,12 +122,12 @@
     reportes: "Reportes y Envío de Resultados", usuarios: "Usuarios y Bacteriólogos",
     config: "Configuración del Laboratorio", auditoria: "Trazabilidad y Auditoría", tenants: "Laboratorios Cliente",
     catalogo: "Valores de Referencia del Catálogo", productividad: "Productividad Mensual", crm: "Clientes (CRM)",
-    calidad: "Control de Calidad", cotizador: "Cotizador de Exámenes", marketing: "Marketing Digital"
+    calidad: "Control de Calidad", cotizador: "Cotizador de Exámenes", marketing: "Marketing Digital", inventario: "Inventario y Reactivos"
   };
 
   var ALLOWED_ROUTES = {
     superadmin: ["crm", "tenants", "dashboard"],
-    admin: ["dashboard", "pacientes", "ordenes", "resultados", "hojas-trabajo", "reportes", "productividad", "calidad", "cotizador", "marketing", "usuarios", "config", "auditoria", "catalogo"],
+    admin: ["dashboard", "pacientes", "ordenes", "resultados", "hojas-trabajo", "reportes", "productividad", "calidad", "cotizador", "marketing", "inventario", "usuarios", "config", "auditoria", "catalogo"],
     bacteriologo: ["dashboard", "resultados", "hojas-trabajo", "calidad"],
     recepcion: ["dashboard", "pacientes", "ordenes", "hojas-trabajo", "reportes", "cotizador", "marketing"]
   };

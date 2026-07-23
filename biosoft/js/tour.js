@@ -19,6 +19,7 @@
     calidad: "Control de Calidad con Inteligencia Artificial: detecta errores antes de liberar resultados.",
     cotizador: "Cotiza exámenes y envía la cotización por WhatsApp o correo en segundos.",
     marketing: "Remarketing con IA y creador de imágenes premium para tus redes sociales.",
+    inventario: "Controla tus reactivos e insumos: consumo por examen, kardex y costos, en tiempo real.",
     usuarios: "Administra los usuarios y bacteriólogos de tu laboratorio.",
     catalogo: "Personaliza los valores de referencia de cada examen.",
     config: "Configura el nombre, logo, colores y datos de tu laboratorio.",

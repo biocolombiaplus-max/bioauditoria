@@ -27,6 +27,10 @@
     if (MODE !== "real") return;
     fbColl(coll).doc(id).set(data).catch(function (e) { console.error("BIOsoft Firestore write error (" + coll + "/" + id + "):", e); });
   }
+  function fbDelete(coll, id) {
+    if (MODE !== "real") return;
+    fbColl(coll).doc(id).delete().catch(function (e) { console.error("BIOsoft Firestore delete error (" + coll + "/" + id + "):", e); });
+  }
   function fbWriteTenant(tenant) {
     if (MODE !== "real") return;
     global.BIO_FB.db.collection("tenants").doc(tenant.id).set(tenant).catch(function (e) { console.error("BIOsoft Firestore write error (tenant):", e); });
@@ -87,7 +91,10 @@
       attach("preciosExamenes", "preciosExamenes", false),
       attach("cotizaciones", "cotizaciones", false),
       attach("reglasRemarketing", "reglasRemarketing", false),
-      attach("remarketingContactos", "remarketingContactos", false)
+      attach("remarketingContactos", "remarketingContactos", false),
+      attach("insumos", "insumos", false),
+      attach("recetasReactivos", "recetasReactivos", false),
+      attach("kardexInventario", "kardexInventario", false)
     ]).then(function () { return realCache; });
   }
 
@@ -280,7 +287,10 @@
   }
 
   function emptyDB() {
-    return { tenants: {}, users: [], patients: [], orders: [], auditLog: [], qcControles: [], qcLecturas: [], preciosExamenes: [], cotizaciones: [], reglasRemarketing: [], remarketingContactos: [] };
+    return {
+      tenants: {}, users: [], patients: [], orders: [], auditLog: [], qcControles: [], qcLecturas: [], preciosExamenes: [], cotizaciones: [],
+      reglasRemarketing: [], remarketingContactos: [], insumos: [], recetasReactivos: [], kardexInventario: []
+    };
   }
 
   // ---------------------------------------------------------------------
@@ -538,6 +548,18 @@
   function saveOrder(order) {
     var db = loadDB();
     var idx = db.orders.findIndex(function (o) { return o.id === order.id; });
+    // Nota: no se compara contra el estado "anterior" guardado, porque en modo
+    // real loadDB() devuelve el mismo objeto en memoria (realCache) que la
+    // vista ya pudo haber mutado in-place antes de llamar saveOrder — comparar
+    // ahí siempre vería el estado ya nuevo. En su lugar, reactivosDescontados
+    // es la única fuente de verdad para no descontar dos veces el mismo ítem.
+    order.examenes.forEach(function (ex) {
+      var tieneResultado = ex.estado === "preliminar" || ex.estado === "validado";
+      if (tieneResultado && !ex.reactivosDescontados) {
+        descontarInventarioPorExamenEnDB(db, order.tenantId, ex.examId, "Consumo automático — Orden " + order.numeroOrden + " (" + BIO_CATALOG.examenPorId(ex.examId).nombre + ")", order.id);
+        ex.reactivosDescontados = true;
+      }
+    });
     if (idx >= 0) db.orders[idx] = order; else db.orders.push(order);
     saveDB(db);
     fbWrite("orders", order.id, order);
@@ -669,6 +691,139 @@
     return c;
   }
 
+  // ---------------------------------------------------------------------
+  // CONTROL DE INVENTARIO Y REACTIVOS — insumos, receta de consumo por
+  // examen, y kardex (ledger) de movimientos, por laboratorio (tenant).
+  // ---------------------------------------------------------------------
+  function round2(n) { return Math.round((n + Number.EPSILON) * 100) / 100; }
+
+  function listInsumos(tenantId) {
+    var db = loadDB();
+    return db.insumos.filter(function (i) { return i.tenantId === tenantId; }).sort(function (a, b) { return a.nombre.localeCompare(b.nombre); });
+  }
+  function getInsumo(id) {
+    var db = loadDB();
+    return db.insumos.filter(function (i) { return i.id === id; })[0];
+  }
+  function createInsumo(data) {
+    var db = loadDB();
+    var ins = Object.assign({
+      id: uid("ins"), stockActual: 0, costoUnitario: 0, creadoEn: nowISO(), actualizadoEn: nowISO()
+    }, data);
+    db.insumos.push(ins);
+    saveDB(db);
+    fbWrite("insumos", ins.id, ins);
+    return ins;
+  }
+  function updateInsumo(id, patch) {
+    var db = loadDB();
+    var ins = db.insumos.filter(function (i) { return i.id === id; })[0];
+    if (!ins) return null;
+    Object.assign(ins, patch, { actualizadoEn: nowISO() });
+    saveDB(db);
+    fbWrite("insumos", ins.id, ins);
+    return ins;
+  }
+
+  function listRecetas(tenantId, examId) {
+    var db = loadDB();
+    return db.recetasReactivos.filter(function (r) { return r.tenantId === tenantId && (!examId || r.examId === examId); });
+  }
+  function guardarRecetaExamen(tenantId, examId, lineas) {
+    // Reemplaza por completo las líneas de consumo configuradas para ese examen.
+    var db = loadDB();
+    var aBorrar = db.recetasReactivos.filter(function (r) { return r.tenantId === tenantId && r.examId === examId; });
+    db.recetasReactivos = db.recetasReactivos.filter(function (r) { return !(r.tenantId === tenantId && r.examId === examId); });
+    var creadas = lineas.filter(function (l) { return l.insumoId && l.cantidad > 0; }).map(function (l) {
+      return { id: uid("rec"), tenantId: tenantId, examId: examId, insumoId: l.insumoId, cantidad: l.cantidad };
+    });
+    db.recetasReactivos = db.recetasReactivos.concat(creadas);
+    saveDB(db);
+    aBorrar.forEach(function (r) { fbDelete("recetasReactivos", r.id); });
+    creadas.forEach(function (r) { fbWrite("recetasReactivos", r.id, r); });
+    return creadas;
+  }
+
+  function listKardex(tenantId, insumoId) {
+    var db = loadDB();
+    return db.kardexInventario
+      .filter(function (k) { return k.tenantId === tenantId && (!insumoId || k.insumoId === insumoId); })
+      .sort(function (a, b) { return b.fecha.localeCompare(a.fecha); });
+  }
+
+  // Nota: recibe el "db" ya cargado (en vez de hacer su propio loadDB/saveDB)
+  // para poder combinarse de forma atómica con otras operaciones sobre el
+  // mismo db (p.ej. dentro de saveOrder), evitando que un saveDB(db) más
+  // reciente sobrescriba/pierda los cambios de otro saveDB(db) anterior.
+  function _aplicarMovimientoInventario(db, tenantId, insumoId, tipo, cantidad, motivo, extra) {
+    var ins = db.insumos.filter(function (i) { return i.id === insumoId; })[0];
+    if (!ins) return null;
+    var saldoAnterior = ins.stockActual;
+    var saldoNuevo = tipo === "salida" ? round2(saldoAnterior - cantidad) : round2(saldoAnterior + cantidad);
+    ins.stockActual = saldoNuevo;
+    ins.actualizadoEn = nowISO();
+    var mov = Object.assign({
+      id: uid("kdx"), tenantId: tenantId, insumoId: insumoId, fecha: nowISO(), tipo: tipo, cantidad: cantidad,
+      motivo: motivo || "", saldoAnterior: saldoAnterior, saldoNuevo: saldoNuevo, costoUnitario: ins.costoUnitario || 0
+    }, extra || {});
+    db.kardexInventario.push(mov);
+    return { mov: mov, insumo: ins };
+  }
+
+  function registrarMovimientoInventario(tenantId, insumoId, tipo, cantidad, motivo, extra) {
+    var db = loadDB();
+    var r = _aplicarMovimientoInventario(db, tenantId, insumoId, tipo, cantidad, motivo, extra);
+    if (!r) return null;
+    saveDB(db);
+    fbWrite("insumos", r.insumo.id, r.insumo);
+    fbWrite("kardexInventario", r.mov.id, r.mov);
+    return r.mov;
+  }
+
+  // Usada dentro de saveOrder: opera sobre el mismo "db" ya cargado por el
+  // llamador, para que quede todo en el mismo saveDB() final.
+  function descontarInventarioPorExamenEnDB(db, tenantId, examId, motivo, ordenId) {
+    var recetas = db.recetasReactivos.filter(function (r) { return r.tenantId === tenantId && r.examId === examId; });
+    recetas.forEach(function (r) {
+      var res = _aplicarMovimientoInventario(db, tenantId, r.insumoId, "salida", r.cantidad, motivo, { examId: examId, ordenId: ordenId, usuario: "Sistema (automático)" });
+      if (res) { fbWrite("insumos", res.insumo.id, res.insumo); fbWrite("kardexInventario", res.mov.id, res.mov); }
+    });
+  }
+
+  function registrarEntradaInventario(tenantId, insumoId, cantidad, costoUnitarioNuevo, opts) {
+    opts = opts || {};
+    var db = loadDB();
+    var ins = db.insumos.filter(function (i) { return i.id === insumoId; })[0];
+    if (!ins) return null;
+    if (costoUnitarioNuevo != null && costoUnitarioNuevo >= 0) {
+      var valorAnterior = (ins.stockActual || 0) * (ins.costoUnitario || 0);
+      var valorNuevo = cantidad * costoUnitarioNuevo;
+      var stockTotal = (ins.stockActual || 0) + cantidad;
+      ins.costoUnitario = stockTotal > 0 ? round2((valorAnterior + valorNuevo) / stockTotal) : costoUnitarioNuevo;
+    }
+    if (opts.lote) ins.lote = opts.lote;
+    if (opts.fechaVencimiento) ins.fechaVencimiento = opts.fechaVencimiento;
+    if (opts.proveedor) ins.proveedor = opts.proveedor;
+    var r = _aplicarMovimientoInventario(db, tenantId, insumoId, "entrada", cantidad, opts.motivo || "Compra / Entrada de stock", { usuario: opts.usuario || "" });
+    saveDB(db);
+    fbWrite("insumos", ins.id, ins);
+    if (r) fbWrite("kardexInventario", r.mov.id, r.mov);
+    return r ? r.mov : null;
+  }
+
+  function registrarAjusteInventario(tenantId, insumoId, nuevaCantidad, motivo, usuario) {
+    var db = loadDB();
+    var ins = db.insumos.filter(function (i) { return i.id === insumoId; })[0];
+    if (!ins) return null;
+    var delta = round2(nuevaCantidad - ins.stockActual);
+    if (delta === 0) return null;
+    var tipo = delta > 0 ? "entrada" : "salida";
+    var r = _aplicarMovimientoInventario(db, tenantId, insumoId, tipo, Math.abs(delta), motivo || "Ajuste de inventario", { ajuste: true, usuario: usuario || "" });
+    saveDB(db);
+    if (r) { fbWrite("insumos", r.insumo.id, r.insumo); fbWrite("kardexInventario", r.mov.id, r.mov); }
+    return r ? r.mov : null;
+  }
+
   global.BIO_STORE = {
     seedIfEmpty: seedIfEmpty,
     loadDB: loadDB,
@@ -717,6 +872,11 @@
     remarketing: {
       listReglas: listReglasRemarketing, bulkCreateReglas: bulkCreateReglasRemarketing, updateRegla: updateReglaRemarketing,
       listContactos: listRemarketingContactos, registrarContacto: registrarContactoRemarketing
+    },
+    inventario: {
+      listInsumos: listInsumos, getInsumo: getInsumo, createInsumo: createInsumo, updateInsumo: updateInsumo,
+      listRecetas: listRecetas, guardarRecetaExamen: guardarRecetaExamen,
+      listKardex: listKardex, registrarEntrada: registrarEntradaInventario, registrarAjuste: registrarAjusteInventario
     }
   };
 })(window);

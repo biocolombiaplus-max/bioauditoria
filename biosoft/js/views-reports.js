@@ -6,19 +6,37 @@
 
   window.BIO_VIEWS.reportes = function (root) {
     var session = BIO_AUTH.getSession();
+    var tenantId = session.tenantId;
+    var vista = "envios";
 
     function build() {
-      var orders = S.listOrders(session.tenantId).filter(function (o) {
+      root.innerHTML =
+        '<div class="card"><div class="card-header"><h3 class="card-title">Reportes</h3>' +
+        '<div class="crm-view-toggle">' +
+        '<button type="button" class="' + (vista === "envios" ? "active" : "") + '" data-vista="envios">📤 Envío de Resultados</button>' +
+        '<button type="button" class="' + (vista === "admin" ? "active" : "") + '" data-vista="admin">📊 Reportes Administrativos</button>' +
+        "</div></div>" +
+        (vista === "envios" ? buildEnviosHtml() : buildAdminHtml()) +
+        "</div>";
+      root.querySelectorAll("[data-vista]").forEach(function (b) { b.addEventListener("click", function () { vista = b.dataset.vista; build(); }); });
+      if (vista === "envios") wireEnvios(); else wireAdmin();
+    }
+
+    // ---------------------------------------------------------------------
+    // ENVÍO DE RESULTADOS (comportamiento original de este módulo)
+    // ---------------------------------------------------------------------
+    function buildEnviosHtml() {
+      var orders = S.listOrders(tenantId).filter(function (o) {
         return o.examenes.some(function (ex) { return ex.estado === "validado" || ex.estado === "remitido" || ex.estado === "preliminar"; });
       });
-
-      root.innerHTML =
-        '<div class="card"><div class="card-header"><h3 class="card-title">Órdenes Listas para Reportar (' + orders.length + ')</h3></div>' +
+      return '<h4 style="margin-top:14px">Órdenes Listas para Reportar (' + orders.length + ")</h4>" +
         '<p class="text-muted" style="margin-top:0">Desde aquí puedes descargar el PDF profesional o enviarlo por correo al paciente/médico remitente. El envío abre Gmail, Outlook/Hotmail o tu correo predeterminado ya redactado — solo debes adjuntar el PDF que se descarga automáticamente.</p>' +
         '<div class="table-wrap"><table><thead><tr><th>N° Orden</th><th>Paciente</th><th>Estado</th><th>Enviado</th><th>Acciones</th></tr></thead><tbody>' +
         (orders.length ? orders.map(rowHtml).join("") : '<tr><td colspan="5" class="text-muted">Aún no hay resultados validados o preliminares para reportar.</td></tr>') +
-        "</tbody></table></div></div>";
+        "</tbody></table></div>";
+    }
 
+    function wireEnvios() {
       root.querySelectorAll("[data-pdf]").forEach(function (b) { b.addEventListener("click", function () {
         var o = S.getOrder(b.dataset.pdf); window.BIO_PDF.previewOrModal(o, S.getPatient(o.patientId), BIO_AUTH.currentTenant());
       }); });
@@ -32,6 +50,76 @@
         '<td><div class="flex gap-2 wrap"><button class="btn btn-outline btn-sm" data-pdf="' + o.id + '">' + U.icon("file") + " Ver / Descargar</button>" +
         '<button class="btn btn-primary btn-sm" data-send="' + o.id + '">' + U.icon("send") + " Enviar por Correo</button></div></td></tr>";
     }
+
+    // ---------------------------------------------------------------------
+    // REPORTES ADMINISTRATIVOS (inventario y reactivos)
+    // ---------------------------------------------------------------------
+    function primerDiaMes() {
+      var d = new Date(); d.setDate(1);
+      return d.toISOString().slice(0, 10);
+    }
+    function hoyISO() { return new Date().toISOString().slice(0, 10); }
+
+    function buildAdminHtml() {
+      var insumos = S.inventario.listInsumos(tenantId);
+      return '<div class="lp-grid" style="margin-top:14px;grid-template-columns:repeat(auto-fit,minmax(280px,1fr))">' +
+        '<div class="lp-feature">' +
+        '<div class="lp-ic">💊</div><h3>Gasto de Reactivos</h3>' +
+        '<p>Consumo y costo de reactivos e insumos en un periodo, por examen realizado.</p>' +
+        '<div class="form-grid" style="margin:10px 0">' +
+        '<div class="field"><label>Desde</label><input type="date" id="rep-gasto-desde" value="' + primerDiaMes() + '"/></div>' +
+        '<div class="field"><label>Hasta</label><input type="date" id="rep-gasto-hasta" value="' + hoyISO() + '"/></div>' +
+        "</div>" +
+        '<button class="btn btn-primary btn-block" id="btn-rep-gasto">' + U.icon("download") + " Generar PDF</button>" +
+        "</div>" +
+        '<div class="lp-feature">' +
+        '<div class="lp-ic">📦</div><h3>Inventario Valorizado</h3>' +
+        '<p>Stock actual de todos tus insumos, valorizado a costo, con alertas de stock bajo y vencimiento.</p>' +
+        '<button class="btn btn-primary btn-block" id="btn-rep-valorizado" style="margin-top:34px">' + U.icon("download") + " Generar PDF</button>" +
+        "</div>" +
+        '<div class="lp-feature">' +
+        '<div class="lp-ic">📋</div><h3>Kardex por Insumo</h3>' +
+        '<p>Historial completo de movimientos de un insumo específico, para auditorías.</p>' +
+        '<div class="field" style="margin:10px 0"><label>Insumo</label><select id="rep-kardex-insumo">' +
+        (insumos.length ? insumos.map(function (i) { return "<option value='" + i.id + "'>" + U.esc(i.nombre) + "</option>"; }).join("") : "<option value=''>No hay insumos registrados</option>") +
+        "</select></div>" +
+        '<button class="btn btn-primary btn-block" id="btn-rep-kardex" ' + (insumos.length ? "" : "disabled") + ">" + U.icon("download") + " Generar PDF</button>" +
+        "</div>" +
+        "</div>";
+    }
+
+    function wireAdmin() {
+      var tenant = BIO_AUTH.currentTenant();
+      var btnGasto = document.getElementById("btn-rep-gasto");
+      if (btnGasto) btnGasto.addEventListener("click", function () {
+        var desde = document.getElementById("rep-gasto-desde").value;
+        var hasta = document.getElementById("rep-gasto-hasta").value;
+        var insumos = S.inventario.listInsumos(tenantId);
+        var insumosPorId = {}; insumos.forEach(function (i) { insumosPorId[i.id] = i; });
+        var movimientos = S.inventario.listKardex(tenantId).filter(function (m) { return m.fecha.slice(0, 10) >= desde && m.fecha.slice(0, 10) <= hasta; });
+        var bytes = BIO_PDF_INVENTARIO.buildGastoReactivosPDF(movimientos, insumosPorId, tenant, desde, hasta);
+        U.downloadBytes(bytes, "Gasto_Reactivos_" + desde + "_a_" + hasta + ".pdf");
+        U.toast("Reporte de gasto de reactivos descargado.", "success");
+      });
+      var btnValorizado = document.getElementById("btn-rep-valorizado");
+      if (btnValorizado) btnValorizado.addEventListener("click", function () {
+        var insumos = S.inventario.listInsumos(tenantId);
+        var bytes = BIO_PDF_INVENTARIO.buildInventarioValorizadoPDF(insumos, tenant);
+        U.downloadBytes(bytes, "Inventario_Valorizado_" + hoyISO() + ".pdf");
+        U.toast("Reporte de inventario valorizado descargado.", "success");
+      });
+      var btnKardex = document.getElementById("btn-rep-kardex");
+      if (btnKardex) btnKardex.addEventListener("click", function () {
+        var insumoId = document.getElementById("rep-kardex-insumo").value;
+        if (!insumoId) return;
+        var insumo = S.inventario.getInsumo(insumoId);
+        var movimientos = S.inventario.listKardex(tenantId, insumoId);
+        var bytes = BIO_PDF_INVENTARIO.buildKardexInsumoPDF(insumo, movimientos, tenant);
+        U.downloadBytes(bytes, "Kardex_" + insumo.nombre.replace(/\s+/g, "_") + ".pdf");
+        U.toast("Kardex descargado.", "success");
+      });
+    }
+
     build();
   };
 
