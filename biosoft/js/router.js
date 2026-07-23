@@ -163,6 +163,7 @@
     document.getElementById("app-shell").classList.remove("hidden");
     renderShell();
     renderRoute();
+    BIO_TOUR.autoStart();
   }
 
   function boot() {
@@ -191,6 +192,7 @@
         showLogin();
       });
     });
+    document.getElementById("btn-replay-tour").addEventListener("click", function () { BIO_TOUR.start(); });
     window.addEventListener("hashchange", renderRoute);
     if (BIO_AUTH.getSession()) {
       BIO_AUTH.rehydrate().then(function (ok) { if (ok) showApp(); else showLogin(); });

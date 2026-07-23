@@ -402,6 +402,29 @@ tbody tr:hover { background: var(--surface-2); }
   .mktg-canvas-wrap { position: static; }
 }
 
+/* ---------------- Visita guiada (Tour) ---------------- */
+.tour-overlay { position: fixed; inset: 0; z-index: 200; }
+.tour-overlay.hidden { display: none; }
+.tour-spotlight {
+  position: fixed; border-radius: 12px; box-shadow: 0 0 0 9999px rgba(15,23,42,.72);
+  border: 2px solid var(--brand-primary); pointer-events: none; z-index: 201;
+  transition: left .35s cubic-bezier(.4,0,.2,1), top .35s cubic-bezier(.4,0,.2,1), width .35s cubic-bezier(.4,0,.2,1), height .35s cubic-bezier(.4,0,.2,1);
+}
+.tour-tooltip {
+  position: fixed; z-index: 202; width: 290px; max-width: calc(100vw - 24px); background: #fff; border-radius: 14px;
+  padding: 16px 18px; box-shadow: 0 24px 54px -14px rgba(15,23,42,.45); pointer-events: auto;
+}
+.tour-tooltip-step { font-size: 11px; font-weight: 800; letter-spacing: .04em; text-transform: uppercase; color: var(--brand-primary); margin-bottom: 4px; }
+.tour-tooltip h4 { margin: 0 0 6px; font-size: 15.5px; }
+.tour-tooltip p { margin: 0 0 14px; font-size: 13px; color: var(--text-muted); line-height: 1.5; }
+.tour-tooltip-actions { display: flex; align-items: center; justify-content: flex-end; gap: 8px; flex-wrap: wrap; }
+.tour-tooltip-actions .btn-ghost { margin-right: auto; }
+.tour-modal-wrap { position: fixed; inset: 0; z-index: 203; display: flex; align-items: center; justify-content: center; background: rgba(15,23,42,.72); padding: 20px; pointer-events: auto; }
+.tour-modal-card { background: #fff; border-radius: 18px; padding: 34px 30px; max-width: 420px; text-align: center; box-shadow: 0 30px 70px -16px rgba(0,0,0,.4); }
+.tour-modal-card h3 { margin: 0 0 10px; font-size: 21px; }
+.tour-modal-card p { margin: 0 0 22px; color: var(--text-muted); font-size: 14.5px; line-height: 1.55; }
+.tour-modal-actions { display: flex; align-items: center; justify-content: center; gap: 10px; flex-wrap: wrap; }
+
 /* ---------------- Impresión ---------------- */
 @media print {
   .no-print, .sidebar, .topbar, .demo-banner, .toast-stack { display: none !important; }
