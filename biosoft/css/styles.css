@@ -242,6 +242,15 @@ tbody tr:hover { background: var(--surface-2); }
 .modal { position: fixed; inset: 0; z-index: 60; display: flex; align-items: center; justify-content: center; padding: 16px; }
 .modal-card { position: relative; z-index: 1; background: #fff; border-radius: var(--radius); max-width: 640px; width: 100%; max-height: 90vh; overflow-y: auto; box-shadow: var(--shadow-lg); padding: 26px; }
 .modal-card.modal-lg { max-width: 920px; }
+.modal-x {
+  position: fixed; top: 18px; right: 18px; z-index: 65;
+  width: 38px; height: 38px; border-radius: 50%; border: none;
+  display: flex; align-items: center; justify-content: center;
+  background: rgba(15,23,42,.6); color: #fff; font-size: 17px; font-weight: 700;
+  cursor: pointer; -webkit-backdrop-filter: blur(2px); backdrop-filter: blur(2px);
+}
+.modal-x:hover { background: rgba(15,23,42,.8); }
+@media (max-width: 640px) { .modal-x { top: 12px; right: 12px; width: 34px; height: 34px; } }
 .lp-modal-x {
   position: fixed; top: 18px; right: 18px; z-index: 65;
   width: 38px; height: 38px; border-radius: 50%; border: none;

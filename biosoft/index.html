@@ -107,12 +107,18 @@ fbq('track', 'PageView');
   .lp-modal-plan .amount-usd { font-size: 11px; color: var(--text-muted); margin-bottom: 10px; }
   .lp-modal-plan-actions { margin-top: auto; }
   @media (max-width: 640px) { .lp-modal-plans { grid-template-columns: 1fr; } }
-  .lp-badges { display:flex; gap:10px; justify-content:center; margin-top:26px; flex-wrap:wrap; }
-  .lp-badges span { background: rgba(255,255,255,.08); border:1px solid rgba(255,255,255,.16); padding:6px 14px; border-radius:20px; font-size:12.5px; font-weight:700; color:rgba(255,255,255,.85); backdrop-filter: blur(6px); }
-  .lp-flags-row { display:flex; align-items:center; gap:8px; justify-content:center; margin-top:12px; flex-wrap:wrap; }
-  .lp-flags-row .flag-chip { width:36px; height:36px; display:flex; align-items:center; justify-content:center; font-size:18px; background: rgba(255,255,255,.06); border:1px solid rgba(255,255,255,.14); border-radius:50%; backdrop-filter: blur(6px); transition: transform .2s ease, background .2s ease; cursor:default; }
-  .lp-flags-row .flag-chip:hover { transform: translateY(-3px) scale(1.08); background: rgba(255,255,255,.14); }
-  .lp-flags-row .lp-badge-latam { display:inline-flex; align-items:center; gap:6px; background: linear-gradient(135deg, color-mix(in srgb, var(--lp-orange) 28%, transparent), color-mix(in srgb, var(--lp-purple) 28%, transparent)); border:1px solid rgba(255,255,255,.28); padding:7px 16px; border-radius:20px; font-size:12.5px; font-weight:700; color:#fff; }
+  .lp-hero-countries { display:flex; align-items:center; justify-content:center; gap:8px; margin-top:24px; flex-wrap:wrap; }
+  .lp-hero-flag-main { font-size:28px; line-height:1; filter: drop-shadow(0 2px 6px rgba(0,0,0,.35)); }
+  .lp-hero-countries-text { font-size:14.5px; font-weight:700; color:#fff; margin-left:6px; }
+  .lp-hero-latam { margin: 10px auto 0; max-width:480px; font-size:12px; color:rgba(255,255,255,.55); font-weight:600; letter-spacing:.01em; }
+  .lp-scroll-cue {
+    display:flex; flex-direction:column; align-items:center; gap:4px; margin-top:34px;
+    color: rgba(255,255,255,.5); font-size:11.5px; font-weight:700; text-decoration:none;
+    letter-spacing:.06em; text-transform:uppercase; transition: color .2s ease;
+  }
+  .lp-scroll-cue:hover { color: rgba(255,255,255,.85); }
+  .lp-scroll-chevron { font-size:20px; line-height:.6; animation: lpScrollBounce 1.8s ease-in-out infinite; }
+  @keyframes lpScrollBounce { 0%, 100% { transform: translateY(0); opacity:.55; } 50% { transform: translateY(5px); opacity:1; } }
   .lp-section { padding: 60px 24px; }
   .lp-section h2 { text-align: center; font-size: 30px; margin-bottom: 8px; }
   .lp-section .lead { text-align: center; color: var(--text-muted); max-width: 640px; margin: 0 auto 40px; }
@@ -319,17 +325,13 @@ fbq('track', 'PageView');
 
   <section class="lp-hero">
     <img src="assets/logo-biosoft.png" alt="BIOsoft, software para laboratorio clínico" class="lp-hero-logo"/>
-    <div class="lp-badges">
-      <span>🇨🇴 Colombia</span><span>🇻🇪 Venezuela</span><span>🇪🇨 Ecuador</span><span>Primer y Segundo Nivel</span>
+    <div class="lp-hero-countries">
+      <span class="lp-hero-flag-main" title="Colombia">🇨🇴</span>
+      <span class="lp-hero-flag-main" title="Venezuela">🇻🇪</span>
+      <span class="lp-hero-flag-main" title="Ecuador">🇪🇨</span>
+      <span class="lp-hero-countries-text">Colombia · Venezuela · Ecuador</span>
     </div>
-    <div class="lp-flags-row">
-      <span class="flag-chip" title="México">🇲🇽</span>
-      <span class="flag-chip" title="Perú">🇵🇪</span>
-      <span class="flag-chip" title="Argentina">🇦🇷</span>
-      <span class="flag-chip" title="Bolivia">🇧🇴</span>
-      <span class="flag-chip" title="Brasil">🇧🇷</span>
-      <span class="lp-badge-latam">🌎 Toda Suramérica y Centroamérica</span>
-    </div>
+    <p class="lp-hero-latam">🌎 + México, Perú, Argentina, Bolivia, Brasil y toda Latinoamérica · Primer y Segundo Nivel</p>
     <h1>El software de laboratorio clínico <span>premium</span>, hecho para bacteriólogos y bioanalistas</h1>
     <p>Deja de armar y enviar resultados a mano en Word o Excel. BIOsoft gestiona pacientes, resultados, validación por bacteriólogo, trazabilidad total y reportes en PDF de nivel mundial — 100% personalizado con tu logo, colores, firmas y catálogo de exámenes, con pago mensual accesible, sin la inversión millonaria que piden otros software.</p>
     <div class="lp-cta-row">
@@ -337,6 +339,10 @@ fbq('track', 'PageView');
       <a class="btn btn-whatsapp wa-link" href="#" target="_blank" rel="noopener">🛒 Comprar por WhatsApp</a>
     </div>
     <button type="button" class="lp-btn-iniciar-ya" id="btn-iniciar-ya-hero">🔥 Iniciar Ya</button>
+    <a href="#demo-preview" class="lp-scroll-cue" aria-label="Desplázate para ver más">
+      <span>Descubre más</span>
+      <span class="lp-scroll-chevron">⌄</span>
+    </a>
   </section>
 
   <section class="lp-showcase" id="demo-preview">

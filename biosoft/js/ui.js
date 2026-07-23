@@ -62,7 +62,7 @@
     opts = opts || {};
     var wrap = document.createElement("div");
     wrap.className = "modal";
-    wrap.innerHTML = '<div class="overlay-bd" data-close="1"></div><div class="modal-card ' + (opts.lg ? "modal-lg" : "") + '">' + innerHtml + "</div>";
+    wrap.innerHTML = '<div class="overlay-bd" data-close="1"></div><button type="button" class="modal-x" data-close="1" aria-label="Cerrar">✕</button><div class="modal-card ' + (opts.lg ? "modal-lg" : "") + '">' + innerHtml + "</div>";
     document.body.appendChild(wrap);
     wrap.addEventListener("click", function (e) {
       if (e.target.dataset.close) closeModal(wrap);
