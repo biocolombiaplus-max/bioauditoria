@@ -171,14 +171,28 @@
       { id: "story", label: "WhatsApp / Instagram / TikTok (9:16)", w: 1080, h: 1920 },
       { id: "cuadrada", label: "Publicación cuadrada (1:1)", w: 1080, h: 1080 }
     ];
+    var PALETA = [
+      { c1: "#dc2626", c2: "#f97316", nombre: "Urgente" },
+      { c1: "#7c3aed", c2: "#ec4899", nombre: "Promoción" },
+      { c1: "#0369a1", c2: "#06b6d4", nombre: "Información" },
+      { c1: "#059669", c2: "#0d9488", nombre: "Salud" },
+      { c1: (tenant && tenant.colorPrimario) || "#f97316", c2: (tenant && tenant.colorSecundario) || "#7c3aed", nombre: "Marca del laboratorio" },
+      { c1: "#0f172a", c2: "#334155", nombre: "Elegante" },
+      { c1: "#be185d", c2: "#f472b6", nombre: "Rosado suave" },
+      { c1: "#1e3a8a", c2: "#38bdf8", nombre: "Azul océano" },
+      { c1: "#b45309", c2: "#fbbf24", nombre: "Dorado premium" },
+      { c1: "#15803d", c2: "#a3e635", nombre: "Verde fresco" }
+    ];
     var mktgState = {
       categoria: CATEGORIAS[1].id, formato: FORMATOS[0].id,
       kicker: CATEGORIAS[1].kicker, titulo: CATEGORIAS[1].titulo, subtitulo: CATEGORIAS[1].subtitulo,
-      c1: CATEGORIAS[1].c1, c2: CATEGORIAS[1].c2, mostrarGuia: true, fondoImg: null
+      c1: CATEGORIAS[1].c1, c2: CATEGORIAS[1].c2, mostrarGuia: true,
+      posicionTexto: "arriba", tituloTam: "mediano",
+      fondos: [], fondoActivoId: null, fondoImg: null
     };
 
     function buildImagenesHtml() {
-      return '<p class="text-muted" style="margin:14px 0">Crea imágenes profesionales para Estados de WhatsApp, Instagram y TikTok en segundos. Elige una plantilla, cambia el texto y el fondo, y descárgala lista para publicar — respetando los márgenes seguros de cada red.</p>' +
+      return '<p class="text-muted" style="margin:14px 0">Crea imágenes profesionales para Estados de WhatsApp, Instagram y TikTok en segundos. Elige una plantilla, cambia el texto y el fondo, revisa la vista previa y descárgala lista para publicar — respetando los márgenes seguros de cada red.</p>' +
         '<div class="mktg-editor">' +
         '<div class="mktg-controls">' +
         '<div class="field"><label>Tipo de publicación</label><select id="mktg-categoria">' +
@@ -190,12 +204,22 @@
         '<div class="field"><label>Etiqueta superior</label><input id="mktg-kicker" value="' + U.esc(mktgState.kicker) + '"/></div>' +
         '<div class="field"><label>Título</label><input id="mktg-titulo" value="' + U.esc(mktgState.titulo) + '"/></div>' +
         '<div class="field"><label>Texto / Subtítulo</label><textarea id="mktg-subtitulo" rows="3">' + U.esc(mktgState.subtitulo) + "</textarea></div>" +
+        '<div class="form-grid">' +
+        '<div class="field"><label>Posición del texto</label><select id="mktg-posicion">' +
+        ["arriba", "centro", "abajo"].map(function (p) { return '<option value="' + p + '" ' + (p === mktgState.posicionTexto ? "selected" : "") + ">" + p.charAt(0).toUpperCase() + p.slice(1) + "</option>"; }).join("") +
+        "</select></div>" +
+        '<div class="field"><label>Tamaño del título</label><select id="mktg-tam-titulo">' +
+        [["pequeno", "Pequeño"], ["mediano", "Mediano"], ["grande", "Grande"]].map(function (p) { return '<option value="' + p[0] + '" ' + (p[0] === mktgState.tituloTam ? "selected" : "") + ">" + p[1] + "</option>"; }).join("") +
+        "</select></div>" +
+        "</div>" +
         '<div class="field"><label>Colores de fondo</label><div class="mktg-swatches" id="mktg-swatches"></div></div>' +
-        '<div class="field"><label>Color 1</label><input type="color" id="mktg-c1" value="' + mktgState.c1 + '"/></div>' +
-        '<div class="field"><label>Color 2</label><input type="color" id="mktg-c2" value="' + mktgState.c2 + '"/></div>' +
-        '<div class="field"><label class="btn btn-outline btn-sm" style="cursor:pointer;display:inline-block">' + U.icon("plus") + ' Subir imagen de fondo<input type="file" id="mktg-fondo-file" accept="image/*" style="display:none"/></label> <button class="btn btn-ghost btn-sm" id="mktg-fondo-quitar" type="button">Quitar imagen</button></div>' +
-        '<label class="flex items-center gap-2" style="font-size:12.5px;margin-top:6px"><input type="checkbox" id="mktg-guia" ' + (mktgState.mostrarGuia ? "checked" : "") + "/> Mostrar guía de márgenes seguros (solo en el editor)</label>" +
-        '<button class="btn btn-primary btn-block" id="mktg-descargar" style="margin-top:16px">' + U.icon("download") + " Descargar Imagen (PNG)</button>" +
+        '<div class="form-grid"><div class="field"><label>Color 1</label><input type="color" id="mktg-c1" value="' + mktgState.c1 + '"/></div>' +
+        '<div class="field"><label>Color 2</label><input type="color" id="mktg-c2" value="' + mktgState.c2 + '"/></div></div>' +
+        '<div class="field"><label>Fondos con imagen (puedes subir varios y alternar entre ellos)</label>' +
+        '<div class="mktg-fondos-galeria" id="mktg-fondos-galeria"></div></div>' +
+        '<label class="flex items-center gap-2" style="font-size:12.5px;margin-top:2px"><input type="checkbox" id="mktg-guia" ' + (mktgState.mostrarGuia ? "checked" : "") + "/> Mostrar guía de márgenes seguros (solo en el editor)</label>" +
+        '<button type="button" class="btn btn-outline btn-block" id="mktg-preview" style="margin-top:14px">👁️ Vista Previa Grande</button>' +
+        '<button class="btn btn-primary btn-block" id="mktg-descargar" style="margin-top:10px">' + U.icon("download") + " Descargar Imagen (PNG)</button>" +
         "</div>" +
         '<div class="mktg-canvas-wrap"><canvas id="mktg-canvas"></canvas></div>' +
         "</div>";
@@ -205,54 +229,117 @@
       var $ = function (id) { return document.getElementById(id); };
       var canvas = $("mktg-canvas");
 
-      $("mktg-swatches").innerHTML = CATEGORIAS.map(function (c) {
-        return '<button type="button" class="mktg-swatch" data-swatch="' + c.id + '" style="background:linear-gradient(135deg,' + c.c1 + "," + c.c2 + ')" title="' + (c.kicker || "Marca") + '"></button>';
-      }).join("");
-
       function redibujar() { dibujarPlantilla(canvas, mktgState); }
+
+      function renderSwatches() {
+        $("mktg-swatches").innerHTML = PALETA.map(function (p, i) {
+          var activo = !mktgState.fondoActivoId && mktgState.c1 === p.c1 && mktgState.c2 === p.c2;
+          return '<button type="button" class="mktg-swatch ' + (activo ? "active" : "") + '" data-swatch="' + i + '" style="background:linear-gradient(135deg,' + p.c1 + "," + p.c2 + ')" title="' + p.nombre + '"></button>';
+        }).join("");
+        root.querySelectorAll("[data-swatch]").forEach(function (b) {
+          b.addEventListener("click", function () {
+            var p = PALETA[Number(b.dataset.swatch)];
+            mktgState.c1 = p.c1; mktgState.c2 = p.c2;
+            mktgState.fondoActivoId = null; mktgState.fondoImg = null;
+            $("mktg-c1").value = p.c1; $("mktg-c2").value = p.c2;
+            renderSwatches(); renderGaleria(); redibujar();
+          });
+        });
+      }
+
+      function renderGaleria() {
+        var thumbs = mktgState.fondos.map(function (f) {
+          var activo = f.id === mktgState.fondoActivoId;
+          return '<div class="mktg-fondo-thumb ' + (activo ? "active" : "") + '" data-usar-fondo="' + f.id + '" style="background-image:url(' + f.url + ')">' +
+            '<button type="button" class="mktg-fondo-quitar" data-quitar-fondo="' + f.id + '" title="Quitar">✕</button></div>';
+        }).join("");
+        $("mktg-fondos-galeria").innerHTML = thumbs +
+          '<label class="mktg-fondo-add" title="Agregar otro fondo">' + U.icon("plus") + '<input type="file" id="mktg-fondo-file" accept="image/*" style="display:none"/></label>';
+        root.querySelectorAll("[data-usar-fondo]").forEach(function (el) {
+          el.addEventListener("click", function () {
+            var f = mktgState.fondos.filter(function (x) { return x.id === el.dataset.usarFondo; })[0];
+            if (!f) return;
+            mktgState.fondoActivoId = f.id; mktgState.fondoImg = f.img;
+            renderSwatches(); renderGaleria(); redibujar();
+          });
+        });
+        root.querySelectorAll("[data-quitar-fondo]").forEach(function (b) {
+          b.addEventListener("click", function (e) {
+            e.stopPropagation();
+            var id = b.dataset.quitarFondo;
+            mktgState.fondos = mktgState.fondos.filter(function (x) { return x.id !== id; });
+            if (mktgState.fondoActivoId === id) {
+              mktgState.fondoActivoId = null; mktgState.fondoImg = null;
+            }
+            renderSwatches(); renderGaleria(); redibujar();
+          });
+        });
+        $("mktg-fondo-file").addEventListener("change", function (e) {
+          var file = e.target.files[0];
+          if (!file) return;
+          var url = URL.createObjectURL(file);
+          var img = new Image();
+          img.onload = function () {
+            var f = { id: "fnd-" + Date.now() + Math.random().toString(36).slice(2, 6), url: url, img: img };
+            mktgState.fondos.push(f);
+            mktgState.fondoActivoId = f.id; mktgState.fondoImg = img;
+            renderSwatches(); renderGaleria(); redibujar();
+          };
+          img.src = url;
+        });
+      }
+
+      renderSwatches();
+      renderGaleria();
 
       $("mktg-categoria").addEventListener("change", function (e) {
         var cat = CATEGORIAS.filter(function (c) { return c.id === e.target.value; })[0];
         mktgState.categoria = cat.id; mktgState.kicker = cat.kicker; mktgState.titulo = cat.titulo; mktgState.subtitulo = cat.subtitulo;
-        mktgState.c1 = cat.c1; mktgState.c2 = cat.c2;
+        mktgState.c1 = cat.c1; mktgState.c2 = cat.c2; mktgState.fondoActivoId = null; mktgState.fondoImg = null;
         $("mktg-kicker").value = cat.kicker; $("mktg-titulo").value = cat.titulo; $("mktg-subtitulo").value = cat.subtitulo;
         $("mktg-c1").value = cat.c1; $("mktg-c2").value = cat.c2;
-        redibujar();
+        renderSwatches(); renderGaleria(); redibujar();
       });
       $("mktg-formato").addEventListener("change", function (e) { mktgState.formato = e.target.value; redibujar(); });
       $("mktg-kicker").addEventListener("input", function (e) { mktgState.kicker = e.target.value; redibujar(); });
       $("mktg-titulo").addEventListener("input", function (e) { mktgState.titulo = e.target.value; redibujar(); });
       $("mktg-subtitulo").addEventListener("input", function (e) { mktgState.subtitulo = e.target.value; redibujar(); });
-      $("mktg-c1").addEventListener("input", function (e) { mktgState.c1 = e.target.value; redibujar(); });
-      $("mktg-c2").addEventListener("input", function (e) { mktgState.c2 = e.target.value; redibujar(); });
+      $("mktg-posicion").addEventListener("change", function (e) { mktgState.posicionTexto = e.target.value; redibujar(); });
+      $("mktg-tam-titulo").addEventListener("change", function (e) { mktgState.tituloTam = e.target.value; redibujar(); });
+      $("mktg-c1").addEventListener("input", function (e) { mktgState.c1 = e.target.value; mktgState.fondoActivoId = null; mktgState.fondoImg = null; renderSwatches(); renderGaleria(); redibujar(); });
+      $("mktg-c2").addEventListener("input", function (e) { mktgState.c2 = e.target.value; mktgState.fondoActivoId = null; mktgState.fondoImg = null; renderSwatches(); renderGaleria(); redibujar(); });
       $("mktg-guia").addEventListener("change", function (e) { mktgState.mostrarGuia = e.target.checked; redibujar(); });
-      root.querySelectorAll("[data-swatch]").forEach(function (b) {
-        b.addEventListener("click", function () {
-          var cat = CATEGORIAS.filter(function (c) { return c.id === b.dataset.swatch; })[0];
-          mktgState.c1 = cat.c1; mktgState.c2 = cat.c2;
-          $("mktg-c1").value = cat.c1; $("mktg-c2").value = cat.c2;
-          redibujar();
-        });
-      });
-      $("mktg-fondo-file").addEventListener("change", function (e) {
-        var file = e.target.files[0];
-        if (!file) return;
-        var img = new Image();
-        img.onload = function () { mktgState.fondoImg = img; redibujar(); };
-        img.src = URL.createObjectURL(file);
-      });
-      $("mktg-fondo-quitar").addEventListener("click", function () { mktgState.fondoImg = null; redibujar(); });
-      $("mktg-descargar").addEventListener("click", function () {
+
+      function generarPngFinal() {
         var guiaPrevia = mktgState.mostrarGuia;
         mktgState.mostrarGuia = false;
         dibujarPlantilla(canvas, mktgState);
         var url = canvas.toDataURL("image/png");
         mktgState.mostrarGuia = guiaPrevia;
         redibujar();
+        return url;
+      }
+
+      $("mktg-preview").addEventListener("click", function () {
+        var url = generarPngFinal();
+        var wrap = U.openModal(
+          '<h3 class="modal-title">👁️ Vista Previa</h3>' +
+          '<p class="text-muted" style="margin-top:0">Así se verá tu imagen final, sin las líneas de guía. Si te gusta, descárgala; si no, sigue editando.</p>' +
+          '<div class="mktg-preview-wrap"><img src="' + url + '" alt="Vista previa de la imagen generada"/></div>' +
+          '<div class="flex gap-2" style="margin-top:16px"><button class="btn btn-primary" id="mktg-preview-descargar" style="flex:1">' + U.icon("download") + " Descargar" + "</button>" +
+          '<button class="btn btn-ghost" data-modal-close style="flex:1">Seguir editando</button></div>',
+          { lg: true }
+        );
+        wrap.querySelector("#mktg-preview-descargar").addEventListener("click", function () { descargarImagen(); });
+      });
+
+      function descargarImagen() {
+        var url = generarPngFinal();
         var a = document.createElement("a");
         a.href = url; a.download = "BIOsoft_" + mktgState.categoria + "_" + Date.now() + ".png";
         document.body.appendChild(a); a.click(); a.remove();
-      });
+      }
+      $("mktg-descargar").addEventListener("click", descargarImagen);
 
       redibujar();
     }
@@ -295,39 +382,62 @@
       ctx.fillStyle = overlay; ctx.fillRect(0, h * 0.4, w, h * 0.6);
 
       var cx = w / 2;
-      var y = margenTop + Math.round(w * 0.02);
+      var tamMult = { pequeno: 0.72, mediano: 1, grande: 1.28 }[st.tituloTam] || 1;
+      var kickerFontPx = Math.round(w * 0.032);
+      var kickerBoxH = w * 0.075;
+      var kickerGap = w * 0.06;
+      var tituloFontPx = Math.round(w * 0.088 * tamMult);
+      var tituloLineH = w * 0.1 * tamMult;
+      var subFontPx = Math.round(w * 0.042);
+      var subLineH = w * 0.058;
+
+      ctx.font = "800 " + tituloFontPx + "px Poppins, Arial, sans-serif";
+      var lineasTitulo = envolverTexto(ctx, st.titulo, w - margenLat * 2);
+      ctx.font = "500 " + subFontPx + "px Arial, sans-serif";
+      var lineasSub = envolverTexto(ctx, st.subtitulo, w - margenLat * 2.4).slice(0, 5);
+
+      var totalH = 0;
+      if (st.kicker) totalH += kickerBoxH + kickerGap;
+      totalH += lineasTitulo.length * tituloLineH;
+      totalH += w * 0.02 + lineasSub.length * subLineH;
+
+      var zoneTop = margenTop;
+      var zoneBottom = h - margenBottom - h * 0.05;
+      var y;
+      if (st.posicionTexto === "centro") y = zoneTop + Math.max(0, (zoneBottom - zoneTop - totalH) / 2);
+      else if (st.posicionTexto === "abajo") y = Math.max(zoneTop, zoneBottom - totalH);
+      else y = zoneTop;
+      y += Math.round(w * 0.02);
 
       if (st.kicker) {
-        ctx.font = "700 " + Math.round(w * 0.032) + "px Poppins, Arial, sans-serif";
+        ctx.font = "700 " + kickerFontPx + "px Poppins, Arial, sans-serif";
         var kw = ctx.measureText(st.kicker.toUpperCase()).width;
-        var padX = w * 0.045, padY = h * 0.014;
-        var boxW = kw + padX * 2, boxH = w * 0.075;
+        var padX = w * 0.045;
+        var boxW = kw + padX * 2, boxH = kickerBoxH;
         ctx.fillStyle = "rgba(255,255,255,.92)";
         redondeada(ctx, cx - boxW / 2, y, boxW, boxH, boxH / 2);
         ctx.fill();
         ctx.fillStyle = st.c1;
         ctx.textAlign = "center"; ctx.textBaseline = "middle";
         ctx.fillText(st.kicker.toUpperCase(), cx, y + boxH / 2 + 2);
-        y += boxH + w * 0.06;
+        y += boxH + kickerGap;
       }
 
       ctx.textAlign = "center";
       ctx.fillStyle = "#fff";
-      ctx.font = "800 " + Math.round(w * 0.088) + "px Poppins, Arial, sans-serif";
-      var lineasTitulo = envolverTexto(ctx, st.titulo, w - margenLat * 2);
+      ctx.font = "800 " + tituloFontPx + "px Poppins, Arial, sans-serif";
       lineasTitulo.forEach(function (linea) {
         ctx.textBaseline = "alphabetic";
-        ctx.fillText(linea, cx, y + w * 0.08);
-        y += w * 0.1;
+        ctx.fillText(linea, cx, y + w * 0.08 * tamMult);
+        y += tituloLineH;
       });
 
       y += w * 0.02;
-      ctx.font = "500 " + Math.round(w * 0.042) + "px Arial, sans-serif";
+      ctx.font = "500 " + subFontPx + "px Arial, sans-serif";
       ctx.fillStyle = "rgba(255,255,255,.94)";
-      var lineasSub = envolverTexto(ctx, st.subtitulo, w - margenLat * 2.4);
-      lineasSub.slice(0, 5).forEach(function (linea) {
+      lineasSub.forEach(function (linea) {
         ctx.fillText(linea, cx, y + w * 0.045);
-        y += w * 0.058;
+        y += subLineH;
       });
 
       // Pie con nombre del laboratorio
