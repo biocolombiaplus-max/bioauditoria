@@ -224,6 +224,7 @@
       document.getElementById("login-password").value = "Demo2026*";
       form.requestSubmit();
     });
+    document.getElementById("btn-forgot-password").addEventListener("click", abrirRecuperarContrasena);
     form.addEventListener("submit", function (e) {
       e.preventDefault();
       var u = document.getElementById("login-username").value.trim();
@@ -239,6 +240,42 @@
         form.reset();
         location.hash = res.session.rol === "superadmin" ? "#/crm" : "#/dashboard";
         showApp();
+      });
+    });
+  }
+
+  function abrirRecuperarContrasena() {
+    var valorActual = document.getElementById("login-username").value.trim();
+    var emailPrevio = valorActual.indexOf("@") !== -1 ? valorActual : "";
+    var wrap = BIO_UI.openModal(
+      '<h3 class="modal-title">🔑 Recuperar contraseña</h3>' +
+      '<p class="text-muted" style="margin-top:2px">Ingresa el correo con el que registraste tu cuenta de BIOsoft y te enviaremos un enlace para crear una nueva contraseña.</p>' +
+      '<div class="field"><label>Correo electrónico</label><input id="forgot-email" type="email" autocomplete="email" value="' + BIO_UI.esc(emailPrevio) + '" required/></div>' +
+      '<p id="forgot-msg" class="hidden" style="font-size:13px"></p>' +
+      '<div class="flex gap-2 justify-between" style="margin-top:6px">' +
+      '<button type="button" class="btn btn-ghost" data-modal-close>Cancelar</button>' +
+      '<button type="button" class="btn btn-primary" id="forgot-submit">' + BIO_UI.icon("send") + ' Enviar enlace</button>' +
+      "</div>"
+    );
+    wrap.querySelector("#forgot-submit").addEventListener("click", function () {
+      var email = wrap.querySelector("#forgot-email").value.trim();
+      var msg = wrap.querySelector("#forgot-msg");
+      var btn = wrap.querySelector("#forgot-submit");
+      var textoOriginal = btn.innerHTML;
+      btn.disabled = true; btn.textContent = "Enviando…";
+      BIO_AUTH.recuperarContrasena(email).then(function (res) {
+        if (!res.ok) {
+          btn.disabled = false; btn.innerHTML = textoOriginal;
+          msg.className = "text-danger";
+          msg.style.fontSize = "13px";
+          msg.textContent = res.error;
+          return;
+        }
+        wrap.querySelector(".modal-card").innerHTML =
+          '<h3 class="modal-title">✅ Revisa tu correo</h3>' +
+          '<p class="text-muted" style="margin-top:2px">Si <b>' + BIO_UI.esc(email) + '</b> está registrado en BIOsoft, te acabamos de enviar un enlace para crear una nueva contraseña. Revisa también la carpeta de spam.</p>' +
+          '<div class="flex justify-between" style="margin-top:16px"><span></span><button type="button" class="btn btn-primary" data-modal-close>Entendido</button></div>';
+        wrap.querySelectorAll("[data-modal-close]").forEach(function (b) { b.addEventListener("click", function () { BIO_UI.closeModal(wrap); }); });
       });
     });
   }

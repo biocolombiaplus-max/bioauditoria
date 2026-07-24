@@ -13,7 +13,8 @@
     "auth/user-not-found": "Usuario no encontrado o inactivo.",
     "auth/invalid-email": "El correo ingresado no es válido.",
     "auth/too-many-requests": "Demasiados intentos. Espera un momento e inténtalo de nuevo.",
-    "auth/network-request-failed": "No hay conexión con el servidor. Verifica tu internet."
+    "auth/network-request-failed": "No hay conexión con el servidor. Verifica tu internet.",
+    "auth/missing-email": "Ingresa tu correo electrónico."
   };
   function mapFirebaseError(err) {
     return FIREBASE_ERRORS[err && err.code] || "Usuario no encontrado o inactivo.";
@@ -89,6 +90,26 @@
     return false;
   }
 
+  /* Envía el correo de restablecimiento de contraseña de Firebase. Por
+     seguridad, nunca revela si el correo existe o no en el sistema: un
+     "usuario no encontrado" se responde igual que un envío exitoso, para no
+     permitir que alguien use este formulario para adivinar qué correos están
+     registrados como clientes reales de BIOsoft. */
+  function recuperarContrasena(email) {
+    if (!email || email.indexOf("@") === -1) {
+      return Promise.resolve({ ok: false, error: "Ingresa un correo electrónico válido." });
+    }
+    if (typeof global.BIO_FB === "undefined" || !global.BIO_FB) {
+      return Promise.resolve({ ok: false, error: "No se pudo conectar con el servidor. Verifica tu conexión a internet." });
+    }
+    return global.BIO_FB.auth.sendPasswordResetEmail(email).then(function () {
+      return { ok: true };
+    }).catch(function (err) {
+      if (err && err.code === "auth/user-not-found") return { ok: true };
+      return { ok: false, error: mapFirebaseError(err) };
+    });
+  }
+
   function verificarClaveAdmin(clave) {
     var s = getSession();
     if (!s) return false;
@@ -104,6 +125,7 @@
     rehydrate: rehydrate,
     currentTenant: currentTenant,
     isRole: isRole,
-    verificarClaveAdmin: verificarClaveAdmin
+    verificarClaveAdmin: verificarClaveAdmin,
+    recuperarContrasena: recuperarContrasena
   };
 })(window);

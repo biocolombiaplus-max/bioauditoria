@@ -224,6 +224,11 @@ tbody tr:hover { background: var(--surface-2); }
   text-underline-offset: 2px;
 }
 .link-toggle-login:hover { color: var(--brand-primary); }
+.link-forgot-password {
+  display: block; width: 100%; text-align: right; background: none; border: none; cursor: pointer;
+  color: var(--text-muted); font-size: 12px; font-weight: 600; margin: -6px 0 14px; padding: 2px;
+}
+.link-forgot-password:hover { color: var(--brand-primary); text-decoration: underline; text-underline-offset: 2px; }
 .existing-login {
   margin-top: 14px; background: var(--surface-2); border: 1px solid var(--border);
   border-radius: var(--radius); padding: 22px 20px;
