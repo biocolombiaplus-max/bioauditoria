@@ -348,10 +348,14 @@
         '<button type="submit" class="btn btn-primary">' + U.icon("check") + " Guardar Configuración</button>" +
       "</form></div>";
 
-    document.getElementById("btn-manual-descargar").addEventListener("click", function () {
-      var bytes = BIO_PDF_MANUAL.buildManualPDF(tenant);
-      U.downloadBytes(bytes, "Manual_de_Usuario_" + (tenant.nombre || "BIOsoft").replace(/\s+/g, "_") + ".pdf");
-      U.toast("Manual descargado.", "success");
+    document.getElementById("btn-manual-descargar").addEventListener("click", function (e) {
+      var btn = e.currentTarget;
+      var htmlOriginal = btn.innerHTML;
+      btn.disabled = true; btn.innerHTML = "Generando…";
+      BIO_PDF_MANUAL.buildManualPDF(tenant).then(function (bytes) {
+        U.downloadBytes(bytes, "Manual_de_Usuario_" + (tenant.nombre || "BIOsoft").replace(/\s+/g, "_") + ".pdf");
+        U.toast("Manual descargado.", "success");
+      }).finally(function () { btn.disabled = false; btn.innerHTML = htmlOriginal; });
     });
     document.getElementById("btn-manual-enviar").addEventListener("click", function () { abrirEnviarManual(tenant); });
 
@@ -437,12 +441,15 @@
       '<a class="btn btn-whatsapp btn-block" id="man-wa" target="_blank" rel="noopener" style="margin-top:8px">' + U.icon("send") + " Enviar por WhatsApp</a>" +
       "</div>"
     );
-    wrap.querySelector("#man-go").addEventListener("click", function () {
+    wrap.querySelector("#man-go").addEventListener("click", function (e) {
       var email = wrap.querySelector("#man-email").value.trim();
       var whatsapp = wrap.querySelector("#man-whatsapp").value.trim();
       var msg = wrap.querySelector("#man-msg").value;
       if (!email && !whatsapp) { U.toast("Ingresa un correo o un número de WhatsApp.", "error"); return; }
-      var bytes = BIO_PDF_MANUAL.buildManualPDF(tenant);
+      var btn = e.currentTarget;
+      var htmlOriginal = btn.innerHTML;
+      btn.disabled = true; btn.innerHTML = "Generando…";
+      BIO_PDF_MANUAL.buildManualPDF(tenant).then(function (bytes) {
       U.downloadBytes(bytes, "Manual_de_Usuario_" + (tenant.nombre || "BIOsoft").replace(/\s+/g, "_") + ".pdf");
       var asunto = "Manual de Usuario — " + (tenant.nombre || "BIOsoft");
       var cuerpo = msg + "\n\n(Adjunte el archivo PDF que se acaba de descargar a su equipo)";
@@ -457,6 +464,7 @@
         waBtn.classList.add("hidden");
       }
       U.toast("PDF descargado. Elige por dónde enviarlo.", "success");
+      }).finally(function () { btn.disabled = false; btn.innerHTML = htmlOriginal; });
     });
   }
 
