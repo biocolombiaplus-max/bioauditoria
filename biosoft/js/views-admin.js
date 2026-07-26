@@ -13,12 +13,22 @@
 
     function build() {
       var users = S.listUsers(session.tenantId);
+      var tenant = S.getTenant(session.tenantId);
+      var activos = users.filter(function (u) { return u.activo; }).length;
+      var limite = tenant && tenant.maxUsuarios;
+      var alLimite = !!(limite && activos >= limite);
+      var contadorTxt = limite ? activos + " de " + limite + " según tu plan" : String(users.length);
       root.innerHTML =
-        '<div class="card"><div class="card-header"><h3 class="card-title">Usuarios del Laboratorio (' + users.length + ')</h3>' +
+        '<div class="card"><div class="card-header"><h3 class="card-title">Usuarios del Laboratorio (' + contadorTxt + ')</h3>' +
         '<button class="btn btn-primary" id="btn-new-user">' + U.icon("plus") + ' Nuevo Usuario</button></div>' +
+        (alLimite ? '<p class="text-muted" style="margin:0 0 14px;font-size:12.5px">🔒 Alcanzaste el límite de usuarios activos de tu plan actual. Desactiva a alguien para liberar un cupo, o escríbenos para subir de plan.</p>' : "") +
         '<div class="table-wrap"><table><thead><tr><th>Nombre</th><th>Usuario</th><th>Rol</th><th>Secciones Asignadas</th><th>Estado</th><th></th></tr></thead><tbody>' +
         users.map(rowHtml).join("") + "</tbody></table></div></div>";
-      document.getElementById("btn-new-user").addEventListener("click", function () { openForm(null); });
+      document.getElementById("btn-new-user").addEventListener("click", function () {
+        var activosAhora = S.listUsers(session.tenantId).filter(function (u) { return u.activo; }).length;
+        if (limite && activosAhora >= limite) { abrirLimiteAlcanzado(limite, tenant); return; }
+        openForm(null);
+      });
       root.querySelectorAll("[data-edit]").forEach(function (b) { b.addEventListener("click", function () { openForm(users.filter(function (u) { return u.id === b.dataset.edit; })[0]); }); });
       root.querySelectorAll("[data-toggle]").forEach(function (b) { b.addEventListener("click", function () {
         var u = users.filter(function (x) { return x.id === b.dataset.toggle; })[0];
@@ -26,6 +36,16 @@
         S.addAudit(session.tenantId, session.nombre, session.rol, "TOGGLE_USER", "usuario", u.id, (u.activo ? "Desactivó" : "Activó") + " al usuario " + u.nombre + ".");
         build();
       }); });
+    }
+
+    function abrirLimiteAlcanzado(limite, tenant) {
+      var msg = "Hola 👋 mi laboratorio " + (tenant && tenant.nombre ? tenant.nombre : "") + " ya llegó al límite de " + limite + " usuario(s) activo(s) de nuestro plan actual y necesitamos agregar más. ¿Me ayudan a subir de plan?";
+      U.openModal(
+        '<h3 class="modal-title">Llegaste al límite de tu plan</h3>' +
+        '<p class="text-muted">Tu plan actual permite hasta <b>' + limite + ' usuario(s) activo(s)</b>. Para agregar uno nuevo, desactiva a alguien que ya no lo use, o solicita subir de plan.</p>' +
+        '<div class="flex gap-2 justify-between"><button class="btn btn-ghost" data-modal-close>Entendido</button>' +
+        '<a class="btn btn-whatsapp" href="https://wa.me/573505457420?text=' + encodeURIComponent(msg) + '" target="_blank" rel="noopener">' + U.icon("send") + " Solicitar más usuarios</a></div>"
+      );
     }
 
     function rowHtml(u) {
@@ -107,6 +127,15 @@
           data.firmaDataUrl = firmaTemp;
         }
         if (!data.nombre || !data.username || (!isEdit && !pass)) { U.toast("Completa nombre, usuario y contraseña.", "error"); return; }
+        if (!isEdit) {
+          var tenantAhora = S.getTenant(session.tenantId);
+          var limiteAhora = tenantAhora && tenantAhora.maxUsuarios;
+          var activosAhora2 = S.listUsers(session.tenantId).filter(function (u) { return u.activo; }).length;
+          if (limiteAhora && activosAhora2 >= limiteAhora) {
+            U.toast("Alcanzaste el límite de " + limiteAhora + " usuario(s) de tu plan actual.", "error");
+            return;
+          }
+        }
         var esReal = S.isRealMode();
 
         if (isEdit) {
@@ -518,12 +547,54 @@
       root.innerHTML =
         '<div class="card"><div class="card-header"><h3 class="card-title">Laboratorios Cliente (' + tenants.length + ')</h3>' +
         '<button class="btn btn-primary" id="btn-new-tenant">' + U.icon("plus") + ' Crear Nuevo Laboratorio</button></div>' +
-        '<div class="table-wrap"><table><thead><tr><th>Laboratorio</th><th>País</th><th>Nivel</th><th>Usuarios</th><th>Pacientes</th><th>Órdenes</th></tr></thead><tbody>' +
+        '<div class="table-wrap"><table><thead><tr><th>Laboratorio</th><th>País</th><th>Nivel</th><th>Plan</th><th>Usuarios</th><th>Pacientes</th><th>Órdenes</th><th></th></tr></thead><tbody>' +
         (tenants.length ? tenants.map(function (t) {
+          var plan = BIO_PLANES.porId(t.planId);
+          var usuariosActivos = t._usuarios || 0;
+          var limite = t.maxUsuarios;
+          var usuariosTxt = limite ? usuariosActivos + " / " + limite : String(usuariosActivos);
+          var sobreLimite = limite && usuariosActivos > limite;
           return "<tr><td><b>" + U.esc(t.nombre) + "</b><div class='text-muted' style='font-size:11px'>NIT " + U.esc(t.nit || "—") + "</div></td><td>" + t.pais + "</td><td>" + t.nivel + "</td>" +
-            "<td>" + (t._usuarios || 0) + "</td><td>" + (t._pacientes || 0) + "</td><td>" + (t._ordenes || 0) + "</td></tr>";
-        }).join("") : '<tr><td colspan="6" class="text-muted">Aún no hay laboratorios cliente creados.</td></tr>') + "</tbody></table></div></div>";
+            "<td>" + (plan ? U.esc(plan.nombre) : '<span class="text-muted">Sin asignar</span>') + "</td>" +
+            "<td>" + (sobreLimite ? '<span class="badge badge-urgente">' + usuariosTxt + '</span>' : usuariosTxt) + "</td>" +
+            "<td>" + (t._pacientes || 0) + "</td><td>" + (t._ordenes || 0) + "</td>" +
+            '<td><button class="btn btn-ghost btn-sm" data-editar-plan="' + t.id + '">' + U.icon("edit") + " Editar Plan</button></td></tr>";
+        }).join("") : '<tr><td colspan="8" class="text-muted">Aún no hay laboratorios cliente creados.</td></tr>') + "</tbody></table></div></div>";
       document.getElementById("btn-new-tenant").addEventListener("click", openNewTenant);
+      root.querySelectorAll("[data-editar-plan]").forEach(function (b) {
+        b.addEventListener("click", function () {
+          abrirEditarPlan(tenants.filter(function (t) { return t.id === b.dataset.editarPlan; })[0]);
+        });
+      });
+    }
+
+    function abrirEditarPlan(tenant) {
+      var wrap = U.openModal(
+        '<h3 class="modal-title">Plan de ' + U.esc(tenant.nombre) + '</h3>' +
+        '<p class="text-muted" style="margin-top:0">Este límite controla cuántos usuarios puede crear el laboratorio desde su propio panel. Cámbialo cuando el cliente suba (o baje) de plan.</p>' +
+        '<form id="plan-form">' +
+        F.sel("planId", "Plan Contratado", [""].concat(BIO_PLANES.PLANES.map(function (p) { return p.id; })).map(function (id) {
+          var p = BIO_PLANES.porId(id);
+          return "<option value='" + id + "' " + (id === (tenant.planId || "") ? "selected" : "") + ">" + (p ? p.nombre + " (" + p.usuarios + ")" : "— Sin asignar —") + "</option>";
+        }).join("")) +
+        '<div class="field"><label>Límite de usuarios (se ajusta solo según el plan, o edítalo manual)</label><input type="number" id="f_maxUsuarios" min="1" value="' + (tenant.maxUsuarios || "") + '"/></div>' +
+        '<div class="flex gap-2 justify-between" style="margin-top:6px"><button type="button" class="btn btn-ghost" data-modal-close>Cancelar</button><button type="submit" class="btn btn-primary">' + U.icon("check") + " Guardar</button></div>" +
+        "</form>"
+      );
+      wrap.querySelector("#f_planId").addEventListener("change", function () {
+        var p = BIO_PLANES.porId(this.value);
+        wrap.querySelector("#f_maxUsuarios").value = p ? p.limiteUsuarios : "";
+      });
+      wrap.querySelector("#plan-form").addEventListener("submit", function (e) {
+        e.preventDefault();
+        var planId = wrap.querySelector("#f_planId").value;
+        var maxUsuarios = parseInt(wrap.querySelector("#f_maxUsuarios").value, 10);
+        tenant.planId = planId || null;
+        tenant.maxUsuarios = maxUsuarios || null;
+        S.saveTenant(tenant);
+        U.toast("Plan actualizado.", "success");
+        U.closeModal(wrap);
+      });
     }
 
     function openNewTenant() {
@@ -537,6 +608,7 @@
             F.sel("pais", "País", ["CO", "VE", "EC"].map(function (p) { return "<option value='" + p + "'>" + (p === "CO" ? "Colombia" : p === "VE" ? "Venezuela" : "Ecuador") + "</option>"; }).join("")) +
             F.inp("direccion", "Dirección", "") + F.inp("telefonos", "Teléfonos", "") + F.inp("email", "Correo Electrónico", "") +
             F.sel("nivel", "Nivel", [1, 2].map(function (n) { return "<option value='" + n + "'>Nivel " + n + "</option>"; }).join("")) +
+            F.sel("planId", "Plan Contratado", BIO_PLANES.PLANES.map(function (p) { return "<option value='" + p.id + "'>" + p.nombre + " (" + p.usuarios + ")</option>"; }).join("")) +
           "</div>" +
           '<fieldset><legend>Usuario Administrador Inicial</legend><div class="form-grid">' +
             F.inp("adminNombre", "Nombre del Administrador", "", true) + F.inp("adminUser", "Correo electrónico (será su usuario)", "", true, "email") + F.inp("adminPass", "Contraseña (mínimo 6 caracteres)", "", true) +
@@ -552,8 +624,12 @@
         if (g("adminPass").length < 6) { U.toast("La contraseña debe tener al menos 6 caracteres.", "error"); return; }
         var submitBtn = wrap.querySelector('button[type="submit"]');
         submitBtn.disabled = true; submitBtn.textContent = "Creando…";
+        var planElegido = BIO_PLANES.porId(g("planId"));
         S.provisionRealAccount({
-          tenantData: { nombre: g("nombre"), nit: g("nit"), pais: g("pais"), direccion: g("direccion"), telefonos: g("telefonos"), email: g("email"), nivel: parseInt(g("nivel"), 10) },
+          tenantData: {
+            nombre: g("nombre"), nit: g("nit"), pais: g("pais"), direccion: g("direccion"), telefonos: g("telefonos"), email: g("email"), nivel: parseInt(g("nivel"), 10),
+            planId: planElegido ? planElegido.id : null, maxUsuarios: planElegido ? planElegido.limiteUsuarios : null
+          },
           userData: { username: g("adminUser"), password: g("adminPass"), nombre: g("adminNombre"), rol: "admin", secciones: [] }
         }).then(function (res) {
           U.toast("Laboratorio creado. Clave de administrador para correcciones: " + res.tenant.claveAdmin, "success");

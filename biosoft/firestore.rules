@@ -52,7 +52,9 @@ service cloud.firestore {
       // El superadmin necesita ver TODOS los laboratorios (panel "Laboratorios
       // Cliente"), no solo el propio — de ahí el esSuperadmin() en la lectura.
       allow read: if esDeEsteLab(tenantId) || esSuperadmin();
-      allow update: if esDeEsteLab(tenantId);
+      // El superadmin también puede actualizar (asignar/cambiar el plan y el
+      // límite de usuarios de cada laboratorio desde el panel de socios).
+      allow update: if esDeEsteLab(tenantId) || esSuperadmin();
       // La creación ocurre en el mismo flujo de aprovisionamiento, por el
       // usuario recién autenticado que se convertirá en su administrador.
       allow create: if autenticado();
