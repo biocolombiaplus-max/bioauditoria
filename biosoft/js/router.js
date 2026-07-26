@@ -155,6 +155,7 @@
   }
 
   function showLogin() {
+    BIO_UI.resetTheme();
     document.getElementById("app-shell").classList.add("hidden");
     document.getElementById("login-screen").classList.remove("hidden");
     document.getElementById("demo-banner").classList.add("hidden");

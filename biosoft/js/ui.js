@@ -122,6 +122,17 @@
     root.style.setProperty("--heading-color", tenant.colorTitulos || tenant.colorSecundario || "#2e1065");
     root.style.setProperty("--subheading-color", tenant.colorSubtitulos || tenant.colorPrimario || "#f97316");
   }
+  /* Quita cualquier color de marca de un laboratorio que haya quedado
+     aplicado en este navegador (por ejemplo tras cerrar sesión), para que
+     la pantalla de login SIEMPRE se vea con el naranja/morado propio de
+     BIOsoft, sin importar qué laboratorio inició sesión antes en este
+     mismo dispositivo. */
+  function resetTheme() {
+    var root = document.documentElement;
+    ["--brand-primary", "--brand-secondary", "--brand-primary-dark", "--sidebar-text", "--heading-color", "--subheading-color"].forEach(function (v) {
+      root.style.removeProperty(v);
+    });
+  }
   /* Elige un color de letra (claro u oscuro) legible sobre el fondo dado,
      para que el menú lateral se vea bien sin importar qué color de marca
      elija cada laboratorio — a menos que el laboratorio fije uno manual. */
@@ -206,7 +217,7 @@
   global.BIO_UI = {
     icon: icon, esc: esc, toast: toast, openModal: openModal, closeModal: closeModal,
     calcEdad: calcEdad, fmtFecha: fmtFecha, fmtFechaCorta: fmtFechaCorta, nombreCompleto: nombreCompleto,
-    applyTenantTheme: applyTenantTheme, contrastColor: contrastColor, dataUrlToBlob: dataUrlToBlob, openDataUrlInNewTab: openDataUrlInNewTab,
+    applyTenantTheme: applyTenantTheme, resetTheme: resetTheme, contrastColor: contrastColor, dataUrlToBlob: dataUrlToBlob, openDataUrlInNewTab: openDataUrlInNewTab,
     downloadBytes: downloadBytes, normalizar: normalizar, emailLinks: emailLinks,
     emailProviderButtonsHtml: emailProviderButtonsHtml, wireEmailProviderButtons: wireEmailProviderButtons
   };
