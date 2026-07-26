@@ -35,13 +35,31 @@
     return new Date(iso).toLocaleDateString("es-CO", { year: "numeric", month: "short", day: "numeric" });
   }
 
+  // Cuando el cliente ya tiene un laboratorio real vinculado (c.tenantId), el
+  // estado de pago se lee EN VIVO desde ese laboratorio (fuente única de
+  // verdad, gestionada en "Laboratorios Cliente") en vez de la copia propia
+  // del CRM, para que nunca queden desincronizados.
+  var tenantsById = {};
   function badgeCobro(c) {
+    var tenant = c.tenantId ? tenantsById[c.tenantId] : null;
+    if (tenant) {
+      var estado = BIO_PLANES.estadoCuenta(tenant);
+      var info = BIO_PLANES.ESTADOS_CUENTA[estado];
+      var fecha = tenant.fechaProximoPago ? " · " + fmtFechaCorta(tenant.fechaProximoPago) : "";
+      return "<span class='badge " + info.badge + "'>" + info.label + fecha + "</span>";
+    }
     if (["nuevo", "contrato_enviado", "bloqueado", "cancelado"].indexOf(c.estado) !== -1) return '<span class="text-muted" style="font-size:12px">—</span>';
     var dias = diasHasta(c.proximaFechaCobro);
     if (dias === null) return '<span class="text-muted" style="font-size:12px">—</span>';
     if (dias < 0) return '<span class="badge badge-urgente">En mora · ' + Math.abs(dias) + ' día(s)</span>';
     if (dias <= 5) return '<span class="badge badge-pendiente">Vence en ' + dias + ' día(s)</span>';
     return '<span class="badge badge-validado">Al día · vence ' + fmtFechaCorta(c.proximaFechaCobro) + "</span>";
+  }
+  function enMora(c) {
+    var tenant = c.tenantId ? tenantsById[c.tenantId] : null;
+    if (tenant) return BIO_PLANES.estadoCuenta(tenant) === "vencido";
+    var dias = diasHasta(c.proximaFechaCobro);
+    return dias !== null && dias < 0;
   }
   function badgeOrigen(c) {
     var od = c.origenDetalle || {};
@@ -74,12 +92,20 @@
     function cargar() {
       S.crm.list().then(function (list) {
         clientes = list;
-        return S.plantillas.list().catch(function (err) {
-          console.error("BIOsoft: no se pudieron cargar las plantillas ->", err.code, err.message);
-          return [];
-        });
-      }).then(function (list) {
-        plantillas = list;
+        return Promise.all([
+          S.plantillas.list().catch(function (err) {
+            console.error("BIOsoft: no se pudieron cargar las plantillas ->", err.code, err.message);
+            return [];
+          }),
+          S.tenantsGlobal.list().catch(function (err) {
+            console.error("BIOsoft: no se pudieron cargar los laboratorios para el CRM ->", err.code, err.message);
+            return [];
+          })
+        ]);
+      }).then(function (res) {
+        plantillas = res[0];
+        tenantsById = {};
+        res[1].forEach(function (t) { tenantsById[t.id] = t; });
         cargando = false;
         build();
       }).catch(function (err) {
@@ -104,7 +130,7 @@
         '<div class="kpi-grid">' +
           kpi(clientes.length, "Clientes / Leads") +
           kpi(clientes.filter(function (c) { return c.estado === "activo" || c.estado === "recordatorio_enviado"; }).length, "Activos") +
-          kpi(clientes.filter(function (c) { var d = diasHasta(c.proximaFechaCobro); return d !== null && d < 0; }).length, "En Mora") +
+          kpi(clientes.filter(enMora).length, "En Mora") +
           kpi(clientes.filter(function (c) { return c.estado === "nuevo" || c.estado === "contrato_enviado"; }).length, "Por Cerrar") +
         "</div>" +
         '<div class="card"><div class="card-header"><h3 class="card-title">Clientes y Leads (' + clientes.length + ')</h3>' +

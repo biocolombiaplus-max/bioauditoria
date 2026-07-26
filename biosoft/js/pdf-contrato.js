@@ -15,6 +15,19 @@
     return (d instanceof Date ? d : new Date(d)).toLocaleDateString("es-CO", { year: "numeric", month: "long", day: "numeric" });
   }
 
+  var UNIDADES = ["cero", "uno", "dos", "tres", "cuatro", "cinco", "seis", "siete", "ocho", "nueve", "diez",
+    "once", "doce", "trece", "catorce", "quince", "dieciséis", "diecisiete", "dieciocho", "diecinueve", "veinte"];
+  var DECENAS = { 30: "treinta", 40: "cuarenta", 50: "cincuenta", 60: "sesenta", 70: "setenta", 80: "ochenta", 90: "noventa" };
+  function numeroEnPalabras(n) {
+    if (n <= 20) return UNIDADES[n];
+    if (n < 30) return "veinti" + UNIDADES[n - 20];
+    var decena = Math.floor(n / 10) * 10;
+    var unidad = n % 10;
+    if (!DECENAS[decena]) return String(n);
+    return unidad ? DECENAS[decena] + " y " + UNIDADES[unidad] : DECENAS[decena];
+  }
+  function numeroConDigito(n) { return numeroEnPalabras(n) + " (" + n + ")"; }
+
   function encabezado(doc, margin, titulo, subtitulo) {
     var pageW = doc.internal.pageSize.getWidth();
     var y = margin;
@@ -45,7 +58,10 @@
   // -----------------------------------------------------------------------
   // CONTRATO DE PRESTACIÓN DE SERVICIOS
   // -----------------------------------------------------------------------
-  function buildContratoPDF(cliente, plan, modalidadPago) {
+  function buildContratoPDF(cliente, plan, modalidadPago, opts) {
+    opts = opts || {};
+    var cicloDias = opts.cicloCobroDias || 30;
+    var mesesMembresia = opts.mesesMembresia || 6;
     var IMPL = (window.BIO_PLANES && window.BIO_PLANES.IMPLEMENTACION) || { copFmt: "380.000", usd: 120, cuotaCopFmt: "190.000", cuotaUsd: 60 };
     var esSemestral = modalidadPago === "semestral";
     var jsPDFCtor = window.jspdf ? window.jspdf.jsPDF : window.jsPDF;
@@ -113,13 +129,13 @@
     titulo("CUARTA — VALOR DEL SERVICIO");
     parrafo(
       esSemestral
-        ? ("EL CLIENTE ha optado por la modalidad de pago semestral: cancela por adelantado el valor correspondiente a sus primeros seis (6) meses de mensualidad del Plan " + plan.nombre + " ($" + plan.precioFmt + " COP c/u, aprox. $" + plan.usd + " USD), quedando exento del pago de la cuota de implementación (valor $" + IMPL.copFmt + " COP / aprox. $" + IMPL.usd + " USD), la cual EL PROVEEDOR condona en su totalidad bajo esta modalidad. Vencidos los primeros seis (6) meses, EL CLIENTE continuará pagando la mensualidad ordinaria del Plan " + plan.nombre + ".")
+        ? ("EL CLIENTE ha optado por la modalidad de membresía prepagada: cancela por adelantado el valor correspondiente a sus primeros " + numeroConDigito(mesesMembresia) + " meses de mensualidad del Plan " + plan.nombre + " ($" + plan.precioFmt + " COP c/u, aprox. $" + plan.usd + " USD), quedando exento del pago de la cuota de implementación (valor $" + IMPL.copFmt + " COP / aprox. $" + IMPL.usd + " USD), la cual EL PROVEEDOR condona en su totalidad bajo esta modalidad. Vencidos los primeros " + numeroConDigito(mesesMembresia) + " meses, EL CLIENTE continuará pagando la mensualidad ordinaria del Plan " + plan.nombre + ".")
         : ("EL CLIENTE pagará una cuota de implementación por valor de $" + IMPL.copFmt + " COP (aprox. $" + IMPL.usd + " USD), fraccionada en DOS (2) cuotas iguales de $" + IMPL.cuotaCopFmt + " COP (aprox. $" + IMPL.cuotaUsd + " USD) cada una, cobradas junto con la mensualidad de los meses uno (1) y dos (2). A partir del mes tres (3), EL CLIENTE solo pagará la mensualidad ordinaria de $" + plan.precioFmt + " COP (aprox. $" + plan.usd + " USD) correspondiente al Plan " + plan.nombre + ". La cuota de implementación no se cobra nuevamente bajo ninguna circunstancia una vez cancelada en su totalidad, sin importar el tiempo que EL CLIENTE continúe usando el software.")
     );
 
     titulo("QUINTA — FORMA DE PAGO Y PERIODICIDAD");
     parrafo(
-      "La mensualidad se cobrará cada treinta (30) días calendario, contados a partir de la fecha de activación del servicio. El pago se realiza a través de los medios habilitados por EL PROVEEDOR (Wompi u otros que se informen oportunamente)."
+      "La mensualidad se cobrará cada " + numeroConDigito(cicloDias) + " días calendario, contados a partir de la fecha de activación del servicio. El pago se realiza a través de los medios habilitados por EL PROVEEDOR (Wompi u otros que se informen oportunamente)."
     );
 
     titulo("SEXTA — POLÍTICA DE MORA Y SUSPENSIÓN DEL SERVICIO");

@@ -567,6 +567,7 @@
             '<button class="btn btn-ghost btn-sm" data-editar-plan="' + t.id + '">' + U.icon("edit") + " Plan</button>" +
             '<button class="btn btn-outline btn-sm" data-enviar-contrato="' + t.id + '">' + U.icon("file") + " Contrato</button>" +
             '<button class="btn btn-outline btn-sm" data-enviar-manual="' + t.id + '">' + U.icon("send") + " Manual</button>" +
+            '<button class="btn btn-ghost btn-sm" data-sync-crm="' + t.id + '" title="Crear/vincular este laboratorio en el CRM">' + U.icon("send") + " CRM</button>" +
             "</div></td></tr>";
         }).join("") : '<tr><td colspan="7" class="text-muted">Aún no hay laboratorios cliente creados.</td></tr>') + "</tbody></table></div></div>";
       document.getElementById("btn-new-tenant").addEventListener("click", openNewTenant);
@@ -588,6 +589,17 @@
       root.querySelectorAll("[data-recordar-pago]").forEach(function (b) {
         b.addEventListener("click", function () {
           recordarPagoPorWhatsapp(tenants.filter(function (t) { return t.id === b.dataset.recordarPago; })[0]);
+        });
+      });
+      root.querySelectorAll("[data-sync-crm]").forEach(function (b) {
+        b.addEventListener("click", function () {
+          var tenant = tenants.filter(function (t) { return t.id === b.dataset.syncCrm; })[0];
+          b.disabled = true;
+          sincronizarConCRM(tenant).then(function (r) {
+            U.toast(r.creado ? "Cliente creado en el CRM." : "Este laboratorio ya está en el CRM.", "success");
+          }).catch(function (err) {
+            U.toast("No se pudo sincronizar con el CRM: " + err.message, "error");
+          }).finally(function () { b.disabled = false; });
         });
       });
     }
@@ -614,8 +626,10 @@
         '<fieldset><legend>Facturación y Fechas de Pago</legend><div class="form-grid">' +
         '<div class="field"><label>Fecha de inicio del plan</label><input type="date" id="f_fechaInicioPlan" value="' + (tenant.fechaInicioPlan || "") + '"/></div>' +
         '<div class="field"><label>Próxima fecha de pago (corte)</label><input type="date" id="f_fechaProximoPago" value="' + (tenant.fechaProximoPago || "") + '"/></div>' +
+        '<div class="field"><label>Ciclo de cobro habitual (días)</label><input type="number" id="f_cicloCobroDias" min="1" value="' + (tenant.cicloCobroDias || 30) + '"/></div>' +
+        '<div class="field"><label>Meses de membresía gratis (si aplica)</label><input type="number" id="f_mesesMembresiaGratis" min="1" value="' + (tenant.mesesMembresiaGratis || "") + '"/></div>' +
         "</div>" +
-        '<p class="text-muted" style="margin:2px 0 8px;font-size:12px">El cobro es cada 30 días calendario. Estas fechas se fijan automáticamente la primera vez que envíes el contrato, pero puedes ajustarlas manualmente aquí.</p>' +
+        '<p class="text-muted" style="margin:2px 0 8px;font-size:12px">Estas fechas se fijan automáticamente según lo elegido la primera vez que envíes el contrato, pero puedes ajustarlas manualmente aquí.</p>' +
         '<div class="field"><label class="flex gap-2" style="align-items:center;font-weight:400"><input type="checkbox" id="f_suspendido" ' + (tenant.suspendido ? "checked" : "") + ' style="width:auto"/> Suspender acceso del laboratorio (bloquea el ingreso por falta de pago)</label></div>' +
         "</fieldset>" +
         '<div class="flex gap-2 justify-between" style="margin-top:6px"><button type="button" class="btn btn-ghost" data-modal-close>Cancelar</button><button type="submit" class="btn btn-primary">' + U.icon("check") + " Guardar</button></div>" +
@@ -635,12 +649,36 @@
         tenant.maxUsuarios = maxUsuarios || null;
         tenant.fechaInicioPlan = wrap.querySelector("#f_fechaInicioPlan").value || null;
         tenant.fechaProximoPago = wrap.querySelector("#f_fechaProximoPago").value || null;
+        tenant.cicloCobroDias = parseInt(wrap.querySelector("#f_cicloCobroDias").value, 10) || 30;
+        tenant.mesesMembresiaGratis = parseInt(wrap.querySelector("#f_mesesMembresiaGratis").value, 10) || null;
         tenant.suspendido = quedaSuspendido;
         if (quedaSuspendido && !estabaSuspendido) tenant.fechaSuspension = new Date().toISOString().slice(0, 10);
         if (!quedaSuspendido) tenant.fechaSuspension = null;
         S.saveTenant(tenant);
         U.toast("Plan actualizado.", "success");
         U.closeModal(wrap);
+      });
+    }
+
+    // Crea el registro en el CRM (crmClientes) vinculado a este laboratorio si
+    // todavía no existe uno — evita duplicados comprobando por tenantId antes
+    // de crear. El estado de pago (fechas, suspensión) sigue viviendo SOLO en
+    // el laboratorio: el CRM lo lee en vivo desde ahí (ver views-crm.js), así
+    // que aquí no se copian esos campos, solo la identidad del cliente.
+    function sincronizarConCRM(tenant) {
+      return S.crm.list().then(function (clientes) {
+        var yaExiste = clientes.filter(function (c) { return c.tenantId === tenant.id; })[0];
+        if (yaExiste) return { creado: false };
+        return S.crm.create({
+          origen: "laboratorio_cliente",
+          estado: "activo",
+          tenantId: tenant.id,
+          laboratorio: { nombre: tenant.nombre, nit: tenant.nit, ciudad: tenant.direccion || "", pais: tenant.pais },
+          contacto: { nombre: tenant.contactoNombre || tenant.nombre, whatsapp: tenant.telefonos, correo: tenant.email },
+          planId: tenant.planId || "",
+          seccionesIds: [],
+          notas: "Sincronizado automáticamente desde Laboratorios Cliente."
+        }).then(function () { return { creado: true }; });
       });
     }
 
@@ -656,16 +694,22 @@
       var plan = BIO_PLANES.porId(tenant.planId);
       if (!plan) { U.toast('Asigna primero un plan a este laboratorio (botón "Plan").', "error"); return; }
       var modalidadActual = tenant.modalidadPago === "semestral" ? "semestral" : "mensual";
+      var cicloDiasActual = tenant.cicloCobroDias || 30;
+      var mesesMembresiaActual = tenant.mesesMembresiaGratis || 6;
       var mensajeDefault = "Hola 👋 Te comparto el contrato de prestación de servicios de BIOsoft para " + (tenant.nombre || "tu laboratorio") +
-        ", Plan " + plan.nombre + ". El cobro es cada 30 días calendario a partir de hoy. Cualquier duda, aquí estamos.";
+        ", Plan " + plan.nombre + ". " + (modalidadActual === "semestral"
+          ? "Tienes membresía gratis por " + mesesMembresiaActual + " meses de una vez."
+          : "El cobro es cada " + cicloDiasActual + " días calendario a partir de hoy.") + " Cualquier duda, aquí estamos.";
       var wrap = U.openModal(
         '<h3 class="modal-title">Enviar Contrato — ' + U.esc(tenant.nombre) + '</h3>' +
         '<p class="text-muted" style="margin-top:0">Se genera con la fecha de hoy como fecha de contratación. Plan: <b>' + U.esc(plan.nombre) + '</b> (' + U.esc(plan.usuarios) + ').</p>' +
         '<div class="form-grid">' +
         '<div class="field"><label>Modalidad de pago</label><select id="con-modalidad">' +
-        '<option value="mensual" ' + (modalidadActual === "mensual" ? "selected" : "") + '>Mes a mes (implementación en 2 cuotas)</option>' +
-        '<option value="semestral" ' + (modalidadActual === "semestral" ? "selected" : "") + '>6 meses de una vez (sin implementación)</option>' +
+        '<option value="mensual" ' + (modalidadActual === "mensual" ? "selected" : "") + '>Mes a mes (implementación fraccionada)</option>' +
+        '<option value="semestral" ' + (modalidadActual === "semestral" ? "selected" : "") + '>Membresía gratis de una vez (sin implementación)</option>' +
         "</select></div>" +
+        '<div class="field ' + (modalidadActual === "semestral" ? "hidden" : "") + '" id="con-ciclo-box"><label>Ciclo de cobro (días)</label><input type="number" id="con-ciclo" min="1" value="' + cicloDiasActual + '"/></div>' +
+        '<div class="field ' + (modalidadActual === "semestral" ? "" : "hidden") + '" id="con-meses-box"><label>Meses de membresía gratis</label><input type="number" id="con-meses" min="1" value="' + mesesMembresiaActual + '"/></div>' +
         '<div class="field"><label>Correo del destinatario</label><input id="con-email" type="email" value="' + U.esc(tenant.email || "") + '"/></div>' +
         '<div class="field"><label>WhatsApp del destinatario</label><input id="con-whatsapp" value="' + U.esc(tenant.telefonos || "") + '"/></div>' +
         "</div>" +
@@ -679,24 +723,35 @@
         "</div>",
         { lg: true }
       );
+      wrap.querySelector("#con-modalidad").addEventListener("change", function () {
+        var esSemestral = this.value === "semestral";
+        wrap.querySelector("#con-ciclo-box").classList.toggle("hidden", esSemestral);
+        wrap.querySelector("#con-meses-box").classList.toggle("hidden", !esSemestral);
+      });
       wrap.querySelector("#con-go").addEventListener("click", function (e) {
         var email = wrap.querySelector("#con-email").value.trim();
         var whatsapp = wrap.querySelector("#con-whatsapp").value.trim();
         var msg = wrap.querySelector("#con-msg").value;
         var modalidadElegida = wrap.querySelector("#con-modalidad").value;
+        var cicloElegido = parseInt(wrap.querySelector("#con-ciclo").value, 10) || 30;
+        var mesesElegidos = parseInt(wrap.querySelector("#con-meses").value, 10) || 6;
         if (!email && !whatsapp) { U.toast("Ingresa un correo o un número de WhatsApp.", "error"); return; }
         var btn = e.currentTarget;
         var htmlOriginal = btn.innerHTML;
         btn.disabled = true; btn.innerHTML = "Generando…";
         try {
-          var bytes = BIO_PDF_CRM.buildContratoPDF(tenantParaDocs(tenant), plan, modalidadElegida);
+          var opts = { cicloCobroDias: cicloElegido, mesesMembresia: mesesElegidos };
+          var bytes = BIO_PDF_CRM.buildContratoPDF(tenantParaDocs(tenant), plan, modalidadElegida, opts);
           U.downloadBytes(bytes, "Contrato_BIOsoft_" + (tenant.nombre || "Cliente").replace(/\s+/g, "_") + ".pdf");
           if (!tenant.fechaInicioPlan) {
             var hoy = new Date();
+            var diasHastaProximoPago = modalidadElegida === "semestral" ? mesesElegidos * 30 : cicloElegido;
             tenant.fechaInicioPlan = hoy.toISOString().slice(0, 10);
-            tenant.fechaProximoPago = new Date(hoy.getTime() + 30 * 864e5).toISOString().slice(0, 10);
+            tenant.fechaProximoPago = new Date(hoy.getTime() + diasHastaProximoPago * 864e5).toISOString().slice(0, 10);
           }
           tenant.modalidadPago = modalidadElegida;
+          tenant.cicloCobroDias = cicloElegido;
+          if (modalidadElegida === "semestral") tenant.mesesMembresiaGratis = mesesElegidos;
           S.saveTenant(tenant);
           var asunto = "Contrato de Servicios — BIOsoft (" + plan.nombre + ")";
           var cuerpo = msg + "\n\n(Adjunte el archivo PDF que se acaba de descargar a su equipo)";
@@ -733,9 +788,19 @@
           '<fieldset><legend>Usuario Administrador Inicial</legend><div class="form-grid">' +
             F.inp("adminNombre", "Nombre del Administrador", "", true) + F.inp("adminUser", "Correo electrónico (será su usuario)", "", true, "email") + F.inp("adminPass", "Contraseña (mínimo 6 caracteres)", "", true) +
           "</div></fieldset>" +
+          '<fieldset><legend>Facturación</legend><div class="form-grid">' +
+            F.sel("tipoContratacion", "Tipo de contratación", "<option value='mensual'>Pago mes a mes (implementación fraccionada)</option><option value='membresia_gratis'>Membresía gratis de una vez (sin implementación)</option>") +
+            '<div class="field" id="nt-ciclo-box"><label>Ciclo de cobro (días)</label><input type="number" id="f_cicloCobroDias" min="1" value="30"/></div>' +
+            '<div class="field hidden" id="nt-meses-box"><label>Meses de membresía gratis</label><input type="number" id="f_mesesMembresia" min="1" value="6"/></div>' +
+          "</div></fieldset>" +
           '<div class="flex gap-2 justify-between"><button type="button" class="btn btn-ghost" data-modal-close>Cancelar</button><button type="submit" class="btn btn-primary">' + U.icon("check") + " Crear Laboratorio</button></div>" +
         "</form>", { lg: true }
       );
+      wrap.querySelector("#f_tipoContratacion").addEventListener("change", function () {
+        var esMembresia = this.value === "membresia_gratis";
+        wrap.querySelector("#nt-ciclo-box").classList.toggle("hidden", esMembresia);
+        wrap.querySelector("#nt-meses-box").classList.toggle("hidden", !esMembresia);
+      });
       wrap.querySelector("#tenant-form").addEventListener("submit", function (e) {
         e.preventDefault();
         var g = function (id) { return wrap.querySelector("#f_" + id).value.trim(); };
@@ -745,17 +810,22 @@
         var submitBtn = wrap.querySelector('button[type="submit"]');
         submitBtn.disabled = true; submitBtn.textContent = "Creando…";
         var planElegido = BIO_PLANES.porId(g("planId"));
+        var esMembresia = g("tipoContratacion") === "membresia_gratis";
+        var cicloCobroDias = parseInt(g("cicloCobroDias"), 10) || 30;
+        var mesesMembresia = parseInt(g("mesesMembresia"), 10) || 6;
         S.provisionRealAccount({
           tenantData: {
             nombre: g("nombre"), nit: g("nit"), pais: g("pais"), direccion: g("direccion"), telefonos: g("telefonos"), email: g("email"), nivel: parseInt(g("nivel"), 10),
             contactoNombre: g("adminNombre"),
-            planId: planElegido ? planElegido.id : null, maxUsuarios: planElegido ? planElegido.limiteUsuarios : null
+            planId: planElegido ? planElegido.id : null, maxUsuarios: planElegido ? planElegido.limiteUsuarios : null,
+            cicloCobroDias: esMembresia ? null : cicloCobroDias, mesesMembresiaGratis: esMembresia ? mesesMembresia : null
           },
           userData: { username: g("adminUser"), password: g("adminPass"), nombre: g("adminNombre"), rol: "admin", secciones: [] }
         }).then(function (res) {
           U.toast("Laboratorio creado. Clave de administrador para correcciones: " + res.tenant.claveAdmin, "success");
           U.closeModal(wrap);
           cargar();
+          sincronizarConCRM(res.tenant).catch(function (err) { console.error("BIOsoft: no se pudo sincronizar con el CRM ->", err); });
           if (planElegido) abrirEnviarContrato(res.tenant);
         }).catch(function (err) {
           submitBtn.disabled = false; submitBtn.textContent = "Crear Laboratorio";
