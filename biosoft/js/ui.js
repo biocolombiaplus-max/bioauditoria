@@ -119,6 +119,8 @@
     var dark = shadeColor(tenant.colorPrimario || "#f97316", -18);
     root.style.setProperty("--brand-primary-dark", dark);
     root.style.setProperty("--sidebar-text", tenant.colorTextoMenu || contrastColor(tenant.colorSecundario || "#2e1065"));
+    root.style.setProperty("--heading-color", tenant.colorTitulos || tenant.colorSecundario || "#2e1065");
+    root.style.setProperty("--subheading-color", tenant.colorSubtitulos || tenant.colorPrimario || "#f97316");
   }
   /* Elige un color de letra (claro u oscuro) legible sobre el fondo dado,
      para que el menú lateral se vea bien sin importar qué color de marca

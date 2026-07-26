@@ -322,9 +322,21 @@
               '<button type="button" class="btn btn-ghost btn-sm" id="btn-texto-auto">Automático</button>' +
             "</div>" +
           "</div>" +
+          '<div class="field"><label>Color de Títulos</label>' +
+            '<div class="flex gap-2" style="align-items:center">' +
+              '<input type="color" id="f_colorTitulos" value="' + (tenant.colorTitulos || tenant.colorSecundario || "#2e1065") + '"/>' +
+              '<button type="button" class="btn btn-ghost btn-sm" id="btn-titulos-auto">Automático</button>' +
+            "</div>" +
+          "</div>" +
+          '<div class="field"><label>Color de Subtítulos</label>' +
+            '<div class="flex gap-2" style="align-items:center">' +
+              '<input type="color" id="f_colorSubtitulos" value="' + (tenant.colorSubtitulos || tenant.colorPrimario || "#f97316") + '"/>' +
+              '<button type="button" class="btn btn-ghost btn-sm" id="btn-subtitulos-auto">Automático</button>' +
+            "</div>" +
+          "</div>" +
           '<div class="field"><label>Logo del Laboratorio</label><input type="file" id="f_logo" accept="image/*"/></div>' +
         "</div>" +
-        '<p class="text-muted" style="margin:6px 0 0;font-size:12.5px">Si el texto del menú se ve poco legible con el color secundario que elegiste, ajústalo aquí — el menú de la izquierda se actualiza al instante para que veas cómo queda.</p>' +
+        '<p class="text-muted" style="margin:6px 0 0;font-size:12.5px">Ajusta aquí el color del texto del menú, de los títulos de cada sección (como "Identidad y Datos del Laboratorio") y de los subtítulos de cada recuadro (como "Marca e Identidad Visual") — todo se actualiza al instante en esta misma pantalla para que veas cómo queda antes de guardar.</p>' +
         '<div id="logo-preview" style="margin-top:8px">' + (logoTemp ? '<img src="' + logoTemp + '" style="height:52px;border-radius:8px"/>' : '<span class="text-muted">Sin logo cargado</span>') + "</div>" +
         "</fieldset>" +
         '<fieldset><legend>Seguridad — Clave de Administrador para Correcciones</legend>' +
@@ -347,14 +359,24 @@
       U.applyTenantTheme({
         colorPrimario: document.getElementById("f_colorPrimario").value,
         colorSecundario: document.getElementById("f_colorSecundario").value,
-        colorTextoMenu: document.getElementById("f_colorTextoMenu").value
+        colorTextoMenu: document.getElementById("f_colorTextoMenu").value,
+        colorTitulos: document.getElementById("f_colorTitulos").value,
+        colorSubtitulos: document.getElementById("f_colorSubtitulos").value
       });
     }
-    ["f_colorPrimario", "f_colorSecundario", "f_colorTextoMenu"].forEach(function (id) {
+    ["f_colorPrimario", "f_colorSecundario", "f_colorTextoMenu", "f_colorTitulos", "f_colorSubtitulos"].forEach(function (id) {
       document.getElementById(id).addEventListener("input", previewTema);
     });
     document.getElementById("btn-texto-auto").addEventListener("click", function () {
       document.getElementById("f_colorTextoMenu").value = U.contrastColor(document.getElementById("f_colorSecundario").value);
+      previewTema();
+    });
+    document.getElementById("btn-titulos-auto").addEventListener("click", function () {
+      document.getElementById("f_colorTitulos").value = document.getElementById("f_colorSecundario").value;
+      previewTema();
+    });
+    document.getElementById("btn-subtitulos-auto").addEventListener("click", function () {
+      document.getElementById("f_colorSubtitulos").value = document.getElementById("f_colorPrimario").value;
       previewTema();
     });
 
@@ -379,6 +401,8 @@
       tenant.colorPrimario = document.getElementById("f_colorPrimario").value;
       tenant.colorSecundario = document.getElementById("f_colorSecundario").value;
       tenant.colorTextoMenu = document.getElementById("f_colorTextoMenu").value;
+      tenant.colorTitulos = document.getElementById("f_colorTitulos").value;
+      tenant.colorSubtitulos = document.getElementById("f_colorSubtitulos").value;
       tenant.logoDataUrl = logoTemp;
 
       var claveActual = g("claveActual"), claveNueva = g("claveNueva");
