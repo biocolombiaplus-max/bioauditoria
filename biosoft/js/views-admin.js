@@ -290,6 +290,12 @@
     var logoTemp = tenant.logoDataUrl;
 
     root.innerHTML =
+      '<div class="card"><div class="card-header"><h3 class="card-title">📘 Manual de Usuario del Sistema</h3></div>' +
+      '<p class="text-muted" style="margin-top:0">Guía paso a paso de cada módulo, con el logo y los colores de ' + U.esc(tenant.nombre || "tu laboratorio") + '. Ideal para capacitar a tu equipo o enviarla a un colaborador nuevo.</p>' +
+      '<div class="flex gap-2 wrap">' +
+      '<button type="button" class="btn btn-outline" id="btn-manual-descargar">' + U.icon("download") + ' Descargar PDF</button>' +
+      '<button type="button" class="btn btn-primary" id="btn-manual-enviar">' + U.icon("send") + ' Enviar por WhatsApp o Correo</button>' +
+      "</div></div>" +
       '<div class="card"><div class="card-header"><h3 class="card-title">Identidad y Datos del Laboratorio</h3></div>' +
       '<form id="cfg-form">' +
         '<div class="form-grid">' +
@@ -322,6 +328,13 @@
         "</div></fieldset>" +
         '<button type="submit" class="btn btn-primary">' + U.icon("check") + " Guardar Configuración</button>" +
       "</form></div>";
+
+    document.getElementById("btn-manual-descargar").addEventListener("click", function () {
+      var bytes = BIO_PDF_MANUAL.buildManualPDF(tenant);
+      U.downloadBytes(bytes, "Manual_de_Usuario_" + (tenant.nombre || "BIOsoft").replace(/\s+/g, "_") + ".pdf");
+      U.toast("Manual descargado.", "success");
+    });
+    document.getElementById("btn-manual-enviar").addEventListener("click", function () { abrirEnviarManual(tenant); });
 
     document.getElementById("f_logo").addEventListener("change", function (e) {
       var file = e.target.files[0];
@@ -359,6 +372,46 @@
       U.toast("Configuración guardada.", "success");
     });
   };
+
+  function abrirEnviarManual(tenant) {
+    var mensajeDefault = "Hola 👋 Te comparto el Manual de Usuario de BIOsoft de " + (tenant.nombre || "nuestro laboratorio") + ". Ahí encuentras el paso a paso de cada módulo del sistema. Cualquier duda, aquí estamos.";
+    var wrap = U.openModal(
+      '<h3 class="modal-title">Enviar Manual de Usuario</h3>' +
+      '<div class="form-grid">' +
+      '<div class="field"><label>Correo del destinatario</label><input id="man-email" type="email" placeholder="colaborador@correo.com"/></div>' +
+      '<div class="field"><label>WhatsApp del destinatario</label><input id="man-whatsapp" placeholder="Ej: 3001234567"/></div>' +
+      "</div>" +
+      '<div class="field"><label>Mensaje</label><textarea id="man-msg">' + U.esc(mensajeDefault) + "</textarea></div>" +
+      '<div class="flex gap-2 justify-between"><button class="btn btn-ghost" data-modal-close>Cancelar</button><button class="btn btn-primary" id="man-go">' + U.icon("download") + " 1. Descargar PDF</button></div>" +
+      '<div id="man-step2" class="hidden" style="margin-top:16px;border-top:1px solid var(--border);padding-top:14px">' +
+      '<p style="margin:0 0 4px"><b>2. Elige dónde enviarlo</b></p>' +
+      '<p class="text-muted" style="margin:0 0 4px;font-size:12.5px">Se abrirá el correo o WhatsApp ya redactado — solo adjunta el PDF que acabas de descargar antes de darle enviar.</p>' +
+      U.emailProviderButtonsHtml("man") +
+      '<a class="btn btn-whatsapp btn-block" id="man-wa" target="_blank" rel="noopener" style="margin-top:8px">' + U.icon("send") + " Enviar por WhatsApp</a>" +
+      "</div>"
+    );
+    wrap.querySelector("#man-go").addEventListener("click", function () {
+      var email = wrap.querySelector("#man-email").value.trim();
+      var whatsapp = wrap.querySelector("#man-whatsapp").value.trim();
+      var msg = wrap.querySelector("#man-msg").value;
+      if (!email && !whatsapp) { U.toast("Ingresa un correo o un número de WhatsApp.", "error"); return; }
+      var bytes = BIO_PDF_MANUAL.buildManualPDF(tenant);
+      U.downloadBytes(bytes, "Manual_de_Usuario_" + (tenant.nombre || "BIOsoft").replace(/\s+/g, "_") + ".pdf");
+      var asunto = "Manual de Usuario — " + (tenant.nombre || "BIOsoft");
+      var cuerpo = msg + "\n\n(Adjunte el archivo PDF que se acaba de descargar a su equipo)";
+      wrap.querySelector("#man-step2").classList.remove("hidden");
+      U.wireEmailProviderButtons(wrap, "man", email, asunto, cuerpo);
+      var waBtn = wrap.querySelector("#man-wa");
+      if (whatsapp) {
+        var numero = whatsapp.replace(/\D/g, "");
+        if (numero.length === 10 && numero.charAt(0) === "3") numero = "57" + numero;
+        waBtn.href = "https://wa.me/" + numero + "?text=" + encodeURIComponent(msg + "\n\n(Adjunte el PDF que se acaba de descargar antes de enviar)");
+      } else {
+        waBtn.classList.add("hidden");
+      }
+      U.toast("PDF descargado. Elige por dónde enviarlo.", "success");
+    });
+  }
 
   // ------------------------------------------------------------------
   // AUDITORÍA / TRAZABILIDAD
