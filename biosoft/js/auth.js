@@ -42,6 +42,13 @@
     }
     if (username.indexOf("@") === -1) return Promise.resolve({ ok: false, error: "Usuario no encontrado o inactivo." });
     return BIO_STORE.loginReal(username, password).then(function (realUser) {
+      if (realUser.tenantId) {
+        var tenant = BIO_STORE.getTenant(realUser.tenantId);
+        if (tenant && tenant.suspendido) {
+          BIO_STORE.logoutReal();
+          return { ok: false, error: "El acceso de tu laboratorio está suspendido por pago pendiente. Escríbenos por WhatsApp para reactivarlo." };
+        }
+      }
       var session = buildSession(realUser, true);
       sessionStorage.setItem(SESSION_KEY, JSON.stringify(session));
       BIO_STORE.addAudit(realUser.tenantId, realUser.nombre, realUser.rol, "LOGIN", "sesion", realUser.id, "Inicio de sesión exitoso.");
@@ -71,7 +78,17 @@
     var s = getSession();
     if (!s || !s.real) return Promise.resolve(true);
     var restaurar = s.rol === "superadmin" ? BIO_STORE.restoreSuperadminSession() : BIO_STORE.restoreRealtime(s.tenantId);
-    return restaurar.then(function () { return true; }).catch(function () {
+    return restaurar.then(function () {
+      if (s.rol !== "superadmin") {
+        var tenant = BIO_STORE.getTenant(s.tenantId);
+        if (tenant && tenant.suspendido) {
+          BIO_STORE.logoutReal();
+          sessionStorage.removeItem(SESSION_KEY);
+          return false;
+        }
+      }
+      return true;
+    }).catch(function () {
       sessionStorage.removeItem(SESSION_KEY);
       return false;
     });

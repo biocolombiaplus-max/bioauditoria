@@ -194,6 +194,7 @@ tbody tr:hover { background: var(--surface-2); }
 .badge-enviado { background: #e0f2fe; color: #075985; }
 .badge-urgente { background: #fee2e2; color: #991b1b; }
 .badge-rutina { background: #f1f5f9; color: #475569; }
+.badge-suspendido { background: #1f2937; color: #f9fafb; }
 .flag-alto, .flag-bajo, .flag-anormal { color: var(--danger); font-weight: 800; }
 .flag-normal { color: var(--success); font-weight: 600; }
 

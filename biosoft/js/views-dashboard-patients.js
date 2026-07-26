@@ -11,16 +11,7 @@
     var session = BIO_AUTH.getSession();
 
     if (session.rol === "superadmin") {
-      var tenants = S.listTenants();
-      root.innerHTML =
-        '<div class="kpi-grid">' +
-          kpi(tenants.length, "Laboratorios Activos") +
-          kpi(tenants.reduce(function (a, t) { return a + S.listPatients(t.id).length; }, 0), "Pacientes (todos los clientes)") +
-          kpi(tenants.reduce(function (a, t) { return a + S.listOrders(t.id).length; }, 0), "Órdenes Totales") +
-          kpi(tenants.filter(function (t) { return t.id !== "demo"; }).length, "Clientes de Pago") +
-        '</div>' +
-        '<div class="card"><div class="card-header"><h3 class="card-title">Bienvenido a la consola de BIOsoft</h3></div>' +
-        '<p class="text-muted">Desde <b>Laboratorios Cliente</b> puedes crear un nuevo laboratorio, definir su marca (logo, colores, NIT, dirección) y generar el usuario administrador inicial para ofrecer una demo personalizada a cada cliente.</p></div>';
+      buildSuperadminDashboard(root);
       return;
     }
 
@@ -66,6 +57,80 @@
     root.innerHTML = html;
     root.querySelectorAll("[data-route]").forEach(function (a) { a.addEventListener("click", function () { location.hash = "#/" + a.dataset.route; }); });
   };
+
+  function buildSuperadminDashboard(root) {
+    var tenants = [];
+    var cargando = true;
+    root.innerHTML = '<div class="card"><p class="text-muted">Cargando resumen…</p></div>';
+
+    function cargar() {
+      S.tenantsGlobal.list().then(function (list) {
+        tenants = list;
+        cargando = false;
+        render();
+      }).catch(function (err) {
+        cargando = false;
+        console.error("BIOsoft: no se pudo cargar el resumen global ->", err.code, err.message);
+        root.innerHTML = '<div class="card"><p class="text-muted">No se pudo cargar el resumen: ' + U.esc(err.message || String(err)) + '</p></div>';
+      });
+    }
+
+    function render() {
+      if (cargando) return;
+      var porEstado = { activo: [], por_vencer: [], vencido: [], suspendido: [], sin_fecha: [] };
+      tenants.forEach(function (t) {
+        var e = BIO_PLANES.estadoCuenta(t);
+        (porEstado[e] || porEstado.sin_fecha).push(t);
+      });
+      var totalPacientes = tenants.reduce(function (a, t) { return a + (t._pacientes || 0); }, 0);
+      var totalOrdenes = tenants.reduce(function (a, t) { return a + (t._ordenes || 0); }, 0);
+      var urgentes = porEstado.vencido.concat(porEstado.por_vencer);
+
+      root.innerHTML =
+        '<div class="kpi-grid">' +
+          kpi(tenants.length, "Laboratorios Cliente") +
+          kpi(totalPacientes, "Pacientes (todos los clientes)") +
+          kpi(totalOrdenes, "Órdenes Totales") +
+          kpi(porEstado.suspendido.length, "Suspendidos") +
+        '</div>' +
+        '<div class="kpi-grid">' +
+          kpi(porEstado.activo.length, "Al Día") +
+          kpi(porEstado.por_vencer.length, "Por Vencer (≤" + BIO_PLANES.DIAS_AVISO_VENCIMIENTO + " días)") +
+          kpi(porEstado.vencido.length, "Vencidos") +
+          kpi(porEstado.sin_fecha.length, "Sin Fecha de Pago") +
+        '</div>' +
+        (urgentes.length ?
+          '<div class="card"><div class="card-header"><h3 class="card-title">⚠️ Requieren seguimiento de pago (' + urgentes.length + ')</h3>' +
+          '<a class="btn btn-outline btn-sm" data-route="tenants">Ir a Laboratorios Cliente</a></div>' +
+          '<div class="table-wrap"><table><thead><tr><th>Laboratorio</th><th>Plan</th><th>Estado</th><th>Próximo pago</th><th></th></tr></thead><tbody>' +
+          urgentes.map(function (t) {
+            var plan = BIO_PLANES.porId(t.planId);
+            var info = BIO_PLANES.ESTADOS_CUENTA[BIO_PLANES.estadoCuenta(t)];
+            return "<tr><td><b>" + U.esc(t.nombre) + "</b></td><td>" + (plan ? U.esc(plan.nombre) : "—") + "</td>" +
+              "<td><span class='badge " + info.badge + "'>" + info.label + "</span></td>" +
+              "<td>" + (t.fechaProximoPago ? U.fmtFechaCorta(t.fechaProximoPago) : "—") + "</td>" +
+              "<td><button class='btn btn-whatsapp btn-sm' data-recordar='" + t.id + "'>" + U.icon("send") + " Recordar</button></td></tr>";
+          }).join("") + "</tbody></table></div></div>"
+          : '<div class="card"><h3 class="card-title">✅ Todos tus laboratorios cliente están al día con el pago</h3></div>') +
+        '<div class="card"><div class="card-header"><h3 class="card-title">Bienvenido a la consola de BIOsoft</h3></div>' +
+        '<p class="text-muted">Desde <b>Laboratorios Cliente</b> puedes crear un nuevo laboratorio, asignar su plan, enviarle el contrato y el manual de usuario, y hacer seguimiento a sus fechas de pago.</p></div>';
+
+      root.querySelectorAll("[data-route]").forEach(function (a) { a.addEventListener("click", function () { location.hash = "#/" + a.dataset.route; }); });
+      root.querySelectorAll("[data-recordar]").forEach(function (b) {
+        b.addEventListener("click", function () {
+          var t = tenants.filter(function (x) { return x.id === b.dataset.recordar; })[0];
+          var plan = BIO_PLANES.porId(t.planId);
+          var numero = (t.telefonos || "").replace(/\D/g, "");
+          if (!numero) { U.toast("Este laboratorio no tiene un número de WhatsApp registrado.", "error"); return; }
+          var msg = "Hola 👋 Te escribimos de BIOsoft: la mensualidad de " + (plan ? "tu Plan " + plan.nombre : "tu plan") + " en " + t.nombre +
+            (t.fechaProximoPago ? " vence el " + U.fmtFechaCorta(t.fechaProximoPago) : " está próxima a vencer") + ". ¿Te ayudamos a coordinar el pago?";
+          window.open("https://wa.me/" + numero + "?text=" + encodeURIComponent(msg), "_blank");
+        });
+      });
+    }
+
+    cargar();
+  }
 
   function kpi(value, label) {
     return '<div class="kpi"><div class="kpi-value">' + value + '</div><div class="kpi-label">' + label + '</div></div>';

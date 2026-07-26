@@ -547,25 +547,58 @@
       root.innerHTML =
         '<div class="card"><div class="card-header"><h3 class="card-title">Laboratorios Cliente (' + tenants.length + ')</h3>' +
         '<button class="btn btn-primary" id="btn-new-tenant">' + U.icon("plus") + ' Crear Nuevo Laboratorio</button></div>' +
-        '<div class="table-wrap"><table><thead><tr><th>Laboratorio</th><th>País</th><th>Nivel</th><th>Plan</th><th>Usuarios</th><th>Pacientes</th><th>Órdenes</th><th></th></tr></thead><tbody>' +
+        '<div class="table-wrap"><table><thead><tr><th>Laboratorio</th><th>País</th><th>Plan</th><th>Estado de Pago</th><th>Próximo Pago</th><th>Usuarios</th><th></th></tr></thead><tbody>' +
         (tenants.length ? tenants.map(function (t) {
           var plan = BIO_PLANES.porId(t.planId);
           var usuariosActivos = t._usuarios || 0;
           var limite = t.maxUsuarios;
           var usuariosTxt = limite ? usuariosActivos + " / " + limite : String(usuariosActivos);
           var sobreLimite = limite && usuariosActivos > limite;
-          return "<tr><td><b>" + U.esc(t.nombre) + "</b><div class='text-muted' style='font-size:11px'>NIT " + U.esc(t.nit || "—") + "</div></td><td>" + t.pais + "</td><td>" + t.nivel + "</td>" +
+          var estado = BIO_PLANES.estadoCuenta(t);
+          var estadoInfo = BIO_PLANES.ESTADOS_CUENTA[estado];
+          var necesitaRecordatorio = estado === "vencido" || estado === "por_vencer";
+          return "<tr><td><b>" + U.esc(t.nombre) + "</b><div class='text-muted' style='font-size:11px'>NIT " + U.esc(t.nit || "—") + "</div></td><td>" + t.pais + "</td>" +
             "<td>" + (plan ? U.esc(plan.nombre) : '<span class="text-muted">Sin asignar</span>') + "</td>" +
+            "<td><span class='badge " + estadoInfo.badge + "'>" + estadoInfo.label + "</span>" +
+            (necesitaRecordatorio ? ' <button class="btn btn-ghost btn-sm" data-recordar-pago="' + t.id + '" title="Recordar pago por WhatsApp">' + U.icon("send") + "</button>" : "") + "</td>" +
+            "<td>" + (t.fechaProximoPago ? U.fmtFechaCorta(t.fechaProximoPago) : "—") + "</td>" +
             "<td>" + (sobreLimite ? '<span class="badge badge-urgente">' + usuariosTxt + '</span>' : usuariosTxt) + "</td>" +
-            "<td>" + (t._pacientes || 0) + "</td><td>" + (t._ordenes || 0) + "</td>" +
-            '<td><button class="btn btn-ghost btn-sm" data-editar-plan="' + t.id + '">' + U.icon("edit") + " Editar Plan</button></td></tr>";
-        }).join("") : '<tr><td colspan="8" class="text-muted">Aún no hay laboratorios cliente creados.</td></tr>') + "</tbody></table></div></div>";
+            '<td><div class="flex gap-2 wrap">' +
+            '<button class="btn btn-ghost btn-sm" data-editar-plan="' + t.id + '">' + U.icon("edit") + " Plan</button>" +
+            '<button class="btn btn-outline btn-sm" data-enviar-contrato="' + t.id + '">' + U.icon("file") + " Contrato</button>" +
+            '<button class="btn btn-outline btn-sm" data-enviar-manual="' + t.id + '">' + U.icon("send") + " Manual</button>" +
+            "</div></td></tr>";
+        }).join("") : '<tr><td colspan="7" class="text-muted">Aún no hay laboratorios cliente creados.</td></tr>') + "</tbody></table></div></div>";
       document.getElementById("btn-new-tenant").addEventListener("click", openNewTenant);
       root.querySelectorAll("[data-editar-plan]").forEach(function (b) {
         b.addEventListener("click", function () {
           abrirEditarPlan(tenants.filter(function (t) { return t.id === b.dataset.editarPlan; })[0]);
         });
       });
+      root.querySelectorAll("[data-enviar-contrato]").forEach(function (b) {
+        b.addEventListener("click", function () {
+          abrirEnviarContrato(tenants.filter(function (t) { return t.id === b.dataset.enviarContrato; })[0]);
+        });
+      });
+      root.querySelectorAll("[data-enviar-manual]").forEach(function (b) {
+        b.addEventListener("click", function () {
+          abrirEnviarManual(tenants.filter(function (t) { return t.id === b.dataset.enviarManual; })[0]);
+        });
+      });
+      root.querySelectorAll("[data-recordar-pago]").forEach(function (b) {
+        b.addEventListener("click", function () {
+          recordarPagoPorWhatsapp(tenants.filter(function (t) { return t.id === b.dataset.recordarPago; })[0]);
+        });
+      });
+    }
+
+    function recordarPagoPorWhatsapp(tenant) {
+      var plan = BIO_PLANES.porId(tenant.planId);
+      var numero = (tenant.telefonos || "").replace(/\D/g, "");
+      if (!numero) { U.toast("Este laboratorio no tiene un número de WhatsApp registrado.", "error"); return; }
+      var msg = "Hola 👋 Te escribimos de BIOsoft: la mensualidad de " + (plan ? "tu Plan " + plan.nombre : "tu plan") + " en " + tenant.nombre +
+        (tenant.fechaProximoPago ? " vence el " + U.fmtFechaCorta(tenant.fechaProximoPago) : " está próxima a vencer") + ". ¿Te ayudamos a coordinar el pago?";
+      window.open("https://wa.me/" + numero + "?text=" + encodeURIComponent(msg), "_blank");
     }
 
     function abrirEditarPlan(tenant) {
@@ -578,6 +611,13 @@
           return "<option value='" + id + "' " + (id === (tenant.planId || "") ? "selected" : "") + ">" + (p ? p.nombre + " (" + p.usuarios + ")" : "— Sin asignar —") + "</option>";
         }).join("")) +
         '<div class="field"><label>Límite de usuarios (se ajusta solo según el plan, o edítalo manual)</label><input type="number" id="f_maxUsuarios" min="1" value="' + (tenant.maxUsuarios || "") + '"/></div>' +
+        '<fieldset><legend>Facturación y Fechas de Pago</legend><div class="form-grid">' +
+        '<div class="field"><label>Fecha de inicio del plan</label><input type="date" id="f_fechaInicioPlan" value="' + (tenant.fechaInicioPlan || "") + '"/></div>' +
+        '<div class="field"><label>Próxima fecha de pago (corte)</label><input type="date" id="f_fechaProximoPago" value="' + (tenant.fechaProximoPago || "") + '"/></div>' +
+        "</div>" +
+        '<p class="text-muted" style="margin:2px 0 8px;font-size:12px">El cobro es cada 30 días calendario. Estas fechas se fijan automáticamente la primera vez que envíes el contrato, pero puedes ajustarlas manualmente aquí.</p>' +
+        '<div class="field"><label class="flex gap-2" style="align-items:center;font-weight:400"><input type="checkbox" id="f_suspendido" ' + (tenant.suspendido ? "checked" : "") + ' style="width:auto"/> Suspender acceso del laboratorio (bloquea el ingreso por falta de pago)</label></div>' +
+        "</fieldset>" +
         '<div class="flex gap-2 justify-between" style="margin-top:6px"><button type="button" class="btn btn-ghost" data-modal-close>Cancelar</button><button type="submit" class="btn btn-primary">' + U.icon("check") + " Guardar</button></div>" +
         "</form>"
       );
@@ -589,11 +629,91 @@
         e.preventDefault();
         var planId = wrap.querySelector("#f_planId").value;
         var maxUsuarios = parseInt(wrap.querySelector("#f_maxUsuarios").value, 10);
+        var estabaSuspendido = !!tenant.suspendido;
+        var quedaSuspendido = wrap.querySelector("#f_suspendido").checked;
         tenant.planId = planId || null;
         tenant.maxUsuarios = maxUsuarios || null;
+        tenant.fechaInicioPlan = wrap.querySelector("#f_fechaInicioPlan").value || null;
+        tenant.fechaProximoPago = wrap.querySelector("#f_fechaProximoPago").value || null;
+        tenant.suspendido = quedaSuspendido;
+        if (quedaSuspendido && !estabaSuspendido) tenant.fechaSuspension = new Date().toISOString().slice(0, 10);
+        if (!quedaSuspendido) tenant.fechaSuspension = null;
         S.saveTenant(tenant);
         U.toast("Plan actualizado.", "success");
         U.closeModal(wrap);
+      });
+    }
+
+    function tenantParaDocs(tenant) {
+      return {
+        laboratorio: { nombre: tenant.nombre, nit: tenant.nit, pais: tenant.pais, ciudad: tenant.direccion || "" },
+        contacto: { nombre: tenant.contactoNombre || tenant.nombre, whatsapp: tenant.telefonos, correo: tenant.email },
+        seccionesTexto: "según la configuración de tu laboratorio"
+      };
+    }
+
+    function abrirEnviarContrato(tenant) {
+      var plan = BIO_PLANES.porId(tenant.planId);
+      if (!plan) { U.toast('Asigna primero un plan a este laboratorio (botón "Plan").', "error"); return; }
+      var modalidadActual = tenant.modalidadPago === "semestral" ? "semestral" : "mensual";
+      var mensajeDefault = "Hola 👋 Te comparto el contrato de prestación de servicios de BIOsoft para " + (tenant.nombre || "tu laboratorio") +
+        ", Plan " + plan.nombre + ". El cobro es cada 30 días calendario a partir de hoy. Cualquier duda, aquí estamos.";
+      var wrap = U.openModal(
+        '<h3 class="modal-title">Enviar Contrato — ' + U.esc(tenant.nombre) + '</h3>' +
+        '<p class="text-muted" style="margin-top:0">Se genera con la fecha de hoy como fecha de contratación. Plan: <b>' + U.esc(plan.nombre) + '</b> (' + U.esc(plan.usuarios) + ').</p>' +
+        '<div class="form-grid">' +
+        '<div class="field"><label>Modalidad de pago</label><select id="con-modalidad">' +
+        '<option value="mensual" ' + (modalidadActual === "mensual" ? "selected" : "") + '>Mes a mes (implementación en 2 cuotas)</option>' +
+        '<option value="semestral" ' + (modalidadActual === "semestral" ? "selected" : "") + '>6 meses de una vez (sin implementación)</option>' +
+        "</select></div>" +
+        '<div class="field"><label>Correo del destinatario</label><input id="con-email" type="email" value="' + U.esc(tenant.email || "") + '"/></div>' +
+        '<div class="field"><label>WhatsApp del destinatario</label><input id="con-whatsapp" value="' + U.esc(tenant.telefonos || "") + '"/></div>' +
+        "</div>" +
+        '<div class="field"><label>Mensaje</label><textarea id="con-msg">' + U.esc(mensajeDefault) + "</textarea></div>" +
+        '<div class="flex gap-2 justify-between"><button class="btn btn-ghost" data-modal-close>Cancelar</button><button class="btn btn-primary" id="con-go">' + U.icon("download") + " 1. Generar y Descargar</button></div>" +
+        '<div id="con-step2" class="hidden" style="margin-top:16px;border-top:1px solid var(--border);padding-top:14px">' +
+        '<p style="margin:0 0 4px"><b>2. Elige dónde enviarlo</b></p>' +
+        '<p class="text-muted" style="margin:0 0 4px;font-size:12.5px">Se abrirá el correo o WhatsApp ya redactado — solo adjunta el PDF que acabas de descargar antes de darle enviar.</p>' +
+        U.emailProviderButtonsHtml("con") +
+        '<a class="btn btn-whatsapp btn-block" id="con-wa" target="_blank" rel="noopener" style="margin-top:8px">' + U.icon("send") + " Enviar por WhatsApp</a>" +
+        "</div>",
+        { lg: true }
+      );
+      wrap.querySelector("#con-go").addEventListener("click", function (e) {
+        var email = wrap.querySelector("#con-email").value.trim();
+        var whatsapp = wrap.querySelector("#con-whatsapp").value.trim();
+        var msg = wrap.querySelector("#con-msg").value;
+        var modalidadElegida = wrap.querySelector("#con-modalidad").value;
+        if (!email && !whatsapp) { U.toast("Ingresa un correo o un número de WhatsApp.", "error"); return; }
+        var btn = e.currentTarget;
+        var htmlOriginal = btn.innerHTML;
+        btn.disabled = true; btn.innerHTML = "Generando…";
+        try {
+          var bytes = BIO_PDF_CRM.buildContratoPDF(tenantParaDocs(tenant), plan, modalidadElegida);
+          U.downloadBytes(bytes, "Contrato_BIOsoft_" + (tenant.nombre || "Cliente").replace(/\s+/g, "_") + ".pdf");
+          if (!tenant.fechaInicioPlan) {
+            var hoy = new Date();
+            tenant.fechaInicioPlan = hoy.toISOString().slice(0, 10);
+            tenant.fechaProximoPago = new Date(hoy.getTime() + 30 * 864e5).toISOString().slice(0, 10);
+          }
+          tenant.modalidadPago = modalidadElegida;
+          S.saveTenant(tenant);
+          var asunto = "Contrato de Servicios — BIOsoft (" + plan.nombre + ")";
+          var cuerpo = msg + "\n\n(Adjunte el archivo PDF que se acaba de descargar a su equipo)";
+          wrap.querySelector("#con-step2").classList.remove("hidden");
+          U.wireEmailProviderButtons(wrap, "con", email, asunto, cuerpo);
+          var waBtn = wrap.querySelector("#con-wa");
+          if (whatsapp) {
+            var numero = whatsapp.replace(/\D/g, "");
+            if (numero.length === 10 && numero.charAt(0) === "3") numero = "57" + numero;
+            waBtn.href = "https://wa.me/" + numero + "?text=" + encodeURIComponent(msg + "\n\n(Adjunte el PDF que se acaba de descargar antes de enviar)");
+          } else {
+            waBtn.classList.add("hidden");
+          }
+          U.toast("Contrato generado. Elige por dónde enviarlo.", "success");
+        } finally {
+          btn.disabled = false; btn.innerHTML = htmlOriginal;
+        }
       });
     }
 
@@ -628,6 +748,7 @@
         S.provisionRealAccount({
           tenantData: {
             nombre: g("nombre"), nit: g("nit"), pais: g("pais"), direccion: g("direccion"), telefonos: g("telefonos"), email: g("email"), nivel: parseInt(g("nivel"), 10),
+            contactoNombre: g("adminNombre"),
             planId: planElegido ? planElegido.id : null, maxUsuarios: planElegido ? planElegido.limiteUsuarios : null
           },
           userData: { username: g("adminUser"), password: g("adminPass"), nombre: g("adminNombre"), rol: "admin", secciones: [] }
@@ -635,6 +756,7 @@
           U.toast("Laboratorio creado. Clave de administrador para correcciones: " + res.tenant.claveAdmin, "success");
           U.closeModal(wrap);
           cargar();
+          if (planElegido) abrirEnviarContrato(res.tenant);
         }).catch(function (err) {
           submitBtn.disabled = false; submitBtn.textContent = "Crear Laboratorio";
           var msg = (err && err.code === "auth/email-already-in-use") ? "Ese correo ya tiene una cuenta." : (err && err.message) || "No se pudo crear el laboratorio.";

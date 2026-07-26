@@ -21,5 +21,36 @@
 
   function porId(id) { return PLANES.filter(function (p) { return p.id === id; })[0]; }
 
-  global.BIO_PLANES = { IMPLEMENTACION: IMPLEMENTACION, PLANES: PLANES, TARJETAS_TXT: TARJETAS_TXT, porId: porId };
+  // ---------------------------------------------------------------------
+  // Estado de cuenta de cada laboratorio cliente (para el panel de socios).
+  // "suspendido" es un interruptor manual del superadmin (bloquea el acceso
+  // del laboratorio). Los demás estados se calculan solos a partir de
+  // fechaProximoPago, comparada contra hoy.
+  // ---------------------------------------------------------------------
+  var DIAS_AVISO_VENCIMIENTO = 5;
+
+  var ESTADOS_CUENTA = {
+    activo: { label: "Al día", badge: "badge-validado" },
+    por_vencer: { label: "Por vencer", badge: "badge-pendiente" },
+    vencido: { label: "Vencido", badge: "badge-urgente" },
+    suspendido: { label: "Suspendido", badge: "badge-suspendido" },
+    sin_fecha: { label: "Sin fecha de pago", badge: "badge-rutina" }
+  };
+
+  function estadoCuenta(tenant) {
+    if (!tenant) return "sin_fecha";
+    if (tenant.suspendido) return "suspendido";
+    if (!tenant.fechaProximoPago) return "sin_fecha";
+    var hoy = new Date(); hoy.setHours(0, 0, 0, 0);
+    var corte = new Date(tenant.fechaProximoPago + "T00:00:00");
+    var diffDias = Math.round((corte - hoy) / 86400000);
+    if (diffDias < 0) return "vencido";
+    if (diffDias <= DIAS_AVISO_VENCIMIENTO) return "por_vencer";
+    return "activo";
+  }
+
+  global.BIO_PLANES = {
+    IMPLEMENTACION: IMPLEMENTACION, PLANES: PLANES, TARJETAS_TXT: TARJETAS_TXT, porId: porId,
+    ESTADOS_CUENTA: ESTADOS_CUENTA, DIAS_AVISO_VENCIMIENTO: DIAS_AVISO_VENCIMIENTO, estadoCuenta: estadoCuenta
+  };
 })(window);
