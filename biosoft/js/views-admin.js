@@ -442,16 +442,32 @@
   // LABORATORIOS CLIENTE (SUPERADMIN — CONSOLA BIOSOFT)
   // ------------------------------------------------------------------
   window.BIO_VIEWS.tenants = function (root) {
+    var tenants = [];
+    var cargando = true;
+    var unsubTenants = null;
+
+    function cargar() {
+      S.tenantsGlobal.list().then(function (list) {
+        tenants = list;
+        cargando = false;
+        build();
+      }).catch(function (err) {
+        cargando = false;
+        console.error("BIOsoft: no se pudieron cargar los laboratorios cliente ->", err.code, err.message);
+        root.innerHTML = '<div class="card"><p class="text-muted">No se pudieron cargar los laboratorios cliente: ' + U.esc(err.message || String(err)) + (err.code ? " — código: " + U.esc(err.code) : "") + '</p></div>';
+      });
+    }
+
     function build() {
-      var tenants = S.listTenants();
+      if (cargando) { root.innerHTML = '<div class="card"><p class="text-muted">Cargando laboratorios…</p></div>'; return; }
       root.innerHTML =
         '<div class="card"><div class="card-header"><h3 class="card-title">Laboratorios Cliente (' + tenants.length + ')</h3>' +
         '<button class="btn btn-primary" id="btn-new-tenant">' + U.icon("plus") + ' Crear Nuevo Laboratorio</button></div>' +
         '<div class="table-wrap"><table><thead><tr><th>Laboratorio</th><th>País</th><th>Nivel</th><th>Usuarios</th><th>Pacientes</th><th>Órdenes</th></tr></thead><tbody>' +
-        tenants.map(function (t) {
+        (tenants.length ? tenants.map(function (t) {
           return "<tr><td><b>" + U.esc(t.nombre) + "</b><div class='text-muted' style='font-size:11px'>NIT " + U.esc(t.nit || "—") + "</div></td><td>" + t.pais + "</td><td>" + t.nivel + "</td>" +
-            "<td>" + S.listUsers(t.id).length + "</td><td>" + S.listPatients(t.id).length + "</td><td>" + S.listOrders(t.id).length + "</td></tr>";
-        }).join("") + "</tbody></table></div></div>";
+            "<td>" + (t._usuarios || 0) + "</td><td>" + (t._pacientes || 0) + "</td><td>" + (t._ordenes || 0) + "</td></tr>";
+        }).join("") : '<tr><td colspan="6" class="text-muted">Aún no hay laboratorios cliente creados.</td></tr>') + "</tbody></table></div></div>";
       document.getElementById("btn-new-tenant").addEventListener("click", openNewTenant);
     }
 
@@ -487,7 +503,7 @@
         }).then(function (res) {
           U.toast("Laboratorio creado. Clave de administrador para correcciones: " + res.tenant.claveAdmin, "success");
           U.closeModal(wrap);
-          build();
+          cargar();
         }).catch(function (err) {
           submitBtn.disabled = false; submitBtn.textContent = "Crear Laboratorio";
           var msg = (err && err.code === "auth/email-already-in-use") ? "Ese correo ya tiene una cuenta." : (err && err.message) || "No se pudo crear el laboratorio.";
@@ -495,6 +511,7 @@
         });
       });
     }
-    build();
+    cargar();
+    unsubTenants = S.tenantsGlobal.watch(function () { cargar(); });
   };
 })();

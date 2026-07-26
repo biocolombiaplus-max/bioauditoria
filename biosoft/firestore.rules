@@ -49,20 +49,26 @@ service cloud.firestore {
     }
 
     match /tenants/{tenantId} {
-      allow read, update: if esDeEsteLab(tenantId);
+      // El superadmin necesita ver TODOS los laboratorios (panel "Laboratorios
+      // Cliente"), no solo el propio — de ahí el esSuperadmin() en la lectura.
+      allow read: if esDeEsteLab(tenantId) || esSuperadmin();
+      allow update: if esDeEsteLab(tenantId);
       // La creación ocurre en el mismo flujo de aprovisionamiento, por el
       // usuario recién autenticado que se convertirá en su administrador.
       allow create: if autenticado();
       allow delete: if false;
 
       match /users/{userId} {
-        allow read, write: if esDeEsteLab(tenantId);
+        allow read: if esDeEsteLab(tenantId) || esSuperadmin();
+        allow write: if esDeEsteLab(tenantId);
       }
       match /patients/{patientId} {
-        allow read, write: if esDeEsteLab(tenantId);
+        allow read: if esDeEsteLab(tenantId) || esSuperadmin();
+        allow write: if esDeEsteLab(tenantId);
       }
       match /orders/{orderId} {
-        allow read, write: if esDeEsteLab(tenantId);
+        allow read: if esDeEsteLab(tenantId) || esSuperadmin();
+        allow write: if esDeEsteLab(tenantId);
       }
       match /auditLog/{logId} {
         allow read, create: if esDeEsteLab(tenantId);

@@ -239,6 +239,34 @@
     return plantillasColl().doc(id).delete();
   }
 
+  /* Listado de TODOS los laboratorios cliente reales, para el panel del
+     superadmin. No pasa por loadDB()/realCache: el superadmin no está
+     "dentro" de ningún tenant (initRealtime nunca se llama para él), así
+     que esta consulta va siempre directo a Firestore, igual que el CRM. */
+  function tenantsColl() { return global.BIO_FB.db.collection("tenants"); }
+
+  function tenantsListGlobal() {
+    if (!firebaseDisponible()) return Promise.reject(errorFirebaseNoDisponible());
+    return tenantsColl().get().then(function (snap) {
+      var tenants = [];
+      snap.forEach(function (doc) { tenants.push(doc.data()); });
+      tenants.sort(function (a, b) { return (b.creadoEn || "").localeCompare(a.creadoEn || ""); });
+      return Promise.all(tenants.map(function (t) {
+        return Promise.all([
+          tenantsColl().doc(t.id).collection("users").get(),
+          tenantsColl().doc(t.id).collection("patients").get(),
+          tenantsColl().doc(t.id).collection("orders").get()
+        ]).then(function (snaps) {
+          return Object.assign({}, t, { _usuarios: snaps[0].size, _pacientes: snaps[1].size, _ordenes: snaps[2].size });
+        });
+      }));
+    });
+  }
+  function tenantsWatchGlobal(onChange) {
+    if (!firebaseDisponible()) return function () {};
+    return tenantsColl().onSnapshot(function () { onChange(); }, function (err) { console.error("BIOsoft tenants listener error:", err); });
+  }
+
   /* Al recargar la página, sessionStorage conserva la sesión pero realCache
      se pierde (es memoria, no disco). Espera a que Firebase confirme que la
      sesión de Auth sigue viva y vuelve a poblar realCache sin pedir clave. */
@@ -876,6 +904,7 @@
     restoreRealtime: restoreRealtime,
     restoreSuperadminSession: restoreSuperadminSession,
     crm: { list: crmList, watch: crmWatch, create: crmCreate, update: crmUpdate },
+    tenantsGlobal: { list: tenantsListGlobal, watch: tenantsWatchGlobal },
     plantillas: { list: plantillasList, watch: plantillasWatch, create: plantillasCreate, update: plantillasUpdate, remove: plantillasDelete },
     qc: {
       listControles: listQCControles, getControl: getQCControl, createControl: createQCControl, updateControl: updateQCControl,
