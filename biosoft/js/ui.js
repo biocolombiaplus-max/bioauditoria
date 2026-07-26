@@ -118,6 +118,17 @@
     root.style.setProperty("--brand-secondary", tenant.colorSecundario || "#2e1065");
     var dark = shadeColor(tenant.colorPrimario || "#f97316", -18);
     root.style.setProperty("--brand-primary-dark", dark);
+    root.style.setProperty("--sidebar-text", tenant.colorTextoMenu || contrastColor(tenant.colorSecundario || "#2e1065"));
+  }
+  /* Elige un color de letra (claro u oscuro) legible sobre el fondo dado,
+     para que el menú lateral se vea bien sin importar qué color de marca
+     elija cada laboratorio — a menos que el laboratorio fije uno manual. */
+  function contrastColor(hex) {
+    hex = (hex || "").replace("#", "");
+    if (hex.length !== 6) return "#e2e8f0";
+    var r = parseInt(hex.substr(0, 2), 16), g = parseInt(hex.substr(2, 2), 16), b = parseInt(hex.substr(4, 2), 16);
+    var luminancia = (0.299 * r + 0.587 * g + 0.114 * b) / 255;
+    return luminancia > 0.55 ? "#1e293b" : "#e2e8f0";
   }
   function shadeColor(hex, percent) {
     try {
@@ -193,7 +204,7 @@
   global.BIO_UI = {
     icon: icon, esc: esc, toast: toast, openModal: openModal, closeModal: closeModal,
     calcEdad: calcEdad, fmtFecha: fmtFecha, fmtFechaCorta: fmtFechaCorta, nombreCompleto: nombreCompleto,
-    applyTenantTheme: applyTenantTheme, dataUrlToBlob: dataUrlToBlob, openDataUrlInNewTab: openDataUrlInNewTab,
+    applyTenantTheme: applyTenantTheme, contrastColor: contrastColor, dataUrlToBlob: dataUrlToBlob, openDataUrlInNewTab: openDataUrlInNewTab,
     downloadBytes: downloadBytes, normalizar: normalizar, emailLinks: emailLinks,
     emailProviderButtonsHtml: emailProviderButtonsHtml, wireEmailProviderButtons: wireEmailProviderButtons
   };

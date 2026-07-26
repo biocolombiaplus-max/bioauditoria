@@ -315,9 +315,16 @@
         '<fieldset><legend>Marca e Identidad Visual</legend>' +
         '<div class="form-grid">' +
           '<div class="field"><label>Color Primario</label><input type="color" id="f_colorPrimario" value="' + (tenant.colorPrimario || "#f97316") + '"/></div>' +
-          '<div class="field"><label>Color Secundario</label><input type="color" id="f_colorSecundario" value="' + (tenant.colorSecundario || "#2e1065") + '"/></div>' +
+          '<div class="field"><label>Color Secundario (fondo del menú)</label><input type="color" id="f_colorSecundario" value="' + (tenant.colorSecundario || "#2e1065") + '"/></div>' +
+          '<div class="field"><label>Color del Texto del Menú</label>' +
+            '<div class="flex gap-2" style="align-items:center">' +
+              '<input type="color" id="f_colorTextoMenu" value="' + (tenant.colorTextoMenu || U.contrastColor(tenant.colorSecundario || "#2e1065")) + '"/>' +
+              '<button type="button" class="btn btn-ghost btn-sm" id="btn-texto-auto">Automático</button>' +
+            "</div>" +
+          "</div>" +
           '<div class="field"><label>Logo del Laboratorio</label><input type="file" id="f_logo" accept="image/*"/></div>' +
         "</div>" +
+        '<p class="text-muted" style="margin:6px 0 0;font-size:12.5px">Si el texto del menú se ve poco legible con el color secundario que elegiste, ajústalo aquí — el menú de la izquierda se actualiza al instante para que veas cómo queda.</p>' +
         '<div id="logo-preview" style="margin-top:8px">' + (logoTemp ? '<img src="' + logoTemp + '" style="height:52px;border-radius:8px"/>' : '<span class="text-muted">Sin logo cargado</span>') + "</div>" +
         "</fieldset>" +
         '<fieldset><legend>Seguridad — Clave de Administrador para Correcciones</legend>' +
@@ -335,6 +342,21 @@
       U.toast("Manual descargado.", "success");
     });
     document.getElementById("btn-manual-enviar").addEventListener("click", function () { abrirEnviarManual(tenant); });
+
+    function previewTema() {
+      U.applyTenantTheme({
+        colorPrimario: document.getElementById("f_colorPrimario").value,
+        colorSecundario: document.getElementById("f_colorSecundario").value,
+        colorTextoMenu: document.getElementById("f_colorTextoMenu").value
+      });
+    }
+    ["f_colorPrimario", "f_colorSecundario", "f_colorTextoMenu"].forEach(function (id) {
+      document.getElementById(id).addEventListener("input", previewTema);
+    });
+    document.getElementById("btn-texto-auto").addEventListener("click", function () {
+      document.getElementById("f_colorTextoMenu").value = U.contrastColor(document.getElementById("f_colorSecundario").value);
+      previewTema();
+    });
 
     document.getElementById("f_logo").addEventListener("change", function (e) {
       var file = e.target.files[0];
@@ -356,6 +378,7 @@
       tenant.bacteriologoResponsable = { nombre: g("bactNombre"), registro: g("bactRegistro") };
       tenant.colorPrimario = document.getElementById("f_colorPrimario").value;
       tenant.colorSecundario = document.getElementById("f_colorSecundario").value;
+      tenant.colorTextoMenu = document.getElementById("f_colorTextoMenu").value;
       tenant.logoDataUrl = logoTemp;
 
       var claveActual = g("claveActual"), claveNueva = g("claveNueva");
