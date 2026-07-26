@@ -19,7 +19,8 @@
   var PLANTILLAS_EJEMPLO = [
     { nombre: "Primer contacto", mensaje: "Hola {nombre} 👋 Soy del equipo de BIOsoft, el software de laboratorio clínico. Vi tu interés y quiero ayudarte a personalizar tu sistema para {laboratorio}. ¿Tienes unos minutos para contarte cómo funciona?" },
     { nombre: "Recordatorio de pago", mensaje: "Hola {nombre} 👋 Te escribimos de BIOsoft: la mensualidad del Plan {plan} de {laboratorio} vence el {fecha_cobro}. Puedes pagarla aquí: {link_pago}. Cualquier duda, quedamos atentos." },
-    { nombre: "Bienvenida - contrato enviado", mensaje: "¡Bienvenido a BIOsoft, {laboratorio}! 🎉 Te acabamos de enviar el contrato. En 7 a 10 días hábiles tendrás tu sistema personalizado funcionando. Cualquier duda, aquí estamos." }
+    { nombre: "Bienvenida - contrato enviado", mensaje: "¡Bienvenido a BIOsoft, {laboratorio}! 🎉 Te acabamos de enviar el contrato. Ya puedes empezar a usar el sistema, y te vamos entregando la personalización (logo, catálogo, firmas) en los próximos días. Cualquier duda, aquí estamos." },
+    { nombre: "Recordatorio 2da cuota de implementación", mensaje: "Hola {nombre} 👋 Te escribimos de BIOsoft: este mes corresponde tu 2da y última cuota de implementación ($60 USD) junto con la mensualidad del Plan {plan} de {laboratorio}. A partir del próximo mes, solo pagas tu mensualidad. ¿Te ayudamos a coordinar el pago?" }
   ];
   var WA_NUMBER = "573505457420";
   function waLink(mensaje) { return "https://wa.me/" + WA_NUMBER + "?text=" + encodeURIComponent(mensaje); }
@@ -233,7 +234,7 @@
         var c = clientes.filter(function (x) { return x.id === b.dataset.contrato; })[0];
         var plan = BIO_PLANES.porId(c.planId);
         if (!plan) { U.toast("Este cliente no tiene un plan asignado.", "error"); return; }
-        var bytes = BIO_PDF_CRM.buildContratoPDF(clienteParaDocs(c), plan);
+        var bytes = BIO_PDF_CRM.buildContratoPDF(clienteParaDocs(c), plan, c.modalidadPago);
         var mensaje = "Hola " + (c.contacto && c.contacto.nombre ? c.contacto.nombre.split(" ")[0] : "") + " 👋 Te comparto el contrato de prestación de servicios de BIOsoft para " + (c.laboratorio && c.laboratorio.nombre || "tu laboratorio") + ". Cualquier duda, quedo atento.";
         descargarYAbrir(bytes, "Contrato_BIOsoft_" + (c.laboratorio.nombre || "Cliente").replace(/\s+/g, "_") + ".pdf", c.contacto, mensaje);
         var p = (c.estado === "nuevo" ? S.crm.update(c.id, { estado: "contrato_enviado" }) : Promise.resolve());
@@ -276,31 +277,57 @@
     function abrirMarcarPagado(c) {
       var plan = BIO_PLANES.porId(c.planId);
       if (!plan) { U.toast("Asigna un plan a este cliente antes de marcarlo como pagado.", "error"); return; }
-      var totalCOP = BIO_PLANES.IMPLEMENTACION.cop + plan.precio;
-      var totalUSD = BIO_PLANES.IMPLEMENTACION.usd + plan.usd;
+      var esSemestral = c.modalidadPago === "semestral";
+      var cuotasPagadas = c.cuotasImplementacionPagadas || 0;
+      var totalCOP, totalUSD, conceptoLabel, mesesCobro;
+      if (esSemestral) {
+        totalCOP = plan.precio * 6; totalUSD = plan.usd * 6; mesesCobro = 6;
+        conceptoLabel = "6 meses de una vez · sin implementación";
+      } else if (cuotasPagadas < 2) {
+        totalCOP = plan.precio + BIO_PLANES.IMPLEMENTACION.cuotaCop;
+        totalUSD = plan.usd + BIO_PLANES.IMPLEMENTACION.cuotaUsd;
+        mesesCobro = 1;
+        conceptoLabel = "Mensualidad + cuota " + (cuotasPagadas + 1) + " de 2 de implementación";
+      } else {
+        totalCOP = plan.precio; totalUSD = plan.usd; mesesCobro = 1;
+        conceptoLabel = "Solo mensualidad (implementación ya completa)";
+      }
       var wrap = U.openModal(
         '<h3 class="modal-title">Marcar como Pagado — ' + U.esc(c.laboratorio.nombre || "") + '</h3>' +
-        '<p class="text-muted">Se calculará la próxima fecha de cobro a 30 días desde la fecha de pago, y se generará el recibo automáticamente.</p>' +
+        '<p class="text-muted">Se calculará la próxima fecha de cobro y se generará el recibo automáticamente.</p>' +
+        '<div class="field"><label>Modalidad de pago</label><select id="mp-modalidad">' +
+        '<option value="mensual" ' + (!esSemestral ? "selected" : "") + '>Mes a mes (implementación en 2 cuotas)</option>' +
+        '<option value="semestral" ' + (esSemestral ? "selected" : "") + '>6 meses de una vez (sin implementación)</option>' +
+        "</select></div>" +
         '<div class="field"><label>Fecha de pago</label><input type="date" id="mp-fecha" value="' + new Date().toISOString().slice(0, 10) + '"/></div>' +
-        '<p style="font-size:13px"><b>Total recibido:</b> $' + totalCOP.toLocaleString("es-CO") + ' COP (aprox. $' + totalUSD + ' USD)</p>' +
+        '<p style="font-size:13px" id="mp-concepto"><b>Concepto:</b> ' + conceptoLabel + '</p>' +
+        '<p style="font-size:13px"><b>Total recibido:</b> <span id="mp-total">$' + totalCOP.toLocaleString("es-CO") + ' COP (aprox. $' + totalUSD + ' USD)</span></p>' +
         '<div class="flex gap-2 justify-between"><button class="btn btn-ghost" data-modal-close>Cancelar</button><button class="btn btn-primary" id="mp-confirmar">' + U.icon("check") + " Confirmar Pago</button></div>"
       );
+      wrap.querySelector("#mp-modalidad").addEventListener("change", function () {
+        U.closeModal(wrap);
+        S.crm.update(c.id, { modalidadPago: this.value }).then(function () {
+          abrirMarcarPagado(Object.assign({}, c, { modalidadPago: wrap.querySelector("#mp-modalidad").value }));
+        });
+      });
       wrap.querySelector("#mp-confirmar").addEventListener("click", function () {
         var fechaPago = new Date(wrap.querySelector("#mp-fecha").value + "T12:00:00");
-        var proxima = new Date(fechaPago.getTime() + 30 * 864e5);
+        var proxima = new Date(fechaPago.getTime() + mesesCobro * 30 * 864e5);
         var patch = {
           estado: "activo",
-          fechaPagoInicial: fechaPago.toISOString(),
+          modalidadPago: esSemestral ? "semestral" : "mensual",
+          fechaPagoInicial: c.fechaPagoInicial || fechaPago.toISOString(),
           proximaFechaCobro: proxima.toISOString(),
           totalPrimerPagoFmt: totalCOP.toLocaleString("es-CO"),
           totalPrimerPagoUSD: totalUSD
         };
+        if (!esSemestral) patch.cuotasImplementacionPagadas = Math.min(2, cuotasPagadas + 1);
         S.crm.update(c.id, patch).then(function () {
           U.closeModal(wrap);
           U.toast("Pago registrado. Próximo cobro: " + fmtFechaCorta(proxima.toISOString()), "success");
-          var bytes = BIO_PDF_CRM.buildReciboPDF(clienteParaDocs(c), plan, { fecha: fechaPago, totalFmt: patch.totalPrimerPagoFmt, totalUSD: patch.totalPrimerPagoUSD, proximaFecha: patch.proximaFechaCobro });
+          var bytes = BIO_PDF_CRM.buildReciboPDF(clienteParaDocs(c), plan, { fecha: fechaPago, totalFmt: patch.totalPrimerPagoFmt, totalUSD: patch.totalPrimerPagoUSD, proximaFecha: patch.proximaFechaCobro, concepto: conceptoLabel });
           U.downloadBytes(bytes, "Recibo_BIOsoft_" + (c.laboratorio.nombre || "Cliente").replace(/\s+/g, "_") + ".pdf");
-          return agregarActividad(c, "pago", "Pago registrado. Próximo cobro: " + fmtFechaCorta(proxima.toISOString()) + ".");
+          return agregarActividad(c, "pago", "Pago registrado (" + conceptoLabel + "). Próximo cobro: " + fmtFechaCorta(proxima.toISOString()) + ".");
         }).then(cargar).catch(function (err) { U.toast("No se pudo guardar: " + err.message, "error"); });
       });
     }
@@ -536,6 +563,10 @@
         '<fieldset><legend>Plan y Etapa</legend><div class="form-grid">' +
         F.sel("plan", "Plan Contratado", BIO_PLANES.PLANES.map(function (p) { return "<option value='" + p.id + "' " + (p.id === cliente.planId ? "selected" : "") + ">" + p.nombre + " (" + p.usuarios + ") — $" + p.precioFmt + "/mes</option>"; }).join("")) +
         F.sel("estado", "Etapa", Object.keys(ESTADO_LABEL).map(function (k) { return "<option value='" + k + "' " + (k === cliente.estado ? "selected" : "") + ">" + ESTADO_LABEL[k] + "</option>"; }).join("")) +
+        F.sel("modalidadPago", "Modalidad de Pago", [
+          "<option value='mensual' " + (cliente.modalidadPago !== "semestral" ? "selected" : "") + ">Mes a mes (implementación en 2 cuotas)</option>",
+          "<option value='semestral' " + (cliente.modalidadPago === "semestral" ? "selected" : "") + ">6 meses de una vez (sin implementación)</option>"
+        ].join("")) +
         "</div></fieldset>" +
         '<div class="field"><label>Secciones del laboratorio que maneja</label><div class="form-grid">' +
         C.SECCIONES.map(function (s) {
@@ -556,6 +587,7 @@
           contacto: { nombre: g("contNombre"), cargo: g("contCargo"), whatsapp: g("contWhatsapp"), correo: g("contCorreo") },
           planId: wrap.querySelector("#f_plan").value,
           estado: wrap.querySelector("#f_estado").value,
+          modalidadPago: wrap.querySelector("#f_modalidadPago").value,
           seccionesIds: secciones,
           notas: wrap.querySelector("#crm-notas").value.trim()
         };

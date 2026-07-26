@@ -300,6 +300,36 @@ fbq('track', 'PageView');
   .lp-onetime-banner { max-width:700px; margin:0 auto 34px; text-align:center; background: linear-gradient(135deg, color-mix(in srgb, var(--lp-orange) 12%, #fff), color-mix(in srgb, var(--lp-purple) 12%, #fff)); border:1.5px solid color-mix(in srgb, var(--lp-purple) 32%, var(--border)); border-radius:18px; padding:22px 28px; box-shadow: 0 18px 38px -20px rgba(124,58,237,.35); }
   .lp-onetime-tag { display:inline-block; background: linear-gradient(90deg,var(--lp-orange),var(--lp-purple)); color:#fff; font-weight:800; font-size:11.5px; letter-spacing:.04em; padding:6px 16px; border-radius:20px; margin-bottom:12px; }
   .lp-onetime-banner p { margin:0; font-size:15.5px; color: var(--text); line-height:1.55; }
+  .lp-pago-toggle { display:flex; justify-content:center; gap:10px; margin: 0 auto 8px; flex-wrap:wrap; max-width:700px; }
+  .lp-pago-toggle button {
+    padding: 10px 20px; border-radius: 30px; border: 1.5px solid var(--border); background: #fff;
+    font-size: 13px; font-weight: 800; color: var(--text-muted); cursor: pointer; transition: all .15s ease;
+  }
+  .lp-pago-toggle button.active {
+    border-color: transparent; color: #fff; background: linear-gradient(90deg, var(--lp-orange), var(--lp-pink));
+    box-shadow: 0 12px 26px -12px rgba(236,72,153,.5);
+  }
+  .lp-pago-toggle-hint { text-align:center; font-size:12.5px; color: var(--text-muted); margin: 0 auto 26px; max-width:560px; }
+  .lp-comofunciona {
+    max-width: 900px; margin: 40px auto 0; background: var(--surface); border: 1px solid var(--border);
+    border-radius: var(--radius); padding: 26px 28px; box-shadow: var(--shadow-sm);
+  }
+  .lp-comofunciona h4 { text-align:center; margin: 0 0 20px; font-size: 17px; }
+  .lp-comofunciona-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(190px,1fr)); gap: 20px; }
+  .lp-comofunciona-grid > div { display:flex; gap:10px; align-items:flex-start; }
+  .lp-comofunciona-grid span:first-child { font-size: 22px; line-height:1; }
+  .lp-comofunciona-grid b { display:block; font-size: 13.5px; margin-bottom: 3px; }
+  .lp-comofunciona-grid span:last-child { display:block; font-size: 12.5px; color: var(--text-muted); line-height:1.5; }
+  .lp-pago-toggle { display:flex; justify-content:center; gap:10px; margin: 0 auto 8px; flex-wrap:wrap; max-width:700px; }
+  .lp-pago-toggle button {
+    padding: 10px 20px; border-radius: 30px; border: 1.5px solid var(--border); background: #fff;
+    font-size: 13px; font-weight: 800; color: var(--text-muted); cursor: pointer; transition: all .15s ease;
+  }
+  .lp-pago-toggle button.active {
+    border-color: transparent; color: #fff; background: linear-gradient(90deg, var(--lp-orange), var(--lp-pink));
+    box-shadow: 0 12px 26px -12px rgba(236,72,153,.5);
+  }
+  .lp-pago-toggle-hint { text-align:center; font-size:12.5px; color: var(--text-muted); margin: 0 auto 26px; max-width:520px; }
   .lp-value-stack { max-width:740px; margin:38px auto 0; background:var(--surface); border:1px solid var(--border); border-radius:18px; padding:28px 30px; box-shadow: var(--shadow-sm); }
   .lp-value-stack h4 { text-align:center; margin:0 0 20px; font-size:17px; }
   .lp-value-grid { display:grid; grid-template-columns: repeat(auto-fit,minmax(260px,1fr)); gap:16px; margin-bottom:20px; }
@@ -322,6 +352,7 @@ fbq('track', 'PageView');
   }
   .btn-pay-wompi:hover { transform: translateY(-2px); box-shadow: 0 14px 32px -10px rgba(0,56,255,.6); }
   .lp-pay-cards { font-size:10.5px; color:var(--text-muted); margin-top:8px; letter-spacing:.01em; }
+  .lp-pay-note { font-size:11.5px; color: var(--text-muted); margin: -8px 0 12px; text-align:center; }
   .lp-modal-plan-wa, .price-card .lp-modal-plan-wa {
     display:block; text-align:center; margin-top:10px; font-size:12px; font-weight:700; color:var(--text-muted);
     background:none; border:none; cursor:pointer; text-decoration:underline; padding:2px;
@@ -665,15 +696,31 @@ fbq('track', 'PageView');
 
   <section class="lp-section" id="precios" style="background:var(--surface-2)">
     <h2>Precios claros, según el número de usuarios</h2>
-    <p class="lead">Un pago único de implementación para dejar el software 100% a tu medida, y luego una mensualidad simple que crece con tu equipo — sin sorpresas.</p>
-    <div class="lp-onetime-banner">
-      <span class="lp-onetime-tag">💰 ESTO SE PAGA UNA SOLA VEZ</span>
-      <p>Tu <b>única inversión inicial</b> es de <b>$380.000 COP (≈ $120 USD)</b>. La pagas <b>una sola vez en toda la vida de tu laboratorio con BIOsoft</b> — nunca se vuelve a cobrar, sin importar el plan que elijas ni cuántos años sigas usando el software.</p>
+    <p class="lead">Empiezas a usar tu BIOsoft el mismo día que pagas. Elige cómo prefieres cubrir tu inversión de personalización — sin sorpresas.</p>
+    <div class="lp-onetime-banner" id="lp-onetime-banner">
+      <span class="lp-onetime-tag" id="lp-onetime-tag">🚀 EMPIEZA HOY MISMO</span>
+      <p id="lp-onetime-text">No esperas semanas a que "todo esté listo": <b>accedes al sistema desde que confirmas tu pago</b>. Tu inversión de personalización de $380.000 COP (≈ $120 USD) se divide en <b>solo 2 cuotas de $190.000 COP (≈ $60 USD)</b> durante tus primeros 2 meses — el tiempo exacto que toma dejar tu BIOsoft 100% a tu medida.</p>
     </div>
+    <div class="lp-pago-toggle" id="lp-pago-toggle">
+      <button type="button" class="active" data-modo="mensual">💳 Mes a mes — implementación en 2 cuotas</button>
+      <button type="button" data-modo="semestral">🎁 6 meses de una vez — implementación GRATIS</button>
+    </div>
+    <p class="lp-pago-toggle-hint" id="lp-pago-hint">Pagas tu mensualidad + una cuota de $60 USD el mes 1 y el mes 2. Desde el mes 3, solo tu mensualidad.</p>
     <div class="lp-wrap"><div class="price-grid" id="price-grid"></div></div>
+    <div class="lp-wrap">
+      <div class="lp-comofunciona">
+        <h4>Tranquilo: así funciona apenas pagas</h4>
+        <div class="lp-comofunciona-grid">
+          <div><span>⚡</span><div><b>Acceso inmediato</b><span>Entras a usar tu BIOsoft el mismo día, no esperas a que esté "terminado".</span></div></div>
+          <div><span>📘</span><div><b>Manual desde el día 1</b><span>Te entregamos la guía de uso apenas confirmas el pago, para que tu equipo empiece a explorar ya.</span></div></div>
+          <div><span>📅</span><div><b>Capacitación a tu horario</b><span>Agendamos la sesión con tu equipo cuando a ustedes les quede mejor, no cuando nos convenga a nosotros.</span></div></div>
+          <div><span>🔧</span><div><b>Ajustes en 2 a 4 días</b><span>Mientras ya lo estás usando, vamos personalizando logo, catálogo y firmas — cada ajuste puntual queda listo en días, no semanas.</span></div></div>
+        </div>
+      </div>
+    </div>
     <p style="text-align:center;font-size:13px;color:var(--text-muted);margin-top:18px">¿Tu laboratorio necesita más de 10 usuarios o varias sedes? <a href="#" id="wa-cotizacion" target="_blank" rel="noopener" style="color:var(--brand-primary);font-weight:700">Solicita una cotización personalizada →</a></p>
     <div class="lp-value-stack">
-      <h4>¿Qué te da ese pago único de $380.000?</h4>
+      <h4>¿Qué te da tu inversión de $380.000 en personalización?</h4>
       <div class="lp-value-grid">
         <div><span class="lp-value-check">✓</span><div><b>Personalización 100%</b><span>Tu logo, tus colores y los datos de tu laboratorio, listos</span></div></div>
         <div><span class="lp-value-check">✓</span><div><b>Tu catálogo de exámenes</b><span>Configurado con tus valores de referencia reales</span></div></div>
@@ -681,15 +728,15 @@ fbq('track', 'PageView');
         <div><span class="lp-value-check">✓</span><div><b>Capacitación de tu equipo</b><span>Para que empiecen a usarlo desde el primer día</span></div></div>
         <div><span class="lp-value-check">✓</span><div><b>Acompañamiento inicial</b><span>Te ayudamos en tu primera semana para que la transición sea sin traumas</span></div></div>
       </div>
-      <p class="lp-value-foot">Todo esto — que otros proveedores cobran por separado o exigen en contratos de inversión millonaria — está incluido en tu único pago de <b>$380.000 COP</b>. <b>No es una cuota más: es lo que hace que BIOsoft deje de ser un software genérico y se convierta en el sistema de tu laboratorio.</b></p>
+      <p class="lp-value-foot">Todo esto — que otros proveedores cobran por separado o exigen en contratos de inversión millonaria — está incluido en tus <b>2 cuotas de $190.000 COP</b> (o gratis si pagas 6 meses de una vez). <b>No es una cuota más: es lo que hace que BIOsoft deje de ser un software genérico y se convierta en el sistema de tu laboratorio.</b></p>
     </div>
-    <p class="lp-roi-line">⏱️ Si tu equipo pierde aunque sea <b>20 minutos al día</b> armando resultados a mano en Word o Excel, son <b>+10 horas al mes</b> que podrías dedicar a atender más pacientes. Ese tiempo — y los errores que evitas — valen mucho más que los $380.000 de implementación, y solo los pagas una vez.</p>
+    <p class="lp-roi-line">⏱️ Si tu equipo pierde aunque sea <b>20 minutos al día</b> armando resultados a mano en Word o Excel, son <b>+10 horas al mes</b> que podrías dedicar a atender más pacientes. Ese tiempo — y los errores que evitas — valen mucho más que las 2 cuotas de $190.000 de tu implementación, y mientras tanto ya la estás usando.</p>
     <div class="trust-row">
-      <span>🔒 Pago seguro con Wompi (tarjetas y más)</span>
-      <span>💰 Implementación: pago único, nunca se repite</span>
+      <span>⚡ Acceso desde el día del pago</span>
+      <span>💳 Implementación en 2 cuotas (o gratis pagando 6 meses)</span>
       <span>🎨 Personalización incluida</span>
       <span>💬 Soporte directo por WhatsApp</span>
-      <span>🇨🇴🇻🇪🇪🇨 Hecho para Colombia, Venezuela y Ecuador</span>
+      <span>🇨🇴🇻🇪🇪🇨🌎 Hecho para toda Latinoamérica</span>
     </div>
   </section>
 
@@ -699,7 +746,7 @@ fbq('track', 'PageView');
     <div class="lp-faq">
       <details class="lp-faq-item" open>
         <summary>¿Necesito hacer una inversión grande para empezar?</summary>
-        <p>No. A diferencia de otros software de laboratorio que piden inversiones millonarias, BIOsoft solo pide una cuota única de implementación ($380.000 COP / ≈$120 USD) y luego una mensualidad accesible según el número de usuarios. Sin letras pequeñas.</p>
+        <p>No. A diferencia de otros software de laboratorio que piden inversiones millonarias, BIOsoft divide tu implementación en 2 cuotas de $190.000 COP (≈$60 USD) durante tus primeros 2 meses — o queda completamente gratis si pagas tus primeros 6 meses de una sola vez. Accedes al sistema desde que confirmas tu pago, no esperas a que "todo esté listo". Sin letras pequeñas.</p>
       </details>
       <details class="lp-faq-item">
         <summary>¿El software se adapta a mi laboratorio o es genérico?</summary>
@@ -817,24 +864,56 @@ fbq('track', 'PageView');
 
     var IMPLEMENTACION = BIO_PLANES.IMPLEMENTACION;
     var PLANES = BIO_PLANES.PLANES;
-    var TARJETAS_TXT = BIO_PLANES.TARJETAS_TXT;
-    document.getElementById("price-grid").innerHTML = PLANES.map(function (p) {
-      var msg = "Hola, quiero contratar el Plan " + p.nombre + " de BIOsoft (" + p.usuarios + "). ¿Me ayudas con la implementación?";
-      var totalCOP = IMPLEMENTACION.cop + p.precio;
-      var totalUSD = IMPLEMENTACION.usd + p.usd;
-      return '<div class="price-card ' + (p.destacado ? "destacado" : "") + '">' +
-        (p.destacado ? '<span class="tag">Recomendado</span>' : "") +
-        "<h3>" + p.nombre + "</h3><div class='users'>" + p.usuarios + "</div>" +
-        '<div class="amount">$' + p.precioFmt + " <small>/mes</small></div>" +
-        '<div class="amount-usd">≈ $' + p.usd + " USD/mes</div>" +
-        "<ul>" + p.items.map(function (it) { return "<li>" + it + "</li>"; }).join("") + "</ul>" +
-        '<div class="lp-pay-total">Pago inicial: <b>$' + totalCOP.toLocaleString("es-CO") + ' COP</b><span>≈ $' + totalUSD + ' USD · implementación + primer mes</span></div>' +
-        '<a class="btn-pay-wompi" href="' + p.wompiLink + '" target="_blank" rel="noopener" data-pay-grid="' + p.nombre + '">💳 Pagar ahora con Wompi</a>' +
-        '<div class="lp-pay-cards">' + TARJETAS_TXT + '</div>' +
-        '<a class="lp-modal-plan-wa" href="activar.html?plan=' + p.id + '">✅ Ya pagué, completar mis datos →</a>' +
-        '<a class="lp-modal-plan-wa" href="' + waLink(msg) + '" target="_blank" rel="noopener">¿Dudas? Habla con nosotros por WhatsApp</a>' +
-        "</div>";
-    }).join("");
+    var modoPago = "mensual"; // "mensual" (implementación en 2 cuotas) | "semestral" (6 meses de una vez, sin implementación)
+    var PROMESA_WA = "\n\n✅ Accedes de inmediato tras el pago\n📘 Te enviamos el manual de uso el mismo día\n📅 Agendamos tu capacitación cuando a tu equipo le quede mejor\n🔧 Ajustes de personalización en 2 a 4 días";
+
+    function renderPriceGrid() {
+      document.getElementById("price-grid").innerHTML = PLANES.map(function (p) {
+        return '<div class="price-card ' + (p.destacado ? "destacado" : "") + '">' +
+          (p.destacado ? '<span class="tag">Recomendado</span>' : "") +
+          "<h3>" + p.nombre + "</h3><div class='users'>" + p.usuarios + "</div>" +
+          '<div class="amount">$' + p.precioFmt + " <small>/mes</small></div>" +
+          '<div class="amount-usd">≈ $' + p.usd + " USD/mes</div>" +
+          "<ul>" + p.items.map(function (it) { return "<li>" + it + "</li>"; }).join("") + "</ul>" +
+          (modoPago === "semestral" ? semestralBloque(p) : mensualBloque(p)) +
+          "</div>";
+      }).join("");
+    }
+    function mensualBloque(p) {
+      var totalCOP = p.precio + IMPLEMENTACION.cuotaCop;
+      var totalUSD = p.usd + IMPLEMENTACION.cuotaUsd;
+      var msg = "Hola 👋 Quiero contratar el Plan " + p.nombre + " de BIOsoft (" + p.usuarios + "), mes a mes, con la implementación en 2 cuotas. ¿Me ayudas a reservarlo?" + PROMESA_WA;
+      return '<div class="lp-pay-total">Para empezar hoy: <b>$' + totalCOP.toLocaleString("es-CO") + ' COP</b><span>≈ $' + totalUSD + ' USD · mensualidad + cuota 1 de 2 de implementación</span></div>' +
+        '<p class="lp-pay-note">2do mes: +$' + IMPLEMENTACION.cuotaUsd + ' USD más · Desde el mes 3: solo $' + p.precioFmt + '/mes</p>' +
+        '<a class="btn-pay-wompi" href="' + waLink(msg) + '" target="_blank" rel="noopener">💬 Reservar por WhatsApp</a>' +
+        '<a class="lp-modal-plan-wa" href="activar.html?plan=' + p.id + '">✅ Ya pagué, completar mis datos →</a>';
+    }
+    function semestralBloque(p) {
+      var totalCOP = p.precio * 6;
+      var totalUSD = p.usd * 6;
+      var msg = "Hola 👋 Quiero contratar el Plan " + p.nombre + " de BIOsoft (" + p.usuarios + ") pagando mis primeros 6 meses de una sola vez, sin costo de implementación. ¿Me ayudas a reservarlo?" + PROMESA_WA;
+      return '<div class="lp-pay-total">Pago único (6 meses): <b>$' + totalCOP.toLocaleString("es-CO") + ' COP</b><span>≈ $' + totalUSD + ' USD · SIN implementación (ahorras $' + IMPLEMENTACION.usd + ' USD)</span></div>' +
+        '<a class="btn-pay-wompi" href="' + waLink(msg) + '" target="_blank" rel="noopener">💬 Reservar por WhatsApp — Sin implementación</a>' +
+        '<a class="lp-modal-plan-wa" href="activar.html?plan=' + p.id + '">✅ Ya pagué, completar mis datos →</a>';
+    }
+    renderPriceGrid();
+    document.querySelectorAll("#lp-pago-toggle button").forEach(function (b) {
+      b.addEventListener("click", function () {
+        modoPago = b.dataset.modo;
+        document.querySelectorAll("#lp-pago-toggle button").forEach(function (x) { x.classList.toggle("active", x === b); });
+        if (modoPago === "semestral") {
+          document.getElementById("lp-onetime-tag").textContent = "🎁 SIN COSTO DE IMPLEMENTACIÓN";
+          document.getElementById("lp-onetime-text").innerHTML = 'Si pagas tus <b>primeros 6 meses de una sola vez</b>, <b>no pagas los $380.000 COP de implementación</b> — te ahorras esa inversión inicial por completo, y accedes de inmediato igual.';
+          document.getElementById("lp-pago-hint").textContent = "Ideal si prefieres un solo pago y arrancar sin costos adicionales.";
+        } else {
+          document.getElementById("lp-onetime-tag").textContent = "🚀 EMPIEZA HOY MISMO";
+          document.getElementById("lp-onetime-text").innerHTML = 'No esperas semanas a que "todo esté listo": <b>accedes al sistema desde que confirmas tu pago</b>. Tu inversión de personalización de $380.000 COP (≈ $120 USD) se divide en <b>solo 2 cuotas de $190.000 COP (≈ $60 USD)</b> durante tus primeros 2 meses — el tiempo exacto que toma dejar tu BIOsoft 100% a tu medida.';
+          document.getElementById("lp-pago-hint").textContent = "Pagas tu mensualidad + una cuota de $60 USD el mes 1 y el mes 2. Desde el mes 3, solo tu mensualidad.";
+        }
+        renderPriceGrid();
+        trackFbEvent("ViewContent", { content_name: "Modo de pago: " + modoPago });
+      });
+    });
     document.getElementById("wa-cotizacion").href = waLink("Hola, mi laboratorio necesita más de 10 usuarios o varias sedes. ¿Me ayudas con una cotización personalizada de BIOsoft?");
     document.getElementById("wa-cotizador-lp").href = waLink("Hola 👋 quiero reservar esta semana BIOsoft con el módulo de Cotización de Exámenes + Control de Calidad con IA + App móvil incluidos. ¿Me ayudan a activarlo?");
     document.getElementById("wa-marketing-lp").href = waLink("Hola 👋 vi el módulo de Marketing Digital con IA (Remarketing + Creador de Imágenes) de BIOsoft y quiero activarlo esta semana con acompañamiento personalizado. ¿Me ayudan?");
@@ -879,50 +958,83 @@ fbq('track', 'PageView');
 
     function abrirSeleccionPlan() {
       trackFbEvent("InitiateCheckout");
+      var modoModal = modoPago;
       var wrap = lpModal(
         '<h3 class="modal-title">Elige tu plan para continuar</h3>' +
-        '<p class="text-muted" style="margin:0 0 18px">Selecciona el plan según el número de usuarios de tu laboratorio y paga de una vez de forma segura, o escríbenos por WhatsApp si tienes dudas antes de pagar. <b>La implementación se paga una sola vez</b>, solo tu mensualidad se repite cada mes.</p>' +
-        '<div class="lp-modal-plans">' +
-        PLANES.map(function (p, i) {
-          var totalCOP = IMPLEMENTACION.cop + p.precio;
-          var totalUSD = IMPLEMENTACION.usd + p.usd;
+        '<div class="lp-pago-toggle" id="lp-modal-pago-toggle" style="margin-bottom:6px">' +
+        '<button type="button" class="' + (modoModal === "mensual" ? "active" : "") + '" data-modo="mensual">💳 Mes a mes — 2 cuotas</button>' +
+        '<button type="button" class="' + (modoModal === "semestral" ? "active" : "") + '" data-modo="semestral">🎁 6 meses — Sin implementación</button>' +
+        "</div>" +
+        '<p class="text-muted lp-modal-pago-hint" style="margin:0 0 18px"></p>' +
+        '<div class="lp-modal-plans" id="lp-modal-plans"></div>' +
+        '<p class="text-muted" style="font-size:12px;text-align:center;margin:14px 0 0">⚡ Accedes de inmediato · 📘 Manual el mismo día · 📅 Capacitación a tu horario · 🔧 Ajustes en 2-4 días</p>' +
+        '<div class="lp-modal-trust" id="lp-modal-trust"></div>'
+      );
+
+      function renderModalPlanes() {
+        wrap.querySelector("#lp-modal-trust").textContent = "Coordinamos tu pago directamente por WhatsApp (Wompi, transferencia, Zelle u otro medio según tu país).";
+        wrap.querySelector(".lp-modal-pago-hint").textContent = modoModal === "semestral"
+          ? "Pagas tus primeros 6 meses de una sola vez y NO pagas implementación — ahorras $" + IMPLEMENTACION.usd + " USD."
+          : "Pagas tu mensualidad + una cuota de $" + IMPLEMENTACION.cuotaUsd + " USD el mes 1 y el mes 2 de implementación. Desde el mes 3, solo tu mensualidad.";
+        wrap.querySelector("#lp-modal-plans").innerHTML = PLANES.map(function (p, i) {
+          var totalCOP, totalUSD, totalHtml, notaHtml;
+          if (modoModal === "semestral") {
+            totalCOP = p.precio * 6;
+            totalUSD = p.usd * 6;
+            totalHtml = '<div class="lp-pay-total">Pago único (6 meses): <b>$' + totalCOP.toLocaleString("es-CO") + ' COP</b><span>≈ $' + totalUSD + ' USD · SIN implementación</span></div>';
+            notaHtml = "";
+          } else {
+            totalCOP = p.precio + IMPLEMENTACION.cuotaCop;
+            totalUSD = p.usd + IMPLEMENTACION.cuotaUsd;
+            totalHtml = '<div class="lp-pay-total">Para empezar hoy: <b>$' + totalCOP.toLocaleString("es-CO") + ' COP</b><span>≈ $' + totalUSD + ' USD · mensualidad + cuota 1 de 2</span></div>';
+            notaHtml = '<p class="lp-pay-note">2do mes: +$' + IMPLEMENTACION.cuotaUsd + ' USD más · Desde el mes 3: solo $' + p.precioFmt + '/mes</p>';
+          }
           return '<div class="lp-modal-plan ' + (p.destacado ? "destacado" : "") + '">' +
             (p.destacado ? '<span class="tag">Recomendado</span>' : "") +
             "<h4>" + p.nombre + "</h4><div class='users'>" + p.usuarios + "</div>" +
             '<div class="amount">$' + p.precioFmt + '</div><div class="amount-usd">≈ $' + p.usd + ' USD /mes</div>' +
-            '<div class="lp-pay-total">Pago inicial: <b>$' + totalCOP.toLocaleString("es-CO") + ' COP</b><span>≈ $' + totalUSD + ' USD · implementación (pago único) + primer mes</span></div>' +
+            totalHtml + notaHtml +
             '<div class="lp-modal-plan-actions">' +
-            '<a class="btn-pay-wompi" href="' + p.wompiLink + '" target="_blank" rel="noopener" data-plan="' + i + '" data-pay="1">💳 Pagar ahora con Wompi</a>' +
+            '<a class="btn-pay-wompi" data-plan="' + i + '" data-wa="1" href="#">💬 Reservar por WhatsApp</a>' +
             '<a class="lp-modal-plan-wa" href="activar.html?plan=' + p.id + '">✅ Ya pagué, completar mis datos →</a>' +
-            '<button class="lp-modal-plan-wa" data-plan="' + i + '" data-wa="1" type="button">¿Dudas? Habla con nosotros por WhatsApp</button>' +
             "</div></div>";
-        }).join("") +
-        "</div>" +
-        '<div class="lp-modal-trust">' + TARJETAS_TXT + ' · Pago procesado de forma segura y encriptada por Wompi.</div>'
-      );
-      wrap.querySelectorAll("[data-pay]").forEach(function (a) {
-        a.addEventListener("click", function () {
-          var p = PLANES[Number(a.dataset.plan)];
-          var totalUSD = IMPLEMENTACION.usd + p.usd;
-          trackFbEvent("InitiatePayment", { content_name: "Plan " + p.nombre, value: totalUSD, currency: "USD" });
+        }).join("");
+        wrap.querySelectorAll("[data-wa]").forEach(function (b) {
+          b.addEventListener("click", function (e) {
+            e.preventDefault();
+            var p = PLANES[Number(b.dataset.plan)];
+            var mensaje, totalUSD;
+            if (modoModal === "semestral") {
+              var totalCOP6 = p.precio * 6;
+              totalUSD = p.usd * 6;
+              mensaje = "Hola 👋 Quiero adquirir BIOsoft.\n\n" +
+                "Plan elegido: " + p.nombre + " (" + p.usuarios + ")" +
+                "\nModalidad: 6 meses de una sola vez, SIN implementación" +
+                "\nTotal: $" + totalCOP6.toLocaleString("es-CO") + " COP (≈ $" + totalUSD + " USD)" +
+                "\n\n¿Me ayudas a activar mi cuenta?" + PROMESA_WA;
+            } else {
+              var totalCOP = p.precio + IMPLEMENTACION.cuotaCop;
+              totalUSD = p.usd + IMPLEMENTACION.cuotaUsd;
+              mensaje = "Hola 👋 Quiero adquirir BIOsoft.\n\n" +
+                "Plan elegido: " + p.nombre + " (" + p.usuarios + ")" +
+                "\nModalidad: mes a mes, implementación en 2 cuotas de $" + IMPLEMENTACION.cuotaUsd + " USD" +
+                "\nPara empezar hoy: $" + totalCOP.toLocaleString("es-CO") + " COP (≈ $" + totalUSD + " USD)" +
+                "\n\n¿Me ayudas a activar mi cuenta?" + PROMESA_WA;
+            }
+            trackFbEvent("Lead", { content_name: "Plan " + p.nombre, value: totalUSD, currency: "USD" });
+            lpCloseModal(wrap);
+            window.open(waLink(mensaje), "_blank");
+          });
         });
-      });
-      wrap.querySelectorAll("[data-wa]").forEach(function (b) {
+      }
+      wrap.querySelectorAll("#lp-modal-pago-toggle button").forEach(function (b) {
         b.addEventListener("click", function () {
-          var p = PLANES[Number(b.dataset.plan)];
-          var totalCOP = IMPLEMENTACION.cop + p.precio;
-          var totalUSD = IMPLEMENTACION.usd + p.usd;
-          var mensaje = "Hola 👋 Quiero adquirir BIOsoft.\n\n" +
-            "Plan elegido: " + p.nombre + " (" + p.usuarios + ")" +
-            "\nImplementación (pago único): $" + IMPLEMENTACION.copFmt + " COP" +
-            "\nMensualidad: $" + p.precioFmt + " COP" +
-            "\nTotal para empezar: $" + totalCOP.toLocaleString("es-CO") + " COP (≈ $" + totalUSD + " USD)" +
-            "\n\n¿Me ayudas a activar mi cuenta?";
-          trackFbEvent("Lead", { content_name: "Plan " + p.nombre, value: totalUSD, currency: "USD" });
-          lpCloseModal(wrap);
-          window.open(waLink(mensaje), "_blank");
+          modoModal = b.dataset.modo;
+          wrap.querySelectorAll("#lp-modal-pago-toggle button").forEach(function (x) { x.classList.toggle("active", x === b); });
+          renderModalPlanes();
         });
       });
+      renderModalPlanes();
     }
 
     ["btn-iniciar-ya-hero", "btn-iniciar-ya-final"].forEach(function (id) {

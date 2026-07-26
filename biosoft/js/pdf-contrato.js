@@ -45,7 +45,9 @@
   // -----------------------------------------------------------------------
   // CONTRATO DE PRESTACIÓN DE SERVICIOS
   // -----------------------------------------------------------------------
-  function buildContratoPDF(cliente, plan) {
+  function buildContratoPDF(cliente, plan, modalidadPago) {
+    var IMPL = (window.BIO_PLANES && window.BIO_PLANES.IMPLEMENTACION) || { copFmt: "380.000", usd: 120, cuotaCopFmt: "190.000", cuotaUsd: 60 };
+    var esSemestral = modalidadPago === "semestral";
     var jsPDFCtor = window.jspdf ? window.jspdf.jsPDF : window.jsPDF;
     var doc = new jsPDFCtor({ unit: "pt", format: "letter" });
     var pageW = doc.internal.pageSize.getWidth();
@@ -104,14 +106,15 @@
     parrafo(
       "El software será configurado y personalizado según las necesidades específicas de EL CLIENTE: logo, colores institucionales, catálogo de exámenes y valores de referencia, firmas digitales de los bacteriólogos, y el formato del informe de resultados que reciben sus pacientes." +
       (cliente.seccionesTexto ? " Las secciones del laboratorio configuradas inicialmente son: " + cliente.seccionesTexto + "." : "") +
-      " El plazo estimado de entrega del sistema totalmente personalizado y funcionando es de " +
-      "SIETE (7) A DIEZ (10) DÍAS HÁBILES, contados a partir de la confirmación del pago de implementación y la recepción completa de la información requerida por parte de EL CLIENTE."
+      " EL CLIENTE tendrá acceso al software desde la confirmación de su primer pago, sin necesidad de esperar a que la personalización esté finalizada. El plazo estimado para completar la personalización total del sistema es de " +
+      "SIETE (7) A DIEZ (10) DÍAS HÁBILES, y los ajustes puntuales que EL CLIENTE solicite durante ese proceso se atenderán en un plazo de DOS (2) A CUATRO (4) DÍAS HÁBILES según la complejidad del ajuste."
     );
 
     titulo("CUARTA — VALOR DEL SERVICIO");
     parrafo(
-      "EL CLIENTE pagará una cuota única de implementación de $380.000 COP (aprox. $120 USD), la cual se paga una sola vez y no se cobra nuevamente bajo ninguna circunstancia, sin importar el tiempo que EL CLIENTE continúe usando el software. Adicionalmente, pagará una mensualidad de $" +
-      plan.precioFmt + " COP (aprox. $" + plan.usd + " USD) correspondiente al Plan " + plan.nombre + "."
+      esSemestral
+        ? ("EL CLIENTE ha optado por la modalidad de pago semestral: cancela por adelantado el valor correspondiente a sus primeros seis (6) meses de mensualidad del Plan " + plan.nombre + " ($" + plan.precioFmt + " COP c/u, aprox. $" + plan.usd + " USD), quedando exento del pago de la cuota de implementación (valor $" + IMPL.copFmt + " COP / aprox. $" + IMPL.usd + " USD), la cual EL PROVEEDOR condona en su totalidad bajo esta modalidad. Vencidos los primeros seis (6) meses, EL CLIENTE continuará pagando la mensualidad ordinaria del Plan " + plan.nombre + ".")
+        : ("EL CLIENTE pagará una cuota de implementación por valor de $" + IMPL.copFmt + " COP (aprox. $" + IMPL.usd + " USD), fraccionada en DOS (2) cuotas iguales de $" + IMPL.cuotaCopFmt + " COP (aprox. $" + IMPL.cuotaUsd + " USD) cada una, cobradas junto con la mensualidad de los meses uno (1) y dos (2). A partir del mes tres (3), EL CLIENTE solo pagará la mensualidad ordinaria de $" + plan.precioFmt + " COP (aprox. $" + plan.usd + " USD) correspondiente al Plan " + plan.nombre + ". La cuota de implementación no se cobra nuevamente bajo ninguna circunstancia una vez cancelada en su totalidad, sin importar el tiempo que EL CLIENTE continúe usando el software.")
     );
 
     titulo("QUINTA — FORMA DE PAGO Y PERIODICIDAD");
@@ -136,7 +139,7 @@
 
     titulo("NOVENA — ACEPTACIÓN");
     parrafo(
-      "Las partes declaran conocer y aceptar los términos de este contrato, el cual se perfecciona con el pago de la cuota de implementación por parte de EL CLIENTE."
+      "Las partes declaran conocer y aceptar los términos de este contrato, el cual se perfecciona con el primer pago realizado por EL CLIENTE conforme a la modalidad elegida en la cláusula CUARTA."
     );
 
     checkPage(110);
@@ -176,7 +179,7 @@
       ["Fecha de pago:", fechaLarga(pago && pago.fecha ? pago.fecha : new Date())],
       ["Recibido de:", (lab.nombre || "—") + (lab.nit ? " (NIT " + lab.nit + ")" : "")],
       ["Contacto:", contacto.nombre || "—"],
-      ["Concepto:", "Implementación (pago único) + primera mensualidad — Plan " + plan.nombre],
+      ["Concepto:", (pago && pago.concepto ? pago.concepto : "Mensualidad") + " — Plan " + plan.nombre],
       ["Valor pagado:", "$" + (pago && pago.totalFmt ? pago.totalFmt : "—") + " COP (aprox. $" + (pago && pago.totalUSD ? pago.totalUSD : "—") + " USD)"],
       ["Próxima fecha de cobro:", pago && pago.proximaFecha ? fechaLarga(pago.proximaFecha) : "—"]
     ];

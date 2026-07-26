@@ -3,7 +3,7 @@
 (function (global) {
   "use strict";
 
-  var IMPLEMENTACION = { cop: 380000, copFmt: "380.000", usd: 120 };
+  var IMPLEMENTACION = { cop: 380000, copFmt: "380.000", usd: 120, cuotaCop: 190000, cuotaCopFmt: "190.000", cuotaUsd: 60 };
 
   var PLANES = [
     { id: "basico", nombre: "Básico", usuarios: "1 usuario", precio: 120000, precioFmt: "120.000", usd: 45, destacado: false,
