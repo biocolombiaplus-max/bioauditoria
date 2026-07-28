@@ -89,6 +89,7 @@
       attach("qcControles", "qcControles", false),
       attach("qcLecturas", "qcLecturas", false),
       attach("preciosExamenes", "preciosExamenes", false),
+      attach("examenesPersonalizados", "examenesPersonalizados", false),
       attach("cotizaciones", "cotizaciones", false),
       attach("reglasRemarketing", "reglasRemarketing", false),
       attach("remarketingContactos", "remarketingContactos", false),
@@ -333,7 +334,7 @@
   function emptyDB() {
     return {
       tenants: {}, users: [], patients: [], orders: [], auditLog: [], qcControles: [], qcLecturas: [], preciosExamenes: [], cotizaciones: [],
-      reglasRemarketing: [], remarketingContactos: [], insumos: [], recetasReactivos: [], kardexInventario: []
+      reglasRemarketing: [], remarketingContactos: [], insumos: [], recetasReactivos: [], kardexInventario: [], examenesPersonalizados: []
     };
   }
 
@@ -668,18 +669,70 @@
     var db = loadDB();
     return db.preciosExamenes.filter(function (p) { return p.tenantId === tenantId; });
   }
-  function setPrecio(tenantId, examId, precio) {
-    var db = loadDB();
+  function upsertPrecioEnDB(db, tenantId, examId, precio) {
     var reg = db.preciosExamenes.filter(function (p) { return p.tenantId === tenantId && p.examId === examId; })[0];
     if (reg) { reg.precio = precio; reg.actualizadoEn = nowISO(); }
     else { reg = { id: uid("prc"), tenantId: tenantId, examId: examId, precio: precio, actualizadoEn: nowISO() }; db.preciosExamenes.push(reg); }
+    return reg;
+  }
+  function setPrecio(tenantId, examId, precio) {
+    var db = loadDB();
+    var reg = upsertPrecioEnDB(db, tenantId, examId, precio);
     saveDB(db);
     fbWrite("preciosExamenes", reg.id, reg);
     return reg;
   }
   function bulkSetPrecios(tenantId, pares) {
-    // pares: [{ examId, precio }]
-    return pares.map(function (par) { return setPrecio(tenantId, par.examId, par.precio); });
+    // pares: [{ examId, precio }] — se carga y guarda la base de datos UNA
+    // sola vez para todo el lote (listas de precios reales pueden traer
+    // cientos o miles de filas; guardar por cada una sería demasiado lento).
+    var db = loadDB();
+    var regs = pares.map(function (par) { return upsertPrecioEnDB(db, tenantId, par.examId, par.precio); });
+    saveDB(db);
+    regs.forEach(function (reg) { fbWrite("preciosExamenes", reg.id, reg); });
+    return regs;
+  }
+
+  // Exámenes de referencia propios de un laboratorio (ej. tarifas de un
+  // laboratorio externo como COLCAN) que no existen en el catálogo global
+  // de BIOsoft. Quedan disponibles SOLO para el laboratorio que los creó,
+  // sin afectar el catálogo de ningún otro cliente. El precio se guarda con
+  // el mismo mecanismo que los exámenes del catálogo (preciosExamenes),
+  // usando el id de este registro como examId.
+  function listExamenesPersonalizados(tenantId) {
+    var db = loadDB();
+    return db.examenesPersonalizados.filter(function (x) { return x.tenantId === tenantId; });
+  }
+  function upsertExamenPersonalizadoEnDB(db, tenantId, cups, nombre) {
+    var reg = db.examenesPersonalizados.filter(function (x) { return x.tenantId === tenantId && x.cups === cups; })[0];
+    if (reg) { reg.nombre = nombre; }
+    else { reg = { id: uid("exp"), tenantId: tenantId, cups: cups, nombre: nombre, creadoEn: nowISO() }; db.examenesPersonalizados.push(reg); }
+    return reg;
+  }
+  function upsertExamenPersonalizado(tenantId, cups, nombre, precio) {
+    var db = loadDB();
+    var reg = upsertExamenPersonalizadoEnDB(db, tenantId, cups, nombre);
+    saveDB(db);
+    fbWrite("examenesPersonalizados", reg.id, reg);
+    setPrecio(tenantId, reg.id, precio);
+    return reg;
+  }
+  function bulkUpsertExamenesPersonalizados(tenantId, examenes) {
+    // examenes: [{ cups, nombre, precio }] — igual que bulkSetPrecios, un
+    // solo ciclo de carga/guardado para todo el lote.
+    var db = loadDB();
+    var regs = examenes.map(function (ex) {
+      var reg = upsertExamenPersonalizadoEnDB(db, tenantId, ex.cups, ex.nombre);
+      upsertPrecioEnDB(db, tenantId, reg.id, ex.precio);
+      return reg;
+    });
+    saveDB(db);
+    regs.forEach(function (reg) { fbWrite("examenesPersonalizados", reg.id, reg); });
+    regs.forEach(function (reg) {
+      var pr = db.preciosExamenes.filter(function (p) { return p.tenantId === tenantId && p.examId === reg.id; })[0];
+      if (pr) fbWrite("preciosExamenes", pr.id, pr);
+    });
+    return regs;
   }
   function listCotizaciones(tenantId) {
     var db = loadDB();
@@ -912,7 +965,8 @@
     },
     cotizador: {
       listPrecios: listPrecios, setPrecio: setPrecio, bulkSetPrecios: bulkSetPrecios,
-      listCotizaciones: listCotizaciones, createCotizacion: createCotizacion
+      listCotizaciones: listCotizaciones, createCotizacion: createCotizacion,
+      listExamenesPersonalizados: listExamenesPersonalizados, bulkUpsertExamenesPersonalizados: bulkUpsertExamenesPersonalizados
     },
     remarketing: {
       listReglas: listReglasRemarketing, bulkCreateReglas: bulkCreateReglasRemarketing, updateRegla: updateReglaRemarketing,

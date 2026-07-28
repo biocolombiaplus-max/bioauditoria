@@ -85,6 +85,9 @@ service cloud.firestore {
       match /preciosExamenes/{precioId} {
         allow read, write: if esDeEsteLab(tenantId);
       }
+      match /examenesPersonalizados/{examenId} {
+        allow read, write: if esDeEsteLab(tenantId);
+      }
       match /cotizaciones/{cotizacionId} {
         allow read, write: if esDeEsteLab(tenantId);
       }

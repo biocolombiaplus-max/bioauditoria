@@ -66,7 +66,7 @@
     doc.autoTable({
       startY: y, margin: { left: margin, right: margin },
       head: [["Examen", "Sección", "Precio"]],
-      body: cotizacion.examenes.map(function (ex) { return [ex.nombre, C.seccionNombre(ex.seccion) || "", fmtMoneda(ex.precio)]; }),
+      body: cotizacion.examenes.map(function (ex) { return [ex.nombre, ex.seccionNombre || C.seccionNombre(ex.seccion) || "", fmtMoneda(ex.precio)]; }),
       theme: "grid", styles: { fontSize: 9, cellPadding: 5 },
       headStyles: { fillColor: [240, 244, 247], textColor: 40, fontStyle: "bold" },
       columnStyles: { 2: { halign: "right" } }

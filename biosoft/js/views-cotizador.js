@@ -15,20 +15,43 @@
     return new Date(iso).toLocaleDateString("es-CO", { year: "numeric", month: "short", day: "numeric" });
   }
 
+  // Exámenes de referencia propios de un laboratorio (ej. tarifas de un
+  // laboratorio externo que el catálogo global de BIOsoft no incluye) se
+  // agrupan en esta sección "virtual", que solo aparece cuando el laboratorio
+  // tiene al menos un examen personalizado propio.
+  var SECCION_REF_EXT = { id: "ref-externa", nombre: "Enviados a Referencia (tu lista)" };
+
   window.BIO_VIEWS.cotizador = function (root) {
     var session = BIO_AUTH.getSession();
     var tenantId = session.tenantId;
     var vista = "nueva";
     var precios = {}; // examId -> precio
     var cotizaciones = [];
+    var customExams = []; // exámenes propios del laboratorio, fuera del catálogo global
 
     function precioDe(examId) { return precios[examId] || 0; }
+
+    function poolExamenes() {
+      return C.EXAMENES.concat(customExams.map(function (ce) {
+        return { id: ce.id, nombre: ce.nombre, cups: ce.cups, seccion: SECCION_REF_EXT.id };
+      }));
+    }
+    function seccionesDisponibles() {
+      return customExams.length ? C.SECCIONES.concat([SECCION_REF_EXT]) : C.SECCIONES;
+    }
+    function resolverExamen(id) {
+      return C.examenPorId(id) || poolExamenes().filter(function (e) { return e.id === id; })[0] || null;
+    }
+    function resolverSeccionNombre(seccionId) {
+      return seccionId === SECCION_REF_EXT.id ? SECCION_REF_EXT.nombre : C.seccionNombre(seccionId);
+    }
 
     function cargar() {
       var lista = S.cotizador.listPrecios(tenantId);
       precios = {};
       lista.forEach(function (p) { precios[p.examId] = p.precio; });
       cotizaciones = S.cotizador.listCotizaciones(tenantId);
+      customExams = S.cotizador.listExamenesPersonalizados(tenantId);
       build();
     }
 
@@ -79,8 +102,8 @@
     }
 
     function renderCotSections() {
-      document.getElementById("cot-sec-list").innerHTML = C.SECCIONES.map(function (s) {
-        var count = selected.filter(function (id) { return C.examenPorId(id).seccion === s.id; }).length;
+      document.getElementById("cot-sec-list").innerHTML = seccionesDisponibles().map(function (s) {
+        var count = selected.filter(function (id) { return resolverExamen(id).seccion === s.id; }).length;
         return '<div class="sec-item ' + (!searchTerm && s.id === activeSection ? "active" : "") + '" data-sec="' + s.id + '">' + s.nombre + (count ? ' <span class="badge badge-validado" style="margin-left:4px">' + count + "</span>" : "") + "</div>";
       }).join("");
       document.querySelectorAll("#cot-sec-list .sec-item").forEach(function (el) {
@@ -93,15 +116,16 @@
 
     function renderCotExams() {
       var term = U.normalizar(searchTerm.trim());
+      var todos = poolExamenes();
       var pool = term
-        ? C.EXAMENES.filter(function (e) { return U.normalizar(e.nombre).indexOf(term) !== -1 || e.cups.indexOf(term) !== -1; })
-        : C.EXAMENES.filter(function (e) { return e.seccion === activeSection; });
+        ? todos.filter(function (e) { return U.normalizar(e.nombre).indexOf(term) !== -1 || e.cups.indexOf(term) !== -1; })
+        : todos.filter(function (e) { return e.seccion === activeSection; });
 
       document.getElementById("cot-exam-list").innerHTML = pool.map(function (e) {
         var checked = selected.indexOf(e.id) !== -1;
         var precio = precioDe(e.id);
         return '<label class="exam-row"><input type="checkbox" data-cot-exam="' + e.id + '" ' + (checked ? "checked" : "") + '/>' +
-          '<div class="grow"><div>' + U.esc(e.nombre) + (term ? ' <span class="text-muted" style="font-size:11px">— ' + C.seccionNombre(e.seccion) + "</span>" : "") + "</div>" +
+          '<div class="grow"><div>' + U.esc(e.nombre) + (term ? ' <span class="text-muted" style="font-size:11px">— ' + resolverSeccionNombre(e.seccion) + "</span>" : "") + "</div>" +
           '<div class="meta">CUPS ' + e.cups + "</div></div>" +
           '<div style="font-weight:700;font-size:13px;white-space:nowrap">' + (precio ? fmtMoneda(precio) : '<span class="text-muted">Sin precio</span>') + "</div>" +
           "</label>";
@@ -129,8 +153,8 @@
       var correo = document.getElementById("cot-cliente-correo").value.trim();
       var tenant = S.getTenant(tenantId);
       var examenes = selected.map(function (id) {
-        var e = C.examenPorId(id);
-        return { examId: id, nombre: e.nombre, seccion: e.seccion, precio: precioDe(id) };
+        var e = resolverExamen(id);
+        return { examId: id, nombre: e.nombre, seccion: e.seccion, seccionNombre: resolverSeccionNombre(e.seccion), precio: precioDe(id) };
       });
       var total = examenes.reduce(function (a, e) { return a + e.precio; }, 0);
       var cot = S.cotizador.createCotizacion({
@@ -173,12 +197,13 @@
 
     function renderPreciosTabla() {
       var term = U.normalizar(precioSearchTerm.trim());
+      var todos = poolExamenes();
       var pool = term
-        ? C.EXAMENES.filter(function (e) { return U.normalizar(e.nombre).indexOf(term) !== -1 || e.cups.indexOf(term) !== -1; })
-        : C.EXAMENES;
+        ? todos.filter(function (e) { return U.normalizar(e.nombre).indexOf(term) !== -1 || e.cups.indexOf(term) !== -1; })
+        : todos;
       document.getElementById("precios-tbody").innerHTML = pool.map(function (e) {
         var valor = preciosEditados.hasOwnProperty(e.id) ? preciosEditados[e.id] : precioDe(e.id);
-        return "<tr><td>" + U.esc(e.nombre) + "</td><td>" + C.seccionNombre(e.seccion) + "</td><td>" + e.cups + "</td>" +
+        return "<tr><td>" + U.esc(e.nombre) + "</td><td>" + resolverSeccionNombre(e.seccion) + "</td><td>" + e.cups + "</td>" +
           "<td><input type='number' step='any' min='0' data-precio-exam='" + e.id + "' value='" + (valor || "") + "' placeholder='0'/></td></tr>";
       }).join("") || '<tr><td colspan="4" class="text-muted">Sin resultados.</td></tr>';
       document.querySelectorAll("[data-precio-exam]").forEach(function (inp) {
@@ -221,6 +246,7 @@
           var porCups = {};
           C.EXAMENES.forEach(function (ex) { porCups[ex.cups] = ex.id; });
           var pares = [];
+          var personalizadosPorCups = {}; // dedupe: el mismo CUPS puede repetirse en varias hojas
           var filasConCupsYPrecio = 0;
           var seEncontroEncabezado = false;
 
@@ -237,19 +263,31 @@
               if (!cups || isNaN(precio)) continue;
               filasConCupsYPrecio++;
               var examId = porCups[cups];
-              if (examId) pares.push({ examId: examId, precio: precio });
+              if (examId) {
+                pares.push({ examId: examId, precio: precio });
+              } else if (encabezado.colNombre !== -1) {
+                var nombre = String(fila[encabezado.colNombre] || "").trim();
+                if (nombre) personalizadosPorCups[cups] = { cups: cups, nombre: nombre, precio: precio };
+              }
             }
           });
 
-          if (!pares.length) {
+          var personalizados = Object.keys(personalizadosPorCups).map(function (k) { return personalizadosPorCups[k]; });
+
+          if (!pares.length && !personalizados.length) {
             var msg = !seEncontroEncabezado
               ? "No encontramos columnas de CUPS y Precio/Tarifa en el archivo. Verifica que tenga encabezados como \"CUPS\" y \"Tarifa\" o \"Precio\"."
               : "Encontramos " + filasConCupsYPrecio + " fila(s) con CUPS y precio, pero ninguno coincide con los códigos de exámenes de tu catálogo.";
             U.toast(msg, "error");
             return;
           }
-          S.cotizador.bulkSetPrecios(tenantId, pares);
-          U.toast(pares.length + " precio(s) actualizados desde el Excel.", "success");
+          if (pares.length) S.cotizador.bulkSetPrecios(tenantId, pares);
+          if (personalizados.length) S.cotizador.bulkUpsertExamenesPersonalizados(tenantId, personalizados);
+
+          var partes = [];
+          if (pares.length) partes.push(pares.length + " precio(s) de tu catálogo actualizados");
+          if (personalizados.length) partes.push(personalizados.length + " examen(es) de referencia agregados a tu lista personalizada");
+          U.toast(partes.join(" y ") + ".", "success");
           cargar();
         } catch (err) {
           U.toast("No se pudo leer el archivo: " + err.message, "error");
@@ -269,13 +307,14 @@
       var maxFilasABuscar = Math.min(filas.length, 15);
       for (var f = 0; f < maxFilasABuscar; f++) {
         var fila = filas[f] || [];
-        var colCups = -1, colPrecio = -1;
+        var colCups = -1, colPrecio = -1, colNombre = -1;
         for (var c = 0; c < fila.length; c++) {
           var t = String(fila[c] || "").toLowerCase();
           if (colCups === -1 && t.indexOf("cups") !== -1) colCups = c;
           if (t.indexOf("tarifa") !== -1 || t.indexOf("precio") !== -1 || t.indexOf("valor") !== -1) colPrecio = c;
+          if (colNombre === -1 && t.indexOf("nombre") !== -1) colNombre = c;
         }
-        if (colCups !== -1 && colPrecio !== -1) return { fila: f, colCups: colCups, colPrecio: colPrecio };
+        if (colCups !== -1 && colPrecio !== -1) return { fila: f, colCups: colCups, colPrecio: colPrecio, colNombre: colNombre };
       }
       return null;
     }
