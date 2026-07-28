@@ -218,18 +218,36 @@
       reader.onload = function (ev) {
         try {
           var wb = XLSX.read(new Uint8Array(ev.target.result), { type: "array" });
-          var ws = wb.Sheets[wb.SheetNames[0]];
-          var filas = XLSX.utils.sheet_to_json(ws);
           var porCups = {};
           C.EXAMENES.forEach(function (ex) { porCups[ex.cups] = ex.id; });
           var pares = [];
-          filas.forEach(function (fila) {
-            var cups = String(fila.CUPS || fila.cups || fila.Cups || "").trim();
-            var precio = parseFloat(fila.Precio || fila.precio || fila.PRECIO);
-            var examId = porCups[cups];
-            if (examId && !isNaN(precio)) pares.push({ examId: examId, precio: precio });
+          var filasConCupsYPrecio = 0;
+          var seEncontroEncabezado = false;
+
+          wb.SheetNames.forEach(function (nombreHoja) {
+            var filas = XLSX.utils.sheet_to_json(wb.Sheets[nombreHoja], { header: 1, defval: "" });
+            var encabezado = ubicarEncabezado(filas);
+            if (!encabezado) return;
+            seEncontroEncabezado = true;
+            for (var i = encabezado.fila + 1; i < filas.length; i++) {
+              var fila = filas[i];
+              var cups = normalizarCups(fila[encabezado.colCups]);
+              var celdaPrecio = fila[encabezado.colPrecio];
+              var precio = typeof celdaPrecio === "number" ? celdaPrecio : parseFloat(String(celdaPrecio).replace(/[^0-9,.\-]/g, "").replace(/\./g, "").replace(",", "."));
+              if (!cups || isNaN(precio)) continue;
+              filasConCupsYPrecio++;
+              var examId = porCups[cups];
+              if (examId) pares.push({ examId: examId, precio: precio });
+            }
           });
-          if (!pares.length) { U.toast("No se encontraron filas válidas (revisa las columnas CUPS y Precio).", "error"); return; }
+
+          if (!pares.length) {
+            var msg = !seEncontroEncabezado
+              ? "No encontramos columnas de CUPS y Precio/Tarifa en el archivo. Verifica que tenga encabezados como \"CUPS\" y \"Tarifa\" o \"Precio\"."
+              : "Encontramos " + filasConCupsYPrecio + " fila(s) con CUPS y precio, pero ninguno coincide con los códigos de exámenes de tu catálogo.";
+            U.toast(msg, "error");
+            return;
+          }
           S.cotizador.bulkSetPrecios(tenantId, pares);
           U.toast(pares.length + " precio(s) actualizados desde el Excel.", "success");
           cargar();
@@ -238,6 +256,34 @@
         }
       };
       reader.readAsArrayBuffer(file);
+    }
+
+    // Los archivos de tarifas de laboratorios de referencia suelen traer
+    // filas de título/sección antes del encabezado real, y a veces varias
+    // columnas de tarifa (histórica, del año, la propia del laboratorio…).
+    // Por eso buscamos la fila de encabezado en cualquiera de las primeras
+    // filas de cada hoja, y si hay más de una columna de precio nos quedamos
+    // con la última (la más específica, normalmente la tarifa propia del
+    // laboratorio va al final).
+    function ubicarEncabezado(filas) {
+      var maxFilasABuscar = Math.min(filas.length, 15);
+      for (var f = 0; f < maxFilasABuscar; f++) {
+        var fila = filas[f] || [];
+        var colCups = -1, colPrecio = -1;
+        for (var c = 0; c < fila.length; c++) {
+          var t = String(fila[c] || "").toLowerCase();
+          if (colCups === -1 && t.indexOf("cups") !== -1) colCups = c;
+          if (t.indexOf("tarifa") !== -1 || t.indexOf("precio") !== -1 || t.indexOf("valor") !== -1) colPrecio = c;
+        }
+        if (colCups !== -1 && colPrecio !== -1) return { fila: f, colCups: colCups, colPrecio: colPrecio };
+      }
+      return null;
+    }
+
+    function normalizarCups(v) {
+      var s = String(v == null ? "" : v).trim();
+      if (/^\d+\.0$/.test(s)) s = s.slice(0, -2);
+      return /^\d+$/.test(s) ? s : "";
     }
 
     // ---------------------------------------------------------------------
