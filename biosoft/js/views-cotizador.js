@@ -282,13 +282,21 @@
               filasConCupsYPrecio++;
               var nombreArchivo = encabezado.colNombre !== -1 ? String(fila[encabezado.colNombre] || "").trim() : "";
               var exam = examenPorCups[cups];
+              // Toda fila con nombre entra a la lista personalizada del
+              // laboratorio TAL CUAL viene en su archivo (sea que su CUPS
+              // también exista en el catálogo global o no) — así su lista
+              // de exámenes queda completa y con SU propio nombre, sin
+              // depender de que el catálogo de BIOsoft use ese mismo nombre
+              // para ese código.
+              if (nombreArchivo) personalizadosPorCups[cups] = { cups: cups, nombre: nombreArchivo, precio: precio };
+              // Si el CUPS también coincide con un examen del catálogo
+              // global, se ofrece por separado (con revisión) actualizar
+              // también el precio de ESE examen del catálogo.
               if (exam) {
                 matchesPorExamId[exam.id] = {
                   examId: exam.id, cups: cups, nombreCatalogo: exam.nombre, nombreArchivo: nombreArchivo, precio: precio,
                   confiable: !nombreArchivo || pareceMismoExamen(exam.nombre, nombreArchivo)
                 };
-              } else if (nombreArchivo) {
-                personalizadosPorCups[cups] = { cups: cups, nombre: nombreArchivo, precio: precio };
               }
             }
           });
