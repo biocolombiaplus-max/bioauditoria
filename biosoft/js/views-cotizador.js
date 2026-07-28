@@ -236,6 +236,24 @@
       XLSX.writeFile(wb, "Plantilla_Precios_BIOsoft.xlsx");
     }
 
+    // En Colombia un mismo código CUPS suele agrupar varias pruebas
+    // específicas distintas, y cada laboratorio (o laboratorio de
+    // referencia) le da su propio significado interno. Por eso un CUPS
+    // igual entre el catálogo de BIOsoft y el archivo del cliente NO
+    // garantiza que sea el mismo examen — hay que comparar también el
+    // nombre antes de aplicar el precio a ciegas.
+    var PALABRAS_VACIAS = ["de", "del", "la", "el", "los", "las", "en", "y", "a", "con", "por", "al", "para", "sin", "con"];
+    function palabrasSignificativas(nombre) {
+      return U.normalizar(nombre).toUpperCase().split(/[^A-Z0-9]+/).filter(function (w) {
+        return w.length > 2 && PALABRAS_VACIAS.indexOf(w.toLowerCase()) === -1;
+      });
+    }
+    function pareceMismoExamen(nombreCatalogo, nombreArchivo) {
+      var wa = palabrasSignificativas(nombreCatalogo);
+      var wb = palabrasSignificativas(nombreArchivo);
+      return wa.some(function (w) { return wb.indexOf(w) !== -1; });
+    }
+
     function subirExcelPrecios(e) {
       var file = e.target.files[0];
       if (!file) return;
@@ -243,10 +261,10 @@
       reader.onload = function (ev) {
         try {
           var wb = XLSX.read(new Uint8Array(ev.target.result), { type: "array" });
-          var porCups = {};
-          C.EXAMENES.forEach(function (ex) { porCups[ex.cups] = ex.id; });
-          var pares = [];
-          var personalizadosPorCups = {}; // dedupe: el mismo CUPS puede repetirse en varias hojas
+          var examenPorCups = {};
+          C.EXAMENES.forEach(function (ex) { examenPorCups[ex.cups] = ex; });
+          var matchesPorExamId = {}; // dedupe: el mismo CUPS puede repetirse en varias hojas
+          var personalizadosPorCups = {};
           var filasConCupsYPrecio = 0;
           var seEncontroEncabezado = false;
 
@@ -262,38 +280,84 @@
               var precio = typeof celdaPrecio === "number" ? celdaPrecio : parseFloat(String(celdaPrecio).replace(/[^0-9,.\-]/g, "").replace(/\./g, "").replace(",", "."));
               if (!cups || isNaN(precio)) continue;
               filasConCupsYPrecio++;
-              var examId = porCups[cups];
-              if (examId) {
-                pares.push({ examId: examId, precio: precio });
-              } else if (encabezado.colNombre !== -1) {
-                var nombre = String(fila[encabezado.colNombre] || "").trim();
-                if (nombre) personalizadosPorCups[cups] = { cups: cups, nombre: nombre, precio: precio };
+              var nombreArchivo = encabezado.colNombre !== -1 ? String(fila[encabezado.colNombre] || "").trim() : "";
+              var exam = examenPorCups[cups];
+              if (exam) {
+                matchesPorExamId[exam.id] = {
+                  examId: exam.id, cups: cups, nombreCatalogo: exam.nombre, nombreArchivo: nombreArchivo, precio: precio,
+                  confiable: !nombreArchivo || pareceMismoExamen(exam.nombre, nombreArchivo)
+                };
+              } else if (nombreArchivo) {
+                personalizadosPorCups[cups] = { cups: cups, nombre: nombreArchivo, precio: precio };
               }
             }
           });
 
+          var matches = Object.keys(matchesPorExamId).map(function (k) { return matchesPorExamId[k]; });
           var personalizados = Object.keys(personalizadosPorCups).map(function (k) { return personalizadosPorCups[k]; });
 
-          if (!pares.length && !personalizados.length) {
+          if (!matches.length && !personalizados.length) {
             var msg = !seEncontroEncabezado
               ? "No encontramos columnas de CUPS y Precio/Tarifa en el archivo. Verifica que tenga encabezados como \"CUPS\" y \"Tarifa\" o \"Precio\"."
               : "Encontramos " + filasConCupsYPrecio + " fila(s) con CUPS y precio, pero ninguno coincide con los códigos de exámenes de tu catálogo.";
             U.toast(msg, "error");
             return;
           }
-          if (pares.length) S.cotizador.bulkSetPrecios(tenantId, pares);
+
           if (personalizados.length) S.cotizador.bulkUpsertExamenesPersonalizados(tenantId, personalizados);
 
-          var partes = [];
-          if (pares.length) partes.push(pares.length + " precio(s) de tu catálogo actualizados");
-          if (personalizados.length) partes.push(personalizados.length + " examen(es) de referencia agregados a tu lista personalizada");
-          U.toast(partes.join(" y ") + ".", "success");
-          cargar();
+          if (!matches.length) {
+            U.toast(personalizados.length + " examen(es) de referencia agregados a tu lista personalizada.", "success");
+            cargar();
+            return;
+          }
+          abrirConfirmarPreciosCatalogo(matches, personalizados.length);
         } catch (err) {
           U.toast("No se pudo leer el archivo: " + err.message, "error");
         }
       };
       reader.readAsArrayBuffer(file);
+    }
+
+    // Antes de sobrescribir el precio de un examen de TU catálogo (a
+    // diferencia de los personalizados, que siempre son nuevos y sin riesgo
+    // de choque), mostramos una revisión: si el nombre del archivo no se
+    // parece al del catálogo, lo dejamos SIN marcar para que el usuario
+    // decida — evita que un CUPS reciclado le cambie el precio a un examen
+    // que en realidad es otro completamente distinto.
+    function abrirConfirmarPreciosCatalogo(matches, totalPersonalizados) {
+      matches.sort(function (a, b) { return (a.confiable === b.confiable) ? 0 : a.confiable ? 1 : -1; });
+      var dudosos = matches.filter(function (m) { return !m.confiable; }).length;
+      var wrap = U.openModal(
+        '<h3 class="modal-title">Confirmar precios de tu catálogo (' + matches.length + ')</h3>' +
+        '<p class="text-muted" style="margin-top:0">Un mismo código CUPS a veces corresponde a exámenes distintos entre tu catálogo y el archivo. Revisa especialmente las filas en rojo (el nombre del archivo no se parece al de tu catálogo) antes de aplicar el precio.' +
+        (dudosos ? " Encontramos <b>" + dudosos + " caso(s)</b> así, ya vienen sin marcar." : "") + "</p>" +
+        '<div class="flex gap-2" style="margin-bottom:8px"><button type="button" class="btn btn-ghost btn-sm" id="conf-marcar-todos">Marcar todos</button><button type="button" class="btn btn-ghost btn-sm" id="conf-desmarcar-todos">Desmarcar todos</button></div>' +
+        '<div class="table-wrap" style="max-height:400px;overflow-y:auto"><table><thead><tr><th></th><th>CUPS</th><th>Tu catálogo</th><th>El archivo dice</th><th>Precio</th></tr></thead><tbody>' +
+        matches.map(function (m) {
+          return "<tr" + (m.confiable ? "" : " style='background:#fee2e2'") + ">" +
+            "<td><input type='checkbox' data-conf-match='" + m.examId + "' " + (m.confiable ? "checked" : "") + "/></td>" +
+            "<td>" + U.esc(m.cups) + "</td><td>" + U.esc(m.nombreCatalogo) + "</td><td>" + U.esc(m.nombreArchivo || "—") + "</td><td>" + fmtMoneda(m.precio) + "</td></tr>";
+        }).join("") + "</tbody></table></div>" +
+        '<div class="flex gap-2 justify-between" style="margin-top:14px"><button class="btn btn-ghost" data-modal-close>Cancelar</button><button class="btn btn-primary" id="conf-aplicar">' + U.icon("check") + " Aplicar precios marcados</button></div>"
+      );
+      wrap.querySelector("#conf-marcar-todos").addEventListener("click", function () {
+        wrap.querySelectorAll("[data-conf-match]").forEach(function (c) { c.checked = true; });
+      });
+      wrap.querySelector("#conf-desmarcar-todos").addEventListener("click", function () {
+        wrap.querySelectorAll("[data-conf-match]").forEach(function (c) { c.checked = false; });
+      });
+      wrap.querySelector("#conf-aplicar").addEventListener("click", function () {
+        var idsMarcados = Array.prototype.slice.call(wrap.querySelectorAll("[data-conf-match]:checked")).map(function (c) { return c.dataset.confMatch; });
+        var pares = matches.filter(function (m) { return idsMarcados.indexOf(m.examId) !== -1; }).map(function (m) { return { examId: m.examId, precio: m.precio }; });
+        if (pares.length) S.cotizador.bulkSetPrecios(tenantId, pares);
+        var partes = [];
+        if (pares.length) partes.push(pares.length + " precio(s) de tu catálogo actualizados");
+        if (totalPersonalizados) partes.push(totalPersonalizados + " examen(es) de referencia agregados a tu lista personalizada");
+        U.toast((partes.join(" y ") || "Nada quedó marcado para aplicar") + ".", pares.length || totalPersonalizados ? "success" : "error");
+        U.closeModal(wrap);
+        cargar();
+      });
     }
 
     // Los archivos de tarifas de laboratorios de referencia suelen traer
