@@ -861,6 +861,72 @@
       });
     }
 
+    // Mensaje de bienvenida con el link de ingreso, las credenciales del
+    // administrador y cómo instalar el ícono en escritorio/celular — para que
+    // el administrador pueda empezar a usar BIOsoft por primera vez sin
+    // tener que pedirnos nada más.
+    function appLoginUrl() {
+      return location.origin + location.pathname;
+    }
+    function mensajeBienvenida(tenant, credenciales) {
+      var url = appLoginUrl();
+      return "Hola 👋 ¡Bienvenido a BIOsoft! Tu laboratorio \"" + (tenant.nombre || "") + "\" ya está listo para usarse.\n\n" +
+        "🔗 Link de ingreso: " + url + "\n" +
+        "👤 Usuario: " + credenciales.username + "\n" +
+        "🔑 Contraseña: " + credenciales.password + "\n" +
+        "🛡️ Clave de administrador (para autorizar correcciones de resultados): " + (tenant.claveAdmin || "") + "\n\n" +
+        "Guarda este mensaje — lo necesitarás cada vez que quieras ingresar.\n\n" +
+        "💻 Para acceder más rápido desde el computador (queda como un programa en tu escritorio):\n" +
+        "1. Abre el link de ingreso en Chrome o Edge.\n" +
+        "2. Haz clic en el ícono de instalar (⊕) que aparece al final de la barra de direcciones, o en el menú ⋮ elige \"Instalar BIOsoft\".\n" +
+        "3. Listo — queda un ícono de BIOsoft en tu escritorio.\n\n" +
+        "📱 Para poner el ícono en la pantalla de inicio de tu celular:\n" +
+        "• Android (Chrome): abre el link, toca el menú ⋮ y elige \"Agregar a pantalla de inicio\".\n" +
+        "• iPhone (Safari): abre el link, toca el botón compartir 📤 y elige \"Agregar a pantalla de inicio\".\n\n" +
+        "Cualquier duda, aquí estamos para ayudarte. ¡Éxitos con tu laboratorio! 🚀";
+    }
+    function abrirBienvenidaLaboratorio(tenant, credenciales, alContinuar) {
+      var mensaje = mensajeBienvenida(tenant, credenciales);
+      var wrap = U.openModal(
+        '<h3 class="modal-title">🎉 Enviar bienvenida a ' + U.esc(tenant.nombre) + '</h3>' +
+        '<p class="text-muted" style="margin-top:0">Envíale al administrador el link de ingreso, sus credenciales y cómo dejar BIOsoft instalado en su computador y celular.</p>' +
+        '<div class="form-grid">' +
+        '<div class="field"><label>Correo del destinatario</label><input id="bnv-email" type="email" value="' + U.esc(tenant.email || "") + '"/></div>' +
+        '<div class="field"><label>WhatsApp del destinatario</label><input id="bnv-whatsapp" value="' + U.esc(tenant.telefonos || "") + '"/></div>' +
+        "</div>" +
+        '<div class="field"><label>Mensaje</label><textarea id="bnv-msg" rows="14">' + U.esc(mensaje) + "</textarea></div>" +
+        U.emailProviderButtonsHtml("bnv") +
+        '<a class="btn btn-whatsapp btn-block" id="bnv-wa" target="_blank" rel="noopener" style="margin-top:8px">' + U.icon("send") + " Enviar por WhatsApp</a>" +
+        '<div class="flex justify-between" style="margin-top:16px"><span></span><button type="button" class="btn btn-primary" id="bnv-continuar">' + U.icon("check") + " Listo, continuar</button></div>",
+        { lg: true }
+      );
+      var asuntoCorreo = "Bienvenido a BIOsoft — Datos de ingreso de " + (tenant.nombre || "");
+      // Se conectan los botones de correo directamente (en vez de usar
+      // U.wireEmailProviderButtons, que fija el cuerpo del mensaje una sola
+      // vez) para que siempre tomen el correo y el mensaje actuales del
+      // formulario, por si el usuario los edita antes de enviar.
+      ["gmail", "outlook", "mailto"].forEach(function (prov) {
+        wrap.querySelector("#bnv-" + prov).addEventListener("click", function () {
+          var links = U.emailLinks(wrap.querySelector("#bnv-email").value.trim(), asuntoCorreo, wrap.querySelector("#bnv-msg").value);
+          window.open(links[prov], "_blank");
+        });
+      });
+      var waBtn = wrap.querySelector("#bnv-wa");
+      function actualizarWhatsapp() {
+        var whatsapp = wrap.querySelector("#bnv-whatsapp").value.trim();
+        if (!whatsapp) { waBtn.classList.add("hidden"); return; }
+        var numero = whatsapp.replace(/\D/g, "");
+        if (numero.length === 10 && numero.charAt(0) === "3") numero = "57" + numero;
+        waBtn.href = "https://wa.me/" + numero + "?text=" + encodeURIComponent(wrap.querySelector("#bnv-msg").value);
+        waBtn.classList.remove("hidden");
+      }
+      actualizarWhatsapp();
+      wrap.querySelector("#bnv-msg").addEventListener("input", actualizarWhatsapp);
+      wrap.querySelector("#bnv-whatsapp").addEventListener("input", actualizarWhatsapp);
+      function seguir() { U.closeModal(wrap); if (alContinuar) alContinuar(); }
+      wrap.querySelector("#bnv-continuar").addEventListener("click", seguir);
+    }
+
     function openNewTenant() {
       var wrap = U.openModal(
         '<h3 class="modal-title">Crear Nuevo Laboratorio Cliente</h3>' +
@@ -915,7 +981,9 @@
           U.closeModal(wrap);
           cargar();
           sincronizarConCRM(res.tenant).catch(function (err) { console.error("BIOsoft: no se pudo sincronizar con el CRM ->", err); });
-          if (planElegido) abrirEnviarContrato(res.tenant);
+          abrirBienvenidaLaboratorio(res.tenant, { username: g("adminUser"), password: g("adminPass") }, function () {
+            if (planElegido) abrirEnviarContrato(res.tenant);
+          });
         }).catch(function (err) {
           submitBtn.disabled = false; submitBtn.textContent = "Crear Laboratorio";
           var msg = (err && err.code === "auth/email-already-in-use") ? "Ese correo ya tiene una cuenta." : (err && err.message) || "No se pudo crear el laboratorio.";
