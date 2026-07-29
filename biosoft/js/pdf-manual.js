@@ -129,7 +129,7 @@
         "Ve a “Configuración del Laboratorio” para actualizar nombre, NIT, dirección, teléfonos y resolución de habilitación.",
         "Sube el logo y define los colores institucionales — se aplican automáticamente a toda la app y a los PDF.",
         "Define o cambia la clave de administrador, necesaria para autorizar correcciones de resultados ya validados.",
-        "En “Usuarios y Bacteriólogos”, crea el acceso de cada persona del equipo y asígnale sus secciones y firma digital."
+        "En “Usuarios del Laboratorio”, crea el acceso de cada persona del equipo y asígnale sus secciones y firma digital."
       ]
     }
   ];

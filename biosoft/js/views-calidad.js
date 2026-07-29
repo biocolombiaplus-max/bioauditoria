@@ -3,12 +3,12 @@
 (function () {
   "use strict";
   window.BIO_VIEWS = window.BIO_VIEWS || {};
-  var U = BIO_UI, S = BIO_STORE, Q = BIO_QC, F = window.BIO_formHelpers;
+  var U = BIO_UI, S = BIO_STORE, Q = BIO_QC, C = BIO_CATALOG, F = window.BIO_formHelpers;
 
-  var SECCIONES_QC = [
-    { id: "quimica", nombre: "Química Sanguínea", emoji: "🧪" },
-    { id: "hematologia", nombre: "Hematología", emoji: "🩸" }
-  ];
+  // Se listan TODAS las secciones del laboratorio (no solo Química y
+  // Hematología), para que cada laboratorio pueda llevar control de calidad
+  // en cualquier área que maneje, tal como lo exige la normativa.
+  var SECCIONES_QC = C.SECCIONES;
 
   function analitoInfo(seccion, codigo) {
     return (Q.ANALITOS[seccion] || []).filter(function (a) { return a.codigo === codigo; })[0] || { codigo: codigo, nombre: codigo, unidad: "" };

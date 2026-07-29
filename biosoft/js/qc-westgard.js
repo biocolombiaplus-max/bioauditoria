@@ -24,6 +24,58 @@
       { codigo: "VCM", nombre: "VCM", unidad: "fL" },
       { codigo: "HCM", nombre: "HCM", unidad: "pg" },
       { codigo: "CHCM", nombre: "CHCM", unidad: "g/dL" }
+    ],
+    coagulacion: [
+      { codigo: "PT", nombre: "Tiempo de Protrombina", unidad: "seg" },
+      { codigo: "INR", nombre: "INR", unidad: "" },
+      { codigo: "PTT", nombre: "PTT", unidad: "seg" },
+      { codigo: "FIB", nombre: "Fibrinógeno", unidad: "mg/dL" }
+    ],
+    banco: [
+      { codigo: "TITAD", nombre: "Titulación Anti-D (control)", unidad: "log2" },
+      { codigo: "REACT", nombre: "Reactividad Célula Control (%)", unidad: "%" }
+    ],
+    uroanalisis: [
+      { codigo: "DENS", nombre: "Densidad Urinaria (control)", unidad: "g/mL" },
+      { codigo: "PROT_ORI", nombre: "Proteínas en Orina (control)", unidad: "mg/dL" },
+      { codigo: "GLU_ORI", nombre: "Glucosa en Orina (control)", unidad: "mg/dL" }
+    ],
+    coprologia: [
+      { codigo: "FIT_HB", nombre: "Sangre Oculta Fecal Cuantitativa (FIT)", unidad: "µg/g" }
+    ],
+    inmunologia: [
+      { codigo: "PCR", nombre: "Proteína C Reactiva", unidad: "mg/L" },
+      { codigo: "ASO", nombre: "Antiestreptolisinas O (ASO)", unidad: "UI/mL" },
+      { codigo: "FR", nombre: "Factor Reumatoide", unidad: "UI/mL" }
+    ],
+    microbiologia: [
+      { codigo: "HALO", nombre: "Diámetro de Halo (Cepa ATCC control)", unidad: "mm" }
+    ],
+    hormonas: [
+      { codigo: "TSH", nombre: "Hormona Estimulante de Tiroides (TSH)", unidad: "µUI/mL" },
+      { codigo: "T4L", nombre: "T4 Libre", unidad: "ng/dL" },
+      { codigo: "CORT", nombre: "Cortisol", unidad: "µg/dL" }
+    ],
+    marcadores: [
+      { codigo: "PSA", nombre: "Antígeno Prostático (PSA)", unidad: "ng/mL" },
+      { codigo: "CA125", nombre: "CA-125", unidad: "U/mL" },
+      { codigo: "CEA", nombre: "Antígeno Carcinoembrionario (CEA)", unidad: "ng/mL" }
+    ],
+    gases: [
+      { codigo: "PH", nombre: "pH (control)", unidad: "" },
+      { codigo: "PCO2", nombre: "PCO2 (control)", unidad: "mmHg" },
+      { codigo: "PO2", nombre: "PO2 (control)", unidad: "mmHg" },
+      { codigo: "NA", nombre: "Sodio (Na+)", unidad: "mmol/L" },
+      { codigo: "K", nombre: "Potasio (K+)", unidad: "mmol/L" }
+    ],
+    especiales: [
+      { codigo: "FERR", nombre: "Ferritina", unidad: "ng/mL" },
+      { codigo: "B12", nombre: "Vitamina B12", unidad: "pg/mL" },
+      { codigo: "VITD", nombre: "Vitamina D (25-OH)", unidad: "ng/mL" }
+    ],
+    pruebasrapidas: [
+      { codigo: "GLUCAP", nombre: "Glucometría Capilar (control)", unidad: "mg/dL" },
+      { codigo: "HBA1C_POC", nombre: "HbA1c POCT (control)", unidad: "%" }
     ]
   };
 

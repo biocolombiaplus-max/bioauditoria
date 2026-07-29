@@ -5,6 +5,22 @@
 (function (global) {
   "use strict";
 
+  var PAISES = [{ id: "CO", nombre: "Colombia" }, { id: "VE", nombre: "Venezuela" }, { id: "EC", nombre: "Ecuador" }];
+
+  /* El título del profesional que valida resultados y el del auxiliar de
+     laboratorio varían según el país — se llaman distinto aunque cumplan el
+     mismo rol dentro de BIOsoft (que internamente sigue usando "bacteriologo"
+     y "recepcion" como identificadores fijos, solo cambia la etiqueta visible). */
+  var ROL_LABEL_POR_PAIS = {
+    CO: { admin: "Administrador", bacteriologo: "Bacteriólogo(a)", recepcion: "Auxiliar de Laboratorio" },
+    VE: { admin: "Administrador", bacteriologo: "Bioanalista", recepcion: "Asistente de Laboratorio" },
+    EC: { admin: "Administrador", bacteriologo: "Técnico(a) de Laboratorio", recepcion: "Asistente de Laboratorio" }
+  };
+  function rolLabel(rol, pais) {
+    var mapa = ROL_LABEL_POR_PAIS[pais] || ROL_LABEL_POR_PAIS.CO;
+    return mapa[rol] || rol;
+  }
+
   var SECCIONES = [
     { id: "hematologia", nombre: "Hematología", icono: "droplet", emoji: "🩸" },
     { id: "coagulacion", nombre: "Coagulación / Hemostasia", icono: "activity", emoji: "🧬" },
@@ -546,6 +562,8 @@
   }
 
   global.BIO_CATALOG = {
+    PAISES: PAISES,
+    rolLabel: rolLabel,
     SECCIONES: SECCIONES,
     TUBOS: TUBOS,
     EXAMENES: EXAMENES,

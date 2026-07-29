@@ -3,17 +3,17 @@
   "use strict";
   window.BIO_VIEWS = window.BIO_VIEWS || {};
   var U = BIO_UI, S = BIO_STORE, C = BIO_CATALOG, F = window.BIO_formHelpers;
-  var ROL_LABEL = { admin: "Administrador", bacteriologo: "Bacteriólogo(a)", recepcion: "Recepción" };
 
   // ------------------------------------------------------------------
   // USUARIOS
   // ------------------------------------------------------------------
   window.BIO_VIEWS.usuarios = function (root) {
     var session = BIO_AUTH.getSession();
+    var tenant;
 
     function build() {
       var users = S.listUsers(session.tenantId);
-      var tenant = S.getTenant(session.tenantId);
+      tenant = S.getTenant(session.tenantId);
       var activos = users.filter(function (u) { return u.activo; }).length;
       var limite = tenant && tenant.maxUsuarios;
       var alLimite = !!(limite && activos >= limite);
@@ -49,7 +49,8 @@
     }
 
     function rowHtml(u) {
-      return "<tr><td>" + U.esc(u.nombre) + "</td><td>" + U.esc(u.username) + "</td><td>" + (ROL_LABEL[u.rol] || u.rol) + "</td>" +
+      var contacto = [u.numeroDocumento ? "Doc. " + u.numeroDocumento : "", u.telefonoContacto || "", u.correoContacto || ""].filter(Boolean).join(" · ");
+      return "<tr><td><b>" + U.esc(u.nombre) + "</b>" + (contacto ? "<div class='text-muted' style='font-size:11px'>" + U.esc(contacto) + "</div>" : "") + "</td><td>" + U.esc(u.username) + "</td><td>" + U.esc(C.rolLabel(u.rol, tenant && tenant.pais)) + "</td>" +
         "<td>" + (u.secciones && u.secciones.length ? u.secciones.map(function (s) { return C.seccionNombre(s); }).join(", ") : "—") + "</td>" +
         "<td>" + (u.activo ? '<span class="badge badge-validado">Activo</span>' : '<span class="badge badge-pendiente">Inactivo</span>') + "</td>" +
         '<td><div class="flex gap-2"><button class="btn btn-ghost btn-sm" data-edit="' + u.id + '">' + U.icon("edit") + " Editar</button>" +
@@ -65,9 +66,12 @@
         '<form id="user-form">' +
           '<div class="form-grid">' +
             F.inp("nombre", "Nombre Completo", user.nombre, true) +
+            F.inp("numeroDocumento", "Número de Documento de Identidad", user.numeroDocumento, false) +
+            F.inp("correoContacto", "Correo Electrónico", user.correoContacto, false, "email") +
+            F.inp("telefonoContacto", "Teléfono / WhatsApp", user.telefonoContacto, false) +
             F.inp("username", "Usuario (login)", user.username, true) +
             F.inp("password", "Contraseña", user.password, !isEdit, "text") +
-            F.sel("rol", "Rol", ["admin", "bacteriologo", "recepcion"].map(function (r) { return '<option value="' + r + '" ' + (r === user.rol ? "selected" : "") + ">" + ROL_LABEL[r] + "</option>"; }).join("")) +
+            F.sel("rol", "Rol", ["admin", "bacteriologo", "recepcion"].map(function (r) { return '<option value="' + r + '" ' + (r === user.rol ? "selected" : "") + ">" + U.esc(C.rolLabel(r, tenant && tenant.pais)) + "</option>"; }).join("")) +
           "</div>" +
           '<div id="secciones-box" class="field"></div>' +
           '<div id="firma-box"></div>' +
@@ -119,7 +123,10 @@
         e.preventDefault();
         var g = function (id) { return wrap.querySelector("#f_" + id).value.trim(); };
         var secciones = Array.prototype.slice.call(wrap.querySelectorAll("[data-sec]:checked")).map(function (c) { return c.dataset.sec; });
-        var data = { nombre: g("nombre"), username: g("username"), rol: g("rol"), secciones: secciones, tenantId: session.tenantId, activo: true };
+        var data = {
+          nombre: g("nombre"), numeroDocumento: g("numeroDocumento"), correoContacto: g("correoContacto"), telefonoContacto: g("telefonoContacto"),
+          username: g("username"), rol: g("rol"), secciones: secciones, tenantId: session.tenantId, activo: true
+        };
         var pass = g("password");
         if (pass) data.password = pass;
         if (data.rol === "bacteriologo" || data.rol === "admin") {
@@ -169,7 +176,7 @@
 
         if (S.findUser(data.username)) { U.toast("Ese nombre de usuario ya existe.", "error"); return; }
         var created = S.createUser(data);
-        S.addAudit(session.tenantId, session.nombre, session.rol, "CREATE_USER", "usuario", created.id, "Creó al usuario " + data.nombre + " (" + ROL_LABEL[data.rol] + ").");
+        S.addAudit(session.tenantId, session.nombre, session.rol, "CREATE_USER", "usuario", created.id, "Creó al usuario " + data.nombre + " (" + C.rolLabel(data.rol, tenant && tenant.pais) + ").");
         U.toast("Usuario guardado.", "success");
         U.closeModal(wrap);
         build();
@@ -502,6 +509,7 @@
   // ------------------------------------------------------------------
   window.BIO_VIEWS.auditoria = function (root) {
     var session = BIO_AUTH.getSession();
+    var tenant = S.getTenant(session.tenantId);
     var filtro = "";
     function build() {
       var log = S.listAudit(session.tenantId).filter(function (a) {
@@ -514,7 +522,7 @@
         '<input id="aud-search" placeholder="Buscar por usuario, acción o detalle…" style="width:280px" value="' + U.esc(filtro) + '"/></div>' +
         '<div class="table-wrap"><table><thead><tr><th>Fecha y Hora</th><th>Usuario</th><th>Rol</th><th>Acción</th><th>Detalle</th></tr></thead><tbody>' +
         (log.length ? log.map(function (a) {
-          return "<tr><td>" + U.fmtFecha(a.fecha) + "</td><td>" + U.esc(a.usuario) + "</td><td>" + (ROL_LABEL[a.rol] || a.rol) + "</td><td><code>" + a.accion + "</code></td><td>" + U.esc(a.detalle) + "</td></tr>";
+          return "<tr><td>" + U.fmtFecha(a.fecha) + "</td><td>" + U.esc(a.usuario) + "</td><td>" + U.esc(a.rol === "sistema" || a.rol === "superadmin" ? a.rol : C.rolLabel(a.rol, tenant && tenant.pais)) + "</td><td><code>" + a.accion + "</code></td><td>" + U.esc(a.detalle) + "</td></tr>";
         }).join("") : '<tr><td colspan="5" class="text-muted">Sin registros.</td></tr>') +
         "</tbody></table></div></div>";
       document.getElementById("aud-search").addEventListener("input", function (e) { filtro = e.target.value; build(); });

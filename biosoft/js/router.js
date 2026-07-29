@@ -25,7 +25,7 @@
         { route: "inventario", label: "Inventario y Reactivos", icon: "layers" }
       ]},
       { sec: "ADMINISTRACIÓN", items: [
-        { route: "usuarios", label: "Usuarios y Bacteriólogos", icon: "users" },
+        { route: "usuarios", label: "Usuarios del Laboratorio", icon: "users" },
         { route: "catalogo", label: "Valores de Referencia", icon: "flask" },
         { route: "config", label: "Configuración del Laboratorio", icon: "settings" },
         { route: "auditoria", label: "Trazabilidad", icon: "history" }
@@ -52,7 +52,13 @@
     ]
   };
 
-  var ROLE_LABEL = { superadmin: "Super Administrador BIOsoft", admin: "Administrador de Laboratorio", bacteriologo: "Bacteriólogo(a)", recepcion: "Recepción / Toma de Muestras" };
+  // El título del bacteriólogo/bioanalista y del auxiliar/asistente varía
+  // según el país del laboratorio (ver BIO_CATALOG.rolLabel).
+  function rolLabelTopbar(rol, tenant) {
+    if (rol === "superadmin") return "Super Administrador BIOsoft";
+    if (rol === "admin") return "Administrador de Laboratorio";
+    return BIO_CATALOG.rolLabel(rol, tenant && tenant.pais);
+  }
 
   var WA_NUMBER = "573505457420";
   function waLink(mensaje) { return "https://wa.me/" + WA_NUMBER + "?text=" + encodeURIComponent(mensaje); }
@@ -107,7 +113,7 @@
     });
 
     document.getElementById("user-chip-name").textContent = session.nombre;
-    document.getElementById("user-chip-role").textContent = ROLE_LABEL[session.rol] || session.rol;
+    document.getElementById("user-chip-role").textContent = rolLabelTopbar(session.rol, tenant);
     var avatarEl = document.getElementById("user-avatar");
     if (session.fotoUrl) {
       avatarEl.innerHTML = '<img src="' + session.fotoUrl + '" alt="' + BIO_UI.esc(session.nombre) + '"/>';
@@ -119,7 +125,7 @@
   var ROUTE_TITLES = {
     dashboard: "Panel Principal", pacientes: "Pacientes", ordenes: "Órdenes de Laboratorio",
     resultados: "Resultados de Laboratorio", "hojas-trabajo": "Hojas de Trabajo Diarias",
-    reportes: "Reportes y Envío de Resultados", usuarios: "Usuarios y Bacteriólogos",
+    reportes: "Reportes y Envío de Resultados", usuarios: "Usuarios del Laboratorio",
     config: "Configuración del Laboratorio", auditoria: "Trazabilidad y Auditoría", tenants: "Laboratorios Cliente",
     catalogo: "Valores de Referencia del Catálogo", productividad: "Productividad Mensual", crm: "Clientes (CRM)",
     calidad: "Control de Calidad", cotizador: "Cotizador de Exámenes", marketing: "Marketing Digital", inventario: "Inventario y Reactivos"
@@ -185,7 +191,7 @@
       var s = BIO_AUTH.getSession();
       BIO_UI.openModal(
         '<h3 class="modal-title">' + BIO_UI.esc(s.nombre) + '</h3>' +
-        '<p class="text-muted" style="margin-top:2px">' + (ROLE_LABEL[s.rol] || s.rol) + '</p>' +
+        '<p class="text-muted" style="margin-top:2px">' + BIO_UI.esc(rolLabelTopbar(s.rol, BIO_AUTH.currentTenant())) + '</p>' +
         '<div class="field" style="margin-top:16px"><button class="btn btn-outline btn-block" id="btn-logout">' + BIO_UI.icon("logout") + ' Cerrar sesión</button></div>'
       ).querySelector("#btn-logout").addEventListener("click", function () {
         BIO_AUTH.logout();
