@@ -565,6 +565,7 @@
             "<td>" + (sobreLimite ? '<span class="badge badge-urgente">' + usuariosTxt + '</span>' : usuariosTxt) + "</td>" +
             '<td><div class="flex gap-2 wrap">' +
             '<button class="btn btn-ghost btn-sm" data-editar-plan="' + t.id + '">' + U.icon("edit") + " Plan</button>" +
+            '<button class="btn btn-ghost btn-sm" data-editar-datos="' + t.id + '">' + U.icon("edit") + " Datos</button>" +
             '<button class="btn btn-outline btn-sm" data-enviar-contrato="' + t.id + '">' + U.icon("file") + " Contrato</button>" +
             '<button class="btn btn-outline btn-sm" data-enviar-manual="' + t.id + '">' + U.icon("send") + " Manual</button>" +
             '<button class="btn btn-ghost btn-sm" data-sync-crm="' + t.id + '" title="Crear/vincular este laboratorio en el CRM">' + U.icon("send") + " CRM</button>" +
@@ -574,6 +575,11 @@
       root.querySelectorAll("[data-editar-plan]").forEach(function (b) {
         b.addEventListener("click", function () {
           abrirEditarPlan(tenants.filter(function (t) { return t.id === b.dataset.editarPlan; })[0]);
+        });
+      });
+      root.querySelectorAll("[data-editar-datos]").forEach(function (b) {
+        b.addEventListener("click", function () {
+          abrirEditarDatos(tenants.filter(function (t) { return t.id === b.dataset.editarDatos; })[0]);
         });
       });
       root.querySelectorAll("[data-enviar-contrato]").forEach(function (b) {
@@ -628,6 +634,7 @@
         '<div class="field"><label>Próxima fecha de pago (corte)</label><input type="date" id="f_fechaProximoPago" value="' + (tenant.fechaProximoPago || "") + '"/></div>' +
         '<div class="field"><label>Ciclo de cobro habitual (días)</label><input type="number" id="f_cicloCobroDias" min="1" value="' + (tenant.cicloCobroDias || 30) + '"/></div>' +
         '<div class="field"><label>Meses de membresía gratis (si aplica)</label><input type="number" id="f_mesesMembresiaGratis" min="1" value="' + (tenant.mesesMembresiaGratis || "") + '"/></div>' +
+        '<div class="field"><label>Meses de cortesía sin cobro (regalo)</label><input type="number" id="f_mesesCortesia" min="0" value="' + (tenant.mesesCortesia || "") + '"/></div>' +
         "</div>" +
         '<p class="text-muted" style="margin:2px 0 8px;font-size:12px">Estas fechas se fijan automáticamente según lo elegido la primera vez que envíes el contrato, pero puedes ajustarlas manualmente aquí.</p>' +
         '<div class="field"><label class="flex gap-2" style="align-items:center;font-weight:400"><input type="checkbox" id="f_suspendido" ' + (tenant.suspendido ? "checked" : "") + ' style="width:auto"/> Suspender acceso del laboratorio (bloquea el ingreso por falta de pago)</label></div>' +
@@ -651,11 +658,49 @@
         tenant.fechaProximoPago = wrap.querySelector("#f_fechaProximoPago").value || null;
         tenant.cicloCobroDias = parseInt(wrap.querySelector("#f_cicloCobroDias").value, 10) || 30;
         tenant.mesesMembresiaGratis = parseInt(wrap.querySelector("#f_mesesMembresiaGratis").value, 10) || null;
+        tenant.mesesCortesia = parseInt(wrap.querySelector("#f_mesesCortesia").value, 10) || null;
         tenant.suspendido = quedaSuspendido;
         if (quedaSuspendido && !estabaSuspendido) tenant.fechaSuspension = new Date().toISOString().slice(0, 10);
         if (!quedaSuspendido) tenant.fechaSuspension = null;
         S.saveTenant(tenant);
         U.toast("Plan actualizado.", "success");
+        U.closeModal(wrap);
+      });
+    }
+
+    function abrirEditarDatos(tenant) {
+      var wrap = U.openModal(
+        '<h3 class="modal-title">Datos de ' + U.esc(tenant.nombre) + '</h3>' +
+        '<p class="text-muted" style="margin-top:0">Corrige aquí cualquier dato del registro. Al guardar, la próxima vez que generes el contrato saldrá con la información actualizada.</p>' +
+        '<form id="datos-form"><div class="form-grid">' +
+        F.inp("nombre", "Nombre del Laboratorio", tenant.nombre || "", true) +
+        F.inp("nit", "NIT / RIF / RUC", tenant.nit || "") +
+        F.sel("pais", "País", ["CO", "VE", "EC"].map(function (p) {
+          return "<option value='" + p + "' " + (p === tenant.pais ? "selected" : "") + ">" + (p === "CO" ? "Colombia" : p === "VE" ? "Venezuela" : "Ecuador") + "</option>";
+        }).join("")) +
+        F.inp("direccion", "Dirección", tenant.direccion || "") +
+        F.inp("telefonos", "Teléfonos (WhatsApp)", tenant.telefonos || "") +
+        F.inp("telefonoFijo", "Teléfono Fijo", tenant.telefonoFijo || "") +
+        F.inp("email", "Correo Electrónico", tenant.email || "") +
+        F.inp("contactoNombre", "Nombre del Contacto", tenant.contactoNombre || "") +
+        "</div>" +
+        '<div class="flex gap-2 justify-between" style="margin-top:6px"><button type="button" class="btn btn-ghost" data-modal-close>Cancelar</button><button type="submit" class="btn btn-primary">' + U.icon("check") + " Guardar</button></div>" +
+        "</form>"
+      );
+      wrap.querySelector("#datos-form").addEventListener("submit", function (e) {
+        e.preventDefault();
+        var g = function (id) { return wrap.querySelector("#f_" + id).value.trim(); };
+        if (!g("nombre")) { U.toast("El nombre del laboratorio es obligatorio.", "error"); return; }
+        tenant.nombre = g("nombre");
+        tenant.nit = g("nit");
+        tenant.pais = g("pais");
+        tenant.direccion = g("direccion");
+        tenant.telefonos = g("telefonos");
+        tenant.telefonoFijo = g("telefonoFijo");
+        tenant.email = g("email");
+        tenant.contactoNombre = g("contactoNombre");
+        S.saveTenant(tenant);
+        U.toast("Datos actualizados. Ya puedes volver a generar el contrato.", "success");
         U.closeModal(wrap);
       });
     }
@@ -693,26 +738,39 @@
     function abrirEnviarContrato(tenant) {
       var plan = BIO_PLANES.porId(tenant.planId);
       if (!plan) { U.toast('Asigna primero un plan a este laboratorio (botón "Plan").', "error"); return; }
-      var modalidadActual = tenant.modalidadPago === "semestral" ? "semestral" : "mensual";
+      var modalidadActual = tenant.modalidadPago === "semestral" || tenant.modalidadPago === "sin_implementacion" ? tenant.modalidadPago : "mensual";
       var cicloDiasActual = tenant.cicloCobroDias || 30;
       var mesesMembresiaActual = tenant.mesesMembresiaGratis || 6;
-      var mensajeDefault = "Hola 👋 Te comparto el contrato de prestación de servicios de BIOsoft para " + (tenant.nombre || "tu laboratorio") +
-        ", Plan " + plan.nombre + ". " + (modalidadActual === "semestral"
-          ? "Tienes membresía gratis por " + mesesMembresiaActual + " meses de una vez."
-          : "El cobro es cada " + cicloDiasActual + " días calendario a partir de hoy.") + " Cualquier duda, aquí estamos.";
+      var mesesCortesiaActual = tenant.mesesCortesia || 0;
+      var fechaInicioActual = tenant.fechaInicioPlan || new Date().toISOString().slice(0, 10);
+      function construirMensaje(modalidad, ciclo, mesesMembresia, mesesCortesia) {
+        return "Hola 👋 Te comparto el contrato de prestación de servicios de BIOsoft para " + (tenant.nombre || "tu laboratorio") +
+          ", Plan " + plan.nombre + ". " + (modalidad === "semestral"
+            ? "Tienes membresía gratis por " + mesesMembresia + " meses de una vez."
+            : modalidad === "sin_implementacion"
+            ? "No pagas cuota de implementación, solo tu mensualidad."
+            : "El cobro es cada " + ciclo + " días calendario.") +
+          (mesesCortesia > 0 ? " Además, te regalamos " + mesesCortesia + " mes(es) sin cobro de mensualidad." : "") +
+          " Cualquier duda, aquí estamos.";
+      }
+      var mensajeDefault = construirMensaje(modalidadActual, cicloDiasActual, mesesMembresiaActual, mesesCortesiaActual);
       var wrap = U.openModal(
         '<h3 class="modal-title">Enviar Contrato — ' + U.esc(tenant.nombre) + '</h3>' +
-        '<p class="text-muted" style="margin-top:0">Se genera con la fecha de hoy como fecha de contratación. Plan: <b>' + U.esc(plan.nombre) + '</b> (' + U.esc(plan.usuarios) + ').</p>' +
+        '<p class="text-muted" style="margin-top:0">Plan: <b>' + U.esc(plan.nombre) + '</b> (' + U.esc(plan.usuarios) + ').</p>' +
         '<div class="form-grid">' +
         '<div class="field"><label>Modalidad de pago</label><select id="con-modalidad">' +
         '<option value="mensual" ' + (modalidadActual === "mensual" ? "selected" : "") + '>Mes a mes (implementación fraccionada)</option>' +
+        '<option value="sin_implementacion" ' + (modalidadActual === "sin_implementacion" ? "selected" : "") + '>Sin cobro de implementación (mensualidad normal desde el inicio)</option>' +
         '<option value="semestral" ' + (modalidadActual === "semestral" ? "selected" : "") + '>Membresía gratis de una vez (sin implementación)</option>' +
         "</select></div>" +
+        '<div class="field"><label>Fecha de inicio de cobro</label><input type="date" id="con-fecha-inicio" value="' + fechaInicioActual + '"/></div>' +
         '<div class="field ' + (modalidadActual === "semestral" ? "hidden" : "") + '" id="con-ciclo-box"><label>Ciclo de cobro (días)</label><input type="number" id="con-ciclo" min="1" value="' + cicloDiasActual + '"/></div>' +
         '<div class="field ' + (modalidadActual === "semestral" ? "" : "hidden") + '" id="con-meses-box"><label>Meses de membresía gratis</label><input type="number" id="con-meses" min="1" value="' + mesesMembresiaActual + '"/></div>' +
+        '<div class="field"><label>Meses de cortesía sin cobro (regalo)</label><input type="number" id="con-meses-cortesia" min="0" value="' + mesesCortesiaActual + '"/></div>' +
         '<div class="field"><label>Correo del destinatario</label><input id="con-email" type="email" value="' + U.esc(tenant.email || "") + '"/></div>' +
         '<div class="field"><label>WhatsApp del destinatario</label><input id="con-whatsapp" value="' + U.esc(tenant.telefonos || "") + '"/></div>' +
         "</div>" +
+        '<p class="text-muted" style="margin:2px 0 10px;font-size:12px">La fecha de inicio de cobro no tiene que ser hoy — si la implementación toma unos días, ponla más adelante para que el cliente no pierda esos días de uso gratis. Las "Meses de cortesía" retrasan el primer cobro sin afectar la modalidad elegida.</p>' +
         '<div class="field"><label>Mensaje</label><textarea id="con-msg">' + U.esc(mensajeDefault) + "</textarea></div>" +
         '<div class="flex gap-2 justify-between"><button class="btn btn-ghost" data-modal-close>Cancelar</button><button class="btn btn-primary" id="con-go">' + U.icon("download") + " 1. Generar y Descargar</button></div>" +
         '<div id="con-step2" class="hidden" style="margin-top:16px;border-top:1px solid var(--border);padding-top:14px">' +
@@ -723,34 +781,57 @@
         "</div>",
         { lg: true }
       );
+      var msgEditadoManualmente = false;
+      wrap.querySelector("#con-msg").addEventListener("input", function () {
+        msgEditadoManualmente = this.value !== construirMensaje(
+          wrap.querySelector("#con-modalidad").value,
+          parseInt(wrap.querySelector("#con-ciclo").value, 10) || 30,
+          parseInt(wrap.querySelector("#con-meses").value, 10) || 6,
+          parseInt(wrap.querySelector("#con-meses-cortesia").value, 10) || 0
+        );
+      });
+      function actualizarMensajePreview() {
+        if (msgEditadoManualmente) return;
+        wrap.querySelector("#con-msg").value = construirMensaje(
+          wrap.querySelector("#con-modalidad").value,
+          parseInt(wrap.querySelector("#con-ciclo").value, 10) || 30,
+          parseInt(wrap.querySelector("#con-meses").value, 10) || 6,
+          parseInt(wrap.querySelector("#con-meses-cortesia").value, 10) || 0
+        );
+      }
       wrap.querySelector("#con-modalidad").addEventListener("change", function () {
         var esSemestral = this.value === "semestral";
         wrap.querySelector("#con-ciclo-box").classList.toggle("hidden", esSemestral);
         wrap.querySelector("#con-meses-box").classList.toggle("hidden", !esSemestral);
+        actualizarMensajePreview();
+      });
+      ["#con-ciclo", "#con-meses", "#con-meses-cortesia"].forEach(function (sel) {
+        wrap.querySelector(sel).addEventListener("input", actualizarMensajePreview);
       });
       wrap.querySelector("#con-go").addEventListener("click", function (e) {
         var email = wrap.querySelector("#con-email").value.trim();
         var whatsapp = wrap.querySelector("#con-whatsapp").value.trim();
         var msg = wrap.querySelector("#con-msg").value;
         var modalidadElegida = wrap.querySelector("#con-modalidad").value;
+        var fechaInicioElegida = wrap.querySelector("#con-fecha-inicio").value || new Date().toISOString().slice(0, 10);
         var cicloElegido = parseInt(wrap.querySelector("#con-ciclo").value, 10) || 30;
         var mesesElegidos = parseInt(wrap.querySelector("#con-meses").value, 10) || 6;
+        var mesesCortesiaElegidos = parseInt(wrap.querySelector("#con-meses-cortesia").value, 10) || 0;
         if (!email && !whatsapp) { U.toast("Ingresa un correo o un número de WhatsApp.", "error"); return; }
         var btn = e.currentTarget;
         var htmlOriginal = btn.innerHTML;
         btn.disabled = true; btn.innerHTML = "Generando…";
         try {
-          var opts = { cicloCobroDias: cicloElegido, mesesMembresia: mesesElegidos };
+          var opts = { cicloCobroDias: cicloElegido, mesesMembresia: mesesElegidos, mesesCortesia: mesesCortesiaElegidos };
           var bytes = BIO_PDF_CRM.buildContratoPDF(tenantParaDocs(tenant), plan, modalidadElegida, opts);
           U.downloadBytes(bytes, "Contrato_BIOsoft_" + (tenant.nombre || "Cliente").replace(/\s+/g, "_") + ".pdf");
-          if (!tenant.fechaInicioPlan) {
-            var hoy = new Date();
-            var diasHastaProximoPago = modalidadElegida === "semestral" ? mesesElegidos * 30 : cicloElegido;
-            tenant.fechaInicioPlan = hoy.toISOString().slice(0, 10);
-            tenant.fechaProximoPago = new Date(hoy.getTime() + diasHastaProximoPago * 864e5).toISOString().slice(0, 10);
-          }
+          var inicio = new Date(fechaInicioElegida + "T12:00:00");
+          var diasHastaProximoPago = mesesCortesiaElegidos > 0 ? mesesCortesiaElegidos * 30 : (modalidadElegida === "semestral" ? mesesElegidos * 30 : cicloElegido);
+          tenant.fechaInicioPlan = fechaInicioElegida;
+          tenant.fechaProximoPago = new Date(inicio.getTime() + diasHastaProximoPago * 864e5).toISOString().slice(0, 10);
           tenant.modalidadPago = modalidadElegida;
           tenant.cicloCobroDias = cicloElegido;
+          tenant.mesesCortesia = mesesCortesiaElegidos || null;
           if (modalidadElegida === "semestral") tenant.mesesMembresiaGratis = mesesElegidos;
           S.saveTenant(tenant);
           var asunto = "Contrato de Servicios — BIOsoft (" + plan.nombre + ")";
@@ -781,7 +862,7 @@
             F.inp("nombre", "Nombre del Laboratorio", "", true) +
             F.inp("nit", "NIT / RIF / RUC", "") +
             F.sel("pais", "País", ["CO", "VE", "EC"].map(function (p) { return "<option value='" + p + "'>" + (p === "CO" ? "Colombia" : p === "VE" ? "Venezuela" : "Ecuador") + "</option>"; }).join("")) +
-            F.inp("direccion", "Dirección", "") + F.inp("telefonos", "Teléfonos", "") + F.inp("email", "Correo Electrónico", "") +
+            F.inp("direccion", "Dirección", "") + F.inp("telefonos", "Teléfonos", "") + F.inp("telefonoFijo", "Teléfono Fijo", "") + F.inp("email", "Correo Electrónico", "") +
             F.sel("nivel", "Nivel", [1, 2].map(function (n) { return "<option value='" + n + "'>Nivel " + n + "</option>"; }).join("")) +
             F.sel("planId", "Plan Contratado", BIO_PLANES.PLANES.map(function (p) { return "<option value='" + p.id + "'>" + p.nombre + " (" + p.usuarios + ")</option>"; }).join("")) +
           "</div>" +
@@ -815,7 +896,7 @@
         var mesesMembresia = parseInt(g("mesesMembresia"), 10) || 6;
         S.provisionRealAccount({
           tenantData: {
-            nombre: g("nombre"), nit: g("nit"), pais: g("pais"), direccion: g("direccion"), telefonos: g("telefonos"), email: g("email"), nivel: parseInt(g("nivel"), 10),
+            nombre: g("nombre"), nit: g("nit"), pais: g("pais"), direccion: g("direccion"), telefonos: g("telefonos"), telefonoFijo: g("telefonoFijo"), email: g("email"), nivel: parseInt(g("nivel"), 10),
             contactoNombre: g("adminNombre"),
             planId: planElegido ? planElegido.id : null, maxUsuarios: planElegido ? planElegido.limiteUsuarios : null,
             cicloCobroDias: esMembresia ? null : cicloCobroDias, mesesMembresiaGratis: esMembresia ? mesesMembresia : null

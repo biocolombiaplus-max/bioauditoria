@@ -62,8 +62,10 @@
     opts = opts || {};
     var cicloDias = opts.cicloCobroDias || 30;
     var mesesMembresia = opts.mesesMembresia || 6;
+    var mesesCortesia = opts.mesesCortesia || 0;
     var IMPL = (window.BIO_PLANES && window.BIO_PLANES.IMPLEMENTACION) || { copFmt: "380.000", usd: 120, cuotaCopFmt: "190.000", cuotaUsd: 60 };
     var esSemestral = modalidadPago === "semestral";
+    var esSinImplementacion = modalidadPago === "sin_implementacion";
     var jsPDFCtor = window.jspdf ? window.jspdf.jsPDF : window.jsPDF;
     var doc = new jsPDFCtor({ unit: "pt", format: "letter" });
     var pageW = doc.internal.pageSize.getWidth();
@@ -123,19 +125,24 @@
       "El software será configurado y personalizado según las necesidades específicas de EL CLIENTE: logo, colores institucionales, catálogo de exámenes y valores de referencia, firmas digitales de los bacteriólogos, y el formato del informe de resultados que reciben sus pacientes." +
       (cliente.seccionesTexto ? " Las secciones del laboratorio configuradas inicialmente son: " + cliente.seccionesTexto + "." : "") +
       " EL CLIENTE tendrá acceso al software desde la confirmación de su primer pago, sin necesidad de esperar a que la personalización esté finalizada. El plazo estimado para completar la personalización total del sistema es de " +
-      "SIETE (7) A DIEZ (10) DÍAS HÁBILES, y los ajustes puntuales que EL CLIENTE solicite durante ese proceso se atenderán en un plazo de DOS (2) A CUATRO (4) DÍAS HÁBILES según la complejidad del ajuste."
+      "SIETE (7) A DIEZ (10) DÍAS HÁBILES, y los ajustes puntuales que EL CLIENTE solicite durante ese proceso se atenderán en un plazo de DOS (2) A CUATRO (4) DÍAS HÁBILES según la complejidad del ajuste." +
+      " El primer período de mensualidad inicia en la fecha que ocurra primero entre: (i) la puesta en marcha del sistema totalmente personalizado para EL CLIENTE, o (ii) el registro del primer paciente en la plataforma. Los ajustes o solicitudes de personalización adicionales que EL CLIENTE realice después de la puesta en marcha no afectan, modifican ni eliminan la información ya registrada (pacientes, órdenes, resultados), preservando en todo momento la continuidad e integridad del historial clínico."
     );
 
     titulo("CUARTA — VALOR DEL SERVICIO");
     parrafo(
       esSemestral
         ? ("EL CLIENTE ha optado por la modalidad de membresía prepagada: cancela por adelantado el valor correspondiente a sus primeros " + numeroConDigito(mesesMembresia) + " meses de mensualidad del Plan " + plan.nombre + " ($" + plan.precioFmt + " COP c/u, aprox. $" + plan.usd + " USD), quedando exento del pago de la cuota de implementación (valor $" + IMPL.copFmt + " COP / aprox. $" + IMPL.usd + " USD), la cual EL PROVEEDOR condona en su totalidad bajo esta modalidad. Vencidos los primeros " + numeroConDigito(mesesMembresia) + " meses, EL CLIENTE continuará pagando la mensualidad ordinaria del Plan " + plan.nombre + ".")
-        : ("EL CLIENTE pagará una cuota de implementación por valor de $" + IMPL.copFmt + " COP (aprox. $" + IMPL.usd + " USD), fraccionada en DOS (2) cuotas iguales de $" + IMPL.cuotaCopFmt + " COP (aprox. $" + IMPL.cuotaUsd + " USD) cada una, cobradas junto con la mensualidad de los meses uno (1) y dos (2). A partir del mes tres (3), EL CLIENTE solo pagará la mensualidad ordinaria de $" + plan.precioFmt + " COP (aprox. $" + plan.usd + " USD) correspondiente al Plan " + plan.nombre + ". La cuota de implementación no se cobra nuevamente bajo ninguna circunstancia una vez cancelada en su totalidad, sin importar el tiempo que EL CLIENTE continúe usando el software.")
+        : esSinImplementacion
+        ? ("EL PROVEEDOR condona en su totalidad la cuota de implementación (valor $" + IMPL.copFmt + " COP / aprox. $" + IMPL.usd + " USD) para EL CLIENTE. EL CLIENTE pagará únicamente la mensualidad ordinaria de $" + plan.precioFmt + " COP (aprox. $" + plan.usd + " USD) correspondiente al Plan " + plan.nombre + ", desde la fecha de activación del servicio." +
+            (mesesCortesia > 0 ? (" Como cortesía adicional, EL PROVEEDOR no cobrará mensualidad durante los primeros " + numeroConDigito(mesesCortesia) + " meses; transcurrido ese plazo, EL CLIENTE pagará la mensualidad ordinaria del Plan " + plan.nombre + ".") : ""))
+        : ("EL CLIENTE pagará una cuota de implementación por valor de $" + IMPL.copFmt + " COP (aprox. $" + IMPL.usd + " USD), fraccionada en DOS (2) cuotas iguales de $" + IMPL.cuotaCopFmt + " COP (aprox. $" + IMPL.cuotaUsd + " USD) cada una, cobradas junto con la mensualidad de los meses uno (1) y dos (2). A partir del mes tres (3), EL CLIENTE solo pagará la mensualidad ordinaria de $" + plan.precioFmt + " COP (aprox. $" + plan.usd + " USD) correspondiente al Plan " + plan.nombre + ". La cuota de implementación no se cobra nuevamente bajo ninguna circunstancia una vez cancelada en su totalidad, sin importar el tiempo que EL CLIENTE continúe usando el software." +
+            (mesesCortesia > 0 ? (" Como cortesía adicional, EL PROVEEDOR no cobrará mensualidad durante los primeros " + numeroConDigito(mesesCortesia) + " meses; transcurrido ese plazo, EL CLIENTE pagará la mensualidad ordinaria del Plan " + plan.nombre + ".") : ""))
     );
 
     titulo("QUINTA — FORMA DE PAGO Y PERIODICIDAD");
     parrafo(
-      "La mensualidad se cobrará cada " + numeroConDigito(cicloDias) + " días calendario, contados a partir de la fecha de activación del servicio. El pago se realiza a través de los medios habilitados por EL PROVEEDOR (Wompi u otros que se informen oportunamente)."
+      "La mensualidad se cobrará cada " + numeroConDigito(cicloDias) + " días calendario, contados a partir de la fecha de inicio de facturación definida en la cláusula TERCERA. El pago se realiza a través de los medios habilitados por EL PROVEEDOR (Wompi u otros que se informen oportunamente)."
     );
 
     titulo("SEXTA — POLÍTICA DE MORA Y SUSPENSIÓN DEL SERVICIO");
@@ -158,9 +165,11 @@
       "Las partes declaran conocer y aceptar los términos de este contrato, el cual se perfecciona con el primer pago realizado por EL CLIENTE conforme a la modalidad elegida en la cláusula CUARTA."
     );
 
-    checkPage(110);
-    y += 20;
+    checkPage(150);
+    y += 40;
     var col2 = margin + maxW / 2 + 10;
+    var firmaW = 130, firmaH = firmaW * (140 / 548);
+    try { doc.addImage("assets/firma-proveedor.png", "PNG", margin - 4, y - firmaH - 4, firmaW, firmaH); } catch (e) {}
     doc.setDrawColor(180, 180, 180); doc.line(margin, y, margin + 200, y); doc.line(col2, y, col2 + 200, y);
     y += 14;
     doc.setFont("helvetica", "bold"); doc.setFontSize(9); doc.setTextColor(20, 20, 20);
@@ -213,6 +222,9 @@
     doc.text(lines, margin, y);
     y += lines.length * 12 + 30;
 
+    y += 26;
+    var firmaWRecibo = 120, firmaHRecibo = firmaWRecibo * (140 / 548);
+    try { doc.addImage("assets/firma-proveedor.png", "PNG", margin - 4, y - firmaHRecibo - 4, firmaWRecibo, firmaHRecibo); } catch (e) {}
     doc.setDrawColor(180, 180, 180); doc.line(margin, y, margin + 220, y);
     y += 14;
     doc.setFont("helvetica", "bold"); doc.setFontSize(9); doc.text(PROVEEDOR.representanteLegal, margin, y);

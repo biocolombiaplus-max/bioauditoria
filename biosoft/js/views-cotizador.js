@@ -208,6 +208,17 @@
       }).join("") || '<tr><td colspan="4" class="text-muted">Sin resultados.</td></tr>';
       document.querySelectorAll("[data-precio-exam]").forEach(function (inp) {
         inp.addEventListener("input", function () { preciosEditados[inp.dataset.precioExam] = parseFloat(inp.value) || 0; });
+        // Guarda de inmediato al salir del campo (clic afuera o Enter), para
+        // que un solo precio quede aplicado al instante sin tener que buscar
+        // el botón "Guardar Cambios" al final de una lista larga.
+        inp.addEventListener("change", function () {
+          var examId = inp.dataset.precioExam;
+          var precio = parseFloat(inp.value) || 0;
+          S.cotizador.setPrecio(tenantId, examId, precio);
+          delete preciosEditados[examId];
+          precios[examId] = precio;
+          U.toast("Precio guardado.", "success");
+        });
       });
     }
 
