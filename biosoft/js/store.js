@@ -268,6 +268,19 @@
     return tenantsColl().onSnapshot(function () { onChange(); }, function (err) { console.error("BIOsoft tenants listener error:", err); });
   }
 
+  /* Lectura puntual (sin caché local) de los usuarios de UN laboratorio
+     cliente, para uso del superadmin (ej. reenviar el acceso al
+     administrador) — a diferencia de listUsers(), no depende de que ese
+     tenant esté "abierto" con sus listeners en tiempo real activos. */
+  function listUsuariosTenantOnce(tenantId) {
+    if (!firebaseDisponible()) return Promise.reject(errorFirebaseNoDisponible());
+    return tenantsColl().doc(tenantId).collection("users").get().then(function (snap) {
+      var usuarios = [];
+      snap.forEach(function (doc) { usuarios.push(doc.data()); });
+      return usuarios;
+    });
+  }
+
   /* Al recargar la página, sessionStorage conserva la sesión pero realCache
      se pierde (es memoria, no disco). Espera a que Firebase confirme que la
      sesión de Auth sigue viva y vuelve a poblar realCache sin pedir clave. */
@@ -1037,7 +1050,7 @@
     restoreRealtime: restoreRealtime,
     restoreSuperadminSession: restoreSuperadminSession,
     crm: { list: crmList, watch: crmWatch, create: crmCreate, update: crmUpdate },
-    tenantsGlobal: { list: tenantsListGlobal, watch: tenantsWatchGlobal },
+    tenantsGlobal: { list: tenantsListGlobal, watch: tenantsWatchGlobal, listUsuarios: listUsuariosTenantOnce },
     plantillas: { list: plantillasList, watch: plantillasWatch, create: plantillasCreate, update: plantillasUpdate, remove: plantillasDelete },
     qc: {
       listControles: listQCControles, getControl: getQCControl, createControl: createQCControl, updateControl: updateQCControl,

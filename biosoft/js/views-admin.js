@@ -576,6 +576,7 @@
             '<button class="btn btn-ghost btn-sm" data-editar-datos="' + t.id + '">' + U.icon("edit") + " Datos</button>" +
             '<button class="btn btn-outline btn-sm" data-enviar-contrato="' + t.id + '">' + U.icon("file") + " Contrato</button>" +
             '<button class="btn btn-outline btn-sm" data-enviar-manual="' + t.id + '">' + U.icon("send") + " Manual</button>" +
+            '<button class="btn btn-outline btn-sm" data-reenviar-acceso="' + t.id + '" title="Recordar el link de ingreso y el usuario al administrador">' + U.icon("send") + " Reenviar Acceso</button>" +
             '<button class="btn btn-ghost btn-sm" data-sync-crm="' + t.id + '" title="Crear/vincular este laboratorio en el CRM">' + U.icon("send") + " CRM</button>" +
             "</div></td></tr>";
         }).join("") : '<tr><td colspan="7" class="text-muted">Aún no hay laboratorios cliente creados.</td></tr>') + "</tbody></table></div></div>";
@@ -588,6 +589,11 @@
       root.querySelectorAll("[data-editar-datos]").forEach(function (b) {
         b.addEventListener("click", function () {
           abrirEditarDatos(tenants.filter(function (t) { return t.id === b.dataset.editarDatos; })[0]);
+        });
+      });
+      root.querySelectorAll("[data-reenviar-acceso]").forEach(function (b) {
+        b.addEventListener("click", function () {
+          abrirReenviarAcceso(tenants.filter(function (t) { return t.id === b.dataset.reenviarAcceso; })[0]);
         });
       });
       root.querySelectorAll("[data-enviar-contrato]").forEach(function (b) {
@@ -868,6 +874,15 @@
     function appLoginUrl() {
       return location.origin + location.pathname;
     }
+    function instruccionesInstalacion() {
+      return "💻 Para acceder más rápido desde el computador (queda como un programa en tu escritorio):\n" +
+        "1. Abre el link de ingreso en Chrome o Edge.\n" +
+        "2. Haz clic en el ícono de instalar (⊕) que aparece al final de la barra de direcciones, o en el menú ⋮ elige \"Instalar BIOsoft\".\n" +
+        "3. Listo — queda un ícono de BIOsoft en tu escritorio.\n\n" +
+        "📱 Para poner el ícono en la pantalla de inicio de tu celular:\n" +
+        "• Android (Chrome): abre el link, toca el menú ⋮ y elige \"Agregar a pantalla de inicio\".\n" +
+        "• iPhone (Safari): abre el link, toca el botón compartir 📤 y elige \"Agregar a pantalla de inicio\".";
+    }
     function mensajeBienvenida(tenant, credenciales) {
       var url = appLoginUrl();
       return "Hola 👋 ¡Bienvenido a BIOsoft! Tu laboratorio \"" + (tenant.nombre || "") + "\" ya está listo para usarse.\n\n" +
@@ -876,55 +891,114 @@
         "🔑 Contraseña: " + credenciales.password + "\n" +
         "🛡️ Clave de administrador (para autorizar correcciones de resultados): " + (tenant.claveAdmin || "") + "\n\n" +
         "Guarda este mensaje — lo necesitarás cada vez que quieras ingresar.\n\n" +
-        "💻 Para acceder más rápido desde el computador (queda como un programa en tu escritorio):\n" +
-        "1. Abre el link de ingreso en Chrome o Edge.\n" +
-        "2. Haz clic en el ícono de instalar (⊕) que aparece al final de la barra de direcciones, o en el menú ⋮ elige \"Instalar BIOsoft\".\n" +
-        "3. Listo — queda un ícono de BIOsoft en tu escritorio.\n\n" +
-        "📱 Para poner el ícono en la pantalla de inicio de tu celular:\n" +
-        "• Android (Chrome): abre el link, toca el menú ⋮ y elige \"Agregar a pantalla de inicio\".\n" +
-        "• iPhone (Safari): abre el link, toca el botón compartir 📤 y elige \"Agregar a pantalla de inicio\".\n\n" +
+        instruccionesInstalacion() + "\n\n" +
         "Cualquier duda, aquí estamos para ayudarte. ¡Éxitos con tu laboratorio! 🚀";
     }
-    function abrirBienvenidaLaboratorio(tenant, credenciales, alContinuar) {
-      var mensaje = mensajeBienvenida(tenant, credenciales);
+    function mensajeRecordatorioAcceso(tenant, username) {
+      var url = appLoginUrl();
+      return "Hola 👋 Te recordamos tus datos de acceso a BIOsoft para \"" + (tenant.nombre || "") + "\".\n\n" +
+        "🔗 Link de ingreso: " + url + "\n" +
+        "👤 Usuario: " + username + "\n\n" +
+        "🔒 Por tu seguridad no guardamos tu contraseña. Si no la recuerdas, entra al link de arriba y usa la opción \"¿Olvidaste tu contraseña?\" para crear una nueva en segundos (o pídenos que te enviemos el enlace directo).\n" +
+        "🛡️ Clave de administrador (para autorizar correcciones de resultados): " + (tenant.claveAdmin || "") + "\n\n" +
+        instruccionesInstalacion() + "\n\n" +
+        "Cualquier duda, aquí estamos para ayudarte. 🚀";
+    }
+
+    // Modal genérico de "componer y enviar" un mensaje de texto por correo o
+    // WhatsApp, reutilizado por la bienvenida al crear el laboratorio y por
+    // el recordatorio de acceso — evita duplicar el cableado de los botones
+    // de correo/WhatsApp (que deben leer el mensaje ACTUAL del textarea, no
+    // uno fijo del momento en que se abrió el modal).
+    function abrirEnviarMensajeTexto(opts) {
       var wrap = U.openModal(
-        '<h3 class="modal-title">🎉 Enviar bienvenida a ' + U.esc(tenant.nombre) + '</h3>' +
-        '<p class="text-muted" style="margin-top:0">Envíale al administrador el link de ingreso, sus credenciales y cómo dejar BIOsoft instalado en su computador y celular.</p>' +
+        '<h3 class="modal-title">' + opts.titulo + '</h3>' +
+        '<p class="text-muted" style="margin-top:0">' + opts.descripcion + '</p>' +
         '<div class="form-grid">' +
-        '<div class="field"><label>Correo del destinatario</label><input id="bnv-email" type="email" value="' + U.esc(tenant.email || "") + '"/></div>' +
-        '<div class="field"><label>WhatsApp del destinatario</label><input id="bnv-whatsapp" value="' + U.esc(tenant.telefonos || "") + '"/></div>' +
+        '<div class="field"><label>Correo del destinatario</label><input id="txt-email" type="email" value="' + U.esc(opts.tenant.email || "") + '"/></div>' +
+        '<div class="field"><label>WhatsApp del destinatario</label><input id="txt-whatsapp" value="' + U.esc(opts.tenant.telefonos || "") + '"/></div>' +
         "</div>" +
-        '<div class="field"><label>Mensaje</label><textarea id="bnv-msg" rows="14">' + U.esc(mensaje) + "</textarea></div>" +
-        U.emailProviderButtonsHtml("bnv") +
-        '<a class="btn btn-whatsapp btn-block" id="bnv-wa" target="_blank" rel="noopener" style="margin-top:8px">' + U.icon("send") + " Enviar por WhatsApp</a>" +
-        '<div class="flex justify-between" style="margin-top:16px"><span></span><button type="button" class="btn btn-primary" id="bnv-continuar">' + U.icon("check") + " Listo, continuar</button></div>",
+        '<div class="field"><label>Mensaje</label><textarea id="txt-msg" rows="14">' + U.esc(opts.mensaje) + "</textarea></div>" +
+        (opts.botonExtraHtml || "") +
+        U.emailProviderButtonsHtml("txt") +
+        '<a class="btn btn-whatsapp btn-block" id="txt-wa" target="_blank" rel="noopener" style="margin-top:8px">' + U.icon("send") + " Enviar por WhatsApp</a>" +
+        '<div class="flex justify-between" style="margin-top:16px"><span></span><button type="button" class="btn btn-primary" id="txt-continuar">' + U.icon("check") + " " + (opts.botonContinuarLabel || "Listo") + "</button></div>",
         { lg: true }
       );
-      var asuntoCorreo = "Bienvenido a BIOsoft — Datos de ingreso de " + (tenant.nombre || "");
+      if (opts.wireExtra) opts.wireExtra(wrap);
       // Se conectan los botones de correo directamente (en vez de usar
       // U.wireEmailProviderButtons, que fija el cuerpo del mensaje una sola
       // vez) para que siempre tomen el correo y el mensaje actuales del
       // formulario, por si el usuario los edita antes de enviar.
       ["gmail", "outlook", "mailto"].forEach(function (prov) {
-        wrap.querySelector("#bnv-" + prov).addEventListener("click", function () {
-          var links = U.emailLinks(wrap.querySelector("#bnv-email").value.trim(), asuntoCorreo, wrap.querySelector("#bnv-msg").value);
+        wrap.querySelector("#txt-" + prov).addEventListener("click", function () {
+          var links = U.emailLinks(wrap.querySelector("#txt-email").value.trim(), opts.asuntoCorreo, wrap.querySelector("#txt-msg").value);
           window.open(links[prov], "_blank");
         });
       });
-      var waBtn = wrap.querySelector("#bnv-wa");
+      var waBtn = wrap.querySelector("#txt-wa");
       function actualizarWhatsapp() {
-        var whatsapp = wrap.querySelector("#bnv-whatsapp").value.trim();
+        var whatsapp = wrap.querySelector("#txt-whatsapp").value.trim();
         if (!whatsapp) { waBtn.classList.add("hidden"); return; }
         var numero = whatsapp.replace(/\D/g, "");
         if (numero.length === 10 && numero.charAt(0) === "3") numero = "57" + numero;
-        waBtn.href = "https://wa.me/" + numero + "?text=" + encodeURIComponent(wrap.querySelector("#bnv-msg").value);
+        waBtn.href = "https://wa.me/" + numero + "?text=" + encodeURIComponent(wrap.querySelector("#txt-msg").value);
         waBtn.classList.remove("hidden");
       }
       actualizarWhatsapp();
-      wrap.querySelector("#bnv-msg").addEventListener("input", actualizarWhatsapp);
-      wrap.querySelector("#bnv-whatsapp").addEventListener("input", actualizarWhatsapp);
-      function seguir() { U.closeModal(wrap); if (alContinuar) alContinuar(); }
-      wrap.querySelector("#bnv-continuar").addEventListener("click", seguir);
+      wrap.querySelector("#txt-msg").addEventListener("input", actualizarWhatsapp);
+      wrap.querySelector("#txt-whatsapp").addEventListener("input", actualizarWhatsapp);
+      wrap.querySelector("#txt-continuar").addEventListener("click", function () {
+        U.closeModal(wrap);
+        if (opts.alContinuar) opts.alContinuar();
+      });
+      return wrap;
+    }
+
+    function abrirBienvenidaLaboratorio(tenant, credenciales, alContinuar) {
+      abrirEnviarMensajeTexto({
+        titulo: "🎉 Enviar bienvenida a " + U.esc(tenant.nombre),
+        descripcion: "Envíale al administrador el link de ingreso, sus credenciales y cómo dejar BIOsoft instalado en su computador y celular.",
+        tenant: tenant,
+        mensaje: mensajeBienvenida(tenant, credenciales),
+        asuntoCorreo: "Bienvenido a BIOsoft — Datos de ingreso de " + (tenant.nombre || ""),
+        botonContinuarLabel: "Listo, continuar",
+        alContinuar: alContinuar
+      });
+    }
+
+    // Reenvía el link de ingreso al administrador de un laboratorio YA
+    // creado — por ejemplo cuando olvidó dónde entrar o perdió el mensaje
+    // original. La contraseña real nunca se guarda (Firebase Auth), así que
+    // el mensaje lo remite a "¿Olvidaste tu contraseña?" e incluye un botón
+    // para disparar directamente el correo de restablecimiento.
+    function abrirReenviarAcceso(tenant) {
+      U.toast("Buscando el usuario administrador…", "success");
+      S.tenantsGlobal.listUsuarios(tenant.id).then(function (usuarios) {
+        var admin = usuarios.filter(function (u) { return u.rol === "admin"; })[0];
+        if (!admin) { U.toast("Este laboratorio todavía no tiene un usuario administrador.", "error"); return; }
+        abrirEnviarMensajeTexto({
+          titulo: "🔁 Reenviar acceso a " + U.esc(tenant.nombre),
+          descripcion: "Le recordamos al administrador (" + U.esc(admin.nombre || admin.username) + ") el link de ingreso y su usuario. Si no recuerda la contraseña, puedes enviarle de una vez el enlace para crear una nueva.",
+          tenant: tenant,
+          mensaje: mensajeRecordatorioAcceso(tenant, admin.username),
+          asuntoCorreo: "Recordatorio de acceso a BIOsoft — " + (tenant.nombre || ""),
+          botonContinuarLabel: "Listo",
+          botonExtraHtml: '<button type="button" class="btn btn-outline btn-block" id="txt-reset-pass" style="margin-bottom:10px">🔑 Enviar enlace para restablecer contraseña (' + U.esc(admin.username) + ")</button>",
+          wireExtra: function (wrap) {
+            wrap.querySelector("#txt-reset-pass").addEventListener("click", function (e) {
+              var btn = e.currentTarget;
+              btn.disabled = true;
+              BIO_AUTH.recuperarContrasena(admin.username).then(function (res) {
+                btn.disabled = false;
+                U.toast(res.ok ? "Enlace de restablecimiento enviado a " + admin.username + "." : res.error, res.ok ? "success" : "error");
+              });
+            });
+          }
+        });
+      }).catch(function (err) {
+        U.toast("No se pudo cargar el usuario administrador: " + (err.message || err), "error");
+      });
     }
 
     function openNewTenant() {
