@@ -391,11 +391,17 @@
     }
 
     var today = new Date();
-    var hoyStr = today.toISOString().slice(0, 10);
+    // Las órdenes se ubican relativas al momento exacto de la siembra (y no a
+    // una hora fija del día) para que siempre queden en el pasado sin importar
+    // a qué hora se cargue la demo — de lo contrario, si se entra muy temprano
+    // en la mañana, una fechaOrden fija (ej. "08:15") podría quedar en el
+    // futuro frente a "ahora", dando tiempos de entrega negativos que se
+    // descartan y dejan el KPI de Productividad Mensual en "—".
+    function horasAntes(h) { return new Date(today.getTime() - h * 36e5).toISOString(); }
 
     db.orders.push(
       {
-        id: uid("ord"), tenantId: "demo", numeroOrden: "20260001", patientId: p1.id, fechaOrden: hoyStr + "T08:15:00",
+        id: uid("ord"), tenantId: "demo", numeroOrden: "20260001", patientId: p1.id, fechaOrden: horasAntes(6),
         prioridad: "Rutina", procedencia: "Ambulatorio", medicoRemitente: "Dr. Jorge Salamanca", diagnostico: "Control anual",
         examenes: [
           item("HEM-001", "validado", [
@@ -410,7 +416,7 @@
         estadoGeneral: "validado", enviado: true, fechaEnvio: nowISO(), creadoEn: nowISO(), creadoPor: "recepcion.demo"
       },
       {
-        id: uid("ord"), tenantId: "demo", numeroOrden: "20260002", patientId: p2.id, fechaOrden: hoyStr + "T09:00:00",
+        id: uid("ord"), tenantId: "demo", numeroOrden: "20260002", patientId: p2.id, fechaOrden: horasAntes(5),
         prioridad: "Rutina", procedencia: "Consulta Externa", medicoRemitente: "Dra. Ana Beltrán", diagnostico: "Chequeo lipídico",
         examenes: [
           item("QUI-004", "validado", [{ codigo: "COLT", valor: "215" }], uLaura, nowISO()),
@@ -422,7 +428,7 @@
         estadoGeneral: "parcial", enviado: false, fechaEnvio: "", creadoEn: nowISO(), creadoPor: "recepcion.demo"
       },
       {
-        id: uid("ord"), tenantId: "demo", numeroOrden: "20260003", patientId: p3.id, fechaOrden: hoyStr + "T10:30:00",
+        id: uid("ord"), tenantId: "demo", numeroOrden: "20260003", patientId: p3.id, fechaOrden: horasAntes(3.5),
         prioridad: "Urgente", procedencia: "Urgencias", medicoRemitente: "Dr. Fabián Niño", diagnostico: "Síndrome febril + disuria",
         examenes: [
           item("MIC-001", "pendiente", []),
@@ -431,7 +437,7 @@
         estadoGeneral: "pendiente", enviado: false, fechaEnvio: "", creadoEn: nowISO(), creadoPor: "recepcion.demo"
       },
       {
-        id: uid("ord"), tenantId: "demo", numeroOrden: "20260004", patientId: p4.id, fechaOrden: hoyStr + "T11:45:00",
+        id: uid("ord"), tenantId: "demo", numeroOrden: "20260004", patientId: p4.id, fechaOrden: horasAntes(2),
         prioridad: "Rutina", procedencia: "Ambulatorio", medicoRemitente: "Dra. Ana Beltrán", diagnostico: "Evaluación tiroidea y prostática",
         examenes: [
           item("HOR-001", "validado", [{ codigo: "TSH", valor: "2.1" }], uAndres, nowISO()),
@@ -441,6 +447,80 @@
         estadoGeneral: "parcial", enviado: false, fechaEnvio: "", creadoEn: nowISO(), creadoPor: "recepcion.demo"
       }
     );
+
+    // ---- Control de Calidad: controles con ~18 días de historial, para que
+    // la demo muestre la gráfica de Levey-Jennings y el estado de las reglas
+    // de Westgard con datos reales en vez de un módulo vacío. ----
+    function diasAntes(n) { return new Date(today.getTime() - n * 864e5); }
+    function seedControlQC(seccion, analitoCodigo, nivel, lote, media, ds, dias, vencimientoDias, ultimoValor) {
+      var control = { id: uid("qcc"), tenantId: "demo", seccion: seccion, analitoCodigo: analitoCodigo, nivel: nivel, lote: lote, media: media, ds: ds, vencimiento: diasAntes(-vencimientoDias).toISOString().slice(0, 10), activo: true, creadoEn: nowISO() };
+      db.qcControles.push(control);
+      var historial = [];
+      for (var i = dias; i >= 1; i--) {
+        var fecha = diasAntes(i);
+        var valor = i === 1 && typeof ultimoValor === "number" ? ultimoValor : Math.round((media + (Math.random() - 0.5) * ds * 1.6) * 100) / 100;
+        historial.push(valor);
+        var resultado = BIO_QC.evaluar(historial, media, ds);
+        db.qcLecturas.push({
+          id: uid("qcl"), tenantId: "demo", controlId: control.id, fecha: fecha.toISOString(), valor: valor,
+          usuario: "Laura Gómez Pérez", z: resultado.z, reglas: resultado.reglas, estado: resultado.estado, creadoEn: fecha.toISOString()
+        });
+      }
+      return control;
+    }
+    seedControlQC("quimica", "GLU", "Normal", "QC-GLU-25B", 100, 5, 18, 120);
+    seedControlQC("quimica", "COLT", "Patológico Alto", "QC-COLT-25A", 220, 12, 15, 90);
+    // El último punto de este control queda deliberadamente en 2.3 DS para
+    // mostrar en la demo cómo BIOsoft detecta y explica un aviso de Westgard.
+    seedControlQC("hematologia", "HB", "Normal", "QC-HB-25C", 13.5, 0.4, 18, 150, 13.5 + 2.3 * 0.4);
+
+    // ---- Cotizador: precio de referencia para todos los exámenes del
+    // catálogo, para que la Lista de Precios y el cotizador no aparezcan
+    // vacíos ("Sin precio") en la demo. ----
+    function hashFNV1a(s) { var h = 0x811c9dc5; for (var i = 0; i < s.length; i++) { h ^= s.charCodeAt(i); h = Math.imul(h, 0x01000193); } return h >>> 0; }
+    BIO_CATALOG.EXAMENES.forEach(function (ex) {
+      // El precio base sube con la complejidad del examen (nivel CUPS y
+      // cantidad de parámetros que reporta), y una variación por hash le da
+      // a cada examen un valor propio en vez de precios idénticos entre sí.
+      var base = (ex.nivel === 2 ? 55000 : 22000) + (ex.parametros ? ex.parametros.length : 1) * 1800;
+      var precio = Math.round((base + (hashFNV1a(ex.id) % 9000)) / 500) * 500;
+      db.preciosExamenes.push({ id: uid("prc"), tenantId: "demo", examId: ex.id, precio: precio, actualizadoEn: nowISO() });
+    });
+
+    // ---- Inventario y Reactivos: insumos de ejemplo (uno deliberadamente
+    // bajo de stock, para mostrar la alerta), con su kardex y una receta de
+    // consumo por examen, en vez de un módulo vacío. ----
+    function seedInsumo(nombre, categoria, unidadMedida, stockActual, stockMinimo, costoUnitario, proveedor, lote, vencimientoDias) {
+      var ins = {
+        id: uid("ins"), tenantId: "demo", nombre: nombre, categoria: categoria, unidadMedida: unidadMedida,
+        stockActual: stockActual, stockMinimo: stockMinimo, costoUnitario: costoUnitario, proveedor: proveedor, lote: lote,
+        fechaVencimiento: vencimientoDias ? diasAntes(-vencimientoDias).toISOString().slice(0, 10) : "",
+        creadoEn: nowISO(), actualizadoEn: nowISO()
+      };
+      db.insumos.push(ins);
+      db.kardexInventario.push({
+        id: uid("kdx"), tenantId: "demo", insumoId: ins.id, fecha: diasAntes(20).toISOString(), tipo: "entrada",
+        cantidad: stockActual, motivo: "Compra inicial de inventario", saldoAnterior: 0, saldoNuevo: stockActual, costoUnitario: costoUnitario, usuario: "Carolina Restrepo (Administradora)"
+      });
+      return ins;
+    }
+    var insReactivoGlucosa = seedInsumo("Reactivo Glucosa (kit 100 tests)", "Reactivo", "kits", 8, 3, 185000, "Human de Colombia", "GLU-2026-04", 300);
+    var insControlHb = seedInsumo("Control de Hematología Nivel Normal (vial 5 mL)", "Control", "viales", 4, 2, 95000, "Bio-Rad", "QC-HB-25C", 150);
+    seedInsumo("Tubos EDTA (lavanda) x100", "Material", "unidades", 240, 100, 850, "BD Vacutainer", "EDTA-2026-01", 0);
+    var insTirasOrina = seedInsumo("Tiras Reactivas de Orina (frasco x100)", "Reactivo", "frascos", 2, 3, 145000, "Roche Diagnostics", "URO-2026-02", 200);
+    seedInsumo("Guantes de Nitrilo Talla M (caja x100)", "Insumo", "cajas", 15, 5, 32000, "Distrimédica", "", 0);
+    seedInsumo("Puntas para Pipeta 200µL (bolsa x1000)", "Material", "bolsas", 6, 2, 58000, "Distrimédica", "", 0);
+
+    db.recetasReactivos.push(
+      { id: uid("rec"), tenantId: "demo", examId: "QUI-001", insumoId: insReactivoGlucosa.id, cantidad: 0.01 },
+      { id: uid("rec"), tenantId: "demo", examId: "HEM-001", insumoId: insControlHb.id, cantidad: 0.05 }
+    );
+    var saldoTirasPrevio = insTirasOrina.stockActual + 1;
+    db.kardexInventario.push({
+      id: uid("kdx"), tenantId: "demo", insumoId: insTirasOrina.id, fecha: diasAntes(2).toISOString(), tipo: "salida",
+      cantidad: 1, motivo: "Consumo por examen (Uroanálisis)", saldoAnterior: saldoTirasPrevio, saldoNuevo: insTirasOrina.stockActual,
+      costoUnitario: insTirasOrina.costoUnitario, examId: "URO-001", usuario: "Sistema (automático)"
+    });
 
     db.auditLog.push({ id: uid("log"), tenantId: "demo", fecha: nowISO(), usuario: "Sistema", rol: "sistema", accion: "SEED_DEMO", entidad: "sistema", entidadId: "demo", detalle: "Datos de demostración inicializados." });
 
