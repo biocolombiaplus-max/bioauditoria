@@ -385,6 +385,8 @@ tbody tr:hover { background: var(--surface-2); }
 .mktg-swatch.active { box-shadow: 0 0 0 2px var(--brand-primary); transform: scale(1.12); }
 .mktg-canvas-wrap { display: flex; justify-content: center; align-items: flex-start; background: var(--surface-2); border-radius: var(--radius-sm); border: 1px solid var(--border); padding: 20px; position: sticky; top: 12px; }
 .mktg-canvas-wrap canvas { width: 100%; max-width: 300px; height: auto; border-radius: 14px; box-shadow: 0 20px 44px -16px rgba(15,23,42,.35); display: block; }
+.mktg-copy-box { margin-top: 18px; padding: 16px; background: var(--surface-2); border-radius: var(--radius-sm); border: 1px solid var(--border); }
+.mktg-copy-box textarea { width: 100%; resize: vertical; font-family: inherit; }
 .mktg-fondos-galeria { display: flex; gap: 10px; flex-wrap: wrap; }
 .mktg-fondo-thumb {
   position: relative; width: 56px; height: 56px; border-radius: 10px; background-size: cover; background-position: center;

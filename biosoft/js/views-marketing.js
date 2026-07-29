@@ -222,14 +222,49 @@
         '<button class="btn btn-primary btn-block" id="mktg-descargar" style="margin-top:10px">' + U.icon("download") + " Descargar Imagen (PNG)</button>" +
         "</div>" +
         '<div class="mktg-canvas-wrap"><canvas id="mktg-canvas"></canvas></div>' +
-        "</div>";
+        "</div>" +
+        '<div class="mktg-copy-box">' +
+        '<div class="field"><label>📋 Copy sugerido por IA para Instagram (cópialo y pégalo en la publicación)</label>' +
+        '<textarea id="mktg-copy" rows="6" readonly></textarea></div>' +
+        '<div class="flex gap-2 wrap">' +
+        '<button type="button" class="btn btn-outline" id="mktg-copiar-copy">' + U.icon("check") + " Copiar Copy</button>" +
+        '<button type="button" class="btn btn-whatsapp" id="mktg-compartir-ig" style="flex:1">📸 Descargar y Compartir en Instagram</button>' +
+        "</div></div>";
+    }
+
+    // Sugiere un copy listo para publicar en Instagram (con CTA de WhatsApp y
+    // hashtags), a partir del texto y la categoría que el usuario eligió para
+    // la imagen — así no tiene que redactarlo desde cero.
+    var HASHTAGS_BASE = "#LaboratorioClinico #SaludPreventiva #ExamenesDeLaboratorio #Bienestar";
+    function generarCopyIA(state, tenant) {
+      var cat = CATEGORIAS.filter(function (c) { return c.id === state.categoria; })[0] || CATEGORIAS[0];
+      var nombreLab = (tenant && tenant.nombre) || "nuestro laboratorio";
+      // "telefonos" puede traer varios números juntos (ej. "(601) 555 0101 ·
+      // 300 555 0101") — se toma solo el primer número para no generar un
+      // enlace de WhatsApp inválido concatenando todos los dígitos.
+      var primerTelefono = ((tenant && tenant.telefonos) || "").split(/[·,/]| y /)[0];
+      var numero = primerTelefono.replace(/\D/g, "");
+      var cta = numero ? "📲 Agenda por WhatsApp: wa.me/" + numero : "📲 Escríbenos para agendar tu cita";
+      var titulo = state.titulo || cat.titulo, subtitulo = state.subtitulo || cat.subtitulo;
+      var apertura = {
+        urgente: "🚨 " + titulo + "\n\n" + subtitulo,
+        promocion: "🎉 " + titulo + "\n\n" + subtitulo + "\n\n¡Escríbenos ya y separa tu cupo antes de que se agote!",
+        info: "💡 " + titulo + "\n\n" + subtitulo,
+        jornada: "🩺 " + titulo + "\n\n" + subtitulo,
+        marca: "✨ En " + nombreLab + ": " + subtitulo
+      };
+      var cuerpo = apertura[state.categoria] || apertura.info;
+      return cuerpo + "\n\n📍 " + nombreLab + "\n" + cta + "\n\n" + HASHTAGS_BASE;
     }
 
     function wireImagenes() {
       var $ = function (id) { return document.getElementById(id); };
       var canvas = $("mktg-canvas");
 
-      function redibujar() { dibujarPlantilla(canvas, mktgState); }
+      function redibujar() {
+        dibujarPlantilla(canvas, mktgState);
+        $("mktg-copy").value = generarCopyIA(mktgState, tenant);
+      }
 
       function renderSwatches() {
         $("mktg-swatches").innerHTML = PALETA.map(function (p, i) {
@@ -346,6 +381,40 @@
         document.body.appendChild(a); a.click(); a.remove();
       }
       $("mktg-descargar").addEventListener("click", descargarImagen);
+
+      function copiarAlPortapapeles(texto) {
+        if (navigator.clipboard && navigator.clipboard.writeText) return navigator.clipboard.writeText(texto);
+        var temp = document.createElement("textarea");
+        temp.value = texto; temp.style.position = "fixed"; temp.style.opacity = "0";
+        document.body.appendChild(temp); temp.select();
+        try { document.execCommand("copy"); } catch (e) {}
+        document.body.removeChild(temp);
+        return Promise.resolve();
+      }
+
+      $("mktg-copiar-copy").addEventListener("click", function () {
+        copiarAlPortapapeles($("mktg-copy").value).then(function () { U.toast("Copy copiado al portapapeles.", "success"); });
+      });
+
+      // Comparte directo con la app de Instagram cuando el navegador lo permite
+      // (móviles, vía Web Share API con archivo adjunto). En escritorio no
+      // existe ese enlace directo a Instagram, así que se descarga la imagen
+      // y se copia el copy al portapapeles para pegarlo en segundos.
+      $("mktg-compartir-ig").addEventListener("click", function () {
+        var url = generarPngFinal();
+        var copy = $("mktg-copy").value;
+        fetch(url).then(function (res) { return res.blob(); }).then(function (blob) {
+          var file = new File([blob], "BIOsoft_" + mktgState.categoria + ".png", { type: "image/png" });
+          if (navigator.canShare && navigator.canShare({ files: [file] })) {
+            navigator.share({ files: [file], text: copy, title: "BIOsoft" }).catch(function () {});
+          } else {
+            descargarImagen();
+            copiarAlPortapapeles(copy).then(function () {
+              U.toast("Imagen descargada y copy copiado. Abre Instagram, sube la imagen y pega el texto (ya está en tu portapapeles).", "success");
+            });
+          }
+        });
+      });
 
       redibujar();
     }
