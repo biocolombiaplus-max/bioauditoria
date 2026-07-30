@@ -289,6 +289,25 @@
     });
   }
 
+  /* Le da (también) el rol de Administrador a un usuario que YA existe en un
+     laboratorio — para cuando ese mismo correo es, por ejemplo, el de la
+     única bacterióloga del laboratorio y Firebase no permite crear una
+     segunda cuenta con el mismo correo. Solo cambia el campo "rol" (merge),
+     sin tocar ni el resto de sus datos ni al resto del laboratorio: el rol
+     Administrador ya incluye todo lo que puede hacer un bacteriólogo. */
+  function promoverUsuarioAAdmin(tenantId, userId) {
+    if (!firebaseDisponible()) return Promise.reject(errorFirebaseNoDisponible());
+    var db = global.BIO_FB.db;
+    return db.collection("tenants").doc(tenantId).collection("users").doc(userId).set({ rol: "admin" }, { merge: true }).then(function () {
+      var entry = {
+        id: uid("log"), tenantId: tenantId, fecha: nowISO(), usuario: "Soporte BIOsoft", rol: "superadmin",
+        accion: "PROMOTE_USER_ADMIN", entidad: "usuario", entidadId: userId,
+        detalle: "Le dio también el rol de Administrador a un usuario existente para restablecer el acceso del laboratorio."
+      };
+      return db.collection("tenants").doc(tenantId).collection("auditLog").doc(entry.id).set(entry);
+    });
+  }
+
   /* Al recargar la página, sessionStorage conserva la sesión pero realCache
      se pierde (es memoria, no disco). Espera a que Firebase confirme que la
      sesión de Auth sigue viva y vuelve a poblar realCache sin pedir clave. */
@@ -1073,7 +1092,7 @@
     restoreRealtime: restoreRealtime,
     restoreSuperadminSession: restoreSuperadminSession,
     crm: { list: crmList, watch: crmWatch, create: crmCreate, update: crmUpdate },
-    tenantsGlobal: { list: tenantsListGlobal, watch: tenantsWatchGlobal, listUsuarios: listUsuariosTenantOnce },
+    tenantsGlobal: { list: tenantsListGlobal, watch: tenantsWatchGlobal, listUsuarios: listUsuariosTenantOnce, promoverUsuarioAAdmin: promoverUsuarioAAdmin },
     plantillas: { list: plantillasList, watch: plantillasWatch, create: plantillasCreate, update: plantillasUpdate, remove: plantillasDelete },
     qc: {
       listControles: listQCControles, getControl: getQCControl, createControl: createQCControl, updateControl: updateQCControl,
