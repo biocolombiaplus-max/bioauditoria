@@ -284,7 +284,7 @@
     wrap.querySelectorAll("[data-reset]").forEach(function (btn) {
       btn.addEventListener("click", function () {
         C.clearOverride(tenant, examId, btn.dataset.reset);
-        S.saveTenant(tenant);
+        S.updateTenant(tenant.id, { refOverrides: tenant.refOverrides || {} });
         S.addAudit(session.tenantId, session.nombre, session.rol, "RESET_REF_RANGE", "catalogo", examId + ":" + btn.dataset.reset, "Restableció el valor de referencia de fábrica de " + btn.dataset.reset + " en " + exCat.nombre + ".");
         U.toast("Restablecido a valores de fábrica.", "success");
         U.closeModal(wrap);
@@ -320,7 +320,7 @@
           cambios++;
         }
       });
-      S.saveTenant(tenant);
+      S.updateTenant(tenant.id, { refOverrides: tenant.refOverrides || {} });
       S.addAudit(session.tenantId, session.nombre, session.rol, "UPDATE_REF_RANGE", "catalogo", examId, "Actualizó valores de referencia de " + exCat.nombre + " (" + cambios + " parámetro(s) personalizado(s)).");
       U.toast("Valores de referencia guardados para tu laboratorio.", "success");
       U.closeModal(wrap);
@@ -467,7 +467,16 @@
         S.addAudit(session.tenantId, session.nombre, session.rol, "CHANGE_ADMIN_PASSWORD", "laboratorio", tenant.id, "Cambió la clave de administrador del laboratorio.");
       }
 
-      S.saveTenant(tenant);
+      var patch = {
+        nombre: tenant.nombre, nit: tenant.nit, pais: tenant.pais, direccion: tenant.direccion,
+        telefonos: tenant.telefonos, email: tenant.email, sitioWeb: tenant.sitioWeb,
+        resolucionHabilitacion: tenant.resolucionHabilitacion, codigoREPS: tenant.codigoREPS, nivel: tenant.nivel,
+        bacteriologoResponsable: tenant.bacteriologoResponsable,
+        colorPrimario: tenant.colorPrimario, colorSecundario: tenant.colorSecundario, colorTextoMenu: tenant.colorTextoMenu,
+        colorTitulos: tenant.colorTitulos, colorSubtitulos: tenant.colorSubtitulos, logoDataUrl: tenant.logoDataUrl
+      };
+      if (claveNueva) patch.claveAdmin = tenant.claveAdmin;
+      S.updateTenant(tenant.id, patch);
       S.addAudit(session.tenantId, session.nombre, session.rol, "CONFIG_CHANGE", "laboratorio", tenant.id, "Actualizó la configuración e identidad visual del laboratorio.");
       BIO_UI.applyTenantTheme(tenant);
       BIO_ROUTER.renderShell();
@@ -605,8 +614,8 @@
         btnCorregirRif.addEventListener("click", function () {
           btnCorregirRif.disabled = true;
           tenantsVEconRifSinFormato.forEach(function (t) {
-            t.nit = C.normalizarDocumentoTributario(t.nit, "VE");
-            S.saveTenant(t);
+            var nitCorregido = C.normalizarDocumentoTributario(t.nit, "VE");
+            S.updateTenant(t.id, { nit: nitCorregido });
           });
           U.toast(tenantsVEconRifSinFormato.length + " laboratorio(s) de Venezuela corregido(s) al formato RIF (V-…).", "success");
           cargar();
@@ -707,7 +716,12 @@
         tenant.suspendido = quedaSuspendido;
         if (quedaSuspendido && !estabaSuspendido) tenant.fechaSuspension = new Date().toISOString().slice(0, 10);
         if (!quedaSuspendido) tenant.fechaSuspension = null;
-        S.saveTenant(tenant);
+        S.updateTenant(tenant.id, {
+          planId: tenant.planId, maxUsuarios: tenant.maxUsuarios, fechaInicioPlan: tenant.fechaInicioPlan,
+          fechaProximoPago: tenant.fechaProximoPago, cicloCobroDias: tenant.cicloCobroDias,
+          mesesMembresiaGratis: tenant.mesesMembresiaGratis, mesesCortesia: tenant.mesesCortesia,
+          suspendido: tenant.suspendido, fechaSuspension: tenant.fechaSuspension
+        });
         U.toast("Plan actualizado.", "success");
         U.closeModal(wrap);
       });
@@ -746,7 +760,10 @@
         tenant.telefonoFijo = g("telefonoFijo");
         tenant.email = g("email");
         tenant.contactoNombre = g("contactoNombre");
-        S.saveTenant(tenant);
+        S.updateTenant(tenant.id, {
+          nombre: tenant.nombre, nit: tenant.nit, pais: tenant.pais, direccion: tenant.direccion,
+          telefonos: tenant.telefonos, telefonoFijo: tenant.telefonoFijo, email: tenant.email, contactoNombre: tenant.contactoNombre
+        });
         U.toast("Datos actualizados. Ya puedes volver a generar el contrato.", "success");
         U.closeModal(wrap);
       });
@@ -880,7 +897,12 @@
           tenant.cicloCobroDias = cicloElegido;
           tenant.mesesCortesia = mesesCortesiaElegidos || null;
           if (modalidadElegida === "semestral") tenant.mesesMembresiaGratis = mesesElegidos;
-          S.saveTenant(tenant);
+          var patchContrato = {
+            fechaInicioPlan: tenant.fechaInicioPlan, fechaProximoPago: tenant.fechaProximoPago,
+            modalidadPago: tenant.modalidadPago, cicloCobroDias: tenant.cicloCobroDias, mesesCortesia: tenant.mesesCortesia
+          };
+          if (modalidadElegida === "semestral") patchContrato.mesesMembresiaGratis = tenant.mesesMembresiaGratis;
+          S.updateTenant(tenant.id, patchContrato);
           var asunto = "Contrato de Servicios — BIOsoft (" + plan.nombre + ")";
           var cuerpo = msg + "\n\n(Adjunte el archivo PDF que se acaba de descargar a su equipo)";
           wrap.querySelector("#con-step2").classList.remove("hidden");

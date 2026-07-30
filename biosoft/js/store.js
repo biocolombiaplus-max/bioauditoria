@@ -35,6 +35,14 @@
     if (MODE !== "real") return;
     global.BIO_FB.db.collection("tenants").doc(tenant.id).set(tenant).catch(function (e) { console.error("BIOsoft Firestore write error (tenant):", e); });
   }
+  /* Escribe SOLO los campos de patch (merge), en vez de reemplazar el
+     documento completo. Evita que una foto en memoria desactualizada del
+     tenant (tomada antes de un cambio concurrente en otra sesión/pestaña)
+     borre por accidente datos que ya estaban guardados en Firestore. */
+  function fbUpdateTenant(tenantId, patch) {
+    if (MODE !== "real") return;
+    global.BIO_FB.db.collection("tenants").doc(tenantId).set(patch, { merge: true }).catch(function (e) { console.error("BIOsoft Firestore update error (tenant):", e); });
+  }
 
   function onRealtimeChange(cb) { onRealtimeChangeCb = cb; }
 
@@ -578,6 +586,20 @@
     saveDB(db);
     fbWriteTenant(tenant);
   }
+  /* Actualiza SOLO los campos indicados en patch, tanto en la copia local
+     (localStorage/realCache) como en Firestore (merge, sin reemplazar el
+     documento). Úsala siempre que solo se estén editando algunos campos de
+     un tenant ya existente, para no arriesgarse a borrar datos guardados
+     por otra sesión/pestaña mientras esta tenía una copia desactualizada. */
+  function updateTenant(tenantId, patch) {
+    var db = loadDB();
+    var actual = db.tenants[tenantId] || { id: tenantId };
+    var actualizado = Object.assign({}, actual, patch, { id: tenantId });
+    db.tenants[tenantId] = actualizado;
+    saveDB(db);
+    fbUpdateTenant(tenantId, patch);
+    return actualizado;
+  }
   function createTenant(data) {
     var db = loadDB();
     var id = uid("lab");
@@ -1025,6 +1047,7 @@
     listTenants: listTenants,
     getTenant: getTenant,
     saveTenant: saveTenant,
+    updateTenant: updateTenant,
     createTenant: createTenant,
     listUsers: listUsers,
     findUser: findUser,
