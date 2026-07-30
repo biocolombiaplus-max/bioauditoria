@@ -1031,7 +1031,7 @@
       U.toast("Buscando el usuario administrador…", "success");
       S.tenantsGlobal.listUsuarios(tenant.id).then(function (usuarios) {
         var admin = usuarios.filter(function (u) { return u.rol === "admin"; })[0];
-        if (!admin) { U.toast("Este laboratorio todavía no tiene un usuario administrador.", "error"); return; }
+        if (!admin) { abrirCrearAdministrador(tenant, usuarios.length === 1 ? usuarios[0] : null); return; }
         abrirEnviarMensajeTexto({
           titulo: "🔁 Reenviar acceso a " + U.esc(tenant.nombre),
           descripcion: "Le recordamos al administrador (" + U.esc(admin.nombre || admin.username) + ") el link de ingreso y su usuario. Si no recuerda la contraseña, puedes enviarle de una vez el enlace para crear una nueva.",
@@ -1053,6 +1053,48 @@
         });
       }).catch(function (err) {
         U.toast("No se pudo cargar el usuario administrador: " + (err.message || err), "error");
+      });
+    }
+
+    // Crea un usuario administrador para un laboratorio YA existente que se
+    // quedó sin ninguno (ej. se borró por error, o nunca se creó). No toca
+    // ni reemplaza el documento del laboratorio ni a sus demás usuarios: solo
+    // agrega el usuario nuevo (misma ruta que usa Crear Nuevo Laboratorio,
+    // pero pasando el tenantId existente en vez de crear uno desde cero).
+    function abrirCrearAdministrador(tenant, sugerido) {
+      var wrap = U.openModal(
+        '<h3 class="modal-title">Restablecer Administrador de ' + U.esc(tenant.nombre) + '</h3>' +
+        '<p class="text-muted" style="margin-top:0">Este laboratorio no tiene ningún usuario con rol de administrador. Crea uno para restablecer el acceso — si en este laboratorio solo hay una persona, puede ser la misma que ya usa el sistema como ' + U.esc(C.rolLabel("bacteriologo", tenant.pais)) + ', usando su correo personal como usuario de ingreso.</p>' +
+        '<form id="crear-admin-form"><div class="form-grid">' +
+          F.inp("nombre", "Nombre completo", (sugerido && sugerido.nombre) || "", true) +
+          F.inp("user", "Correo electrónico (usuario de ingreso)", "", true, "email") +
+          F.inp("pass", "Contraseña (mínimo 6 caracteres)", "", true) +
+        "</div>" +
+        '<div class="flex gap-2 justify-between" style="margin-top:6px"><button type="button" class="btn btn-ghost" data-modal-close>Cancelar</button><button type="submit" class="btn btn-primary">' + U.icon("check") + " Crear Administrador</button></div>" +
+        "</form>"
+      );
+      wrap.querySelector("#crear-admin-form").addEventListener("submit", function (e) {
+        e.preventDefault();
+        var g = function (id) { return wrap.querySelector("#f_" + id).value.trim(); };
+        if (!g("nombre") || !g("user") || !g("pass")) { U.toast("Completa todos los campos.", "error"); return; }
+        if (g("user").indexOf("@") === -1) { U.toast("El usuario debe ser un correo electrónico válido.", "error"); return; }
+        if (g("pass").length < 6) { U.toast("La contraseña debe tener al menos 6 caracteres.", "error"); return; }
+        var submitBtn = wrap.querySelector('button[type="submit"]');
+        submitBtn.disabled = true; submitBtn.textContent = "Creando…";
+        S.provisionRealAccount({
+          tenantId: tenant.id,
+          userData: { username: g("user"), password: g("pass"), nombre: g("nombre"), rol: "admin", secciones: [] }
+        }).then(function () {
+          U.toast("Administrador creado. Ya puede ingresar con ese correo y esa contraseña.", "success");
+          U.closeModal(wrap);
+          cargar();
+        }).catch(function (err) {
+          submitBtn.disabled = false; submitBtn.textContent = "Crear Administrador";
+          var msg = (err && err.code === "auth/email-already-in-use")
+            ? "Ese correo ya tiene una cuenta en el sistema (por ejemplo, ya existe como " + C.rolLabel("bacteriologo", tenant.pais) + "). Usa un correo distinto, o pide que esa persona inicie sesión y luego edita su rol a Administrador desde Usuarios del Laboratorio."
+            : (err && err.message) || "No se pudo crear el administrador.";
+          U.toast(msg, "error");
+        });
       });
     }
 
