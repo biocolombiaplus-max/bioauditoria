@@ -603,13 +603,22 @@
         '<div class="flex gap-2 justify-between" style="margin-top:6px"><button type="button" class="btn btn-ghost" data-modal-close>Cancelar</button><button type="submit" class="btn btn-primary">' + U.icon("check") + " Guardar</button></div>" +
         "</form>", { lg: true }
       );
+      function actualizarLabelNit() {
+        var pais = wrap.querySelector("#f_labPais").value;
+        var input = wrap.querySelector("#f_labNit");
+        var label = input.parentElement.querySelector("label");
+        if (label) label.textContent = C.documentoTributarioLabel(pais);
+        input.placeholder = pais === "VE" ? "V-12345678" : "";
+      }
+      actualizarLabelNit();
+      wrap.querySelector("#f_labPais").addEventListener("change", actualizarLabelNit);
       wrap.querySelector("#crm-form").addEventListener("submit", function (e) {
         e.preventDefault();
         var g = function (id) { return wrap.querySelector("#f_" + id).value.trim(); };
         var secciones = Array.prototype.slice.call(wrap.querySelectorAll("[data-seccion]:checked")).map(function (c) { return c.dataset.seccion; });
         if (!g("labNombre") || !g("contNombre")) { U.toast("Completa al menos el nombre del laboratorio y del contacto.", "error"); return; }
         var data = {
-          laboratorio: { nombre: g("labNombre"), nit: g("labNit"), ciudad: g("labCiudad"), pais: g("labPais") },
+          laboratorio: { nombre: g("labNombre"), nit: C.normalizarDocumentoTributario(g("labNit"), g("labPais")), ciudad: g("labCiudad"), pais: g("labPais") },
           contacto: { nombre: g("contNombre"), cargo: g("contCargo"), whatsapp: g("contWhatsapp"), correo: g("contCorreo") },
           planId: wrap.querySelector("#f_plan").value,
           estado: wrap.querySelector("#f_estado").value,

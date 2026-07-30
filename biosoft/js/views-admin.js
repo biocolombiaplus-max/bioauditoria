@@ -4,6 +4,17 @@
   window.BIO_VIEWS = window.BIO_VIEWS || {};
   var U = BIO_UI, S = BIO_STORE, C = BIO_CATALOG, F = window.BIO_formHelpers;
 
+  // El nombre del identificador tributario (NIT/RIF/RUC) cambia según el
+  // país elegido en el formulario — actualiza la etiqueta del campo y su
+  // placeholder (ej. "V-12345678" para Venezuela) en vivo.
+  function actualizarLabelDocumento(wrap, paisFieldId, nitFieldId) {
+    var pais = wrap.querySelector("#f_" + paisFieldId).value;
+    var input = wrap.querySelector("#f_" + nitFieldId);
+    var label = input.parentElement.querySelector("label");
+    if (label) label.textContent = C.documentoTributarioLabel(pais);
+    input.placeholder = pais === "VE" ? "V-12345678" : "";
+  }
+
   // ------------------------------------------------------------------
   // USUARIOS
   // ------------------------------------------------------------------
@@ -340,7 +351,7 @@
           F.sel("pais", "País", ["CO", "VE", "EC"].map(function (p) { return '<option value="' + p + '" ' + (p === tenant.pais ? "selected" : "") + ">" + (p === "CO" ? "Colombia" : p === "VE" ? "Venezuela" : "Ecuador") + "</option>"; }).join("")) +
           F.inp("direccion", "Dirección", tenant.direccion) +
           F.inp("telefonos", "Teléfonos", tenant.telefonos) +
-          F.inp("email", "Correo Electrónico", tenant.email) +
+          F.inp("email", "Correo del Laboratorio (aparece en reportes y documentos)", tenant.email) +
           F.inp("sitioWeb", "Sitio Web", tenant.sitioWeb) +
           F.inp("resolucionHabilitacion", "Resolución de Habilitación", tenant.resolucionHabilitacion) +
           F.inp("codigoREPS", "Código REPS / Registro Sanitario", tenant.codigoREPS) +
@@ -348,6 +359,7 @@
           F.inp("bactNombre", "Bacteriólogo(a) Responsable", tenant.bacteriologoResponsable ? tenant.bacteriologoResponsable.nombre : "") +
           F.inp("bactRegistro", "Registro Profesional", tenant.bacteriologoResponsable ? tenant.bacteriologoResponsable.registro : "") +
         "</div>" +
+        '<p class="text-muted" style="margin:2px 0 14px;font-size:12.5px">💡 El "Correo del Laboratorio" es el que verán los pacientes en los reportes y documentos — puede ser distinto del correo personal con el que cada usuario (administrador, ' + U.esc(C.rolLabel("bacteriologo", tenant.pais)) + ', etc.) inicia sesión. Para cambiar el correo de ingreso de un usuario, ve a "Usuarios del Laboratorio" → Editar.</p>' +
         '<fieldset><legend>Marca e Identidad Visual</legend>' +
         '<div class="form-grid">' +
           '<div class="field"><label>Color Primario</label><input type="color" id="f_colorPrimario" value="' + (tenant.colorPrimario || "#f97316") + '"/></div>' +
@@ -383,6 +395,9 @@
         "</div></fieldset>" +
         '<button type="submit" class="btn btn-primary">' + U.icon("check") + " Guardar Configuración</button>" +
       "</form></div>";
+
+    actualizarLabelDocumento(document, "pais", "nit");
+    document.getElementById("f_pais").addEventListener("change", function () { actualizarLabelDocumento(document, "pais", "nit"); });
 
     document.getElementById("btn-manual-descargar").addEventListener("click", function (e) {
       var btn = e.currentTarget;
@@ -434,7 +449,7 @@
     document.getElementById("cfg-form").addEventListener("submit", function (e) {
       e.preventDefault();
       var g = function (id) { return document.getElementById("f_" + id).value.trim(); };
-      tenant.nombre = g("nombre"); tenant.nit = g("nit"); tenant.pais = g("pais"); tenant.direccion = g("direccion");
+      tenant.nombre = g("nombre"); tenant.nit = C.normalizarDocumentoTributario(g("nit"), g("pais")); tenant.pais = g("pais"); tenant.direccion = g("direccion");
       tenant.telefonos = g("telefonos"); tenant.email = g("email"); tenant.sitioWeb = g("sitioWeb");
       tenant.resolucionHabilitacion = g("resolucionHabilitacion"); tenant.codigoREPS = g("codigoREPS"); tenant.nivel = parseInt(g("nivel"), 10);
       tenant.bacteriologoResponsable = { nombre: g("bactNombre"), registro: g("bactRegistro") };
@@ -552,9 +567,13 @@
 
     function build() {
       if (cargando) { root.innerHTML = '<div class="card"><p class="text-muted">Cargando laboratorios…</p></div>'; return; }
+      var tenantsVEconRifSinFormato = tenants.filter(function (t) { return t.pais === "VE" && t.nit && C.normalizarDocumentoTributario(t.nit, "VE") !== t.nit; });
       root.innerHTML =
         '<div class="card"><div class="card-header"><h3 class="card-title">Laboratorios Cliente (' + tenants.length + ')</h3>' +
-        '<button class="btn btn-primary" id="btn-new-tenant">' + U.icon("plus") + ' Crear Nuevo Laboratorio</button></div>' +
+        '<div class="flex gap-2 wrap">' +
+        (tenantsVEconRifSinFormato.length ? '<button class="btn btn-outline btn-sm" id="btn-corregir-rif" title="Anteponer el prefijo V- a los RIF de Venezuela que aún no lo tienen">🔧 Corregir Formato RIF (' + tenantsVEconRifSinFormato.length + ")</button>" : "") +
+        '<button class="btn btn-primary" id="btn-new-tenant">' + U.icon("plus") + ' Crear Nuevo Laboratorio</button>' +
+        "</div></div>" +
         '<div class="table-wrap"><table><thead><tr><th>Laboratorio</th><th>País</th><th>Plan</th><th>Estado de Pago</th><th>Próximo Pago</th><th>Usuarios</th><th></th></tr></thead><tbody>' +
         (tenants.length ? tenants.map(function (t) {
           var plan = BIO_PLANES.porId(t.planId);
@@ -565,7 +584,7 @@
           var estado = BIO_PLANES.estadoCuenta(t);
           var estadoInfo = BIO_PLANES.ESTADOS_CUENTA[estado];
           var necesitaRecordatorio = estado === "vencido" || estado === "por_vencer";
-          return "<tr><td><b>" + U.esc(t.nombre) + "</b><div class='text-muted' style='font-size:11px'>NIT " + U.esc(t.nit || "—") + "</div></td><td>" + t.pais + "</td>" +
+          return "<tr><td><b>" + U.esc(t.nombre) + "</b><div class='text-muted' style='font-size:11px'>" + U.esc(C.documentoTributarioLabel(t.pais)) + " " + U.esc(t.nit || "—") + "</div></td><td>" + t.pais + "</td>" +
             "<td>" + (plan ? U.esc(plan.nombre) : '<span class="text-muted">Sin asignar</span>') + "</td>" +
             "<td><span class='badge " + estadoInfo.badge + "'>" + estadoInfo.label + "</span>" +
             (necesitaRecordatorio ? ' <button class="btn btn-ghost btn-sm" data-recordar-pago="' + t.id + '" title="Recordar pago por WhatsApp">' + U.icon("send") + "</button>" : "") + "</td>" +
@@ -581,6 +600,18 @@
             "</div></td></tr>";
         }).join("") : '<tr><td colspan="7" class="text-muted">Aún no hay laboratorios cliente creados.</td></tr>') + "</tbody></table></div></div>";
       document.getElementById("btn-new-tenant").addEventListener("click", openNewTenant);
+      var btnCorregirRif = document.getElementById("btn-corregir-rif");
+      if (btnCorregirRif) {
+        btnCorregirRif.addEventListener("click", function () {
+          btnCorregirRif.disabled = true;
+          tenantsVEconRifSinFormato.forEach(function (t) {
+            t.nit = C.normalizarDocumentoTributario(t.nit, "VE");
+            S.saveTenant(t);
+          });
+          U.toast(tenantsVEconRifSinFormato.length + " laboratorio(s) de Venezuela corregido(s) al formato RIF (V-…).", "success");
+          cargar();
+        });
+      }
       root.querySelectorAll("[data-editar-plan]").forEach(function (b) {
         b.addEventListener("click", function () {
           abrirEditarPlan(tenants.filter(function (t) { return t.id === b.dataset.editarPlan; })[0]);
@@ -695,18 +726,20 @@
         F.inp("direccion", "Dirección", tenant.direccion || "") +
         F.inp("telefonos", "Teléfonos (WhatsApp)", tenant.telefonos || "") +
         F.inp("telefonoFijo", "Teléfono Fijo", tenant.telefonoFijo || "") +
-        F.inp("email", "Correo Electrónico", tenant.email || "") +
+        F.inp("email", "Correo del Laboratorio (aparece en reportes y documentos)", tenant.email || "") +
         F.inp("contactoNombre", "Nombre del Contacto", tenant.contactoNombre || "") +
         "</div>" +
         '<div class="flex gap-2 justify-between" style="margin-top:6px"><button type="button" class="btn btn-ghost" data-modal-close>Cancelar</button><button type="submit" class="btn btn-primary">' + U.icon("check") + " Guardar</button></div>" +
         "</form>"
       );
+      actualizarLabelDocumento(wrap, "pais", "nit");
+      wrap.querySelector("#f_pais").addEventListener("change", function () { actualizarLabelDocumento(wrap, "pais", "nit"); });
       wrap.querySelector("#datos-form").addEventListener("submit", function (e) {
         e.preventDefault();
         var g = function (id) { return wrap.querySelector("#f_" + id).value.trim(); };
         if (!g("nombre")) { U.toast("El nombre del laboratorio es obligatorio.", "error"); return; }
         tenant.nombre = g("nombre");
-        tenant.nit = g("nit");
+        tenant.nit = C.normalizarDocumentoTributario(g("nit"), g("pais"));
         tenant.pais = g("pais");
         tenant.direccion = g("direccion");
         tenant.telefonos = g("telefonos");
@@ -1010,13 +1043,16 @@
             F.inp("nombre", "Nombre del Laboratorio", "", true) +
             F.inp("nit", "NIT / RIF / RUC", "") +
             F.sel("pais", "País", ["CO", "VE", "EC"].map(function (p) { return "<option value='" + p + "'>" + (p === "CO" ? "Colombia" : p === "VE" ? "Venezuela" : "Ecuador") + "</option>"; }).join("")) +
-            F.inp("direccion", "Dirección", "") + F.inp("telefonos", "Teléfonos", "") + F.inp("telefonoFijo", "Teléfono Fijo", "") + F.inp("email", "Correo Electrónico", "") +
+            F.inp("direccion", "Dirección", "") + F.inp("telefonos", "Teléfonos", "") + F.inp("telefonoFijo", "Teléfono Fijo", "") +
+            F.inp("email", "Correo del Laboratorio (aparece en reportes y documentos)", "") +
             F.sel("nivel", "Nivel", [1, 2].map(function (n) { return "<option value='" + n + "'>Nivel " + n + "</option>"; }).join("")) +
             F.sel("planId", "Plan Contratado", BIO_PLANES.PLANES.map(function (p) { return "<option value='" + p.id + "'>" + p.nombre + " (" + p.usuarios + ")</option>"; }).join("")) +
           "</div>" +
           '<fieldset><legend>Usuario Administrador Inicial</legend><div class="form-grid">' +
-            F.inp("adminNombre", "Nombre del Administrador", "", true) + F.inp("adminUser", "Correo electrónico (será su usuario)", "", true, "email") + F.inp("adminPass", "Contraseña (mínimo 6 caracteres)", "", true) +
-          "</div></fieldset>" +
+            F.inp("adminNombre", "Nombre del Administrador", "", true) + F.inp("adminUser", "Correo electrónico (será su usuario de ingreso — puede ser su correo personal)", "", true, "email") + F.inp("adminPass", "Contraseña (mínimo 6 caracteres)", "", true) +
+          "</div>" +
+          '<p class="text-muted" style="margin:2px 0 0;font-size:12.5px">💡 El correo de ingreso del administrador puede ser distinto al "Correo del Laboratorio": el de ingreso es personal y privado, mientras que el del laboratorio es el que verán los pacientes en los reportes.</p>' +
+          "</fieldset>" +
           '<fieldset><legend>Facturación</legend><div class="form-grid">' +
             F.sel("tipoContratacion", "Tipo de contratación", "<option value='mensual'>Pago mes a mes (implementación fraccionada)</option><option value='membresia_gratis'>Membresía gratis de una vez (sin implementación)</option>") +
             '<div class="field" id="nt-ciclo-box"><label>Ciclo de cobro (días)</label><input type="number" id="f_cicloCobroDias" min="1" value="30"/></div>' +
@@ -1025,6 +1061,8 @@
           '<div class="flex gap-2 justify-between"><button type="button" class="btn btn-ghost" data-modal-close>Cancelar</button><button type="submit" class="btn btn-primary">' + U.icon("check") + " Crear Laboratorio</button></div>" +
         "</form>", { lg: true }
       );
+      actualizarLabelDocumento(wrap, "pais", "nit");
+      wrap.querySelector("#f_pais").addEventListener("change", function () { actualizarLabelDocumento(wrap, "pais", "nit"); });
       wrap.querySelector("#f_tipoContratacion").addEventListener("change", function () {
         var esMembresia = this.value === "membresia_gratis";
         wrap.querySelector("#nt-ciclo-box").classList.toggle("hidden", esMembresia);
@@ -1033,6 +1071,7 @@
       wrap.querySelector("#tenant-form").addEventListener("submit", function (e) {
         e.preventDefault();
         var g = function (id) { return wrap.querySelector("#f_" + id).value.trim(); };
+        wrap.querySelector("#f_nit").value = C.normalizarDocumentoTributario(g("nit"), g("pais"));
         if (!g("nombre") || !g("adminUser") || !g("adminPass")) { U.toast("Completa los campos obligatorios.", "error"); return; }
         if (g("adminUser").indexOf("@") === -1) { U.toast("El usuario del administrador debe ser un correo electrónico válido.", "error"); return; }
         if (g("adminPass").length < 6) { U.toast("La contraseña debe tener al menos 6 caracteres.", "error"); return; }

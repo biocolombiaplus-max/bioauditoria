@@ -2,6 +2,7 @@
    gasto de reactivos, inventario valorizado y kardex por insumo. */
 (function (global) {
   "use strict";
+  var C = BIO_CATALOG;
 
   function hexToRgb(hex) {
     hex = (hex || "#f97316").replace("#", "");
@@ -22,7 +23,7 @@
     doc.setFont("helvetica", "bold"); doc.setFontSize(15); doc.setTextColor(rgb[0], rgb[1], rgb[2]);
     doc.text(tenant.nombre, margin + (tenant.logoDataUrl ? 56 : 0), y + 10);
     doc.setFont("helvetica", "normal"); doc.setFontSize(8.5); doc.setTextColor(90, 90, 90);
-    var metaLines = ["NIT " + (tenant.nit || "—"), (tenant.direccion || "") + (tenant.telefonos ? " · " + tenant.telefonos : "")];
+    var metaLines = [C.documentoTributarioLabel(tenant.pais) + " " + (tenant.nit || "—"), (tenant.direccion || "") + (tenant.telefonos ? " · " + tenant.telefonos : "")];
     metaLines.forEach(function (line, i) { doc.text(line, margin + (tenant.logoDataUrl ? 56 : 0), y + 22 + i * 10); });
 
     doc.setDrawColor(rgb[0], rgb[1], rgb[2]); doc.setLineWidth(2);

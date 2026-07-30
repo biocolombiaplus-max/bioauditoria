@@ -1,6 +1,7 @@
 /* BIOsoft — Generación de Contrato de Prestación de Servicios y Recibo de Pago (CRM) */
 (function (global) {
   "use strict";
+  var C = BIO_CATALOG;
 
   var PROVEEDOR = {
     nombre: "BioColombia Plus",
@@ -105,7 +106,7 @@
     parrafo(
       "Entre los suscritos, " + PROVEEDOR.nombre + ", identificado con NIT " + PROVEEDOR.nit + ", representado legalmente por " +
       PROVEEDOR.representanteLegal + " (en adelante, “EL PROVEEDOR”), y " + (lab.nombre || "el laboratorio cliente") +
-      (lab.nit ? ", identificado con NIT " + lab.nit : "") + " (en adelante, “EL CLIENTE”), representado por " +
+      (lab.nit ? ", identificado con " + C.documentoTributarioLabel(lab.pais) + " " + lab.nit : "") + " (en adelante, “EL CLIENTE”), representado por " +
       (contacto.nombre || "su representante") + (contacto.cargo ? " (" + contacto.cargo + ")" : "") +
       ", se celebra el presente contrato de prestación de servicios de software, bajo las siguientes cláusulas:"
     );
@@ -178,7 +179,7 @@
     doc.setFont("helvetica", "normal"); doc.setFontSize(8.5); doc.setTextColor(60, 60, 60);
     doc.text(PROVEEDOR.representanteLegal, margin, y); doc.text(contacto.nombre || "—", col2, y);
     y += 12;
-    doc.text(PROVEEDOR.nombre + " · NIT " + PROVEEDOR.nit, margin, y); doc.text((lab.nombre || "—") + (lab.nit ? " · NIT " + lab.nit : ""), col2, y);
+    doc.text(PROVEEDOR.nombre + " · NIT " + PROVEEDOR.nit, margin, y); doc.text((lab.nombre || "—") + (lab.nit ? " · " + C.documentoTributarioLabel(lab.pais) + " " + lab.nit : ""), col2, y);
 
     piePagina(doc, margin);
     return new Uint8Array(doc.output("arraybuffer"));
@@ -202,7 +203,7 @@
     doc.setFont("helvetica", "normal"); doc.setFontSize(9.5); doc.setTextColor(30, 30, 30);
     var rows = [
       ["Fecha de pago:", fechaLarga(pago && pago.fecha ? pago.fecha : new Date())],
-      ["Recibido de:", (lab.nombre || "—") + (lab.nit ? " (NIT " + lab.nit + ")" : "")],
+      ["Recibido de:", (lab.nombre || "—") + (lab.nit ? " (" + C.documentoTributarioLabel(lab.pais) + " " + lab.nit + ")" : "")],
       ["Contacto:", contacto.nombre || "—"],
       ["Concepto:", (pago && pago.concepto ? pago.concepto : "Mensualidad") + " — Plan " + plan.nombre],
       ["Valor pagado:", "$" + (pago && pago.totalFmt ? pago.totalFmt : "—") + " COP (aprox. $" + (pago && pago.totalUSD ? pago.totalUSD : "—") + " USD)"],

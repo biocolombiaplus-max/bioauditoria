@@ -41,7 +41,7 @@
       var header =
         '<div class="report-header"><div>' +
           '<div class="report-lab-name">' + U.esc(tenant.nombre) + '</div>' +
-          '<div class="report-lab-meta">NIT ' + U.esc(tenant.nit) + " · " + U.esc(tenant.direccion) + "<br/>" + U.esc(tenant.telefonos) + " · " + U.esc(tenant.email) + "</div></div>" +
+          '<div class="report-lab-meta">' + U.esc(C.documentoTributarioLabel(tenant.pais)) + " " + U.esc(tenant.nit) + " · " + U.esc(tenant.direccion) + "<br/>" + U.esc(tenant.telefonos) + " · " + U.esc(tenant.email) + "</div></div>" +
           (tenant.logoDataUrl ? '<img src="' + tenant.logoDataUrl + '"/>' : "") +
         "</div>" +
         "<h2 style='margin:14px 0 2px'>Hoja de Trabajo Diaria</h2>" +

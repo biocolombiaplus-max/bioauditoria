@@ -21,6 +21,26 @@
     return mapa[rol] || rol;
   }
 
+  /* El identificador tributario del laboratorio también cambia de nombre
+     según el país (aunque el campo interno siga llamándose "nit" en el
+     modelo de datos, por compatibilidad con los laboratorios ya creados). */
+  var DOCUMENTO_TRIBUTARIO_POR_PAIS = { CO: "NIT", VE: "RIF", EC: "RUC", MX: "RFC", PE: "RUC", AR: "CUIT", BO: "NIT", BR: "CNPJ" };
+  function documentoTributarioLabel(pais) {
+    return DOCUMENTO_TRIBUTARIO_POR_PAIS[pais] || "NIT / RIF / RUC";
+  }
+  /* El RIF venezolano se identifica con un prefijo de letra y guion (V- para
+     persona natural, J- jurídica, E- extranjero, G- gubernamental, P-
+     pasaporte). Si el usuario solo escribió los números, se asume persona
+     natural y se antepone "V-"; si ya trae un prefijo válido, se respeta tal
+     cual (en mayúscula) en vez de sobrescribirlo. */
+  function normalizarDocumentoTributario(valor, pais) {
+    var v = (valor || "").trim();
+    if (pais !== "VE" || !v) return v;
+    if (/^[A-Za-z]-/.test(v)) return v.toUpperCase();
+    var soloDigitos = v.replace(/\D/g, "");
+    return soloDigitos ? "V-" + soloDigitos : v;
+  }
+
   var SECCIONES = [
     { id: "hematologia", nombre: "Hematología", icono: "droplet", emoji: "🩸" },
     { id: "coagulacion", nombre: "Coagulación / Hemostasia", icono: "activity", emoji: "🧬" },
@@ -564,6 +584,8 @@
   global.BIO_CATALOG = {
     PAISES: PAISES,
     rolLabel: rolLabel,
+    documentoTributarioLabel: documentoTributarioLabel,
+    normalizarDocumentoTributario: normalizarDocumentoTributario,
     SECCIONES: SECCIONES,
     TUBOS: TUBOS,
     EXAMENES: EXAMENES,

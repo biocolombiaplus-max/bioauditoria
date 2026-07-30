@@ -26,7 +26,7 @@
     doc.text(tenant.nombre, margin + (tenant.logoDataUrl ? 56 : 0), y + 10);
     doc.setFont("helvetica", "normal"); doc.setFontSize(8.5); doc.setTextColor(90, 90, 90);
     var metaLines = [
-      "NIT " + (tenant.nit || "—"),
+      C.documentoTributarioLabel(tenant.pais) + " " + (tenant.nit || "—"),
       (tenant.direccion || "") + (tenant.telefonos ? " · " + tenant.telefonos : ""),
       tenant.email || ""
     ];
