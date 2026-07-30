@@ -62,7 +62,13 @@ service cloud.firestore {
 
       match /users/{userId} {
         allow read: if esDeEsteLab(tenantId) || esSuperadmin();
-        allow write: if esDeEsteLab(tenantId);
+        // El superadmin del panel de socios ("Restablecer Administrador")
+        // solo puede tocar el campo "rol" de un usuario ya existente (para
+        // darle también el rol de Administrador cuando el laboratorio se
+        // quedó sin ninguno) — no puede cambiar su contraseña, firma,
+        // secciones ni ningún otro dato del usuario.
+        allow write: if esDeEsteLab(tenantId) ||
+          (esSuperadmin() && request.resource.data.diff(resource.data).affectedKeys().hasOnly(["rol"]));
       }
       match /patients/{patientId} {
         allow read: if esDeEsteLab(tenantId) || esSuperadmin();
@@ -73,7 +79,10 @@ service cloud.firestore {
         allow write: if esDeEsteLab(tenantId);
       }
       match /auditLog/{logId} {
-        allow read, create: if esDeEsteLab(tenantId);
+        // El superadmin también puede AGREGAR una entrada (nunca editar ni
+        // borrar) — por ejemplo, al dejar registro de que restableció el
+        // acceso de un laboratorio desde el panel de socios.
+        allow read, create: if esDeEsteLab(tenantId) || esSuperadmin();
         allow update, delete: if false;
       }
       match /qcControles/{controlId} {
