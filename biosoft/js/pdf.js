@@ -53,6 +53,56 @@
     return firmantes;
   }
 
+  /* Las firmas escaneadas/fotografiadas que sube cada bacteriólogo(a) suelen
+     traer bastante espacio en blanco alrededor del trazo real, lo que hace
+     que se vea "flotando" lejos de la línea al imprimirla a un tamaño fijo.
+     Esta función recorta ese margen sobrante (detectando el rectángulo real
+     del trazo) para que la firma quede justo encima de la línea sin importar
+     cómo haya sido tomada la foto original — aplica por igual a las firmas
+     ya cargadas de cualquier cliente y a las que se suban de ahora en adelante. */
+  function recortarFirma(dataUrl) {
+    return new Promise(function (resolve) {
+      if (!dataUrl) { resolve(null); return; }
+      var img = new Image();
+      img.onload = function () {
+        try {
+          var canvas = document.createElement("canvas");
+          canvas.width = img.naturalWidth; canvas.height = img.naturalHeight;
+          var ctx = canvas.getContext("2d");
+          ctx.drawImage(img, 0, 0);
+          var data = ctx.getImageData(0, 0, canvas.width, canvas.height).data;
+          var step = Math.max(1, Math.round(Math.sqrt((canvas.width * canvas.height) / 500000)));
+          var minX = canvas.width, minY = canvas.height, maxX = 0, maxY = 0, encontrado = false;
+          for (var yy = 0; yy < canvas.height; yy += step) {
+            for (var xx = 0; xx < canvas.width; xx += step) {
+              var idx = (yy * canvas.width + xx) * 4;
+              if (data[idx + 3] < 12) continue;
+              if (data[idx] > 245 && data[idx + 1] > 245 && data[idx + 2] > 245) continue;
+              encontrado = true;
+              if (xx < minX) minX = xx;
+              if (xx > maxX) maxX = xx;
+              if (yy < minY) minY = yy;
+              if (yy > maxY) maxY = yy;
+            }
+          }
+          if (!encontrado) { resolve({ url: dataUrl, w: canvas.width, h: canvas.height }); return; }
+          var pad = Math.max(2, Math.round(canvas.width * 0.015));
+          minX = Math.max(0, minX - pad); minY = Math.max(0, minY - pad);
+          maxX = Math.min(canvas.width - 1, maxX + pad); maxY = Math.min(canvas.height - 1, maxY + pad);
+          var w = maxX - minX + 1, h = maxY - minY + 1;
+          var out = document.createElement("canvas");
+          out.width = w; out.height = h;
+          out.getContext("2d").drawImage(canvas, minX, minY, w, h, 0, 0, w, h);
+          resolve({ url: out.toDataURL("image/png"), w: w, h: h });
+        } catch (e) {
+          resolve({ url: dataUrl, w: img.naturalWidth || 200, h: img.naturalHeight || 80 });
+        }
+      };
+      img.onerror = function () { resolve({ url: dataUrl, w: 200, h: 80 }); };
+      img.src = dataUrl;
+    });
+  }
+
   async function buildResultadosPDF(order, patient, tenant, modo) {
     var jsPDFCtor = window.jspdf ? window.jspdf.jsPDF : window.jsPDF;
     var doc = new jsPDFCtor({ unit: "pt", format: "letter" });
@@ -179,18 +229,31 @@
     }
 
     var firmantes = firmantesDe(order, tenant, examsToShow);
-    var signBlockTop = y;
-    firmantes.forEach(function (f) {
-      if (y > 700) { doc.addPage(); y = margin; signBlockTop = y; }
-      if (f.firmaDataUrl) { try { doc.addImage(f.firmaDataUrl, "PNG", margin, y - 30, 110, 38); } catch (e) {} }
-      doc.setDrawColor(180, 180, 180); doc.line(margin, y + 10, margin + 190, y + 10);
+    var lineW = 190;
+    for (var fi = 0; fi < firmantes.length; fi++) {
+      var f = firmantes[fi];
+      if (y > 700) { doc.addPage(); y = margin; }
+      if (f.firmaDataUrl) {
+        try {
+          var recorte = await recortarFirma(f.firmaDataUrl);
+          var maxW = 150, maxH = 40;
+          var escala = Math.min(maxW / recorte.w, maxH / recorte.h, 1);
+          var dw = recorte.w * escala, dh = recorte.h * escala;
+          // Se centra sobre el segmento de la línea y su base queda apenas
+          // encima de ella, para que la firma se vea apoyada sobre la línea
+          // sin importar cuánto margen en blanco traiga la imagen original.
+          doc.addImage(recorte.url, "PNG", margin + (lineW - dw) / 2, y + 8 - dh, dw, dh);
+        } catch (e) {}
+      }
+      doc.setDrawColor(180, 180, 180); doc.line(margin, y + 10, margin + lineW, y + 10);
       doc.setFont("helvetica", "bold"); doc.setFontSize(9); doc.setTextColor(20, 20, 20);
       doc.text(f.nombre, margin, y + 22);
       doc.setFont("helvetica", "normal"); doc.setFontSize(8); doc.setTextColor(90, 90, 90);
       doc.text(f.registroProfesional ? "Registro Profesional: " + f.registroProfesional : "", margin, y + 33);
       doc.text("Bacteriólogo(a) y Laboratorista Clínico", margin, y + 44);
       y += 62;
-    });
+    }
+    var signBlockBottom = y;
 
     try {
       var qrTexto = "BIOsoft | Documento validado electrónicamente\n" +
@@ -200,7 +263,12 @@
       var qrDataUrl = buildQrDataUrl(qrTexto, 220);
       var qrSize = 58;
       var qrX = pageW - margin - qrSize;
-      var qrY = signBlockTop - 34;
+      // El QR se ubica como una insignia de verificación en la esquina
+      // inferior derecha, siempre POR DEBAJO de las firmas (nunca antes),
+      // para que no tape ninguna información previa; si el bloque de firmas
+      // llega muy abajo, se corre aún más abajo o pasa a una página nueva.
+      var qrY = Math.max(signBlockBottom + 14, 690 - qrSize);
+      if (qrY + qrSize + 20 > 760) { doc.addPage(); qrY = margin + 10; }
       doc.addImage(qrDataUrl, "PNG", qrX, qrY, qrSize, qrSize);
       doc.setDrawColor(210, 210, 210); doc.setLineWidth(0.6); doc.rect(qrX - 2, qrY - 2, qrSize + 4, qrSize + 4);
       doc.setFont("helvetica", "bold"); doc.setFontSize(6.3); doc.setTextColor(120, 120, 120);
