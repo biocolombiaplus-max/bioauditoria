@@ -206,7 +206,24 @@
           }
         }
       });
-      y = doc.lastAutoTable.finalY + 18;
+      y = doc.lastAutoTable.finalY + 10;
+
+      // Las observaciones que el bacteriólogo(a) escribió en cada examen al
+      // validarlo (ej. "muestra tomada por sonda urinaria") también deben
+      // salir en el reporte que recibe el paciente, no solo en la pantalla.
+      var obsExams = bySeccion[seccionId].filter(function (ex) { return ex.observaciones; });
+      if (obsExams.length) {
+        doc.setFont("helvetica", "italic"); doc.setFontSize(8); doc.setTextColor(80, 80, 80);
+        obsExams.forEach(function (ex) {
+          var exCat = C.examenEfectivo(ex.examId, tenant);
+          var texto = (obsExams.length > 1 ? exCat.nombre + " — " : "") + "Observaciones: " + ex.observaciones;
+          var lineas = doc.splitTextToSize(texto, pageW - margin * 2);
+          if (y + lineas.length * 10 > 750) { doc.addPage(); y = margin; }
+          doc.text(lineas, margin, y);
+          y += lineas.length * 10 + 3;
+        });
+      }
+      y += 8;
     });
 
     if (referidos.length) {
