@@ -230,6 +230,11 @@
 
     var firmantes = firmantesDe(order, tenant, examsToShow);
     var lineW = 190;
+    // Espacio de seguridad antes de la primera firma: la imagen recortada
+    // puede medir hasta maxH=40pt de alto y se dibuja con su base apenas
+    // encima de la línea, así que sin este respiro adicional podía llegar a
+    // montarse sobre la tabla de resultados justo arriba.
+    y += 24;
     for (var fi = 0; fi < firmantes.length; fi++) {
       var f = firmantes[fi];
       if (y > 700) { doc.addPage(); y = margin; }
