@@ -880,6 +880,15 @@
     fbWrite("cotizaciones", c.id, c);
     return c;
   }
+  function updateCotizacion(id, patch) {
+    var db = loadDB();
+    var c = db.cotizaciones.filter(function (x) { return x.id === id; })[0];
+    if (!c) return null;
+    Object.assign(c, patch);
+    saveDB(db);
+    fbWrite("cotizaciones", c.id, c);
+    return c;
+  }
 
   // ---------------------------------------------------------------------
   // MARKETING DIGITAL — reglas de remarketing (recall clínico) y registro de
@@ -1100,7 +1109,7 @@
     },
     cotizador: {
       listPrecios: listPrecios, setPrecio: setPrecio, bulkSetPrecios: bulkSetPrecios,
-      listCotizaciones: listCotizaciones, createCotizacion: createCotizacion,
+      listCotizaciones: listCotizaciones, createCotizacion: createCotizacion, updateCotizacion: updateCotizacion,
       listExamenesPersonalizados: listExamenesPersonalizados, bulkUpsertExamenesPersonalizados: bulkUpsertExamenesPersonalizados
     },
     remarketing: {

@@ -411,14 +411,100 @@
     // ---------------------------------------------------------------------
     // HISTORIAL
     // ---------------------------------------------------------------------
+    var METODO_PAGO_LABEL = { efectivo: "Efectivo", transferencia: "Transferencia", tarjeta: "Tarjeta Débito/Crédito", otro: "Otro" };
+
+    // Resumen de ventas por vendedor (control estilo CRM) — útil para
+    // laboratorios con equipo comercial, para saber quién cerró cada venta.
+    // Se calcula al vuelo a partir de las cotizaciones ya pagadas, sin
+    // necesidad de un reporte aparte.
+    function buildResumenVendedoresHtml() {
+      var pagadas = cotizaciones.filter(function (c) { return c.estado === "pagada"; });
+      if (!pagadas.length) return "";
+      var porVendedor = {};
+      pagadas.forEach(function (c) {
+        var nombre = (c.pago && c.pago.vendedorNombre) || "Sin asignar";
+        porVendedor[nombre] = porVendedor[nombre] || { ventas: 0, total: 0 };
+        porVendedor[nombre].ventas++;
+        porVendedor[nombre].total += (c.pago && c.pago.monto != null) ? c.pago.monto : c.total;
+      });
+      var filas = Object.keys(porVendedor).map(function (nombre) {
+        return { nombre: nombre, ventas: porVendedor[nombre].ventas, total: porVendedor[nombre].total };
+      }).sort(function (a, b) { return b.total - a.total; });
+      return '<div class="card" style="margin:14px 0;background:var(--bg-soft, #f8fafc)"><h4 style="margin:0 0 8px;font-size:13.5px">📊 Ventas por Vendedor (histórico)</h4>' +
+        '<div class="table-wrap"><table><thead><tr><th>Vendedor</th><th>Ventas</th><th>Monto Total</th></tr></thead><tbody>' +
+        filas.map(function (f) { return "<tr><td>" + U.esc(f.nombre) + "</td><td>" + f.ventas + "</td><td><b>" + fmtMoneda(f.total) + "</b></td></tr>"; }).join("") +
+        "</tbody></table></div></div>";
+    }
+
     function buildHistorialHtml() {
       if (!cotizaciones.length) return '<p class="text-muted" style="margin-top:14px">Aún no has generado ninguna cotización.</p>';
-      return '<div class="table-wrap" style="margin-top:14px"><table><thead><tr><th>Fecha</th><th>Cliente</th><th># Exámenes</th><th>Total</th><th></th></tr></thead><tbody>' +
+      return buildResumenVendedoresHtml() +
+        '<div class="table-wrap" style="margin-top:14px"><table><thead><tr><th>Fecha</th><th>Cliente</th><th># Exámenes</th><th>Total</th><th>Estado</th><th></th></tr></thead><tbody>' +
         cotizaciones.map(function (c) {
           var cliente = c.cliente || {};
+          var pagada = c.estado === "pagada";
           return "<tr><td>" + fmtFechaCorta(c.creadoEn) + "</td><td>" + U.esc(cliente.nombre || "—") + "</td><td>" + c.examenes.length + "</td><td>" + fmtMoneda(c.total) + "</td>" +
-            "<td><button class='btn btn-outline btn-sm' data-redescargar='" + c.id + "'>" + U.icon("download") + " Descargar</button></td></tr>";
+            "<td>" + (pagada ? '<span class="badge badge-validado">Pagada</span>' : '<span class="badge badge-pendiente">Pendiente de pago</span>') + "</td>" +
+            "<td><div class='flex gap-2 wrap'>" +
+            "<button class='btn btn-ghost btn-sm' data-redescargar='" + c.id + "'>" + U.icon("download") + " Cotización</button>" +
+            (pagada
+              ? "<button class='btn btn-outline btn-sm' data-descargar-recibo='" + c.id + "'>" + U.icon("download") + " Recibo</button>" +
+                "<button class='btn btn-primary btn-sm' data-enviar-recibo='" + c.id + "'>" + U.icon("send") + " Enviar Recibo</button>"
+              : "<button class='btn btn-primary btn-sm' data-registrar-pago='" + c.id + "'>" + U.icon("check") + " Registrar Pago</button>") +
+            "</div></td></tr>";
         }).join("") + "</tbody></table></div>";
+    }
+
+    function abrirRegistrarPago(cot) {
+      var tenant = S.getTenant(tenantId);
+      var usuarios = S.listUsers(tenantId).filter(function (u) { return u.activo; });
+      var hoy = new Date().toISOString().slice(0, 10);
+      var wrap = U.openModal(
+        '<h3 class="modal-title">Registrar Pago — ' + fmtMoneda(cot.total) + '</h3>' +
+        '<p class="text-muted" style="margin-top:0">Cliente: ' + U.esc((cot.cliente && cot.cliente.nombre) || "—") + '</p>' +
+        '<form id="pago-form"><div class="form-grid">' +
+        '<div class="field"><label>Monto Pagado</label><input type="number" step="any" min="0" id="f_monto" value="' + cot.total + '" required/></div>' +
+        '<div class="field"><label>Método de Pago</label><select id="f_metodoPago">' +
+        Object.keys(METODO_PAGO_LABEL).map(function (k) { return '<option value="' + k + '">' + METODO_PAGO_LABEL[k] + "</option>"; }).join("") +
+        "</select></div>" +
+        '<div class="field"><label>Fecha de Pago</label><input type="date" id="f_fechaPago" value="' + hoy + '"/></div>' +
+        '<div class="field"><label>Atendido por (vendedor)</label><select id="f_vendedor">' +
+        (usuarios.length ? usuarios.map(function (u) { return '<option value="' + U.esc(u.nombre) + '" ' + (u.nombre === session.nombre ? "selected" : "") + ">" + U.esc(u.nombre) + "</option>"; }).join("") : '<option value="' + U.esc(session.nombre) + '">' + U.esc(session.nombre) + "</option>") +
+        "</select></div>" +
+        "</div>" +
+        '<div class="flex gap-2 justify-between" style="margin-top:6px"><button type="button" class="btn btn-ghost" data-modal-close>Cancelar</button><button type="submit" class="btn btn-primary">' + U.icon("check") + " Registrar Pago</button></div>" +
+        "</form>"
+      );
+      wrap.querySelector("#pago-form").addEventListener("submit", function (e) {
+        e.preventDefault();
+        var monto = parseFloat(wrap.querySelector("#f_monto").value) || 0;
+        var metodoPago = wrap.querySelector("#f_metodoPago").value;
+        var fechaPago = wrap.querySelector("#f_fechaPago").value || hoy;
+        var vendedorNombre = wrap.querySelector("#f_vendedor").value;
+        S.cotizador.updateCotizacion(cot.id, { estado: "pagada", pago: { fecha: fechaPago, monto: monto, metodoPago: metodoPago, vendedorNombre: vendedorNombre } });
+        S.addAudit(session.tenantId, session.nombre, session.rol, "REGISTRAR_PAGO_COTIZACION", "cotizacion", cot.id, "Registró el pago de la cotización de " + ((cot.cliente && cot.cliente.nombre) || "un cliente") + " por " + fmtMoneda(monto) + " (atendido por " + vendedorNombre + ").");
+        U.toast("Pago registrado. Ya puedes enviar el recibo.", "success");
+        U.closeModal(wrap);
+        cargar();
+      });
+    }
+
+    function abrirEnviarRecibo(cot) {
+      var tenant = S.getTenant(tenantId);
+      var cliente = cot.cliente || {};
+      var bytes = BIO_PDF_RECIBO_COTIZACION.buildReciboCotizacionPDF(cot, tenant);
+      U.downloadBytes(bytes, "Recibo_" + (cliente.nombre || "Cliente").replace(/\s+/g, "_") + ".pdf");
+      var mensaje = "Hola " + (cliente.nombre ? cliente.nombre.split(" ")[0] : "") + " 👋 Adjunto el recibo de pago de tu compra en " + tenant.nombre + " por " + fmtMoneda((cot.pago && cot.pago.monto) || cot.total) + ". ¡Gracias por tu confianza! Cualquier duda, quedamos atentos.";
+      U.toast("Recibo generado y descargado.", "success");
+      var wrap = U.openModal(
+        '<h3 class="modal-title">Recibo listo</h3>' +
+        '<p class="text-muted" style="margin-top:0">Ya se descargó el PDF. Adjúntalo antes de enviar por el canal que elijas.</p>' +
+        '<button class="btn btn-whatsapp btn-block" id="rec-send-wa">' + U.icon("send") + " Enviar por WhatsApp</button>" +
+        (cliente.correo ? U.emailProviderButtonsHtml("rec-mail") : "") +
+        '<div class="flex justify-between" style="margin-top:16px"><button class="btn btn-ghost" data-modal-close>Cerrar</button></div>'
+      );
+      wrap.querySelector("#rec-send-wa").addEventListener("click", function () { window.open(waLinkTo(cliente.whatsapp, mensaje), "_blank"); });
+      if (cliente.correo) U.wireEmailProviderButtons(wrap, "rec-mail", cliente.correo, "Recibo de pago — " + tenant.nombre, mensaje);
     }
 
     function wireHistorial() {
@@ -429,6 +515,20 @@
           var bytes = BIO_PDF_COTIZACION.buildCotizacionPDF(cot, tenant);
           U.downloadBytes(bytes, "Cotizacion_" + ((cot.cliente && cot.cliente.nombre) || "Cliente").replace(/\s+/g, "_") + ".pdf");
         });
+      });
+      root.querySelectorAll("[data-registrar-pago]").forEach(function (b) {
+        b.addEventListener("click", function () { abrirRegistrarPago(cotizaciones.filter(function (c) { return c.id === b.dataset.registrarPago; })[0]); });
+      });
+      root.querySelectorAll("[data-descargar-recibo]").forEach(function (b) {
+        b.addEventListener("click", function () {
+          var cot = cotizaciones.filter(function (c) { return c.id === b.dataset.descargarRecibo; })[0];
+          var tenant = S.getTenant(tenantId);
+          var bytes = BIO_PDF_RECIBO_COTIZACION.buildReciboCotizacionPDF(cot, tenant);
+          U.downloadBytes(bytes, "Recibo_" + ((cot.cliente && cot.cliente.nombre) || "Cliente").replace(/\s+/g, "_") + ".pdf");
+        });
+      });
+      root.querySelectorAll("[data-enviar-recibo]").forEach(function (b) {
+        b.addEventListener("click", function () { abrirEnviarRecibo(cotizaciones.filter(function (c) { return c.id === b.dataset.enviarRecibo; })[0]); });
       });
     }
 
