@@ -5,6 +5,7 @@
   window.BIO_VIEWS = window.BIO_VIEWS || {};
   var U = BIO_UI, S = BIO_STORE, C = BIO_CATALOG;
   var WA_NUMBER_GENERICO = "573505457420";
+  var METODO_PAGO_LABEL = { efectivo: "Efectivo", transferencia: "Transferencia", tarjeta: "Tarjeta Débito/Crédito", otro: "Otro" };
 
   function waLinkTo(numero, mensaje) {
     var n = (numero || "").replace(/\D/g, "");
@@ -60,102 +61,120 @@
         '<div class="card"><div class="card-header"><h3 class="card-title">Cotizador de Exámenes</h3>' +
         '<div class="crm-view-toggle">' +
         '<button type="button" class="' + (vista === "nueva" ? "active" : "") + '" data-vista="nueva">🧾 Nueva Cotización</button>' +
+        '<button type="button" class="' + (vista === "recibo" ? "active" : "") + '" data-vista="recibo">💵 Recibo Directo</button>' +
         '<button type="button" class="' + (vista === "precios" ? "active" : "") + '" data-vista="precios">💲 Lista de Precios</button>' +
         '<button type="button" class="' + (vista === "historial" ? "active" : "") + '" data-vista="historial">🕓 Historial</button>' +
         "</div></div>" +
-        (vista === "nueva" ? buildNuevaHtml() : vista === "precios" ? buildPreciosHtml() : buildHistorialHtml()) +
+        (vista === "nueva" ? buildNuevaHtml() : vista === "recibo" ? buildReciboDirectoHtml() : vista === "precios" ? buildPreciosHtml() : buildHistorialHtml()) +
         "</div>";
       root.querySelectorAll("[data-vista]").forEach(function (b) { b.addEventListener("click", function () { vista = b.dataset.vista; build(); }); });
-      if (vista === "nueva") wireNueva(); else if (vista === "precios") wirePrecios(); else wireHistorial();
+      if (vista === "nueva") wireNueva(); else if (vista === "recibo") wireReciboDirecto(); else if (vista === "precios") wirePrecios(); else wireHistorial();
     }
 
     // ---------------------------------------------------------------------
-    // NUEVA COTIZACIÓN
+    // SELECTOR DE EXÁMENES — compartido entre "Nueva Cotización" y "Recibo
+    // Directo": cada pestaña tiene su propio estado de selección/búsqueda
+    // (pickerNueva / pickerRecibo) pero reutilizan el mismo render.
     // ---------------------------------------------------------------------
-    var selected = []; // examIds
-    var activeSection = C.SECCIONES[0].id;
-    var searchTerm = "";
+    function crearPickerState() { return { selected: [], activeSection: C.SECCIONES[0].id, searchTerm: "" }; }
+    var pickerNueva = crearPickerState();
+    var pickerRecibo = crearPickerState();
 
-    function buildNuevaHtml() {
-      return '<div class="form-grid" style="margin-top:14px">' +
-        '<div class="field"><label>Nombre del Cliente</label><input id="cot-cliente-nombre"/></div>' +
-        '<div class="field"><label>WhatsApp (con indicativo)</label><input id="cot-cliente-wa" placeholder="573001234567"/></div>' +
-        '<div class="field"><label>Correo Electrónico</label><input id="cot-cliente-correo" type="email"/></div>' +
-        "</div>" +
-        '<div class="field" style="margin:12px 0"><input id="cot-exam-search" placeholder="Buscar examen por nombre o código CUPS en todas las secciones…"/></div>' +
+    function pickerHtml(prefix) {
+      return '<div class="field" style="margin:12px 0"><input id="' + prefix + '-exam-search" placeholder="Buscar examen por nombre o código CUPS en todas las secciones…"/></div>' +
         '<div class="exam-picker">' +
-        '<div class="exam-picker-sections" id="cot-sec-list"></div>' +
-        '<div class="exam-picker-list" id="cot-exam-list"></div>' +
+        '<div class="exam-picker-sections" id="' + prefix + '-sec-list"></div>' +
+        '<div class="exam-picker-list" id="' + prefix + '-exam-list"></div>' +
         "</div>" +
         '<div class="flex justify-between items-center" style="margin-top:16px;padding-top:14px;border-top:1px solid var(--border)">' +
-        '<span style="font-size:14px">Exámenes seleccionados: <b id="cot-count">0</b></span>' +
-        '<span style="font-size:18px;font-weight:800;color:var(--brand-primary)">Total: <span id="cot-total">' + fmtMoneda(0) + "</span></span>" +
-        "</div>" +
-        '<button class="btn btn-primary btn-block" id="btn-generar-cot" style="margin-top:14px">' + U.icon("file") + " Generar Cotización</button>";
+        '<span style="font-size:14px">Exámenes seleccionados: <b id="' + prefix + '-count">0</b></span>' +
+        '<span style="font-size:18px;font-weight:800;color:var(--brand-primary)">Total: <span id="' + prefix + '-total">' + fmtMoneda(0) + "</span></span>" +
+        "</div>";
     }
 
-    function wireNueva() {
-      document.getElementById("cot-exam-search").addEventListener("input", function (e) { searchTerm = e.target.value; renderCotSections(); renderCotExams(); });
-      renderCotSections();
-      renderCotExams();
-      document.getElementById("btn-generar-cot").addEventListener("click", generarCotizacion);
+    function wirePicker(prefix, st) {
+      document.getElementById(prefix + "-exam-search").addEventListener("input", function (e) { st.searchTerm = e.target.value; renderPickerSecciones(prefix, st); renderPickerExams(prefix, st); });
+      renderPickerSecciones(prefix, st);
+      renderPickerExams(prefix, st);
     }
 
-    function renderCotSections() {
-      document.getElementById("cot-sec-list").innerHTML = seccionesDisponibles().map(function (s) {
-        var count = selected.filter(function (id) { return resolverExamen(id).seccion === s.id; }).length;
-        return '<div class="sec-item ' + (!searchTerm && s.id === activeSection ? "active" : "") + '" data-sec="' + s.id + '">' + s.nombre + (count ? ' <span class="badge badge-validado" style="margin-left:4px">' + count + "</span>" : "") + "</div>";
+    function renderPickerSecciones(prefix, st) {
+      document.getElementById(prefix + "-sec-list").innerHTML = seccionesDisponibles().map(function (s) {
+        var count = st.selected.filter(function (id) { return resolverExamen(id).seccion === s.id; }).length;
+        return '<div class="sec-item ' + (!st.searchTerm && s.id === st.activeSection ? "active" : "") + '" data-sec="' + s.id + '">' + s.nombre + (count ? ' <span class="badge badge-validado" style="margin-left:4px">' + count + "</span>" : "") + "</div>";
       }).join("");
-      document.querySelectorAll("#cot-sec-list .sec-item").forEach(function (el) {
+      document.querySelectorAll("#" + prefix + "-sec-list .sec-item").forEach(function (el) {
         el.addEventListener("click", function () {
-          activeSection = el.dataset.sec; searchTerm = ""; document.getElementById("cot-exam-search").value = "";
-          renderCotSections(); renderCotExams();
+          st.activeSection = el.dataset.sec; st.searchTerm = ""; document.getElementById(prefix + "-exam-search").value = "";
+          renderPickerSecciones(prefix, st); renderPickerExams(prefix, st);
         });
       });
     }
 
-    function renderCotExams() {
-      var term = U.normalizar(searchTerm.trim());
+    function renderPickerExams(prefix, st) {
+      var term = U.normalizar(st.searchTerm.trim());
       var todos = poolExamenes();
       var pool = term
         ? todos.filter(function (e) { return U.normalizar(e.nombre).indexOf(term) !== -1 || e.cups.indexOf(term) !== -1; })
-        : todos.filter(function (e) { return e.seccion === activeSection; });
+        : todos.filter(function (e) { return e.seccion === st.activeSection; });
 
-      document.getElementById("cot-exam-list").innerHTML = pool.map(function (e) {
-        var checked = selected.indexOf(e.id) !== -1;
+      document.getElementById(prefix + "-exam-list").innerHTML = pool.map(function (e) {
+        var checked = st.selected.indexOf(e.id) !== -1;
         var precio = precioDe(e.id);
-        return '<label class="exam-row"><input type="checkbox" data-cot-exam="' + e.id + '" ' + (checked ? "checked" : "") + '/>' +
+        return '<label class="exam-row"><input type="checkbox" data-picker-prefix="' + prefix + '" data-picker-exam="' + e.id + '" ' + (checked ? "checked" : "") + '/>' +
           '<div class="grow"><div>' + U.esc(e.nombre) + (term ? ' <span class="text-muted" style="font-size:11px">— ' + resolverSeccionNombre(e.seccion) + "</span>" : "") + "</div>" +
           '<div class="meta">CUPS ' + e.cups + "</div></div>" +
           '<div style="font-weight:700;font-size:13px;white-space:nowrap">' + (precio ? fmtMoneda(precio) : '<span class="text-muted">Sin precio</span>') + "</div>" +
           "</label>";
       }).join("") || '<p class="text-muted" style="padding:14px">Sin resultados para tu búsqueda.</p>';
 
-      document.querySelectorAll("[data-cot-exam]").forEach(function (chk) {
+      document.querySelectorAll('[data-picker-prefix="' + prefix + '"]').forEach(function (chk) {
         chk.addEventListener("change", function () {
-          var id = chk.dataset.cotExam;
-          if (chk.checked) selected.push(id); else selected = selected.filter(function (x) { return x !== id; });
-          actualizarTotales(); renderCotSections();
+          var id = chk.dataset.pickerExam;
+          if (chk.checked) st.selected.push(id); else st.selected = st.selected.filter(function (x) { return x !== id; });
+          actualizarPickerTotales(prefix, st); renderPickerSecciones(prefix, st);
         });
       });
     }
 
-    function actualizarTotales() {
-      var total = selected.reduce(function (a, id) { return a + precioDe(id); }, 0);
-      document.getElementById("cot-count").textContent = selected.length;
-      document.getElementById("cot-total").textContent = fmtMoneda(total);
+    function actualizarPickerTotales(prefix, st) {
+      var total = st.selected.reduce(function (a, id) { return a + precioDe(id); }, 0);
+      document.getElementById(prefix + "-count").textContent = st.selected.length;
+      document.getElementById(prefix + "-total").textContent = fmtMoneda(total);
+    }
+
+    function examenesSeleccionados(st) {
+      return st.selected.map(function (id) {
+        var e = resolverExamen(id);
+        return { examId: id, nombre: e.nombre, seccion: e.seccion, seccionNombre: resolverSeccionNombre(e.seccion), precio: precioDe(id) };
+      });
+    }
+
+    // ---------------------------------------------------------------------
+    // NUEVA COTIZACIÓN
+    // ---------------------------------------------------------------------
+    function buildNuevaHtml() {
+      return '<div class="form-grid" style="margin-top:14px">' +
+        '<div class="field"><label>Nombre del Cliente</label><input id="cot-cliente-nombre"/></div>' +
+        '<div class="field"><label>WhatsApp (con indicativo)</label><input id="cot-cliente-wa" placeholder="573001234567"/></div>' +
+        '<div class="field"><label>Correo Electrónico</label><input id="cot-cliente-correo" type="email"/></div>' +
+        "</div>" +
+        pickerHtml("cot") +
+        '<button class="btn btn-primary btn-block" id="btn-generar-cot" style="margin-top:14px">' + U.icon("file") + " Generar Cotización</button>";
+    }
+
+    function wireNueva() {
+      wirePicker("cot", pickerNueva);
+      document.getElementById("btn-generar-cot").addEventListener("click", generarCotizacion);
     }
 
     function generarCotizacion() {
-      if (!selected.length) { U.toast("Selecciona al menos un examen.", "error"); return; }
+      if (!pickerNueva.selected.length) { U.toast("Selecciona al menos un examen.", "error"); return; }
       var nombre = document.getElementById("cot-cliente-nombre").value.trim();
       var whatsapp = document.getElementById("cot-cliente-wa").value.trim();
       var correo = document.getElementById("cot-cliente-correo").value.trim();
       var tenant = S.getTenant(tenantId);
-      var examenes = selected.map(function (id) {
-        var e = resolverExamen(id);
-        return { examId: id, nombre: e.nombre, seccion: e.seccion, seccionNombre: resolverSeccionNombre(e.seccion), precio: precioDe(id) };
-      });
+      var examenes = examenesSeleccionados(pickerNueva);
       var total = examenes.reduce(function (a, e) { return a + e.precio; }, 0);
       var cot = S.cotizador.createCotizacion({
         tenantId: tenantId, cliente: { nombre: nombre, whatsapp: whatsapp, correo: correo }, examenes: examenes, total: total
@@ -175,7 +194,59 @@
       wrap.querySelector("#cot-send-wa").addEventListener("click", function () { window.open(waLinkTo(whatsapp, mensaje), "_blank"); });
       if (correo) U.wireEmailProviderButtons(wrap, "cot-mail", correo, "Cotización de exámenes — " + tenant.nombre, mensaje);
 
-      selected = []; cargar();
+      pickerNueva.selected = []; cargar();
+    }
+
+    // ---------------------------------------------------------------------
+    // RECIBO DIRECTO — para cuando el cliente ya pagó y necesita su recibo
+    // sin haber hecho antes una cotización formal (evita el trámite de
+    // cotizar primero cuando ya se sabe qué se le va a cobrar).
+    // ---------------------------------------------------------------------
+    function buildReciboDirectoHtml() {
+      var usuarios = S.listUsers(tenantId).filter(function (u) { return u.activo; });
+      var hoy = new Date().toISOString().slice(0, 10);
+      return '<p class="text-muted" style="margin-top:14px">Genera y envía el recibo de pago de una vez, cuando el cliente ya pagó y no hace falta una cotización previa.</p>' +
+        '<div class="form-grid">' +
+        '<div class="field"><label>Nombre del Cliente</label><input id="rec-cliente-nombre"/></div>' +
+        '<div class="field"><label>WhatsApp (con indicativo)</label><input id="rec-cliente-wa" placeholder="573001234567"/></div>' +
+        '<div class="field"><label>Correo Electrónico</label><input id="rec-cliente-correo" type="email"/></div>' +
+        "</div>" +
+        pickerHtml("rec") +
+        '<fieldset style="margin-top:14px"><legend>Datos del Pago</legend><div class="form-grid">' +
+        '<div class="field"><label>Método de Pago</label><select id="rec-metodoPago">' +
+        Object.keys(METODO_PAGO_LABEL).map(function (k) { return '<option value="' + k + '">' + METODO_PAGO_LABEL[k] + "</option>"; }).join("") +
+        "</select></div>" +
+        '<div class="field"><label>Fecha de Pago</label><input type="date" id="rec-fechaPago" value="' + hoy + '"/></div>' +
+        '<div class="field"><label>Atendido por (vendedor)</label><select id="rec-vendedor">' +
+        (usuarios.length ? usuarios.map(function (u) { return '<option value="' + U.esc(u.nombre) + '" ' + (u.nombre === session.nombre ? "selected" : "") + ">" + U.esc(u.nombre) + "</option>"; }).join("") : '<option value="' + U.esc(session.nombre) + '">' + U.esc(session.nombre) + "</option>") +
+        "</select></div>" +
+        "</div></fieldset>" +
+        '<button class="btn btn-primary btn-block" id="btn-generar-recibo" style="margin-top:14px">' + U.icon("check") + " Generar y Enviar Recibo</button>";
+    }
+
+    function wireReciboDirecto() {
+      wirePicker("rec", pickerRecibo);
+      document.getElementById("btn-generar-recibo").addEventListener("click", generarReciboDirecto);
+    }
+
+    function generarReciboDirecto() {
+      if (!pickerRecibo.selected.length) { U.toast("Selecciona al menos un examen.", "error"); return; }
+      var nombre = document.getElementById("rec-cliente-nombre").value.trim();
+      var whatsapp = document.getElementById("rec-cliente-wa").value.trim();
+      var correo = document.getElementById("rec-cliente-correo").value.trim();
+      var metodoPago = document.getElementById("rec-metodoPago").value;
+      var fechaPago = document.getElementById("rec-fechaPago").value || new Date().toISOString().slice(0, 10);
+      var vendedorNombre = document.getElementById("rec-vendedor").value;
+      var examenes = examenesSeleccionados(pickerRecibo);
+      var total = examenes.reduce(function (a, e) { return a + e.precio; }, 0);
+      var cot = S.cotizador.createCotizacion({
+        tenantId: tenantId, cliente: { nombre: nombre, whatsapp: whatsapp, correo: correo }, examenes: examenes, total: total,
+        estado: "pagada", pago: { fecha: fechaPago, monto: total, metodoPago: metodoPago, vendedorNombre: vendedorNombre }
+      });
+      S.addAudit(session.tenantId, session.nombre, session.rol, "REGISTRAR_PAGO_COTIZACION", "cotizacion", cot.id, "Generó un recibo de pago directo para " + (nombre || "un cliente") + " por " + fmtMoneda(total) + " (atendido por " + vendedorNombre + ").");
+      pickerRecibo.selected = [];
+      cargar();
+      abrirEnviarRecibo(cot);
     }
 
     // ---------------------------------------------------------------------
@@ -411,8 +482,6 @@
     // ---------------------------------------------------------------------
     // HISTORIAL
     // ---------------------------------------------------------------------
-    var METODO_PAGO_LABEL = { efectivo: "Efectivo", transferencia: "Transferencia", tarjeta: "Tarjeta Débito/Crédito", otro: "Otro" };
-
     // Resumen de ventas por vendedor (control estilo CRM) — útil para
     // laboratorios con equipo comercial, para saber quién cerró cada venta.
     // Se calcula al vuelo a partir de las cotizaciones ya pagadas, sin
