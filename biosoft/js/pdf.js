@@ -175,6 +175,11 @@
 
     var bySeccion = {};
     procesados.forEach(function (ex) { (bySeccion[ex.seccion] = bySeccion[ex.seccion] || []).push(ex); });
+    // Respeta el orden de exámenes que el laboratorio haya personalizado
+    // (tenant.ordenExamenes), en vez del orden en que se agregaron a la orden.
+    Object.keys(bySeccion).forEach(function (seccionId) {
+      bySeccion[seccionId] = C.ordenarPorExamen(bySeccion[seccionId], tenant, function (ex) { return ex.examId; });
+    });
 
     Object.keys(bySeccion).forEach(function (seccionId) {
       if (y > 700) { doc.addPage(); y = margin; }

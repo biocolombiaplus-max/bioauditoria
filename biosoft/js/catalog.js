@@ -558,17 +558,52 @@
     return overrides ? Object.assign({}, param, overrides) : param;
   }
 
+  /* Además del valor de referencia de cada parámetro, un laboratorio puede
+     personalizar la ESTRUCTURA del examen: en qué orden salen sus campos,
+     ocultar alguno que no use, o agregar un campo propio que el catálogo
+     global no trae. Todo eso vive en tenant.examCustom[examId], separado de
+     tenant.refOverrides (que solo son los valores numéricos/texto). */
+  function examCustomDe(examId, tenant) {
+    return tenant && tenant.examCustom ? tenant.examCustom[examId] : null;
+  }
+
   function examenEfectivo(examId, tenant) {
     var exCat = examenPorId(examId);
     if (!exCat) return exCat;
-    if (!tenant || !tenant.refOverrides) return exCat;
+    if (!tenant) return exCat;
+    var custom = examCustomDe(examId, tenant);
+    if (!tenant.refOverrides && !custom) return exCat;
+
     var clone = Object.assign({}, exCat);
-    clone.parametros = exCat.parametros.map(function (p) { return parametroEfectivo(examId, p, tenant); });
+    var parametros = exCat.parametros.map(function (p) { return parametroEfectivo(examId, p, tenant); });
+
+    if (custom) {
+      if (custom.ocultos && custom.ocultos.length) {
+        parametros = parametros.filter(function (p) { return custom.ocultos.indexOf(p.codigo) === -1; });
+      }
+      if (custom.personalizados && custom.personalizados.length) {
+        parametros = parametros.concat(custom.personalizados.map(function (p) { return parametroEfectivo(examId, p, tenant); }));
+      }
+      if (custom.orden && custom.orden.length) {
+        var pos = custom.orden;
+        parametros = parametros.slice().sort(function (a, b) {
+          var ia = pos.indexOf(a.codigo), ib = pos.indexOf(b.codigo);
+          if (ia === -1 && ib === -1) return 0;
+          if (ia === -1) return 1;
+          if (ib === -1) return -1;
+          return ia - ib;
+        });
+      }
+    }
+    clone.parametros = parametros;
     return clone;
   }
 
   function tieneOverride(examId, tenant) {
-    if (!tenant || !tenant.refOverrides) return false;
+    if (!tenant) return false;
+    var custom = examCustomDe(examId, tenant);
+    if (custom && ((custom.ocultos && custom.ocultos.length) || (custom.personalizados && custom.personalizados.length) || (custom.orden && custom.orden.length))) return true;
+    if (!tenant.refOverrides) return false;
     return examenPorId(examId).parametros.some(function (p) { return !!tenant.refOverrides[overrideKey(examId, p.codigo)]; });
   }
 
@@ -579,6 +614,53 @@
 
   function clearOverride(tenant, examId, codigo) {
     if (tenant.refOverrides) delete tenant.refOverrides[overrideKey(examId, codigo)];
+  }
+
+  function asegurarExamCustom(tenant, examId) {
+    tenant.examCustom = tenant.examCustom || {};
+    tenant.examCustom[examId] = tenant.examCustom[examId] || {};
+    return tenant.examCustom[examId];
+  }
+
+  /* orden: arreglo completo de códigos de parámetro en el orden deseado
+     (incluye tanto los de fábrica como los personalizados que ya existan). */
+  function ordenarCampos(tenant, examId, ordenCodigos) {
+    asegurarExamCustom(tenant, examId).orden = ordenCodigos;
+  }
+  function ocultarCampo(tenant, examId, codigo) {
+    var c = asegurarExamCustom(tenant, examId);
+    c.ocultos = c.ocultos || [];
+    if (c.ocultos.indexOf(codigo) === -1) c.ocultos.push(codigo);
+  }
+  function mostrarCampo(tenant, examId, codigo) {
+    var c = examCustomDe(examId, tenant);
+    if (c && c.ocultos) c.ocultos = c.ocultos.filter(function (x) { return x !== codigo; });
+  }
+  function agregarCampoPersonalizado(tenant, examId, campo) {
+    var c = asegurarExamCustom(tenant, examId);
+    c.personalizados = c.personalizados || [];
+    c.personalizados.push(campo);
+  }
+  function quitarCampoPersonalizado(tenant, examId, codigo) {
+    var c = examCustomDe(examId, tenant);
+    if (c && c.personalizados) c.personalizados = c.personalizados.filter(function (p) { return p.codigo !== codigo; });
+    if (tenant.refOverrides) delete tenant.refOverrides[overrideKey(examId, codigo)];
+  }
+
+  /* Reordena un arreglo de objetos (exámenes de una orden, filas de un
+     examen del catálogo, etc.) según la preferencia de orden GLOBAL del
+     laboratorio (tenant.ordenExamenes: arreglo de examId). Los exámenes que
+     no estén en esa lista conservan su orden relativo, al final. */
+  function ordenarPorExamen(items, tenant, getExamId) {
+    var orden = tenant && tenant.ordenExamenes;
+    if (!orden || !orden.length) return items;
+    return items.slice().sort(function (a, b) {
+      var ia = orden.indexOf(getExamId(a)), ib = orden.indexOf(getExamId(b));
+      if (ia === -1 && ib === -1) return 0;
+      if (ia === -1) return 1;
+      if (ib === -1) return -1;
+      return ia - ib;
+    });
   }
 
   global.BIO_CATALOG = {
@@ -603,6 +685,12 @@
     parametroEfectivo: parametroEfectivo,
     tieneOverride: tieneOverride,
     setOverride: setOverride,
-    clearOverride: clearOverride
+    clearOverride: clearOverride,
+    ordenarCampos: ordenarCampos,
+    ocultarCampo: ocultarCampo,
+    mostrarCampo: mostrarCampo,
+    agregarCampoPersonalizado: agregarCampoPersonalizado,
+    quitarCampoPersonalizado: quitarCampoPersonalizado,
+    ordenarPorExamen: ordenarPorExamen
   };
 })(window);

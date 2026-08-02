@@ -199,6 +199,24 @@
   // ------------------------------------------------------------------
   // VALORES DE REFERENCIA DEL CATÁLOGO (personalizables por laboratorio)
   // ------------------------------------------------------------------
+  // Cambia la posición de un examen dentro de su sección, dentro de la
+  // preferencia de orden GLOBAL del laboratorio (tenant.ordenExamenes). La
+  // primera vez que se reordena algo, se parte del orden natural del
+  // catálogo para que el resto de exámenes no salte de posición sin razón.
+  function moverExamen(tenant, examId, direccion) {
+    var orden = (tenant.ordenExamenes && tenant.ordenExamenes.length) ? tenant.ordenExamenes.slice() : C.EXAMENES.map(function (e) { return e.id; });
+    C.EXAMENES.forEach(function (e) { if (orden.indexOf(e.id) === -1) orden.push(e.id); });
+    var seccionId = C.examenPorId(examId).seccion;
+    var idsSeccion = orden.filter(function (id) { var ex = C.examenPorId(id); return ex && ex.seccion === seccionId; });
+    var pos = idsSeccion.indexOf(examId);
+    var destino = pos + direccion;
+    if (destino < 0 || destino >= idsSeccion.length) return orden;
+    var otroId = idsSeccion[destino];
+    var i1 = orden.indexOf(examId), i2 = orden.indexOf(otroId);
+    var tmp = orden[i1]; orden[i1] = orden[i2]; orden[i2] = tmp;
+    return orden;
+  }
+
   window.BIO_VIEWS.catalogo = function (root) {
     var session = BIO_AUTH.getSession();
     var filtroSeccion = "todas";
@@ -212,71 +230,122 @@
         var okBusq = !busqueda || U.normalizar(e.nombre).indexOf(U.normalizar(busqueda)) !== -1 || e.cups.indexOf(busqueda) !== -1;
         return okSec && okBusq;
       });
+      // El orden de exámenes solo tiene sentido dentro de una sección
+      // específica (así se agrupan en el PDF y en captura de resultados),
+      // por eso las flechas de mover solo aparecen con una sección elegida.
+      var permiteOrdenar = filtroSeccion !== "todas" && !busqueda;
+      if (permiteOrdenar) exams = C.ordenarPorExamen(exams, tenant, function (e) { return e.id; });
       root.innerHTML =
         '<div class="card"><div class="card-header"><h3 class="card-title">Valores de Referencia del Catálogo</h3></div>' +
-        '<p class="text-muted" style="margin-top:0">Cada laboratorio puede usar equipos o metodologías distintas, por lo que los valores normales pueden variar. Ajusta aquí los rangos de tu laboratorio sin afectar el catálogo general de BIOsoft; los cambios se aplican de inmediato en la captura de resultados y en los informes.</p>' +
+        '<p class="text-muted" style="margin-top:0">Cada laboratorio puede usar equipos o metodologías distintas, por lo que los valores normales pueden variar. Ajusta aquí los rangos de tu laboratorio sin afectar el catálogo general de BIOsoft; los cambios se aplican de inmediato en la captura de resultados y en los informes. Elige una sección específica para poder ordenar tus exámenes como los trabajas normalmente.</p>' +
         '<div class="flex gap-2 wrap" style="margin-bottom:14px">' +
         '<input id="cat-busqueda" placeholder="Buscar examen por nombre o código CUPS…" style="max-width:320px" value="' + U.esc(busqueda) + '"/>' +
         '<select id="cat-seccion"><option value="todas">Todas las secciones</option>' + C.SECCIONES.map(function (s) { return '<option value="' + s.id + '" ' + (s.id === filtroSeccion ? "selected" : "") + ">" + s.nombre + "</option>"; }).join("") + "</select>" +
         "</div>" +
-        '<div class="table-wrap"><table><thead><tr><th>Examen</th><th>Sección</th><th># Parámetros</th><th>Estado</th><th></th></tr></thead><tbody>' +
-        (exams.length ? exams.map(rowHtml).join("") : '<tr><td colspan="5" class="text-muted">Sin resultados.</td></tr>') +
+        '<div class="table-wrap"><table><thead><tr>' + (permiteOrdenar ? "<th></th>" : "") + '<th>Examen</th><th>Sección</th><th># Parámetros</th><th>Estado</th><th></th></tr></thead><tbody>' +
+        (exams.length ? exams.map(function (e, i) { return rowHtml(e, i, exams.length, permiteOrdenar); }).join("") : '<tr><td colspan="' + (permiteOrdenar ? 6 : 5) + '" class="text-muted">Sin resultados.</td></tr>') +
         "</tbody></table></div></div>";
 
       document.getElementById("cat-busqueda").addEventListener("input", function (e) { busqueda = e.target.value; build(); });
       document.getElementById("cat-seccion").addEventListener("change", function (e) { filtroSeccion = e.target.value; build(); });
       root.querySelectorAll("[data-editexam]").forEach(function (b) { b.addEventListener("click", function () { openExamEditor(b.dataset.editexam, build); }); });
+      root.querySelectorAll("[data-mover]").forEach(function (b) {
+        b.addEventListener("click", function () {
+          var nuevoOrden = moverExamen(tenant, b.dataset.mover, parseInt(b.dataset.dir, 10));
+          S.updateTenant(tenant.id, { ordenExamenes: nuevoOrden });
+          build();
+        });
+      });
     }
 
-    function rowHtml(e) {
+    function rowHtml(e, i, total, permiteOrdenar) {
       var personalizado = C.tieneOverride(e.id, tenant);
-      return "<tr><td>" + U.esc(e.nombre) + "<div class='text-muted' style='font-size:11px'>CUPS " + e.cups + "</div></td><td>" + C.seccionNombre(e.seccion) + "</td><td>" + e.parametros.length + "</td>" +
+      return "<tr>" +
+        (permiteOrdenar ? "<td><div class='flex gap-2'>" +
+          '<button class="btn btn-ghost btn-sm" data-mover="' + e.id + '" data-dir="-1" ' + (i === 0 ? "disabled" : "") + ' title="Subir">▲</button>' +
+          '<button class="btn btn-ghost btn-sm" data-mover="' + e.id + '" data-dir="1" ' + (i === total - 1 ? "disabled" : "") + ' title="Bajar">▼</button>' +
+          "</div></td>" : "") +
+        "<td>" + U.esc(e.nombre) + "<div class='text-muted' style='font-size:11px'>CUPS " + e.cups + "</div></td><td>" + C.seccionNombre(e.seccion) + "</td><td>" + e.parametros.length + "</td>" +
         "<td>" + (personalizado ? '<span class="badge badge-preliminar">Personalizado</span>' : '<span class="text-muted">Valores de fábrica</span>') + "</td>" +
-        '<td><button class="btn btn-outline btn-sm" data-editexam="' + e.id + '">' + U.icon("edit") + " Editar valores</button></td></tr>";
+        '<td><button class="btn btn-outline btn-sm" data-editexam="' + e.id + '">' + U.icon("edit") + " Editar</button></td></tr>";
     }
     build();
   };
+
+  // Encuentra la definición "de origen" de un parámetro: la del catálogo
+  // global si es un campo de fábrica, o la definición con la que se creó si
+  // es un campo personalizado (para poder compararla y ofrecer
+  // "Restablecer" también en los campos que el laboratorio agregó).
+  function origenDeCampo(exCat, custom, codigo) {
+    var deFabrica = exCat.parametros.filter(function (x) { return x.codigo === codigo; })[0];
+    if (deFabrica) return deFabrica;
+    return (custom.personalizados || []).filter(function (x) { return x.codigo === codigo; })[0];
+  }
 
   function openExamEditor(examId, onDone) {
     var session = BIO_AUTH.getSession();
     var tenant = S.getTenant(session.tenantId);
     var exCat = C.examenPorId(examId);
     var efectivo = C.examenEfectivo(examId, tenant);
+    var custom = (tenant.examCustom && tenant.examCustom[examId]) || {};
+    var ocultos = (custom.ocultos || []).map(function (codigo) {
+      var deFabrica = exCat.parametros.filter(function (p) { return p.codigo === codigo; })[0];
+      return deFabrica ? { codigo: codigo, nombre: deFabrica.nombre } : null;
+    }).filter(Boolean);
 
-    function paramRow(p, idx) {
-      var base = exCat.parametros[idx];
+    function reabrir() { U.closeModal(wrap); onDone(); openExamEditor(examId, onDone); }
+
+    function paramRow(p, idx, total) {
+      var esDeFabrica = exCat.parametros.some(function (x) { return x.codigo === p.codigo; });
+      var base = origenDeCampo(exCat, custom, p.codigo);
+      var moverHtml = '<div class="flex gap-1">' +
+        '<button type="button" class="btn btn-ghost btn-sm" data-mover-campo="' + p.codigo + '" data-dir="-1" ' + (idx === 0 ? "disabled" : "") + ' title="Subir">▲</button>' +
+        '<button type="button" class="btn btn-ghost btn-sm" data-mover-campo="' + p.codigo + '" data-dir="1" ' + (idx === total - 1 ? "disabled" : "") + ' title="Bajar">▼</button>' +
+        "</div>";
+      var quitarHtml = '<button type="button" class="btn btn-ghost btn-sm" data-quitar-campo="' + p.codigo + '">' + (esDeFabrica ? "Quitar" : "Eliminar") + "</button>";
+      var nombreHtml = U.esc(p.nombre) + (esDeFabrica ? "" : ' <span class="badge badge-preliminar" style="font-size:9px">Personalizado</span>');
+
       if (p.tipo === "numerico") {
-        var overNum = p.min !== base.min || p.max !== base.max || p.refText !== base.refText;
+        var overNum = base && (p.min !== base.min || p.max !== base.max || p.refText !== base.refText);
         return '<tr data-prow="' + p.codigo + '">' +
-          "<td>" + U.esc(p.nombre) + '<div class="text-muted" style="font-size:11px">' + (p.unidad || "") + "</div></td>" +
+          "<td>" + moverHtml + "</td>" +
+          "<td>" + nombreHtml + '<div class="text-muted" style="font-size:11px">' + (p.unidad || "") + "</div></td>" +
           '<td><input type="number" step="any" data-min value="' + p.min + '" style="width:90px"/></td>' +
           '<td><input type="number" step="any" data-max value="' + p.max + '" style="width:90px"/></td>' +
           '<td><input data-reftext value="' + U.esc(p.refText) + '"/></td>' +
-          '<td class="text-muted" style="font-size:11px">Fábrica: ' + base.min + " - " + base.max + "</td>" +
-          "<td>" + (overNum ? '<button class="btn btn-ghost btn-sm" data-reset="' + p.codigo + '">Restablecer</button>' : "") + "</td></tr>";
+          '<td class="text-muted" style="font-size:11px">' + (esDeFabrica ? "Fábrica: " + base.min + " - " + base.max : "—") + "</td>" +
+          "<td><div class='flex gap-1 wrap'>" + (overNum ? '<button type="button" class="btn btn-ghost btn-sm" data-reset="' + p.codigo + '">Restablecer</button>' : "") + quitarHtml + "</div></td></tr>";
       }
       if (p.tipo === "cualitativo" || p.tipo === "descriptivo") {
-        var overCual = p.normal !== base.normal || p.refText !== base.refText;
+        var overCual = base && (p.normal !== base.normal || p.refText !== base.refText);
         return '<tr data-prow="' + p.codigo + '">' +
-          "<td>" + U.esc(p.nombre) + "</td>" +
+          "<td>" + moverHtml + "</td>" +
+          "<td>" + nombreHtml + "</td>" +
           '<td colspan="2">' +
           (p.tipo === "cualitativo"
             ? '<label class="text-muted" style="font-size:11px">Valor normal</label><select data-normal>' + p.opciones.map(function (o) { return "<option " + (o === p.normal ? "selected" : "") + ">" + o + "</option>"; }).join("") + "</select>"
             : '<span class="text-muted" style="font-size:11px">Campo descriptivo (sin interpretación automática)</span>') +
           "</td>" +
           '<td><input data-reftext value="' + U.esc(p.refText) + '"/></td>' +
-          '<td class="text-muted" style="font-size:11px">Fábrica: ' + U.esc(base.normal || "—") + "</td>" +
-          "<td>" + (overCual ? '<button class="btn btn-ghost btn-sm" data-reset="' + p.codigo + '">Restablecer</button>' : "") + "</td></tr>";
+          '<td class="text-muted" style="font-size:11px">' + (esDeFabrica ? "Fábrica: " + U.esc(base.normal || "—") : "—") + "</td>" +
+          "<td><div class='flex gap-1 wrap'>" + (overCual ? '<button type="button" class="btn btn-ghost btn-sm" data-reset="' + p.codigo + '">Restablecer</button>' : "") + quitarHtml + "</div></td></tr>";
       }
-      return '<tr data-prow="' + p.codigo + '"><td>' + U.esc(p.nombre) + '</td><td colspan="4" class="text-muted">Campo de texto libre (sin valores de referencia numéricos)</td><td></td></tr>';
+      return '<tr data-prow="' + p.codigo + '">' +
+        "<td>" + moverHtml + "</td>" +
+        "<td>" + nombreHtml + '</td><td colspan="3" class="text-muted">Campo de texto libre (sin valores de referencia numéricos)</td>' +
+        "<td>" + quitarHtml + "</td></tr>";
     }
 
     var wrap = U.openModal(
       '<h3 class="modal-title">Valores de Referencia — ' + U.esc(exCat.nombre) + '</h3>' +
-      '<p class="text-muted" style="margin-top:0">Sección: ' + C.seccionNombre(exCat.seccion) + " · CUPS " + exCat.cups + "</p>" +
-      '<div class="table-wrap"><table><thead><tr><th>Parámetro</th><th>Mínimo</th><th>Máximo</th><th>Texto de referencia</th><th>Original</th><th></th></tr></thead><tbody>' +
-      efectivo.parametros.map(paramRow).join("") +
+      '<p class="text-muted" style="margin-top:0">Sección: ' + C.seccionNombre(exCat.seccion) + " · CUPS " + exCat.cups + " — reordena los campos con ▲▼, quita los que no uses o agrega uno propio, tal como lo trabajas en tu laboratorio.</p>" +
+      '<div class="table-wrap"><table><thead><tr><th></th><th>Parámetro</th><th>Mínimo</th><th>Máximo</th><th>Texto de referencia</th><th>Original</th><th></th></tr></thead><tbody>' +
+      efectivo.parametros.map(function (p, idx) { return paramRow(p, idx, efectivo.parametros.length); }).join("") +
       "</tbody></table></div>" +
+      (ocultos.length ? '<div style="margin-top:10px"><p class="text-muted" style="margin:0 0 6px;font-size:12.5px">Campos ocultos en tu laboratorio:</p><div class="flex gap-2 wrap">' +
+        ocultos.map(function (o) { return '<span class="chip">' + U.esc(o.nombre) + ' <button type="button" class="btn btn-ghost btn-sm" data-mostrar-campo="' + o.codigo + '" style="padding:2px 6px">Mostrar de nuevo</button></span>'; }).join("") +
+        "</div></div>" : "") +
+      '<button type="button" class="btn btn-outline btn-sm" id="btn-agregar-campo" style="margin-top:12px">' + U.icon("plus") + " Agregar Campo Personalizado</button>" +
       '<div class="flex gap-2 justify-between" style="margin-top:14px"><button class="btn btn-ghost" data-modal-close>Cerrar</button><button class="btn btn-primary" id="cat-guardar">' + U.icon("check") + " Guardar Cambios</button></div>",
       { lg: true }
     );
@@ -287,36 +356,72 @@
         S.updateTenant(tenant.id, { refOverrides: tenant.refOverrides || {} });
         S.addAudit(session.tenantId, session.nombre, session.rol, "RESET_REF_RANGE", "catalogo", examId + ":" + btn.dataset.reset, "Restableció el valor de referencia de fábrica de " + btn.dataset.reset + " en " + exCat.nombre + ".");
         U.toast("Restablecido a valores de fábrica.", "success");
-        U.closeModal(wrap);
-        onDone();
-        openExamEditor(examId, onDone);
+        reabrir();
       });
     });
 
+    wrap.querySelectorAll("[data-mover-campo]").forEach(function (btn) {
+      btn.addEventListener("click", function () {
+        var codigo = btn.dataset.moverCampo;
+        var dir = parseInt(btn.dataset.dir, 10);
+        var codigos = efectivo.parametros.map(function (p) { return p.codigo; });
+        var pos = codigos.indexOf(codigo);
+        var destino = pos + dir;
+        if (destino < 0 || destino >= codigos.length) return;
+        var tmp = codigos[pos]; codigos[pos] = codigos[destino]; codigos[destino] = tmp;
+        C.ordenarCampos(tenant, examId, codigos);
+        S.updateTenant(tenant.id, { examCustom: tenant.examCustom });
+        reabrir();
+      });
+    });
+
+    wrap.querySelectorAll("[data-quitar-campo]").forEach(function (btn) {
+      btn.addEventListener("click", function () {
+        var codigo = btn.dataset.quitarCampo;
+        var esDeFabrica = exCat.parametros.some(function (p) { return p.codigo === codigo; });
+        if (esDeFabrica) C.ocultarCampo(tenant, examId, codigo); else C.quitarCampoPersonalizado(tenant, examId, codigo);
+        S.updateTenant(tenant.id, { examCustom: tenant.examCustom, refOverrides: tenant.refOverrides || {} });
+        S.addAudit(session.tenantId, session.nombre, session.rol, "HIDE_EXAM_FIELD", "catalogo", examId + ":" + codigo, (esDeFabrica ? "Ocultó" : "Eliminó") + " el campo " + codigo + " en " + exCat.nombre + ".");
+        U.toast(esDeFabrica ? "Campo ocultado para tu laboratorio." : "Campo eliminado.", "success");
+        reabrir();
+      });
+    });
+
+    wrap.querySelectorAll("[data-mostrar-campo]").forEach(function (btn) {
+      btn.addEventListener("click", function () {
+        C.mostrarCampo(tenant, examId, btn.dataset.mostrarCampo);
+        S.updateTenant(tenant.id, { examCustom: tenant.examCustom });
+        reabrir();
+      });
+    });
+
+    wrap.querySelector("#btn-agregar-campo").addEventListener("click", function () { abrirAgregarCampo(tenant, examId, exCat, reabrir); });
+
     wrap.querySelector("#cat-guardar").addEventListener("click", function () {
       var cambios = 0;
-      exCat.parametros.forEach(function (base) {
-        var row = wrap.querySelector('[data-prow="' + base.codigo + '"]');
+      efectivo.parametros.forEach(function (p) {
+        var row = wrap.querySelector('[data-prow="' + p.codigo + '"]');
         if (!row) return;
-        if (base.tipo === "numerico") {
+        var base = origenDeCampo(exCat, custom, p.codigo);
+        if (p.tipo === "numerico") {
           var min = parseFloat(row.querySelector("[data-min]").value);
           var max = parseFloat(row.querySelector("[data-max]").value);
           var refText = row.querySelector("[data-reftext]").value.trim();
           if (isNaN(min) || isNaN(max)) return;
-          if (min === base.min && max === base.max && refText === base.refText) { C.clearOverride(tenant, examId, base.codigo); return; }
-          C.setOverride(tenant, examId, base.codigo, { min: min, max: max, refText: refText || (min + " - " + max + " " + (base.unidad || "")) });
+          if (base && min === base.min && max === base.max && refText === base.refText) { C.clearOverride(tenant, examId, p.codigo); return; }
+          C.setOverride(tenant, examId, p.codigo, { min: min, max: max, refText: refText || (min + " - " + max + " " + (p.unidad || "")) });
           cambios++;
-        } else if (base.tipo === "cualitativo") {
+        } else if (p.tipo === "cualitativo") {
           var normalSel = row.querySelector("[data-normal]");
           var refText2 = row.querySelector("[data-reftext]").value.trim();
-          var normal = normalSel ? normalSel.value : base.normal;
-          if (normal === base.normal && refText2 === base.refText) { C.clearOverride(tenant, examId, base.codigo); return; }
-          C.setOverride(tenant, examId, base.codigo, { normal: normal, refText: refText2 || ("Normal: " + normal) });
+          var normal = normalSel ? normalSel.value : p.normal;
+          if (base && normal === base.normal && refText2 === base.refText) { C.clearOverride(tenant, examId, p.codigo); return; }
+          C.setOverride(tenant, examId, p.codigo, { normal: normal, refText: refText2 || ("Normal: " + normal) });
           cambios++;
-        } else if (base.tipo === "descriptivo") {
+        } else if (p.tipo === "descriptivo") {
           var refText3 = row.querySelector("[data-reftext]").value.trim();
-          if (refText3 === base.refText) { C.clearOverride(tenant, examId, base.codigo); return; }
-          C.setOverride(tenant, examId, base.codigo, { refText: refText3 });
+          if (base && refText3 === base.refText) { C.clearOverride(tenant, examId, p.codigo); return; }
+          C.setOverride(tenant, examId, p.codigo, { refText: refText3 });
           cambios++;
         }
       });
@@ -325,6 +430,66 @@
       U.toast("Valores de referencia guardados para tu laboratorio.", "success");
       U.closeModal(wrap);
       onDone();
+    });
+  }
+
+  function abrirAgregarCampo(tenant, examId, exCat, onSaved) {
+    var wrap = U.openModal(
+      '<h3 class="modal-title">Agregar Campo Personalizado — ' + U.esc(exCat.nombre) + '</h3>' +
+      '<p class="text-muted" style="margin-top:0">Este campo solo se agrega a tu laboratorio, sin afectar el catálogo general de BIOsoft.</p>' +
+      '<form id="campo-form">' +
+      F.inp("nombre", "Nombre del Campo", "", true) +
+      F.sel("tipo", "Tipo de Campo", '<option value="numerico">Numérico (con rango de referencia)</option><option value="cualitativo">Cualitativo (opciones, ej: Positivo/Negativo)</option><option value="descriptivo">Descriptivo (texto libre)</option>') +
+      '<div id="campo-extra"></div>' +
+      '<div class="flex gap-2 justify-between" style="margin-top:6px"><button type="button" class="btn btn-ghost" data-modal-close>Cancelar</button><button type="submit" class="btn btn-primary">' + U.icon("check") + " Agregar Campo</button></div>" +
+      "</form>"
+    );
+
+    function renderExtra() {
+      var tipo = wrap.querySelector("#f_tipo").value;
+      var box = wrap.querySelector("#campo-extra");
+      if (tipo === "numerico") {
+        box.innerHTML = F.inp("unidad", "Unidad (ej: mg/dL)", "") +
+          '<div class="form-grid">' + F.inp("min", "Mínimo", "0") + F.inp("max", "Máximo", "0") + "</div>" +
+          F.inp("reftext", "Texto de Referencia (opcional)", "");
+      } else if (tipo === "cualitativo") {
+        box.innerHTML = F.inp("opciones", "Opciones separadas por coma (ej: Negativo, Positivo)", "Negativo, Positivo", true) +
+          F.inp("reftext", "Texto de Referencia (opcional)", "");
+      } else {
+        box.innerHTML = F.inp("reftext", "Texto de Referencia o instrucción (opcional)", "");
+      }
+    }
+    wrap.querySelector("#f_tipo").addEventListener("change", renderExtra);
+    renderExtra();
+
+    wrap.querySelector("#campo-form").addEventListener("submit", function (e) {
+      e.preventDefault();
+      var g = function (id) { var el = wrap.querySelector("#f_" + id); return el ? el.value.trim() : ""; };
+      var nombre = g("nombre");
+      if (!nombre) { U.toast("Ponle un nombre al campo.", "error"); return; }
+      var tipo = g("tipo");
+      var codigo = "PERS_" + U.normalizar(nombre).toUpperCase().replace(/[^A-Z0-9]+/g, "_").replace(/^_+|_+$/g, "").slice(0, 20) + "_" + Date.now().toString(36).slice(-4).toUpperCase();
+      var nuevo = { codigo: codigo, nombre: nombre, tipo: tipo };
+      if (tipo === "numerico") {
+        var min = parseFloat(g("min")), max = parseFloat(g("max"));
+        if (isNaN(min) || isNaN(max)) { U.toast("Ingresa un mínimo y un máximo válidos.", "error"); return; }
+        nuevo.unidad = g("unidad"); nuevo.min = min; nuevo.max = max;
+        nuevo.refText = g("reftext") || (min + " - " + max + " " + (nuevo.unidad || ""));
+      } else if (tipo === "cualitativo") {
+        var opciones = g("opciones").split(",").map(function (o) { return o.trim(); }).filter(Boolean);
+        if (opciones.length < 2) { U.toast("Ingresa al menos 2 opciones separadas por coma.", "error"); return; }
+        nuevo.opciones = opciones; nuevo.normal = opciones[0];
+        nuevo.refText = g("reftext") || ("Normal: " + opciones[0]);
+      } else {
+        nuevo.refText = g("reftext") || "";
+      }
+      var session = BIO_AUTH.getSession();
+      C.agregarCampoPersonalizado(tenant, examId, nuevo);
+      S.updateTenant(tenant.id, { examCustom: tenant.examCustom });
+      S.addAudit(session.tenantId, session.nombre, session.rol, "ADD_EXAM_FIELD", "catalogo", examId + ":" + codigo, 'Agregó el campo personalizado "' + nombre + '" en ' + exCat.nombre + ".");
+      U.toast("Campo agregado.", "success");
+      U.closeModal(wrap);
+      onSaved();
     });
   }
 

@@ -86,7 +86,12 @@
       document.getElementById("btn-back").addEventListener("click", function () { location.hash = "#/resultados"; });
 
       var host = document.getElementById("exam-cards");
-      order.examenes.forEach(function (ex, idx) { host.appendChild(buildExamCard(ex, idx)); });
+      // Muestra las tarjetas de examen en el orden que el laboratorio haya
+      // personalizado (tenant.ordenExamenes), no en el orden en que se
+      // agregaron a la orden — así el bacteriólogo(a) las ve en el orden
+      // con el que ya está acostumbrado a trabajar.
+      var examenesOrdenados = C.ordenarPorExamen(order.examenes, tenant, function (ex) { return ex.examId; });
+      examenesOrdenados.forEach(function (ex, idx) { host.appendChild(buildExamCard(ex, idx)); });
     }
 
     function buildExamCard(ex, idx) {
