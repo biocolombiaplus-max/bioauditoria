@@ -6,7 +6,7 @@
   var U = BIO_UI, S = BIO_STORE, C = BIO_CATALOG, F = window.BIO_formHelpers;
 
   var ESTADO_LABEL = {
-    nuevo: "Nuevo / Interesado", contrato_enviado: "Contrato enviado", pagado: "Pagado",
+    nuevo: "Nuevo / Interesado", contrato_enviado: "Contrato enviado", pagado: "Implementación pagada (por activar)",
     activo: "Activo", recordatorio_enviado: "Recordatorio enviado", en_mora: "En mora",
     bloqueado: "Bloqueado", cancelado: "Cancelado"
   };
@@ -48,7 +48,7 @@
       var fecha = tenant.fechaProximoPago ? " · " + fmtFechaCorta(tenant.fechaProximoPago) : "";
       return "<span class='badge " + info.badge + "'>" + info.label + fecha + "</span>";
     }
-    if (["nuevo", "contrato_enviado", "bloqueado", "cancelado"].indexOf(c.estado) !== -1) return '<span class="text-muted" style="font-size:12px">—</span>';
+    if (["nuevo", "contrato_enviado", "pagado", "bloqueado", "cancelado"].indexOf(c.estado) !== -1) return '<span class="text-muted" style="font-size:12px">—</span>';
     var dias = diasHasta(c.proximaFechaCobro);
     if (dias === null) return '<span class="text-muted" style="font-size:12px">—</span>';
     if (dias < 0) return '<span class="badge badge-urgente">En mora · ' + Math.abs(dias) + ' día(s)</span>';
@@ -172,6 +172,7 @@
         "<button class='btn btn-outline btn-sm' data-contrato='" + c.id + "'>" + U.icon("file") + " Contrato</button>" +
         "<button class='btn btn-outline btn-sm' data-recibo='" + c.id + "'>" + U.icon("file") + " Recibo</button>" +
         (c.estado !== "activo" ? "<button class='btn btn-primary btn-sm' data-pagado='" + c.id + "'>" + U.icon("check") + " Marcar Pagado</button>" : "") +
+        (c.estado === "pagado" ? "<button class='btn btn-primary btn-sm' data-activar='" + c.id + "' title='La implementación ya quedó lista, empieza a cobrar la mensualidad'>" + U.icon("check") + " Activar Cobro Mensual</button>" : "") +
         "<button class='btn btn-whatsapp btn-sm' data-mensaje='" + c.id + "'>" + U.icon("send") + " Mensaje</button>" +
         "<button class='btn btn-outline btn-sm' data-correo='" + c.id + "'>📧 Correo</button>" +
         "<button class='btn btn-ghost btn-sm' data-actividad='" + c.id + "'>🕓</button>" +
@@ -283,6 +284,11 @@
         abrirMarcarPagado(c);
       }); });
 
+      root.querySelectorAll("[data-activar]").forEach(function (b) { b.addEventListener("click", function () {
+        var c = clientes.filter(function (x) { return x.id === b.dataset.activar; })[0];
+        abrirActivarCobro(c);
+      }); });
+
       root.querySelectorAll("[data-mensaje]").forEach(function (b) { b.addEventListener("click", function () {
         abrirMensajeConPlantilla(clientes.filter(function (x) { return x.id === b.dataset.mensaje; })[0]);
       }); });
@@ -339,6 +345,8 @@
         '<div class="field"><label>Fecha de pago</label><input type="date" id="mp-fecha" value="' + new Date().toISOString().slice(0, 10) + '"/></div>' +
         '<p style="font-size:13px" id="mp-concepto"><b>Concepto:</b> ' + conceptoLabel + '</p>' +
         '<p style="font-size:13px"><b>Total recibido:</b> <span id="mp-total">$' + totalCOP.toLocaleString("es-CO") + ' COP (aprox. $' + totalUSD + ' USD)</span></p>' +
+        '<div class="field"><label class="flex gap-2" style="align-items:center;font-weight:400"><input type="checkbox" id="mp-implementado" checked style="width:auto"/> Ya está implementado — iniciar el cobro mensual desde esta fecha</label></div>' +
+        '<p class="text-muted" style="font-size:12px;margin-top:-6px">Desmárcalo si el cliente pagó pero todavía le falta la implementación — el pago queda registrado, pero el cobro mensual no arranca hasta que uses "Activar Cobro Mensual".</p>' +
         '<div class="flex gap-2 justify-between"><button class="btn btn-ghost" data-modal-close>Cancelar</button><button class="btn btn-primary" id="mp-confirmar">' + U.icon("check") + " Confirmar Pago</button></div>"
       );
       wrap.querySelector("#mp-modalidad").addEventListener("change", function () {
@@ -349,22 +357,56 @@
       });
       wrap.querySelector("#mp-confirmar").addEventListener("click", function () {
         var fechaPago = new Date(wrap.querySelector("#mp-fecha").value + "T12:00:00");
-        var proxima = new Date(fechaPago.getTime() + mesesCobro * 30 * 864e5);
+        var yaImplementado = wrap.querySelector("#mp-implementado").checked;
+        var proxima = yaImplementado ? new Date(fechaPago.getTime() + mesesCobro * 30 * 864e5) : null;
         var patch = {
-          estado: "activo",
           modalidadPago: esSemestral ? "semestral" : (esContado ? "contado" : "mensual"),
-          fechaPagoInicial: c.fechaPagoInicial || fechaPago.toISOString(),
-          proximaFechaCobro: proxima.toISOString(),
           totalPrimerPagoFmt: totalCOP.toLocaleString("es-CO"),
           totalPrimerPagoUSD: totalUSD
         };
         if (!esSemestral) patch.cuotasImplementacionPagadas = cuotasTrasEstePago;
+        if (yaImplementado) {
+          patch.estado = "activo";
+          patch.fechaPagoInicial = c.fechaPagoInicial || fechaPago.toISOString();
+          patch.proximaFechaCobro = proxima.toISOString();
+        } else {
+          patch.estado = "pagado";
+        }
         S.crm.update(c.id, patch).then(function () {
           U.closeModal(wrap);
-          U.toast("Pago registrado. Próximo cobro: " + fmtFechaCorta(proxima.toISOString()), "success");
+          U.toast(yaImplementado ? ("Pago registrado. Próximo cobro: " + fmtFechaCorta(proxima.toISOString())) : 'Pago registrado. Cuando la implementación esté lista, usa "Activar Cobro Mensual" para arrancar el cobro.', "success");
           var bytes = BIO_PDF_CRM.buildReciboPDF(clienteParaDocs(c), plan, { fecha: fechaPago, totalFmt: patch.totalPrimerPagoFmt, totalUSD: patch.totalPrimerPagoUSD, proximaFecha: patch.proximaFechaCobro, concepto: conceptoLabel });
           U.downloadBytes(bytes, "Recibo_BIOsoft_" + (c.laboratorio.nombre || "Cliente").replace(/\s+/g, "_") + ".pdf");
-          return agregarActividad(c, "pago", "Pago registrado (" + conceptoLabel + "). Próximo cobro: " + fmtFechaCorta(proxima.toISOString()) + ".");
+          return agregarActividad(c, "pago", "Pago registrado (" + conceptoLabel + ")." + (yaImplementado ? " Próximo cobro: " + fmtFechaCorta(proxima.toISOString()) + "." : " El cobro mensual queda pendiente de activar cuando la implementación esté lista."));
+        }).then(cargar).catch(function (err) { U.toast("No se pudo guardar: " + err.message, "error"); });
+      });
+    }
+
+    // Cuando el cliente pagó pero la implementación todavía no estaba lista
+    // al momento del pago (ver checkbox en "Marcar como Pagado"), este es el
+    // paso que de verdad arranca el conteo de la mensualidad: desde la
+    // fecha que se elija aquí, no desde la fecha en que se recibió el pago.
+    function abrirActivarCobro(c) {
+      var plan = BIO_PLANES.porId(c.planId);
+      if (!plan) { U.toast("Este cliente no tiene un plan asignado.", "error"); return; }
+      var esSemestral = c.modalidadPago === "semestral";
+      var cicloDiasDefault = esSemestral ? 180 : 30;
+      var wrap = U.openModal(
+        '<h3 class="modal-title">Activar Cobro Mensual — ' + U.esc(c.laboratorio.nombre || "") + '</h3>' +
+        '<p class="text-muted">La implementación ya quedó lista. Desde la fecha que elijas aquí empieza a correr el ciclo de cobro de la mensualidad — no se cobra nada nuevo en este paso, solo se activa la fecha.</p>' +
+        '<div class="field"><label>Fecha de activación</label><input type="date" id="ac-fecha" value="' + new Date().toISOString().slice(0, 10) + '"/></div>' +
+        '<div class="field"><label>Ciclo de cobro (días)</label><input type="number" id="ac-ciclo" min="1" value="' + cicloDiasDefault + '"/></div>' +
+        '<div class="flex gap-2 justify-between"><button class="btn btn-ghost" data-modal-close>Cancelar</button><button class="btn btn-primary" id="ac-confirmar">' + U.icon("check") + " Activar</button></div>"
+      );
+      wrap.querySelector("#ac-confirmar").addEventListener("click", function () {
+        var fechaActivacion = new Date(wrap.querySelector("#ac-fecha").value + "T12:00:00");
+        var cicloDias = parseInt(wrap.querySelector("#ac-ciclo").value, 10) || cicloDiasDefault;
+        var proxima = new Date(fechaActivacion.getTime() + cicloDias * 864e5);
+        var patch = { estado: "activo", fechaPagoInicial: fechaActivacion.toISOString(), proximaFechaCobro: proxima.toISOString() };
+        S.crm.update(c.id, patch).then(function () {
+          U.closeModal(wrap);
+          U.toast("Cobro mensual activado. Próximo cobro: " + fmtFechaCorta(proxima.toISOString()), "success");
+          return agregarActividad(c, "cambio_etapa", "Implementación lista: se activó el cobro mensual. Próximo cobro: " + fmtFechaCorta(proxima.toISOString()) + ".");
         }).then(cargar).catch(function (err) { U.toast("No se pudo guardar: " + err.message, "error"); });
       });
     }
