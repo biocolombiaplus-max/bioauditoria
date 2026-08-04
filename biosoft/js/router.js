@@ -174,9 +174,23 @@
     BIO_TOUR.autoStart();
   }
 
+  /* Con la persistencia offline de Firestore ya activada (ver
+     firebase-config.js), el laboratorio puede seguir trabajando sin
+     internet: lo que capture queda guardado en el dispositivo y se
+     sincroniza solo en cuanto vuelva la señal. Este aviso es solo para que
+     el equipo sepa que está pasando eso, no bloquea nada. */
+  function wireOfflineBanner() {
+    var banner = document.getElementById("offline-banner");
+    function actualizar() { banner.classList.toggle("hidden", navigator.onLine); }
+    window.addEventListener("online", actualizar);
+    window.addEventListener("offline", actualizar);
+    actualizar();
+  }
+
   function boot() {
     BIO_STORE.seedIfEmpty();
     BIO_STORE.onRealtimeChange(function () { renderRoute(); });
+    wireOfflineBanner();
     wireLogin();
     document.getElementById("burger").addEventListener("click", function () {
       document.getElementById("app-inner").classList.toggle("sidebar-open");

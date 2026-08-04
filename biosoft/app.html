@@ -6,7 +6,7 @@
 <title>BIOsoft — Sistema de Gestión de Laboratorio Clínico</title>
 <meta name="description" content="BIOsoft: software de laboratorio clínico multi-país (Colombia, Venezuela, Ecuador) para pacientes, resultados, validación y reportes profesionales."/>
 <link rel="icon" type="image/png" href="assets/favicon-biosoft.png"/>
-<link rel="stylesheet" href="css/styles.css?v=7"/>
+<link rel="stylesheet" href="css/styles.css?v=8"/>
 <link rel="manifest" href="manifest.webmanifest"/>
 <meta name="theme-color" content="#f97316"/>
 <link rel="apple-touch-icon" href="assets/icon-192.png"/>
@@ -17,6 +17,7 @@
 <body>
 
   <div id="demo-banner" class="demo-banner hidden">MODO DEMOSTRACIÓN — Los datos de este entorno son de ejemplo y se restablecen en tu navegador. Al adquirir BIOsoft, todo se personaliza 100% a tu laboratorio: campos, catálogo y formato del informe.</div>
+  <div id="offline-banner" class="offline-banner hidden">📡 Sin conexión a internet — puedes seguir trabajando. Lo que hagas se guarda en este dispositivo y se sincroniza solo cuando vuelva la señal.</div>
 
   <!-- ======================= LOGIN ======================= -->
   <div id="login-screen">
@@ -125,7 +126,7 @@
   <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
-  <script src="js/firebase-config.js?v=1"></script>
+  <script src="js/firebase-config.js?v=2"></script>
   <script src="js/catalog.js?v=5"></script>
   <script src="js/qc-westgard.js?v=2"></script>
   <script src="js/marketing-recall.js?v=1"></script>
@@ -152,6 +153,6 @@
   <script src="js/views-inventario.js?v=1"></script>
   <script src="js/views-admin.js?v=18"></script>
   <script src="js/views-crm.js?v=3"></script>
-  <script src="js/router.js?v=4"></script>
+  <script src="js/router.js?v=5"></script>
 </body>
 </html>
