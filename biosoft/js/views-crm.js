@@ -304,25 +304,36 @@
       var plan = BIO_PLANES.porId(c.planId);
       if (!plan) { U.toast("Asigna un plan a este cliente antes de marcarlo como pagado.", "error"); return; }
       var esSemestral = c.modalidadPago === "semestral";
+      var esContado = c.modalidadPago === "contado";
       var cuotasPagadas = c.cuotasImplementacionPagadas || 0;
-      var totalCOP, totalUSD, conceptoLabel, mesesCobro;
+      var totalCOP, totalUSD, conceptoLabel, mesesCobro, cuotasTrasEstePago;
       if (esSemestral) {
         totalCOP = plan.precio * 6; totalUSD = plan.usd * 6; mesesCobro = 6;
         conceptoLabel = "6 meses de una vez · sin implementación";
-      } else if (cuotasPagadas < 2) {
+        cuotasTrasEstePago = cuotasPagadas;
+      } else if (esContado && cuotasPagadas < 2) {
+        totalCOP = plan.precio + BIO_PLANES.IMPLEMENTACION.cop;
+        totalUSD = plan.usd + BIO_PLANES.IMPLEMENTACION.usd;
+        mesesCobro = 1;
+        conceptoLabel = "Mensualidad + implementación completa de una vez";
+        cuotasTrasEstePago = 2;
+      } else if (!esContado && cuotasPagadas < 2) {
         totalCOP = plan.precio + BIO_PLANES.IMPLEMENTACION.cuotaCop;
         totalUSD = plan.usd + BIO_PLANES.IMPLEMENTACION.cuotaUsd;
         mesesCobro = 1;
         conceptoLabel = "Mensualidad + cuota " + (cuotasPagadas + 1) + " de 2 de implementación";
+        cuotasTrasEstePago = cuotasPagadas + 1;
       } else {
         totalCOP = plan.precio; totalUSD = plan.usd; mesesCobro = 1;
         conceptoLabel = "Solo mensualidad (implementación ya completa)";
+        cuotasTrasEstePago = cuotasPagadas;
       }
       var wrap = U.openModal(
         '<h3 class="modal-title">Marcar como Pagado — ' + U.esc(c.laboratorio.nombre || "") + '</h3>' +
         '<p class="text-muted">Se calculará la próxima fecha de cobro y se generará el recibo automáticamente.</p>' +
         '<div class="field"><label>Modalidad de pago</label><select id="mp-modalidad">' +
-        '<option value="mensual" ' + (!esSemestral ? "selected" : "") + '>Mes a mes (implementación en 2 cuotas)</option>' +
+        '<option value="mensual" ' + (!esSemestral && !esContado ? "selected" : "") + '>Mes a mes (implementación en 2 cuotas)</option>' +
+        '<option value="contado" ' + (esContado ? "selected" : "") + '>Mes a mes (implementación pagada de una vez)</option>' +
         '<option value="semestral" ' + (esSemestral ? "selected" : "") + '>6 meses de una vez (sin implementación)</option>' +
         "</select></div>" +
         '<div class="field"><label>Fecha de pago</label><input type="date" id="mp-fecha" value="' + new Date().toISOString().slice(0, 10) + '"/></div>' +
@@ -341,13 +352,13 @@
         var proxima = new Date(fechaPago.getTime() + mesesCobro * 30 * 864e5);
         var patch = {
           estado: "activo",
-          modalidadPago: esSemestral ? "semestral" : "mensual",
+          modalidadPago: esSemestral ? "semestral" : (esContado ? "contado" : "mensual"),
           fechaPagoInicial: c.fechaPagoInicial || fechaPago.toISOString(),
           proximaFechaCobro: proxima.toISOString(),
           totalPrimerPagoFmt: totalCOP.toLocaleString("es-CO"),
           totalPrimerPagoUSD: totalUSD
         };
-        if (!esSemestral) patch.cuotasImplementacionPagadas = Math.min(2, cuotasPagadas + 1);
+        if (!esSemestral) patch.cuotasImplementacionPagadas = cuotasTrasEstePago;
         S.crm.update(c.id, patch).then(function () {
           U.closeModal(wrap);
           U.toast("Pago registrado. Próximo cobro: " + fmtFechaCorta(proxima.toISOString()), "success");
@@ -590,7 +601,8 @@
         F.sel("plan", "Plan Contratado", BIO_PLANES.PLANES.map(function (p) { return "<option value='" + p.id + "' " + (p.id === cliente.planId ? "selected" : "") + ">" + p.nombre + " (" + p.usuarios + ") — $" + p.precioFmt + "/mes</option>"; }).join("")) +
         F.sel("estado", "Etapa", Object.keys(ESTADO_LABEL).map(function (k) { return "<option value='" + k + "' " + (k === cliente.estado ? "selected" : "") + ">" + ESTADO_LABEL[k] + "</option>"; }).join("")) +
         F.sel("modalidadPago", "Modalidad de Pago", [
-          "<option value='mensual' " + (cliente.modalidadPago !== "semestral" ? "selected" : "") + ">Mes a mes (implementación en 2 cuotas)</option>",
+          "<option value='mensual' " + (cliente.modalidadPago !== "semestral" && cliente.modalidadPago !== "contado" ? "selected" : "") + ">Mes a mes (implementación en 2 cuotas)</option>",
+          "<option value='contado' " + (cliente.modalidadPago === "contado" ? "selected" : "") + ">Mes a mes (implementación pagada de una vez)</option>",
           "<option value='semestral' " + (cliente.modalidadPago === "semestral" ? "selected" : "") + ">6 meses de una vez (sin implementación)</option>"
         ].join("")) +
         "</div></fieldset>" +
