@@ -34,6 +34,22 @@
     return new Date(iso).toLocaleDateString("es-CO", { year: "numeric", month: "short", day: "numeric" });
   }
 
+  // A partir de las fechas de cobro que ya calculó el CRM (c.fechaPagoInicial
+  // / c.proximaFechaCobro), arma los campos que "Laboratorios Cliente" usa
+  // para decidir el estado de pago (ver BIO_PLANES.estadoCuenta). Así, en
+  // cuanto un cliente del CRM tiene cobro activo, su laboratorio real queda
+  // con el mismo estado — no aparece "Sin fecha de pago" ni "Vencido" recién
+  // creado. Devuelve null si el cliente todavía no tiene cobro arrancado.
+  function datosCobroParaTenant(c) {
+    if (!c.fechaPagoInicial || !c.proximaFechaCobro) return null;
+    return {
+      fechaInicioPlan: c.fechaPagoInicial.slice(0, 10),
+      fechaProximoPago: c.proximaFechaCobro.slice(0, 10),
+      cicloCobroDias: c.modalidadPago === "semestral" ? 180 : 30,
+      suspendido: false
+    };
+  }
+
   // Cuando el cliente ya tiene un laboratorio real vinculado (c.tenantId), el
   // estado de pago se lee EN VIVO desde ese laboratorio (fuente única de
   // verdad, gestionada en "Laboratorios Cliente") en vez de la copia propia
@@ -173,7 +189,7 @@
         (c.estado !== "activo" ? "<button class='btn btn-primary btn-sm' data-pagado='" + c.id + "'>" + U.icon("check") + " Marcar Pagado</button>" : "") +
         (c.estado === "pagado" ? "<button class='btn btn-primary btn-sm' data-activar='" + c.id + "' title='La implementación ya quedó lista, empieza a cobrar la mensualidad'>" + U.icon("check") + " Activar Cobro Mensual</button>" : "") +
         (!c.tenantId
-          ? "<button class='btn btn-outline btn-sm' data-crear-acceso='" + c.id + "' title='Crea la cuenta real de este laboratorio en BIOsoft'>" + U.icon("send") + " Crear Acceso</button>"
+          ? "<button class='btn btn-sm " + ((c.estado === "pagado" || c.estado === "activo") ? "btn-primary" : "btn-outline") + "' data-crear-acceso='" + c.id + "' title='Ya pagó — crea su cuenta real en BIOsoft para poder enviarle usuario y clave'>" + U.icon("send") + " Crear Acceso</button>"
           : "<button class='btn btn-outline btn-sm' data-enviar-acceso='" + c.id + "' title='Reenviar las credenciales de ingreso'>" + U.icon("send") + " Enviar Acceso</button>") +
         "<button class='btn btn-whatsapp btn-sm' data-mensaje='" + c.id + "'>" + U.icon("send") + " Mensaje</button>" +
         "<button class='btn btn-outline btn-sm' data-correo='" + c.id + "'>📧 Correo</button>" +
@@ -450,6 +466,7 @@
         }
         S.crm.update(c.id, patch).then(function () {
           U.closeModal(wrap);
+          if (yaImplementado && c.tenantId) S.updateTenant(c.tenantId, datosCobroParaTenant(Object.assign({}, c, patch)));
           U.toast(yaImplementado ? ("Pago registrado. Próximo cobro: " + fmtFechaCorta(proxima.toISOString())) : 'Pago registrado. Cuando la implementación esté lista, usa "Activar Cobro Mensual" para arrancar el cobro.', "success");
           var bytes = BIO_PDF_CRM.buildReciboPDF(clienteParaDocs(c), plan, { fecha: fechaPago, totalFmt: patch.totalPrimerPagoFmt, totalUSD: patch.totalPrimerPagoUSD, proximaFecha: patch.proximaFechaCobro, concepto: calc.conceptoLabel });
           var nombreArchivo = "Recibo_BIOsoft_" + (c.laboratorio.nombre || "Cliente").replace(/\s+/g, "_") + ".pdf";
@@ -483,6 +500,14 @@
         var patch = { estado: "activo", fechaPagoInicial: fechaActivacion.toISOString(), proximaFechaCobro: proxima.toISOString() };
         S.crm.update(c.id, patch).then(function () {
           U.closeModal(wrap);
+          if (c.tenantId) {
+            S.updateTenant(c.tenantId, {
+              fechaInicioPlan: fechaActivacion.toISOString().slice(0, 10),
+              fechaProximoPago: proxima.toISOString().slice(0, 10),
+              cicloCobroDias: cicloDias,
+              suspendido: false
+            });
+          }
           U.toast("Cobro mensual activado. Próximo cobro: " + fmtFechaCorta(proxima.toISOString()), "success");
           return agregarActividad(c, "cambio_etapa", "Implementación lista: se activó el cobro mensual. Próximo cobro: " + fmtFechaCorta(proxima.toISOString()) + ".");
         }).then(cargar).catch(function (err) { U.toast("No se pudo guardar: " + err.message, "error"); });
@@ -524,10 +549,10 @@
         var submitBtn = wrap.querySelector('button[type="submit"]');
         submitBtn.disabled = true; submitBtn.textContent = "Creando…";
         S.provisionRealAccount({
-          tenantData: {
+          tenantData: Object.assign({
             nombre: lab.nombre, nit: lab.nit, pais: lab.pais, direccion: lab.ciudad || "", telefonos: contacto.whatsapp || "", email: contacto.correo || "",
             contactoNombre: contacto.nombre, planId: plan.id, maxUsuarios: plan.limiteUsuarios
-          },
+          }, datosCobroParaTenant(c) || {}),
           userData: { username: usuario, password: clave, nombre: nombre, rol: "admin", secciones: c.seccionesIds || [] }
         }).then(function (res) {
           return S.crm.update(c.id, { tenantId: res.tenantId }).then(function () {
