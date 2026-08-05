@@ -231,6 +231,16 @@
       toggleBtn.textContent = abierto ? "¿Ya adquiriste BIOsoft para tu laboratorio? Inicia sesión aquí →" : "← Ocultar inicio de sesión";
       if (!abierto) existingBlock.scrollIntoView({ behavior: "smooth", block: "nearest" });
     });
+    // El botón "¿Ya eres cliente? Ingresa aquí" de la landing (index.html)
+    // trae a quien ya tiene BIOsoft directo a app.html#login — aquí se
+    // despliega el formulario de usuario y clave de una vez, sin que tengan
+    // que encontrar y hacer clic aparte en el enlace para revelarlo.
+    if (location.hash === "#login") {
+      existingBlock.classList.remove("hidden");
+      toggleBtn.textContent = "← Ocultar inicio de sesión";
+      history.replaceState(null, "", location.pathname + location.search);
+      setTimeout(function () { document.getElementById("login-username").focus(); }, 150);
+    }
     var tabs = document.querySelectorAll(".role-tab");
     tabs.forEach(function (tab) {
       tab.addEventListener("click", function () {
