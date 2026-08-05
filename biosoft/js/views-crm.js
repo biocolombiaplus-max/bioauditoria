@@ -23,8 +23,7 @@
     { nombre: "Recordatorio 2da cuota de implementación", mensaje: "Hola {nombre} 👋 Te escribimos de BIOsoft: este mes corresponde tu 2da y última cuota de implementación ($60 USD) junto con la mensualidad del Plan {plan} de {laboratorio}. A partir del próximo mes, solo pagas tu mensualidad. ¿Te ayudamos a coordinar el pago?" }
   ];
   var WA_NUMBER = "573505457420";
-  function waLink(mensaje) { return "https://wa.me/" + WA_NUMBER + "?text=" + encodeURIComponent(mensaje); }
-  function waLinkTo(numero, mensaje) { return "https://wa.me/" + (numero || "").replace(/\D/g, "") + "?text=" + encodeURIComponent(mensaje); }
+  function waLinkTo(numero, mensaje) { return "https://wa.me/" + ((numero || "").replace(/\D/g, "") || WA_NUMBER) + "?text=" + encodeURIComponent(mensaje); }
 
   function diasHasta(fechaISO) {
     if (!fechaISO) return null;
@@ -173,6 +172,9 @@
         "<button class='btn btn-outline btn-sm' data-recibo='" + c.id + "'>" + U.icon("file") + " Recibo</button>" +
         (c.estado !== "activo" ? "<button class='btn btn-primary btn-sm' data-pagado='" + c.id + "'>" + U.icon("check") + " Marcar Pagado</button>" : "") +
         (c.estado === "pagado" ? "<button class='btn btn-primary btn-sm' data-activar='" + c.id + "' title='La implementación ya quedó lista, empieza a cobrar la mensualidad'>" + U.icon("check") + " Activar Cobro Mensual</button>" : "") +
+        (!c.tenantId
+          ? "<button class='btn btn-outline btn-sm' data-crear-acceso='" + c.id + "' title='Crea la cuenta real de este laboratorio en BIOsoft'>" + U.icon("send") + " Crear Acceso</button>"
+          : "<button class='btn btn-outline btn-sm' data-enviar-acceso='" + c.id + "' title='Reenviar las credenciales de ingreso'>" + U.icon("send") + " Enviar Acceso</button>") +
         "<button class='btn btn-whatsapp btn-sm' data-mensaje='" + c.id + "'>" + U.icon("send") + " Mensaje</button>" +
         "<button class='btn btn-outline btn-sm' data-correo='" + c.id + "'>📧 Correo</button>" +
         "<button class='btn btn-ghost btn-sm' data-actividad='" + c.id + "'>🕓</button>" +
@@ -211,11 +213,52 @@
       return { laboratorio: lab, contacto: contacto, seccionesTexto: secciones || "por definir" };
     }
 
-    function descargarYAbrir(bytes, nombreArchivo, contacto, mensaje) {
-      U.downloadBytes(bytes, nombreArchivo);
-      U.toast("Descargado. Ahora elige por dónde enviarlo.", "success");
-      if (contacto && contacto.whatsapp) window.open(waLinkTo(contacto.whatsapp, mensaje), "_blank");
-      else window.open(waLink(mensaje), "_blank");
+    // Descarga el PDF y deja elegir por dónde enviarlo (WhatsApp o correo),
+    // en vez de abrir WhatsApp automáticamente — así también sirve para
+    // clientes que prefieren recibir todo por correo.
+    function abrirEnviarDocumento(opts) {
+      U.downloadBytes(opts.bytes, opts.nombreArchivo);
+      var wrap = U.openModal(
+        '<h3 class="modal-title">' + opts.titulo + '</h3>' +
+        '<p class="text-muted" style="margin-top:0">Ya se descargó el PDF. Adjúntalo antes de enviar por el canal que elijas.</p>' +
+        '<button class="btn btn-whatsapp btn-block" id="doc-send-wa">' + U.icon("send") + " Enviar por WhatsApp</button>" +
+        (opts.contacto && opts.contacto.correo ? U.emailProviderButtonsHtml("doc-mail") : "") +
+        '<div class="flex justify-between" style="margin-top:16px"><button class="btn btn-ghost" data-modal-close>Cerrar</button></div>'
+      );
+      wrap.querySelector("#doc-send-wa").addEventListener("click", function () {
+        window.open(waLinkTo(opts.contacto && opts.contacto.whatsapp, opts.mensaje), "_blank");
+      });
+      if (opts.contacto && opts.contacto.correo) U.wireEmailProviderButtons(wrap, "doc-mail", opts.contacto.correo, opts.asuntoCorreo, opts.mensaje);
+      return wrap;
+    }
+
+    // Igual que abrirEnviarDocumento, pero sin PDF adjunto — para mensajes
+    // como el de credenciales de acceso, que se pueden revisar/editar antes
+    // de enviarlos (por ejemplo, para no dejar la contraseña mal copiada).
+    function abrirEnviarMensaje(opts) {
+      var wrap = U.openModal(
+        '<h3 class="modal-title">' + opts.titulo + '</h3>' +
+        (opts.descripcion ? '<p class="text-muted" style="margin-top:0">' + opts.descripcion + "</p>" : "") +
+        '<div class="field"><label>Mensaje</label><textarea id="msg-texto" rows="10">' + U.esc(opts.mensaje) + "</textarea></div>" +
+        (opts.botonExtraHtml || "") +
+        '<button class="btn btn-whatsapp btn-block" id="msg-send-wa">' + U.icon("send") + " Enviar por WhatsApp</button>" +
+        (opts.contacto && opts.contacto.correo ? U.emailProviderButtonsHtml("msg-mail") : "") +
+        '<div class="flex justify-between" style="margin-top:16px"><button class="btn btn-ghost" data-modal-close>Cerrar</button></div>'
+      );
+      wrap.querySelector("#msg-send-wa").addEventListener("click", function () {
+        window.open(waLinkTo(opts.contacto && opts.contacto.whatsapp, wrap.querySelector("#msg-texto").value), "_blank");
+      });
+      if (opts.contacto && opts.contacto.correo) {
+        ["gmail", "outlook", "mailto"].forEach(function (prov) {
+          var btn = wrap.querySelector("#msg-mail-" + prov);
+          if (btn) btn.addEventListener("click", function () {
+            var links = U.emailLinks(opts.contacto.correo, opts.asuntoCorreo, wrap.querySelector("#msg-texto").value);
+            window.open(links[prov], "_blank");
+          });
+        });
+      }
+      if (opts.wireExtra) opts.wireExtra(wrap);
+      return wrap;
     }
 
     function wireSeleccion() {
@@ -263,9 +306,12 @@
         if (!plan) { U.toast("Este cliente no tiene un plan asignado.", "error"); return; }
         var bytes = BIO_PDF_CRM.buildContratoPDF(clienteParaDocs(c), plan, c.modalidadPago);
         var mensaje = "Hola " + (c.contacto && c.contacto.nombre ? c.contacto.nombre.split(" ")[0] : "") + " 👋 Te comparto el contrato de prestación de servicios de BIOsoft para " + (c.laboratorio && c.laboratorio.nombre || "tu laboratorio") + ". Cualquier duda, quedo atento.";
-        descargarYAbrir(bytes, "Contrato_BIOsoft_" + (c.laboratorio.nombre || "Cliente").replace(/\s+/g, "_") + ".pdf", c.contacto, mensaje);
+        abrirEnviarDocumento({
+          titulo: "Enviar Contrato", bytes: bytes, nombreArchivo: "Contrato_BIOsoft_" + (c.laboratorio.nombre || "Cliente").replace(/\s+/g, "_") + ".pdf",
+          contacto: c.contacto, mensaje: mensaje, asuntoCorreo: "Contrato de Prestación de Servicios — BIOsoft"
+        });
         var p = (c.estado === "nuevo" ? S.crm.update(c.id, { estado: "contrato_enviado" }) : Promise.resolve());
-        p.then(function () { return agregarActividad(c, "contrato", "Contrato enviado por WhatsApp."); }).then(cargar);
+        p.then(function () { return agregarActividad(c, "contrato", "Contrato generado para enviar."); }).then(cargar);
       }); });
 
       root.querySelectorAll("[data-recibo]").forEach(function (b) { b.addEventListener("click", function () {
@@ -275,8 +321,11 @@
         var pago = { fecha: c.fechaPagoInicial || new Date(), totalFmt: c.totalPrimerPagoFmt, totalUSD: c.totalPrimerPagoUSD, proximaFecha: c.proximaFechaCobro };
         var bytes = BIO_PDF_CRM.buildReciboPDF(clienteParaDocs(c), plan, pago);
         var mensaje = "Hola " + (c.contacto && c.contacto.nombre ? c.contacto.nombre.split(" ")[0] : "") + " 👋 Aquí tienes el recibo de tu pago a BIOsoft. ¡Gracias por confiar en nosotros!";
-        descargarYAbrir(bytes, "Recibo_BIOsoft_" + (c.laboratorio.nombre || "Cliente").replace(/\s+/g, "_") + ".pdf", c.contacto, mensaje);
-        agregarActividad(c, "recibo", "Recibo de pago enviado por WhatsApp.");
+        abrirEnviarDocumento({
+          titulo: "Enviar Recibo", bytes: bytes, nombreArchivo: "Recibo_BIOsoft_" + (c.laboratorio.nombre || "Cliente").replace(/\s+/g, "_") + ".pdf",
+          contacto: c.contacto, mensaje: mensaje, asuntoCorreo: "Recibo de Pago — BIOsoft"
+        });
+        agregarActividad(c, "recibo", "Recibo de pago generado para enviar.");
       }); });
 
       root.querySelectorAll("[data-pagado]").forEach(function (b) { b.addEventListener("click", function () {
@@ -287,6 +336,14 @@
       root.querySelectorAll("[data-activar]").forEach(function (b) { b.addEventListener("click", function () {
         var c = clientes.filter(function (x) { return x.id === b.dataset.activar; })[0];
         abrirActivarCobro(c);
+      }); });
+
+      root.querySelectorAll("[data-crear-acceso]").forEach(function (b) { b.addEventListener("click", function () {
+        abrirCrearAcceso(clientes.filter(function (x) { return x.id === b.dataset.crearAcceso; })[0]);
+      }); });
+
+      root.querySelectorAll("[data-enviar-acceso]").forEach(function (b) { b.addEventListener("click", function () {
+        abrirReenviarAcceso(clientes.filter(function (x) { return x.id === b.dataset.enviarAcceso; })[0]);
       }); });
 
       root.querySelectorAll("[data-mensaje]").forEach(function (b) { b.addEventListener("click", function () {
@@ -306,65 +363,84 @@
       }); });
     }
 
+    // El valor de implementación varía según lo acordado con cada cliente
+    // (no siempre son los $380.000 de referencia), así que se puede editar
+    // aquí mismo — y queda guardado en el cliente para la próxima vez.
+    function calcularTotalesPago(c, plan, modalidad, implementacionCOP) {
+      var ratioUsdCop = BIO_PLANES.IMPLEMENTACION.cop / BIO_PLANES.IMPLEMENTACION.usd;
+      var implementacionUSD = Math.round(implementacionCOP / ratioUsdCop);
+      var cuotasPagadas = c.cuotasImplementacionPagadas || 0;
+      if (modalidad === "semestral") {
+        return { totalCOP: plan.precio * 6, totalUSD: plan.usd * 6, mesesCobro: 6, conceptoLabel: "6 meses de una vez · sin implementación", cuotasTrasEstePago: cuotasPagadas };
+      }
+      if (modalidad === "solo_implementacion") {
+        return { totalCOP: implementacionCOP, totalUSD: implementacionUSD, mesesCobro: 0, conceptoLabel: "Solo implementación (sin mensualidad)", cuotasTrasEstePago: 2 };
+      }
+      if (modalidad === "contado" && cuotasPagadas < 2) {
+        return { totalCOP: plan.precio + implementacionCOP, totalUSD: plan.usd + implementacionUSD, mesesCobro: 1, conceptoLabel: "Mensualidad + implementación completa de una vez", cuotasTrasEstePago: 2 };
+      }
+      if (modalidad === "mensual" && cuotasPagadas < 2) {
+        var cuotaCOP = Math.round(implementacionCOP / 2), cuotaUSD = Math.round(implementacionUSD / 2);
+        return { totalCOP: plan.precio + cuotaCOP, totalUSD: plan.usd + cuotaUSD, mesesCobro: 1, conceptoLabel: "Mensualidad + cuota " + (cuotasPagadas + 1) + " de 2 de implementación", cuotasTrasEstePago: cuotasPagadas + 1 };
+      }
+      return { totalCOP: plan.precio, totalUSD: plan.usd, mesesCobro: 1, conceptoLabel: "Solo mensualidad (implementación ya completa)", cuotasTrasEstePago: cuotasPagadas };
+    }
+
     function abrirMarcarPagado(c) {
       var plan = BIO_PLANES.porId(c.planId);
       if (!plan) { U.toast("Asigna un plan a este cliente antes de marcarlo como pagado.", "error"); return; }
-      var esSemestral = c.modalidadPago === "semestral";
-      var esContado = c.modalidadPago === "contado";
-      var cuotasPagadas = c.cuotasImplementacionPagadas || 0;
-      var totalCOP, totalUSD, conceptoLabel, mesesCobro, cuotasTrasEstePago;
-      if (esSemestral) {
-        totalCOP = plan.precio * 6; totalUSD = plan.usd * 6; mesesCobro = 6;
-        conceptoLabel = "6 meses de una vez · sin implementación";
-        cuotasTrasEstePago = cuotasPagadas;
-      } else if (esContado && cuotasPagadas < 2) {
-        totalCOP = plan.precio + BIO_PLANES.IMPLEMENTACION.cop;
-        totalUSD = plan.usd + BIO_PLANES.IMPLEMENTACION.usd;
-        mesesCobro = 1;
-        conceptoLabel = "Mensualidad + implementación completa de una vez";
-        cuotasTrasEstePago = 2;
-      } else if (!esContado && cuotasPagadas < 2) {
-        totalCOP = plan.precio + BIO_PLANES.IMPLEMENTACION.cuotaCop;
-        totalUSD = plan.usd + BIO_PLANES.IMPLEMENTACION.cuotaUsd;
-        mesesCobro = 1;
-        conceptoLabel = "Mensualidad + cuota " + (cuotasPagadas + 1) + " de 2 de implementación";
-        cuotasTrasEstePago = cuotasPagadas + 1;
-      } else {
-        totalCOP = plan.precio; totalUSD = plan.usd; mesesCobro = 1;
-        conceptoLabel = "Solo mensualidad (implementación ya completa)";
-        cuotasTrasEstePago = cuotasPagadas;
-      }
+      var modalidadInicial = ["mensual", "contado", "semestral"].indexOf(c.modalidadPago) !== -1 ? c.modalidadPago : "mensual";
+      var implementacionInicial = c.implementacionCOP || BIO_PLANES.IMPLEMENTACION.cop;
       var wrap = U.openModal(
         '<h3 class="modal-title">Marcar como Pagado — ' + U.esc(c.laboratorio.nombre || "") + '</h3>' +
         '<p class="text-muted">Se calculará la próxima fecha de cobro y se generará el recibo automáticamente.</p>' +
         '<div class="field"><label>Modalidad de pago</label><select id="mp-modalidad">' +
-        '<option value="mensual" ' + (!esSemestral && !esContado ? "selected" : "") + '>Mes a mes (implementación en 2 cuotas)</option>' +
-        '<option value="contado" ' + (esContado ? "selected" : "") + '>Mes a mes (implementación pagada de una vez)</option>' +
-        '<option value="semestral" ' + (esSemestral ? "selected" : "") + '>6 meses de una vez (sin implementación)</option>' +
+        '<option value="mensual" ' + (modalidadInicial === "mensual" ? "selected" : "") + '>Mes a mes (implementación en 2 cuotas)</option>' +
+        '<option value="contado" ' + (modalidadInicial === "contado" ? "selected" : "") + '>Mes a mes (implementación pagada de una vez)</option>' +
+        '<option value="semestral" ' + (modalidadInicial === "semestral" ? "selected" : "") + '>6 meses de una vez (sin implementación)</option>' +
+        '<option value="solo_implementacion">Solo implementación (sin mensualidad)</option>' +
         "</select></div>" +
+        '<div class="field" id="mp-implementacion-box"><label>Valor de implementación (COP)</label><input type="number" min="0" step="10000" id="mp-implementacion" value="' + implementacionInicial + '"/></div>' +
         '<div class="field"><label>Fecha de pago</label><input type="date" id="mp-fecha" value="' + new Date().toISOString().slice(0, 10) + '"/></div>' +
-        '<p style="font-size:13px" id="mp-concepto"><b>Concepto:</b> ' + conceptoLabel + '</p>' +
-        '<p style="font-size:13px"><b>Total recibido:</b> <span id="mp-total">$' + totalCOP.toLocaleString("es-CO") + ' COP (aprox. $' + totalUSD + ' USD)</span></p>' +
-        '<div class="field"><label class="flex gap-2" style="align-items:center;font-weight:400"><input type="checkbox" id="mp-implementado" checked style="width:auto"/> Ya está implementado — iniciar el cobro mensual desde esta fecha</label></div>' +
-        '<p class="text-muted" style="font-size:12px;margin-top:-6px">Desmárcalo si el cliente pagó pero todavía le falta la implementación — el pago queda registrado, pero el cobro mensual no arranca hasta que uses "Activar Cobro Mensual".</p>' +
+        '<p style="font-size:13px"><b>Concepto:</b> <span id="mp-concepto"></span></p>' +
+        '<p style="font-size:13px"><b>Total recibido:</b> <span id="mp-total"></span></p>' +
+        '<div class="field" id="mp-implementado-box"><label class="flex gap-2" style="align-items:center;font-weight:400"><input type="checkbox" id="mp-implementado" checked style="width:auto"/> Ya está implementado — iniciar el cobro mensual desde esta fecha</label></div>' +
+        '<p class="text-muted" id="mp-implementado-ayuda" style="font-size:12px;margin-top:-6px">Desmárcalo si el cliente pagó pero todavía le falta la implementación — el pago queda registrado, pero el cobro mensual no arranca hasta que uses "Activar Cobro Mensual".</p>' +
         '<div class="flex gap-2 justify-between"><button class="btn btn-ghost" data-modal-close>Cancelar</button><button class="btn btn-primary" id="mp-confirmar">' + U.icon("check") + " Confirmar Pago</button></div>"
       );
-      wrap.querySelector("#mp-modalidad").addEventListener("change", function () {
-        U.closeModal(wrap);
-        S.crm.update(c.id, { modalidadPago: this.value }).then(function () {
-          abrirMarcarPagado(Object.assign({}, c, { modalidadPago: wrap.querySelector("#mp-modalidad").value }));
-        });
-      });
+
+      function modalidadActual() { return wrap.querySelector("#mp-modalidad").value; }
+      function implementacionActual() { return parseFloat(wrap.querySelector("#mp-implementacion").value) || 0; }
+      function actualizar() {
+        var modalidad = modalidadActual();
+        var calc = calcularTotalesPago(c, plan, modalidad, implementacionActual());
+        wrap.querySelector("#mp-concepto").textContent = calc.conceptoLabel;
+        wrap.querySelector("#mp-total").textContent = "$" + calc.totalCOP.toLocaleString("es-CO") + " COP (aprox. $" + calc.totalUSD + " USD)";
+        wrap.querySelector("#mp-implementacion-box").classList.toggle("hidden", modalidad === "semestral");
+        var esSoloImplementacion = modalidad === "solo_implementacion";
+        wrap.querySelector("#mp-implementado-box").classList.toggle("hidden", esSoloImplementacion);
+        wrap.querySelector("#mp-implementado-ayuda").classList.toggle("hidden", esSoloImplementacion);
+        if (esSoloImplementacion) wrap.querySelector("#mp-implementado").checked = false;
+      }
+      wrap.querySelector("#mp-modalidad").addEventListener("change", actualizar);
+      wrap.querySelector("#mp-implementacion").addEventListener("input", actualizar);
+      actualizar();
+
       wrap.querySelector("#mp-confirmar").addEventListener("click", function () {
+        var modalidad = modalidadActual();
+        var implementacionCOP = implementacionActual();
+        var calc = calcularTotalesPago(c, plan, modalidad, implementacionCOP);
         var fechaPago = new Date(wrap.querySelector("#mp-fecha").value + "T12:00:00");
-        var yaImplementado = wrap.querySelector("#mp-implementado").checked;
-        var proxima = yaImplementado ? new Date(fechaPago.getTime() + mesesCobro * 30 * 864e5) : null;
+        var esSoloImplementacion = modalidad === "solo_implementacion";
+        var yaImplementado = !esSoloImplementacion && wrap.querySelector("#mp-implementado").checked;
+        var proxima = yaImplementado ? new Date(fechaPago.getTime() + calc.mesesCobro * 30 * 864e5) : null;
         var patch = {
-          modalidadPago: esSemestral ? "semestral" : (esContado ? "contado" : "mensual"),
-          totalPrimerPagoFmt: totalCOP.toLocaleString("es-CO"),
-          totalPrimerPagoUSD: totalUSD
+          modalidadPago: esSoloImplementacion ? (["mensual", "contado", "semestral"].indexOf(c.modalidadPago) !== -1 ? c.modalidadPago : "mensual") : modalidad,
+          implementacionCOP: implementacionCOP,
+          totalPrimerPagoFmt: calc.totalCOP.toLocaleString("es-CO"),
+          totalPrimerPagoUSD: calc.totalUSD
         };
-        if (!esSemestral) patch.cuotasImplementacionPagadas = cuotasTrasEstePago;
+        if (modalidad !== "semestral") patch.cuotasImplementacionPagadas = calc.cuotasTrasEstePago;
         if (yaImplementado) {
           patch.estado = "activo";
           patch.fechaPagoInicial = c.fechaPagoInicial || fechaPago.toISOString();
@@ -375,9 +451,11 @@
         S.crm.update(c.id, patch).then(function () {
           U.closeModal(wrap);
           U.toast(yaImplementado ? ("Pago registrado. Próximo cobro: " + fmtFechaCorta(proxima.toISOString())) : 'Pago registrado. Cuando la implementación esté lista, usa "Activar Cobro Mensual" para arrancar el cobro.', "success");
-          var bytes = BIO_PDF_CRM.buildReciboPDF(clienteParaDocs(c), plan, { fecha: fechaPago, totalFmt: patch.totalPrimerPagoFmt, totalUSD: patch.totalPrimerPagoUSD, proximaFecha: patch.proximaFechaCobro, concepto: conceptoLabel });
-          U.downloadBytes(bytes, "Recibo_BIOsoft_" + (c.laboratorio.nombre || "Cliente").replace(/\s+/g, "_") + ".pdf");
-          return agregarActividad(c, "pago", "Pago registrado (" + conceptoLabel + ")." + (yaImplementado ? " Próximo cobro: " + fmtFechaCorta(proxima.toISOString()) + "." : " El cobro mensual queda pendiente de activar cuando la implementación esté lista."));
+          var bytes = BIO_PDF_CRM.buildReciboPDF(clienteParaDocs(c), plan, { fecha: fechaPago, totalFmt: patch.totalPrimerPagoFmt, totalUSD: patch.totalPrimerPagoUSD, proximaFecha: patch.proximaFechaCobro, concepto: calc.conceptoLabel });
+          var nombreArchivo = "Recibo_BIOsoft_" + (c.laboratorio.nombre || "Cliente").replace(/\s+/g, "_") + ".pdf";
+          var mensajeRecibo = "Hola " + (c.contacto && c.contacto.nombre ? c.contacto.nombre.split(" ")[0] : "") + " 👋 Aquí tienes el recibo de tu pago a BIOsoft (" + calc.conceptoLabel + "). ¡Gracias por confiar en nosotros!";
+          abrirEnviarDocumento({ titulo: "Enviar Recibo", bytes: bytes, nombreArchivo: nombreArchivo, contacto: c.contacto, mensaje: mensajeRecibo, asuntoCorreo: "Recibo de Pago — BIOsoft" });
+          return agregarActividad(c, "pago", "Pago registrado (" + calc.conceptoLabel + ")." + (yaImplementado ? " Próximo cobro: " + fmtFechaCorta(proxima.toISOString()) + "." : " El cobro mensual queda pendiente de activar cuando la implementación esté lista."));
         }).then(cargar).catch(function (err) { U.toast("No se pudo guardar: " + err.message, "error"); });
       });
     }
@@ -408,6 +486,110 @@
           U.toast("Cobro mensual activado. Próximo cobro: " + fmtFechaCorta(proxima.toISOString()), "success");
           return agregarActividad(c, "cambio_etapa", "Implementación lista: se activó el cobro mensual. Próximo cobro: " + fmtFechaCorta(proxima.toISOString()) + ".");
         }).then(cargar).catch(function (err) { U.toast("No se pudo guardar: " + err.message, "error"); });
+      });
+    }
+
+    function generarClaveSugerida() {
+      return "BIOsoft" + Math.floor(1000 + Math.random() * 9000) + "*";
+    }
+
+    // Crea la cuenta REAL del laboratorio (no demo) — Firebase Auth + su
+    // laboratorio en Firestore — y vincula este cliente del CRM con esa
+    // cuenta (c.tenantId), para que el estado de pago se lea en vivo desde
+    // ahí igual que ya pasa con los laboratorios creados desde "Laboratorios
+    // Cliente". No pisa nada existente: es la misma ruta de aprovisionamiento
+    // que ya usa esa pantalla.
+    function abrirCrearAcceso(c) {
+      var plan = BIO_PLANES.porId(c.planId);
+      if (!plan) { U.toast('Asigna primero un plan a este cliente (botón "editar").', "error"); return; }
+      var lab = c.laboratorio || {}, contacto = c.contacto || {};
+      var wrap = U.openModal(
+        '<h3 class="modal-title">Crear Acceso — ' + U.esc(lab.nombre || "") + '</h3>' +
+        '<p class="text-muted" style="margin-top:0">Esto crea la cuenta real de este laboratorio en BIOsoft (no es una cuenta demo). El correo de ingreso puede ser distinto al correo del laboratorio.</p>' +
+        '<form id="acceso-form"><div class="form-grid">' +
+        F.inp("adminNombre", "Nombre del Administrador", contacto.nombre, true) +
+        F.inp("adminUser", "Correo electrónico (usuario de ingreso)", contacto.correo, true, "email") +
+        F.inp("adminPass", "Contraseña (mínimo 6 caracteres)", generarClaveSugerida(), true) +
+        "</div>" +
+        '<div class="flex gap-2 justify-between" style="margin-top:6px"><button type="button" class="btn btn-ghost" data-modal-close>Cancelar</button><button type="submit" class="btn btn-primary">' + U.icon("check") + " Crear Acceso</button></div>" +
+        "</form>"
+      );
+      wrap.querySelector("#acceso-form").addEventListener("submit", function (e) {
+        e.preventDefault();
+        var g = function (id) { return wrap.querySelector("#f_" + id).value.trim(); };
+        var nombre = g("adminNombre"), usuario = g("adminUser"), clave = g("adminPass");
+        if (!nombre || !usuario || !clave) { U.toast("Completa todos los campos.", "error"); return; }
+        if (usuario.indexOf("@") === -1) { U.toast("El usuario debe ser un correo electrónico válido.", "error"); return; }
+        if (clave.length < 6) { U.toast("La contraseña debe tener al menos 6 caracteres.", "error"); return; }
+        var submitBtn = wrap.querySelector('button[type="submit"]');
+        submitBtn.disabled = true; submitBtn.textContent = "Creando…";
+        S.provisionRealAccount({
+          tenantData: {
+            nombre: lab.nombre, nit: lab.nit, pais: lab.pais, direccion: lab.ciudad || "", telefonos: contacto.whatsapp || "", email: contacto.correo || "",
+            contactoNombre: contacto.nombre, planId: plan.id, maxUsuarios: plan.limiteUsuarios
+          },
+          userData: { username: usuario, password: clave, nombre: nombre, rol: "admin", secciones: c.seccionesIds || [] }
+        }).then(function (res) {
+          return S.crm.update(c.id, { tenantId: res.tenantId }).then(function () {
+            return agregarActividad(c, "acceso", "Se creó el acceso real del laboratorio (usuario: " + usuario + ").");
+          });
+        }).then(function () {
+          U.closeModal(wrap);
+          U.toast("Acceso creado. Ahora puedes enviarle las credenciales.", "success");
+          cargar();
+          abrirEnviarCredenciales(c, { username: usuario, password: clave });
+        }).catch(function (err) {
+          submitBtn.disabled = false; submitBtn.textContent = "Crear Acceso";
+          var msg = (err && err.code === "auth/email-already-in-use") ? "Ese correo ya tiene una cuenta." : (err && err.message) || "No se pudo crear el acceso.";
+          U.toast(msg, "error");
+        });
+      });
+    }
+
+    function abrirEnviarCredenciales(c, credenciales) {
+      var lab = c.laboratorio || {}, contacto = c.contacto || {};
+      var primerNombre = contacto.nombre ? contacto.nombre.split(" ")[0] : "";
+      var mensaje = "Hola " + primerNombre + " 👋 Ya tienes tu acceso a BIOsoft listo para " + (lab.nombre || "tu laboratorio") + ".\n\n" +
+        "Ingresa aquí: https://bioauditoria.com/biosoft/app.html\n" +
+        "Usuario: " + credenciales.username + "\n" +
+        "Contraseña: " + credenciales.password + "\n\n" +
+        "Te recomendamos cambiarla la primera vez que ingreses, desde Configuración. Cualquier duda, aquí estamos.";
+      abrirEnviarMensaje({
+        titulo: "Enviar credenciales de acceso", descripcion: "Revisa el mensaje antes de enviarlo — trae la contraseña en texto plano.",
+        mensaje: mensaje, contacto: contacto, asuntoCorreo: "Tu acceso a BIOsoft — " + (lab.nombre || "")
+      });
+    }
+
+    // Para un laboratorio que YA tiene cuenta creada: no se puede reenviar
+    // la contraseña original (Firebase no la guarda en texto plano), así
+    // que se recuerda el usuario y se ofrece un enlace para restablecerla.
+    function abrirReenviarAcceso(c) {
+      if (!c.tenantId) { U.toast("Este cliente todavía no tiene una cuenta creada.", "error"); return; }
+      U.toast("Buscando el usuario administrador…", "success");
+      S.tenantsGlobal.listUsuarios(c.tenantId).then(function (usuarios) {
+        var admin = usuarios.filter(function (u) { return u.rol === "admin"; })[0];
+        if (!admin) { U.toast("No se encontró un usuario administrador para este laboratorio.", "error"); return; }
+        var lab = c.laboratorio || {}, contacto = c.contacto || {};
+        var mensaje = "Hola 👋 Te recordamos el acceso a tu BIOsoft de " + (lab.nombre || "tu laboratorio") + ".\n\n" +
+          "Ingresa aquí: https://bioauditoria.com/biosoft/app.html\n" +
+          "Usuario: " + admin.username + "\n\n" +
+          'Si no recuerdas tu contraseña, dale clic a "¿Olvidaste tu contraseña?" en la pantalla de ingreso, o usa el botón de abajo para enviarte el enlace directo.';
+        abrirEnviarMensaje({
+          titulo: "Reenviar Acceso", mensaje: mensaje, contacto: contacto, asuntoCorreo: "Recordatorio de acceso a BIOsoft — " + (lab.nombre || ""),
+          botonExtraHtml: '<button type="button" class="btn btn-outline btn-block" id="ra-reset-pass" style="margin-bottom:10px">🔑 Enviar enlace para restablecer contraseña (' + U.esc(admin.username) + ")</button>",
+          wireExtra: function (wrap) {
+            wrap.querySelector("#ra-reset-pass").addEventListener("click", function (e) {
+              var btn = e.currentTarget;
+              btn.disabled = true;
+              BIO_AUTH.recuperarContrasena(admin.username).then(function (res) {
+                btn.disabled = false;
+                U.toast(res.ok ? "Enlace de restablecimiento enviado a " + admin.username + "." : res.error, res.ok ? "success" : "error");
+              });
+            });
+          }
+        });
+      }).catch(function (err) {
+        U.toast("No se pudo cargar el usuario administrador: " + (err.message || err), "error");
       });
     }
 
