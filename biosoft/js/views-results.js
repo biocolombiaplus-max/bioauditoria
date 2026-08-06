@@ -62,7 +62,7 @@
 
     function rowHtml(r) {
       var pac = S.getPatient(r.order.patientId);
-      var exCat = C.examenPorId(r.ex.examId);
+      var exCat = C.examenEfectivo(r.ex.examId, BIO_AUTH.currentTenant());
       return "<tr><td>" + '<span class="badge badge-' + (r.order.prioridad === "Urgente" ? "urgente" : "rutina") + '">' + r.order.prioridad + "</span></td>" +
         "<td>" + r.order.numeroOrden + "</td><td>" + (pac ? U.esc(U.nombreCompleto(pac)) : "—") + "</td><td>" + U.esc(exCat.nombre) + "</td><td>" + C.seccionNombre(r.ex.seccion) + "</td>" +
         "<td>" + window.BIO_badgeEstado(r.ex.estado === "en_proceso" ? "pendiente" : r.ex.estado) + '</td><td><button class="btn btn-outline btn-sm" data-go="' + r.order.id + '">Abrir</button></td></tr>';
@@ -95,7 +95,7 @@
     }
 
     function buildExamCard(ex, idx) {
-      var exCat = C.examenEfectivo(ex.examId, tenant);
+      var exCat = C.examenParaPaciente(ex.examId, tenant, pac);
       var editable = puedeEditar(session, ex.seccion);
       var locked = ex.estado === "validado" || ex.estado === "remitido";
       var modoRemision = !!ex.remitido;

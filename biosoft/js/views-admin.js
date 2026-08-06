@@ -225,7 +225,7 @@
 
     function build() {
       tenant = S.getTenant(session.tenantId);
-      var exams = C.EXAMENES.filter(function (e) {
+      var exams = C.examenesEfectivos(tenant).filter(function (e) {
         var okSec = filtroSeccion === "todas" || e.seccion === filtroSeccion;
         var okBusq = !busqueda || U.normalizar(e.nombre).indexOf(U.normalizar(busqueda)) !== -1 || e.cups.indexOf(busqueda) !== -1;
         return okSec && okBusq;
@@ -307,6 +307,8 @@
 
       if (p.tipo === "numerico") {
         var overNum = base && (p.min !== base.min || p.max !== base.max || p.refText !== base.refText);
+        var conBandas = C.tieneBandas(tenant, examId, p.codigo);
+        var bandasHtml = '<button type="button" class="btn btn-ghost btn-sm" data-bandas="' + p.codigo + '" title="Definir rangos distintos por género y/o edad">🚻 ' + (conBandas ? "Rangos (activo)" : "Por género/edad") + "</button>";
         return '<tr data-prow="' + p.codigo + '">' +
           "<td>" + moverHtml + "</td>" +
           "<td>" + nombreHtml + '<div class="text-muted" style="font-size:11px">' + (p.unidad || "") + "</div></td>" +
@@ -314,7 +316,7 @@
           '<td><input type="number" step="any" data-max value="' + p.max + '" style="width:90px"/></td>' +
           '<td><input data-reftext value="' + U.esc(p.refText) + '"/></td>' +
           '<td class="text-muted" style="font-size:11px">' + (esDeFabrica ? "Fábrica: " + base.min + " - " + base.max : "—") + "</td>" +
-          "<td><div class='flex gap-1 wrap'>" + (overNum ? '<button type="button" class="btn btn-ghost btn-sm" data-reset="' + p.codigo + '">Restablecer</button>' : "") + quitarHtml + "</div></td></tr>";
+          "<td><div class='flex gap-1 wrap'>" + (overNum ? '<button type="button" class="btn btn-ghost btn-sm" data-reset="' + p.codigo + '">Restablecer</button>' : "") + bandasHtml + quitarHtml + "</div></td></tr>";
       }
       if (p.tipo === "cualitativo" || p.tipo === "descriptivo") {
         var overCual = base && (p.normal !== base.normal || p.refText !== base.refText);
@@ -339,6 +341,9 @@
     var wrap = U.openModal(
       '<h3 class="modal-title">Valores de Referencia — ' + U.esc(exCat.nombre) + '</h3>' +
       '<p class="text-muted" style="margin-top:0">Sección: ' + C.seccionNombre(exCat.seccion) + " · CUPS " + exCat.cups + " — reordena los campos con ▲▼, quita los que no uses o agrega uno propio, tal como lo trabajas en tu laboratorio.</p>" +
+      '<div class="field" style="max-width:420px"><label>Nombre del examen (como lo usa tu laboratorio)</label>' +
+      '<input id="cat-nombre-examen" value="' + U.esc(efectivo.nombre) + '"/></div>' +
+      (efectivo.nombre !== exCat.nombre ? '<p class="text-muted" style="margin:2px 0 12px;font-size:12px">Nombre de fábrica: ' + U.esc(exCat.nombre) + ' — <button type="button" class="btn btn-ghost btn-sm" id="btn-restablecer-nombre" style="padding:2px 6px">Restablecer</button></p>' : "") +
       '<div class="table-wrap"><table><thead><tr><th></th><th>Parámetro</th><th>Mínimo</th><th>Máximo</th><th>Texto de referencia</th><th>Original</th><th></th></tr></thead><tbody>' +
       efectivo.parametros.map(function (p, idx) { return paramRow(p, idx, efectivo.parametros.length); }).join("") +
       "</tbody></table></div>" +
@@ -395,9 +400,22 @@
       });
     });
 
+    var btnRestablecerNombre = wrap.querySelector("#btn-restablecer-nombre");
+    if (btnRestablecerNombre) btnRestablecerNombre.addEventListener("click", function () { wrap.querySelector("#cat-nombre-examen").value = exCat.nombre; });
+
+    wrap.querySelectorAll("[data-bandas]").forEach(function (btn) {
+      btn.addEventListener("click", function () {
+        var p = efectivo.parametros.filter(function (pp) { return pp.codigo === btn.dataset.bandas; })[0];
+        abrirBandasParametro(tenant, examId, exCat, p, reabrir);
+      });
+    });
+
     wrap.querySelector("#btn-agregar-campo").addEventListener("click", function () { abrirAgregarCampo(tenant, examId, exCat, reabrir); });
 
     wrap.querySelector("#cat-guardar").addEventListener("click", function () {
+      var nuevoNombre = wrap.querySelector("#cat-nombre-examen").value.trim();
+      var nombreCambio = nuevoNombre && nuevoNombre !== exCat.nombre;
+      if (nuevoNombre === exCat.nombre) C.renombrarExamen(tenant, examId, ""); else C.renombrarExamen(tenant, examId, nuevoNombre);
       var cambios = 0;
       efectivo.parametros.forEach(function (p) {
         var row = wrap.querySelector('[data-prow="' + p.codigo + '"]');
@@ -425,9 +443,88 @@
           cambios++;
         }
       });
-      S.updateTenant(tenant.id, { refOverrides: tenant.refOverrides || {} });
+      S.updateTenant(tenant.id, { refOverrides: tenant.refOverrides || {}, examCustom: tenant.examCustom || {} });
+      if (nombreCambio) S.addAudit(session.tenantId, session.nombre, session.rol, "RENAME_EXAM", "catalogo", examId, "Renombró " + exCat.nombre + ' a "' + nuevoNombre + '" para su laboratorio.');
       S.addAudit(session.tenantId, session.nombre, session.rol, "UPDATE_REF_RANGE", "catalogo", examId, "Actualizó valores de referencia de " + exCat.nombre + " (" + cambios + " parámetro(s) personalizado(s)).");
-      U.toast("Valores de referencia guardados para tu laboratorio.", "success");
+      U.toast("Cambios guardados para tu laboratorio.", "success");
+      U.closeModal(wrap);
+      onDone();
+    });
+  }
+
+  // -------------------------------------------------------------------
+  // RANGOS DE REFERENCIA POR GÉNERO/EDAD — modal secundario, uno por
+  // parámetro numérico, para no complicar la tabla principal de valores de
+  // referencia. Las bandas se combinan (la más específica gana) al capturar
+  // o imprimir resultados de un paciente concreto; ver C.parametroParaPaciente.
+  // -------------------------------------------------------------------
+  function abrirBandasParametro(tenant, examId, exCat, param, onDone) {
+    var session = BIO_AUTH.getSession();
+    var bandas = C.getBandas(tenant, examId, param.codigo).map(function (b) { return Object.assign({}, b); });
+
+    function bandaRow(b, idx) {
+      return '<tr data-brow="' + idx + '">' +
+        '<td><select data-b-genero style="min-width:100px">' +
+        '<option value="ambos" ' + (b.genero === "ambos" || !b.genero ? "selected" : "") + '>Ambos</option>' +
+        '<option value="Femenino" ' + (b.genero === "Femenino" ? "selected" : "") + '>Femenino</option>' +
+        '<option value="Masculino" ' + (b.genero === "Masculino" ? "selected" : "") + '>Masculino</option>' +
+        "</select></td>" +
+        '<td><input type="number" step="any" min="0" data-b-edadmin placeholder="Sin mínimo" value="' + (b.edadMinAnios != null ? b.edadMinAnios : "") + '" style="width:80px"/></td>' +
+        '<td><input type="number" step="any" min="0" data-b-edadmax placeholder="Sin máximo" value="' + (b.edadMaxAnios != null ? b.edadMaxAnios : "") + '" style="width:80px"/></td>' +
+        '<td><input type="number" step="any" data-b-min value="' + b.min + '" style="width:80px"/></td>' +
+        '<td><input type="number" step="any" data-b-max value="' + b.max + '" style="width:80px"/></td>' +
+        '<td><input data-b-reftext value="' + U.esc(b.refText || "") + '" placeholder="Opcional"/></td>' +
+        '<td><button type="button" class="btn btn-ghost btn-sm" data-b-quitar="' + idx + '">Quitar</button></td></tr>';
+    }
+
+    function renderTabla() {
+      wrap.querySelector("#bandas-tbody").innerHTML = bandas.length
+        ? bandas.map(bandaRow).join("")
+        : '<tr><td colspan="7" class="text-muted">Aún no hay rangos por género/edad — mientras no agregues ninguno, se sigue usando el rango general (' + param.min + " - " + param.max + ").</td></tr>";
+      wrap.querySelectorAll("[data-b-quitar]").forEach(function (btn) {
+        btn.addEventListener("click", function () { bandas.splice(parseInt(btn.dataset.bQuitar, 10), 1); renderTabla(); });
+      });
+    }
+
+    var wrap = U.openModal(
+      '<h3 class="modal-title">Rangos por Género/Edad — ' + U.esc(param.nombre) + ' (' + U.esc(exCat.nombre) + ')</h3>' +
+      '<p class="text-muted" style="margin-top:0">Define aquí rangos distintos según el sexo y/o la edad del paciente (ej. Hemoglobina distinta en hombres y mujeres). Al capturar o imprimir un resultado se usa el rango más específico que calce con el paciente; si ninguno calza, se usa el rango general de siempre (' + param.min + " - " + param.max + " " + (param.unidad || "") + ').</p>' +
+      '<div class="table-wrap"><table><thead><tr><th>Género</th><th>Edad mín. (años)</th><th>Edad máx. (años)</th><th>Mínimo</th><th>Máximo</th><th>Texto de referencia</th><th></th></tr></thead><tbody id="bandas-tbody"></tbody></table></div>' +
+      '<button type="button" class="btn btn-outline btn-sm" id="btn-agregar-banda" style="margin-top:12px">' + U.icon("plus") + " Agregar Rango</button>" +
+      '<div class="flex gap-2 justify-between" style="margin-top:14px"><button class="btn btn-ghost" data-modal-close>Cancelar</button><button class="btn btn-primary" id="bandas-guardar">' + U.icon("check") + " Guardar Rangos</button></div>",
+      { lg: true }
+    );
+    renderTabla();
+
+    wrap.querySelector("#btn-agregar-banda").addEventListener("click", function () {
+      bandas.push({ genero: "ambos", edadMinAnios: null, edadMaxAnios: null, min: param.min, max: param.max, refText: "" });
+      renderTabla();
+    });
+
+    wrap.querySelector("#bandas-guardar").addEventListener("click", function () {
+      var filas = wrap.querySelectorAll("[data-brow]");
+      var nuevasBandas = [];
+      var error = false;
+      filas.forEach(function (row) {
+        var min = parseFloat(row.querySelector("[data-b-min]").value);
+        var max = parseFloat(row.querySelector("[data-b-max]").value);
+        if (isNaN(min) || isNaN(max)) { error = true; return; }
+        var edadMinVal = row.querySelector("[data-b-edadmin]").value;
+        var edadMaxVal = row.querySelector("[data-b-edadmax]").value;
+        nuevasBandas.push({
+          genero: row.querySelector("[data-b-genero]").value,
+          edadMinAnios: edadMinVal === "" ? null : parseFloat(edadMinVal),
+          edadMaxAnios: edadMaxVal === "" ? null : parseFloat(edadMaxVal),
+          min: min, max: max,
+          refText: row.querySelector("[data-b-reftext]").value.trim()
+        });
+      });
+      if (error) { U.toast("Revisa que cada rango tenga un mínimo y un máximo válidos.", "error"); return; }
+      C.setBandas(tenant, examId, param.codigo, nuevasBandas);
+      S.updateTenant(tenant.id, { refBandas: tenant.refBandas || {} });
+      S.addAudit(session.tenantId, session.nombre, session.rol, "UPDATE_REF_BANDAS", "catalogo", examId + ":" + param.codigo,
+        nuevasBandas.length ? "Definió " + nuevasBandas.length + " rango(s) por género/edad para " + param.nombre + " en " + exCat.nombre + "." : "Quitó los rangos por género/edad de " + param.nombre + " en " + exCat.nombre + ".");
+      U.toast(nuevasBandas.length ? "Rangos guardados." : "Rangos por género/edad eliminados — se usa el rango general.", "success");
       U.closeModal(wrap);
       onDone();
     });

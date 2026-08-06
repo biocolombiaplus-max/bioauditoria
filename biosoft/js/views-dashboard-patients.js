@@ -16,6 +16,7 @@
     }
 
     var tenantId = session.tenantId;
+    var tenant = S.getTenant(tenantId);
     var patients = S.listPatients(tenantId);
     var orders = S.listOrders(tenantId);
     var todayStr = new Date().toISOString().slice(0, 10);
@@ -50,7 +51,7 @@
     if (!rows.length) html += '<tr><td colspan="6" class="text-muted">Sin registros por ahora.</td></tr>';
     rows.forEach(function (r) {
       var pac = S.getPatient(r.order.patientId);
-      html += "<tr><td>" + r.order.numeroOrden + "</td><td>" + (pac ? U.esc(U.nombreCompleto(pac)) : "—") + "</td><td>" + (r.ex ? U.esc(C.examenPorId(r.ex.examId).nombre) : "Varios") + "</td><td>" + (r.ex ? C.seccionNombre(r.ex.seccion) : "") + "</td><td>" + badgeEstado(r.order.estadoGeneral) + "</td><td>" + U.fmtFechaCorta(r.order.fechaOrden) + "</td></tr>";
+      html += "<tr><td>" + r.order.numeroOrden + "</td><td>" + (pac ? U.esc(U.nombreCompleto(pac)) : "—") + "</td><td>" + (r.ex ? U.esc(C.examenEfectivo(r.ex.examId, tenant).nombre) : "Varios") + "</td><td>" + (r.ex ? C.seccionNombre(r.ex.seccion) : "") + "</td><td>" + badgeEstado(r.order.estadoGeneral) + "</td><td>" + U.fmtFechaCorta(r.order.fechaOrden) + "</td></tr>";
     });
     html += "</tbody></table></div></div>";
 

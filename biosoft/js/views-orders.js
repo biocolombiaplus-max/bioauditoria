@@ -35,6 +35,8 @@
 
   function renderNewOrder(root, prefillId) {
     var session = BIO_AUTH.getSession();
+    var tenant = BIO_AUTH.currentTenant();
+    var examenes = C.examenesEfectivos(tenant);
     var patients = S.listPatients(session.tenantId);
     var selectedExams = []; // {examId}
     var activeSection = C.SECCIONES[0].id;
@@ -94,8 +96,8 @@
     function renderExams() {
       var term = U.normalizar(searchTerm.trim());
       var pool = term
-        ? C.EXAMENES.filter(function (e) { return U.normalizar(e.nombre).indexOf(term) !== -1 || e.cups.indexOf(term) !== -1; })
-        : C.EXAMENES.filter(function (e) { return e.seccion === activeSection; });
+        ? examenes.filter(function (e) { return U.normalizar(e.nombre).indexOf(term) !== -1 || e.cups.indexOf(term) !== -1; })
+        : examenes.filter(function (e) { return e.seccion === activeSection; });
       var allChecked = pool.length > 0 && pool.every(function (e) { return selectedExams.indexOf(e.id) !== -1; });
 
       var rowsHtml = pool.map(function (e) {
@@ -130,7 +132,7 @@
     function renderChips() {
       document.getElementById("sel-count").textContent = selectedExams.length + " seleccionados";
       document.getElementById("chips").innerHTML = selectedExams.map(function (id) {
-        var e = C.examenPorId(id);
+        var e = C.examenEfectivo(id, tenant);
         return '<span class="chip">' + U.esc(e.nombre) + ' <button data-remove="' + id + '">' + U.icon("x") + "</button></span>";
       }).join("");
       document.querySelectorAll("[data-remove]").forEach(function (b) {
@@ -217,7 +219,7 @@
       '<div class="card" style="margin-top:16px"><div class="card-header"><h3 class="card-title">Exámenes de la Orden</h3></div>' +
         '<div class="table-wrap"><table><thead><tr><th>Examen</th><th>Sección</th><th>Tubo</th><th>Estado</th><th>Validado / Remitido por</th><th>Fecha</th><th></th></tr></thead><tbody>' +
         order.examenes.map(function (ex, idx) {
-          var exCat = C.examenPorId(ex.examId);
+          var exCat = C.examenEfectivo(ex.examId, tenant);
           var tubo = C.tuboInfo(exCat.tubo);
           return "<tr><td>" + U.esc(exCat.nombre) + "</td><td>" + C.seccionNombre(ex.seccion) + "</td>" +
             '<td><span style="display:inline-block;width:9px;height:9px;border-radius:50%;background:' + tubo.color + ';margin-right:5px;vertical-align:middle"></span>' + U.esc(tubo.nombre) + "</td>" +

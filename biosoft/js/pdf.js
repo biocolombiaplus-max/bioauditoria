@@ -191,7 +191,7 @@
 
       var body = [];
       bySeccion[seccionId].forEach(function (ex) {
-        var exCat = C.examenEfectivo(ex.examId, tenant);
+        var exCat = C.examenParaPaciente(ex.examId, tenant, patient);
         exCat.parametros.forEach(function (p) {
           var val = (ex.valores.filter(function (v) { return v.codigo === p.codigo; })[0] || {}).valor || "-";
           var flag = C.calcularFlag(p, val);
@@ -242,7 +242,7 @@
         startY: y, margin: { left: margin, right: margin },
         head: [["Examen", "Laboratorio de Referencia", "Nota"]],
         body: referidos.map(function (ex) {
-          var exCat = C.examenPorId(ex.examId);
+          var exCat = C.examenEfectivo(ex.examId, tenant);
           return [exCat.nombre, ex.laboratorioRemision || "—", "Ver informe original anexo en las páginas siguientes"];
         }),
         theme: "grid", styles: { fontSize: 8, cellPadding: 4 }, headStyles: { fillColor: [240, 244, 247], textColor: 40, fontStyle: "bold" }

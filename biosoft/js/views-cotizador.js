@@ -25,15 +25,24 @@
   window.BIO_VIEWS.cotizador = function (root) {
     var session = BIO_AUTH.getSession();
     var tenantId = session.tenantId;
+    var tenant;
     var vista = "nueva";
     var precios = {}; // examId -> precio
     var cotizaciones = [];
     var customExams = []; // exámenes propios del laboratorio, fuera del catálogo global
 
     function precioDe(examId) { return precios[examId] || 0; }
+    function fmtMonedaExtra(monto) {
+      var extra = C.fmtMonedaAdicional(tenant, monto);
+      return extra ? ' <span class="text-muted" style="font-weight:400;font-size:12px">(' + extra + ')</span>' : "";
+    }
+    function textoMonedaExtra(monto) {
+      var extra = C.fmtMonedaAdicional(tenant, monto);
+      return extra ? " (" + extra + ")" : "";
+    }
 
     function poolExamenes() {
-      return C.EXAMENES.concat(customExams.map(function (ce) {
+      return C.examenesEfectivos(tenant).concat(customExams.map(function (ce) {
         return { id: ce.id, nombre: ce.nombre, cups: ce.cups, seccion: SECCION_REF_EXT.id };
       }));
     }
@@ -41,13 +50,14 @@
       return customExams.length ? C.SECCIONES.concat([SECCION_REF_EXT]) : C.SECCIONES;
     }
     function resolverExamen(id) {
-      return C.examenPorId(id) || poolExamenes().filter(function (e) { return e.id === id; })[0] || null;
+      return C.examenEfectivo(id, tenant) || poolExamenes().filter(function (e) { return e.id === id; })[0] || null;
     }
     function resolverSeccionNombre(seccionId) {
       return seccionId === SECCION_REF_EXT.id ? SECCION_REF_EXT.nombre : C.seccionNombre(seccionId);
     }
 
     function cargar() {
+      tenant = S.getTenant(tenantId);
       var lista = S.cotizador.listPrecios(tenantId);
       precios = {};
       lista.forEach(function (p) { precios[p.examId] = p.precio; });
@@ -140,7 +150,7 @@
     function actualizarPickerTotales(prefix, st) {
       var total = st.selected.reduce(function (a, id) { return a + precioDe(id); }, 0);
       document.getElementById(prefix + "-count").textContent = st.selected.length;
-      document.getElementById(prefix + "-total").textContent = fmtMoneda(total);
+      document.getElementById(prefix + "-total").innerHTML = fmtMoneda(total) + fmtMonedaExtra(total);
     }
 
     function examenesSeleccionados(st) {
@@ -182,10 +192,10 @@
       var bytes = BIO_PDF_COTIZACION.buildCotizacionPDF(cot, tenant);
       var nombreArchivo = "Cotizacion_" + (nombre || "Cliente").replace(/\s+/g, "_") + ".pdf";
       U.downloadBytes(bytes, nombreArchivo);
-      var mensaje = "Hola " + (nombre ? nombre.split(" ")[0] : "") + " 👋 Aquí tienes la cotización de " + tenant.nombre + " por " + fmtMoneda(total) + ". Cualquier duda, quedamos atentos.";
+      var mensaje = "Hola " + (nombre ? nombre.split(" ")[0] : "") + " 👋 Aquí tienes la cotización de " + tenant.nombre + " por " + fmtMoneda(total) + textoMonedaExtra(total) + ". Cualquier duda, quedamos atentos.";
       U.toast("Cotización generada y descargada.", "success");
       var wrap = U.openModal(
-        '<h3 class="modal-title">Cotización lista — ' + fmtMoneda(total) + '</h3>' +
+        '<h3 class="modal-title">Cotización lista — ' + fmtMoneda(total) + fmtMonedaExtra(total) + '</h3>' +
         '<p class="text-muted" style="margin-top:0">Ya se descargó el PDF. Ahora elige por dónde enviarlo.</p>' +
         '<button class="btn btn-whatsapp btn-block" id="cot-send-wa">' + U.icon("send") + " Enviar por WhatsApp</button>" +
         (correo ? U.emailProviderButtonsHtml("cot-mail") : "") +
@@ -256,11 +266,21 @@
     var preciosEditados = {};
 
     function buildPreciosHtml() {
+      var moneda = tenant.monedaAdicional || {};
       return '<p class="text-muted" style="margin-top:14px">Define el precio de cada examen. También puedes descargar una plantilla en Excel, editarla y volver a subirla si son muchos.</p>' +
         '<div class="flex gap-2 wrap" style="margin-bottom:12px">' +
         '<button class="btn btn-outline btn-sm" id="btn-descargar-plantilla">' + U.icon("download") + " Descargar Plantilla Excel</button>" +
         '<label class="btn btn-outline btn-sm" style="cursor:pointer">' + U.icon("plus") + ' Subir Excel de Precios<input type="file" id="input-excel-precios" accept=".xlsx,.xls,.csv" style="display:none"/></label>' +
         "</div>" +
+        '<fieldset style="margin-bottom:14px"><legend>Moneda adicional (opcional)</legend>' +
+        '<p class="text-muted" style="margin-top:0;font-size:12.5px">Si tus clientes prefieren ver el equivalente en otra moneda (ej. dólares), actívala aquí — se muestra junto al total en cotizaciones, recibos e historial, sin reemplazar tu moneda principal.</p>' +
+        '<div class="form-grid" style="align-items:end">' +
+        '<div class="field"><label>Código de moneda</label><select id="moneda-codigo">' +
+        ["", "USD", "EUR", "VES", "COP"].map(function (cod) { return '<option value="' + cod + '" ' + (cod === (moneda.codigo || "") ? "selected" : "") + ">" + (cod || "— Ninguna —") + "</option>"; }).join("") +
+        "</select></div>" +
+        '<div class="field"><label>Cuántas unidades de tu moneda = 1 de esa moneda</label><input type="number" step="any" min="0" id="moneda-tasa" value="' + (moneda.tasa || "") + '" placeholder="Ej: 4000"/></div>' +
+        '<button type="button" class="btn btn-outline btn-sm" id="btn-guardar-moneda">' + U.icon("check") + " Guardar Moneda</button>" +
+        "</div></fieldset>" +
         '<div class="field" style="margin-bottom:12px"><input id="precio-search" placeholder="Buscar examen por nombre o código CUPS…"/></div>' +
         '<div class="table-wrap" style="max-height:480px;overflow-y:auto"><table><thead><tr><th>Examen</th><th>Sección</th><th>CUPS</th><th style="min-width:140px">Precio (COP)</th></tr></thead><tbody id="precios-tbody"></tbody></table></div>' +
         '<button class="btn btn-primary" id="btn-guardar-precios" style="margin-top:14px">' + U.icon("check") + " Guardar Cambios</button>";
@@ -296,6 +316,15 @@
     function wirePrecios() {
       renderPreciosTabla();
       document.getElementById("precio-search").addEventListener("input", function (e) { precioSearchTerm = e.target.value; renderPreciosTabla(); });
+      document.getElementById("btn-guardar-moneda").addEventListener("click", function () {
+        var codigo = document.getElementById("moneda-codigo").value;
+        var tasa = parseFloat(document.getElementById("moneda-tasa").value) || 0;
+        var monedaAdicional = codigo && tasa > 0 ? { codigo: codigo, tasa: tasa } : null;
+        tenant.monedaAdicional = monedaAdicional;
+        S.updateTenant(tenantId, { monedaAdicional: monedaAdicional });
+        U.toast(monedaAdicional ? "Moneda adicional guardada." : "Moneda adicional desactivada.", "success");
+        renderPreciosTabla();
+      });
       document.getElementById("btn-guardar-precios").addEventListener("click", function () {
         var pares = Object.keys(preciosEditados).map(function (examId) { return { examId: examId, precio: preciosEditados[examId] }; });
         if (!pares.length) { U.toast("No hay cambios para guardar.", "error"); return; }
@@ -512,7 +541,7 @@
         cotizaciones.map(function (c) {
           var cliente = c.cliente || {};
           var pagada = c.estado === "pagada";
-          return "<tr><td>" + fmtFechaCorta(c.creadoEn) + "</td><td>" + U.esc(cliente.nombre || "—") + "</td><td>" + c.examenes.length + "</td><td>" + fmtMoneda(c.total) + "</td>" +
+          return "<tr><td>" + fmtFechaCorta(c.creadoEn) + "</td><td>" + U.esc(cliente.nombre || "—") + "</td><td>" + c.examenes.length + "</td><td>" + fmtMoneda(c.total) + fmtMonedaExtra(c.total) + "</td>" +
             "<td>" + (pagada ? '<span class="badge badge-validado">Pagada</span>' : '<span class="badge badge-pendiente">Pendiente de pago</span>') + "</td>" +
             "<td><div class='flex gap-2 wrap'>" +
             "<button class='btn btn-ghost btn-sm' data-redescargar='" + c.id + "'>" + U.icon("download") + " Cotización</button>" +
@@ -529,7 +558,7 @@
       var usuarios = S.listUsers(tenantId).filter(function (u) { return u.activo; });
       var hoy = new Date().toISOString().slice(0, 10);
       var wrap = U.openModal(
-        '<h3 class="modal-title">Registrar Pago — ' + fmtMoneda(cot.total) + '</h3>' +
+        '<h3 class="modal-title">Registrar Pago — ' + fmtMoneda(cot.total) + fmtMonedaExtra(cot.total) + '</h3>' +
         '<p class="text-muted" style="margin-top:0">Cliente: ' + U.esc((cot.cliente && cot.cliente.nombre) || "—") + '</p>' +
         '<form id="pago-form"><div class="form-grid">' +
         '<div class="field"><label>Monto Pagado</label><input type="number" step="any" min="0" id="f_monto" value="' + cot.total + '" required/></div>' +
@@ -563,7 +592,8 @@
       var cliente = cot.cliente || {};
       var bytes = BIO_PDF_RECIBO_COTIZACION.buildReciboCotizacionPDF(cot, tenant);
       U.downloadBytes(bytes, "Recibo_" + (cliente.nombre || "Cliente").replace(/\s+/g, "_") + ".pdf");
-      var mensaje = "Hola " + (cliente.nombre ? cliente.nombre.split(" ")[0] : "") + " 👋 Adjunto el recibo de pago de tu compra en " + tenant.nombre + " por " + fmtMoneda((cot.pago && cot.pago.monto) || cot.total) + ". ¡Gracias por tu confianza! Cualquier duda, quedamos atentos.";
+      var montoRecibo = (cot.pago && cot.pago.monto) || cot.total;
+      var mensaje = "Hola " + (cliente.nombre ? cliente.nombre.split(" ")[0] : "") + " 👋 Adjunto el recibo de pago de tu compra en " + tenant.nombre + " por " + fmtMoneda(montoRecibo) + textoMonedaExtra(montoRecibo) + ". ¡Gracias por tu confianza! Cualquier duda, quedamos atentos.";
       U.toast("Recibo generado y descargado.", "success");
       var wrap = U.openModal(
         '<h3 class="modal-title">Recibo listo</h3>' +

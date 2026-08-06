@@ -87,7 +87,14 @@
     var montoPagado = pago.monto != null ? pago.monto : cotizacion.total;
     doc.setFont("helvetica", "bold"); doc.setFontSize(12); doc.setTextColor(rgb[0], rgb[1], rgb[2]);
     doc.text("TOTAL PAGADO: " + fmtMoneda(montoPagado), pageW - margin, y, { align: "right" });
-    y += 26;
+    y += 14;
+    var extraMoneda = C.fmtMonedaAdicional(tenant, montoPagado);
+    if (extraMoneda) {
+      doc.setFont("helvetica", "normal"); doc.setFontSize(9); doc.setTextColor(90, 90, 90);
+      doc.text(extraMoneda, pageW - margin, y, { align: "right" });
+      y += 14;
+    }
+    y += 12;
 
     doc.setFont("helvetica", "normal"); doc.setFontSize(8.5); doc.setTextColor(90, 90, 90);
     doc.text("Este recibo certifica la recepción del pago correspondiente a los exámenes listados. Conserva este documento para cualquier reclamación relacionada con tu compra.", margin, y, { maxWidth: pageW - margin * 2 });

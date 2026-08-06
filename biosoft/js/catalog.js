@@ -528,8 +528,29 @@
     return EXAMENES.filter(function (e) { return e.id === id; })[0];
   }
 
+  /* Todo el catálogo, pero con el nombre de examen que cada laboratorio haya
+     personalizado (ver renombrarExamen) — para listados/buscadores que
+     necesitan mostrar el catálogo completo ya "vestido" con esos nombres. */
+  function examenesEfectivos(tenant) {
+    if (!tenant) return EXAMENES;
+    return EXAMENES.map(function (e) { return examenEfectivo(e.id, tenant); });
+  }
+
   function tuboInfo(key) {
     return TUBOS[key] || { nombre: key || "No especificado", color: "#94a3b8" };
+  }
+
+  /* Un laboratorio puede configurar UNA moneda adicional para su cotizador
+     (tenant.monedaAdicional = { codigo, tasa }), útil sobre todo en
+     Venezuela/Ecuador donde el cliente quiere ver el equivalente en otra
+     moneda. "tasa" son las unidades de la moneda base (la del laboratorio)
+     que equivalen a 1 unidad de esa moneda adicional. Devuelve "" si no hay
+     ninguna configurada, para poder concatenar siempre sin condicionales. */
+  function fmtMonedaAdicional(tenant, montoBase) {
+    var m = tenant && tenant.monedaAdicional;
+    if (!m || !m.codigo || !m.tasa) return "";
+    var valor = montoBase / m.tasa;
+    return "≈ " + valor.toLocaleString("es-CO", { maximumFractionDigits: 2 }) + " " + m.codigo;
   }
 
   function calcularFlag(param, valor) {
@@ -595,6 +616,7 @@
         });
       }
     }
+    if (custom && custom.nombre) clone.nombre = custom.nombre;
     clone.parametros = parametros;
     return clone;
   }
@@ -602,9 +624,17 @@
   function tieneOverride(examId, tenant) {
     if (!tenant) return false;
     var custom = examCustomDe(examId, tenant);
-    if (custom && ((custom.ocultos && custom.ocultos.length) || (custom.personalizados && custom.personalizados.length) || (custom.orden && custom.orden.length))) return true;
+    if (custom && (custom.nombre || (custom.ocultos && custom.ocultos.length) || (custom.personalizados && custom.personalizados.length) || (custom.orden && custom.orden.length))) return true;
     if (!tenant.refOverrides) return false;
     return examenPorId(examId).parametros.some(function (p) { return !!tenant.refOverrides[overrideKey(examId, p.codigo)]; });
+  }
+
+  /* Cambia el nombre visible de un examen SOLO para este laboratorio (el
+     catálogo global de BIOsoft no se toca). Pasa una cadena vacía/null para
+     restablecer el nombre de fábrica. */
+  function renombrarExamen(tenant, examId, nombre) {
+    var c = asegurarExamCustom(tenant, examId);
+    if (nombre && nombre.trim()) c.nombre = nombre.trim(); else delete c.nombre;
   }
 
   function setOverride(tenant, examId, codigo, patch) {
@@ -647,6 +677,82 @@
     if (tenant.refOverrides) delete tenant.refOverrides[overrideKey(examId, codigo)];
   }
 
+  // -------------------------------------------------------------------
+  // RANGOS DE REFERENCIA POR GÉNERO Y/O EDAD (opcional, por laboratorio).
+  // Un parámetro numérico puede tener, además de su rango general (el que
+  // ya cubren refOverrides), una lista de "bandas" más específicas — por
+  // ejemplo Hemoglobina 12-16 g/dL en mujeres y 13.5-17.5 en hombres. Al
+  // capturar o imprimir un resultado se elige la banda más específica que
+  // calce con el sexo y la edad del paciente; si ninguna calza, se usa el
+  // rango general de siempre. Vive en tenant.refBandas, separado de
+  // refOverrides, para no afectar en nada a los laboratorios que no la usan.
+  // -------------------------------------------------------------------
+  function getBandas(tenant, examId, codigo) {
+    return (tenant && tenant.refBandas && tenant.refBandas[overrideKey(examId, codigo)]) || [];
+  }
+  function setBandas(tenant, examId, codigo, bandas) {
+    tenant.refBandas = tenant.refBandas || {};
+    if (bandas && bandas.length) tenant.refBandas[overrideKey(examId, codigo)] = bandas;
+    else delete tenant.refBandas[overrideKey(examId, codigo)];
+  }
+  function tieneBandas(tenant, examId, codigo) {
+    return getBandas(tenant, examId, codigo).length > 0;
+  }
+  function edadEnAniosDecimal(fechaNacimiento) {
+    if (!fechaNacimiento) return null;
+    var nac = new Date(fechaNacimiento + "T00:00:00");
+    if (isNaN(nac.getTime())) return null;
+    return (Date.now() - nac.getTime()) / (365.25 * 86400000);
+  }
+  function especificidadBanda(b) {
+    var s = 0;
+    if (b.genero && b.genero !== "ambos") s += 2;
+    if (b.edadMinAnios != null || b.edadMaxAnios != null) s += 1;
+    return s;
+  }
+  /* Entre las bandas configuradas, elige la más específica que aplique al
+     paciente. Un paciente sin sexo/edad registrada, o "Indeterminado", solo
+     puede calzar con bandas "ambos" sin restricción de edad. */
+  function seleccionarBanda(bandas, paciente) {
+    if (!bandas || !bandas.length) return null;
+    var sexo = paciente && (paciente.sexo === "Masculino" || paciente.sexo === "Femenino") ? paciente.sexo : null;
+    var edad = paciente ? edadEnAniosDecimal(paciente.fechaNacimiento) : null;
+    var candidatas = bandas.filter(function (b) {
+      var okGenero = !b.genero || b.genero === "ambos" || b.genero === sexo;
+      var okEdadMin = b.edadMinAnios == null || (edad != null && edad >= b.edadMinAnios);
+      var okEdadMax = b.edadMaxAnios == null || (edad != null && edad <= b.edadMaxAnios);
+      return okGenero && okEdadMin && okEdadMax;
+    });
+    if (!candidatas.length) return null;
+    candidatas.sort(function (a, b) { return especificidadBanda(b) - especificidadBanda(a); });
+    return candidatas[0];
+  }
+  /* Devuelve el parámetro (ya con overrides de fábrica/laboratorio
+     aplicados) con su min/max/refText ajustados a la banda de género/edad
+     que le corresponda al paciente, si el laboratorio configuró alguna para
+     ese parámetro. Si no hay bandas, o ninguna calza, devuelve el parámetro
+     tal cual (el rango general de siempre). */
+  function parametroParaPaciente(examId, param, tenant, paciente) {
+    var bandas = getBandas(tenant, examId, param.codigo);
+    if (!bandas.length) return param;
+    var banda = seleccionarBanda(bandas, paciente);
+    if (!banda) return param;
+    return Object.assign({}, param, {
+      min: banda.min, max: banda.max,
+      refText: banda.refText || (banda.min + " - " + banda.max + " " + (param.unidad || ""))
+    });
+  }
+  /* Igual que examenEfectivo, pero además resuelve las bandas de
+     género/edad de cada parámetro para un paciente concreto — es lo que
+     debe usarse en captura de resultados e informes PDF. */
+  function examenParaPaciente(examId, tenant, paciente) {
+    var ex = examenEfectivo(examId, tenant);
+    if (!ex || !tenant || !tenant.refBandas) return ex;
+    var clone = Object.assign({}, ex);
+    clone.parametros = ex.parametros.map(function (p) { return parametroParaPaciente(examId, p, tenant, paciente); });
+    return clone;
+  }
+
   /* Reordena un arreglo de objetos (exámenes de una orden, filas de un
      examen del catálogo, etc.) según la preferencia de orden GLOBAL del
      laboratorio (tenant.ordenExamenes: arreglo de examId). Los exámenes que
@@ -679,18 +785,28 @@
     CATALOG_DISCLAIMER: CATALOG_DISCLAIMER,
     seccionNombre: seccionNombre,
     examenPorId: examenPorId,
+    examenesEfectivos: examenesEfectivos,
     tuboInfo: tuboInfo,
+    fmtMonedaAdicional: fmtMonedaAdicional,
     calcularFlag: calcularFlag,
     examenEfectivo: examenEfectivo,
     parametroEfectivo: parametroEfectivo,
     tieneOverride: tieneOverride,
     setOverride: setOverride,
     clearOverride: clearOverride,
+    renombrarExamen: renombrarExamen,
     ordenarCampos: ordenarCampos,
     ocultarCampo: ocultarCampo,
     mostrarCampo: mostrarCampo,
     agregarCampoPersonalizado: agregarCampoPersonalizado,
     quitarCampoPersonalizado: quitarCampoPersonalizado,
-    ordenarPorExamen: ordenarPorExamen
+    ordenarPorExamen: ordenarPorExamen,
+    getBandas: getBandas,
+    setBandas: setBandas,
+    tieneBandas: tieneBandas,
+    edadEnAniosDecimal: edadEnAniosDecimal,
+    seleccionarBanda: seleccionarBanda,
+    parametroParaPaciente: parametroParaPaciente,
+    examenParaPaciente: examenParaPaciente
   };
 })(window);

@@ -75,7 +75,14 @@
 
     doc.setFont("helvetica", "bold"); doc.setFontSize(12); doc.setTextColor(rgb[0], rgb[1], rgb[2]);
     doc.text("TOTAL: " + fmtMoneda(cotizacion.total), pageW - margin, y, { align: "right" });
-    y += 26;
+    y += 14;
+    var extraMoneda = C.fmtMonedaAdicional(tenant, cotizacion.total);
+    if (extraMoneda) {
+      doc.setFont("helvetica", "normal"); doc.setFontSize(9); doc.setTextColor(90, 90, 90);
+      doc.text(extraMoneda, pageW - margin, y, { align: "right" });
+      y += 14;
+    }
+    y += 12;
 
     doc.setFont("helvetica", "normal"); doc.setFontSize(8.5); doc.setTextColor(90, 90, 90);
     doc.text("Esta cotización es informativa y tiene una validez de 15 días desde su fecha de emisión. Los precios pueden variar según indicaciones médicas adicionales.", margin, y, { maxWidth: pageW - margin * 2 });
