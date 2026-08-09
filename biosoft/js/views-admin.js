@@ -402,14 +402,16 @@
         var overNum = base && (p.min !== base.min || p.max !== base.max || p.refText !== base.refText);
         var conBandas = C.tieneBandas(tenant, examId, p.codigo);
         var bandasHtml = '<button type="button" class="btn btn-ghost btn-sm" data-bandas="' + p.codigo + '" title="Definir rangos distintos por género y/o edad">🚻 ' + (conBandas ? "Rangos (activo)" : "Por género/edad") + "</button>";
+        var conRangos = C.tieneRangosInterpretacion(tenant, examId, p.codigo);
+        var rangosHtml = '<button type="button" class="btn btn-ghost btn-sm" data-rangos="' + p.codigo + '" title="Definir varios tramos de valor con su propia interpretación (ej. Normal / Prediabetes / Diabetes)">📊 ' + (conRangos ? "Interpretación (activa)" : "Rangos de Interpretación") + "</button>";
         return '<tr data-prow="' + p.codigo + '">' +
           "<td>" + moverHtml + "</td>" +
           "<td>" + nombreHtml + '<div class="text-muted" style="font-size:11px">' + (p.unidad || "") + "</div></td>" +
-          '<td><input type="number" step="any" data-min value="' + p.min + '" style="width:90px"/></td>' +
-          '<td><input type="number" step="any" data-max value="' + p.max + '" style="width:90px"/></td>' +
-          '<td><input data-reftext value="' + U.esc(p.refText) + '"/></td>' +
+          '<td><input type="number" step="any" data-min value="' + p.min + '" style="width:90px" title="' + (conRangos ? "Se usa solo si un resultado no cae en ninguno de los rangos de interpretación" : "") + '"/></td>' +
+          '<td><input type="number" step="any" data-max value="' + p.max + '" style="width:90px" title="' + (conRangos ? "Se usa solo si un resultado no cae en ninguno de los rangos de interpretación" : "") + '"/></td>' +
+          '<td><input data-reftext value="' + U.esc(p.refText) + '" ' + (conRangos ? "disabled title='Se genera automáticamente a partir de los rangos de interpretación'" : "") + "/></td>" +
           '<td class="text-muted" style="font-size:11px">' + (esDeFabrica ? "Fábrica: " + base.min + " - " + base.max : "—") + "</td>" +
-          "<td><div class='flex gap-1 wrap'>" + (overNum ? '<button type="button" class="btn btn-ghost btn-sm" data-reset="' + p.codigo + '">Restablecer</button>' : "") + bandasHtml + quitarHtml + "</div></td></tr>";
+          "<td><div class='flex gap-1 wrap'>" + (overNum ? '<button type="button" class="btn btn-ghost btn-sm" data-reset="' + p.codigo + '">Restablecer</button>' : "") + bandasHtml + rangosHtml + quitarHtml + "</div></td></tr>";
       }
       if (p.tipo === "cualitativo" || p.tipo === "descriptivo") {
         var overCual = base && (p.normal !== base.normal || p.refText !== base.refText);
@@ -513,6 +515,13 @@
       });
     });
 
+    wrap.querySelectorAll("[data-rangos]").forEach(function (btn) {
+      btn.addEventListener("click", function () {
+        var p = efectivo.parametros.filter(function (pp) { return pp.codigo === btn.dataset.rangos; })[0];
+        abrirRangosInterpretacion(tenant, examId, exCat, p, reabrir);
+      });
+    });
+
     wrap.querySelector("#btn-agregar-campo").addEventListener("click", function () { abrirAgregarCampo(tenant, examId, exCat, reabrir); });
 
     wrap.querySelector("#cat-guardar").addEventListener("click", function () {
@@ -537,7 +546,12 @@
         if (p.tipo === "numerico") {
           var min = parseFloat(row.querySelector("[data-min]").value);
           var max = parseFloat(row.querySelector("[data-max]").value);
-          var refText = row.querySelector("[data-reftext]").value.trim();
+          var conRangosGuardado = C.tieneRangosInterpretacion(tenant, examId, p.codigo);
+          // Con rangos de interpretación activos, el texto de referencia se
+          // genera solo a partir de esos rangos (el campo queda deshabilitado
+          // en pantalla) — no se guarda como override aparte para no dejar un
+          // texto "congelado" que sobreviva si luego se quitan los rangos.
+          var refText = conRangosGuardado ? (base ? base.refText : "") : row.querySelector("[data-reftext]").value.trim();
           if (isNaN(min) || isNaN(max)) return;
           if (base && min === base.min && max === base.max && refText === base.refText) { C.clearOverride(tenant, examId, p.codigo); return; }
           C.setOverride(tenant, examId, p.codigo, { min: min, max: max, refText: refText || (min + " - " + max + " " + (p.unidad || "")) });
@@ -577,6 +591,7 @@
 
     function bandaRow(b, idx) {
       return '<tr data-brow="' + idx + '">' +
+        '<td><input data-b-etiqueta value="' + U.esc(b.etiqueta || "") + '" placeholder="Ej: Fase Folicular" style="min-width:120px"/></td>' +
         '<td><select data-b-genero style="min-width:100px">' +
         '<option value="ambos" ' + (b.genero === "ambos" || !b.genero ? "selected" : "") + '>Ambos</option>' +
         '<option value="Femenino" ' + (b.genero === "Femenino" ? "selected" : "") + '>Femenino</option>' +
@@ -593,7 +608,7 @@
     function renderTabla() {
       wrap.querySelector("#bandas-tbody").innerHTML = bandas.length
         ? bandas.map(bandaRow).join("")
-        : '<tr><td colspan="7" class="text-muted">Aún no hay rangos por género/edad — mientras no agregues ninguno, se sigue usando el rango general (' + param.min + " - " + param.max + ").</td></tr>";
+        : '<tr><td colspan="8" class="text-muted">Aún no hay rangos por género/edad — mientras no agregues ninguno, se sigue usando el rango general (' + param.min + " - " + param.max + ").</td></tr>";
       wrap.querySelectorAll("[data-b-quitar]").forEach(function (btn) {
         btn.addEventListener("click", function () { bandas.splice(parseInt(btn.dataset.bQuitar, 10), 1); renderTabla(); });
       });
@@ -601,8 +616,8 @@
 
     var wrap = U.openModal(
       '<h3 class="modal-title">Rangos por Género/Edad — ' + U.esc(param.nombre) + ' (' + U.esc(exCat.nombre) + ')</h3>' +
-      '<p class="text-muted" style="margin-top:0">Define aquí rangos distintos según el sexo y/o la edad del paciente (ej. Hemoglobina distinta en hombres y mujeres). Al capturar o imprimir un resultado se usa el rango más específico que calce con el paciente; si ninguno calza, se usa el rango general de siempre (' + param.min + " - " + param.max + " " + (param.unidad || "") + ').</p>' +
-      '<div class="table-wrap"><table><thead><tr><th>Género</th><th>Edad mín. (años)</th><th>Edad máx. (años)</th><th>Mínimo</th><th>Máximo</th><th>Texto de referencia</th><th></th></tr></thead><tbody id="bandas-tbody"></tbody></table></div>' +
+      '<p class="text-muted" style="margin-top:0">Define aquí rangos distintos según el sexo y/o la edad del paciente (ej. Hemoglobina distinta en hombres y mujeres), o según una categoría que no se pueda saber solo con esos datos (ej. las fases del ciclo menstrual: Folicular, Ovulación, Lútea, Postmenopausia). Al capturar o imprimir un resultado se usa el rango más específico que calce con el paciente; si hay varios que calzan igual (como las fases, que aplican a cualquier mujer adulta) quien capture el resultado podrá elegir cuál corresponde — por eso conviene ponerle una Etiqueta a cada uno en ese caso. Si ninguno calza, se usa el rango general de siempre (' + param.min + " - " + param.max + " " + (param.unidad || "") + ').</p>' +
+      '<div class="table-wrap"><table><thead><tr><th>Etiqueta</th><th>Género</th><th>Edad mín. (años)</th><th>Edad máx. (años)</th><th>Mínimo</th><th>Máximo</th><th>Texto de referencia</th><th></th></tr></thead><tbody id="bandas-tbody"></tbody></table></div>' +
       '<button type="button" class="btn btn-outline btn-sm" id="btn-agregar-banda" style="margin-top:12px">' + U.icon("plus") + " Agregar Rango</button>" +
       '<div class="flex gap-2 justify-between" style="margin-top:14px"><button class="btn btn-ghost" data-modal-close>Cancelar</button><button class="btn btn-primary" id="bandas-guardar">' + U.icon("check") + " Guardar Rangos</button></div>",
       { lg: true }
@@ -610,7 +625,7 @@
     renderTabla();
 
     wrap.querySelector("#btn-agregar-banda").addEventListener("click", function () {
-      bandas.push({ genero: "ambos", edadMinAnios: null, edadMaxAnios: null, min: param.min, max: param.max, refText: "" });
+      bandas.push({ etiqueta: "", genero: "ambos", edadMinAnios: null, edadMaxAnios: null, min: param.min, max: param.max, refText: "" });
       renderTabla();
     });
 
@@ -625,6 +640,7 @@
         var edadMinVal = row.querySelector("[data-b-edadmin]").value;
         var edadMaxVal = row.querySelector("[data-b-edadmax]").value;
         nuevasBandas.push({
+          etiqueta: row.querySelector("[data-b-etiqueta]").value.trim(),
           genero: row.querySelector("[data-b-genero]").value,
           edadMinAnios: edadMinVal === "" ? null : parseFloat(edadMinVal),
           edadMaxAnios: edadMaxVal === "" ? null : parseFloat(edadMaxVal),
@@ -633,11 +649,90 @@
         });
       });
       if (error) { U.toast("Revisa que cada rango tenga un mínimo y un máximo válidos.", "error"); return; }
+      var ambiguos = nuevasBandas.some(function (a, i) {
+        return !a.etiqueta && nuevasBandas.some(function (b, j) {
+          return i !== j && a.genero === b.genero && a.edadMinAnios === b.edadMinAnios && a.edadMaxAnios === b.edadMaxAnios;
+        });
+      });
+      if (ambiguos) { U.toast("Dos o más rangos aplican exactamente al mismo tipo de paciente — ponles una Etiqueta a cada uno para poder distinguirlos al capturar (ej. Fase Folicular, Fase Lútea…).", "error"); return; }
       C.setBandas(tenant, examId, param.codigo, nuevasBandas);
       S.updateTenant(tenant.id, { refBandas: tenant.refBandas || {} });
       S.addAudit(session.tenantId, session.nombre, session.rol, "UPDATE_REF_BANDAS", "catalogo", examId + ":" + param.codigo,
         nuevasBandas.length ? "Definió " + nuevasBandas.length + " rango(s) por género/edad para " + param.nombre + " en " + exCat.nombre + "." : "Quitó los rangos por género/edad de " + param.nombre + " en " + exCat.nombre + ".");
       U.toast(nuevasBandas.length ? "Rangos guardados." : "Rangos por género/edad eliminados — se usa el rango general.", "success");
+      U.closeModal(wrap);
+      onDone();
+    });
+  }
+
+  // -------------------------------------------------------------------
+  // RANGOS DE INTERPRETACIÓN — divide el eje del RESULTADO en tramos con
+  // su propia etiqueta (ej. HbA1c: <5.7% "Normal", 5.7-6.4% "Prediabetes",
+  // ≥6.5% "Diabetes"). No dependen del paciente, solo del valor capturado.
+  // ver C.calcularFlag / C.tieneRangosInterpretacion.
+  // -------------------------------------------------------------------
+  function abrirRangosInterpretacion(tenant, examId, exCat, param, onDone) {
+    var session = BIO_AUTH.getSession();
+    var rangos = C.getRangosInterpretacion(tenant, examId, param.codigo).map(function (r) { return Object.assign({}, r); });
+
+    function rangoRow(r, idx) {
+      return '<tr data-rrow="' + idx + '">' +
+        '<td><input data-r-etiqueta value="' + U.esc(r.etiqueta || "") + '" placeholder="Ej: Normal, Prediabetes…" style="min-width:130px"/></td>' +
+        '<td><input type="number" step="any" data-r-min placeholder="Sin mínimo" value="' + (r.min != null ? r.min : "") + '" style="width:80px"/></td>' +
+        '<td><input type="number" step="any" data-r-max placeholder="Sin máximo" value="' + (r.max != null ? r.max : "") + '" style="width:80px"/></td>' +
+        '<td><label class="checkbox-row" style="margin:0"><input type="checkbox" data-r-normal ' + (r.esNormal ? "checked" : "") + '/> Normal</label></td>' +
+        '<td><input data-r-reftext value="' + U.esc(r.refText || "") + '" placeholder="Opcional"/></td>' +
+        '<td><button type="button" class="btn btn-ghost btn-sm" data-r-quitar="' + idx + '">Quitar</button></td></tr>';
+    }
+
+    function renderTabla() {
+      wrap.querySelector("#rangos-tbody").innerHTML = rangos.length
+        ? rangos.map(rangoRow).join("")
+        : '<tr><td colspan="6" class="text-muted">Aún no hay rangos de interpretación — mientras no agregues ninguno, se sigue usando el rango general (' + param.min + " - " + param.max + ").</td></tr>";
+      wrap.querySelectorAll("[data-r-quitar]").forEach(function (btn) {
+        btn.addEventListener("click", function () { rangos.splice(parseInt(btn.dataset.rQuitar, 10), 1); renderTabla(); });
+      });
+    }
+
+    var wrap = U.openModal(
+      '<h3 class="modal-title">Rangos de Interpretación — ' + U.esc(param.nombre) + ' (' + U.esc(exCat.nombre) + ')</h3>' +
+      '<p class="text-muted" style="margin-top:0">Divide los valores posibles en tramos con su propia etiqueta (ej. Normal / Prediabetes / Diabetes), en vez del simple Bajo/Normal/Alto. Deja el mínimo o el máximo en blanco para "sin límite" (ej. "≥6.5"). Marca "Normal" en el tramo que NO debe resaltarse como alerta. Si un resultado no cae en ningún tramo, se usa el rango general de siempre (' + param.min + " - " + param.max + " " + (param.unidad || "") + ').</p>' +
+      '<div class="table-wrap"><table><thead><tr><th>Etiqueta</th><th>Mínimo</th><th>Máximo</th><th>¿Es normal?</th><th>Texto de referencia</th><th></th></tr></thead><tbody id="rangos-tbody"></tbody></table></div>' +
+      '<button type="button" class="btn btn-outline btn-sm" id="btn-agregar-rango" style="margin-top:12px">' + U.icon("plus") + " Agregar Tramo</button>" +
+      '<div class="flex gap-2 justify-between" style="margin-top:14px"><button class="btn btn-ghost" data-modal-close>Cancelar</button><button class="btn btn-primary" id="rangos-guardar">' + U.icon("check") + " Guardar Rangos</button></div>",
+      { lg: true }
+    );
+    renderTabla();
+
+    wrap.querySelector("#btn-agregar-rango").addEventListener("click", function () {
+      rangos.push({ etiqueta: "", min: null, max: null, esNormal: rangos.length === 0, refText: "" });
+      renderTabla();
+    });
+
+    wrap.querySelector("#rangos-guardar").addEventListener("click", function () {
+      var filas = wrap.querySelectorAll("[data-rrow]");
+      var nuevosRangos = [];
+      var error = "";
+      filas.forEach(function (row) {
+        var etiqueta = row.querySelector("[data-r-etiqueta]").value.trim();
+        var minVal = row.querySelector("[data-r-min]").value;
+        var maxVal = row.querySelector("[data-r-max]").value;
+        if (!etiqueta) { error = "Ponle una etiqueta a cada tramo."; return; }
+        if (minVal === "" && maxVal === "") { error = "Cada tramo necesita al menos un mínimo o un máximo."; return; }
+        nuevosRangos.push({
+          etiqueta: etiqueta,
+          min: minVal === "" ? null : parseFloat(minVal),
+          max: maxVal === "" ? null : parseFloat(maxVal),
+          esNormal: row.querySelector("[data-r-normal]").checked,
+          refText: row.querySelector("[data-r-reftext]").value.trim()
+        });
+      });
+      if (error) { U.toast(error, "error"); return; }
+      C.setRangosInterpretacion(tenant, examId, param.codigo, nuevosRangos);
+      S.updateTenant(tenant.id, { refRangos: tenant.refRangos || {} });
+      S.addAudit(session.tenantId, session.nombre, session.rol, "UPDATE_REF_RANGOS", "catalogo", examId + ":" + param.codigo,
+        nuevosRangos.length ? "Definió " + nuevosRangos.length + " rango(s) de interpretación para " + param.nombre + " en " + exCat.nombre + "." : "Quitó los rangos de interpretación de " + param.nombre + " en " + exCat.nombre + ".");
+      U.toast(nuevosRangos.length ? "Rangos de interpretación guardados." : "Rangos de interpretación eliminados — se usa el rango general.", "success");
       U.closeModal(wrap);
       onDone();
     });

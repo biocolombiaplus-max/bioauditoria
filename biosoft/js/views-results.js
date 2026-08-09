@@ -96,7 +96,21 @@
     }
 
     function buildExamCard(ex, idx) {
-      var exCat = C.examenParaPaciente(ex.examId, tenant, pac);
+      // Las categorías elegidas a mano (ej. "Fase Folicular" para un
+      // parámetro con varios rangos que aplican igual a la paciente, sin
+      // poder distinguirse solo por sexo/edad) se guardan junto con cada
+      // valor — se recuperan aquí para que al reabrir la orden se siga
+      // viendo/usando la misma categoría, y se completan con la selección
+      // automática por defecto para los parámetros que aún no tienen una.
+      var categoriaOverrides = C.categoriasDeValores(ex.valores);
+      var exCat;
+      function actualizarExCat() {
+        exCat = C.examenParaPaciente(ex.examId, tenant, pac, categoriaOverrides);
+        exCat.parametros.forEach(function (p) {
+          if (p.bandaEtiqueta && !categoriaOverrides[p.codigo]) categoriaOverrides[p.codigo] = p.bandaEtiqueta;
+        });
+      }
+      actualizarExCat();
       var editable = puedeEditar(session, ex.seccion);
       var locked = ex.estado === "validado" || ex.estado === "remitido";
       var modoRemision = !!ex.remitido;
@@ -174,6 +188,13 @@
         });
       }
 
+      // Sincroniza lo que el usuario ya haya escrito/seleccionado en pantalla
+      // antes de reconstruir la tarjeta (ej. al cambiar una categoría) — para
+      // no perder valores ya digitados en otros parámetros.
+      function sincronizarValuesMapDesdeDOM() {
+        card.querySelectorAll("[data-param]").forEach(function (el) { valuesMap[el.dataset.param] = el.value; });
+      }
+
       function renderCapturaNormal() {
         var rowsHtml = exCat.parametros.map(function (p) {
           var val = valuesMap[p.codigo] || "";
@@ -187,8 +208,17 @@
           } else {
             inputHtml = '<textarea data-param="' + p.codigo + '" ' + (!editable ? "disabled" : "") + ">" + U.esc(val) + "</textarea>";
           }
-          return "<tr><td>" + U.esc(p.nombre) + "</td><td style='min-width:160px'>" + inputHtml + "</td><td>" + (p.unidad || "—") + "</td><td>" + U.esc(p.refText) + '</td><td class="flag-cell" data-flagfor="' + p.codigo + '">' +
-            (flag ? '<span class="flag-' + flag.toLowerCase() + '">' + flag + "</span>" : "") + "</td></tr>";
+          // Cuando hay más de un rango que aplica igual al paciente (ej. las
+          // fases del ciclo menstrual, que no se distinguen solo por
+          // sexo/edad) se muestra un selector para elegir cuál corresponde.
+          var candidatos = p.tipo === "numerico" ? C.candidatosBanda(C.getBandas(tenant, ex.examId, p.codigo), pac) : [];
+          var categoriaHtml = candidatos.length > 1
+            ? '<select data-categoria="' + p.codigo + '" ' + (!editable ? "disabled" : "") + ' style="margin-top:4px;font-size:11.5px">' +
+              candidatos.map(function (c, i) { var etq = c.etiqueta || ("Opción " + (i + 1)); return '<option value="' + U.esc(etq) + '" ' + (categoriaOverrides[p.codigo] === etq ? "selected" : "") + ">" + U.esc(etq) + "</option>"; }).join("") +
+              "</select>"
+            : "";
+          return "<tr><td>" + U.esc(p.nombre) + "</td><td style='min-width:160px'>" + inputHtml + categoriaHtml + "</td><td>" + (p.unidad || "—") + "</td><td>" + U.esc(p.refText) + '</td><td class="flag-cell" data-flagfor="' + p.codigo + '">' +
+            (flag.texto ? '<span class="flag-' + flag.clase + '">' + U.esc(flag.texto) + "</span>" : "") + "</td></tr>";
         }).join("");
 
         card.innerHTML = headerHtml() +
@@ -210,14 +240,25 @@
             var p = exCat.parametros.filter(function (pp) { return pp.codigo === inputEl.dataset.param; })[0];
             var flag = C.calcularFlag(p, inputEl.value);
             var cell = card.querySelector('[data-flagfor="' + p.codigo + '"]');
-            cell.innerHTML = flag ? '<span class="flag-' + flag.toLowerCase() + '">' + flag + "</span>" : "";
+            cell.innerHTML = flag.texto ? '<span class="flag-' + flag.clase + '">' + U.esc(flag.texto) + "</span>" : "";
+          });
+        });
+
+        card.querySelectorAll("[data-categoria]").forEach(function (sel) {
+          sel.addEventListener("change", function () {
+            sincronizarValuesMapDesdeDOM();
+            categoriaOverrides[sel.dataset.categoria] = sel.value;
+            actualizarExCat();
+            renderCapturaNormal();
           });
         });
 
         function collectValues() {
           return exCat.parametros.map(function (p) {
             var el = card.querySelector('[data-param="' + p.codigo + '"]');
-            return { codigo: p.codigo, valor: el ? el.value : "" };
+            var entry = { codigo: p.codigo, valor: el ? el.value : "" };
+            if (categoriaOverrides[p.codigo]) entry.categoria = categoriaOverrides[p.codigo];
+            return entry;
           });
         }
         function allFilled(vals) { return vals.every(function (v) { return v.valor !== ""; }); }
@@ -266,7 +307,7 @@
           var val = valuesMap[p.codigo] || "";
           var flag = C.calcularFlag(p, val);
           return "<tr><td>" + U.esc(p.nombre) + "</td><td><b>" + U.esc(val) + "</b></td><td>" + (p.unidad || "—") + "</td><td>" + U.esc(p.refText) + '</td><td>' +
-            (flag ? '<span class="flag-' + flag.toLowerCase() + '">' + flag + "</span>" : "") + "</td></tr>";
+            (flag.texto ? '<span class="flag-' + flag.clase + '">' + U.esc(flag.texto) + "</span>" : "") + "</td></tr>";
         }).join("");
         card.innerHTML = headerHtml() +
           '<div class="table-wrap"><table><thead><tr><th>Parámetro</th><th>Resultado</th><th>Unidad</th><th>Valor de referencia</th><th>Interpretación</th></tr></thead><tbody>' + rowsHtml + "</tbody></table></div>" +

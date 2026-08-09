@@ -190,12 +190,14 @@
       y += 24;
 
       var body = [];
+      var esAnormalPorFila = [];
       bySeccion[seccionId].forEach(function (ex) {
-        var exCat = C.examenParaPaciente(ex.examId, tenant, patient);
+        var exCat = C.examenParaPaciente(ex.examId, tenant, patient, C.categoriasDeValores(ex.valores));
         exCat.parametros.forEach(function (p) {
           var val = (ex.valores.filter(function (v) { return v.codigo === p.codigo; })[0] || {}).valor || "-";
           var flag = C.calcularFlag(p, val);
-          body.push([exCat.nombre, p.nombre, val + (p.unidad ? " " + p.unidad : ""), p.refText || "", flag || ""]);
+          body.push([exCat.nombre, p.nombre, val + (p.unidad ? " " + p.unidad : ""), p.refText || "", flag.texto || ""]);
+          esAnormalPorFila.push(flag.clase !== "" && flag.clase !== "normal");
         });
       });
 
@@ -205,9 +207,8 @@
         body: body, theme: "grid", styles: { fontSize: 8, cellPadding: 4 },
         headStyles: { fillColor: [240, 244, 247], textColor: 40, fontStyle: "bold" },
         didParseCell: function (data) {
-          if (data.section === "body" && data.column.index === 4) {
-            var v = data.cell.raw;
-            if (v === "ALTO" || v === "BAJO" || v === "ANORMAL") { data.cell.styles.textColor = [214, 69, 69]; data.cell.styles.fontStyle = "bold"; }
+          if (data.section === "body" && data.column.index === 4 && esAnormalPorFila[data.row.index]) {
+            data.cell.styles.textColor = [214, 69, 69]; data.cell.styles.fontStyle = "bold";
           }
         }
       });

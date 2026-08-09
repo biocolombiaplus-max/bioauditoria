@@ -585,19 +585,28 @@
     return "≈ " + valor.toLocaleString("es-CO", { maximumFractionDigits: 2 }) + " " + m.codigo;
   }
 
+  /* Devuelve { texto, clase } — texto es lo que se muestra (NORMAL/ALTO/BAJO,
+     o la etiqueta que el laboratorio haya definido en sus propios rangos de
+     interpretación, ej. "Prediabetes"), y clase es "normal"/"alto"/"bajo"/
+     "anormal" para el color del badge, independiente del texto exacto. */
   function calcularFlag(param, valor) {
-    if (valor === "" || valor === null || typeof valor === "undefined") return "";
+    if (valor === "" || valor === null || typeof valor === "undefined") return { texto: "", clase: "" };
     if (param.tipo === "numerico") {
       var n = parseFloat(valor);
-      if (isNaN(n)) return "";
-      if (n < param.min) return "BAJO";
-      if (n > param.max) return "ALTO";
-      return "NORMAL";
+      if (isNaN(n)) return { texto: "", clase: "" };
+      if (param.rangosInterpretacion && param.rangosInterpretacion.length) {
+        var r = rangoParaValor(param.rangosInterpretacion, n);
+        if (r) return { texto: r.etiqueta, clase: r.esNormal ? "normal" : "alto" };
+      }
+      if (n < param.min) return { texto: "BAJO", clase: "bajo" };
+      if (n > param.max) return { texto: "ALTO", clase: "alto" };
+      return { texto: "NORMAL", clase: "normal" };
     }
     if (param.tipo === "cualitativo") {
-      return valor === param.normal ? "NORMAL" : "ANORMAL";
+      var esNormal = valor === param.normal;
+      return { texto: esNormal ? "NORMAL" : "ANORMAL", clase: esNormal ? "normal" : "anormal" };
     }
-    return "";
+    return { texto: "", clase: "" };
   }
 
   /* Cada laboratorio puede tener sus propios valores de referencia (según
@@ -606,9 +615,48 @@
      el catálogo global compartido. */
   function overrideKey(examId, codigo) { return examId + "::" + codigo; }
 
+  // -------------------------------------------------------------------
+  // RANGOS DE INTERPRETACIÓN (opcional, por laboratorio y por parámetro).
+  // A diferencia de las bandas por género/edad (que eligen UN min/max según
+  // el paciente), esto divide el eje del RESULTADO en tramos con su propia
+  // etiqueta — ej. HbA1c: 0-5.6% "Normal", 5.7-6.4% "Prediabetes", ≥6.5%
+  // "Diabetes". No dependen del paciente, solo del valor capturado.
+  // -------------------------------------------------------------------
+  function getRangosInterpretacion(tenant, examId, codigo) {
+    return (tenant && tenant.refRangos && tenant.refRangos[overrideKey(examId, codigo)]) || [];
+  }
+  function setRangosInterpretacion(tenant, examId, codigo, rangos) {
+    tenant.refRangos = tenant.refRangos || {};
+    if (rangos && rangos.length) tenant.refRangos[overrideKey(examId, codigo)] = rangos;
+    else delete tenant.refRangos[overrideKey(examId, codigo)];
+  }
+  function tieneRangosInterpretacion(tenant, examId, codigo) {
+    return getRangosInterpretacion(tenant, examId, codigo).length > 0;
+  }
+  function rangoParaValor(rangos, n) {
+    return rangos.filter(function (r) { return (r.min == null || n >= r.min) && (r.max == null || n <= r.max); })[0] || null;
+  }
+  /* Arma el texto de referencia combinando todos los tramos (para mostrarlo
+     antes de tener un resultado capturado), ej: "Normal: <5.7 % · Prediabetes:
+     5.7 - 6.4 % · Diabetes: ≥6.5 %". */
+  function textoReferenciaRangos(rangos, unidad) {
+    var u = unidad ? " " + unidad : "";
+    return rangos.map(function (r) {
+      if (r.refText) return r.refText;
+      if (r.min == null) return r.etiqueta + ": <" + r.max + u;
+      if (r.max == null) return r.etiqueta + ": ≥" + r.min + u;
+      return r.etiqueta + ": " + r.min + " - " + r.max + u;
+    }).join(" · ");
+  }
+
   function parametroEfectivo(examId, param, tenant) {
     var overrides = tenant && tenant.refOverrides ? tenant.refOverrides[overrideKey(examId, param.codigo)] : null;
-    return overrides ? Object.assign({}, param, overrides) : param;
+    var efectivo = overrides ? Object.assign({}, param, overrides) : param;
+    var rangos = tenant ? getRangosInterpretacion(tenant, examId, param.codigo) : [];
+    if (rangos.length) {
+      efectivo = Object.assign({}, efectivo, { refText: textoReferenciaRangos(rangos, efectivo.unidad), rangosInterpretacion: rangos });
+    }
+    return efectivo;
   }
 
   /* Además del valor de referencia de cada parámetro, un laboratorio puede
@@ -785,46 +833,79 @@
     if (b.edadMinAnios != null || b.edadMaxAnios != null) s += 1;
     return s;
   }
-  /* Entre las bandas configuradas, elige la más específica que aplique al
-     paciente. Un paciente sin sexo/edad registrada, o "Indeterminado", solo
-     puede calzar con bandas "ambos" sin restricción de edad. */
-  function seleccionarBanda(bandas, paciente) {
-    if (!bandas || !bandas.length) return null;
+  /* Todas las bandas que calzan con el sexo/edad del paciente (puede haber
+     más de una — ej. las fases del ciclo menstrual, que no se pueden
+     distinguir solo por sexo/edad y necesitan que quien captura el
+     resultado elija cuál aplica). Un paciente sin sexo/edad registrada, o
+     "Indeterminado", solo puede calzar con bandas "ambos" sin restricción
+     de edad. */
+  function candidatosBanda(bandas, paciente) {
+    if (!bandas || !bandas.length) return [];
     var sexo = paciente && (paciente.sexo === "Masculino" || paciente.sexo === "Femenino") ? paciente.sexo : null;
     var edad = paciente ? edadEnAniosDecimal(paciente.fechaNacimiento) : null;
-    var candidatas = bandas.filter(function (b) {
+    return bandas.filter(function (b) {
       var okGenero = !b.genero || b.genero === "ambos" || b.genero === sexo;
       var okEdadMin = b.edadMinAnios == null || (edad != null && edad >= b.edadMinAnios);
       var okEdadMax = b.edadMaxAnios == null || (edad != null && edad <= b.edadMaxAnios);
       return okGenero && okEdadMin && okEdadMax;
     });
+  }
+  /* Entre las bandas que calzan con el paciente, elige la más específica.
+     Cuando hay varias igual de específicas (ej. varias fases del ciclo,
+     todas "ambos" sin edad) gana la primera definida — es solo el valor
+     por defecto mientras quien captura el resultado no elija otra
+     manualmente (ver candidatosBanda + el selector en captura). */
+  function seleccionarBanda(bandas, paciente) {
+    var candidatas = candidatosBanda(bandas, paciente);
     if (!candidatas.length) return null;
-    candidatas.sort(function (a, b) { return especificidadBanda(b) - especificidadBanda(a); });
+    candidatas = candidatas.slice().sort(function (a, b) { return especificidadBanda(b) - especificidadBanda(a); });
     return candidatas[0];
+  }
+  function bandaPorEtiqueta(bandas, etiqueta) {
+    return (bandas || []).filter(function (b) { return b.etiqueta && b.etiqueta === etiqueta; })[0] || null;
+  }
+  /* A partir de los valores ya guardados de un examen, arma el mapa
+     {codigo: etiqueta} de las categorías (bandas) que se eligieron
+     manualmente al capturar — para volver a mostrarlas igual al reabrir la
+     orden, sin tener que re-adivinarlas. */
+  function categoriasDeValores(valores) {
+    var m = {};
+    (valores || []).forEach(function (v) { if (v.categoria) m[v.codigo] = v.categoria; });
+    return m;
   }
   /* Devuelve el parámetro (ya con overrides de fábrica/laboratorio
      aplicados) con su min/max/refText ajustados a la banda de género/edad
      que le corresponda al paciente, si el laboratorio configuró alguna para
-     ese parámetro. Si no hay bandas, o ninguna calza, devuelve el parámetro
-     tal cual (el rango general de siempre). */
-  function parametroParaPaciente(examId, param, tenant, paciente) {
+     ese parámetro. Si "categoriaElegida" viene (una etiqueta de banda
+     elegida a mano, ej. "Fase Folicular"), esa gana sobre la selección
+     automática. Si no hay bandas, o ninguna calza, devuelve el parámetro
+     tal cual (el rango general de siempre). El parámetro devuelto trae
+     "bandaEtiqueta" cuando una banda aplicó, para que la pantalla de
+     captura sepa qué mostrar seleccionado en el desplegable. */
+  function parametroParaPaciente(examId, param, tenant, paciente, categoriaElegida) {
     var bandas = getBandas(tenant, examId, param.codigo);
     if (!bandas.length) return param;
-    var banda = seleccionarBanda(bandas, paciente);
+    var banda = categoriaElegida ? bandaPorEtiqueta(bandas, categoriaElegida) : null;
+    if (!banda) banda = seleccionarBanda(bandas, paciente);
     if (!banda) return param;
     return Object.assign({}, param, {
       min: banda.min, max: banda.max,
-      refText: banda.refText || (banda.min + " - " + banda.max + " " + (param.unidad || ""))
+      refText: banda.refText || ((banda.etiqueta ? banda.etiqueta + ": " : "") + banda.min + " - " + banda.max + " " + (param.unidad || "")),
+      bandaEtiqueta: banda.etiqueta || ""
     });
   }
   /* Igual que examenEfectivo, pero además resuelve las bandas de
      género/edad de cada parámetro para un paciente concreto — es lo que
-     debe usarse en captura de resultados e informes PDF. */
-  function examenParaPaciente(examId, tenant, paciente) {
+     debe usarse en captura de resultados e informes PDF. "categoriasElegidas"
+     es un mapa opcional {codigo: etiqueta} con las categorías ya elegidas a
+     mano (ver categoriasDeValores). */
+  function examenParaPaciente(examId, tenant, paciente, categoriasElegidas) {
     var ex = examenEfectivo(examId, tenant);
     if (!ex || !tenant || !tenant.refBandas) return ex;
     var clone = Object.assign({}, ex);
-    clone.parametros = ex.parametros.map(function (p) { return parametroParaPaciente(examId, p, tenant, paciente); });
+    clone.parametros = ex.parametros.map(function (p) {
+      return parametroParaPaciente(examId, p, tenant, paciente, categoriasElegidas ? categoriasElegidas[p.codigo] : null);
+    });
     return clone;
   }
 
@@ -890,7 +971,15 @@
     tieneBandas: tieneBandas,
     edadEnAniosDecimal: edadEnAniosDecimal,
     seleccionarBanda: seleccionarBanda,
+    candidatosBanda: candidatosBanda,
+    bandaPorEtiqueta: bandaPorEtiqueta,
+    categoriasDeValores: categoriasDeValores,
     parametroParaPaciente: parametroParaPaciente,
-    examenParaPaciente: examenParaPaciente
+    examenParaPaciente: examenParaPaciente,
+    getRangosInterpretacion: getRangosInterpretacion,
+    setRangosInterpretacion: setRangosInterpretacion,
+    tieneRangosInterpretacion: tieneRangosInterpretacion,
+    rangoParaValor: rangoParaValor,
+    textoReferenciaRangos: textoReferenciaRangos
   };
 })(window);
