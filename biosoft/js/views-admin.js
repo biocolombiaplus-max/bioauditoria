@@ -62,7 +62,7 @@
     function rowHtml(u) {
       var contacto = [u.numeroDocumento ? "Doc. " + u.numeroDocumento : "", u.telefonoContacto || "", u.correoContacto || ""].filter(Boolean).join(" · ");
       return "<tr><td><b>" + U.esc(u.nombre) + "</b>" + (contacto ? "<div class='text-muted' style='font-size:11px'>" + U.esc(contacto) + "</div>" : "") + "</td><td>" + U.esc(u.username) + "</td><td>" + U.esc(C.rolLabel(u.rol, tenant && tenant.pais)) + "</td>" +
-        "<td>" + (u.secciones && u.secciones.length ? u.secciones.map(function (s) { return C.seccionNombre(s); }).join(", ") : "—") + "</td>" +
+        "<td>" + (u.secciones && u.secciones.length ? u.secciones.map(function (s) { return C.seccionNombre(s, tenant); }).join(", ") : "—") + "</td>" +
         "<td>" + (u.activo ? '<span class="badge badge-validado">Activo</span>' : '<span class="badge badge-pendiente">Inactivo</span>') + "</td>" +
         '<td><div class="flex gap-2"><button class="btn btn-ghost btn-sm" data-edit="' + u.id + '">' + U.icon("edit") + " Editar</button>" +
         '<button class="btn btn-outline btn-sm" data-toggle="' + u.id + '">' + (u.activo ? "Desactivar" : "Activar") + "</button></div></td></tr>";
@@ -97,7 +97,7 @@
         var box = wrap.querySelector("#secciones-box");
         if (rol !== "bacteriologo") { box.innerHTML = ""; return; }
         box.innerHTML = "<label>Secciones que puede capturar y validar</label><div class='form-grid'>" +
-          C.SECCIONES.map(function (s) {
+          C.seccionesEfectivas(tenant).map(function (s) {
             var checked = (user.secciones || []).indexOf(s.id) !== -1;
             return '<div class="checkbox-row"><input type="checkbox" data-sec="' + s.id + '" ' + (checked ? "checked" : "") + '/><label style="margin:0">' + s.nombre + "</label></div>";
           }).join("") + "</div>";
@@ -204,10 +204,13 @@
   // primera vez que se reordena algo, se parte del orden natural del
   // catálogo para que el resto de exámenes no salte de posición sin razón.
   function moverExamen(tenant, examId, direccion) {
-    var orden = (tenant.ordenExamenes && tenant.ordenExamenes.length) ? tenant.ordenExamenes.slice() : C.EXAMENES.map(function (e) { return e.id; });
-    C.EXAMENES.forEach(function (e) { if (orden.indexOf(e.id) === -1) orden.push(e.id); });
-    var seccionId = C.examenPorId(examId).seccion;
-    var idsSeccion = orden.filter(function (id) { var ex = C.examenPorId(id); return ex && ex.seccion === seccionId; });
+    var todos = C.examenesEfectivos(tenant);
+    var orden = (tenant.ordenExamenes && tenant.ordenExamenes.length) ? tenant.ordenExamenes.slice() : todos.map(function (e) { return e.id; });
+    todos.forEach(function (e) { if (orden.indexOf(e.id) === -1) orden.push(e.id); });
+    var porId = {};
+    todos.forEach(function (e) { porId[e.id] = e; });
+    var seccionId = porId[examId].seccion;
+    var idsSeccion = orden.filter(function (id) { var ex = porId[id]; return ex && ex.seccion === seccionId; });
     var pos = idsSeccion.indexOf(examId);
     var destino = pos + direccion;
     if (destino < 0 || destino >= idsSeccion.length) return orden;
@@ -236,11 +239,15 @@
       var permiteOrdenar = filtroSeccion !== "todas" && !busqueda;
       if (permiteOrdenar) exams = C.ordenarPorExamen(exams, tenant, function (e) { return e.id; });
       root.innerHTML =
-        '<div class="card"><div class="card-header"><h3 class="card-title">Valores de Referencia del Catálogo</h3></div>' +
-        '<p class="text-muted" style="margin-top:0">Cada laboratorio puede usar equipos o metodologías distintas, por lo que los valores normales pueden variar. Ajusta aquí los rangos de tu laboratorio sin afectar el catálogo general de BIOsoft; los cambios se aplican de inmediato en la captura de resultados y en los informes. Elige una sección específica para poder ordenar tus exámenes como los trabajas normalmente.</p>' +
+        '<div class="card"><div class="card-header"><h3 class="card-title">Valores de Referencia del Catálogo</h3>' +
+        '<button class="btn btn-primary btn-sm" id="btn-nuevo-examen">' + U.icon("plus") + " Agregar Examen Nuevo</button></div>" +
+        '<p class="text-muted" style="margin-top:0">Cada laboratorio puede usar equipos o metodologías distintas, por lo que los valores normales pueden variar. Ajusta aquí los rangos de tu laboratorio sin afectar el catálogo general de BIOsoft; los cambios se aplican de inmediato en la captura de resultados y en los informes. Elige una sección específica para poder ordenar tus exámenes como los trabajas normalmente. Si tu laboratorio procesa una prueba que el catálogo no trae, agrégala con "Agregar Examen Nuevo".</p>' +
         '<div class="flex gap-2 wrap" style="margin-bottom:14px">' +
         '<input id="cat-busqueda" placeholder="Buscar examen por nombre o código CUPS…" style="max-width:320px" value="' + U.esc(busqueda) + '"/>' +
-        '<select id="cat-seccion"><option value="todas">Todas las secciones</option>' + C.SECCIONES.map(function (s) { return '<option value="' + s.id + '" ' + (s.id === filtroSeccion ? "selected" : "") + ">" + s.nombre + "</option>"; }).join("") + "</select>" +
+        '<select id="cat-seccion"><option value="todas">Todas las secciones</option>' + C.seccionesEfectivas(tenant).map(function (s) { return '<option value="' + s.id + '" ' + (s.id === filtroSeccion ? "selected" : "") + ">" + s.nombre + "</option>"; }).join("") + "</select>" +
+        '<button class="btn btn-outline btn-sm" id="btn-nueva-categoria">' + U.icon("plus") + " Nueva Categoría</button>" +
+        (filtroSeccion !== "todas" && (tenant.seccionesPersonalizadas || []).some(function (s) { return s.id === filtroSeccion; }) ?
+          '<button class="btn btn-ghost btn-sm" id="btn-eliminar-categoria" title="Eliminar esta categoría">' + U.icon("trash") + " Eliminar Categoría</button>" : "") +
         "</div>" +
         '<div class="table-wrap"><table><thead><tr>' + (permiteOrdenar ? "<th></th>" : "") + '<th>Examen</th><th>Sección</th><th># Parámetros</th><th>Estado</th><th></th></tr></thead><tbody>' +
         (exams.length ? exams.map(function (e, i) { return rowHtml(e, i, exams.length, permiteOrdenar); }).join("") : '<tr><td colspan="' + (permiteOrdenar ? 6 : 5) + '" class="text-muted">Sin resultados.</td></tr>') +
@@ -248,7 +255,30 @@
 
       document.getElementById("cat-busqueda").addEventListener("input", function (e) { busqueda = e.target.value; build(); });
       document.getElementById("cat-seccion").addEventListener("change", function (e) { filtroSeccion = e.target.value; build(); });
+      document.getElementById("btn-nuevo-examen").addEventListener("click", function () { abrirCrearExamen(tenant, build); });
+      document.getElementById("btn-nueva-categoria").addEventListener("click", function () { abrirCrearCategoria(tenant, build); });
+      var btnEliminarCategoria = document.getElementById("btn-eliminar-categoria");
+      if (btnEliminarCategoria) btnEliminarCategoria.addEventListener("click", function () {
+        if (!confirm("¿Eliminar esta categoría? Solo se puede si ya no tiene exámenes propios asignados.")) return;
+        var enUso = C.eliminarSeccionPersonalizada(tenant, filtroSeccion);
+        if (enUso) { U.toast("No se puede eliminar: todavía tiene " + enUso + " examen(es) propio(s) asignados. Muévelos o elimínalos primero.", "error"); return; }
+        S.updateTenant(tenant.id, { seccionesPersonalizadas: tenant.seccionesPersonalizadas || [] });
+        S.addAudit(session.tenantId, session.nombre, session.rol, "DELETE_SECTION", "catalogo", filtroSeccion, "Eliminó una categoría propia del catálogo.");
+        U.toast("Categoría eliminada.", "success");
+        filtroSeccion = "todas";
+        build();
+      });
       root.querySelectorAll("[data-editexam]").forEach(function (b) { b.addEventListener("click", function () { openExamEditor(b.dataset.editexam, build); }); });
+      root.querySelectorAll("[data-eliminarexam]").forEach(function (b) {
+        b.addEventListener("click", function () {
+          if (!confirm("¿Eliminar este examen propio del laboratorio? Esta acción no se puede deshacer.")) return;
+          C.eliminarExamenPersonalizado(tenant, b.dataset.eliminarexam);
+          S.updateTenant(tenant.id, { examenesPersonalizados: tenant.examenesPersonalizados, examCustom: tenant.examCustom || {}, ordenExamenes: tenant.ordenExamenes || [] });
+          S.addAudit(session.tenantId, session.nombre, session.rol, "DELETE_EXAM", "catalogo", b.dataset.eliminarexam, "Eliminó un examen propio del catálogo del laboratorio.");
+          U.toast("Examen eliminado.", "success");
+          build();
+        });
+      });
       root.querySelectorAll("[data-mover]").forEach(function (b) {
         b.addEventListener("click", function () {
           var nuevoOrden = moverExamen(tenant, b.dataset.mover, parseInt(b.dataset.dir, 10));
@@ -260,17 +290,79 @@
 
     function rowHtml(e, i, total, permiteOrdenar) {
       var personalizado = C.tieneOverride(e.id, tenant);
+      var propio = C.esExamenPropio(e.id, tenant);
       return "<tr>" +
         (permiteOrdenar ? "<td><div class='flex gap-2'>" +
           '<button class="btn btn-ghost btn-sm" data-mover="' + e.id + '" data-dir="-1" ' + (i === 0 ? "disabled" : "") + ' title="Subir">▲</button>' +
           '<button class="btn btn-ghost btn-sm" data-mover="' + e.id + '" data-dir="1" ' + (i === total - 1 ? "disabled" : "") + ' title="Bajar">▼</button>' +
           "</div></td>" : "") +
-        "<td>" + U.esc(e.nombre) + "<div class='text-muted' style='font-size:11px'>CUPS " + e.cups + "</div></td><td>" + C.seccionNombre(e.seccion) + "</td><td>" + e.parametros.length + "</td>" +
-        "<td>" + (personalizado ? '<span class="badge badge-preliminar">Personalizado</span>' : '<span class="text-muted">Valores de fábrica</span>') + "</td>" +
-        '<td><button class="btn btn-outline btn-sm" data-editexam="' + e.id + '">' + U.icon("edit") + " Editar</button></td></tr>";
+        "<td>" + U.esc(e.nombre) + "<div class='text-muted' style='font-size:11px'>" + (e.cups ? "CUPS " + U.esc(e.cups) : "Sin CUPS") + "</div></td><td>" + C.seccionNombre(e.seccion) + "</td><td>" + e.parametros.length + "</td>" +
+        "<td>" + (propio ? '<span class="badge badge-validado">Examen propio</span>' : personalizado ? '<span class="badge badge-preliminar">Personalizado</span>' : '<span class="text-muted">Valores de fábrica</span>') + "</td>" +
+        '<td><div class="flex gap-2 wrap"><button class="btn btn-outline btn-sm" data-editexam="' + e.id + '">' + U.icon("edit") + " Editar</button>" +
+        (propio ? '<button class="btn btn-ghost btn-sm" data-eliminarexam="' + e.id + '" title="Eliminar este examen propio">' + U.icon("trash") + "</button>" : "") +
+        "</div></td></tr>";
     }
     build();
   };
+
+  function abrirCrearCategoria(tenant, onDone) {
+    var session = BIO_AUTH.getSession();
+    var wrap = U.openModal(
+      '<h3 class="modal-title">Nueva Categoría</h3>' +
+      '<p class="text-muted" style="margin-top:0">Crea una categoría propia para agrupar exámenes que no encajan en las secciones del catálogo (Hematología, Química Sanguínea, etc.). Queda disponible de inmediato para asignar exámenes, órdenes, usuarios e informes, igual que las demás.</p>' +
+      '<form id="categoria-form">' +
+      F.inp("nombre", "Nombre de la Categoría", "", true) +
+      '<div class="flex gap-2 justify-between" style="margin-top:6px"><button type="button" class="btn btn-ghost" data-modal-close>Cancelar</button><button type="submit" class="btn btn-primary">' + U.icon("check") + " Crear Categoría</button></div>" +
+      "</form>"
+    );
+    wrap.querySelector("#categoria-form").addEventListener("submit", function (e) {
+      e.preventDefault();
+      var nombre = wrap.querySelector("#f_nombre").value.trim();
+      if (!nombre) { U.toast("Ponle un nombre a la categoría.", "error"); return; }
+      var yaExiste = C.seccionesEfectivas(tenant).some(function (s) { return U.normalizar(s.nombre) === U.normalizar(nombre); });
+      if (yaExiste) { U.toast("Ya existe una categoría con ese nombre.", "error"); return; }
+      var nueva = C.crearSeccionPersonalizada(tenant, nombre);
+      S.updateTenant(tenant.id, { seccionesPersonalizadas: tenant.seccionesPersonalizadas });
+      S.addAudit(session.tenantId, session.nombre, session.rol, "CREATE_SECTION", "catalogo", nueva.id, 'Agregó la categoría propia "' + nombre + '" al catálogo del laboratorio.');
+      U.toast("Categoría creada. Ya puedes agregarle exámenes.", "success");
+      U.closeModal(wrap);
+      onDone();
+    });
+  }
+
+  function abrirCrearExamen(tenant, onDone) {
+    var session = BIO_AUTH.getSession();
+    var wrap = U.openModal(
+      '<h3 class="modal-title">Agregar Examen Nuevo</h3>' +
+      '<p class="text-muted" style="margin-top:0">Crea un examen que tu laboratorio procesa y que el catálogo de BIOsoft no trae. Después de guardarlo podrás agregarle todos los parámetros y valores de referencia que necesites.</p>' +
+      '<form id="nuevo-examen-form"><div class="form-grid">' +
+      F.inp("nombre", "Nombre del Examen", "", true) +
+      F.sel("seccion", "Sección", C.seccionesEfectivas(tenant).map(function (s) { return "<option value='" + s.id + "'>" + s.nombre + "</option>"; }).join("")) +
+      F.inp("cups", "Código CUPS (opcional)", "") +
+      F.sel("nivel", "Nivel de Complejidad", [1, 2].map(function (n) { return "<option value='" + n + "'>Nivel " + n + "</option>"; }).join("")) +
+      F.inp("muestra", "Tipo de Muestra (opcional)", "") +
+      F.inp("metodo", "Método / Técnica (opcional, ej: ELISA, Electroquimioluminiscencia)", "") +
+      F.sel("tubo", "Tubo de Recolección", Object.keys(C.TUBOS).map(function (k) { return "<option value='" + k + "'>" + C.TUBOS[k].nombre + "</option>"; }).join("")) +
+      "</div>" +
+      '<div class="flex gap-2 justify-between" style="margin-top:6px"><button type="button" class="btn btn-ghost" data-modal-close>Cancelar</button><button type="submit" class="btn btn-primary">' + U.icon("check") + " Crear y Agregar Parámetros</button></div>" +
+      "</form>"
+    );
+    wrap.querySelector("#nuevo-examen-form").addEventListener("submit", function (e) {
+      e.preventDefault();
+      var g = function (id) { return wrap.querySelector("#f_" + id).value.trim(); };
+      var nombre = g("nombre");
+      if (!nombre) { U.toast("Ponle un nombre al examen.", "error"); return; }
+      var nuevo = C.crearExamenPersonalizado(tenant, {
+        nombre: nombre, seccion: g("seccion"), cups: g("cups"), nivel: parseInt(g("nivel"), 10) || 1,
+        muestra: g("muestra"), metodo: g("metodo"), tubo: g("tubo")
+      });
+      S.updateTenant(tenant.id, { examenesPersonalizados: tenant.examenesPersonalizados });
+      S.addAudit(session.tenantId, session.nombre, session.rol, "CREATE_EXAM", "catalogo", nuevo.id, 'Agregó el examen propio "' + nombre + '" al catálogo del laboratorio.');
+      U.toast("Examen creado. Ahora agrega sus parámetros.", "success");
+      U.closeModal(wrap);
+      openExamEditor(nuevo.id, onDone);
+    });
+  }
 
   // Encuentra la definición "de origen" de un parámetro: la del catálogo
   // global si es un campo de fábrica, o la definición con la que se creó si
@@ -285,7 +377,8 @@
   function openExamEditor(examId, onDone) {
     var session = BIO_AUTH.getSession();
     var tenant = S.getTenant(session.tenantId);
-    var exCat = C.examenPorId(examId);
+    var propio = C.esExamenPropio(examId, tenant);
+    var exCat = C.examenPorId(examId) || C.examenPersonalizadoPorId(examId, tenant);
     var efectivo = C.examenEfectivo(examId, tenant);
     var custom = (tenant.examCustom && tenant.examCustom[examId]) || {};
     var ocultos = (custom.ocultos || []).map(function (codigo) {
@@ -340,10 +433,20 @@
 
     var wrap = U.openModal(
       '<h3 class="modal-title">Valores de Referencia — ' + U.esc(exCat.nombre) + '</h3>' +
-      '<p class="text-muted" style="margin-top:0">Sección: ' + C.seccionNombre(exCat.seccion) + " · CUPS " + exCat.cups + " — reordena los campos con ▲▼, quita los que no uses o agrega uno propio, tal como lo trabajas en tu laboratorio.</p>" +
-      '<div class="field" style="max-width:420px"><label>Nombre del examen (como lo usa tu laboratorio)</label>' +
+      '<p class="text-muted" style="margin-top:0">Sección: ' + C.seccionNombre(exCat.seccion) + (exCat.cups ? " · CUPS " + U.esc(exCat.cups) : "") + " — reordena los campos con ▲▼, quita los que no uses o agrega uno propio, tal como lo trabajas en tu laboratorio.</p>" +
+      '<div class="form-grid" style="max-width:640px">' +
+      '<div class="field"><label>Nombre del examen (como lo usa tu laboratorio)</label>' +
       '<input id="cat-nombre-examen" value="' + U.esc(efectivo.nombre) + '"/></div>' +
+      '<div class="field"><label>Método / Técnica (opcional)</label>' +
+      '<input id="cat-metodo-examen" placeholder="Ej: ELISA, Electroquimioluminiscencia…" value="' + U.esc(efectivo.metodo || "") + '"/></div>' +
+      "</div>" +
       (efectivo.nombre !== exCat.nombre ? '<p class="text-muted" style="margin:2px 0 12px;font-size:12px">Nombre de fábrica: ' + U.esc(exCat.nombre) + ' — <button type="button" class="btn btn-ghost btn-sm" id="btn-restablecer-nombre" style="padding:2px 6px">Restablecer</button></p>' : "") +
+      (propio ? '<fieldset style="margin:10px 0"><legend>Datos del examen propio</legend><div class="form-grid">' +
+        F.sel("propio_seccion", "Sección", C.seccionesEfectivas(tenant).map(function (s) { return "<option value='" + s.id + "' " + (s.id === exCat.seccion ? "selected" : "") + ">" + s.nombre + "</option>"; }).join("")) +
+        F.inp("propio_cups", "Código CUPS (opcional)", exCat.cups || "") +
+        F.inp("propio_muestra", "Tipo de Muestra (opcional)", exCat.muestra || "") +
+        F.sel("propio_tubo", "Tubo de Recolección", Object.keys(C.TUBOS).map(function (k) { return "<option value='" + k + "' " + (k === exCat.tubo ? "selected" : "") + ">" + C.TUBOS[k].nombre + "</option>"; }).join("")) +
+        "</div></fieldset>" : "") +
       '<div class="table-wrap"><table><thead><tr><th></th><th>Parámetro</th><th>Mínimo</th><th>Máximo</th><th>Texto de referencia</th><th>Original</th><th></th></tr></thead><tbody>' +
       efectivo.parametros.map(function (p, idx) { return paramRow(p, idx, efectivo.parametros.length); }).join("") +
       "</tbody></table></div>" +
@@ -416,6 +519,16 @@
       var nuevoNombre = wrap.querySelector("#cat-nombre-examen").value.trim();
       var nombreCambio = nuevoNombre && nuevoNombre !== exCat.nombre;
       if (nuevoNombre === exCat.nombre) C.renombrarExamen(tenant, examId, ""); else C.renombrarExamen(tenant, examId, nuevoNombre);
+      var nuevoMetodo = wrap.querySelector("#cat-metodo-examen").value.trim();
+      C.cambiarMetodoExamen(tenant, examId, nuevoMetodo === exCat.metodo ? "" : nuevoMetodo);
+      if (propio) {
+        C.actualizarExamenPersonalizado(tenant, examId, {
+          seccion: wrap.querySelector("#f_propio_seccion").value,
+          cups: wrap.querySelector("#f_propio_cups").value.trim(),
+          muestra: wrap.querySelector("#f_propio_muestra").value.trim(),
+          tubo: wrap.querySelector("#f_propio_tubo").value
+        });
+      }
       var cambios = 0;
       efectivo.parametros.forEach(function (p) {
         var row = wrap.querySelector('[data-prow="' + p.codigo + '"]');

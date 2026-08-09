@@ -6,7 +6,9 @@
 
   window.BIO_VIEWS["hojas-trabajo"] = function (root) {
     var session = BIO_AUTH.getSession();
-    var seccionesDisponibles = session.rol === "bacteriologo" && session.secciones.length ? C.SECCIONES.filter(function (s) { return session.secciones.indexOf(s.id) !== -1; }) : C.SECCIONES;
+    var tenant = BIO_AUTH.currentTenant();
+    var todasLasSecciones = C.seccionesEfectivas(tenant);
+    var seccionesDisponibles = session.rol === "bacteriologo" && session.secciones.length ? todasLasSecciones.filter(function (s) { return session.secciones.indexOf(s.id) !== -1; }) : todasLasSecciones;
     var fecha = new Date().toISOString().slice(0, 10);
     var seccion = seccionesDisponibles[0] ? seccionesDisponibles[0].id : "hematologia";
     var modoPantalla = false;
@@ -24,7 +26,6 @@
     }
 
     function build() {
-      var tenant = BIO_AUTH.currentTenant();
       var items = itemsFor(fecha, seccion);
       root.innerHTML =
         '<div class="card no-print"><div class="card-header"><h3 class="card-title">Generar Hoja de Trabajo</h3></div>' +
@@ -37,7 +38,7 @@
         '<div class="card print-sheet" id="hw-sheet" style="margin-top:16px"></div>';
 
       var sheet = document.getElementById("hw-sheet");
-      var seccionNombre = C.seccionNombre(seccion);
+      var seccionNombre = C.seccionNombre(seccion, tenant);
       var header =
         '<div class="report-header"><div>' +
           '<div class="report-lab-name">' + U.esc(tenant.nombre) + '</div>' +
@@ -104,7 +105,7 @@
           S.recalcEstadoGeneral(order); S.saveOrder(order);
           count++;
         });
-        S.addAudit(session.tenantId, session.nombre, session.rol, "BULK_SAVE_WORKSHEET", "hoja_trabajo", seccion, "Guardó " + count + " valor(es) desde la hoja de trabajo en pantalla de la sección " + C.seccionNombre(seccion) + ".");
+        S.addAudit(session.tenantId, session.nombre, session.rol, "BULK_SAVE_WORKSHEET", "hoja_trabajo", seccion, "Guardó " + count + " valor(es) desde la hoja de trabajo en pantalla de la sección " + C.seccionNombre(seccion, tenant) + ".");
         U.toast("Se guardaron los valores diligenciados como borrador.", "success");
         build();
       });

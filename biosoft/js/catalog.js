@@ -519,21 +519,53 @@
 
   var CATALOG_DISCLAIMER = "Catálogo de referencia: los códigos CUPS mostrados son una guía general. Verifícalos y actualízalos según la Resolución 3100 de 2019 (y sus actualizaciones) y tu manual tarifario antes de facturar.";
 
-  function seccionNombre(id) {
+  function seccionNombre(id, tenant) {
     var s = SECCIONES.filter(function (x) { return x.id === id; })[0];
-    return s ? s.nombre : id;
+    if (s) return s.nombre;
+    var propia = tenant && tenant.seccionesPersonalizadas ? tenant.seccionesPersonalizadas.filter(function (x) { return x.id === id; })[0] : null;
+    return propia ? propia.nombre : id;
+  }
+
+  /* Un laboratorio puede crear sus propias categorías/secciones además de
+     las que ya trae BIOsoft (Hematología, Química Sanguínea, etc.), para
+     agrupar exámenes que no encajan en ninguna de las existentes. Quedan
+     unificadas con las demás: aparecen en el mismo selector, se pueden
+     asignar a usuarios y se ordenan igual en órdenes, resultados e informes. */
+  function seccionesEfectivas(tenant) {
+    return tenant && tenant.seccionesPersonalizadas && tenant.seccionesPersonalizadas.length ? SECCIONES.concat(tenant.seccionesPersonalizadas) : SECCIONES;
+  }
+  function crearSeccionPersonalizada(tenant, nombre) {
+    tenant.seccionesPersonalizadas = tenant.seccionesPersonalizadas || [];
+    var base = (nombre || "").trim();
+    var slug = base.toUpperCase().normalize("NFD").replace(/[̀-ͯ]/g, "").replace(/[^A-Z0-9]+/g, "_").replace(/^_+|_+$/g, "").slice(0, 24);
+    var id = "SEC_" + (slug || "PROPIA") + "_" + Date.now().toString(36).toUpperCase().slice(-4);
+    var nueva = { id: id, nombre: base, icono: "flask-conical", emoji: "🧪" };
+    tenant.seccionesPersonalizadas.push(nueva);
+    return nueva;
+  }
+  /* No permite borrar una categoría que todavía tiene exámenes propios
+     asignados, para no dejar exámenes "huérfanos" apuntando a una sección
+     que ya no existe. Devuelve el número de exámenes que la están usando
+     (0 si se pudo eliminar). */
+  function eliminarSeccionPersonalizada(tenant, seccionId) {
+    var enUso = (tenant.examenesPersonalizados || []).filter(function (e) { return e.seccion === seccionId; }).length;
+    if (enUso) return enUso;
+    if (tenant.seccionesPersonalizadas) tenant.seccionesPersonalizadas = tenant.seccionesPersonalizadas.filter(function (s) { return s.id !== seccionId; });
+    return 0;
   }
 
   function examenPorId(id) {
     return EXAMENES.filter(function (e) { return e.id === id; })[0];
   }
 
-  /* Todo el catálogo, pero con el nombre de examen que cada laboratorio haya
-     personalizado (ver renombrarExamen) — para listados/buscadores que
-     necesitan mostrar el catálogo completo ya "vestido" con esos nombres. */
+  /* Todo el catálogo, más los exámenes 100% propios del laboratorio, con el
+     nombre/método que cada laboratorio haya personalizado (ver
+     renombrarExamen/cambiarMetodoExamen) — para listados/buscadores que
+     necesitan mostrar el catálogo completo ya "vestido" con esos ajustes. */
   function examenesEfectivos(tenant) {
     if (!tenant) return EXAMENES;
-    return EXAMENES.map(function (e) { return examenEfectivo(e.id, tenant); });
+    var propios = tenant.examenesPersonalizados || [];
+    return EXAMENES.concat(propios).map(function (e) { return examenEfectivo(e.id, tenant); });
   }
 
   function tuboInfo(key) {
@@ -588,8 +620,21 @@
     return tenant && tenant.examCustom ? tenant.examCustom[examId] : null;
   }
 
+  /* Un laboratorio puede además crear exámenes 100% propios, que el catálogo
+     global de BIOsoft no trae en absoluto (ej. una prueba especializada que
+     solo ese laboratorio procesa). Viven en tenant.examenesPersonalizados,
+     con su propia identidad (id, nombre, sección, CUPS, muestra, tubo,
+     método, parámetros) — separados del catálogo global igual que todo lo
+     demás en este archivo. */
+  function examenPersonalizadoPorId(examId, tenant) {
+    return tenant && tenant.examenesPersonalizados ? tenant.examenesPersonalizados.filter(function (e) { return e.id === examId; })[0] : null;
+  }
+  function esExamenPropio(examId, tenant) {
+    return !examenPorId(examId) && !!examenPersonalizadoPorId(examId, tenant);
+  }
+
   function examenEfectivo(examId, tenant) {
-    var exCat = examenPorId(examId);
+    var exCat = examenPorId(examId) || (tenant && examenPersonalizadoPorId(examId, tenant));
     if (!exCat) return exCat;
     if (!tenant) return exCat;
     var custom = examCustomDe(examId, tenant);
@@ -617,16 +662,46 @@
       }
     }
     if (custom && custom.nombre) clone.nombre = custom.nombre;
+    if (custom && custom.metodo) clone.metodo = custom.metodo;
     clone.parametros = parametros;
     return clone;
   }
 
   function tieneOverride(examId, tenant) {
     if (!tenant) return false;
+    if (!examenPorId(examId)) return true; // es un examen 100% propio del laboratorio
     var custom = examCustomDe(examId, tenant);
-    if (custom && (custom.nombre || (custom.ocultos && custom.ocultos.length) || (custom.personalizados && custom.personalizados.length) || (custom.orden && custom.orden.length))) return true;
+    if (custom && (custom.nombre || custom.metodo || (custom.ocultos && custom.ocultos.length) || (custom.personalizados && custom.personalizados.length) || (custom.orden && custom.orden.length))) return true;
     if (!tenant.refOverrides) return false;
     return examenPorId(examId).parametros.some(function (p) { return !!tenant.refOverrides[overrideKey(examId, p.codigo)]; });
+  }
+
+  /* Cambia el método/técnica usado para un examen SOLO para este laboratorio
+     (ej. "ELISA", "Electroquimioluminiscencia"). Es opcional: si se deja
+     vacío no se muestra nada — ni en pantalla ni en el informe PDF. Pasa una
+     cadena vacía/null para quitarlo. */
+  function cambiarMetodoExamen(tenant, examId, metodo) {
+    var c = asegurarExamCustom(tenant, examId);
+    if (metodo && metodo.trim()) c.metodo = metodo.trim(); else delete c.metodo;
+  }
+
+  function crearExamenPersonalizado(tenant, datos) {
+    tenant.examenesPersonalizados = tenant.examenesPersonalizados || [];
+    var id = "PROPIO_" + Date.now().toString(36).toUpperCase() + "_" + Math.floor(100 + Math.random() * 900);
+    var nuevo = Object.assign({ cups: "", nivel: 1, muestra: "", metodo: "", tubo: "seco", parametros: [] }, datos, { id: id });
+    tenant.examenesPersonalizados.push(nuevo);
+    return nuevo;
+  }
+  function actualizarExamenPersonalizado(tenant, examId, datos) {
+    var ex = examenPersonalizadoPorId(examId, tenant);
+    if (!ex) return null;
+    Object.assign(ex, datos, { id: examId, parametros: ex.parametros });
+    return ex;
+  }
+  function eliminarExamenPersonalizado(tenant, examId) {
+    if (tenant.examenesPersonalizados) tenant.examenesPersonalizados = tenant.examenesPersonalizados.filter(function (e) { return e.id !== examId; });
+    if (tenant.examCustom) delete tenant.examCustom[examId];
+    if (tenant.ordenExamenes) tenant.ordenExamenes = tenant.ordenExamenes.filter(function (id) { return id !== examId; });
   }
 
   /* Cambia el nombre visible de un examen SOLO para este laboratorio (el
@@ -784,8 +859,17 @@
     PRIORIDADES: PRIORIDADES,
     CATALOG_DISCLAIMER: CATALOG_DISCLAIMER,
     seccionNombre: seccionNombre,
+    seccionesEfectivas: seccionesEfectivas,
+    crearSeccionPersonalizada: crearSeccionPersonalizada,
+    eliminarSeccionPersonalizada: eliminarSeccionPersonalizada,
     examenPorId: examenPorId,
     examenesEfectivos: examenesEfectivos,
+    examenPersonalizadoPorId: examenPersonalizadoPorId,
+    esExamenPropio: esExamenPropio,
+    crearExamenPersonalizado: crearExamenPersonalizado,
+    actualizarExamenPersonalizado: actualizarExamenPersonalizado,
+    eliminarExamenPersonalizado: eliminarExamenPersonalizado,
+    cambiarMetodoExamen: cambiarMetodoExamen,
     tuboInfo: tuboInfo,
     fmtMonedaAdicional: fmtMonedaAdicional,
     calcularFlag: calcularFlag,

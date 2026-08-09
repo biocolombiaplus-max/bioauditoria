@@ -732,10 +732,12 @@
     // vista ya pudo haber mutado in-place antes de llamar saveOrder — comparar
     // ahí siempre vería el estado ya nuevo. En su lugar, reactivosDescontados
     // es la única fuente de verdad para no descontar dos veces el mismo ítem.
+    var tenantDeLaOrden = db.tenants[order.tenantId];
     order.examenes.forEach(function (ex) {
       var tieneResultado = ex.estado === "preliminar" || ex.estado === "validado";
       if (tieneResultado && !ex.reactivosDescontados) {
-        descontarInventarioPorExamenEnDB(db, order.tenantId, ex.examId, "Consumo automático — Orden " + order.numeroOrden + " (" + BIO_CATALOG.examenPorId(ex.examId).nombre + ")", order.id);
+        var exCatOrden = BIO_CATALOG.examenEfectivo(ex.examId, tenantDeLaOrden);
+        descontarInventarioPorExamenEnDB(db, order.tenantId, ex.examId, "Consumo automático — Orden " + order.numeroOrden + " (" + (exCatOrden ? exCatOrden.nombre : ex.examId) + ")", order.id);
         ex.reactivosDescontados = true;
       }
     });

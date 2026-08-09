@@ -37,9 +37,10 @@
     var session = BIO_AUTH.getSession();
     var tenant = BIO_AUTH.currentTenant();
     var examenes = C.examenesEfectivos(tenant);
+    var secciones = C.seccionesEfectivas(tenant);
     var patients = S.listPatients(session.tenantId);
     var selectedExams = []; // {examId}
-    var activeSection = C.SECCIONES[0].id;
+    var activeSection = secciones[0].id;
     var searchTerm = "";
 
     root.innerHTML =
@@ -81,8 +82,8 @@
     document.getElementById("exam-search").addEventListener("input", function (e) { searchTerm = e.target.value; renderSections(); renderExams(); });
 
     function renderSections() {
-      document.getElementById("sec-list").innerHTML = C.SECCIONES.map(function (s) {
-        var count = selectedExams.filter(function (id) { return C.examenPorId(id).seccion === s.id; }).length;
+      document.getElementById("sec-list").innerHTML = secciones.map(function (s) {
+        var count = selectedExams.filter(function (id) { return C.examenEfectivo(id, tenant).seccion === s.id; }).length;
         return '<div class="sec-item ' + (!searchTerm && s.id === activeSection ? "active" : "") + '" data-sec="' + s.id + '">' + s.nombre + (count ? ' <span class="badge badge-validado" style="margin-left:4px">' + count + "</span>" : "") + "</div>";
       }).join("");
       document.querySelectorAll(".sec-item").forEach(function (el) {
@@ -104,7 +105,7 @@
         var checked = selectedExams.indexOf(e.id) !== -1;
         var tubo = C.tuboInfo(e.tubo);
         return '<label class="exam-row"><input type="checkbox" data-exam="' + e.id + '" ' + (checked ? "checked" : "") + '/>' +
-          '<div class="grow"><div>' + U.esc(e.nombre) + (term ? ' <span class="text-muted" style="font-size:11px">— ' + C.seccionNombre(e.seccion) + "</span>" : "") + "</div>" +
+          '<div class="grow"><div>' + U.esc(e.nombre) + (term ? ' <span class="text-muted" style="font-size:11px">— ' + C.seccionNombre(e.seccion, tenant) + "</span>" : "") + "</div>" +
           '<div class="meta"><span style="display:inline-block;width:8px;height:8px;border-radius:50%;background:' + tubo.color + ';margin-right:5px;vertical-align:middle"></span>CUPS ' + e.cups + " · Nivel " + e.nivel + " · " + U.esc(tubo.nombre) + "</div></div></label>";
       }).join("") || '<p class="text-muted" style="padding:14px">Sin resultados para tu búsqueda.</p>';
 
@@ -158,7 +159,7 @@
         medicoRemitente: document.getElementById("f_medicoRemitente").value,
         diagnostico: document.getElementById("f_diagnostico").value,
         examenes: selectedExams.map(function (id) {
-          var exCat = C.examenPorId(id);
+          var exCat = C.examenEfectivo(id, tenant);
           return {
             examId: id, seccion: exCat.seccion, estado: "pendiente", valores: [], observaciones: "",
             validadoPor: "", validadoPorUserId: "", fechaValidacion: "", ingresadoPor: "", fechaIngreso: "", version: 1, correcciones: [],
@@ -221,7 +222,7 @@
         order.examenes.map(function (ex, idx) {
           var exCat = C.examenEfectivo(ex.examId, tenant);
           var tubo = C.tuboInfo(exCat.tubo);
-          return "<tr><td>" + U.esc(exCat.nombre) + "</td><td>" + C.seccionNombre(ex.seccion) + "</td>" +
+          return "<tr><td>" + U.esc(exCat.nombre) + "</td><td>" + C.seccionNombre(ex.seccion, tenant) + "</td>" +
             '<td><span style="display:inline-block;width:9px;height:9px;border-radius:50%;background:' + tubo.color + ';margin-right:5px;vertical-align:middle"></span>' + U.esc(tubo.nombre) + "</td>" +
             "<td>" + window.BIO_badgeEstado(ex.estado === "en_proceso" ? "pendiente" : ex.estado) + "</td>" +
             "<td>" + (ex.validadoPor || "—") + "</td><td>" + (ex.fechaValidacion ? U.fmtFecha(ex.fechaValidacion) : "—") + "</td>" +

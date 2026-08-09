@@ -21,6 +21,7 @@
 
   function renderBandeja(root) {
     var session = BIO_AUTH.getSession();
+    var tenant = BIO_AUTH.currentTenant();
     var orders = S.listOrders(session.tenantId);
     var filtroEstado = "todos";
     var filtroSeccion = "todas";
@@ -47,7 +48,7 @@
         '<div class="card"><div class="card-header"><h3 class="card-title">Bandeja de Resultados</h3>' +
         '<div class="flex gap-2 wrap">' +
         '<select id="f-estado"><option value="todos">Todos los estados</option><option value="pendiente">Pendientes</option><option value="preliminar">Preliminares</option><option value="validado">Validados</option><option value="remitido">Remitidos</option></select>' +
-        '<select id="f-seccion"><option value="todas">Todas las secciones</option>' + C.SECCIONES.map(function (s) { return '<option value="' + s.id + '">' + s.nombre + "</option>"; }).join("") + "</select>" +
+        '<select id="f-seccion"><option value="todas">Todas las secciones</option>' + C.seccionesEfectivas(tenant).map(function (s) { return '<option value="' + s.id + '">' + s.nombre + "</option>"; }).join("") + "</select>" +
         "</div></div>" +
         '<div class="table-wrap"><table><thead><tr><th>Prioridad</th><th>N° Orden</th><th>Paciente</th><th>Examen</th><th>Sección</th><th>Estado</th><th></th></tr></thead><tbody>' +
         (rows.length ? rows.map(rowHtml).join("") : '<tr><td colspan="7" class="text-muted">No hay exámenes que coincidan con el filtro.</td></tr>') +
@@ -62,9 +63,9 @@
 
     function rowHtml(r) {
       var pac = S.getPatient(r.order.patientId);
-      var exCat = C.examenEfectivo(r.ex.examId, BIO_AUTH.currentTenant());
+      var exCat = C.examenEfectivo(r.ex.examId, tenant);
       return "<tr><td>" + '<span class="badge badge-' + (r.order.prioridad === "Urgente" ? "urgente" : "rutina") + '">' + r.order.prioridad + "</span></td>" +
-        "<td>" + r.order.numeroOrden + "</td><td>" + (pac ? U.esc(U.nombreCompleto(pac)) : "—") + "</td><td>" + U.esc(exCat.nombre) + "</td><td>" + C.seccionNombre(r.ex.seccion) + "</td>" +
+        "<td>" + r.order.numeroOrden + "</td><td>" + (pac ? U.esc(U.nombreCompleto(pac)) : "—") + "</td><td>" + U.esc(exCat.nombre) + "</td><td>" + C.seccionNombre(r.ex.seccion, tenant) + "</td>" +
         "<td>" + window.BIO_badgeEstado(r.ex.estado === "en_proceso" ? "pendiente" : r.ex.estado) + '</td><td><button class="btn btn-outline btn-sm" data-go="' + r.order.id + '">Abrir</button></td></tr>';
     }
     build();
@@ -110,7 +111,7 @@
 
       function headerHtml() {
         return '<div class="card-header"><div><h3 class="card-title">' + U.esc(exCat.nombre) + '</h3>' +
-          '<span class="text-muted" style="font-size:12px">' + C.seccionNombre(ex.seccion) + " · CUPS " + exCat.cups + " · Muestra: " + U.esc(exCat.muestra) + "</span>" +
+          '<span class="text-muted" style="font-size:12px">' + C.seccionNombre(ex.seccion, tenant) + (exCat.cups ? " · CUPS " + U.esc(exCat.cups) : "") + (exCat.muestra ? " · Muestra: " + U.esc(exCat.muestra) : "") + (exCat.metodo ? " · Método: " + U.esc(exCat.metodo) : "") + "</span>" +
           '<div style="margin-top:6px">' + tuboChip(exCat.tubo) + "</div></div>" +
           window.BIO_badgeEstado(ex.estado === "en_proceso" ? "pendiente" : ex.estado) + "</div>";
       }

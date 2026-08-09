@@ -47,13 +47,14 @@
       }));
     }
     function seccionesDisponibles() {
-      return customExams.length ? C.SECCIONES.concat([SECCION_REF_EXT]) : C.SECCIONES;
+      var base = C.seccionesEfectivas(tenant);
+      return customExams.length ? base.concat([SECCION_REF_EXT]) : base;
     }
     function resolverExamen(id) {
       return C.examenEfectivo(id, tenant) || poolExamenes().filter(function (e) { return e.id === id; })[0] || null;
     }
     function resolverSeccionNombre(seccionId) {
-      return seccionId === SECCION_REF_EXT.id ? SECCION_REF_EXT.nombre : C.seccionNombre(seccionId);
+      return seccionId === SECCION_REF_EXT.id ? SECCION_REF_EXT.nombre : C.seccionNombre(seccionId, tenant);
     }
 
     function cargar() {

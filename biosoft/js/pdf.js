@@ -186,7 +186,7 @@
       doc.setFillColor(rgb[0], rgb[1], rgb[2]);
       doc.rect(margin, y, pageW - margin * 2, 16, "F");
       doc.setTextColor(255, 255, 255); doc.setFont("helvetica", "bold"); doc.setFontSize(9.5);
-      doc.text(C.seccionNombre(seccionId).toUpperCase(), margin + 6, y + 11);
+      doc.text(C.seccionNombre(seccionId, tenant).toUpperCase(), margin + 6, y + 11);
       y += 24;
 
       var body = [];
@@ -212,6 +212,22 @@
         }
       });
       y = doc.lastAutoTable.finalY + 10;
+
+      // El método/técnica de cada examen es opcional (ver Catálogo → Editar):
+      // si el laboratorio no lo definió, no se muestra nada.
+      var metodoExams = bySeccion[seccionId].filter(function (ex) { return C.examenEfectivo(ex.examId, tenant).metodo; });
+      if (metodoExams.length) {
+        doc.setFont("helvetica", "normal"); doc.setFontSize(7.5); doc.setTextColor(110, 110, 110);
+        metodoExams.forEach(function (ex) {
+          var exCat = C.examenEfectivo(ex.examId, tenant);
+          var texto = exCat.nombre + " — Método: " + exCat.metodo;
+          var lineas = doc.splitTextToSize(texto, pageW - margin * 2);
+          if (y + lineas.length * 9 > 750) { doc.addPage(); y = margin; }
+          doc.text(lineas, margin, y);
+          y += lineas.length * 9 + 2;
+        });
+        y += 4;
+      }
 
       // Las observaciones que el bacteriólogo(a) escribió en cada examen al
       // validarlo (ej. "muestra tomada por sonda urinaria") también deben

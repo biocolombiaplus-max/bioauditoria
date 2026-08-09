@@ -24,6 +24,7 @@
   window.BIO_VIEWS.productividad = function (root) {
     var session = BIO_AUTH.getSession();
     var tenantId = session.tenantId;
+    var tenant = S.getTenant(tenantId);
     var orders = S.listOrders(tenantId);
     var mesStr = new Date().toISOString().slice(0, 7);
     var ordersMes = orders.filter(function (o) { return o.fechaOrden.slice(0, 7) === mesStr; });
@@ -61,10 +62,10 @@
         kpi(examenesProcesados, "Exámenes Procesados Este Mes") +
         kpi(Object.keys(pacientesSet).length, "Pacientes Atendidos") +
         kpi(horasCount ? tiempoPromedio.toFixed(1) + " h" : "—", "Tiempo Promedio de Entrega") +
-        kpi(seccionTopId ? C.seccionNombre(seccionTopId) : "—", "Sección con Mayor Demanda") +
+        kpi(seccionTopId ? C.seccionNombre(seccionTopId, tenant) : "—", "Sección con Mayor Demanda") +
       "</div>" +
       '<div class="card"><div class="card-header"><h3 class="card-title">Exámenes procesados por sección (este mes)</h3></div>' +
-      barsHtml(porSeccion, maxSeccion, function (k) { return C.seccionNombre(k); }) +
+      barsHtml(porSeccion, maxSeccion, function (k) { return C.seccionNombre(k, tenant); }) +
       "</div>" +
       '<div class="card"><div class="card-header"><h3 class="card-title">Exámenes validados por bacteriólogo (este mes)</h3></div>' +
       barsHtml(porBact, maxBact, function (k) { return k; }) +
