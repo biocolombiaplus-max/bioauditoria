@@ -9,10 +9,12 @@
     return [parseInt(hex.substring(0, 2), 16), parseInt(hex.substring(2, 4), 16), parseInt(hex.substring(4, 6), 16)];
   }
 
+  function img(src, caption) { return { src: src, caption: caption }; }
+
   var SECCIONES = [
     {
       titulo: "1. Ingresar al sistema",
-      imagen: "assets/manual/ingreso-login.jpg",
+      imagenes: [img("assets/manual/ingreso-login.jpg", "Pantalla de inicio de sesión")],
       intro: "Cada persona del equipo tiene su propio usuario y contraseña. Así queda registrado quién hizo cada acción.",
       pasos: [
         "Abre el enlace de BIOsoft de tu laboratorio en el navegador (funciona en computador, tablet o celular).",
@@ -22,8 +24,44 @@
       ]
     },
     {
-      titulo: "2. Pacientes",
-      imagen: "assets/manual/pacientes.jpg",
+      titulo: "2. Configuración Inicial de tu Laboratorio",
+      imagenes: [
+        img("assets/manual/configuracion.jpg", "Identidad, datos fiscales y marca visual de tu laboratorio"),
+        img("assets/manual/usuarios.jpg", "Usuarios del Laboratorio — el acceso de cada persona de tu equipo")
+      ],
+      intro: "Solo para Administradores: esto se hace UNA VEZ, antes de empezar a trabajar, para que todo el sistema (pantallas, PDF, informes) lleve la identidad de tu laboratorio.",
+      pasos: [
+        "Ve a “Configuración del Laboratorio” y completa Identidad y Datos: nombre, NIT/RIF/RUC, país, dirección, teléfonos, correo, sitio web, resolución de habilitación, código REPS y nivel de complejidad.",
+        "Sube tu logo y elige los colores institucionales (primario, secundario, texto del menú, títulos y subtítulos) — se aplican de inmediato a toda la app y a los PDF que genera el sistema.",
+        "Define la clave de administrador: se pedirá cada vez que un bacteriólogo necesite corregir un resultado ya validado, para mantener la trazabilidad.",
+        "Ve a “Usuarios del Laboratorio” y haz clic en “Nuevo Usuario” para crear el acceso de cada persona de tu equipo: nombre, usuario, contraseña y rol (Administrador, Bacteriólogo o Recepción).",
+        "Para cada Bacteriólogo(a), asígnale las secciones que puede capturar y validar (Hematología, Química Sanguínea, etc.) y carga su firma digital — aparecerá en los informes que valide.",
+        "Consejo: desde esta misma pantalla puedes descargar este Manual de Usuario en PDF o enviarlo por WhatsApp/correo a cualquier persona de tu equipo, ya con el logo y los colores de tu laboratorio."
+      ]
+    },
+    {
+      titulo: "3. Personaliza tu Catálogo de Exámenes y Valores de Referencia",
+      imagenes: [
+        img("assets/manual/catalogo-lista.jpg", "Busca, filtra o agrega exámenes y categorías nuevas"),
+        img("assets/manual/catalogo-editor-examen.jpg", "Cambia el nombre y agrega el método/técnica de cualquier examen"),
+        img("assets/manual/catalogo-rangos-genero-edad.jpg", "Rangos por género/edad con categoría — ideal para hormonas que varían según la fase (ej. FSH, LH)"),
+        img("assets/manual/catalogo-rangos-interpretacion.jpg", "Rangos de Interpretación — ej. Hemoglobina Glicosilada: Normal / Prediabetes / Diabetes"),
+        img("assets/manual/catalogo-captura-categoria.jpg", "Así se ve al capturar el resultado: aparece un selector para elegir qué categoría aplica")
+      ],
+      intro: "BIOsoft trae un catálogo completo de exámenes con sus valores de referencia estándar. Aquí lo ajustas exactamente a como trabaja tu laboratorio, sin afectar el catálogo general de BIOsoft — los cambios se aplican solo a tu cuenta.",
+      pasos: [
+        "Ve a “Valores de Referencia” y busca el examen por nombre o código CUPS, o filtra por sección.",
+        "Haz clic en “Editar” para cambiar el nombre con el que tu laboratorio conoce el examen, agregar el método/técnica que usas (ej. ELISA, Quimioluminiscencia) o ajustar el mínimo, máximo y texto de referencia de cada parámetro según tu equipo.",
+        "Si tu laboratorio procesa un examen que el catálogo no trae, usa “Agregar Examen Nuevo” para crearlo desde cero: nombre, sección, CUPS, muestra, tubo y todos los parámetros que necesites.",
+        "Si necesitas una categoría que no está en la lista (Hematología, Química Sanguínea, etc.), créala con “Nueva Categoría” — queda disponible de inmediato en órdenes, resultados, usuarios y reportes.",
+        "Para parámetros que varían según el sexo o la edad del paciente (ej. Hemoglobina distinta en hombres y mujeres), usa el botón “Por género/edad” y define cada rango — el sistema elige automáticamente el que corresponde a cada paciente.",
+        "Para casos donde el rango no se puede saber solo con el sexo/edad (ej. las fases del ciclo menstrual en hormonas como FSH o LH), ponle una Etiqueta a cada rango (Fase Folicular, Ovulación, Lútea…). Al capturar el resultado, el sistema mostrará un selector para elegir cuál corresponde a esa paciente.",
+        "Para exámenes con interpretación por tramos en vez del simple Bajo/Normal/Alto (ej. Hemoglobina Glicosilada: Normal / Prediabetes / Diabetes), usa el botón “Rangos de Interpretación” y define cada tramo con su propia etiqueta — se aplica solo según el valor que se capture."
+      ]
+    },
+    {
+      titulo: "4. Pacientes",
+      imagenes: [img("assets/manual/pacientes.jpg")],
       intro: "Aquí se registran los datos de cada paciente, una sola vez, para reutilizarlos en todas sus órdenes futuras.",
       pasos: [
         "Ve a “Pacientes” en el menú lateral y haz clic en “Nuevo Paciente”.",
@@ -33,33 +71,34 @@
       ]
     },
     {
-      titulo: "3. Órdenes de Laboratorio",
-      imagen: "assets/manual/ordenes.jpg",
+      titulo: "5. Órdenes de Laboratorio",
+      imagenes: [img("assets/manual/ordenes.jpg")],
       intro: "Una orden agrupa los exámenes que un paciente va a realizarse en una visita.",
       pasos: [
         "Ve a “Órdenes de Laboratorio” y haz clic en “Nueva Orden”.",
         "Selecciona el paciente (o créalo si es la primera vez que viene).",
-        "Elige los exámenes por sección desde el catálogo (Hematología, Química, Inmunología, etc.); puedes buscar por nombre.",
+        "Elige los exámenes por sección desde el catálogo (Hematología, Química, Inmunología, etc., incluyendo las categorías y exámenes propios que hayas agregado); puedes buscar por nombre.",
         "Registra el médico remitente y la procedencia si aplica.",
         "Guarda la orden — automáticamente queda disponible en la bandeja de cada bacteriólogo, según la sección de cada examen.",
         "Desde aquí también puedes imprimir el sticker de identificación para los tubos de muestra."
       ]
     },
     {
-      titulo: "4. Resultados (Bandeja de Trabajo)",
-      imagen: "assets/manual/resultados.jpg",
+      titulo: "6. Resultados (Bandeja de Trabajo)",
+      imagenes: [img("assets/manual/resultados.jpg")],
       intro: "Cada bacteriólogo ve solo los exámenes de sus secciones asignadas, listos para capturar resultados.",
       pasos: [
         "Ve a “Resultados” — verás la lista de exámenes pendientes de tu sección.",
         "Abre un examen y digita los valores; el sistema muestra automáticamente el valor de referencia de cada parámetro.",
+        "Si el parámetro tiene varios rangos que podrían aplicar (ej. las fases del ciclo menstrual — ver sección 3), aparecerá un selector para elegir cuál corresponde a ese resultado; la elección queda guardada.",
         "Guarda como “Borrador” si aún no está listo, “Preliminar” si quieres adelantarlo al paciente, o “Validado” cuando esté definitivo.",
         "Al validar, el resultado queda firmado electrónicamente con tu nombre, fecha y hora — no se puede editar sin la clave de administrador.",
         "Si un resultado validado necesita corrección, un Administrador debe ingresar la clave de administrador; la corrección queda registrada en la Trazabilidad."
       ]
     },
     {
-      titulo: "5. Hojas de Trabajo",
-      imagen: "assets/manual/hojas-trabajo.jpg",
+      titulo: "7. Hojas de Trabajo",
+      imagenes: [img("assets/manual/hojas-trabajo.jpg")],
       intro: "Listas diarias de los exámenes pendientes por sección, ideales para el trabajo en el laboratorio o para imprimir.",
       pasos: [
         "Ve a “Hojas de Trabajo” y elige la fecha y la sección que quieres revisar.",
@@ -68,8 +107,8 @@
       ]
     },
     {
-      titulo: "6. Reportes y Envíos",
-      imagen: "assets/manual/reportes.jpg",
+      titulo: "8. Reportes y Envíos",
+      imagenes: [img("assets/manual/reportes.jpg")],
       intro: "Desde aquí se genera el informe en PDF con la marca de tu laboratorio y se envía al paciente.",
       pasos: [
         "Ve a “Reportes y Envíos” y busca la orden del paciente.",
@@ -79,8 +118,8 @@
       ]
     },
     {
-      titulo: "7. Control de Calidad",
-      imagen: "assets/manual/control-calidad.jpg",
+      titulo: "9. Control de Calidad",
+      imagenes: [img("assets/manual/control-calidad.jpg")],
       intro: "Permite llevar el control diario de los controles de calidad de cada analito, con alertas automáticas si algo se sale de rango (reglas de Westgard).",
       pasos: [
         "Ve a “Control de Calidad” y configura los controles (niveles, valores esperados) por analito, una sola vez.",
@@ -90,46 +129,39 @@
       ]
     },
     {
-      titulo: "8. Cotizaciones",
-      imagen: "assets/manual/cotizador.jpg",
+      titulo: "10. Cotizaciones",
+      imagenes: [
+        img("assets/manual/cotizador.jpg", "Nueva Cotización — selección rápida de exámenes con total automático"),
+        img("assets/manual/cotizador-moneda.jpg", "Activa una moneda adicional (ej. USD) para tus clientes, junto a tu moneda principal")
+      ],
       intro: "Genera cotizaciones profesionales en PDF para pacientes particulares o empresas, antes de crear la orden.",
       pasos: [
         "Ve a “Cotizaciones” y haz clic en “Nueva Cotización”.",
         "Selecciona los exámenes desde el buscador rápido; el sistema calcula el total automáticamente según tu lista de precios.",
+        "En “Lista de Precios” puedes activar una moneda adicional (ej. dólares) con su tasa de cambio — se muestra junto al total en cotizaciones, recibos e historial, sin reemplazar tu moneda principal.",
         "Genera el PDF y envíalo por WhatsApp o correo directamente desde la pantalla.",
         "Consulta el historial de cotizaciones enviadas en cualquier momento."
       ]
     },
     {
-      titulo: "9. Marketing Digital",
-      imagen: "assets/manual/marketing-remarketing.jpg",
+      titulo: "11. Marketing Digital",
+      imagenes: [img("assets/manual/marketing-remarketing.jpg")],
       intro: "Módulo con Inteligencia Artificial para ayudarte a conseguir y recuperar pacientes.",
       pasos: [
-        "Ve a “Marketing Digital” → “Remarketing con IA” para ver sugerencias automáticas de pacientes a contactar (por ejemplo, quienes no vuelven hace tiempo).",
+        "Ve a “Marketing Digital” y entra a “Remarketing con IA” para ver sugerencias automáticas de pacientes a contactar (por ejemplo, quienes no vuelven hace tiempo).",
         "Configura tus propias reglas de recall (a los cuántos días recontactar a un paciente según el tipo de examen).",
         "Usa el “Creador de Imágenes” para generar piezas gráficas listas para redes sociales, con el logo de tu laboratorio."
       ]
     },
     {
-      titulo: "10. Inventario y Reactivos",
-      imagen: "assets/manual/inventario.jpg",
+      titulo: "12. Inventario y Reactivos",
+      imagenes: [img("assets/manual/inventario.jpg")],
       intro: "Kardex profesional para controlar tus insumos, su costo y el gasto real por cada examen realizado.",
       pasos: [
-        "Ve a “Inventario y Reactivos” → “Insumos” y registra cada reactivo/insumo con su stock y costo.",
-        "En “Recetas por Examen”, indica cuánto se gasta de cada insumo al realizar cada tipo de examen.",
+        "Ve a “Inventario y Reactivos” y entra a “Insumos” para registrar cada reactivo/insumo con su stock y costo.",
+        "En “Recetas por Examen”, indica cuánto se gasta de cada insumo al realizar cada tipo de examen (disponible para los exámenes del catálogo general).",
         "A partir de ahí, el sistema descuenta el inventario automáticamente cada vez que se valida un resultado — no necesitas hacerlo manual.",
         "Consulta el “Kardex” para ver cada movimiento de entrada/salida, y descarga los reportes de gasto de reactivos e inventario valorizado en PDF."
-      ]
-    },
-    {
-      titulo: "11. Configuración del Laboratorio",
-      imagen: "assets/manual/configuracion.jpg",
-      intro: "Solo para Administradores: aquí se personaliza el sistema con la identidad de tu laboratorio.",
-      pasos: [
-        "Ve a “Configuración del Laboratorio” para actualizar nombre, NIT, dirección, teléfonos y resolución de habilitación.",
-        "Sube el logo y define los colores institucionales — se aplican automáticamente a toda la app y a los PDF.",
-        "Define o cambia la clave de administrador, necesaria para autorizar correcciones de resultados ya validados.",
-        "En “Usuarios del Laboratorio”, crea el acceso de cada persona del equipo y asígnale sus secciones y firma digital."
       ]
     }
   ];
@@ -171,22 +203,32 @@
   function cargarImagen(url) {
     return new Promise(function (resolve) {
       if (!url) { resolve(null); return; }
-      var img = new Image();
-      img.onload = function () { resolve(img); };
-      img.onerror = function () { resolve(null); };
-      img.src = url;
+      var image = new Image();
+      image.onload = function () { resolve(image); };
+      image.onerror = function () { resolve(null); };
+      image.src = url;
     });
   }
 
   function buildManualPDF(tenant) {
-    return Promise.all(SECCIONES.map(function (s) { return cargarImagen(s.imagen); })).then(function (imagenes) {
+    // Cada sección puede traer varias capturas de pantalla — se precargan
+    // todas de una vez, en paralelo, respetando a qué sección/posición
+    // pertenece cada una para poder recuperarlas después.
+    var tareas = [];
+    SECCIONES.forEach(function (s, si) {
+      s.imagenes.forEach(function (im, ii) { tareas.push({ si: si, ii: ii, promesa: cargarImagen(im.src) }); });
+    });
+    return Promise.all(tareas.map(function (t) { return t.promesa; })).then(function (resultados) {
+      var imagenesPorSeccion = SECCIONES.map(function () { return []; });
+      tareas.forEach(function (t, idx) { imagenesPorSeccion[t.si][t.ii] = resultados[idx]; });
+
       var jsPDFCtor = window.jspdf ? window.jspdf.jsPDF : window.jsPDF;
       var doc = new jsPDFCtor({ unit: "pt", format: "letter" });
       var margin = 50, pageW = doc.internal.pageSize.getWidth(), maxW = pageW - margin * 2;
       var rgb = hexToRgb(tenant.colorPrimario);
 
       // ---------- Portada ----------
-      var y = 150;
+      var y = 130;
       if (tenant.logoDataUrl) {
         try { doc.addImage(tenant.logoDataUrl, "PNG", pageW / 2 - 35, y, 70, 70); } catch (e) {}
         y += 90;
@@ -197,13 +239,13 @@
       doc.text(tenant.nombre || "Tu Laboratorio", pageW / 2, y, { align: "center" }); y += 40;
       doc.setFont("helvetica", "normal"); doc.setFontSize(10); doc.setTextColor(90, 90, 90);
       var intro = doc.splitTextToSize(
-        "Esta guía explica paso a paso cómo usar cada módulo del sistema BIOsoft, con capturas reales de pantalla, para que cualquier persona de tu equipo — sin experiencia previa en el software — pueda aprender a usarlo en minutos.",
-        maxW - 80
+        "Esta guía explica paso a paso cómo usar cada módulo del sistema BIOsoft, con capturas reales de pantalla, para que cualquier persona de tu equipo — sin experiencia previa en el software — pueda aprender a usarlo en minutos. Si es la primera vez que configuras tu laboratorio, empieza por la sección 2.",
+        maxW - 60
       );
-      doc.text(intro, pageW / 2, y, { align: "center" }); y += intro.length * 14 + 30;
+      doc.text(intro, pageW / 2, y, { align: "center" }); y += intro.length * 14 + 26;
 
       doc.setFont("helvetica", "bold"); doc.setFontSize(11); doc.setTextColor(20, 20, 20);
-      doc.text("Contenido", pageW / 2, y, { align: "center" }); y += 18;
+      doc.text("Contenido", pageW / 2, y, { align: "center" }); y += 20;
       doc.setFont("helvetica", "normal"); doc.setFontSize(9.5); doc.setTextColor(60, 60, 60);
       SECCIONES.forEach(function (s) {
         doc.text(s.titulo, pageW / 2, y, { align: "center" }); y += 15;
@@ -242,21 +284,23 @@
           y2 += lines.length * 13 + 8;
         });
 
-        var img = imagenes[idx];
-        if (img && img.naturalWidth) {
-          var imgW = maxW, imgH = imgW * (img.naturalHeight / img.naturalWidth);
-          var maxImgH = 250;
-          if (imgH > maxImgH) { imgH = maxImgH; imgW = imgH * (img.naturalWidth / img.naturalHeight); }
-          checkPage(imgH + 34);
+        var imagenesSeccion = imagenesPorSeccion[idx] || [];
+        imagenesSeccion.forEach(function (imagen, ii) {
+          if (!imagen || !imagen.naturalWidth) return;
+          var imgW = maxW, imgH = imgW * (imagen.naturalHeight / imagen.naturalWidth);
+          var maxImgH = 230;
+          if (imgH > maxImgH) { imgH = maxImgH; imgW = imgH * (imagen.naturalWidth / imagen.naturalHeight); }
+          checkPage(imgH + 40);
+          var caption = (seccion.imagenes[ii] && seccion.imagenes[ii].caption) || "Así se ve en el sistema:";
           doc.setFont("helvetica", "italic"); doc.setFontSize(8.5); doc.setTextColor(130, 130, 130);
-          doc.text("Así se ve en el sistema:", margin, y2);
+          doc.text(caption, margin, y2);
           y2 += 10;
           var xImg = margin + (maxW - imgW) / 2;
           doc.setDrawColor(225, 225, 225); doc.setLineWidth(0.7);
           doc.rect(xImg - 2, y2 - 2, imgW + 4, imgH + 4);
-          try { doc.addImage(img, "JPEG", xImg, y2, imgW, imgH); } catch (e) {}
-          y2 += imgH + 16;
-        }
+          try { doc.addImage(imagen, "JPEG", xImg, y2, imgW, imgH); } catch (e) {}
+          y2 += imgH + 18;
+        });
         piePagina(doc, margin);
       });
 
