@@ -23,7 +23,8 @@
   function buildSession(user, esReal) {
     return {
       userId: user.id, username: user.username, nombre: user.nombre, rol: user.rol, tenantId: user.tenantId,
-      secciones: user.secciones || [], fotoUrl: user.fotoUrl || "", iniciadoEn: BIO_STORE.nowISO(), real: !!esReal
+      secciones: user.secciones || [], fotoUrl: user.fotoUrl || "", iniciadoEn: BIO_STORE.nowISO(), real: !!esReal,
+      puedeGestionarRemisiones: !!user.puedeGestionarRemisiones
     };
   }
 

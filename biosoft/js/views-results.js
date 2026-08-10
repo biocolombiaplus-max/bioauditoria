@@ -79,12 +79,17 @@
     var tenant = BIO_AUTH.currentTenant();
 
     function build() {
+      var puedeRemision = window.BIO_REMISION && window.BIO_REMISION.puedeGestionar(session);
       root.innerHTML =
         '<div class="card"><div class="card-header"><h3 class="card-title">Orden ' + order.numeroOrden + " · " + (pac ? U.esc(U.nombreCompleto(pac)) : "") + '</h3>' +
-        '<a class="btn btn-ghost btn-sm" id="btn-back">Volver a la bandeja</a></div>' +
+        '<div class="flex gap-2 wrap"><a class="btn btn-ghost btn-sm" id="btn-back">Volver a la bandeja</a>' +
+        (puedeRemision ? '<button class="btn btn-outline btn-sm" id="btn-remision">' + U.icon("send") + " Hoja de Remisión</button>" : "") +
+        "</div></div>" +
         '<p class="text-muted" style="margin:0">' + (pac ? U.calcEdad(pac.fechaNacimiento) + " · " + pac.sexo + " · " + (pac.eps || "Particular") : "") + " · Médico remitente: " + U.esc(order.medicoRemitente || "—") + "</p></div>" +
         '<div id="exam-cards" style="margin-top:16px"></div>';
       document.getElementById("btn-back").addEventListener("click", function () { location.hash = "#/resultados"; });
+      var btnRemision = document.getElementById("btn-remision");
+      if (btnRemision) btnRemision.addEventListener("click", function () { window.BIO_REMISION.abrir(order, pac, tenant, build); });
 
       var host = document.getElementById("exam-cards");
       // Muestra las tarjetas de examen en el orden que el laboratorio haya

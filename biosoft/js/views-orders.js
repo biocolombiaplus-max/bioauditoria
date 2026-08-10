@@ -193,6 +193,14 @@
     });
   }
 
+  // Solo un Administrador o un Bacteriólogo con el permiso explícito puede
+  // generar y enviar Hojas de Remisión — se activa por usuario desde
+  // "Usuarios del Laboratorio" (ver views-admin.js), para no dar este
+  // manejo a todo el equipo por defecto.
+  function puedeGestionarRemision(session) {
+    return session.rol === "admin" || session.rol === "superadmin" || !!session.puedeGestionarRemisiones;
+  }
+
   function renderOrderDetail(root, orderId) {
     var session = BIO_AUTH.getSession();
     var order = S.getOrder(orderId);
@@ -200,45 +208,181 @@
     var pac = S.getPatient(order.patientId);
     var tenant = BIO_STORE.getTenant(order.tenantId);
 
-    root.innerHTML =
-      '<div class="card">' +
-        '<div class="card-header"><h3 class="card-title">Orden ' + order.numeroOrden + " — " + window.BIO_badgeEstado(order.estadoGeneral) + '</h3>' +
-        '<div class="flex gap-2 wrap"><a class="btn btn-ghost btn-sm" id="btn-back">Volver</a>' +
-        '<button class="btn btn-outline btn-sm" id="btn-stickers">' + U.icon("printer") + " Imprimir Stickers</button>" +
-        '<button class="btn btn-outline btn-sm" id="btn-preview">' + U.icon("file") + " Ver / Descargar PDF</button></div></div>" +
-        '<div class="form-grid">' +
-          field("Paciente", pac ? U.nombreCompleto(pac) + " (" + pac.tipoDocumento + " " + pac.numeroDocumento + ")" : "—") +
-          field("Edad / Sexo", (pac ? U.calcEdad(pac.fechaNacimiento) : "—") + " · " + (pac ? pac.sexo : "")) +
-          field("EPS / Seguro", pac ? (pac.eps || "—") : "—") +
-          field("Médico Remitente", order.medicoRemitente || "—") +
-          field("Procedencia", order.procedencia) +
-          field("Prioridad", order.prioridad) +
-          field("Fecha de Orden", U.fmtFecha(order.fechaOrden)) +
-          field("Diagnóstico", order.diagnostico || "—") +
-        "</div></div>" +
+    function build() {
+      var remisiones = order.remisiones || [];
+      root.innerHTML =
+        '<div class="card">' +
+          '<div class="card-header"><h3 class="card-title">Orden ' + order.numeroOrden + " — " + window.BIO_badgeEstado(order.estadoGeneral) + '</h3>' +
+          '<div class="flex gap-2 wrap"><a class="btn btn-ghost btn-sm" id="btn-back">Volver</a>' +
+          '<button class="btn btn-outline btn-sm" id="btn-stickers">' + U.icon("printer") + " Imprimir Stickers</button>" +
+          '<button class="btn btn-outline btn-sm" id="btn-preview">' + U.icon("file") + " Ver / Descargar PDF</button>" +
+          (puedeGestionarRemision(session) ? '<button class="btn btn-outline btn-sm" id="btn-remision">' + U.icon("send") + " Hoja de Remisión</button>" : "") +
+          "</div></div>" +
+          '<div class="form-grid">' +
+            field("Paciente", pac ? U.nombreCompleto(pac) + " (" + pac.tipoDocumento + " " + pac.numeroDocumento + ")" : "—") +
+            field("Edad / Sexo", (pac ? U.calcEdad(pac.fechaNacimiento) : "—") + " · " + (pac ? pac.sexo : "")) +
+            field("EPS / Seguro", pac ? (pac.eps || "—") : "—") +
+            field("Médico Remitente", order.medicoRemitente || "—") +
+            field("Procedencia", order.procedencia) +
+            field("Prioridad", order.prioridad) +
+            field("Fecha de Orden", U.fmtFecha(order.fechaOrden)) +
+            field("Diagnóstico", order.diagnostico || "—") +
+          "</div></div>" +
 
-      '<div class="card" style="margin-top:16px"><div class="card-header"><h3 class="card-title">Exámenes de la Orden</h3></div>' +
-        '<div class="table-wrap"><table><thead><tr><th>Examen</th><th>Sección</th><th>Tubo</th><th>Estado</th><th>Validado / Remitido por</th><th>Fecha</th><th></th></tr></thead><tbody>' +
-        order.examenes.map(function (ex, idx) {
-          var exCat = C.examenEfectivo(ex.examId, tenant);
-          var tubo = C.tuboInfo(exCat.tubo);
-          return "<tr><td>" + U.esc(exCat.nombre) + "</td><td>" + C.seccionNombre(ex.seccion, tenant) + "</td>" +
-            '<td><span style="display:inline-block;width:9px;height:9px;border-radius:50%;background:' + tubo.color + ';margin-right:5px;vertical-align:middle"></span>' + U.esc(tubo.nombre) + "</td>" +
-            "<td>" + window.BIO_badgeEstado(ex.estado === "en_proceso" ? "pendiente" : ex.estado) + "</td>" +
-            "<td>" + (ex.validadoPor || "—") + "</td><td>" + (ex.fechaValidacion ? U.fmtFecha(ex.fechaValidacion) : "—") + "</td>" +
-            '<td><button class="btn btn-outline btn-sm" data-goresult="' + idx + '">Ir a captura</button></td></tr>';
-        }).join("") +
-        "</tbody></table></div></div>";
+        '<div class="card" style="margin-top:16px"><div class="card-header"><h3 class="card-title">Exámenes de la Orden</h3></div>' +
+          '<div class="table-wrap"><table><thead><tr><th>Examen</th><th>Sección</th><th>Tubo</th><th>Estado</th><th>Validado / Remitido por</th><th>Fecha</th><th></th></tr></thead><tbody>' +
+          order.examenes.map(function (ex, idx) {
+            var exCat = C.examenEfectivo(ex.examId, tenant);
+            var tubo = C.tuboInfo(exCat.tubo);
+            return "<tr><td>" + U.esc(exCat.nombre) + "</td><td>" + C.seccionNombre(ex.seccion, tenant) + "</td>" +
+              '<td><span style="display:inline-block;width:9px;height:9px;border-radius:50%;background:' + tubo.color + ';margin-right:5px;vertical-align:middle"></span>' + U.esc(tubo.nombre) + "</td>" +
+              "<td>" + window.BIO_badgeEstado(ex.estado === "en_proceso" ? "pendiente" : ex.estado) + "</td>" +
+              "<td>" + (ex.validadoPor || "—") + "</td><td>" + (ex.fechaValidacion ? U.fmtFecha(ex.fechaValidacion) : "—") + "</td>" +
+              '<td><button class="btn btn-outline btn-sm" data-goresult="' + idx + '">Ir a captura</button></td></tr>';
+          }).join("") +
+          "</tbody></table></div></div>" +
 
-    document.getElementById("btn-back").addEventListener("click", function () { location.hash = "#/ordenes"; });
-    document.getElementById("btn-preview").addEventListener("click", function () { window.BIO_PDF.previewOrModal(order, pac, tenant); });
-    document.getElementById("btn-stickers").addEventListener("click", function () { window.BIO_PDF.previewStickers(order, pac, tenant); });
-    root.querySelectorAll("[data-goresult]").forEach(function (b) {
-      b.addEventListener("click", function () { location.hash = "#/resultados/" + order.id; });
+        (remisiones.length ? '<div class="card" style="margin-top:16px"><div class="card-header"><h3 class="card-title">Hojas de Remisión Generadas (' + remisiones.length + ')</h3></div>' +
+          '<div class="table-wrap"><table><thead><tr><th>N°</th><th>Fecha</th><th>Laboratorio de Referencia</th><th># Exámenes</th><th>Generó</th><th></th></tr></thead><tbody>' +
+          remisiones.map(function (r, i) {
+            return "<tr><td>" + U.esc(r.numero) + "</td><td>" + U.fmtFecha(r.fecha) + "</td><td>" + U.esc(r.laboratorioDestino.nombre) + "</td><td>" + r.examenes.length + "</td><td>" + U.esc(r.generadoPor || "—") + "</td>" +
+              '<td><button class="btn btn-ghost btn-sm" data-redescargar-remision="' + i + '">' + U.icon("download") + " PDF</button></td></tr>";
+          }).join("") + "</tbody></table></div></div>" : "");
+
+      document.getElementById("btn-back").addEventListener("click", function () { location.hash = "#/ordenes"; });
+      document.getElementById("btn-preview").addEventListener("click", function () { window.BIO_PDF.previewOrModal(order, pac, tenant); });
+      document.getElementById("btn-stickers").addEventListener("click", function () { window.BIO_PDF.previewStickers(order, pac, tenant); });
+      var btnRemision = document.getElementById("btn-remision");
+      if (btnRemision) btnRemision.addEventListener("click", function () { abrirGenerarRemision(order, pac, tenant, build); });
+      root.querySelectorAll("[data-goresult]").forEach(function (b) {
+        b.addEventListener("click", function () { location.hash = "#/resultados/" + order.id; });
+      });
+      root.querySelectorAll("[data-redescargar-remision]").forEach(function (b) {
+        b.addEventListener("click", function () {
+          var r = remisiones[parseInt(b.dataset.redescargarRemision, 10)];
+          var bytes = BIO_PDF_REMISION.buildHojaRemisionPDF(Object.assign({}, r, { fecha: new Date(r.fecha) }), tenant);
+          U.downloadBytes(bytes, "Hoja_Remision_" + r.numero + ".pdf");
+        });
+      });
+    }
+    build();
+  }
+
+  // -------------------------------------------------------------------
+  // HOJA DE REMISIÓN A LABORATORIO DE REFERENCIA
+  // -------------------------------------------------------------------
+  function abrirGenerarRemision(order, pac, tenant, onDone) {
+    var session = BIO_AUTH.getSession();
+    var examenesInfo = order.examenes.map(function (ex, idx) {
+      var exCat = C.examenEfectivo(ex.examId, tenant);
+      var tubo = C.tuboInfo(exCat.tubo);
+      return { idx: idx, ex: ex, exCat: exCat, tubo: tubo };
+    });
+
+    var wrap = U.openModal(
+      '<h3 class="modal-title">Generar Hoja de Remisión — Orden ' + order.numeroOrden + '</h3>' +
+      '<p class="text-muted" style="margin-top:0">Para exámenes que tu laboratorio solo toma la muestra y remite a un laboratorio externo. Genera un documento profesional de trazabilidad (con cadena de custodia y código de verificación) para enviar junto con la muestra, o por correo/WhatsApp.</p>' +
+      '<div class="field"><label>Selecciona los exámenes a remitir</label><div class="form-grid">' +
+      examenesInfo.map(function (info) {
+        var checked = info.ex.estado === "remitido";
+        return '<div class="checkbox-row"><input type="checkbox" data-remex="' + info.idx + '" ' + (checked ? "checked" : "") + '/><label style="margin:0">' + U.esc(info.exCat.nombre) + "</label></div>";
+      }).join("") + "</div></div>" +
+      '<fieldset><legend>Laboratorio de Referencia (destino)</legend><div class="form-grid">' +
+      F.inp("labNombre", "Nombre del Laboratorio", "", true) +
+      F.inp("labDireccion", "Dirección", "") +
+      F.inp("labTelefono", "Teléfono / WhatsApp del laboratorio", "") +
+      "</div></fieldset>" +
+      '<div class="checkbox-row" style="margin:10px 0"><input type="checkbox" id="rem-incluir-valores"/><label style="margin:0" for="rem-incluir-valores">Incluir el valor de cada examen (funciona como recibo, para control de costos de remisión)</label></div>' +
+      '<div id="rem-valores-box"></div>' +
+      '<div class="field"><label>Observaciones (opcional)</label><textarea id="rem-observaciones" placeholder="Ej: Muestra refrigerada, prioridad urgente…"></textarea></div>' +
+      '<fieldset><legend>Enviar por (opcional)</legend><div class="form-grid">' +
+      F.inp("remCorreo", "Correo del laboratorio de referencia", "", false, "email") +
+      F.inp("remWhatsapp", "WhatsApp del laboratorio de referencia", "") +
+      "</div></fieldset>" +
+      '<div class="flex gap-2 justify-between" style="margin-top:6px"><button type="button" class="btn btn-ghost" data-modal-close>Cancelar</button><button type="button" class="btn btn-primary" id="rem-generar">' + U.icon("file") + " 1. Generar PDF</button></div>" +
+      '<div id="rem-step2" class="hidden" style="margin-top:16px;border-top:1px solid var(--border);padding-top:14px">' +
+      '<p style="margin:0 0 4px"><b>2. Elige dónde enviarlo</b></p>' +
+      U.emailProviderButtonsHtml("rem") +
+      '<a class="btn btn-whatsapp btn-block" id="rem-wa" target="_blank" rel="noopener" style="margin-top:8px">' + U.icon("send") + " Enviar por WhatsApp</a>" +
+      "</div>",
+      { lg: true }
+    );
+
+    function renderValoresBox() {
+      var incluir = wrap.querySelector("#rem-incluir-valores").checked;
+      var box = wrap.querySelector("#rem-valores-box");
+      if (!incluir) { box.innerHTML = ""; return; }
+      var seleccionados = Array.prototype.slice.call(wrap.querySelectorAll("[data-remex]:checked")).map(function (c) { return parseInt(c.dataset.remex, 10); });
+      if (!seleccionados.length) { box.innerHTML = '<p class="text-muted" style="font-size:12.5px">Selecciona primero los exámenes a remitir.</p>'; return; }
+      box.innerHTML = '<div class="field"><label>Valor de cada examen (COP)</label><div class="form-grid">' +
+        seleccionados.map(function (idx) {
+          var info = examenesInfo[idx];
+          return '<div class="field"><label style="font-weight:400">' + U.esc(info.exCat.nombre) + '</label><input type="number" min="0" step="1000" data-remval="' + idx + '" value="0"/></div>';
+        }).join("") + "</div></div>";
+    }
+    wrap.querySelector("#rem-incluir-valores").addEventListener("change", renderValoresBox);
+    wrap.querySelectorAll("[data-remex]").forEach(function (chk) { chk.addEventListener("change", renderValoresBox); });
+
+    wrap.querySelector("#rem-generar").addEventListener("click", function () {
+      var seleccionados = Array.prototype.slice.call(wrap.querySelectorAll("[data-remex]:checked")).map(function (c) { return parseInt(c.dataset.remex, 10); });
+      if (!seleccionados.length) { U.toast("Selecciona al menos un examen a remitir.", "error"); return; }
+      var labNombre = wrap.querySelector("#f_labNombre").value.trim();
+      if (!labNombre) { U.toast("Ingresa el nombre del laboratorio de referencia.", "error"); return; }
+      var incluirValores = wrap.querySelector("#rem-incluir-valores").checked;
+
+      var examenesRemision = seleccionados.map(function (idx) {
+        var info = examenesInfo[idx];
+        var valInput = wrap.querySelector('[data-remval="' + idx + '"]');
+        return {
+          examId: info.ex.examId, nombre: info.exCat.nombre, cups: info.exCat.cups,
+          seccionNombre: C.seccionNombre(info.ex.seccion, tenant), muestra: info.exCat.muestra, tuboNombre: info.tubo.nombre,
+          valor: incluirValores && valInput ? (parseFloat(valInput.value) || 0) : 0
+        };
+      });
+
+      var fecha = new Date();
+      var numero = BIO_PDF_REMISION.numeroRemision(fecha, order.id);
+      var remision = {
+        numero: numero, fecha: fecha,
+        laboratorioDestino: { nombre: labNombre, direccion: wrap.querySelector("#f_labDireccion").value.trim(), telefono: wrap.querySelector("#f_labTelefono").value.trim() },
+        paciente: { nombre: pac ? U.nombreCompleto(pac) : "—", tipoDocumento: pac ? pac.tipoDocumento : "", numeroDocumento: pac ? pac.numeroDocumento : "", edadTexto: pac ? U.calcEdad(pac.fechaNacimiento) : "", sexo: pac ? pac.sexo : "" },
+        numeroOrden: order.numeroOrden, medicoRemitente: order.medicoRemitente, procedencia: order.procedencia,
+        examenes: examenesRemision, incluirValores: incluirValores,
+        observaciones: wrap.querySelector("#rem-observaciones").value.trim()
+      };
+
+      var bytes = BIO_PDF_REMISION.buildHojaRemisionPDF(remision, tenant);
+      U.downloadBytes(bytes, "Hoja_Remision_" + numero + ".pdf");
+
+      order.remisiones = order.remisiones || [];
+      order.remisiones.push(Object.assign({}, remision, { fecha: fecha.toISOString(), generadoPor: session.nombre }));
+      S.saveOrder(order);
+      S.addAudit(session.tenantId, session.nombre, session.rol, "CREATE_REMISION", "orden", order.id,
+        "Generó la Hoja de Remisión " + numero + " a " + labNombre + " (" + examenesRemision.length + " examen(es), Orden " + order.numeroOrden + ").");
+
+      var correo = wrap.querySelector("#f_remCorreo").value.trim();
+      var whatsapp = wrap.querySelector("#f_remWhatsapp").value.trim();
+      var mensaje = "Hola 👋 Adjuntamos la Hoja de Remisión N° " + numero + " de " + tenant.nombre + " (Orden " + order.numeroOrden + ", paciente " + (pac ? U.nombreCompleto(pac) : "—") + ") con " + examenesRemision.length + " examen(es). Quedamos atentos a los resultados.";
+      wrap.querySelector("#rem-step2").classList.remove("hidden");
+      U.wireEmailProviderButtons(wrap, "rem", correo, "Hoja de Remisión " + numero + " — " + tenant.nombre, mensaje + "\n\n(Adjunte el PDF que se acaba de descargar)");
+      var waBtn = wrap.querySelector("#rem-wa");
+      if (whatsapp) {
+        waBtn.href = "https://wa.me/" + whatsapp.replace(/\D/g, "") + "?text=" + encodeURIComponent(mensaje + "\n\n(Adjunte el PDF que se acaba de descargar antes de enviar)");
+      } else {
+        waBtn.classList.add("hidden");
+      }
+      U.toast("Hoja de Remisión generada y descargada.", "success");
+      onDone();
     });
   }
 
   function field(label, value) {
     return '<div class="field"><label>' + label + "</label><div style='padding:9px 0;font-weight:600'>" + U.esc(value) + "</div></div>";
   }
+
+  // Se expone para que views-results.js (la Bandeja de Resultados, donde
+  // realmente trabaja el bacteriólogo) también pueda ofrecer "Hoja de
+  // Remisión" sin duplicar el modal — la ruta "ordenes" no está permitida
+  // para el rol bacteriologo, así que ese es su único punto de acceso real.
+  window.BIO_REMISION = { puedeGestionar: puedeGestionarRemision, abrir: abrirGenerarRemision };
 })();

@@ -62,7 +62,8 @@
     function rowHtml(u) {
       var contacto = [u.numeroDocumento ? "Doc. " + u.numeroDocumento : "", u.telefonoContacto || "", u.correoContacto || ""].filter(Boolean).join(" · ");
       return "<tr><td><b>" + U.esc(u.nombre) + "</b>" + (contacto ? "<div class='text-muted' style='font-size:11px'>" + U.esc(contacto) + "</div>" : "") + "</td><td>" + U.esc(u.username) + "</td><td>" + U.esc(C.rolLabel(u.rol, tenant && tenant.pais)) + "</td>" +
-        "<td>" + (u.secciones && u.secciones.length ? u.secciones.map(function (s) { return C.seccionNombre(s, tenant); }).join(", ") : "—") + "</td>" +
+        "<td>" + (u.secciones && u.secciones.length ? u.secciones.map(function (s) { return C.seccionNombre(s, tenant); }).join(", ") : "—") +
+        (u.puedeGestionarRemisiones ? ' <span class="badge badge-preliminar" title="Puede gestionar remisiones a laboratorio de referencia">Remisiones</span>' : "") + "</td>" +
         "<td>" + (u.activo ? '<span class="badge badge-validado">Activo</span>' : '<span class="badge badge-pendiente">Inactivo</span>') + "</td>" +
         '<td><div class="flex gap-2"><button class="btn btn-ghost btn-sm" data-edit="' + u.id + '">' + U.icon("edit") + " Editar</button>" +
         '<button class="btn btn-outline btn-sm" data-toggle="' + u.id + '">' + (u.activo ? "Desactivar" : "Activar") + "</button></div></td></tr>";
@@ -100,7 +101,8 @@
           C.seccionesEfectivas(tenant).map(function (s) {
             var checked = (user.secciones || []).indexOf(s.id) !== -1;
             return '<div class="checkbox-row"><input type="checkbox" data-sec="' + s.id + '" ' + (checked ? "checked" : "") + '/><label style="margin:0">' + s.nombre + "</label></div>";
-          }).join("") + "</div>";
+          }).join("") + "</div>" +
+          '<div class="checkbox-row" style="margin-top:10px"><input type="checkbox" id="f_puedeGestionarRemisiones" ' + (user.puedeGestionarRemisiones ? "checked" : "") + '/><label style="margin:0" for="f_puedeGestionarRemisiones">Puede gestionar remisiones a laboratorio de referencia (generar Hoja de Remisión, marcar exámenes remitidos y cargar los resultados externos)</label></div>';
       }
       function renderFirma() {
         var rol = wrap.querySelector("#f_rol").value;
@@ -134,10 +136,13 @@
         e.preventDefault();
         var g = function (id) { return wrap.querySelector("#f_" + id).value.trim(); };
         var secciones = Array.prototype.slice.call(wrap.querySelectorAll("[data-sec]:checked")).map(function (c) { return c.dataset.sec; });
+        var chkRemisiones = wrap.querySelector("#f_puedeGestionarRemisiones");
         var data = {
           nombre: g("nombre"), numeroDocumento: g("numeroDocumento"), correoContacto: g("correoContacto"), telefonoContacto: g("telefonoContacto"),
-          username: g("username"), rol: g("rol"), secciones: secciones, tenantId: session.tenantId, activo: true
+          username: g("username"), rol: g("rol"), secciones: secciones, tenantId: session.tenantId, activo: true,
+          puedeGestionarRemisiones: false
         };
+        if (data.rol === "bacteriologo" && chkRemisiones) data.puedeGestionarRemisiones = chkRemisiones.checked;
         var pass = g("password");
         if (pass) data.password = pass;
         if (data.rol === "bacteriologo" || data.rol === "admin") {
