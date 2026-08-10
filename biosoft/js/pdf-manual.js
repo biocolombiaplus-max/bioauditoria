@@ -97,7 +97,25 @@
       ]
     },
     {
-      titulo: "7. Hojas de Trabajo",
+      titulo: "7. Hoja de Remisión a Laboratorio de Referencia",
+      imagenes: [
+        img("assets/manual/remision-boton.jpg", "Botón “Hoja de Remisión” en el detalle de la orden (también disponible en la Bandeja de Resultados del bacteriólogo con el permiso activado)"),
+        img("assets/manual/remision-modal.jpg", "Selecciona los exámenes, el laboratorio de referencia y, si lo necesitas, el valor de cada examen a modo de recibo")
+      ],
+      intro: "Para exámenes que tu laboratorio solo toma la muestra y remite a un laboratorio externo más especializado. Genera un documento profesional de trazabilidad, con cadena de custodia y código QR de verificación, conforme a la Resolución 3100.",
+      pasos: [
+        "Solo puede hacerlo un Administrador, o un Bacteriólogo(a) al que se le haya activado el permiso “Puede gestionar remisiones” desde “Usuarios del Laboratorio” (ver sección 2) — así el manejo de remisiones queda restringido a quien tú autorices.",
+        "Abre la orden del paciente (desde “Órdenes de Laboratorio” si eres Administrador, o desde “Resultados” si eres el bacteriólogo delegado) y haz clic en “Hoja de Remisión”.",
+        "Selecciona los exámenes que se van a remitir y completa los datos del laboratorio de referencia (nombre, dirección, teléfono/WhatsApp).",
+        "Si necesitas llevar el control de costos de la remisión, activa “Incluir el valor de cada examen” — el documento funciona entonces también como recibo, con el total a cancelar.",
+        "Haz clic en “1. Generar PDF”: se descarga la Hoja de Remisión con cadena de custodia (firma de quien entrega y quien recibe), código QR de trazabilidad y el número único de remisión.",
+        "Elige “2. Elige dónde enviarlo” para mandarla por correo (Gmail/Outlook) o WhatsApp al laboratorio de referencia, adjuntando el PDF que acabas de descargar.",
+        "Cada Hoja de Remisión generada queda guardada en el historial de la orden, con fecha, laboratorio y quién la generó, para poder descargarla de nuevo cuando la necesites.",
+        "Cuando llegue el resultado del laboratorio externo, regístralo como siempre en “Resultados”: marca el examen como remitido y adjunta el PDF del informe externo — quedará incorporado dentro del informe final del paciente, tal como lo exige la normativa."
+      ]
+    },
+    {
+      titulo: "8. Hojas de Trabajo",
       imagenes: [img("assets/manual/hojas-trabajo.jpg")],
       intro: "Listas diarias de los exámenes pendientes por sección, ideales para el trabajo en el laboratorio o para imprimir.",
       pasos: [
@@ -107,7 +125,7 @@
       ]
     },
     {
-      titulo: "8. Reportes y Envíos",
+      titulo: "9. Reportes y Envíos",
       imagenes: [img("assets/manual/reportes.jpg")],
       intro: "Desde aquí se genera el informe en PDF con la marca de tu laboratorio y se envía al paciente.",
       pasos: [
@@ -118,7 +136,7 @@
       ]
     },
     {
-      titulo: "9. Control de Calidad",
+      titulo: "10. Control de Calidad",
       imagenes: [img("assets/manual/control-calidad.jpg")],
       intro: "Permite llevar el control diario de los controles de calidad de cada analito, con alertas automáticas si algo se sale de rango (reglas de Westgard).",
       pasos: [
@@ -129,7 +147,7 @@
       ]
     },
     {
-      titulo: "10. Cotizaciones",
+      titulo: "11. Cotizaciones",
       imagenes: [
         img("assets/manual/cotizador.jpg", "Nueva Cotización — selección rápida de exámenes con total automático"),
         img("assets/manual/cotizador-moneda.jpg", "Activa una moneda adicional (ej. USD) para tus clientes, junto a tu moneda principal")
@@ -144,7 +162,7 @@
       ]
     },
     {
-      titulo: "11. Marketing Digital",
+      titulo: "12. Marketing Digital",
       imagenes: [img("assets/manual/marketing-remarketing.jpg")],
       intro: "Módulo con Inteligencia Artificial para ayudarte a conseguir y recuperar pacientes.",
       pasos: [
@@ -154,7 +172,7 @@
       ]
     },
     {
-      titulo: "12. Inventario y Reactivos",
+      titulo: "13. Inventario y Reactivos",
       imagenes: [img("assets/manual/inventario.jpg")],
       intro: "Kardex profesional para controlar tus insumos, su costo y el gasto real por cada examen realizado.",
       pasos: [
