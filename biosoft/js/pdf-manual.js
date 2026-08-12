@@ -20,7 +20,8 @@
         "Abre el enlace de BIOsoft de tu laboratorio en el navegador (funciona en computador, tablet o celular).",
         "Ingresa tu usuario y contraseña en la pantalla de inicio de sesión.",
         "Si olvidaste tu contraseña, usa el enlace “¿Olvidaste tu contraseña?” para restablecerla por correo.",
-        "Al entrar, verás el menú lateral con solo las secciones que tu rol puede usar (Recepción, Bacteriólogo o Administrador)."
+        "Al entrar, verás el menú lateral con solo las secciones que tu rol puede usar (Recepción, Bacteriólogo o Administrador).",
+        "Consejo: BIOsoft tiene Modo Offline — si se va la luz o el internet, puedes seguir capturando resultados con normalidad (incluso desde el celular). Verás un aviso en pantalla mientras estés sin conexión, y todo se sincroniza solo apenas vuelva la señal."
       ]
     },
     {
@@ -40,7 +41,23 @@
       ]
     },
     {
-      titulo: "3. Personaliza tu Catálogo de Exámenes y Valores de Referencia",
+      titulo: "3. Equipos Conectados — Interfaz con Analizadores de Laboratorio",
+      imagenes: [
+        img("assets/manual/equipos-conectados-modal.jpg", "Conectar un Equipo — registra tu analizador (ej. Mindray BC-10) y obtén su clave de interfaz"),
+        img("assets/manual/equipos-conectados-lista.jpg", "Equipos Conectados — control de todos los analizadores enlazados a tu laboratorio")
+      ],
+      intro: "Función premium (incluida sin costo en el plan Plus; con costo adicional en Básico e Intermedio): conecta un analizador de laboratorio (por ejemplo, un equipo de hematología) para que los resultados lleguen directamente a BIOsoft, sin digitarlos a mano.",
+      pasos: [
+        "Ve a “Configuración del Laboratorio” — “Equipos Conectados” — “Conectar un Equipo”.",
+        "Ponle un nombre al equipo, indica la sección (ej. Hematología) y el examen del catálogo al que corresponde (ej. Cuadro Hemático).",
+        "Al guardar, BIOsoft genera una clave de interfaz única — la necesitarás para configurar el programa (middleware) que conecta el equipo físico con tu laboratorio.",
+        "Crea, en “Usuarios del Laboratorio”, un usuario Bacteriólogo(a) dedicado exclusivamente a ese equipo, asignado solo a su sección — esas credenciales son las que usa la interfaz para conectarse de forma segura.",
+        "Cuando el equipo transmite un resultado, este llega a BIOsoft como borrador con la etiqueta “Recibido de [equipo]” — nunca se valida ni se envía solo: un bacteriólogo humano siempre debe revisarlo y confirmarlo antes de firmarlo.",
+        "Cada equipo conectado tiene un costo adicional de $10 USD/mes en los planes Básico e Intermedio; en el plan Plus está incluido sin costo."
+      ]
+    },
+    {
+      titulo: "4. Personaliza tu Catálogo de Exámenes y Valores de Referencia",
       imagenes: [
         img("assets/manual/catalogo-lista.jpg", "Busca, filtra o agrega exámenes y categorías nuevas"),
         img("assets/manual/catalogo-editor-examen.jpg", "Cambia el nombre y agrega el método/técnica de cualquier examen"),
@@ -60,7 +77,7 @@
       ]
     },
     {
-      titulo: "4. Pacientes",
+      titulo: "5. Pacientes",
       imagenes: [img("assets/manual/pacientes.jpg")],
       intro: "Aquí se registran los datos de cada paciente, una sola vez, para reutilizarlos en todas sus órdenes futuras.",
       pasos: [
@@ -71,7 +88,7 @@
       ]
     },
     {
-      titulo: "5. Órdenes de Laboratorio",
+      titulo: "6. Órdenes de Laboratorio",
       imagenes: [img("assets/manual/ordenes.jpg")],
       intro: "Una orden agrupa los exámenes que un paciente va a realizarse en una visita.",
       pasos: [
@@ -84,20 +101,36 @@
       ]
     },
     {
-      titulo: "6. Resultados (Bandeja de Trabajo)",
+      titulo: "7. Resultados (Bandeja de Trabajo)",
       imagenes: [img("assets/manual/resultados.jpg")],
       intro: "Cada bacteriólogo ve solo los exámenes de sus secciones asignadas, listos para capturar resultados.",
       pasos: [
         "Ve a “Resultados” — verás la lista de exámenes pendientes de tu sección.",
         "Abre un examen y digita los valores; el sistema muestra automáticamente el valor de referencia de cada parámetro.",
-        "Si el parámetro tiene varios rangos que podrían aplicar (ej. las fases del ciclo menstrual — ver sección 3), aparecerá un selector para elegir cuál corresponde a ese resultado; la elección queda guardada.",
+        "Si el parámetro tiene varios rangos que podrían aplicar (ej. las fases del ciclo menstrual — ver sección 4), aparecerá un selector para elegir cuál corresponde a ese resultado; la elección queda guardada.",
         "Guarda como “Borrador” si aún no está listo, “Preliminar” si quieres adelantarlo al paciente, o “Validado” cuando esté definitivo.",
         "Al validar, el resultado queda firmado electrónicamente con tu nombre, fecha y hora — no se puede editar sin la clave de administrador.",
         "Si un resultado validado necesita corrección, un Administrador debe ingresar la clave de administrador; la corrección queda registrada en la Trazabilidad."
       ]
     },
     {
-      titulo: "7. Hoja de Remisión a Laboratorio de Referencia",
+      titulo: "8. Paneles de Selección — Antibiograma y Alergias",
+      imagenes: [
+        img("assets/manual/panel-antibiograma.jpg", "Antibiograma — elige los antibióticos del germen aislado y marca Sensible/Intermedio/Resistente"),
+        img("assets/manual/panel-alergia.jpg", "Panel de Alergia — la Clase y la Interpretación se calculan solas según la concentración de IgE")
+      ],
+      intro: "Para exámenes con lista variable de opciones (antibiograma, paneles de alergia): en vez de escribir todo a mano, seleccionas de un catálogo maestro solo lo que aplica a ese caso.",
+      pasos: [
+        "En un Urocultivo y Antibiograma, ve al bloque “Antibiograma” dentro del examen y haz clic en los antibióticos más frecuentes (accesos rápidos) o búscalos en el selector.",
+        "Para cada antibiótico agregado, marca el resultado: Sensible, Intermedio o Resistente.",
+        "Si el antibiótico que necesitas no está en la lista, escribe su nombre en “¿No está en la lista?” y haz clic en “Agregar nuevo” — queda guardado en el catálogo de tu laboratorio para la próxima vez.",
+        "En un Panel de Alergia, agrega los alérgenos probados de la misma forma, y digita la concentración de IgE de cada uno.",
+        "La Clase (0 a 6) y la Interpretación (Positivo/Negativo) se calculan automáticamente — no hay que hacer ninguna cuenta a mano.",
+        "Puedes quitar un ítem agregado por error con el botón de la “X” en su fila, en cualquier momento antes de validar."
+      ]
+    },
+    {
+      titulo: "9. Hoja de Remisión a Laboratorio de Referencia",
       imagenes: [
         img("assets/manual/remision-boton.jpg", "Botón “Hoja de Remisión” en el detalle de la orden (también disponible en la Bandeja de Resultados del bacteriólogo con el permiso activado)"),
         img("assets/manual/remision-modal.jpg", "Selecciona los exámenes, el laboratorio de referencia y, si lo necesitas, el valor de cada examen a modo de recibo")
@@ -115,7 +148,7 @@
       ]
     },
     {
-      titulo: "8. Hojas de Trabajo",
+      titulo: "10. Hojas de Trabajo",
       imagenes: [img("assets/manual/hojas-trabajo.jpg")],
       intro: "Listas diarias de los exámenes pendientes por sección, ideales para el trabajo en el laboratorio o para imprimir.",
       pasos: [
@@ -125,7 +158,7 @@
       ]
     },
     {
-      titulo: "9. Reportes y Envíos",
+      titulo: "11. Reportes y Envíos",
       imagenes: [img("assets/manual/reportes.jpg")],
       intro: "Desde aquí se genera el informe en PDF con la marca de tu laboratorio y se envía al paciente.",
       pasos: [
@@ -136,7 +169,7 @@
       ]
     },
     {
-      titulo: "10. Control de Calidad",
+      titulo: "12. Control de Calidad",
       imagenes: [img("assets/manual/control-calidad.jpg")],
       intro: "Permite llevar el control diario de los controles de calidad de cada analito, con alertas automáticas si algo se sale de rango (reglas de Westgard).",
       pasos: [
@@ -147,7 +180,7 @@
       ]
     },
     {
-      titulo: "11. Cotizaciones",
+      titulo: "13. Cotizaciones",
       imagenes: [
         img("assets/manual/cotizador.jpg", "Nueva Cotización — selección rápida de exámenes con total automático"),
         img("assets/manual/cotizador-moneda.jpg", "Activa una moneda adicional (ej. USD) para tus clientes, junto a tu moneda principal")
@@ -162,7 +195,7 @@
       ]
     },
     {
-      titulo: "12. Marketing Digital",
+      titulo: "14. Marketing Digital",
       imagenes: [img("assets/manual/marketing-remarketing.jpg")],
       intro: "Módulo con Inteligencia Artificial para ayudarte a conseguir y recuperar pacientes.",
       pasos: [
@@ -172,7 +205,7 @@
       ]
     },
     {
-      titulo: "13. Inventario y Reactivos",
+      titulo: "15. Inventario y Reactivos",
       imagenes: [img("assets/manual/inventario.jpg")],
       intro: "Kardex profesional para controlar tus insumos, su costo y el gasto real por cada examen realizado.",
       pasos: [
