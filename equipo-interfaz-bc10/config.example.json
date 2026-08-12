@@ -1,0 +1,22 @@
+{
+  "_comentario": "Copia este archivo a config.json (sin el _comentario) y completa los valores reales. NUNCA subas config.json a git — ya está en .gitignore.",
+
+  "tenantId": "ID-DE-TU-LABORATORIO",
+  "_tenantId_donde_lo_saco": "Configuración del Laboratorio -> Equipos Conectados -> al registrar el equipo, se muestra el 'ID del Laboratorio (tenantId)'.",
+
+  "nombreEquipo": "Mindray BC-10 — Hematología",
+  "_nombreEquipo_donde_lo_saco": "El mismo nombre que le pusiste al registrar el equipo en BIOsoft.",
+
+  "usuarioEmail": "interfaz.bc10@tu-laboratorio.com",
+  "usuarioPassword": "CAMBIA-ESTA-CLAVE",
+  "_usuario_como_crearlo": "En BIOsoft: Usuarios del Laboratorio -> Nuevo Usuario -> rol Bacteriólogo(a), asignado SOLO a la sección de Hematología. Dedica ese usuario exclusivamente a este middleware (no lo use una persona).",
+
+  "puertoSerial": "COM3",
+  "_puertoSerial_como_saberlo": "En Windows: Administrador de Dispositivos -> Puertos (COM y LPT), busca el puerto donde aparece el BC-10 al conectar el cable. En Linux/Mac suele ser algo como /dev/ttyUSB0.",
+
+  "baudRate": 9600,
+  "_baudRate_ojo": "9600 8N1 es lo más común en equipos ASTM, pero DEBE confirmarse en el manual del BC-10 (menú de configuración de comunicación del equipo) — si no coincide, no va a recibir datos legibles.",
+
+  "verboso": true,
+  "_verboso": "Déjalo en true mientras haces el piloto con el equipo real, para ver en consola cada trama que llega y confirmar que el formato coincide con lo que espera mindray-bc10-map.js. Pásalo a false en uso diario."
+}

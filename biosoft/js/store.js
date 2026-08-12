@@ -619,6 +619,26 @@
     fbUpdateTenant(tenantId, patch);
     return actualizado;
   }
+
+  // ---------------------------------------------------------------------
+  // EQUIPOS CONECTADOS (interfaz con analizadores, ej. Mindray BC-10) — el
+  // administrador registra cada equipo aquí, obtiene una clave de interfaz,
+  // y esa clave se usa para configurar el middleware que corre junto al
+  // equipo físico. Esto también es lo que habilita el cobro adicional por
+  // equipo en los planes que no lo traen incluido (ver BIO_PLANES).
+  // ---------------------------------------------------------------------
+  function agregarEquipoConectado(tenant, datos) {
+    tenant.equiposConectados = tenant.equiposConectados || [];
+    var id = "EQ_" + Date.now().toString(36).toUpperCase();
+    var claveInterfaz = "bio_" + Math.random().toString(36).slice(2, 10) + Date.now().toString(36).slice(-6);
+    var nuevo = Object.assign({ id: id, activo: true, claveInterfaz: claveInterfaz, creadoEn: nowISO(), usuarioInterfazEmail: "" }, datos);
+    tenant.equiposConectados.push(nuevo);
+    return nuevo;
+  }
+  function eliminarEquipoConectado(tenant, equipoId) {
+    tenant.equiposConectados = (tenant.equiposConectados || []).filter(function (e) { return e.id !== equipoId; });
+  }
+
   function createTenant(data) {
     var db = loadDB();
     var id = uid("lab");
@@ -703,6 +723,35 @@
   function getOrder(id) {
     var db = loadDB();
     return db.orders.filter(function (o) { return o.id === id; })[0];
+  }
+  function getOrderByNumero(tenantId, numeroOrden) {
+    var db = loadDB();
+    return db.orders.filter(function (o) { return o.tenantId === tenantId && o.numeroOrden === String(numeroOrden); })[0];
+  }
+  /* Punto de entrada para resultados que llegan automáticamente desde un
+     equipo conectado (ver agregarEquipoConectado y equipo-interfaz-bc10/).
+     A propósito NUNCA deja el examen en "preliminar" ni "validado" — siempre
+     "en_proceso" (borrador), para que un bacteriólogo humano revise y
+     confirme antes de que el resultado se pueda enviar al paciente. Si el
+     examen ya fue validado manualmente, no lo sobrescribe. */
+  function recibirResultadoEquipo(tenantId, numeroOrden, examId, valoresPorCodigo, equipoNombre) {
+    var order = getOrderByNumero(tenantId, numeroOrden);
+    if (!order) return { ok: false, error: "No se encontró la orden " + numeroOrden + " en este laboratorio." };
+    var ex = order.examenes.filter(function (e) { return e.examId === examId; })[0];
+    if (!ex) return { ok: false, error: "La orden " + numeroOrden + " no tiene el examen " + examId + "." };
+    if (ex.estado === "validado" || ex.estado === "remitido") {
+      return { ok: false, error: "El examen ya está " + ex.estado + "; no se sobrescribe automáticamente." };
+    }
+    ex.valores = Object.keys(valoresPorCodigo).map(function (codigo) { return { codigo: codigo, valor: String(valoresPorCodigo[codigo]) }; });
+    ex.estado = "en_proceso";
+    ex.recibidoDeEquipo = true;
+    ex.equipoOrigen = equipoNombre || "Equipo conectado";
+    ex.ingresadoPor = equipoNombre || "Interfaz de equipo"; ex.fechaIngreso = nowISO();
+    recalcEstadoGeneral(order);
+    saveOrder(order);
+    addAudit(tenantId, equipoNombre || "Interfaz de equipo", "equipo", "RECEIVE_DEVICE_RESULT", "resultado", order.id + ":" + examId,
+      "Resultado recibido automáticamente del equipo " + (equipoNombre || "conectado") + " para la orden " + numeroOrden + ". Queda como borrador, pendiente de revisión y validación por un bacteriólogo.");
+    return { ok: true, order: order };
   }
   function nextOrderNumber(tenantId) {
     var db = loadDB();
@@ -1079,6 +1128,10 @@
     saveTenant: saveTenant,
     updateTenant: updateTenant,
     createTenant: createTenant,
+    agregarEquipoConectado: agregarEquipoConectado,
+    eliminarEquipoConectado: eliminarEquipoConectado,
+    getOrderByNumero: getOrderByNumero,
+    recibirResultadoEquipo: recibirResultadoEquipo,
     listUsers: listUsers,
     findUser: findUser,
     createUser: createUser,

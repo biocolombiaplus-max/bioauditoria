@@ -1,0 +1,15 @@
+{
+  "name": "biosoft-equipo-interfaz-bc10",
+  "version": "0.1.0-piloto",
+  "private": true,
+  "description": "Middleware de referencia: conecta un Mindray BC-10 (ASTM E1394) a BIOsoft. Requiere validación con el equipo real antes de producción — ver README.md.",
+  "main": "index.js",
+  "scripts": {
+    "start": "node index.js",
+    "test": "node test/astm-parser.test.js && node test/mapping.test.js"
+  },
+  "dependencies": {
+    "firebase": "^10.12.2",
+    "serialport": "^12.0.0"
+  }
+}

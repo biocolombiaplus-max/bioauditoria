@@ -821,6 +821,112 @@
   }
 
   // ------------------------------------------------------------------
+  // EQUIPOS CONECTADOS — interfaz con analizadores (ej. Mindray BC-10) que
+  // envían resultados directamente a BIOsoft. Incluido sin costo en el plan
+  // Plus; en los demás planes se cobra $10 USD/mes por cada equipo.
+  // ------------------------------------------------------------------
+  function equiposCardHtml(tenant) {
+    var plan = BIO_PLANES.porId(tenant.planId);
+    var incluido = !!(plan && plan.interfazEquiposIncluida);
+    var costo = BIO_PLANES.INTERFAZ_EQUIPOS;
+    var equipos = tenant.equiposConectados || [];
+    return '<div class="card"><div class="card-header"><h3 class="card-title">🔌 Equipos Conectados</h3></div>' +
+      '<p class="text-muted" style="margin-top:0">Conecta analizadores de laboratorio (ej. equipos de hematología) para que envíen resultados directamente a BIOsoft, sin digitarlos a mano. ' +
+      (incluido
+        ? "Tu plan (" + U.esc(plan.nombre) + ") incluye la conexión de equipos sin costo adicional."
+        : "Cada equipo conectado tiene un costo adicional de $" + costo.costoPorEquipoUsd + " USD/mes (≈ $" + costo.costoPorEquipoCopFmt + " COP) sobre tu plan actual.") +
+      "</p>" +
+      (equipos.length
+        ? '<div class="table-wrap"><table><thead><tr><th>Equipo</th><th>Examen asociado</th><th>Estado</th><th>Clave de interfaz</th><th></th></tr></thead><tbody>' +
+          equipos.map(function (e) {
+            var exCat = C.examenPorId(e.examId) || C.examenPersonalizadoPorId(e.examId, tenant);
+            return "<tr><td>" + U.esc(e.nombre) + '<div class="text-muted" style="font-size:11px">' + U.esc(e.marcaModelo || "") + "</div></td>" +
+              "<td>" + (exCat ? U.esc(exCat.nombre) : "—") + "</td>" +
+              "<td>" + (e.activo ? '<span class="badge badge-validado">Activo</span>' : '<span class="badge badge-suspendido">Inactivo</span>') + "</td>" +
+              "<td><code style='font-size:11px'>" + U.esc(e.claveInterfaz) + "</code></td>" +
+              '<td><button type="button" class="btn btn-ghost btn-sm" data-quitar-equipo="' + e.id + '">Eliminar</button></td></tr>';
+          }).join("") + "</tbody></table></div>"
+        : '<p class="text-muted" style="font-size:12.5px">Aún no tienes equipos conectados.</p>') +
+      '<button type="button" class="btn btn-outline btn-sm" id="btn-agregar-equipo" style="margin-top:10px">' + U.icon("plus") + " Conectar un Equipo</button>" +
+      "</div>";
+  }
+
+  function wireEquiposCard(tenant, reabrir) {
+    var btnAgregar = document.getElementById("btn-agregar-equipo");
+    if (btnAgregar) btnAgregar.addEventListener("click", function () { abrirAgregarEquipo(tenant, reabrir); });
+    document.querySelectorAll("[data-quitar-equipo]").forEach(function (btn) {
+      btn.addEventListener("click", function () {
+        var session = BIO_AUTH.getSession();
+        var equipo = (tenant.equiposConectados || []).filter(function (e) { return e.id === btn.dataset.quitarEquipo; })[0];
+        S.eliminarEquipoConectado(tenant, btn.dataset.quitarEquipo);
+        S.updateTenant(tenant.id, { equiposConectados: tenant.equiposConectados });
+        if (equipo) S.addAudit(session.tenantId, session.nombre, session.rol, "REMOVE_DEVICE", "catalogo", equipo.id, 'Eliminó el equipo conectado "' + equipo.nombre + '".');
+        U.toast("Equipo eliminado.", "success");
+        reabrir();
+      });
+    });
+  }
+
+  function abrirAgregarEquipo(tenant, onSaved) {
+    var seccionesConExamenes = C.seccionesEfectivas(tenant);
+    function examenesDeSeccion(seccionId) {
+      return C.examenesEfectivos(tenant).filter(function (e) { return e.seccion === seccionId; });
+    }
+    var wrap = U.openModal(
+      '<h3 class="modal-title">Conectar un Equipo</h3>' +
+      '<p class="text-muted" style="margin-top:0">Registra el equipo para obtener su clave de interfaz — la usarás al configurar el programa (middleware) que conecta el equipo físico con BIOsoft. Esto NO instala nada automáticamente: es el primer paso para dar de alta el equipo.</p>' +
+      '<form id="equipo-form">' +
+      F.inp("nombre", "Nombre del Equipo (ej: Mindray BC-10 — Hematología)", "", true) +
+      F.inp("marcaModelo", "Marca / Modelo (opcional)", "Mindray BC-10") +
+      F.sel("seccion", "Sección", seccionesConExamenes.map(function (s) { return "<option value='" + s.id + "'>" + s.nombre + "</option>"; }).join("")) +
+      '<div id="equipo-examen-box"></div>' +
+      '<div class="flex gap-2 justify-between" style="margin-top:6px"><button type="button" class="btn btn-ghost" data-modal-close>Cancelar</button><button type="submit" class="btn btn-primary">' + U.icon("check") + " Conectar y Generar Clave</button></div>" +
+      "</form>"
+    );
+    function renderExamenBox() {
+      var seccionId = wrap.querySelector("#f_seccion").value;
+      var examenes = examenesDeSeccion(seccionId);
+      wrap.querySelector("#equipo-examen-box").innerHTML = F.sel("examen", "Examen que reporta este equipo", examenes.map(function (e) { return "<option value='" + e.id + "'>" + U.esc(e.nombre) + "</option>"; }).join(""));
+    }
+    wrap.querySelector("#f_seccion").addEventListener("change", renderExamenBox);
+    renderExamenBox();
+
+    wrap.querySelector("#equipo-form").addEventListener("submit", function (e) {
+      e.preventDefault();
+      var g = function (id) { var el = wrap.querySelector("#f_" + id); return el ? el.value.trim() : ""; };
+      var nombre = g("nombre");
+      if (!nombre) { U.toast("Ponle un nombre al equipo.", "error"); return; }
+      var examId = wrap.querySelector("#f_examen") ? wrap.querySelector("#f_examen").value : "";
+      var session = BIO_AUTH.getSession();
+      var nuevo = S.agregarEquipoConectado(tenant, { nombre: nombre, marcaModelo: g("marcaModelo"), seccion: g("seccion"), examId: examId });
+      S.updateTenant(tenant.id, { equiposConectados: tenant.equiposConectados });
+      S.addAudit(session.tenantId, session.nombre, session.rol, "ADD_DEVICE", "catalogo", nuevo.id, 'Conectó el equipo "' + nombre + '".');
+      U.closeModal(wrap);
+      mostrarClaveEquipo(nuevo, onSaved);
+    });
+  }
+
+  /* Pantalla final tras registrar el equipo: muestra la clave de interfaz
+     UNA VEZ de forma prominente (como una API key), con los datos exactos
+     que hay que llevar al archivo de configuración del middleware. */
+  function mostrarClaveEquipo(equipo, onSaved) {
+    var session = BIO_AUTH.getSession();
+    var wrap = U.openModal(
+      '<h3 class="modal-title">' + U.icon("check") + " Equipo conectado: " + U.esc(equipo.nombre) + "</h3>" +
+      '<p class="text-muted" style="margin-top:0">Guarda esta clave — la necesitas para configurar el middleware del equipo (ver el archivo <code>equipo-interfaz-bc10/config.example.json</code> del repositorio).</p>' +
+      '<div class="card" style="background:var(--surface-2);box-shadow:none">' +
+      '<div class="field"><label>ID del Laboratorio (tenantId)</label><input readonly value="' + U.esc(session.tenantId) + '" onclick="this.select()"/></div>' +
+      '<div class="field"><label>ID del Equipo</label><input readonly value="' + U.esc(equipo.id) + '" onclick="this.select()"/></div>' +
+      '<div class="field"><label>Clave de Interfaz</label><input readonly value="' + U.esc(equipo.claveInterfaz) + '" onclick="this.select()"/></div>' +
+      '<div class="field"><label>Examen Asociado (examId)</label><input readonly value="' + U.esc(equipo.examId) + '" onclick="this.select()"/></div>' +
+      "</div>" +
+      '<p class="text-muted" style="font-size:12.5px;margin-top:10px">Además necesitas crear, en "Usuarios del Laboratorio", un usuario Bacteriólogo(a) dedicado exclusivamente al equipo (ej. "Interfaz BC-10"), asignado a la sección correspondiente — esas credenciales (correo y contraseña) son las que el middleware usa para conectarse de forma segura, con los mismos permisos que ya tiene cualquier bacteriólogo tuyo.</p>' +
+      '<div class="flex gap-2 justify-between" style="margin-top:10px"><button type="button" class="btn btn-primary" data-modal-close>Entendido</button></div>'
+    );
+    wrap.querySelector("[data-modal-close]").addEventListener("click", function () { onSaved(); });
+  }
+
+  // ------------------------------------------------------------------
   // CONFIGURACIÓN DEL LABORATORIO
   // ------------------------------------------------------------------
   window.BIO_VIEWS.config = function (root) {
@@ -835,6 +941,7 @@
       '<button type="button" class="btn btn-outline" id="btn-manual-descargar">' + U.icon("download") + ' Descargar PDF</button>' +
       '<button type="button" class="btn btn-primary" id="btn-manual-enviar">' + U.icon("send") + ' Enviar por WhatsApp o Correo</button>' +
       "</div></div>" +
+      equiposCardHtml(tenant) +
       '<div class="card"><div class="card-header"><h3 class="card-title">Identidad y Datos del Laboratorio</h3></div>' +
       '<form id="cfg-form">' +
         '<div class="form-grid">' +
@@ -887,6 +994,8 @@
         "</div></fieldset>" +
         '<button type="submit" class="btn btn-primary">' + U.icon("check") + " Guardar Configuración</button>" +
       "</form></div>";
+
+    wireEquiposCard(tenant, function () { window.BIO_VIEWS.config(root); });
 
     actualizarLabelDocumento(document, "pais", "nit");
     document.getElementById("f_pais").addEventListener("change", function () { actualizarLabelDocumento(document, "pais", "nit"); });

@@ -140,7 +140,9 @@
       function headerHtml() {
         return '<div class="card-header"><div><h3 class="card-title">' + U.esc(exCat.nombre) + '</h3>' +
           '<span class="text-muted" style="font-size:12px">' + C.seccionNombre(ex.seccion, tenant) + (exCat.cups ? " · CUPS " + U.esc(exCat.cups) : "") + (exCat.muestra ? " · Muestra: " + U.esc(exCat.muestra) : "") + (exCat.metodo ? " · Método: " + U.esc(exCat.metodo) : "") + "</span>" +
-          '<div style="margin-top:6px">' + tuboChip(exCat.tubo) + "</div></div>" +
+          '<div style="margin-top:6px">' + tuboChip(exCat.tubo) +
+          (ex.recibidoDeEquipo ? ' <span class="chip" style="background:#eef2ff;color:#4338ca">🔌 Recibido de ' + U.esc(ex.equipoOrigen || "equipo") + (ex.estado !== "validado" ? " — revisa antes de validar" : "") + "</span>" : "") +
+          "</div></div>" +
           window.BIO_badgeEstado(ex.estado === "en_proceso" ? "pendiente" : ex.estado) + "</div>";
       }
 
