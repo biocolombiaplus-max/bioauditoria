@@ -128,6 +128,15 @@
       var valuesMap = {};
       ex.valores.forEach(function (v) { valuesMap[v.codigo] = v.valor; });
 
+      // Estado en memoria de cada parámetro tipo "panel" (antibiograma /
+      // alergia): un arreglo de ítems elegidos del catálogo maestro, cada
+      // uno con su propio resultado. Vive aparte de valuesMap porque no es
+      // un string simple — se serializa a JSON solo al guardar (collectValues).
+      var panelState = {};
+      exCat.parametros.forEach(function (p) {
+        if (p.tipo === "panel") panelState[p.codigo] = C.parsePanelValor(valuesMap[p.codigo]);
+      });
+
       function headerHtml() {
         return '<div class="card-header"><div><h3 class="card-title">' + U.esc(exCat.nombre) + '</h3>' +
           '<span class="text-muted" style="font-size:12px">' + C.seccionNombre(ex.seccion, tenant) + (exCat.cups ? " · CUPS " + U.esc(exCat.cups) : "") + (exCat.muestra ? " · Muestra: " + U.esc(exCat.muestra) : "") + (exCat.metodo ? " · Método: " + U.esc(exCat.metodo) : "") + "</span>" +
@@ -200,8 +209,132 @@
         card.querySelectorAll("[data-param]").forEach(function (el) { valuesMap[el.dataset.param] = el.value; });
       }
 
+      // ---------------------------------------------------------------
+      // Parámetros tipo "panel" (antibiograma / alergia): el bacteriólogo
+      // elige de un catálogo maestro qué ítems aplican a este caso concreto
+      // (no todos los urocultivos se prueban contra los mismos antibióticos)
+      // y captura un resultado por cada uno. Si falta un ítem en el
+      // catálogo, se agrega ahí mismo y queda disponible para la próxima vez.
+      // ---------------------------------------------------------------
+      function panelBoxHtml(p) {
+        var catalogo = C.panelCatalogo(tenant, p.panelTipo);
+        var items = panelState[p.codigo] || [];
+        var agregados = {};
+        items.forEach(function (it) { agregados[it.codigo] = true; });
+        var frecuentes = C.panelFrecuentes(p.panelTipo).map(function (cod) { return catalogo.filter(function (c) { return c.codigo === cod; })[0]; }).filter(function (c) { return c && !agregados[c.codigo]; });
+        var disponibles = catalogo.filter(function (c) { return !agregados[c.codigo]; });
+
+        var controlesHtml = !editable ? "" :
+          (frecuentes.length ? '<div class="flex gap-2 wrap" style="margin-bottom:8px">' +
+            frecuentes.map(function (c) { return '<button type="button" class="btn btn-outline btn-sm" data-panel-quick="' + p.codigo + ':' + c.codigo + '">+ ' + U.esc(c.nombre) + "</button>"; }).join("") +
+            "</div>" : "") +
+          '<div class="flex gap-2 wrap" style="margin-bottom:8px">' +
+          '<select data-panel-sel="' + p.codigo + '" style="flex:1;min-width:200px"><option value="">' + (p.panelTipo === "alergia" ? "Buscar y agregar alérgeno…" : "Buscar y agregar antibiótico…") + "</option>" +
+          disponibles.map(function (c) { return '<option value="' + U.esc(c.codigo) + '">' + U.esc(c.nombre) + "</option>"; }).join("") +
+          "</select>" +
+          '<button type="button" class="btn btn-outline btn-sm" data-panel-addsel="' + p.codigo + '">Agregar</button>' +
+          "</div>" +
+          '<div class="flex gap-2 wrap" style="margin-bottom:12px">' +
+          '<input type="text" data-panel-nuevo="' + p.codigo + '" placeholder="¿No está en la lista? Escribe el nombre y agrégalo…" style="flex:1;min-width:200px"/>' +
+          '<button type="button" class="btn btn-ghost btn-sm" data-panel-addnuevo="' + p.codigo + '">' + U.icon("plus") + " Agregar nuevo</button>" +
+          "</div>";
+
+        return '<div class="card" style="background:var(--surface-2);box-shadow:none;margin-top:14px">' +
+          "<h4 style='margin:0 0 2px'>" + U.esc(p.nombre) + "</h4>" +
+          (p.refText ? '<p class="text-muted" style="font-size:12px;margin:0 0 10px">' + U.esc(p.refText) + "</p>" : "") +
+          controlesHtml +
+          '<div data-panel-tabla="' + p.codigo + '">' + panelTablaHtml(p) + "</div>" +
+          "</div>";
+      }
+
+      function panelTablaHtml(p, soloLectura) {
+        var interactivo = editable && !soloLectura;
+        var items = panelState[p.codigo] || [];
+        if (!items.length) return '<p class="text-muted" style="font-size:12.5px;margin:0">Aún no se ha agregado ningún ' + (p.panelTipo === "alergia" ? "alérgeno" : "antibiótico") + ".</p>";
+        if (p.panelTipo === "alergia") {
+          return '<div class="table-wrap"><table><thead><tr><th>Alérgeno</th><th>Conc. IgE (kU/L)</th><th>Clase</th><th>Interpretación</th>' + (interactivo ? "<th></th>" : "") + "</tr></thead><tbody>" +
+            items.map(function (it) {
+              var c = it.valor !== "" && it.valor != null ? C.claseIgE(it.valor) : null;
+              return "<tr><td>" + U.esc(it.nombre) + "</td><td style='min-width:110px'><input type='number' step='any' data-panel-res='" + p.codigo + ":" + it.codigo + "' value='" + U.esc(it.valor || "") + "' " + (!interactivo ? "disabled" : "") + "/></td>" +
+                "<td data-panel-clase='" + p.codigo + ":" + it.codigo + "'>" + (c ? c.clase : "—") + "</td>" +
+                "<td data-panel-interp='" + p.codigo + ":" + it.codigo + "'>" + (c ? '<span class="flag-' + (c.interpretacion === "Positivo" ? "alto" : "normal") + '">' + c.interpretacion + "</span>" : "—") + "</td>" +
+                (interactivo ? "<td><button type='button' class='btn btn-ghost btn-sm' data-panel-quitar='" + p.codigo + ":" + it.codigo + "'>✕</button></td>" : "") + "</tr>";
+            }).join("") + "</tbody></table></div>";
+        }
+        return '<div class="table-wrap"><table><thead><tr><th>Antibiótico</th><th>Resultado</th>' + (interactivo ? "<th></th>" : "") + "</tr></thead><tbody>" +
+          items.map(function (it) {
+            return "<tr><td>" + U.esc(it.nombre) + "</td><td style='min-width:160px'><select data-panel-res='" + p.codigo + ":" + it.codigo + "' " + (!interactivo ? "disabled" : "") + "><option value=''>— Seleccionar —</option>" +
+              C.RESULTADOS_ANTIBIOGRAMA.map(function (o) { return "<option " + (o === it.resultado ? "selected" : "") + ">" + o + "</option>"; }).join("") + "</select></td>" +
+              (interactivo ? "<td><button type='button' class='btn btn-ghost btn-sm' data-panel-quitar='" + p.codigo + ":" + it.codigo + "'>✕</button></td>" : "") + "</tr>";
+          }).join("") + "</tbody></table></div>";
+      }
+
+      function wirePanelBox(p) {
+        var cajaWrap = card.querySelector('[data-panel-tabla="' + p.codigo + '"]').closest(".card");
+        function reRenderCaja() { cajaWrap.outerHTML = panelBoxHtml(p); wirePanelBox(p); }
+
+        function agregarItem(item) {
+          if ((panelState[p.codigo] || []).some(function (it) { return it.codigo === item.codigo; })) return;
+          panelState[p.codigo] = (panelState[p.codigo] || []).concat([p.panelTipo === "alergia" ? { codigo: item.codigo, nombre: item.nombre, valor: "" } : { codigo: item.codigo, nombre: item.nombre, resultado: "" }]);
+          reRenderCaja();
+        }
+
+        cajaWrap.querySelectorAll("[data-panel-quick]").forEach(function (b) {
+          b.addEventListener("click", function () {
+            var codItem = b.dataset.panelQuick.split(":")[1];
+            var item = C.panelCatalogo(tenant, p.panelTipo).filter(function (c) { return c.codigo === codItem; })[0];
+            if (item) agregarItem(item);
+          });
+        });
+        var selEl = cajaWrap.querySelector('[data-panel-sel="' + p.codigo + '"]');
+        var btnAddSel = cajaWrap.querySelector('[data-panel-addsel="' + p.codigo + '"]');
+        if (btnAddSel) btnAddSel.addEventListener("click", function () {
+          if (!selEl.value) return;
+          var item = C.panelCatalogo(tenant, p.panelTipo).filter(function (c) { return c.codigo === selEl.value; })[0];
+          if (item) agregarItem(item);
+        });
+        var inpNuevo = cajaWrap.querySelector('[data-panel-nuevo="' + p.codigo + '"]');
+        var btnAddNuevo = cajaWrap.querySelector('[data-panel-addnuevo="' + p.codigo + '"]');
+        if (btnAddNuevo) btnAddNuevo.addEventListener("click", function () {
+          var nombre = inpNuevo.value.trim();
+          if (!nombre) { U.toast("Escribe el nombre antes de agregarlo.", "error"); return; }
+          var nuevo = C.panelAgregarPersonalizado(tenant, p.panelTipo, nombre);
+          S.updateTenant(tenant.id, p.panelTipo === "alergia" ? { alergenosPersonalizados: tenant.alergenosPersonalizados } : { antibioticosPersonalizados: tenant.antibioticosPersonalizados });
+          agregarItem(nuevo);
+          U.toast((p.panelTipo === "alergia" ? "Alérgeno" : "Antibiótico") + ' "' + nombre + '" agregado al catálogo del laboratorio.', "success");
+        });
+        cajaWrap.querySelectorAll("[data-panel-quitar]").forEach(function (b) {
+          b.addEventListener("click", function () {
+            var codItem = b.dataset.panelQuitar.split(":")[1];
+            panelState[p.codigo] = (panelState[p.codigo] || []).filter(function (it) { return it.codigo !== codItem; });
+            reRenderCaja();
+          });
+        });
+        cajaWrap.querySelectorAll("select[data-panel-res]").forEach(function (sel) {
+          sel.addEventListener("change", function () {
+            var codItem = sel.dataset.panelRes.split(":")[1];
+            var it = (panelState[p.codigo] || []).filter(function (x) { return x.codigo === codItem; })[0];
+            if (it) it.resultado = sel.value;
+          });
+        });
+        cajaWrap.querySelectorAll("input[data-panel-res]").forEach(function (inp) {
+          inp.addEventListener("input", function () {
+            var codItem = inp.dataset.panelRes.split(":")[1];
+            var it = (panelState[p.codigo] || []).filter(function (x) { return x.codigo === codItem; })[0];
+            if (!it) return;
+            it.valor = inp.value;
+            var c = inp.value !== "" ? C.claseIgE(inp.value) : null;
+            var celdaClase = cajaWrap.querySelector('[data-panel-clase="' + p.codigo + ':' + codItem + '"]');
+            var celdaInterp = cajaWrap.querySelector('[data-panel-interp="' + p.codigo + ':' + codItem + '"]');
+            if (celdaClase) celdaClase.textContent = c ? c.clase : "—";
+            if (celdaInterp) celdaInterp.innerHTML = c ? '<span class="flag-' + (c.interpretacion === "Positivo" ? "alto" : "normal") + '">' + c.interpretacion + "</span>" : "—";
+          });
+        });
+      }
+
       function renderCapturaNormal() {
-        var rowsHtml = exCat.parametros.map(function (p) {
+        var parametrosPanel = exCat.parametros.filter(function (p) { return p.tipo === "panel"; });
+        var rowsHtml = exCat.parametros.filter(function (p) { return p.tipo !== "panel"; }).map(function (p) {
           var val = valuesMap[p.codigo] || "";
           var flag = C.calcularFlag(p, val);
           var inputHtml;
@@ -229,7 +362,8 @@
         card.innerHTML = headerHtml() +
           (!editable ? '<p class="text-muted">Esta sección no está asignada a tu usuario. Solo lectura.</p>' : "") +
           (editable ? '<div class="checkbox-row" style="margin-bottom:12px"><input type="checkbox" id="chk-remitido"/><label style="margin:0" for="chk-remitido">Este examen se remite a un laboratorio externo (no se procesa en este laboratorio)</label></div>' : "") +
-          '<div class="table-wrap"><table><thead><tr><th>Parámetro</th><th>Resultado</th><th>Unidad</th><th>Valor de referencia</th><th>Interpretación</th></tr></thead><tbody>' + rowsHtml + "</tbody></table></div>" +
+          (rowsHtml ? '<div class="table-wrap"><table><thead><tr><th>Parámetro</th><th>Resultado</th><th>Unidad</th><th>Valor de referencia</th><th>Interpretación</th></tr></thead><tbody>' + rowsHtml + "</tbody></table></div>" : "") +
+          parametrosPanel.map(panelBoxHtml).join("") +
           '<div class="field" style="margin-top:12px"><label>Observaciones del examen</label><textarea data-obs ' + (!editable ? "disabled" : "") + ">" + U.esc(ex.observaciones || "") + "</textarea></div>" +
           '<div class="flex gap-2 wrap" style="margin-top:10px">' +
           (editable ? '<button class="btn btn-outline btn-sm" data-action="borrador">Guardar borrador</button>' : "") +
@@ -258,15 +392,27 @@
           });
         });
 
+        parametrosPanel.forEach(wirePanelBox);
+
         function collectValues() {
           return exCat.parametros.map(function (p) {
+            if (p.tipo === "panel") return { codigo: p.codigo, valor: JSON.stringify(panelState[p.codigo] || []) };
             var el = card.querySelector('[data-param="' + p.codigo + '"]');
             var entry = { codigo: p.codigo, valor: el ? el.value : "" };
             if (categoriaOverrides[p.codigo]) entry.categoria = categoriaOverrides[p.codigo];
             return entry;
           });
         }
-        function allFilled(vals) { return vals.every(function (v) { return v.valor !== ""; }); }
+        function allFilled(vals) {
+          return vals.every(function (v) {
+            var p = exCat.parametros.filter(function (pp) { return pp.codigo === v.codigo; })[0];
+            if (p && p.tipo === "panel") {
+              var items = C.parsePanelValor(v.valor);
+              return !items.length || C.panelCompleto(v.valor, p.panelTipo);
+            }
+            return v.valor !== "";
+          });
+        }
 
         var btnBorrador = card.querySelector('[data-action="borrador"]');
         if (btnBorrador) btnBorrador.addEventListener("click", function () {
@@ -308,14 +454,20 @@
       }
 
       function renderCapturaNormalReadOnly() {
-        var rowsHtml = exCat.parametros.map(function (p) {
+        var parametrosPanel = exCat.parametros.filter(function (p) { return p.tipo === "panel"; });
+        var rowsHtml = exCat.parametros.filter(function (p) { return p.tipo !== "panel"; }).map(function (p) {
           var val = valuesMap[p.codigo] || "";
           var flag = C.calcularFlag(p, val);
           return "<tr><td>" + U.esc(p.nombre) + "</td><td><b>" + U.esc(val) + "</b></td><td>" + (p.unidad || "—") + "</td><td>" + U.esc(p.refText) + '</td><td>' +
             (flag.texto ? '<span class="flag-' + flag.clase + '">' + U.esc(flag.texto) + "</span>" : "") + "</td></tr>";
         }).join("");
         card.innerHTML = headerHtml() +
-          '<div class="table-wrap"><table><thead><tr><th>Parámetro</th><th>Resultado</th><th>Unidad</th><th>Valor de referencia</th><th>Interpretación</th></tr></thead><tbody>' + rowsHtml + "</tbody></table></div>" +
+          (rowsHtml ? '<div class="table-wrap"><table><thead><tr><th>Parámetro</th><th>Resultado</th><th>Unidad</th><th>Valor de referencia</th><th>Interpretación</th></tr></thead><tbody>' + rowsHtml + "</tbody></table></div>" : "") +
+          parametrosPanel.map(function (p) {
+            return '<div class="card" style="background:var(--surface-2);box-shadow:none;margin-top:14px">' +
+              "<h4 style='margin:0 0 8px'>" + U.esc(p.nombre) + "</h4>" +
+              panelTablaHtml(p, true) + "</div>";
+          }).join("") +
           (ex.observaciones ? '<p style="margin-top:10px"><b>Observaciones:</b> ' + U.esc(ex.observaciones) + "</p>" : "") +
           '<p class="text-muted" style="font-size:12px;margin-top:8px">Validado por ' + U.esc(ex.validadoPor || "—") + " el " + (ex.fechaValidacion ? U.fmtFecha(ex.fechaValidacion) : "—") + "</p>" +
           (ex.correcciones && ex.correcciones.length ? '<p class="text-muted" style="font-size:12px">' + U.icon("history") + " Este resultado tiene " + ex.correcciones.length + " corrección(es) registrada(s) en la trazabilidad." : "") +

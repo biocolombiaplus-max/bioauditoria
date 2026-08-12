@@ -87,6 +87,15 @@
   function texto(codigo, nombre, refText) {
     return { codigo: codigo, nombre: nombre, unidad: "", tipo: "texto", refText: refText || "" };
   }
+  /* Parámetro tipo "panel": en vez de un único valor, el bacteriólogo elige
+     un subconjunto de ítems de un catálogo maestro (antibióticos o
+     alérgenos) — distinto en cada caso, según el germen aislado o el panel
+     solicitado — y captura un resultado por cada ítem elegido. Ver
+     antibioticosEfectivos/alergenosEfectivos y RESULTADOS_ANTIBIOGRAMA/
+     claseIgE más abajo. */
+  function panel(codigo, nombre, panelTipo, refText) {
+    return { codigo: codigo, nombre: nombre, unidad: "", tipo: "panel", panelTipo: panelTipo, refText: refText || "" };
+  }
 
   var EXAMENES = [
     // ---------------- HEMATOLOGÍA ----------------
@@ -320,12 +329,14 @@
       parametros: [num("IGG", "IgG", "mg/dL", 700, 1600), num("IGA", "IgA", "mg/dL", 70, 400), num("IGM", "IgM", "mg/dL", 40, 230)] },
     { id: "INM-026", seccion: "inmunologia", nombre: "IgE Total", cups: "906160", nivel: 2, muestra: "Suero", metodo: "Quimioluminiscencia", tubo: "gel",
       parametros: [num("IGE", "IgE Total", "UI/mL", 0, 100)] },
+    { id: "INM-028", seccion: "inmunologia", nombre: "Panel de Alergia — IgE Específica (Alérgenos)", cups: "906165", nivel: 2, muestra: "Suero", metodo: "Inmunoensayo Cuantitativo IgE Específica (ImmunoCAP / Polycheck)", tubo: "gel",
+      parametros: [panel("ALERG", "Panel de Alérgenos", "alergia", "Clase 0 (Negativo) a Clase 6 (Título extremadamente alto) según concentración de IgE")] },
     { id: "INM-027", seccion: "inmunologia", nombre: "Anticuerpos Anti-DNA de Doble Cadena (Anti-dsDNA)", cups: "906112", nivel: 2, muestra: "Suero", metodo: "Quimioluminiscencia / ELISA", tubo: "gel",
       parametros: [num("DSDNA", "Anti-dsDNA", "UI/mL", 0, 30)] },
 
     // ---------------- MICROBIOLOGÍA Y BACTERIOLOGÍA ----------------
     { id: "MIC-001", seccion: "microbiologia", nombre: "Urocultivo y Antibiograma", cups: "907310", nivel: 1, muestra: "Orina limpia / sondaje", metodo: "Cultivo en agar CLED + antibiograma", tubo: "orina",
-      parametros: [texto("UROCULT", "Recuento y germen aislado", "< 10.000 UFC/mL — Sin crecimiento significativo"), texto("ATB", "Antibiograma", "No aplica (sin crecimiento)")] },
+      parametros: [texto("UROCULT", "Recuento y germen aislado", "< 10.000 UFC/mL — Sin crecimiento significativo"), panel("ATB", "Antibiograma", "antibiograma", "Sensible / Intermedio / Resistente según CLSI vigente")] },
     { id: "MIC-002", seccion: "microbiologia", nombre: "Coprocultivo", cups: "907320", nivel: 2, muestra: "Materia fecal", metodo: "Cultivo selectivo (SS, XLD, Mac Conkey)", tubo: "heces",
       parametros: [texto("COPROCULT", "Germen aislado", "Flora habitual, no se aíslan patógenos")] },
     { id: "MIC-003", seccion: "microbiologia", nombre: "Cultivo de Secreción Vaginal", cups: "907330", nivel: 1, muestra: "Secreción vaginal", metodo: "Cultivo + Gram", tubo: "hisopo",
@@ -543,6 +554,121 @@
     tenant.seccionesPersonalizadas.push(nueva);
     return nueva;
   }
+  // -------------------------------------------------------------------
+  // CATÁLOGOS MAESTROS PARA PARÁMETROS TIPO "panel" (antibiograma / alergia).
+  // Igual que con las secciones, cada laboratorio puede agregar sus propios
+  // antibióticos o alérgenos además de los que ya trae BIOsoft, y quedan
+  // disponibles para todos los exámenes tipo panel de ese laboratorio.
+  // -------------------------------------------------------------------
+  var ANTIBIOTICOS_BASE = [
+    { codigo: "AMP", nombre: "Ampicilina" }, { codigo: "SAM", nombre: "Ampicilina/Sulbactam" },
+    { codigo: "AMC", nombre: "Amoxicilina/Ácido Clavulánico" }, { codigo: "TZP", nombre: "Piperacilina/Tazobactam" },
+    { codigo: "CZO", nombre: "Cefazolina" }, { codigo: "CXM", nombre: "Cefuroxima" }, { codigo: "FOX", nombre: "Cefoxitin" },
+    { codigo: "CRO", nombre: "Ceftriaxona" }, { codigo: "CAZ", nombre: "Ceftazidima" }, { codigo: "FEP", nombre: "Cefepime" },
+    { codigo: "ETP", nombre: "Ertapenem" }, { codigo: "IPM", nombre: "Imipenem" }, { codigo: "MEM", nombre: "Meropenem" },
+    { codigo: "GEN", nombre: "Gentamicina" }, { codigo: "AMK", nombre: "Amikacina" },
+    { codigo: "CIP", nombre: "Ciprofloxacina" }, { codigo: "LVX", nombre: "Levofloxacina" },
+    { codigo: "NIT", nombre: "Nitrofurantoína" }, { codigo: "SXT", nombre: "Trimetoprim Sulfametoxazol" },
+    { codigo: "VAN", nombre: "Vancomicina" }, { codigo: "CLI", nombre: "Clindamicina" }, { codigo: "ERY", nombre: "Eritromicina" },
+    { codigo: "OXA", nombre: "Oxacilina" }, { codigo: "PEN", nombre: "Penicilina" }, { codigo: "LZD", nombre: "Linezolid" },
+    { codigo: "CST", nombre: "Colistina" }, { codigo: "FOS", nombre: "Fosfomicina" }, { codigo: "DOX", nombre: "Doxiciclina" },
+    { codigo: "AZM", nombre: "Azitromicina" }, { codigo: "TCY", nombre: "Tetraciclina" }
+  ];
+  /* Los primeros 8 son los que más se piden en la práctica diaria (uro/
+     hemocultivos comunes) — se muestran como accesos rápidos ("chips") antes
+     de que el bacteriólogo tenga que buscar en el resto del catálogo. */
+  var ANTIBIOTICOS_FRECUENTES = ["AMP", "SAM", "CRO", "CAZ", "FEP", "GEN", "CIP", "SXT"];
+  var RESULTADOS_ANTIBIOGRAMA = ["Sensible", "Intermedio", "Resistente"];
+
+  var ALERGENOS_BASE = [
+    { codigo: "K202", nombre: "CCD (Determinantes de Carbohidratos)" }, { codigo: "D201", nombre: "Blomia Tropicalis" },
+    { codigo: "D01", nombre: "Dermatophagoides Pteronyssinus" }, { codigo: "D02", nombre: "Dermatophagoides Farinae" },
+    { codigo: "E02", nombre: "Epitelio de Perro" }, { codigo: "E01", nombre: "Epitelio de Gato" },
+    { codigo: "EX10", nombre: "Mezcla de Epitelios de Roedores" }, { codigo: "E213", nombre: "Plumas de Loro" },
+    { codigo: "EX78", nombre: "Mezcla de Plumas" }, { codigo: "M03", nombre: "Aspergillus Fumigatus" },
+    { codigo: "M02", nombre: "Cladosporium" }, { codigo: "M01", nombre: "Penicillium Notatum" },
+    { codigo: "GX8", nombre: "Mezcla de Hierbas" }, { codigo: "W01", nombre: "Polen de Ambrosía" },
+    { codigo: "W06", nombre: "Polen de Artemisa" }, { codigo: "T03", nombre: "Polen de Abedul" },
+    { codigo: "T19", nombre: "Polen de Acacia" }, { codigo: "T07", nombre: "Polen de Roble Blanco" },
+    { codigo: "I71", nombre: "Mosquito" }, { codigo: "IX267", nombre: "Mezcla de Cucaracha" }, { codigo: "K82", nombre: "Látex" }
+  ];
+  var ALERGENOS_FRECUENTES = ["D01", "D02", "D201", "E01", "E02", "M03", "GX8", "IX267"];
+
+  /* Tabla de clasificación por concentración de IgE específica (kU/L),
+     estándar de la industria (ImmunoCAP/Polycheck) — igual en todos los
+     laboratorios, no depende del alérgeno concreto. */
+  var CLASE_IGE_TABLA = [
+    { clase: 0, min: null, max: 0.35, texto: "No se detectó anticuerpo específico" },
+    { clase: 1, min: 0.35, max: 0.7, texto: "Anticuerpo muy débil" },
+    { clase: 2, min: 0.7, max: 3.5, texto: "Detección débil de anticuerpo" },
+    { clase: 3, min: 3.5, max: 17.5, texto: "Detección clara de anticuerpo" },
+    { clase: 4, min: 17.5, max: 50, texto: "Fuerte detección de anticuerpo" },
+    { clase: 5, min: 50, max: 100, texto: "Detección muy fuerte de anticuerpo" },
+    { clase: 6, min: 100, max: null, texto: "Títulos extremadamente altos de anticuerpo" }
+  ];
+  function claseIgE(valor) {
+    var n = parseFloat(valor);
+    if (isNaN(n)) return null;
+    var tramo = CLASE_IGE_TABLA.filter(function (t) { return (t.min == null || n >= t.min) && (t.max == null || n < t.max); })[0] || CLASE_IGE_TABLA[CLASE_IGE_TABLA.length - 1];
+    return { clase: tramo.clase, texto: tramo.texto, interpretacion: tramo.clase === 0 ? "Negativo" : "Positivo" };
+  }
+
+  /* Helpers genéricos para trabajar con un parámetro tipo "panel" sin que
+     views-results.js/pdf.js necesiten saber si es antibiograma o alergia. */
+  function panelCatalogo(tenant, panelTipo) {
+    return panelTipo === "alergia" ? alergenosEfectivos(tenant) : antibioticosEfectivos(tenant);
+  }
+  function panelFrecuentes(panelTipo) {
+    return panelTipo === "alergia" ? ALERGENOS_FRECUENTES : ANTIBIOTICOS_FRECUENTES;
+  }
+  function panelAgregarPersonalizado(tenant, panelTipo, nombre) {
+    return panelTipo === "alergia" ? crearAlergenoPersonalizado(tenant, nombre) : crearAntibioticoPersonalizado(tenant, nombre);
+  }
+  /* El valor de un parámetro "panel" se guarda como el JSON de un arreglo de
+     ítems, dentro del mismo "valor" string de siempre — así no hay que tocar
+     el modelo de datos de la orden (ex.valores sigue siendo {codigo, valor}). */
+  function parsePanelValor(valor) {
+    if (!valor) return [];
+    try {
+      var arr = JSON.parse(valor);
+      return Array.isArray(arr) ? arr : [];
+    } catch (e) { return []; }
+  }
+  function panelCompleto(valor, panelTipo) {
+    var items = parsePanelValor(valor);
+    if (!items.length) return false;
+    if (panelTipo === "alergia") return items.every(function (it) { return it.valor !== "" && it.valor != null && !isNaN(parseFloat(it.valor)); });
+    return items.every(function (it) { return !!it.resultado; });
+  }
+
+  function antibioticosEfectivos(tenant) {
+    return tenant && tenant.antibioticosPersonalizados && tenant.antibioticosPersonalizados.length ? ANTIBIOTICOS_BASE.concat(tenant.antibioticosPersonalizados) : ANTIBIOTICOS_BASE;
+  }
+  function crearAntibioticoPersonalizado(tenant, nombre) {
+    tenant.antibioticosPersonalizados = tenant.antibioticosPersonalizados || [];
+    var base = (nombre || "").trim();
+    var existente = antibioticosEfectivos(tenant).filter(function (a) { return a.nombre.toLowerCase() === base.toLowerCase(); })[0];
+    if (existente) return existente;
+    var codigo = "ATB_" + Date.now().toString(36).toUpperCase().slice(-6);
+    var nuevo = { codigo: codigo, nombre: base };
+    tenant.antibioticosPersonalizados.push(nuevo);
+    return nuevo;
+  }
+
+  function alergenosEfectivos(tenant) {
+    return tenant && tenant.alergenosPersonalizados && tenant.alergenosPersonalizados.length ? ALERGENOS_BASE.concat(tenant.alergenosPersonalizados) : ALERGENOS_BASE;
+  }
+  function crearAlergenoPersonalizado(tenant, nombre) {
+    tenant.alergenosPersonalizados = tenant.alergenosPersonalizados || [];
+    var base = (nombre || "").trim();
+    var existente = alergenosEfectivos(tenant).filter(function (a) { return a.nombre.toLowerCase() === base.toLowerCase(); })[0];
+    if (existente) return existente;
+    var codigo = "ALG_" + Date.now().toString(36).toUpperCase().slice(-6);
+    var nuevo = { codigo: codigo, nombre: base };
+    tenant.alergenosPersonalizados.push(nuevo);
+    return nuevo;
+  }
+
   /* No permite borrar una categoría que todavía tiene exámenes propios
      asignados, para no dejar exámenes "huérfanos" apuntando a una sección
      que ya no existe. Devuelve el número de exámenes que la están usando
@@ -980,6 +1106,18 @@
     setRangosInterpretacion: setRangosInterpretacion,
     tieneRangosInterpretacion: tieneRangosInterpretacion,
     rangoParaValor: rangoParaValor,
-    textoReferenciaRangos: textoReferenciaRangos
+    textoReferenciaRangos: textoReferenciaRangos,
+    RESULTADOS_ANTIBIOGRAMA: RESULTADOS_ANTIBIOGRAMA,
+    CLASE_IGE_TABLA: CLASE_IGE_TABLA,
+    claseIgE: claseIgE,
+    antibioticosEfectivos: antibioticosEfectivos,
+    crearAntibioticoPersonalizado: crearAntibioticoPersonalizado,
+    alergenosEfectivos: alergenosEfectivos,
+    crearAlergenoPersonalizado: crearAlergenoPersonalizado,
+    panelCatalogo: panelCatalogo,
+    panelFrecuentes: panelFrecuentes,
+    panelAgregarPersonalizado: panelAgregarPersonalizado,
+    parsePanelValor: parsePanelValor,
+    panelCompleto: panelCompleto
   };
 })(window);

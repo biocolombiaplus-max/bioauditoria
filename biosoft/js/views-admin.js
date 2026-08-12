@@ -432,6 +432,13 @@
           '<td class="text-muted" style="font-size:11px">' + (esDeFabrica ? "Fábrica: " + U.esc(base.normal || "—") : "—") + "</td>" +
           "<td><div class='flex gap-1 wrap'>" + (overCual ? '<button type="button" class="btn btn-ghost btn-sm" data-reset="' + p.codigo + '">Restablecer</button>' : "") + quitarHtml + "</div></td></tr>";
       }
+      if (p.tipo === "panel") {
+        var etiquetaPanel = p.panelTipo === "alergia" ? "Panel de selección — Alergia (IgE por alérgeno, Clase/Interpretación automática)" : "Panel de selección — Antibiograma (Sensible/Intermedio/Resistente)";
+        return '<tr data-prow="' + p.codigo + '">' +
+          "<td>" + moverHtml + "</td>" +
+          "<td>" + nombreHtml + '</td><td colspan="3" class="text-muted">' + etiquetaPanel + "</td>" +
+          "<td>" + quitarHtml + "</td></tr>";
+      }
       return '<tr data-prow="' + p.codigo + '">' +
         "<td>" + moverHtml + "</td>" +
         "<td>" + nombreHtml + '</td><td colspan="3" class="text-muted">Campo de texto libre (sin valores de referencia numéricos)</td>' +
@@ -749,7 +756,7 @@
       '<p class="text-muted" style="margin-top:0">Este campo solo se agrega a tu laboratorio, sin afectar el catálogo general de BIOsoft.</p>' +
       '<form id="campo-form">' +
       F.inp("nombre", "Nombre del Campo", "", true) +
-      F.sel("tipo", "Tipo de Campo", '<option value="numerico">Numérico (con rango de referencia)</option><option value="cualitativo">Cualitativo (opciones, ej: Positivo/Negativo)</option><option value="descriptivo">Descriptivo (texto libre)</option>') +
+      F.sel("tipo", "Tipo de Campo", '<option value="numerico">Numérico (con rango de referencia)</option><option value="cualitativo">Cualitativo (opciones, ej: Positivo/Negativo)</option><option value="descriptivo">Descriptivo (texto libre)</option><option value="panel_antibiograma">Panel de selección — Antibiograma (elegir antibióticos y su Sensible/Intermedio/Resistente)</option><option value="panel_alergia">Panel de selección — Alergia (elegir alérgenos e IgE con Clase/Interpretación automática)</option>') +
       '<div id="campo-extra"></div>' +
       '<div class="flex gap-2 justify-between" style="margin-top:6px"><button type="button" class="btn btn-ghost" data-modal-close>Cancelar</button><button type="submit" class="btn btn-primary">' + U.icon("check") + " Agregar Campo</button></div>" +
       "</form>"
@@ -765,6 +772,12 @@
       } else if (tipo === "cualitativo") {
         box.innerHTML = F.inp("opciones", "Opciones separadas por coma (ej: Negativo, Positivo)", "Negativo, Positivo", true) +
           F.inp("reftext", "Texto de Referencia (opcional)", "");
+      } else if (tipo === "panel_antibiograma" || tipo === "panel_alergia") {
+        box.innerHTML = '<p class="text-muted" style="font-size:12.5px">' +
+          (tipo === "panel_antibiograma"
+            ? "El bacteriólogo elegirá, al capturar cada resultado, qué antibióticos aplican al germen aislado (de un catálogo que también puede ampliar sobre la marcha) y marcará Sensible/Intermedio/Resistente para cada uno."
+            : "El bacteriólogo elegirá, al capturar cada resultado, qué alérgenos se probaron (de un catálogo que también puede ampliar sobre la marcha); la Clase y la Interpretación (Positivo/Negativo) se calculan automáticamente según la concentración de IgE.") +
+          "</p>" + F.inp("reftext", "Texto de Referencia o instrucción (opcional)", "");
       } else {
         box.innerHTML = F.inp("reftext", "Texto de Referencia o instrucción (opcional)", "");
       }
@@ -790,6 +803,10 @@
         if (opciones.length < 2) { U.toast("Ingresa al menos 2 opciones separadas por coma.", "error"); return; }
         nuevo.opciones = opciones; nuevo.normal = opciones[0];
         nuevo.refText = g("reftext") || ("Normal: " + opciones[0]);
+      } else if (tipo === "panel_antibiograma" || tipo === "panel_alergia") {
+        nuevo.tipo = "panel";
+        nuevo.panelTipo = tipo === "panel_alergia" ? "alergia" : "antibiograma";
+        nuevo.refText = g("reftext") || "";
       } else {
         nuevo.refText = g("reftext") || "";
       }

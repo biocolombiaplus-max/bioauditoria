@@ -191,9 +191,19 @@
 
       var body = [];
       var esAnormalPorFila = [];
+      // Los parámetros tipo "panel" (antibiograma/alergia) no encajan en la
+      // tabla de un solo valor por fila — se recogen aparte para armarles su
+      // propia tabla, justo después de la tabla principal de la sección.
+      var panelesDeSeccion = [];
       bySeccion[seccionId].forEach(function (ex) {
         var exCat = C.examenParaPaciente(ex.examId, tenant, patient, C.categoriasDeValores(ex.valores));
         exCat.parametros.forEach(function (p) {
+          if (p.tipo === "panel") {
+            var entry = ex.valores.filter(function (v) { return v.codigo === p.codigo; })[0];
+            var items = C.parsePanelValor(entry ? entry.valor : "");
+            if (items.length) panelesDeSeccion.push({ exNombre: exCat.nombre, p: p, items: items });
+            return;
+          }
           var val = (ex.valores.filter(function (v) { return v.codigo === p.codigo; })[0] || {}).valor || "-";
           var flag = C.calcularFlag(p, val);
           body.push([exCat.nombre, p.nombre, val + (p.unidad ? " " + p.unidad : ""), p.refText || "", flag.texto || ""]);
@@ -201,18 +211,59 @@
         });
       });
 
-      doc.autoTable({
-        startY: y, margin: { left: margin, right: margin },
-        head: [["Examen", "Parámetro", "Resultado", "Valor de Referencia", "Interpretación"]],
-        body: body, theme: "grid", styles: { fontSize: 8, cellPadding: 4 },
-        headStyles: { fillColor: [240, 244, 247], textColor: 40, fontStyle: "bold" },
-        didParseCell: function (data) {
-          if (data.section === "body" && data.column.index === 4 && esAnormalPorFila[data.row.index]) {
-            data.cell.styles.textColor = [214, 69, 69]; data.cell.styles.fontStyle = "bold";
+      if (body.length) {
+        doc.autoTable({
+          startY: y, margin: { left: margin, right: margin },
+          head: [["Examen", "Parámetro", "Resultado", "Valor de Referencia", "Interpretación"]],
+          body: body, theme: "grid", styles: { fontSize: 8, cellPadding: 4 },
+          headStyles: { fillColor: [240, 244, 247], textColor: 40, fontStyle: "bold" },
+          didParseCell: function (data) {
+            if (data.section === "body" && data.column.index === 4 && esAnormalPorFila[data.row.index]) {
+              data.cell.styles.textColor = [214, 69, 69]; data.cell.styles.fontStyle = "bold";
+            }
           }
+        });
+        y = doc.lastAutoTable.finalY + 10;
+      }
+
+      panelesDeSeccion.forEach(function (panelInfo) {
+        if (y > 690) { doc.addPage(); y = margin; }
+        doc.setFont("helvetica", "bold"); doc.setFontSize(9); doc.setTextColor(rgb[0], rgb[1], rgb[2]);
+        doc.text((panelInfo.p.panelTipo === "alergia" ? "PANEL DE ALERGIA" : "ANTIBIOGRAMA") + " — " + panelInfo.exNombre, margin, y);
+        y += 12;
+        if (panelInfo.p.panelTipo === "alergia") {
+          var interpPorFila = panelInfo.items.map(function (it) {
+            return it.valor !== "" && it.valor != null ? C.claseIgE(it.valor) : null;
+          });
+          doc.autoTable({
+            startY: y, margin: { left: margin, right: margin },
+            head: [["Alérgeno", "Clase", "Concentración IgE", "Interpretación"]],
+            body: panelInfo.items.map(function (it, i) {
+              var c = interpPorFila[i];
+              return [it.nombre, c ? String(c.clase) : "-", (it.valor || "-") + " kU/L", c ? c.interpretacion : "-"];
+            }),
+            theme: "grid", styles: { fontSize: 8, cellPadding: 4 }, headStyles: { fillColor: [240, 244, 247], textColor: 40, fontStyle: "bold" },
+            didParseCell: function (data) {
+              if (data.section === "body" && data.column.index === 3 && interpPorFila[data.row.index] && interpPorFila[data.row.index].interpretacion === "Positivo") {
+                data.cell.styles.textColor = [214, 69, 69]; data.cell.styles.fontStyle = "bold";
+              }
+            }
+          });
+        } else {
+          doc.autoTable({
+            startY: y, margin: { left: margin, right: margin },
+            head: [["Antibiótico", "Resultado"]],
+            body: panelInfo.items.map(function (it) { return [it.nombre, it.resultado || "-"]; }),
+            theme: "grid", styles: { fontSize: 8, cellPadding: 4 }, headStyles: { fillColor: [240, 244, 247], textColor: 40, fontStyle: "bold" },
+            didParseCell: function (data) {
+              if (data.section === "body" && data.column.index === 1 && panelInfo.items[data.row.index] && panelInfo.items[data.row.index].resultado === "Resistente") {
+                data.cell.styles.textColor = [214, 69, 69]; data.cell.styles.fontStyle = "bold";
+              }
+            }
+          });
         }
+        y = doc.lastAutoTable.finalY + 10;
       });
-      y = doc.lastAutoTable.finalY + 10;
 
       // El método/técnica de cada examen es opcional (ver Catálogo → Editar):
       // si el laboratorio no lo definió, no se muestra nada.
