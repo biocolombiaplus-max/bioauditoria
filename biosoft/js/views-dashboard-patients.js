@@ -214,6 +214,12 @@
           inp("direccion", "Dirección de Residencia", patient.direccion) + inp("ciudad", "Ciudad / Municipio", patient.ciudad) +
           inp("telefono", "Teléfono Fijo", patient.telefono) + inp("celular", "Celular", patient.celular) +
           inp("email", "Correo Electrónico", patient.email, false, "email") +
+        "</div>" +
+        '<div class="form-grid" id="co-rips-fields" style="display:' + (patient.pais === "CO" ? "grid" : "none") + '">' +
+          sel("zonaResidencial", "Zona de Residencia (RIPS)", C.RIPS_ZONA_RESIDENCIAL.map(function (z) { return '<option value="' + z.v + '" ' + (z.v === patient.zonaResidencial ? "selected" : "") + ">" + z.t + "</option>"; }).join("")) +
+          '<div class="field"><label>Código DANE del Municipio (RIPS)</label><input list="dane-list" id="f_codigoMunicipioDane" value="' + U.esc(patient.codigoMunicipioDane || "") + '" placeholder="Ej. 11001 = Bogotá D.C."/><datalist id="dane-list">' +
+            C.MUNICIPIOS_DANE_COMUNES.map(function (m) { return '<option value="' + m.cod + '">' + U.esc(m.nombre) + "</option>"; }).join("") +
+          '</datalist></div>' +
         "</div></fieldset>" +
         '<fieldset><legend>Aseguramiento y Remisión</legend><div class="form-grid">' +
           sel("tipoAfiliacion", "Tipo de Afiliación", afilOptions(patient.pais, patient.tipoAfiliacion)) +
@@ -235,6 +241,7 @@
       var pais = wrap.querySelector("#f_pais").value;
       wrap.querySelector("#f_tipoDocumento").innerHTML = docOptions(pais, patient.tipoDocumento);
       wrap.querySelector("#f_tipoAfiliacion").innerHTML = afilOptions(pais, patient.tipoAfiliacion);
+      wrap.querySelector("#co-rips-fields").style.display = pais === "CO" ? "grid" : "none";
     }
     wrap.querySelector("#f_pais").addEventListener("change", refreshDependentSelects);
 
@@ -246,7 +253,8 @@
         primerNombre: g("primerNombre"), segundoNombre: g("segundoNombre"), primerApellido: g("primerApellido"), segundoApellido: g("segundoApellido"),
         fechaNacimiento: g("fechaNacimiento"), sexo: g("sexo"), direccion: g("direccion"), ciudad: g("ciudad"), telefono: g("telefono"),
         celular: g("celular"), email: g("email"), tipoAfiliacion: g("tipoAfiliacion"), eps: g("eps"), medicoRemitente: g("medicoRemitente"),
-        procedencia: g("procedencia"), ocupacion: g("ocupacion"), observaciones: g("observaciones")
+        procedencia: g("procedencia"), ocupacion: g("ocupacion"), observaciones: g("observaciones"),
+        zonaResidencial: g("zonaResidencial"), codigoMunicipioDane: g("codigoMunicipioDane")
       };
       if (!data.numeroDocumento || !data.primerNombre || !data.primerApellido || !data.fechaNacimiento) {
         U.toast("Completa los campos obligatorios: documento, primer nombre, primer apellido y fecha de nacimiento.", "error");

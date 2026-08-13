@@ -22,7 +22,8 @@
         { route: "calidad", label: "Control de Calidad", icon: "shield" },
         { route: "cotizador", label: "Cotizaciones", icon: "file" },
         { route: "marketing", label: "Marketing Digital", icon: "trending" },
-        { route: "inventario", label: "Inventario y Reactivos", icon: "layers" }
+        { route: "inventario", label: "Inventario y Reactivos", icon: "layers" },
+        { route: "facturacion", label: "Facturación y RIPS", icon: "file", soloCO: true }
       ]},
       { sec: "ADMINISTRACIÓN", items: [
         { route: "usuarios", label: "Usuarios del Laboratorio", icon: "users" },
@@ -99,8 +100,10 @@
     var groups = NAV[session.rol] || [];
     var html = "";
     groups.forEach(function (g) {
+      var items = g.items.filter(function (it) { return !it.soloCO || (tenant && tenant.pais === "CO"); });
+      if (!items.length) return;
       html += '<div class="sidebar-section-title">' + g.sec + '</div>';
-      g.items.forEach(function (it) {
+      items.forEach(function (it) {
         html += '<a class="nav-link" data-route="' + it.route + '">' + BIO_UI.icon(it.icon) + '<span>' + it.label + '</span></a>';
       });
     });
@@ -128,12 +131,17 @@
     reportes: "Reportes y Envío de Resultados", usuarios: "Usuarios del Laboratorio",
     config: "Configuración del Laboratorio", auditoria: "Trazabilidad y Auditoría", tenants: "Laboratorios Cliente",
     catalogo: "Valores de Referencia del Catálogo", productividad: "Productividad Mensual", crm: "Clientes (CRM)",
-    calidad: "Control de Calidad", cotizador: "Cotizador de Exámenes", marketing: "Marketing Digital", inventario: "Inventario y Reactivos"
+    calidad: "Control de Calidad", cotizador: "Cotizador de Exámenes", marketing: "Marketing Digital", inventario: "Inventario y Reactivos",
+    facturacion: "Facturación y RIPS"
   };
+
+  // Rutas visibles solo para laboratorios de Colombia (ver tenant.pais),
+  // aunque el rol sí tenga acceso administrativo general.
+  var RUTAS_SOLO_CO = ["facturacion"];
 
   var ALLOWED_ROUTES = {
     superadmin: ["crm", "tenants", "dashboard"],
-    admin: ["dashboard", "pacientes", "ordenes", "resultados", "hojas-trabajo", "reportes", "productividad", "calidad", "cotizador", "marketing", "inventario", "usuarios", "config", "auditoria", "catalogo"],
+    admin: ["dashboard", "pacientes", "ordenes", "resultados", "hojas-trabajo", "reportes", "productividad", "calidad", "cotizador", "marketing", "inventario", "usuarios", "config", "auditoria", "catalogo", "facturacion"],
     bacteriologo: ["dashboard", "resultados", "hojas-trabajo", "calidad"],
     recepcion: ["dashboard", "pacientes", "ordenes", "hojas-trabajo", "reportes", "cotizador", "marketing"]
   };
@@ -146,9 +154,12 @@
   function renderRoute() {
     var session = BIO_AUTH.getSession();
     if (!session) { showLogin(); return; }
+    var tenant = BIO_AUTH.currentTenant();
     var r = currentRoute();
     var allowed = ALLOWED_ROUTES[session.rol] || [];
-    if (allowed.indexOf(r.name) === -1) { r.name = allowed[0]; location.hash = "#/" + r.name; }
+    if (allowed.indexOf(r.name) === -1 || (RUTAS_SOLO_CO.indexOf(r.name) !== -1 && (!tenant || tenant.pais !== "CO"))) {
+      r.name = allowed[0]; location.hash = "#/" + r.name;
+    }
 
     document.querySelectorAll(".nav-link").forEach(function (a) { a.classList.toggle("active", a.dataset.route === r.name); });
     document.getElementById("topbar-title").textContent = ROUTE_TITLES[r.name] || "BIOsoft";

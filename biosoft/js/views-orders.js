@@ -56,6 +56,7 @@
           F.inp("medicoRemitente", "Médico Remitente", "") +
           F.sel("procedencia", "Procedencia", C.PROCEDENCIAS.map(function (p) { return "<option>" + p + "</option>"; }).join("")) +
           F.inp("diagnostico", "Diagnóstico / Motivo", "") +
+          (tenant.pais === "CO" ? F.inp("numAutorizacion", "N° de Autorización (si aplica, para RIPS)", "") + F.inp("diagnosticoCIE10", "Código CIE-10 (opcional, para RIPS)", "") : "") +
         "</div>" +
         '<div style="margin:6px 0 10px"><a class="btn btn-outline btn-sm" id="btn-new-patient-inline">' + U.icon("plus") + ' Registrar paciente nuevo</a></div>' +
       "</div>" +
@@ -158,6 +159,8 @@
         procedencia: document.getElementById("f_procedencia").value,
         medicoRemitente: document.getElementById("f_medicoRemitente").value,
         diagnostico: document.getElementById("f_diagnostico").value,
+        numAutorizacion: tenant.pais === "CO" ? document.getElementById("f_numAutorizacion").value : "",
+        diagnosticoCIE10: tenant.pais === "CO" ? document.getElementById("f_diagnosticoCIE10").value : "",
         examenes: selectedExams.map(function (id) {
           var exCat = C.examenEfectivo(id, tenant);
           return {

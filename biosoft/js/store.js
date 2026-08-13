@@ -374,7 +374,8 @@
   function emptyDB() {
     return {
       tenants: {}, users: [], patients: [], orders: [], auditLog: [], qcControles: [], qcLecturas: [], preciosExamenes: [], cotizaciones: [],
-      reglasRemarketing: [], remarketingContactos: [], insumos: [], recetasReactivos: [], kardexInventario: [], examenesPersonalizados: []
+      reglasRemarketing: [], remarketingContactos: [], insumos: [], recetasReactivos: [], kardexInventario: [], examenesPersonalizados: [],
+      ripsGenerados: [], facturasGeneradas: []
     };
   }
 
@@ -1115,6 +1116,51 @@
     return r ? r.mov : null;
   }
 
+  // ---------------------------------------------------------------------
+  // FACTURACIÓN Y RIPS — SOLO COLOMBIA. Ver rips.js para la construcción
+  // del JSON del RIPS (Resolución 2275 de 2023) y views-facturacion.js para
+  // la pantalla. Aquí solo se guarda un historial de lo generado (para
+  // trazabilidad interna) y la configuración del proveedor de facturación
+  // electrónica que cada laboratorio haya elegido — cada laboratorio cliente
+  // de BIOsoft puede tener un proveedor distinto.
+  // ---------------------------------------------------------------------
+  function listRipsGenerados(tenantId) {
+    var db = loadDB();
+    return (db.ripsGenerados || []).filter(function (r) { return r.tenantId === tenantId; }).sort(function (a, b) { return b.generadoEn.localeCompare(a.generadoEn); });
+  }
+  function guardarRipsGenerado(tenantId, data) {
+    var db = loadDB();
+    db.ripsGenerados = db.ripsGenerados || [];
+    var r = Object.assign({ id: uid("rips"), tenantId: tenantId, generadoEn: nowISO() }, data);
+    db.ripsGenerados.push(r);
+    saveDB(db);
+    fbWrite("ripsGenerados", r.id, r);
+    return r;
+  }
+  function listFacturasGeneradas(tenantId) {
+    var db = loadDB();
+    return (db.facturasGeneradas || []).filter(function (f) { return f.tenantId === tenantId; }).sort(function (a, b) { return b.generadoEn.localeCompare(a.generadoEn); });
+  }
+  function nextNumeroFactura(tenantId) {
+    var db = loadDB();
+    var facturas = (db.facturasGeneradas || []).filter(function (f) { return f.tenantId === tenantId; });
+    var max = 0;
+    facturas.forEach(function (f) { var n = parseInt(f.numero, 10); if (!isNaN(n) && n > max) max = n; });
+    return max + 1;
+  }
+  function guardarFacturaGenerada(tenantId, data) {
+    var db = loadDB();
+    db.facturasGeneradas = db.facturasGeneradas || [];
+    var f = Object.assign({ id: uid("fv"), tenantId: tenantId, generadoEn: nowISO() }, data);
+    db.facturasGeneradas.push(f);
+    saveDB(db);
+    fbWrite("facturasGeneradas", f.id, f);
+    return f;
+  }
+  function setProveedorFacturacion(tenantId, datos) {
+    return updateTenant(tenantId, { facturacionElectronica: datos });
+  }
+
   global.BIO_STORE = {
     seedIfEmpty: seedIfEmpty,
     loadDB: loadDB,
@@ -1175,6 +1221,11 @@
       listInsumos: listInsumos, getInsumo: getInsumo, createInsumo: createInsumo, updateInsumo: updateInsumo,
       listRecetas: listRecetas, guardarRecetaExamen: guardarRecetaExamen,
       listKardex: listKardex, registrarEntrada: registrarEntradaInventario, registrarAjuste: registrarAjusteInventario
+    },
+    facturacion: {
+      listRipsGenerados: listRipsGenerados, guardarRipsGenerado: guardarRipsGenerado,
+      listFacturasGeneradas: listFacturasGeneradas, nextNumeroFactura: nextNumeroFactura, guardarFacturaGenerada: guardarFacturaGenerada,
+      setProveedorFacturacion: setProveedorFacturacion
     }
   };
 })(window);

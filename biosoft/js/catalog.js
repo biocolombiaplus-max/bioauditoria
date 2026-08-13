@@ -530,6 +530,87 @@
 
   var CATALOG_DISCLAIMER = "Catálogo de referencia: los códigos CUPS mostrados son una guía general. Verifícalos y actualízalos según la Resolución 3100 de 2019 (y sus actualizaciones) y tu manual tarifario antes de facturar.";
 
+  // -------------------------------------------------------------------
+  // RIPS (Registro Individual de Prestación de Servicios de Salud) — SOLO
+  // COLOMBIA. Tablas de referencia para armar el RIPS en formato JSON de la
+  // Resolución 2275 de 2023 de MinSalud. Los códigos aquí son la mejor
+  // referencia disponible al momento de construir esto, pero MinSalud
+  // actualiza el Anexo Técnico periódicamente: SIEMPRE verifica los códigos
+  // vigentes en el Anexo Técnico oficial antes de transmitir un RIPS real.
+  // BIOsoft arma la estructura y los datos; la validación final y la
+  // asignación del CUV (Código Único de Validación) las hace la plataforma
+  // de MinSalud al recibir el archivo, no BIOsoft.
+  // -------------------------------------------------------------------
+  var RIPS_DISCLAIMER = "El RIPS generado por BIOsoft sigue la estructura JSON de la Resolución 2275 de 2023. Verifica los códigos (tipo de usuario, vía de ingreso, finalidad, etc.) contra el Anexo Técnico vigente de MinSalud antes de transmitir, y súbelo a la plataforma oficial para que te asigne el CUV — BIOsoft no transmite ni valida el RIPS ante MinSalud.";
+
+  // Nuestro tipo de documento interno (ver TIPOS_DOCUMENTO.CO) → código RIPS oficial.
+  var RIPS_TIPO_DOC = { CC: "CC", TI: "TI", RC: "RC", CE: "CE", PA: "PA", PEP: "PE", PPT: "PT", MSI: "MS", ASO: "AS", CD: "CD", SC: "SC" };
+  function ripsTipoDocumento(tipoDocumentoLocal) {
+    return RIPS_TIPO_DOC[tipoDocumentoLocal] || tipoDocumentoLocal;
+  }
+
+  // Nuestro tipo de afiliación (ver TIPOS_AFILIACION.CO) → código de tipo de
+  // usuario RIPS (2 dígitos). Mapeo de mejor esfuerzo — confirmar contra el
+  // Anexo Técnico vigente, MinSalud ha cambiado esta tabla varias veces.
+  var RIPS_TIPO_USUARIO = {
+    "Contributivo": "01", "Subsidiado": "02", "Vinculado": "03", "Particular": "04",
+    "Medicina Prepagada": "05", "Póliza / Seguro Privado": "06", "SOAT": "07", "ARL": "08", "Otro": "10"
+  };
+  function ripsTipoUsuario(tipoAfiliacion) {
+    return RIPS_TIPO_USUARIO[tipoAfiliacion] || "10";
+  }
+
+  // Nuestra "Procedencia" de la orden → vía de ingreso RIPS.
+  var RIPS_VIA_INGRESO = { "Urgencias": "01", "Ambulatorio": "02", "Consulta Externa": "02", "Hospitalizado": "03", "Domiciliario": "04" };
+  function ripsViaIngreso(procedencia) {
+    return RIPS_VIA_INGRESO[procedencia] || "02";
+  }
+
+  var RIPS_ZONA_RESIDENCIAL = [{ v: "U", t: "Urbana" }, { v: "R", t: "Rural" }];
+
+  // Municipios más comunes (código DANE de 5 dígitos) para agilizar el
+  // registro del paciente. No es el listado completo de los ~1.100
+  // municipios de Colombia — el laboratorio puede escribir cualquier otro
+  // código DANE directamente si el municipio no aparece aquí.
+  var MUNICIPIOS_DANE_COMUNES = [
+    { cod: "11001", nombre: "Bogotá D.C." }, { cod: "05001", nombre: "Medellín" }, { cod: "76001", nombre: "Cali" },
+    { cod: "08001", nombre: "Barranquilla" }, { cod: "13001", nombre: "Cartagena" }, { cod: "68001", nombre: "Bucaramanga" },
+    { cod: "54001", nombre: "Cúcuta" }, { cod: "66001", nombre: "Pereira" }, { cod: "73001", nombre: "Ibagué" },
+    { cod: "17001", nombre: "Manizales" }, { cod: "41001", nombre: "Neiva" }, { cod: "52001", nombre: "Pasto" },
+    { cod: "23001", nombre: "Montería" }, { cod: "20001", nombre: "Valledupar" }, { cod: "70001", nombre: "Sincelejo" },
+    { cod: "63001", nombre: "Armenia" }, { cod: "27001", nombre: "Quibdó" }, { cod: "19001", nombre: "Popayán" },
+    { cod: "50001", nombre: "Villavicencio" }, { cod: "44001", nombre: "Riohacha" }, { cod: "47001", nombre: "Santa Marta" },
+    { cod: "54874", nombre: "Villa del Rosario (N. de S.)" }, { cod: "76520", nombre: "Palmira" }, { cod: "05360", nombre: "Itagüí" },
+    { cod: "25754", nombre: "Soacha" }, { cod: "08758", nombre: "Soledad" }
+  ];
+
+  // Finalidad de la tecnología en salud — para un laboratorio clínico casi
+  // siempre es "Diagnóstico" (15). Se deja como tabla por si el laboratorio
+  // necesita reportar tamizaje u otro caso particular.
+  var RIPS_FINALIDAD_TECNOLOGIA = [
+    { v: "15", t: "Diagnóstico" }, { v: "16", t: "Tamizaje / Detección temprana" }, { v: "01", t: "Promoción de la salud" }
+  ];
+
+  // Proveedores tecnológicos de facturación electrónica más usados en
+  // Colombia, habilitados/autorizados por la DIAN, para que cada laboratorio
+  // seleccione el suyo (cada cliente de BIOsoft puede tener uno distinto).
+  // Esta lista es informativa: BIOsoft no está afiliado ni recibe comisión
+  // de ninguno, y no integra automáticamente con ellos todavía — queda el
+  // dato guardado, listo para cuando se conecte la integración por API.
+  var PROVEEDORES_FACTURACION_CO = [
+    { id: "alegra", nombre: "Alegra", url: "https://www.alegra.com" },
+    { id: "siigo", nombre: "Siigo", url: "https://www.siigo.com" },
+    { id: "factus", nombre: "Factus (ADN Software)", url: "https://factus.com.co" },
+    { id: "world_office", nombre: "World Office", url: "https://www.worldoffice.com.co" },
+    { id: "nubox", nombre: "Nubox", url: "https://www.nubox.com/co" },
+    { id: "arus", nombre: "ARUS", url: "https://www.arus.com.co" },
+    { id: "the_factory_hka", nombre: "The Factory HKA", url: "https://thefactoryhka.com.co" },
+    { id: "softpymes", nombre: "Softpymes", url: "https://www.softpymes.com.co" },
+    { id: "facturador_dian", nombre: "Facturador Gratuito de la DIAN", url: "https://catalogo-vfe.dian.gov.co" },
+    { id: "otro", nombre: "Otro proveedor", url: "" },
+    { id: "ninguno", nombre: "Aún no tengo proveedor", url: "" }
+  ];
+
   function seccionNombre(id, tenant) {
     var s = SECCIONES.filter(function (x) { return x.id === id; })[0];
     if (s) return s.nombre;
@@ -1118,6 +1199,14 @@
     panelFrecuentes: panelFrecuentes,
     panelAgregarPersonalizado: panelAgregarPersonalizado,
     parsePanelValor: parsePanelValor,
-    panelCompleto: panelCompleto
+    panelCompleto: panelCompleto,
+    RIPS_DISCLAIMER: RIPS_DISCLAIMER,
+    ripsTipoDocumento: ripsTipoDocumento,
+    ripsTipoUsuario: ripsTipoUsuario,
+    ripsViaIngreso: ripsViaIngreso,
+    RIPS_ZONA_RESIDENCIAL: RIPS_ZONA_RESIDENCIAL,
+    MUNICIPIOS_DANE_COMUNES: MUNICIPIOS_DANE_COMUNES,
+    RIPS_FINALIDAD_TECNOLOGIA: RIPS_FINALIDAD_TECNOLOGIA,
+    PROVEEDORES_FACTURACION_CO: PROVEEDORES_FACTURACION_CO
   };
 })(window);
