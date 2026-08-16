@@ -48,6 +48,16 @@ service cloud.firestore {
       allow read, write: if esSuperadmin();
     }
 
+    // Imágenes de la landing pública (index.html) — cada documento es un
+    // "espacio" de imagen de una sección (hero, funciones, precios, etc.).
+    // Lectura pública SIN autenticación porque index.html es la página de
+    // mercadeo, la ve cualquier visitante sin sesión. Solo el superadmin
+    // (dueño de BIOsoft) puede subir o quitar imágenes.
+    match /landingImagenes/{slotId} {
+      allow read: if true;
+      allow write: if esSuperadmin();
+    }
+
     match /tenants/{tenantId} {
       // El superadmin necesita ver TODOS los laboratorios (panel "Laboratorios
       // Cliente"), no solo el propio — de ahí el esSuperadmin() en la lectura.

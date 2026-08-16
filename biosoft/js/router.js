@@ -7,7 +7,8 @@
       { sec: "BIOSOFT", items: [
         { route: "crm", label: "Clientes (CRM)", icon: "send" },
         { route: "tenants", label: "Laboratorios Cliente", icon: "building" },
-        { route: "dashboard", label: "Resumen Global", icon: "home" }
+        { route: "dashboard", label: "Resumen Global", icon: "home" },
+        { route: "landing-imagenes", label: "Imágenes de la Landing", icon: "file" }
       ]}
     ],
     admin: [
@@ -132,7 +133,7 @@
     config: "Configuración del Laboratorio", auditoria: "Trazabilidad y Auditoría", tenants: "Laboratorios Cliente",
     catalogo: "Valores de Referencia del Catálogo", productividad: "Productividad Mensual", crm: "Clientes (CRM)",
     calidad: "Control de Calidad", cotizador: "Cotizador de Exámenes", marketing: "Marketing Digital", inventario: "Inventario y Reactivos",
-    facturacion: "Facturación y RIPS"
+    facturacion: "Facturación y RIPS", "landing-imagenes": "Imágenes de la Landing"
   };
 
   // Rutas visibles solo para laboratorios de Colombia (ver tenant.pais),
@@ -140,7 +141,7 @@
   var RUTAS_SOLO_CO = ["facturacion"];
 
   var ALLOWED_ROUTES = {
-    superadmin: ["crm", "tenants", "dashboard"],
+    superadmin: ["crm", "tenants", "dashboard", "landing-imagenes"],
     admin: ["dashboard", "pacientes", "ordenes", "resultados", "hojas-trabajo", "reportes", "productividad", "calidad", "cotizador", "marketing", "inventario", "usuarios", "config", "auditoria", "catalogo", "facturacion"],
     bacteriologo: ["dashboard", "resultados", "hojas-trabajo", "calidad"],
     recepcion: ["dashboard", "pacientes", "ordenes", "hojas-trabajo", "reportes", "cotizador", "marketing"]

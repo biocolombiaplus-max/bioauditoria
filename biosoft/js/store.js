@@ -243,6 +243,30 @@
     if (!firebaseDisponible()) return Promise.reject(errorFirebaseNoDisponible());
     return plantillasColl().doc(id).update(patch);
   }
+
+  // -----------------------------------------------------------------------
+  // Imágenes de la landing pública (solo superadmin) — ver
+  // js/views-landing-imagenes.js y js/landing-images.js.
+  // -----------------------------------------------------------------------
+  function landingImagenesColl() { return global.BIO_FB.db.collection("landingImagenes"); }
+
+  function landingImagenesList() {
+    if (!firebaseDisponible()) return Promise.reject(errorFirebaseNoDisponible());
+    return landingImagenesColl().get().then(function (snap) {
+      var out = {};
+      snap.forEach(function (doc) { out[doc.id] = doc.data(); });
+      return out;
+    });
+  }
+  function landingImagenesSet(slotId, dataUrl, alt, actualizadoPor) {
+    if (!firebaseDisponible()) return Promise.reject(errorFirebaseNoDisponible());
+    var doc = { dataUrl: dataUrl, alt: alt || "", actualizadoEn: nowISO(), actualizadoPor: actualizadoPor || "" };
+    return landingImagenesColl().doc(slotId).set(doc).then(function () { return doc; });
+  }
+  function landingImagenesDelete(slotId) {
+    if (!firebaseDisponible()) return Promise.reject(errorFirebaseNoDisponible());
+    return landingImagenesColl().doc(slotId).delete();
+  }
   function plantillasDelete(id) {
     if (!firebaseDisponible()) return Promise.reject(errorFirebaseNoDisponible());
     return plantillasColl().doc(id).delete();
@@ -1204,6 +1228,7 @@
     crm: { list: crmList, watch: crmWatch, create: crmCreate, update: crmUpdate },
     tenantsGlobal: { list: tenantsListGlobal, watch: tenantsWatchGlobal, listUsuarios: listUsuariosTenantOnce, promoverUsuarioAAdmin: promoverUsuarioAAdmin },
     plantillas: { list: plantillasList, watch: plantillasWatch, create: plantillasCreate, update: plantillasUpdate, remove: plantillasDelete },
+    landingImagenes: { list: landingImagenesList, set: landingImagenesSet, remove: landingImagenesDelete },
     qc: {
       listControles: listQCControles, getControl: getQCControl, createControl: createQCControl, updateControl: updateQCControl,
       listLecturas: listQCLecturas, createLectura: createQCLectura
