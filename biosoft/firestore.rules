@@ -125,6 +125,12 @@ service cloud.firestore {
       match /kardexInventario/{movimientoId} {
         allow read, write: if esDeEsteLab(tenantId);
       }
+      match /ripsGenerados/{ripsId} {
+        allow read, write: if esDeEsteLab(tenantId);
+      }
+      match /facturasGeneradas/{facturaId} {
+        allow read, write: if esDeEsteLab(tenantId);
+      }
     }
   }
 }
