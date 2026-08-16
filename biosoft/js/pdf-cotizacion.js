@@ -48,6 +48,7 @@
       ["Cliente:", cliente.nombre || "—"],
       ["WhatsApp:", cliente.whatsapp || "—"]
     ];
+    if (cotizacion.convenio) left.push(["Convenio:", cotizacion.convenio.nombre + " (" + cotizacion.convenio.tipo + ")"]);
     var right = [
       ["N° Cotización:", cotizacion.id],
       ["Fecha:", fechaEmision.toLocaleDateString("es-CO")],

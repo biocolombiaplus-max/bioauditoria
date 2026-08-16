@@ -399,7 +399,7 @@
     return {
       tenants: {}, users: [], patients: [], orders: [], auditLog: [], qcControles: [], qcLecturas: [], preciosExamenes: [], cotizaciones: [],
       reglasRemarketing: [], remarketingContactos: [], insumos: [], recetasReactivos: [], kardexInventario: [], examenesPersonalizados: [],
-      ripsGenerados: [], facturasGeneradas: []
+      ripsGenerados: [], facturasGeneradas: [], convenios: [], convenioPrecios: []
     };
   }
 
@@ -967,6 +967,67 @@
   }
 
   // ---------------------------------------------------------------------
+  // CONVENIOS — precios especiales para laboratorios de referencia,
+  // laboratorios de contrarreferencia o clientes institucionales. Cada
+  // convenio puede tener un descuento general (aplicado a todos los
+  // exámenes) Y/O precios especiales por examen puntual (fijo o % de
+  // descuento), que tienen prioridad sobre el descuento general — ver
+  // precioConConvenio() en views-cotizador.js, donde se resuelve cuál
+  // aplica para cada examen.
+  // ---------------------------------------------------------------------
+  function listConvenios(tenantId) {
+    var db = loadDB();
+    return (db.convenios || []).filter(function (c) { return c.tenantId === tenantId; }).sort(function (a, b) { return (a.nombre || "").localeCompare(b.nombre || ""); });
+  }
+  function createConvenio(data) {
+    var db = loadDB();
+    db.convenios = db.convenios || [];
+    var c = Object.assign({ id: uid("cnv"), activo: true, descuentoGeneral: 0, creadoEn: nowISO() }, data);
+    db.convenios.push(c);
+    saveDB(db);
+    fbWrite("convenios", c.id, c);
+    return c;
+  }
+  function updateConvenio(id, patch) {
+    var db = loadDB();
+    var c = (db.convenios || []).filter(function (x) { return x.id === id; })[0];
+    if (!c) return null;
+    Object.assign(c, patch);
+    saveDB(db);
+    fbWrite("convenios", c.id, c);
+    return c;
+  }
+  function eliminarConvenio(tenantId, convenioId) {
+    var db = loadDB();
+    db.convenios = (db.convenios || []).filter(function (c) { return c.id !== convenioId; });
+    db.convenioPrecios = (db.convenioPrecios || []).filter(function (p) { return p.convenioId !== convenioId; });
+    saveDB(db);
+    fbDelete("convenios", convenioId);
+  }
+  function listConvenioPrecios(tenantId, convenioId) {
+    var db = loadDB();
+    return (db.convenioPrecios || []).filter(function (p) { return p.tenantId === tenantId && p.convenioId === convenioId; });
+  }
+  function setConvenioPrecio(tenantId, convenioId, examId, modo, valor) {
+    var db = loadDB();
+    db.convenioPrecios = db.convenioPrecios || [];
+    var reg = db.convenioPrecios.filter(function (p) { return p.tenantId === tenantId && p.convenioId === convenioId && p.examId === examId; })[0];
+    if (reg) { reg.modo = modo; reg.valor = valor; reg.actualizadoEn = nowISO(); }
+    else { reg = { id: uid("cnvp"), tenantId: tenantId, convenioId: convenioId, examId: examId, modo: modo, valor: valor, actualizadoEn: nowISO() }; db.convenioPrecios.push(reg); }
+    saveDB(db);
+    fbWrite("convenioPrecios", reg.id, reg);
+    return reg;
+  }
+  function quitarConvenioPrecio(tenantId, convenioId, examId) {
+    var db = loadDB();
+    var reg = (db.convenioPrecios || []).filter(function (p) { return p.tenantId === tenantId && p.convenioId === convenioId && p.examId === examId; })[0];
+    if (!reg) return;
+    db.convenioPrecios = db.convenioPrecios.filter(function (p) { return p.id !== reg.id; });
+    saveDB(db);
+    fbDelete("convenioPrecios", reg.id);
+  }
+
+  // ---------------------------------------------------------------------
   // MARKETING DIGITAL — reglas de remarketing (recall clínico) y registro de
   // contactos ya enviados, por laboratorio (tenant).
   // ---------------------------------------------------------------------
@@ -1236,7 +1297,9 @@
     cotizador: {
       listPrecios: listPrecios, setPrecio: setPrecio, bulkSetPrecios: bulkSetPrecios,
       listCotizaciones: listCotizaciones, createCotizacion: createCotizacion, updateCotizacion: updateCotizacion,
-      listExamenesPersonalizados: listExamenesPersonalizados, bulkUpsertExamenesPersonalizados: bulkUpsertExamenesPersonalizados
+      listExamenesPersonalizados: listExamenesPersonalizados, bulkUpsertExamenesPersonalizados: bulkUpsertExamenesPersonalizados,
+      listConvenios: listConvenios, createConvenio: createConvenio, updateConvenio: updateConvenio, eliminarConvenio: eliminarConvenio,
+      listConvenioPrecios: listConvenioPrecios, setConvenioPrecio: setConvenioPrecio, quitarConvenioPrecio: quitarConvenioPrecio
     },
     remarketing: {
       listReglas: listReglasRemarketing, bulkCreateReglas: bulkCreateReglasRemarketing, updateRegla: updateReglaRemarketing,

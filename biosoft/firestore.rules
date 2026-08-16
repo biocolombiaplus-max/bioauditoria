@@ -131,6 +131,12 @@ service cloud.firestore {
       match /facturasGeneradas/{facturaId} {
         allow read, write: if esDeEsteLab(tenantId);
       }
+      match /convenios/{convenioId} {
+        allow read, write: if esDeEsteLab(tenantId);
+      }
+      match /convenioPrecios/{convenioPrecioId} {
+        allow read, write: if esDeEsteLab(tenantId);
+      }
     }
   }
 }

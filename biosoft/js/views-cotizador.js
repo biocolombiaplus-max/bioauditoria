@@ -30,8 +30,29 @@
     var precios = {}; // examId -> precio
     var cotizaciones = [];
     var customExams = []; // exámenes propios del laboratorio, fuera del catálogo global
+    var convenios = [];
+    var convenioPreciosPorConvenio = {}; // convenioId -> { examId -> {modo, valor} }
+
+    var TIPOS_CONVENIO = ["Laboratorio de Referencia", "Laboratorio de Contrarreferencia", "Cliente Institucional", "Otro"];
 
     function precioDe(examId) { return precios[examId] || 0; }
+
+    // Resuelve el precio final de un examen para un convenio dado (o el
+    // precio regular si convenioId es "" / null): un precio especial fijado
+    // para ESE examen puntual tiene prioridad sobre el descuento general del
+    // convenio, que a su vez tiene prioridad sobre el precio regular.
+    function precioConConvenio(examId, convenioId) {
+      var base = precioDe(examId);
+      if (!convenioId) return base;
+      var convenio = convenios.filter(function (c) { return c.id === convenioId; })[0];
+      if (!convenio) return base;
+      var especial = (convenioPreciosPorConvenio[convenioId] || {})[examId];
+      if (especial) {
+        return especial.modo === "fijo" ? especial.valor : Math.max(0, base * (1 - especial.valor / 100));
+      }
+      if (convenio.descuentoGeneral > 0) return Math.max(0, base * (1 - convenio.descuentoGeneral / 100));
+      return base;
+    }
     function fmtMonedaExtra(monto) {
       var extra = C.fmtMonedaAdicional(tenant, monto);
       return extra ? ' <span class="text-muted" style="font-weight:400;font-size:12px">(' + extra + ')</span>' : "";
@@ -64,6 +85,13 @@
       lista.forEach(function (p) { precios[p.examId] = p.precio; });
       cotizaciones = S.cotizador.listCotizaciones(tenantId);
       customExams = S.cotizador.listExamenesPersonalizados(tenantId);
+      convenios = S.cotizador.listConvenios(tenantId);
+      convenioPreciosPorConvenio = {};
+      convenios.forEach(function (cv) {
+        var mapa = {};
+        S.cotizador.listConvenioPrecios(tenantId, cv.id).forEach(function (p) { mapa[p.examId] = p; });
+        convenioPreciosPorConvenio[cv.id] = mapa;
+      });
       build();
     }
 
@@ -74,12 +102,13 @@
         '<button type="button" class="' + (vista === "nueva" ? "active" : "") + '" data-vista="nueva">🧾 Nueva Cotización</button>' +
         '<button type="button" class="' + (vista === "recibo" ? "active" : "") + '" data-vista="recibo">💵 Recibo Directo</button>' +
         '<button type="button" class="' + (vista === "precios" ? "active" : "") + '" data-vista="precios">💲 Lista de Precios</button>' +
+        '<button type="button" class="' + (vista === "convenios" ? "active" : "") + '" data-vista="convenios">🤝 Convenios</button>' +
         '<button type="button" class="' + (vista === "historial" ? "active" : "") + '" data-vista="historial">🕓 Historial</button>' +
         "</div></div>" +
-        (vista === "nueva" ? buildNuevaHtml() : vista === "recibo" ? buildReciboDirectoHtml() : vista === "precios" ? buildPreciosHtml() : buildHistorialHtml()) +
+        (vista === "nueva" ? buildNuevaHtml() : vista === "recibo" ? buildReciboDirectoHtml() : vista === "precios" ? buildPreciosHtml() : vista === "convenios" ? buildConveniosHtml() : buildHistorialHtml()) +
         "</div>";
       root.querySelectorAll("[data-vista]").forEach(function (b) { b.addEventListener("click", function () { vista = b.dataset.vista; build(); }); });
-      if (vista === "nueva") wireNueva(); else if (vista === "recibo") wireReciboDirecto(); else if (vista === "precios") wirePrecios(); else wireHistorial();
+      if (vista === "nueva") wireNueva(); else if (vista === "recibo") wireReciboDirecto(); else if (vista === "precios") wirePrecios(); else if (vista === "convenios") wireConvenios(); else wireHistorial();
     }
 
     // ---------------------------------------------------------------------
@@ -87,12 +116,23 @@
     // Directo": cada pestaña tiene su propio estado de selección/búsqueda
     // (pickerNueva / pickerRecibo) pero reutilizan el mismo render.
     // ---------------------------------------------------------------------
-    function crearPickerState() { return { selected: [], activeSection: C.SECCIONES[0].id, searchTerm: "" }; }
+    function crearPickerState() { return { selected: [], activeSection: C.SECCIONES[0].id, searchTerm: "", convenioId: "" }; }
     var pickerNueva = crearPickerState();
     var pickerRecibo = crearPickerState();
 
+    function convenioSelectHtml(prefix, st) {
+      var activos = convenios.filter(function (c) { return c.activo; });
+      if (!activos.length) return "";
+      return '<div class="field" style="margin:12px 0"><label>Convenio / Precio especial (opcional)</label><select id="' + prefix + '-convenio">' +
+        '<option value="">Precio Regular (sin convenio)</option>' +
+        activos.map(function (c) { return '<option value="' + c.id + '" ' + (c.id === st.convenioId ? "selected" : "") + '>' + U.esc(c.nombre) + " — " + U.esc(c.tipo) + "</option>"; }).join("") +
+        "</select></div>";
+    }
+
     function pickerHtml(prefix) {
-      return '<div class="field" style="margin:12px 0"><input id="' + prefix + '-exam-search" placeholder="Buscar examen por nombre o código CUPS en todas las secciones…"/></div>' +
+      var st = prefix === "cot" ? pickerNueva : pickerRecibo;
+      return convenioSelectHtml(prefix, st) +
+        '<div class="field" style="margin:12px 0"><input id="' + prefix + '-exam-search" placeholder="Buscar examen por nombre o código CUPS en todas las secciones…"/></div>' +
         '<div class="exam-picker">' +
         '<div class="exam-picker-sections" id="' + prefix + '-sec-list"></div>' +
         '<div class="exam-picker-list" id="' + prefix + '-exam-list"></div>' +
@@ -105,6 +145,14 @@
 
     function wirePicker(prefix, st) {
       document.getElementById(prefix + "-exam-search").addEventListener("input", function (e) { st.searchTerm = e.target.value; renderPickerSecciones(prefix, st); renderPickerExams(prefix, st); });
+      var selConvenio = document.getElementById(prefix + "-convenio");
+      if (selConvenio) {
+        selConvenio.addEventListener("change", function (e) {
+          st.convenioId = e.target.value;
+          renderPickerExams(prefix, st);
+          actualizarPickerTotales(prefix, st);
+        });
+      }
       renderPickerSecciones(prefix, st);
       renderPickerExams(prefix, st);
     }
@@ -131,12 +179,16 @@
 
       document.getElementById(prefix + "-exam-list").innerHTML = pool.map(function (e) {
         var checked = st.selected.indexOf(e.id) !== -1;
-        var precio = precioDe(e.id);
+        var precioRegular = precioDe(e.id);
+        var precio = precioConConvenio(e.id, st.convenioId);
+        var tieneDescuento = st.convenioId && precio !== precioRegular;
         return '<label class="exam-row"><input type="checkbox" data-picker-prefix="' + prefix + '" data-picker-exam="' + e.id + '" ' + (checked ? "checked" : "") + '/>' +
           '<div class="grow"><div>' + U.esc(e.nombre) + (term ? ' <span class="text-muted" style="font-size:11px">— ' + resolverSeccionNombre(e.seccion) + "</span>" : "") + "</div>" +
           '<div class="meta">CUPS ' + e.cups + "</div></div>" +
-          '<div style="font-weight:700;font-size:13px;white-space:nowrap">' + (precio ? fmtMoneda(precio) : '<span class="text-muted">Sin precio</span>') + "</div>" +
-          "</label>";
+          '<div style="text-align:right;white-space:nowrap">' +
+          (tieneDescuento ? '<div class="text-muted" style="font-size:11px;text-decoration:line-through">' + fmtMoneda(precioRegular) + "</div>" : "") +
+          '<div style="font-weight:700;font-size:13px;' + (tieneDescuento ? "color:var(--brand-primary)" : "") + '">' + (precio ? fmtMoneda(precio) : '<span class="text-muted">Sin precio</span>') + "</div>" +
+          "</div></label>";
       }).join("") || '<p class="text-muted" style="padding:14px">Sin resultados para tu búsqueda.</p>';
 
       document.querySelectorAll('[data-picker-prefix="' + prefix + '"]').forEach(function (chk) {
@@ -149,7 +201,7 @@
     }
 
     function actualizarPickerTotales(prefix, st) {
-      var total = st.selected.reduce(function (a, id) { return a + precioDe(id); }, 0);
+      var total = st.selected.reduce(function (a, id) { return a + precioConConvenio(id, st.convenioId); }, 0);
       document.getElementById(prefix + "-count").textContent = st.selected.length;
       document.getElementById(prefix + "-total").innerHTML = fmtMoneda(total) + fmtMonedaExtra(total);
     }
@@ -157,8 +209,14 @@
     function examenesSeleccionados(st) {
       return st.selected.map(function (id) {
         var e = resolverExamen(id);
-        return { examId: id, nombre: e.nombre, seccion: e.seccion, seccionNombre: resolverSeccionNombre(e.seccion), precio: precioDe(id) };
+        return { examId: id, nombre: e.nombre, seccion: e.seccion, seccionNombre: resolverSeccionNombre(e.seccion), precio: precioConConvenio(id, st.convenioId) };
       });
+    }
+
+    function convenioAplicado(st) {
+      if (!st.convenioId) return null;
+      var c = convenios.filter(function (x) { return x.id === st.convenioId; })[0];
+      return c ? { id: c.id, nombre: c.nombre, tipo: c.tipo } : null;
     }
 
     // ---------------------------------------------------------------------
@@ -188,7 +246,7 @@
       var examenes = examenesSeleccionados(pickerNueva);
       var total = examenes.reduce(function (a, e) { return a + e.precio; }, 0);
       var cot = S.cotizador.createCotizacion({
-        tenantId: tenantId, cliente: { nombre: nombre, whatsapp: whatsapp, correo: correo }, examenes: examenes, total: total
+        tenantId: tenantId, cliente: { nombre: nombre, whatsapp: whatsapp, correo: correo }, examenes: examenes, total: total, convenio: convenioAplicado(pickerNueva)
       });
       var bytes = BIO_PDF_COTIZACION.buildCotizacionPDF(cot, tenant);
       var nombreArchivo = "Cotizacion_" + (nombre || "Cliente").replace(/\s+/g, "_") + ".pdf";
@@ -251,7 +309,7 @@
       var examenes = examenesSeleccionados(pickerRecibo);
       var total = examenes.reduce(function (a, e) { return a + e.precio; }, 0);
       var cot = S.cotizador.createCotizacion({
-        tenantId: tenantId, cliente: { nombre: nombre, whatsapp: whatsapp, correo: correo }, examenes: examenes, total: total,
+        tenantId: tenantId, cliente: { nombre: nombre, whatsapp: whatsapp, correo: correo }, examenes: examenes, total: total, convenio: convenioAplicado(pickerRecibo),
         estado: "pagada", pago: { fecha: fechaPago, monto: total, metodoPago: metodoPago, vendedorNombre: vendedorNombre }
       });
       S.addAudit(session.tenantId, session.nombre, session.rol, "REGISTRAR_PAGO_COTIZACION", "cotizacion", cot.id, "Generó un recibo de pago directo para " + (nombre || "un cliente") + " por " + fmtMoneda(total) + " (atendido por " + vendedorNombre + ").");
@@ -510,6 +568,161 @@
     }
 
     // ---------------------------------------------------------------------
+    // CONVENIOS — precios especiales para laboratorios de referencia,
+    // laboratorios de contrarreferencia o clientes institucionales.
+    // ---------------------------------------------------------------------
+    function buildConveniosHtml() {
+      return '<p class="text-muted" style="margin-top:14px">Crea un convenio para cada laboratorio de referencia, laboratorio de contrarreferencia o cliente institucional con precios especiales. Puedes definir un descuento general (aplica a todos los exámenes) y/o precios especiales puntuales por examen — el precio puntual siempre tiene prioridad sobre el descuento general.</p>' +
+        '<button type="button" class="btn btn-primary btn-sm" id="btn-nuevo-convenio">' + U.icon("plus") + " Nuevo Convenio</button>" +
+        '<div id="convenios-grid" class="flex wrap gap-2" style="margin-top:14px;align-items:stretch">' +
+        (convenios.length ? convenios.map(convenioCardHtml).join("") : '<p class="text-muted">Aún no has creado ningún convenio.</p>') +
+        "</div>";
+    }
+
+    function convenioCardHtml(c) {
+      var numEspeciales = Object.keys(convenioPreciosPorConvenio[c.id] || {}).length;
+      return '<div class="card" style="width:300px' + (c.activo ? "" : ";opacity:.55") + '">' +
+        '<div class="flex justify-between items-start"><div><h4 style="margin:0 0 2px">' + U.esc(c.nombre) + "</h4>" +
+        '<span class="badge" style="font-size:11px">' + U.esc(c.tipo) + "</span></div>" +
+        (c.activo ? '<span class="badge badge-validado">Activo</span>' : '<span class="badge badge-pendiente">Inactivo</span>') +
+        "</div>" +
+        '<p style="margin:10px 0 4px;font-size:13px">Descuento general: <b>' + (c.descuentoGeneral || 0) + "%</b></p>" +
+        '<p style="margin:0 0 12px;font-size:13px">Precios especiales por examen: <b>' + numEspeciales + "</b></p>" +
+        '<div class="flex gap-2 wrap">' +
+        '<button type="button" class="btn btn-outline btn-sm" data-precios-especiales="' + c.id + '">💲 Precios Especiales</button>' +
+        '<button type="button" class="btn btn-ghost btn-sm" data-editar-convenio="' + c.id + '">' + U.icon("edit") + " Editar</button>" +
+        '<button type="button" class="btn btn-ghost btn-sm" data-eliminar-convenio="' + c.id + '">' + U.icon("trash") + " Eliminar</button>" +
+        "</div></div>";
+    }
+
+    function wireConvenios() {
+      document.getElementById("btn-nuevo-convenio").addEventListener("click", function () { abrirFormConvenio(null); });
+      document.querySelectorAll("[data-precios-especiales]").forEach(function (b) {
+        b.addEventListener("click", function () { abrirPreciosEspeciales(convenios.filter(function (c) { return c.id === b.dataset.preciosEspeciales; })[0]); });
+      });
+      document.querySelectorAll("[data-editar-convenio]").forEach(function (b) {
+        b.addEventListener("click", function () { abrirFormConvenio(convenios.filter(function (c) { return c.id === b.dataset.editarConvenio; })[0]); });
+      });
+      document.querySelectorAll("[data-eliminar-convenio]").forEach(function (b) {
+        b.addEventListener("click", function () {
+          var c = convenios.filter(function (x) { return x.id === b.dataset.eliminarConvenio; })[0];
+          if (!confirm('¿Eliminar el convenio "' + c.nombre + '"? También se borran sus precios especiales.')) return;
+          S.cotizador.eliminarConvenio(tenantId, c.id);
+          U.toast("Convenio eliminado.", "success");
+          cargar();
+        });
+      });
+    }
+
+    function abrirFormConvenio(convenio) {
+      var isEdit = !!convenio;
+      convenio = convenio || { nombre: "", tipo: TIPOS_CONVENIO[0], descuentoGeneral: 0, activo: true };
+      var wrap = U.openModal(
+        '<h3 class="modal-title">' + (isEdit ? "Editar Convenio" : "Nuevo Convenio") + '</h3>' +
+        '<form id="convenio-form"><div class="form-grid">' +
+        '<div class="field"><label>Nombre del Convenio</label><input id="f_cnv_nombre" value="' + U.esc(convenio.nombre) + '" placeholder="Ej. Laboratorio ABC Referencia" required/></div>' +
+        '<div class="field"><label>Tipo</label><select id="f_cnv_tipo">' +
+        TIPOS_CONVENIO.map(function (t) { return '<option ' + (t === convenio.tipo ? "selected" : "") + ">" + t + "</option>"; }).join("") +
+        "</select></div>" +
+        '<div class="field"><label>Descuento General (%)</label><input type="number" step="any" min="0" max="100" id="f_cnv_descuento" value="' + (convenio.descuentoGeneral || 0) + '"/></div>' +
+        '<div class="field"><label>Estado</label><select id="f_cnv_activo"><option value="1" ' + (convenio.activo ? "selected" : "") + '>Activo</option><option value="0" ' + (!convenio.activo ? "selected" : "") + ">Inactivo</option></select></div>" +
+        "</div>" +
+        '<p class="text-muted" style="font-size:12.5px;margin:0 0 6px">El descuento general se aplica a TODOS los exámenes de este convenio, salvo que definas un precio especial puntual para alguno (desde "💲 Precios Especiales", después de guardar).</p>' +
+        '<div class="flex gap-2 justify-between" style="margin-top:6px">' +
+        '<button type="button" class="btn btn-ghost" data-modal-close>Cancelar</button>' +
+        '<button type="submit" class="btn btn-primary">' + U.icon("check") + " Guardar Convenio</button>" +
+        "</div></form>"
+      );
+      wrap.querySelector("#convenio-form").addEventListener("submit", function (e) {
+        e.preventDefault();
+        var data = {
+          tenantId: tenantId,
+          nombre: wrap.querySelector("#f_cnv_nombre").value.trim(),
+          tipo: wrap.querySelector("#f_cnv_tipo").value,
+          descuentoGeneral: parseFloat(wrap.querySelector("#f_cnv_descuento").value) || 0,
+          activo: wrap.querySelector("#f_cnv_activo").value === "1"
+        };
+        if (!data.nombre) { U.toast("Escribe el nombre del convenio.", "error"); return; }
+        if (isEdit) {
+          S.cotizador.updateConvenio(convenio.id, data);
+          S.addAudit(session.tenantId, session.nombre, session.rol, "UPDATE_CONVENIO", "convenio", convenio.id, "Actualizó el convenio " + data.nombre + ".");
+        } else {
+          var creado = S.cotizador.createConvenio(data);
+          S.addAudit(session.tenantId, session.nombre, session.rol, "CREATE_CONVENIO", "convenio", creado.id, "Creó el convenio " + data.nombre + " (" + data.tipo + ").");
+        }
+        U.toast("Convenio guardado.", "success");
+        U.closeModal(wrap);
+        cargar();
+      });
+    }
+
+    var preciosEspecialesSearchTerm = "";
+    function abrirPreciosEspeciales(convenio) {
+      var wrap = U.openModal(
+        '<h3 class="modal-title">💲 Precios Especiales — ' + U.esc(convenio.nombre) + '</h3>' +
+        '<p class="text-muted" style="margin-top:0">Define un precio fijo o un % de descuento puntual para exámenes específicos de este convenio. Los exámenes sin precio especial usan el descuento general (' + (convenio.descuentoGeneral || 0) + '%) o el precio regular.</p>' +
+        '<div class="field" style="margin-bottom:10px"><input id="pe-search" placeholder="Buscar examen por nombre o código CUPS…"/></div>' +
+        '<div class="table-wrap" style="max-height:440px;overflow-y:auto"><table><thead><tr><th>Examen</th><th>Precio Base</th><th>Tipo</th><th style="min-width:120px">Valor</th><th></th></tr></thead><tbody id="pe-tbody"></tbody></table></div>' +
+        '<div class="flex justify-between" style="margin-top:16px"><button type="button" class="btn btn-ghost" data-modal-close>Cerrar</button><span></span></div>',
+        { lg: true }
+      );
+      preciosEspecialesSearchTerm = "";
+
+      function renderTabla() {
+        var term = U.normalizar(preciosEspecialesSearchTerm.trim());
+        var todos = poolExamenes();
+        var pool = term
+          ? todos.filter(function (e) { return U.normalizar(e.nombre).indexOf(term) !== -1 || e.cups.indexOf(term) !== -1; })
+          : todos.filter(function (e) { return (convenioPreciosPorConvenio[convenio.id] || {})[e.id]; }); // sin buscar: solo muestra los que ya tienen especial, para no listar cientos de exámenes de una
+
+        if (!term && !pool.length) {
+          wrap.querySelector("#pe-tbody").innerHTML = '<tr><td colspan="5" class="text-muted">Aún no tienes precios especiales para este convenio. Busca un examen arriba para agregarle uno.</td></tr>';
+          return;
+        }
+
+        wrap.querySelector("#pe-tbody").innerHTML = pool.map(function (e) {
+          var especial = (convenioPreciosPorConvenio[convenio.id] || {})[e.id];
+          return "<tr>" +
+            "<td>" + U.esc(e.nombre) + '<div class="text-muted" style="font-size:11px">CUPS ' + e.cups + "</div></td>" +
+            "<td>" + fmtMoneda(precioDe(e.id)) + "</td>" +
+            '<td><select data-pe-modo="' + e.id + '"><option value="" ' + (!especial ? "selected" : "") + '>— Sin especial —</option><option value="descuento" ' + (especial && especial.modo === "descuento" ? "selected" : "") + '>% Descuento</option><option value="fijo" ' + (especial && especial.modo === "fijo" ? "selected" : "") + ">Precio Fijo</option></select></td>" +
+            '<td><input type="number" step="any" min="0" data-pe-valor="' + e.id + '" value="' + (especial ? especial.valor : "") + '" ' + (!especial ? 'style="display:none"' : "") + '/></td>' +
+            '<td><button type="button" class="btn btn-primary btn-sm" data-pe-guardar="' + e.id + '">' + U.icon("check") + "</button></td>" +
+            "</tr>";
+        }).join("");
+
+        wrap.querySelectorAll("[data-pe-modo]").forEach(function (sel) {
+          sel.addEventListener("change", function () {
+            var input = wrap.querySelector('[data-pe-valor="' + sel.dataset.peModo + '"]');
+            input.style.display = sel.value ? "" : "none";
+          });
+        });
+        wrap.querySelectorAll("[data-pe-guardar]").forEach(function (btn) {
+          btn.addEventListener("click", function () {
+            var examId = btn.dataset.peGuardar;
+            var modo = wrap.querySelector('[data-pe-modo="' + examId + '"]').value;
+            var valor = parseFloat(wrap.querySelector('[data-pe-valor="' + examId + '"]').value) || 0;
+            if (!modo) {
+              S.cotizador.quitarConvenioPrecio(tenantId, convenio.id, examId);
+              delete convenioPreciosPorConvenio[convenio.id][examId];
+              U.toast("Precio especial quitado.", "success");
+            } else {
+              S.cotizador.setConvenioPrecio(tenantId, convenio.id, examId, modo, valor);
+              convenioPreciosPorConvenio[convenio.id] = convenioPreciosPorConvenio[convenio.id] || {};
+              convenioPreciosPorConvenio[convenio.id][examId] = { modo: modo, valor: valor };
+              U.toast("Precio especial guardado.", "success");
+            }
+            renderTabla();
+          });
+        });
+      }
+
+      wrap.querySelector("#pe-search").addEventListener("input", function (e) { preciosEspecialesSearchTerm = e.target.value; renderTabla(); });
+      renderTabla();
+      wrap.querySelectorAll("[data-modal-close]").forEach(function (b) { b.addEventListener("click", function () { U.closeModal(wrap); cargar(); }); });
+    }
+
+    // ---------------------------------------------------------------------
     // HISTORIAL
     // ---------------------------------------------------------------------
     // Resumen de ventas por vendedor (control estilo CRM) — útil para
@@ -542,7 +755,7 @@
         cotizaciones.map(function (c) {
           var cliente = c.cliente || {};
           var pagada = c.estado === "pagada";
-          return "<tr><td>" + fmtFechaCorta(c.creadoEn) + "</td><td>" + U.esc(cliente.nombre || "—") + "</td><td>" + c.examenes.length + "</td><td>" + fmtMoneda(c.total) + fmtMonedaExtra(c.total) + "</td>" +
+          return "<tr><td>" + fmtFechaCorta(c.creadoEn) + "</td><td>" + U.esc(cliente.nombre || "—") + (c.convenio ? '<div class="text-muted" style="font-size:11px">🤝 ' + U.esc(c.convenio.nombre) + "</div>" : "") + "</td><td>" + c.examenes.length + "</td><td>" + fmtMoneda(c.total) + fmtMonedaExtra(c.total) + "</td>" +
             "<td>" + (pagada ? '<span class="badge badge-validado">Pagada</span>' : '<span class="badge badge-pendiente">Pendiente de pago</span>') + "</td>" +
             "<td><div class='flex gap-2 wrap'>" +
             "<button class='btn btn-ghost btn-sm' data-redescargar='" + c.id + "'>" + U.icon("download") + " Cotización</button>" +

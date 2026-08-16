@@ -59,6 +59,7 @@
       ["Cliente:", cliente.nombre || "—"],
       ["WhatsApp:", cliente.whatsapp || "—"]
     ];
+    if (cotizacion.convenio) left.push(["Convenio:", cotizacion.convenio.nombre + " (" + cotizacion.convenio.tipo + ")"]);
     var right = [
       ["Fecha de Pago:", fechaPago.toLocaleDateString("es-CO")],
       ["Método de Pago:", METODO_PAGO_LABEL[pago.metodoPago] || "—"],
