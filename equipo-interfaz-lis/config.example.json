@@ -7,6 +7,9 @@
   "nombreEquipo": "Mindray BC-10 — Hematología",
   "_nombreEquipo_donde_lo_saco": "El mismo nombre que le pusiste al registrar el equipo en BIOsoft.",
 
+  "archivoMapeo": "mindray-bc10-map",
+  "_archivoMapeo_ojo": "Nombre del archivo (sin .js) con el mapeo de parámetros de TU equipo. 'mindray-bc10-map' es el único ya construido. Para Dirui, Dymind, Maglumi, Rayto, Mindray química u otra marca, copia mapeo-generico-template.js a un archivo nuevo, complétalo con los códigos reales de tu equipo (ver README.md) y pon aquí ese nombre de archivo.",
+
   "usuarioEmail": "interfaz.bc10@tu-laboratorio.com",
   "usuarioPassword": "CAMBIA-ESTA-CLAVE",
   "_usuario_como_crearlo": "En BIOsoft: Usuarios del Laboratorio -> Nuevo Usuario -> rol Bacteriólogo(a), asignado SOLO a la sección de Hematología. Dedica ese usuario exclusivamente a este middleware (no lo use una persona).",

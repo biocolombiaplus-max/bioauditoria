@@ -646,7 +646,8 @@
   }
 
   // ---------------------------------------------------------------------
-  // EQUIPOS CONECTADOS (interfaz con analizadores, ej. Mindray BC-10) — el
+  // EQUIPOS CONECTADOS (módulo LIS: interfaz con analizadores como Mindray,
+  // Dirui, Dymind, Maglumi, Rayto, u otro compatible con ASTM E1394) — el
   // administrador registra cada equipo aquí, obtiene una clave de interfaz,
   // y esa clave se usa para configurar el middleware que corre junto al
   // equipo físico. Esto también es lo que habilita el cobro adicional por
@@ -754,7 +755,7 @@
     return db.orders.filter(function (o) { return o.tenantId === tenantId && o.numeroOrden === String(numeroOrden); })[0];
   }
   /* Punto de entrada para resultados que llegan automáticamente desde un
-     equipo conectado (ver agregarEquipoConectado y equipo-interfaz-bc10/).
+     equipo conectado (ver agregarEquipoConectado y equipo-interfaz-lis/).
      A propósito NUNCA deja el examen en "preliminar" ni "validado" — siempre
      "en_proceso" (borrador), para que un bacteriólogo humano revise y
      confirme antes de que el resultado se pueda enviar al paciente. Si el

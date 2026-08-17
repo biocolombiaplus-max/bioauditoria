@@ -1,0 +1,15 @@
+{
+  "name": "biosoft-equipo-interfaz-lis",
+  "version": "0.1.0-piloto",
+  "private": true,
+  "description": "Middleware de referencia (módulo LIS): conecta analizadores de laboratorio que hablan ASTM E1394 a BIOsoft. Incluye un mapeo de ejemplo ya construido (Mindray BC-10); otras marcas (Dirui, Dymind, Maglumi, Rayto, Mindray química, etc.) requieren construir su propio mapeo y validar con el equipo real antes de producción — ver README.md.",
+  "main": "index.js",
+  "scripts": {
+    "start": "node index.js",
+    "test": "node test/astm-parser.test.js && node test/mapping.test.js"
+  },
+  "dependencies": {
+    "firebase": "^10.12.2",
+    "serialport": "^12.0.0"
+  }
+}

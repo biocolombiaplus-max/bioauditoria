@@ -821,7 +821,8 @@
   }
 
   // ------------------------------------------------------------------
-  // EQUIPOS CONECTADOS — interfaz con analizadores (ej. Mindray BC-10) que
+  // EQUIPOS CONECTADOS — módulo LIS: interfaz con analizadores (Mindray,
+  // Dirui, Dymind, Maglumi, Rayto, u otro compatible con ASTM E1394) que
   // envían resultados directamente a BIOsoft. Incluido sin costo en el plan
   // Plus; en los demás planes se cobra $10 USD/mes por cada equipo.
   // ------------------------------------------------------------------
@@ -874,10 +875,14 @@
     }
     var wrap = U.openModal(
       '<h3 class="modal-title">Conectar un Equipo</h3>' +
-      '<p class="text-muted" style="margin-top:0">Registra el equipo para obtener su clave de interfaz — la usarás al configurar el programa (middleware) que conecta el equipo físico con BIOsoft. Esto NO instala nada automáticamente: es el primer paso para dar de alta el equipo.</p>' +
+      '<p class="text-muted" style="margin-top:0">Registra el equipo para obtener su clave de interfaz — la usarás al configurar el programa (middleware) que conecta el equipo físico con BIOsoft. Esto NO instala nada automáticamente: es el primer paso para dar de alta el equipo. BIOsoft trae un módulo LIS genérico (protocolo ASTM E1394) que puede conectar prácticamente cualquier equipo de laboratorio con salida LIS/host — la lista de marca/modelo es solo una sugerencia, puedes escribir cualquier otra.</p>' +
       '<form id="equipo-form">' +
       F.inp("nombre", "Nombre del Equipo (ej: Mindray BC-10 — Hematología)", "", true) +
-      F.inp("marcaModelo", "Marca / Modelo (opcional)", "Mindray BC-10") +
+      '<div class="field"><label>Marca / Modelo (opcional)</label><input id="f_marcaModelo" list="equipos-sugeridos" placeholder="Ej. Mindray BC-10"/>' +
+      '<datalist id="equipos-sugeridos">' +
+      ["Mindray BC-10 (Hematología)", "Mindray BS-XXX (Química)", "Dirui CS-T240 (Química)", "Dymind DF52 (Hematología)", "Maglumi 800 (Inmunoensayo)", "Rayto (Química)", "Rayto (Hematología)"]
+        .map(function (o) { return "<option value='" + o + "'></option>"; }).join("") +
+      "</datalist></div>" +
       F.sel("seccion", "Sección", seccionesConExamenes.map(function (s) { return "<option value='" + s.id + "'>" + s.nombre + "</option>"; }).join("")) +
       '<div id="equipo-examen-box"></div>' +
       '<div class="flex gap-2 justify-between" style="margin-top:6px"><button type="button" class="btn btn-ghost" data-modal-close>Cancelar</button><button type="submit" class="btn btn-primary">' + U.icon("check") + " Conectar y Generar Clave</button></div>" +
@@ -913,7 +918,7 @@
     var session = BIO_AUTH.getSession();
     var wrap = U.openModal(
       '<h3 class="modal-title">' + U.icon("check") + " Equipo conectado: " + U.esc(equipo.nombre) + "</h3>" +
-      '<p class="text-muted" style="margin-top:0">Guarda esta clave — la necesitas para configurar el middleware del equipo (ver el archivo <code>equipo-interfaz-bc10/config.example.json</code> del repositorio).</p>' +
+      '<p class="text-muted" style="margin-top:0">Guarda esta clave — la necesitas para configurar el middleware del equipo (ver el archivo <code>equipo-interfaz-lis/config.example.json</code> del repositorio).</p>' +
       '<div class="card" style="background:var(--surface-2);box-shadow:none">' +
       '<div class="field"><label>ID del Laboratorio (tenantId)</label><input readonly value="' + U.esc(session.tenantId) + '" onclick="this.select()"/></div>' +
       '<div class="field"><label>ID del Equipo</label><input readonly value="' + U.esc(equipo.id) + '" onclick="this.select()"/></div>' +
