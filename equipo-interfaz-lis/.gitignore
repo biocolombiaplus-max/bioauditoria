@@ -1,4 +1,5 @@
-config.json
-config-hl7.json
+config*.json
+!config.example.json
+!config-hl7.example.json
 node_modules/
 captura_*.log

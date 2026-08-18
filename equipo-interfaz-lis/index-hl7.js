@@ -19,10 +19,15 @@ const { crearClienteBiosoft, iniciarSesion, recibirResultadoEquipo } = require("
 
 const VT = 0x0b, FS = 0x1c, CR = 0x0d;
 
+/* Igual que en index.js: el nombre del archivo de configuración se puede
+ * pasar como argumento, para poder correr varios equipos HL7 al mismo
+ * tiempo, cada uno con su propio archivo:
+ *   node index-hl7.js config-dymind.json */
 function cargarConfig() {
-  const configPath = path.join(__dirname, "config-hl7.json");
+  const nombreArchivo = process.argv[2] || "config-hl7.json";
+  const configPath = path.join(__dirname, nombreArchivo);
   if (!fs.existsSync(configPath)) {
-    console.error('No existe config-hl7.json. Copia config-hl7.example.json a config-hl7.json y complétalo con tus datos (ver README.md).');
+    console.error(`No existe ${nombreArchivo}. Copia config-hl7.example.json a ese nombre y complétalo con tus datos (ver README.md).`);
     process.exit(1);
   }
   return JSON.parse(fs.readFileSync(configPath, "utf8"));

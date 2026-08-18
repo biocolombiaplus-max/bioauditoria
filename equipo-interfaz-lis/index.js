@@ -23,10 +23,17 @@ const { SerialPort } = require("serialport");
 const astm = require("./astm");
 const { crearClienteBiosoft, iniciarSesion, recibirResultadoEquipo } = require("./firestore-writer");
 
+/* El nombre del archivo de configuración se puede pasar como argumento,
+ * para poder tener un archivo por equipo (ej. config-dirui.json,
+ * config-maglumi.json) y correr varios middlewares al mismo tiempo, cada
+ * uno en su propia terminal, sin que se pisen entre sí:
+ *   node index.js config-dirui.json
+ * Si no se pasa nada, usa "config.json" (comportamiento de antes). */
 function cargarConfig() {
-  const configPath = path.join(__dirname, "config.json");
+  const nombreArchivo = process.argv[2] || "config.json";
+  const configPath = path.join(__dirname, nombreArchivo);
   if (!fs.existsSync(configPath)) {
-    console.error('No existe config.json. Copia config.example.json a config.json y complétalo con tus datos (ver README.md).');
+    console.error(`No existe ${nombreArchivo}. Copia config.example.json a ese nombre y complétalo con tus datos (ver README.md).`);
     process.exit(1);
   }
   return JSON.parse(fs.readFileSync(configPath, "utf8"));
