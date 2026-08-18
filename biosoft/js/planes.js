@@ -34,29 +34,48 @@
   // ---------------------------------------------------------------------
   var DIAS_AVISO_VENCIMIENTO = 5;
 
+  // Prueba gratis: el cliente prospecto usa BIOsoft con sus propios datos
+  // reales por unos días, sin pagar ni elegir plan todavía — pensada para
+  // generar confianza antes de la decisión de compra.
+  var DIAS_PRUEBA_GRATIS = 3;
+
   var ESTADOS_CUENTA = {
     activo: { label: "Al día", badge: "badge-validado" },
     por_vencer: { label: "Por vencer", badge: "badge-pendiente" },
     vencido: { label: "Vencido", badge: "badge-urgente" },
     suspendido: { label: "Suspendido", badge: "badge-suspendido" },
-    sin_fecha: { label: "Sin fecha de pago", badge: "badge-rutina" }
+    sin_fecha: { label: "Sin fecha de pago", badge: "badge-rutina" },
+    en_prueba: { label: "Prueba gratis", badge: "badge-pendiente" },
+    prueba_vencida: { label: "Prueba vencida", badge: "badge-urgente" }
   };
 
   function estadoCuenta(tenant) {
     if (!tenant) return "sin_fecha";
     if (tenant.suspendido) return "suspendido";
+    if (tenant.esPruebaGratis) {
+      if (!tenant.fechaFinPrueba) return "sin_fecha";
+      return diasRestantes(tenant.fechaFinPrueba) < 0 ? "prueba_vencida" : "en_prueba";
+    }
     if (!tenant.fechaProximoPago) return "sin_fecha";
-    var hoy = new Date(); hoy.setHours(0, 0, 0, 0);
-    var corte = new Date(tenant.fechaProximoPago + "T00:00:00");
-    var diffDias = Math.round((corte - hoy) / 86400000);
+    var diffDias = diasRestantes(tenant.fechaProximoPago);
     if (diffDias < 0) return "vencido";
     if (diffDias <= DIAS_AVISO_VENCIMIENTO) return "por_vencer";
     return "activo";
   }
 
+  /* Días de diferencia entre hoy y una fecha "YYYY-MM-DD" — negativo si esa
+     fecha ya pasó. Usada tanto por estadoCuenta() como por la pantalla de
+     fin de prueba y el badge de "X días restantes" en el panel de socios. */
+  function diasRestantes(fechaISO) {
+    var hoy = new Date(); hoy.setHours(0, 0, 0, 0);
+    var corte = new Date(fechaISO + "T00:00:00");
+    return Math.round((corte - hoy) / 86400000);
+  }
+
   global.BIO_PLANES = {
     IMPLEMENTACION: IMPLEMENTACION, PLANES: PLANES, TARJETAS_TXT: TARJETAS_TXT, porId: porId,
     INTERFAZ_EQUIPOS: INTERFAZ_EQUIPOS,
-    ESTADOS_CUENTA: ESTADOS_CUENTA, DIAS_AVISO_VENCIMIENTO: DIAS_AVISO_VENCIMIENTO, estadoCuenta: estadoCuenta
+    ESTADOS_CUENTA: ESTADOS_CUENTA, DIAS_AVISO_VENCIMIENTO: DIAS_AVISO_VENCIMIENTO, estadoCuenta: estadoCuenta,
+    DIAS_PRUEBA_GRATIS: DIAS_PRUEBA_GRATIS, diasRestantes: diasRestantes
   };
 })(window);

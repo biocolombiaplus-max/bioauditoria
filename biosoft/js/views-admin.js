@@ -1199,11 +1199,14 @@
           var estado = BIO_PLANES.estadoCuenta(t);
           var estadoInfo = BIO_PLANES.ESTADOS_CUENTA[estado];
           var necesitaRecordatorio = estado === "vencido" || estado === "por_vencer";
+          var necesitaRecordatorioPrueba = estado === "en_prueba" || estado === "prueba_vencida";
+          var diasPruebaTxt = estado === "en_prueba" ? " (" + BIO_PLANES.diasRestantes(t.fechaFinPrueba) + " día(s) restante(s))" : "";
           return "<tr><td><b>" + U.esc(t.nombre) + "</b><div class='text-muted' style='font-size:11px'>" + U.esc(C.documentoTributarioLabel(t.pais)) + " " + U.esc(t.nit || "—") + "</div></td><td>" + t.pais + "</td>" +
             "<td>" + (plan ? U.esc(plan.nombre) : '<span class="text-muted">Sin asignar</span>') + "</td>" +
-            "<td><span class='badge " + estadoInfo.badge + "'>" + estadoInfo.label + "</span>" +
-            (necesitaRecordatorio ? ' <button class="btn btn-ghost btn-sm" data-recordar-pago="' + t.id + '" title="Recordar pago por WhatsApp">' + U.icon("send") + "</button>" : "") + "</td>" +
-            "<td>" + (t.fechaProximoPago ? U.fmtFechaCorta(t.fechaProximoPago) : "—") + "</td>" +
+            "<td><span class='badge " + estadoInfo.badge + "'>" + estadoInfo.label + diasPruebaTxt + "</span>" +
+            (necesitaRecordatorio ? ' <button class="btn btn-ghost btn-sm" data-recordar-pago="' + t.id + '" title="Recordar pago por WhatsApp">' + U.icon("send") + "</button>" : "") +
+            (necesitaRecordatorioPrueba ? ' <button class="btn btn-ghost btn-sm" data-recordar-prueba="' + t.id + '" title="Recordar por WhatsApp que elija un plan">' + U.icon("send") + "</button>" : "") + "</td>" +
+            "<td>" + (t.esPruebaGratis ? (t.fechaFinPrueba ? U.fmtFechaCorta(t.fechaFinPrueba) : "—") : (t.fechaProximoPago ? U.fmtFechaCorta(t.fechaProximoPago) : "—")) + "</td>" +
             "<td>" + (sobreLimite ? '<span class="badge badge-urgente">' + usuariosTxt + '</span>' : usuariosTxt) + "</td>" +
             '<td><div class="flex gap-2 wrap">' +
             '<button class="btn btn-ghost btn-sm" data-editar-plan="' + t.id + '">' + U.icon("edit") + " Plan</button>" +
@@ -1257,6 +1260,11 @@
           recordarPagoPorWhatsapp(tenants.filter(function (t) { return t.id === b.dataset.recordarPago; })[0]);
         });
       });
+      root.querySelectorAll("[data-recordar-prueba]").forEach(function (b) {
+        b.addEventListener("click", function () {
+          abrirRecordarPrueba(tenants.filter(function (t) { return t.id === b.dataset.recordarPrueba; })[0]);
+        });
+      });
       root.querySelectorAll("[data-sync-crm]").forEach(function (b) {
         b.addEventListener("click", function () {
           var tenant = tenants.filter(function (t) { return t.id === b.dataset.syncCrm; })[0];
@@ -1277,6 +1285,44 @@
       var msg = "Hola 👋 Te escribimos de BIOsoft: la mensualidad de " + (plan ? "tu Plan " + plan.nombre : "tu plan") + " en " + tenant.nombre +
         (tenant.fechaProximoPago ? " vence el " + U.fmtFechaCorta(tenant.fechaProximoPago) : " está próxima a vencer") + ". ¿Te ayudamos a coordinar el pago?";
       window.open("https://wa.me/" + numero + "?text=" + encodeURIComponent(msg), "_blank");
+    }
+
+    // BIOsoft es 100% del lado del cliente (sin backend propio) — no existe
+    // hoy un "cronómetro" que mande el correo solo, sin que nadie lo revise,
+    // exactamente al minuto en que se cumplen los 3 días. Este botón es la
+    // forma real de cumplir esa promesa: un clic, desde este panel, manda
+    // AMBOS canales (WhatsApp + correo) ya redactados — pensado para
+    // revisarlo aquí todos los días y recordarle a quien esté por vencer o
+    // ya haya vencido su prueba que elija un plan.
+    function abrirRecordarPrueba(tenant) {
+      var estado = BIO_PLANES.estadoCuenta(tenant);
+      var dias = tenant.fechaFinPrueba ? BIO_PLANES.diasRestantes(tenant.fechaFinPrueba) : null;
+      var numero = (tenant.telefonos || "").replace(/\D/g, "");
+      var mensaje = estado === "prueba_vencida"
+        ? "Hola 👋 Te escribimos de BIOsoft: la prueba gratis de " + tenant.nombre + " ya terminó. Si te gustó cómo funciona con tus propios datos, elige un plan y seguimos sin perder nada de lo que ya cargaste. ¿Cuál plan te sirve más?"
+        : "Hola 👋 Te escribimos de BIOsoft: la prueba gratis de " + tenant.nombre + " termina en " + dias + " día(s). Cuéntanos qué te pareció y, si quieres continuar, elige un plan para no perder lo que ya cargaste. ¿Te ayudamos a elegir?";
+      var wrap = U.openModal(
+        '<h3 class="modal-title">Recordar prueba a ' + U.esc(tenant.nombre) + '</h3>' +
+        '<p class="text-muted" style="margin-top:0">' + (estado === "prueba_vencida" ? "Su prueba gratis ya venció." : "Su prueba gratis termina en " + dias + " día(s).") + " Envía el mensaje por WhatsApp y/o por correo — ambos ya redactados, listos para mandar.</p>" +
+        '<div class="field"><label>Mensaje</label><textarea id="rp-msg">' + U.esc(mensaje) + "</textarea></div>" +
+        (numero ? '<a class="btn btn-whatsapp btn-block" id="rp-wa" target="_blank" rel="noopener">' + U.icon("send") + " Enviar por WhatsApp</a>" : '<p class="text-muted" style="font-size:12.5px">Este laboratorio no tiene un número de WhatsApp registrado.</p>') +
+        (tenant.email ? U.emailProviderButtonsHtml("rp-mail") : '<p class="text-muted" style="font-size:12.5px">Este laboratorio no tiene un correo registrado.</p>') +
+        '<div class="flex justify-between" style="margin-top:14px"><button type="button" class="btn btn-ghost" data-modal-close>Cerrar</button><span></span></div>'
+      );
+      var msgBox = wrap.querySelector("#rp-msg");
+      var waBtn = wrap.querySelector("#rp-wa");
+      if (waBtn) {
+        var actualizarWaHref = function () { waBtn.href = "https://wa.me/" + numero + "?text=" + encodeURIComponent(msgBox.value); };
+        actualizarWaHref();
+        msgBox.addEventListener("input", actualizarWaHref);
+      }
+      if (tenant.email) {
+        var asunto = "Tu prueba gratis de BIOsoft " + (estado === "prueba_vencida" ? "ya terminó" : "está por terminar");
+        ["gmail", "outlook", "mailto"].forEach(function (proveedor) {
+          var btn = wrap.querySelector("#rp-mail-" + proveedor);
+          if (btn) btn.addEventListener("click", function () { window.open(U.emailLinks(tenant.email, asunto, msgBox.value)[proveedor], "_blank"); });
+        });
+      }
     }
 
     function abrirEditarPlan(tenant) {
@@ -1744,20 +1790,25 @@
           '<p class="text-muted" style="margin:2px 0 0;font-size:12.5px">💡 El correo de ingreso del administrador puede ser distinto al "Correo del Laboratorio": el de ingreso es personal y privado, mientras que el del laboratorio es el que verán los pacientes en los reportes.</p>' +
           "</fieldset>" +
           '<fieldset><legend>Facturación</legend><div class="form-grid">' +
-            F.sel("tipoContratacion", "Tipo de contratación", "<option value='mensual'>Pago mes a mes (implementación fraccionada)</option><option value='membresia_gratis'>Membresía gratis de una vez (sin implementación)</option>") +
-            '<div class="field" id="nt-ciclo-box"><label>Ciclo de cobro (días)</label><input type="number" id="f_cicloCobroDias" min="1" value="30"/></div>' +
+            F.sel("tipoContratacion", "Tipo de contratación", "<option value='prueba_gratis'>🎁 Prueba gratis (" + BIO_PLANES.DIAS_PRUEBA_GRATIS + " días, sin tarjeta ni plan)</option><option value='mensual'>Pago mes a mes (implementación fraccionada)</option><option value='membresia_gratis'>Membresía gratis de una vez (sin implementación)</option>") +
+            '<div class="field hidden" id="nt-ciclo-box"><label>Ciclo de cobro (días)</label><input type="number" id="f_cicloCobroDias" min="1" value="30"/></div>' +
             '<div class="field hidden" id="nt-meses-box"><label>Meses de membresía gratis</label><input type="number" id="f_mesesMembresia" min="1" value="6"/></div>' +
-          "</div></fieldset>" +
+          "</div>" +
+          '<p class="text-muted" id="nt-prueba-nota" style="margin:2px 0 0;font-size:12.5px">💡 El laboratorio queda activo de inmediato con sus propios datos reales. A los ' + BIO_PLANES.DIAS_PRUEBA_GRATIS + ' días, el sistema deja de dejarlos operar hasta que elijan un plan — desde "Laboratorios Cliente" puedes recordarles por WhatsApp que elijan uno antes de que termine.</p>' +
+          "</fieldset>" +
           '<div class="flex gap-2 justify-between"><button type="button" class="btn btn-ghost" data-modal-close>Cancelar</button><button type="submit" class="btn btn-primary">' + U.icon("check") + " Crear Laboratorio</button></div>" +
         "</form>", { lg: true }
       );
       actualizarLabelDocumento(wrap, "pais", "nit");
       wrap.querySelector("#f_pais").addEventListener("change", function () { actualizarLabelDocumento(wrap, "pais", "nit"); });
       wrap.querySelector("#f_tipoContratacion").addEventListener("change", function () {
+        var esPrueba = this.value === "prueba_gratis";
         var esMembresia = this.value === "membresia_gratis";
-        wrap.querySelector("#nt-ciclo-box").classList.toggle("hidden", esMembresia);
+        wrap.querySelector("#nt-ciclo-box").classList.toggle("hidden", esMembresia || esPrueba);
         wrap.querySelector("#nt-meses-box").classList.toggle("hidden", !esMembresia);
+        wrap.querySelector("#nt-prueba-nota").classList.toggle("hidden", !esPrueba);
       });
+      wrap.querySelector("#nt-prueba-nota").classList.remove("hidden");
       wrap.querySelector("#tenant-form").addEventListener("submit", function (e) {
         e.preventDefault();
         var g = function (id) { return wrap.querySelector("#f_" + id).value.trim(); };
@@ -1768,24 +1819,33 @@
         var submitBtn = wrap.querySelector('button[type="submit"]');
         submitBtn.disabled = true; submitBtn.textContent = "Creando…";
         var planElegido = BIO_PLANES.porId(g("planId"));
-        var esMembresia = g("tipoContratacion") === "membresia_gratis";
+        var tipoContratacion = g("tipoContratacion");
+        var esMembresia = tipoContratacion === "membresia_gratis";
+        var esPrueba = tipoContratacion === "prueba_gratis";
         var cicloCobroDias = parseInt(g("cicloCobroDias"), 10) || 30;
         var mesesMembresia = parseInt(g("mesesMembresia"), 10) || 6;
+        var hoy = new Date();
+        var finPrueba = new Date(hoy.getTime() + BIO_PLANES.DIAS_PRUEBA_GRATIS * 864e5);
         S.provisionRealAccount({
           tenantData: {
             nombre: g("nombre"), nit: g("nit"), pais: g("pais"), direccion: g("direccion"), telefonos: g("telefonos"), telefonoFijo: g("telefonoFijo"), email: g("email"), nivel: parseInt(g("nivel"), 10),
             contactoNombre: g("adminNombre"),
             planId: planElegido ? planElegido.id : null, maxUsuarios: planElegido ? planElegido.limiteUsuarios : null,
-            cicloCobroDias: esMembresia ? null : cicloCobroDias, mesesMembresiaGratis: esMembresia ? mesesMembresia : null
+            cicloCobroDias: (esMembresia || esPrueba) ? null : cicloCobroDias, mesesMembresiaGratis: esMembresia ? mesesMembresia : null,
+            esPruebaGratis: esPrueba,
+            fechaInicioPrueba: esPrueba ? hoy.toISOString().slice(0, 10) : null,
+            fechaFinPrueba: esPrueba ? finPrueba.toISOString().slice(0, 10) : null
           },
           userData: { username: g("adminUser"), password: g("adminPass"), nombre: g("adminNombre"), rol: "admin", secciones: [] }
         }).then(function (res) {
-          U.toast("Laboratorio creado. Clave de administrador para correcciones: " + res.tenant.claveAdmin, "success");
+          U.toast(esPrueba
+            ? "Laboratorio creado en prueba gratis de " + BIO_PLANES.DIAS_PRUEBA_GRATIS + " días. Clave de administrador para correcciones: " + res.tenant.claveAdmin
+            : "Laboratorio creado. Clave de administrador para correcciones: " + res.tenant.claveAdmin, "success");
           U.closeModal(wrap);
           cargar();
           sincronizarConCRM(res.tenant).catch(function (err) { console.error("BIOsoft: no se pudo sincronizar con el CRM ->", err); });
           abrirBienvenidaLaboratorio(res.tenant, { username: g("adminUser"), password: g("adminPass") }, function () {
-            if (planElegido) abrirEnviarContrato(res.tenant);
+            if (planElegido && !esPrueba) abrirEnviarContrato(res.tenant);
           });
         }).catch(function (err) {
           submitBtn.disabled = false; submitBtn.textContent = "Crear Laboratorio";

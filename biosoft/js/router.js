@@ -152,10 +152,43 @@
     return { name: h[0] || "dashboard", param: h[1] };
   }
 
+  // Al vencer la prueba gratis de 3 días, se bloquea toda la operación del
+  // laboratorio (igual que "suspendido") hasta que elija un plan — mostramos
+  // esta pantalla en vez del contenido normal de CUALQUIER ruta, para que no
+  // haya forma de seguir usando el software sin pasar por aquí primero.
+  function renderPantallaPruebaVencida(tenant) {
+    var content = document.getElementById("content");
+    document.getElementById("topbar-title").textContent = "Tu prueba gratis terminó";
+    var msgBase = "Hola 👋 Terminé de probar BIOsoft gratis en " + tenant.nombre + " y quiero continuar";
+    var planesHtml = BIO_PLANES.PLANES.map(function (p) {
+      var mensaje = msgBase + " con el Plan " + p.nombre + ".";
+      return '<div class="card" style="' + (p.destacado ? "border-color:var(--primary);box-shadow:0 0 0 2px var(--primary) inset" : "") + '">' +
+        (p.destacado ? '<div class="badge badge-validado" style="margin-bottom:8px">Más elegido</div>' : "") +
+        '<h3 style="margin:0 0 2px">' + BIO_UI.esc(p.nombre) + '</h3>' +
+        '<p class="text-muted" style="margin:0 0 10px">' + BIO_UI.esc(p.usuarios) + '</p>' +
+        '<p style="margin:0 0 12px"><span style="font-size:26px;font-weight:800">$' + p.precioFmt + '</span> <span class="text-muted">COP/mes (≈$' + p.usd + ' USD)</span></p>' +
+        '<ul style="margin:0 0 16px;padding-left:18px;font-size:13px;line-height:1.6">' + p.items.map(function (it) { return "<li>" + BIO_UI.esc(it) + "</li>"; }).join("") + "</ul>" +
+        '<a class="btn btn-whatsapp btn-block" href="' + waLink(mensaje) + '" target="_blank" rel="noopener">' + BIO_UI.icon("send") + " Elegir Plan " + BIO_UI.esc(p.nombre) + "</a>" +
+        "</div>";
+    }).join("");
+    content.innerHTML =
+      '<div class="card" style="text-align:center;max-width:640px;margin:0 auto 20px">' +
+      '<h2 style="margin:0 0 8px">🎁 Tu prueba gratis de ' + BIO_PLANES.DIAS_PRUEBA_GRATIS + ' días terminó</h2>' +
+      '<p class="text-muted" style="margin:0">Todos los datos de ' + BIO_UI.esc(tenant.nombre) + ' (pacientes, órdenes, resultados) siguen guardados tal cual los dejaste. Elige un plan para seguir usándolos sin perder nada, o escríbenos si tienes dudas.</p>' +
+      '<a class="btn btn-outline" style="margin-top:14px" href="' + waLink(msgBase + ". ¿Me ayudan a elegir el plan que más me conviene?") + '" target="_blank" rel="noopener">' + BIO_UI.icon("send") + " Hablar con nosotros antes de elegir</a>" +
+      "</div>" +
+      '<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:16px;max-width:960px;margin:0 auto">' + planesHtml + "</div>";
+  }
+
   function renderRoute() {
     var session = BIO_AUTH.getSession();
     if (!session) { showLogin(); return; }
     var tenant = BIO_AUTH.currentTenant();
+    if (session.rol !== "superadmin" && tenant && BIO_PLANES.estadoCuenta(tenant) === "prueba_vencida") {
+      document.querySelectorAll(".nav-link").forEach(function (a) { a.classList.remove("active"); });
+      renderPantallaPruebaVencida(tenant);
+      return;
+    }
     var r = currentRoute();
     var allowed = ALLOWED_ROUTES[session.rol] || [];
     if (allowed.indexOf(r.name) === -1 || (RUTAS_SOLO_CO.indexOf(r.name) !== -1 && (!tenant || tenant.pais !== "CO"))) {
