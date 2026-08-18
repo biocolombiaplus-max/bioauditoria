@@ -63,7 +63,11 @@
       var contacto = [u.numeroDocumento ? "Doc. " + u.numeroDocumento : "", u.telefonoContacto || "", u.correoContacto || ""].filter(Boolean).join(" · ");
       return "<tr><td><b>" + U.esc(u.nombre) + "</b>" + (contacto ? "<div class='text-muted' style='font-size:11px'>" + U.esc(contacto) + "</div>" : "") + "</td><td>" + U.esc(u.username) + "</td><td>" + U.esc(C.rolLabel(u.rol, tenant && tenant.pais)) + "</td>" +
         "<td>" + (u.secciones && u.secciones.length ? u.secciones.map(function (s) { return C.seccionNombre(s, tenant); }).join(", ") : "—") +
-        (u.puedeGestionarRemisiones ? ' <span class="badge badge-preliminar" title="Puede gestionar remisiones a laboratorio de referencia">Remisiones</span>' : "") + "</td>" +
+        (u.puedeGestionarRemisiones ? ' <span class="badge badge-preliminar" title="Puede gestionar remisiones a laboratorio de referencia">Remisiones</span>' : "") +
+        (u.permisosExtra && u.permisosExtra.length ? u.permisosExtra.map(function (r) {
+          var p = C.PERMISOS_EXTRA_BACTERIOLOGO.filter(function (x) { return x.route === r; })[0];
+          return p ? ' <span class="badge badge-preliminar" title="Permiso adicional">' + U.esc(p.label) + "</span>" : "";
+        }).join("") : "") + "</td>" +
         "<td>" + (u.activo ? '<span class="badge badge-validado">Activo</span>' : '<span class="badge badge-pendiente">Inactivo</span>') + "</td>" +
         '<td><div class="flex gap-2"><button class="btn btn-ghost btn-sm" data-edit="' + u.id + '">' + U.icon("edit") + " Editar</button>" +
         '<button class="btn btn-outline btn-sm" data-toggle="' + u.id + '">' + (u.activo ? "Desactivar" : "Activar") + "</button></div></td></tr>";
@@ -86,6 +90,7 @@
             F.sel("rol", "Rol", ["admin", "bacteriologo", "recepcion"].map(function (r) { return '<option value="' + r + '" ' + (r === user.rol ? "selected" : "") + ">" + U.esc(C.rolLabel(r, tenant && tenant.pais)) + "</option>"; }).join("")) +
           "</div>" +
           '<div id="secciones-box" class="field"></div>' +
+          '<div id="permisos-extra-box" class="field"></div>' +
           '<div id="firma-box"></div>' +
           '<div class="flex gap-2 justify-between" style="margin-top:6px">' +
             '<button type="button" class="btn btn-ghost" data-modal-close>Cancelar</button>' +
@@ -103,6 +108,25 @@
             return '<div class="checkbox-row"><input type="checkbox" data-sec="' + s.id + '" ' + (checked ? "checked" : "") + '/><label style="margin:0">' + s.nombre + "</label></div>";
           }).join("") + "</div>" +
           '<div class="checkbox-row" style="margin-top:10px"><input type="checkbox" id="f_puedeGestionarRemisiones" ' + (user.puedeGestionarRemisiones ? "checked" : "") + '/><label style="margin:0" for="f_puedeGestionarRemisiones">Puede gestionar remisiones a laboratorio de referencia (generar Hoja de Remisión, marcar exámenes remitidos y cargar los resultados externos)</label></div>';
+      }
+      // Además de sus secciones, un Bacteriólogo(a)/Bioanalista puede recibir
+      // acceso a pantallas que normalmente son de Recepción/Administración
+      // (crear pacientes, crear órdenes, facturación, etc.) — útil en
+      // laboratorios pequeños donde la misma persona hace de todo. Se puede
+      // agregar o quitar en cualquier momento editando al usuario; "usuarios",
+      // "config" y "auditoría" nunca aparecen aquí, se quedan solo para
+      // Administrador.
+      function renderPermisosExtra() {
+        var rol = wrap.querySelector("#f_rol").value;
+        var box = wrap.querySelector("#permisos-extra-box");
+        if (rol !== "bacteriologo") { box.innerHTML = ""; return; }
+        var disponibles = C.PERMISOS_EXTRA_BACTERIOLOGO.filter(function (p) { return !p.soloCO || (tenant && tenant.pais === "CO"); });
+        box.innerHTML = "<label>Permisos adicionales (además de sus secciones)</label><div class='form-grid'>" +
+          disponibles.map(function (p) {
+            var checked = (user.permisosExtra || []).indexOf(p.route) !== -1;
+            return '<div class="checkbox-row"><input type="checkbox" data-permextra="' + p.route + '" ' + (checked ? "checked" : "") + '/><label style="margin:0">' + U.esc(p.label) + "</label></div>";
+          }).join("") + "</div>" +
+          '<p class="text-muted" style="margin:6px 0 0;font-size:12px">Marca solo lo que necesite este usuario en concreto — puedes agregar o quitar cualquiera de estos permisos después, editándolo de nuevo.</p>';
       }
       function renderFirma() {
         var rol = wrap.querySelector("#f_rol").value;
@@ -128,8 +152,9 @@
           reader.readAsDataURL(file);
         });
       }
-      wrap.querySelector("#f_rol").addEventListener("change", function () { renderSecciones(); renderFirma(); });
+      wrap.querySelector("#f_rol").addEventListener("change", function () { renderSecciones(); renderPermisosExtra(); renderFirma(); });
       renderSecciones();
+      renderPermisosExtra();
       renderFirma();
 
       wrap.querySelector("#user-form").addEventListener("submit", function (e) {
@@ -143,6 +168,11 @@
           puedeGestionarRemisiones: false
         };
         if (data.rol === "bacteriologo" && chkRemisiones) data.puedeGestionarRemisiones = chkRemisiones.checked;
+        if (data.rol === "bacteriologo") {
+          data.permisosExtra = Array.prototype.slice.call(wrap.querySelectorAll("[data-permextra]:checked")).map(function (c) { return c.dataset.permextra; });
+        } else {
+          data.permisosExtra = [];
+        }
         var pass = g("password");
         if (pass) data.password = pass;
         if (data.rol === "bacteriologo" || data.rol === "admin") {

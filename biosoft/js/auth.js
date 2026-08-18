@@ -24,7 +24,8 @@
     return {
       userId: user.id, username: user.username, nombre: user.nombre, rol: user.rol, tenantId: user.tenantId,
       secciones: user.secciones || [], fotoUrl: user.fotoUrl || "", iniciadoEn: BIO_STORE.nowISO(), real: !!esReal,
-      puedeGestionarRemisiones: !!user.puedeGestionarRemisiones
+      puedeGestionarRemisiones: !!user.puedeGestionarRemisiones,
+      permisosExtra: user.permisosExtra || []
     };
   }
 
@@ -108,6 +109,14 @@
     return false;
   }
 
+  /* Permiso adicional (ver catalog.js -> PERMISOS_EXTRA_BACTERIOLOGO), hoy
+     solo aplica a bacteriólogos con acceso extra a pantallas que
+     normalmente son de Recepción/Administración. */
+  function tienePermisoExtra(id) {
+    var s = getSession();
+    return !!(s && s.permisosExtra && s.permisosExtra.indexOf(id) !== -1);
+  }
+
   /* Envía el correo de restablecimiento de contraseña de Firebase. Por
      seguridad, nunca revela si el correo existe o no en el sistema: un
      "usuario no encontrado" se responde igual que un envío exitoso, para no
@@ -143,6 +152,7 @@
     rehydrate: rehydrate,
     currentTenant: currentTenant,
     isRole: isRole,
+    tienePermisoExtra: tienePermisoExtra,
     verificarClaveAdmin: verificarClaveAdmin,
     recuperarContrasena: recuperarContrasena
   };

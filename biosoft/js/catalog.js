@@ -615,6 +615,28 @@
     { id: "ninguno", nombre: "Aún no tengo proveedor", url: "" }
   ];
 
+  /* Un Bacteriólogo(a)/Bioanalista tiene por defecto un menú reducido
+     (Panel, Resultados, Hojas de Trabajo, Control de Calidad). Un
+     Administrador puede además habilitarle, uno por uno, acceso a otras
+     pantallas que normalmente son de Recepción/Administración — ej. para
+     que en un laboratorio pequeño la misma persona también reciba
+     pacientes y cree órdenes. Cada permiso queda guardado en
+     usuario.permisosExtra (arreglo de estos "route") y se puede quitar
+     igual de fácil editando al usuario. "usuarios", "config" y "auditoria"
+     no están en esta lista a propósito: manejar otros usuarios, la
+     configuración del laboratorio y la trazabilidad se quedan como
+     exclusivas del Administrador, sin importar los permisos extra. */
+  var PERMISOS_EXTRA_BACTERIOLOGO = [
+    { route: "pacientes", label: "Pacientes", icon: "users" },
+    { route: "ordenes", label: "Órdenes de Laboratorio", icon: "clipboard" },
+    { route: "reportes", label: "Reportes y Envíos", icon: "send" },
+    { route: "productividad", label: "Productividad Mensual", icon: "activity" },
+    { route: "cotizador", label: "Cotizaciones", icon: "file" },
+    { route: "marketing", label: "Marketing Digital", icon: "trending" },
+    { route: "inventario", label: "Inventario y Reactivos", icon: "layers" },
+    { route: "facturacion", label: "Facturación y RIPS", icon: "file", soloCO: true }
+  ];
+
   function seccionNombre(id, tenant) {
     var s = SECCIONES.filter(function (x) { return x.id === id; })[0];
     if (s) return s.nombre;
@@ -1179,6 +1201,7 @@
     documentoTributarioLabel: documentoTributarioLabel,
     normalizarDocumentoTributario: normalizarDocumentoTributario,
     SECCIONES: SECCIONES,
+    PERMISOS_EXTRA_BACTERIOLOGO: PERMISOS_EXTRA_BACTERIOLOGO,
     TUBOS: TUBOS,
     EXAMENES: EXAMENES,
     TIPOS_DOCUMENTO: TIPOS_DOCUMENTO,

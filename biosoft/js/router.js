@@ -54,6 +54,30 @@
     ]
   };
 
+  /* Un Bacteriólogo(a)/Bioanalista puede tener permisos extra (ver
+     catalog.js -> PERMISOS_EXTRA_BACTERIOLOGO, asignados por usuario desde
+     "Usuarios del Laboratorio") que le agregan pantallas de Recepción/
+     Administración a su menú corto de por defecto. Estas dos funciones
+     calculan el menú y las rutas permitidas de la sesión actual, en vez de
+     leer NAV/ALLOWED_ROUTES directo por rol. */
+  function permisosExtraDeSesion(session, tenant) {
+    if (session.rol !== "bacteriologo" || !session.permisosExtra || !session.permisosExtra.length) return [];
+    return BIO_CATALOG.PERMISOS_EXTRA_BACTERIOLOGO.filter(function (p) {
+      return session.permisosExtra.indexOf(p.route) !== -1 && (!p.soloCO || (tenant && tenant.pais === "CO"));
+    });
+  }
+  function navGrupos(session, tenant) {
+    var base = NAV[session.rol] || [];
+    var extra = permisosExtraDeSesion(session, tenant);
+    if (!extra.length) return base;
+    return base.concat([{ sec: "PERMISOS ADICIONALES", items: extra.map(function (p) { return { route: p.route, label: p.label, icon: p.icon }; }) }]);
+  }
+  function rutasPermitidas(session, tenant) {
+    var base = ALLOWED_ROUTES[session.rol] || [];
+    var extra = permisosExtraDeSesion(session, tenant).map(function (p) { return p.route; });
+    return extra.length ? base.concat(extra) : base;
+  }
+
   // El título del bacteriólogo/bioanalista y del auxiliar/asistente varía
   // según el país del laboratorio (ver BIO_CATALOG.rolLabel).
   function rolLabelTopbar(rol, tenant) {
@@ -98,7 +122,7 @@
       '<div class="sidebar-foot">BIOsoft™ · Impulsado por BIOMarketing<br/>Cumplimiento normativo CO · VE · EC</div>';
 
     var navHost = document.getElementById("sidebar-nav");
-    var groups = NAV[session.rol] || [];
+    var groups = navGrupos(session, tenant);
     var html = "";
     groups.forEach(function (g) {
       var items = g.items.filter(function (it) { return !it.soloCO || (tenant && tenant.pais === "CO"); });
@@ -190,7 +214,7 @@
       return;
     }
     var r = currentRoute();
-    var allowed = ALLOWED_ROUTES[session.rol] || [];
+    var allowed = rutasPermitidas(session, tenant);
     if (allowed.indexOf(r.name) === -1 || (RUTAS_SOLO_CO.indexOf(r.name) !== -1 && (!tenant || tenant.pais !== "CO"))) {
       r.name = allowed[0]; location.hash = "#/" + r.name;
     }

@@ -175,7 +175,7 @@
     function rowPatient(p) {
       return "<tr><td>" + p.tipoDocumento + " " + U.esc(p.numeroDocumento) + "</td><td>" + U.esc(U.nombreCompleto(p)) + "</td><td>" + U.calcEdad(p.fechaNacimiento) + "</td><td>" + p.sexo + "</td><td>" + U.esc(p.eps || "—") + "</td><td>" + U.esc(p.ciudad || "—") + "</td>" +
         '<td><div class="flex gap-2"><button class="btn btn-ghost btn-sm" data-edit="' + p.id + '">' + U.icon("edit") + " Editar</button>" +
-        (session.rol !== "bacteriologo" ? '<button class="btn btn-outline btn-sm" data-neworden="' + p.id + '">' + U.icon("plus") + " Orden</button>" : "") +
+        (session.rol !== "bacteriologo" || BIO_AUTH.tienePermisoExtra("ordenes") ? '<button class="btn btn-outline btn-sm" data-neworden="' + p.id + '">' + U.icon("plus") + " Orden</button>" : "") +
         "</div></td></tr>";
     }
   };
