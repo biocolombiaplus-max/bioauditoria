@@ -334,6 +334,85 @@
         });
       }
 
+      // ---------------------------------------------------------------
+      // Sugerencias rápidas para parámetros tipo "texto" (hoy solo
+      // "urocultivo" -> germenes más frecuentemente aislados en orina):
+      // a diferencia del panel de antibiograma/alergia, aquí no se arma una
+      // tabla de ítems — el clic simplemente escribe en el mismo textarea de
+      // siempre, que sigue siendo 100% editable a mano igual que antes.
+      // ---------------------------------------------------------------
+      function sugerenciasHtml(p) {
+        if (p.sugerencias !== "urocultivo") return "";
+        var catalogo = C.germenesUrinariosEfectivos(tenant);
+        var frecuentes = C.GERMENES_URINARIOS_FRECUENTES.map(function (cod) { return catalogo.filter(function (g) { return g.codigo === cod; })[0]; }).filter(Boolean);
+        return '<div style="margin-top:6px" data-sugerencias-box="' + p.codigo + '">' +
+          '<div class="flex gap-2 wrap" style="margin-bottom:6px">' +
+          '<button type="button" class="btn btn-outline btn-sm" data-germen-negativo="' + p.codigo + '">Negativo</button>' +
+          frecuentes.map(function (g) { return '<button type="button" class="btn btn-outline btn-sm" data-germen-sel="' + p.codigo + ":" + g.codigo + '">+ ' + U.esc(g.nombre) + "</button>"; }).join("") +
+          "</div>" +
+          '<div class="flex gap-2 wrap" style="margin-bottom:4px">' +
+          '<select data-germen-buscar="' + p.codigo + '" style="flex:1;min-width:180px;font-size:12.5px"><option value="">Buscar otro microorganismo…</option>' +
+          catalogo.map(function (g) { return '<option value="' + U.esc(g.codigo) + '">' + U.esc(g.nombre) + "</option>"; }).join("") +
+          "</select>" +
+          '<button type="button" class="btn btn-outline btn-sm" data-germen-addsel="' + p.codigo + '">Agregar</button>' +
+          "</div>" +
+          '<div class="flex gap-2 wrap">' +
+          '<input type="text" data-germen-nuevo="' + p.codigo + '" placeholder="¿No está en la lista? Escribe el nombre…" style="flex:1;min-width:180px;font-size:12.5px"/>' +
+          '<button type="button" class="btn btn-ghost btn-sm" data-germen-addnuevo="' + p.codigo + '">' + U.icon("plus") + " Agregar</button>" +
+          "</div></div>";
+      }
+
+      function wireSugerencias(p) {
+        var box = card.querySelector('[data-sugerencias-box="' + p.codigo + '"]');
+        var textarea = card.querySelector('[data-param="' + p.codigo + '"]');
+        if (!box || !textarea) return;
+
+        function aplicarGermen(nombre) {
+          // Si el bacteriólogo ya escribió algo a mano (ej. el recuento en
+          // UFC/mL), el germen se agrega al final en vez de borrarlo.
+          var actual = textarea.value.trim();
+          textarea.value = actual ? (actual + " — " + nombre) : nombre;
+          textarea.dispatchEvent(new Event("input"));
+          textarea.focus();
+        }
+
+        var btnNeg = box.querySelector("[data-germen-negativo]");
+        if (btnNeg) btnNeg.addEventListener("click", function () {
+          textarea.value = p.refText;
+          textarea.dispatchEvent(new Event("input"));
+          textarea.focus();
+        });
+        box.querySelectorAll("[data-germen-sel]").forEach(function (b) {
+          b.addEventListener("click", function () {
+            var codItem = b.dataset.germenSel.split(":")[1];
+            var item = C.germenesUrinariosEfectivos(tenant).filter(function (g) { return g.codigo === codItem; })[0];
+            if (item) aplicarGermen(item.nombre);
+          });
+        });
+        var selBuscar = box.querySelector("[data-germen-buscar]");
+        var btnAddSel = box.querySelector("[data-germen-addsel]");
+        if (btnAddSel) btnAddSel.addEventListener("click", function () {
+          if (!selBuscar.value) return;
+          var item = C.germenesUrinariosEfectivos(tenant).filter(function (g) { return g.codigo === selBuscar.value; })[0];
+          if (item) aplicarGermen(item.nombre);
+        });
+        var inpNuevo = box.querySelector("[data-germen-nuevo]");
+        var btnAddNuevo = box.querySelector("[data-germen-addnuevo]");
+        if (btnAddNuevo) btnAddNuevo.addEventListener("click", function () {
+          var nombre = inpNuevo.value.trim();
+          if (!nombre) { U.toast("Escribe el nombre antes de agregarlo.", "error"); return; }
+          var nuevo = C.crearGermenUrinarioPersonalizado(tenant, nombre);
+          S.updateTenant(tenant.id, { germenesUrinariosPersonalizados: tenant.germenesUrinariosPersonalizados });
+          aplicarGermen(nuevo.nombre);
+          // Refresca el buscador para que el nuevo microorganismo quede
+          // disponible ahí mismo la próxima vez, sin perder lo que el
+          // bacteriólogo ya escribió en el textarea.
+          box.outerHTML = sugerenciasHtml(p);
+          wireSugerencias(p);
+          U.toast('Microorganismo "' + nombre + '" agregado al catálogo del laboratorio.', "success");
+        });
+      }
+
       function renderCapturaNormal() {
         var parametrosPanel = exCat.parametros.filter(function (p) { return p.tipo === "panel"; });
         var rowsHtml = exCat.parametros.filter(function (p) { return p.tipo !== "panel"; }).map(function (p) {
@@ -346,7 +425,8 @@
             inputHtml = '<select data-param="' + p.codigo + '" ' + (!editable ? "disabled" : "") + '><option value="">— Seleccionar —</option>' +
               p.opciones.map(function (o) { return '<option ' + (o === val ? "selected" : "") + ">" + o + "</option>"; }).join("") + "</select>";
           } else {
-            inputHtml = '<textarea data-param="' + p.codigo + '" ' + (!editable ? "disabled" : "") + ">" + U.esc(val) + "</textarea>";
+            inputHtml = '<textarea data-param="' + p.codigo + '" ' + (!editable ? "disabled" : "") + ">" + U.esc(val) + "</textarea>" +
+              (editable && p.sugerencias ? sugerenciasHtml(p) : "");
           }
           // Cuando hay más de un rango que aplica igual al paciente (ej. las
           // fases del ciclo menstrual, que no se distinguen solo por
@@ -395,6 +475,7 @@
         });
 
         parametrosPanel.forEach(wirePanelBox);
+        exCat.parametros.filter(function (p) { return p.tipo === "texto" && p.sugerencias && editable; }).forEach(wireSugerencias);
 
         function collectValues() {
           return exCat.parametros.map(function (p) {

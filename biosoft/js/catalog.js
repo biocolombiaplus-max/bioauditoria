@@ -84,8 +84,12 @@
   function desc(codigo, nombre, opciones, refText) {
     return { codigo: codigo, nombre: nombre, unidad: "", tipo: "descriptivo", opciones: opciones, refText: refText || "" };
   }
-  function texto(codigo, nombre, refText) {
-    return { codigo: codigo, nombre: nombre, unidad: "", tipo: "texto", refText: refText || "" };
+  /* sugerencias (opcional): activa, sobre el textarea de este parámetro, un
+     bloque de selección rápida de un catálogo maestro (ver más abajo,
+     ej. "urocultivo" -> germenes más frecuentemente aislados en orina) —
+     el bacteriólogo sigue pudiendo escribir libremente, es solo un atajo. */
+  function texto(codigo, nombre, refText, sugerencias) {
+    return { codigo: codigo, nombre: nombre, unidad: "", tipo: "texto", refText: refText || "", sugerencias: sugerencias || null };
   }
   /* Parámetro tipo "panel": en vez de un único valor, el bacteriólogo elige
      un subconjunto de ítems de un catálogo maestro (antibióticos o
@@ -336,7 +340,7 @@
 
     // ---------------- MICROBIOLOGÍA Y BACTERIOLOGÍA ----------------
     { id: "MIC-001", seccion: "microbiologia", nombre: "Urocultivo y Antibiograma", cups: "907310", nivel: 1, muestra: "Orina limpia / sondaje", metodo: "Cultivo en agar CLED + antibiograma", tubo: "orina",
-      parametros: [texto("UROCULT", "Recuento y germen aislado", "< 10.000 UFC/mL — Sin crecimiento significativo"), panel("ATB", "Antibiograma", "antibiograma", "Sensible / Intermedio / Resistente según CLSI vigente")] },
+      parametros: [texto("UROCULT", "Recuento y germen aislado", "< 10.000 UFC/mL — Sin crecimiento significativo", "urocultivo"), panel("ATB", "Antibiograma", "antibiograma", "Sensible / Intermedio / Resistente según CLSI vigente")] },
     { id: "MIC-002", seccion: "microbiologia", nombre: "Coprocultivo", cups: "907320", nivel: 2, muestra: "Materia fecal", metodo: "Cultivo selectivo (SS, XLD, Mac Conkey)", tubo: "heces",
       parametros: [texto("COPROCULT", "Germen aislado", "Flora habitual, no se aíslan patógenos")] },
     { id: "MIC-003", seccion: "microbiologia", nombre: "Cultivo de Secreción Vaginal", cups: "907330", nivel: 1, muestra: "Secreción vaginal", metodo: "Cultivo + Gram", tubo: "hisopo",
@@ -747,6 +751,43 @@
     var codigo = "ALG_" + Date.now().toString(36).toUpperCase().slice(-6);
     var nuevo = { codigo: codigo, nombre: base };
     tenant.alergenosPersonalizados.push(nuevo);
+    return nuevo;
+  }
+
+  /* Microorganismos más frecuentemente aislados en urocultivo (uropatógenos
+     comunitarios y nosocomiales), para la selección rápida del campo
+     "Recuento y germen aislado" — igual patrón que antibióticos/alérgenos:
+     catálogo base + los que cada laboratorio agregue quedan disponibles para
+     la próxima vez. Frecuencia relativa según la bibliografía de
+     microbiología clínica de uso general en Colombia; no reemplaza el
+     criterio del bacteriólogo sobre el caso concreto. */
+  var GERMENES_URINARIOS_BASE = [
+    { codigo: "ECOLI", nombre: "Escherichia coli" },
+    { codigo: "KPNEU", nombre: "Klebsiella pneumoniae" },
+    { codigo: "PMIRA", nombre: "Proteus mirabilis" },
+    { codigo: "EFAEC", nombre: "Enterococcus faecalis" },
+    { codigo: "SSAPR", nombre: "Staphylococcus saprophyticus" },
+    { codigo: "PAERU", nombre: "Pseudomonas aeruginosa" },
+    { codigo: "KOXY", nombre: "Klebsiella oxytoca" },
+    { codigo: "ECLOA", nombre: "Enterobacter cloacae" },
+    { codigo: "CFREU", nombre: "Citrobacter freundii" },
+    { codigo: "SAUR", nombre: "Staphylococcus aureus" },
+    { codigo: "SAGAL", nombre: "Streptococcus agalactiae (Grupo B)" },
+    { codigo: "CALB", nombre: "Candida albicans" }
+  ];
+  var GERMENES_URINARIOS_FRECUENTES = ["ECOLI", "KPNEU", "PMIRA", "EFAEC", "SSAPR", "PAERU", "SAUR", "CALB"];
+
+  function germenesUrinariosEfectivos(tenant) {
+    return tenant && tenant.germenesUrinariosPersonalizados && tenant.germenesUrinariosPersonalizados.length ? GERMENES_URINARIOS_BASE.concat(tenant.germenesUrinariosPersonalizados) : GERMENES_URINARIOS_BASE;
+  }
+  function crearGermenUrinarioPersonalizado(tenant, nombre) {
+    tenant.germenesUrinariosPersonalizados = tenant.germenesUrinariosPersonalizados || [];
+    var base = (nombre || "").trim();
+    var existente = germenesUrinariosEfectivos(tenant).filter(function (g) { return g.nombre.toLowerCase() === base.toLowerCase(); })[0];
+    if (existente) return existente;
+    var codigo = "GUR_" + Date.now().toString(36).toUpperCase().slice(-6);
+    var nuevo = { codigo: codigo, nombre: base };
+    tenant.germenesUrinariosPersonalizados.push(nuevo);
     return nuevo;
   }
 
@@ -1195,6 +1236,9 @@
     crearAntibioticoPersonalizado: crearAntibioticoPersonalizado,
     alergenosEfectivos: alergenosEfectivos,
     crearAlergenoPersonalizado: crearAlergenoPersonalizado,
+    GERMENES_URINARIOS_FRECUENTES: GERMENES_URINARIOS_FRECUENTES,
+    germenesUrinariosEfectivos: germenesUrinariosEfectivos,
+    crearGermenUrinarioPersonalizado: crearGermenUrinarioPersonalizado,
     panelCatalogo: panelCatalogo,
     panelFrecuentes: panelFrecuentes,
     panelAgregarPersonalizado: panelAgregarPersonalizado,
