@@ -1,5 +1,32 @@
 # Interfaz BIOsoft ↔ Equipos de Laboratorio (Módulo LIS)
 
+## Investigación pública sobre 3 equipos concretos (Dymind DF52, Dirui CS-T240, Maglumi 800)
+
+Antes de una visita real a un cliente con estos tres equipos, se buscó
+documentación pública sobre su interfaz de comunicación. Esto es lo que
+se encontró — basado en documentación de terceros e información general
+del fabricante, **no verificado contra los equipos físicos**:
+
+- **Dymind DF52 (y familia DF5x/DH5x de hematología):** la documentación
+  pública de Dymind indica que estos equipos usan **HL7 v2.3.1 sobre TCP**
+  (conexión persistente), NO el protocolo ASTM E1394. Para este equipo usa
+  `capturar-hl7.js`, no `capturar.js`/`capturar-tcp.js`.
+- **Dirui CS-T240:** la documentación indica integración LIS/EMR
+  bidireccional "vía interfaces estándar", con opciones de red y USB — no
+  se encontró confirmación pública de si además tiene salida serial RS-232
+  clásica (ASTM) o si es exclusivamente por red. Prueba primero
+  `capturar.js` (serial) por ser lo más común en analizadores de química
+  de esta gama; si no aparece nada, prueba `capturar-tcp.js` (red).
+- **Maglumi 800:** la documentación indica soporte de **ambos** — RS-232 y
+  TCP/IP, usando protocolo **ASTM E1394**. Este es el más alineado con lo
+  que ya está construido: prueba `capturar-tcp.js` (o `capturar.js` si
+  tiene puerto serial).
+
+**Esto NO reemplaza la prueba real** — es la mejor pista disponible antes
+de llegar al sitio, para saber qué herramienta probar primero en cada
+equipo y ahorrar tiempo en la visita.
+
+
 Middleware de referencia que conecta un analizador de laboratorio (química,
 hematología, inmunoensayo/quimioluminiscencia, etc.) directamente con
 BIOsoft, para que los resultados lleguen automáticamente en vez de
