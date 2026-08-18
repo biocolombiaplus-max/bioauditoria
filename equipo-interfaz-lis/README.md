@@ -131,6 +131,22 @@ aparecen mensajes con pinta de tabla de resultados (parámetro, valor,
 unidad), la conexión funciona — guarda el archivo `.log` que se genera,
 con eso se construye el mapeo definitivo de esa marca/modelo.
 
+## Practicar SIN el equipo real (antes de tu primera visita a un cliente)
+
+`simulador-equipo.js` se conecta a `capturar-tcp.js` y envía un mensaje
+ASTM de práctica (con datos inventados, no de ningún equipo real) — así
+puedes ver el flujo completo funcionando en tu propio computador, sin
+necesitar el analizador físico. Ideal para familiarizarte con la
+herramienta el día antes de una visita.
+
+Dos terminales abiertas en esta carpeta:
+```
+Terminal 1:  node capturar-tcp.js servidor 5000
+Terminal 2:  node simulador-equipo.js
+```
+En la Terminal 1 debería aparecer un "MENSAJE COMPLETO" con datos de
+ejemplo — así sabes exactamente qué esperar cuando sí sea el equipo real.
+
 ## Instalación
 
 1. **En BIOsoft:** Configuración del Laboratorio → "Equipos Conectados" →
