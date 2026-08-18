@@ -1,2 +1,4 @@
 config.json
+config-hl7.json
 node_modules/
+captura_*.log

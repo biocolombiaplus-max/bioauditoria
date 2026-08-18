@@ -1,0 +1,19 @@
+{
+  "_comentario": "Copia este archivo a config-hl7.json (sin el _comentario) y completa los valores reales. NUNCA subas config-hl7.json a git — ya está en .gitignore.",
+
+  "tenantId": "ID-DE-TU-LABORATORIO",
+  "_tenantId_donde_lo_saco": "Configuración del Laboratorio -> Equipos Conectados -> al registrar el equipo, se muestra el 'ID del Laboratorio (tenantId)'.",
+
+  "nombreEquipo": "Dymind DF52 — Hematología",
+  "_nombreEquipo_donde_lo_saco": "El mismo nombre que le pusiste al registrar el equipo en BIOsoft.",
+
+  "archivoMapeo": "mapeo-generico-hl7-template",
+  "_archivoMapeo_ojo": "Nombre del archivo (sin .js) con el mapeo de parámetros de TU equipo HL7. Copia mapeo-generico-hl7-template.js a un archivo nuevo (ej. dymind-df52-map.js), complétalo con los códigos reales que confirmes con capturar-hl7.js (ver README.md) y pon aquí ese nombre.",
+
+  "usuarioEmail": "interfaz.dymind@tu-laboratorio.com",
+  "usuarioPassword": "CAMBIA-ESTA-CLAVE",
+  "_usuario_como_crearlo": "En BIOsoft: Usuarios del Laboratorio -> Nuevo Usuario -> rol Bacteriólogo(a), asignado SOLO a la sección correspondiente. Dedica ese usuario exclusivamente a este middleware (no lo use una persona).",
+
+  "puerto": 5001,
+  "_puerto_ojo": "Puerto TCP donde este middleware escucha — el mismo que configures en el equipo como 'servidor LIS'/'Host'."
+}
