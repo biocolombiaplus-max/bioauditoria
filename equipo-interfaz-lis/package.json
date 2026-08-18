@@ -6,6 +6,7 @@
   "main": "index.js",
   "scripts": {
     "start": "node index.js",
+    "capturar": "node capturar.js",
     "test": "node test/astm-parser.test.js && node test/mapping.test.js"
   },
   "dependencies": {

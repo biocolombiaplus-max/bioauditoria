@@ -111,6 +111,26 @@ Esto es igual sin importar la marca del equipo — lo único que cambia por
 equipo es el archivo de mapeo de parámetros (punto 2 de la sección
 anterior).
 
+## Paso 0 — Primera prueba en sitio (recomendado, antes de instalar nada más)
+
+Antes de configurar `config.json` ni tocar BIOsoft, usa `capturar.js`: no
+necesita usuario ni clave de BIOsoft, solo abre el puerto serial y muestra
+(y guarda en un archivo `.log`) exactamente lo que transmite el equipo.
+Es la forma más rápida y de menor riesgo de confirmar, frente al cliente,
+si la conexión funciona:
+
+```
+npm install
+node capturar.js                # sin argumentos: lista los puertos disponibles
+node capturar.js COM3           # Windows — reemplaza COM3 por el puerto real
+node capturar.js /dev/ttyUSB0 9600   # Linux/Mac, con baudios explícitos
+```
+
+Corre una muestra de control en el equipo real y observa la consola. Si
+aparecen mensajes con pinta de tabla de resultados (parámetro, valor,
+unidad), la conexión funciona — guarda el archivo `.log` que se genera,
+con eso se construye el mapeo definitivo de esa marca/modelo.
+
 ## Instalación
 
 1. **En BIOsoft:** Configuración del Laboratorio → "Equipos Conectados" →
