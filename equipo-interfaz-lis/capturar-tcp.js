@@ -72,17 +72,22 @@ function wireReceiver(socket, etiqueta) {
 }
 
 if (modo === "servidor") {
-  const puerto = parseInt(process.argv[3], 10) || 5000;
-  const server = net.createServer((socket) => {
-    log(`[Captura TCP] Equipo conectado desde ${socket.remoteAddress}:${socket.remotePort}`);
-    wireReceiver(socket, "Servidor");
+  // Acepta uno o varios puertos separados por coma (ej. "5000,5001,3000,6001")
+  // — así, si no sabes con certeza qué puerto va a usar el equipo, escuchas
+  // en varios comunes a la vez y no importa cuál elija.
+  const puertos = (process.argv[3] || "5000").split(",").map((p) => parseInt(p.trim(), 10)).filter(Boolean);
+  puertos.forEach((puerto) => {
+    const server = net.createServer((socket) => {
+      log(`[Captura TCP] Equipo conectado desde ${socket.remoteAddress}:${socket.remotePort} (puerto local ${puerto})`);
+      wireReceiver(socket, `Servidor:${puerto}`);
+    });
+    server.listen(puerto, () => {
+      log(`[Captura TCP] Escuchando en el puerto ${puerto}.`);
+    });
+    server.on("error", (e) => log(`[Captura TCP] ERROR al escuchar en ${puerto}: ${e.message} (¿otro programa ya está usando ese puerto?)`));
   });
-  server.listen(puerto, () => {
-    log(`[Captura TCP] Escuchando en el puerto ${puerto}.`);
-    log(`[Captura TCP] IP(s) de esta computadora, para configurar en el equipo: ${ipsLocales().join(", ") || "(no se detectó ninguna red activa)"}`);
-    log(`[Captura TCP] Ahora configura esa IP y el puerto ${puerto} como "servidor LIS" en el equipo, y corre una muestra.\n`);
-  });
-  server.on("error", (e) => log(`[Captura TCP] ERROR al escuchar: ${e.message} (¿otro programa ya está usando ese puerto?)`));
+  log(`[Captura TCP] IP(s) de esta computadora, para configurar en el equipo: ${ipsLocales().join(", ") || "(no se detectó ninguna red activa)"}`);
+  log(`[Captura TCP] Puerto(s) escuchando: ${puertos.join(", ")}. Configura esa IP y CUALQUIERA de esos puertos como "servidor LIS" en el equipo, y corre una muestra.\n`);
 } else if (modo === "cliente") {
   const ip = process.argv[3];
   const puerto = parseInt(process.argv[4], 10) || 5000;
@@ -94,9 +99,11 @@ if (modo === "servidor") {
   socket.on("error", (e) => log(`[Captura TCP] No se pudo conectar a ${ip}:${puerto} -> ${e.message}`));
 } else {
   console.log("Uso:");
-  console.log("  node capturar-tcp.js servidor [puerto]           (por defecto 5000 — el equipo se conecta a esta computadora)");
+  console.log("  node capturar-tcp.js servidor [puerto(s)]        (por defecto 5000 — el equipo se conecta a esta computadora)");
+  console.log("                                                    puedes pasar varios separados por coma: servidor 5000,5001,3000,6001");
   console.log("  node capturar-tcp.js cliente <ip> <puerto>       (esta computadora se conecta al equipo)");
   console.log("\nSi no sabes cuál modo usa tu equipo, prueba primero 'servidor' — es el más común.");
+  console.log("Si tampoco sabes el puerto, corre: node capturar-tcp.js servidor 5000,5001,3000,6001,9100,1500 — así escuchas en varios comunes a la vez.");
 }
 
 process.on("SIGINT", () => {

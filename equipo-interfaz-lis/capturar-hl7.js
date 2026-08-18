@@ -103,17 +103,19 @@ function wireReceiver(socket, etiqueta) {
 }
 
 if (modo === "servidor") {
-  const puerto = parseInt(process.argv[3], 10) || 5001;
-  const server = net.createServer((socket) => {
-    log(`[Captura HL7] Equipo conectado desde ${socket.remoteAddress}:${socket.remotePort}`);
-    wireReceiver(socket, "Servidor");
+  // Igual que capturar-tcp.js: acepta uno o varios puertos separados por
+  // coma, para escuchar en varios a la vez si no sabes cuál usa el equipo.
+  const puertos = (process.argv[3] || "5001").split(",").map((p) => parseInt(p.trim(), 10)).filter(Boolean);
+  puertos.forEach((puerto) => {
+    const server = net.createServer((socket) => {
+      log(`[Captura HL7] Equipo conectado desde ${socket.remoteAddress}:${socket.remotePort} (puerto local ${puerto})`);
+      wireReceiver(socket, `Servidor:${puerto}`);
+    });
+    server.listen(puerto, () => log(`[Captura HL7] Escuchando en el puerto ${puerto}.`));
+    server.on("error", (e) => log(`[Captura HL7] ERROR al escuchar en ${puerto}: ${e.message} (¿otro programa ya está usando ese puerto?)`));
   });
-  server.listen(puerto, () => {
-    log(`[Captura HL7] Escuchando en el puerto ${puerto}.`);
-    log(`[Captura HL7] IP(s) de esta computadora, para configurar en el equipo: ${ipsLocales().join(", ") || "(no se detectó ninguna red activa)"}`);
-    log(`[Captura HL7] Configura esa IP y el puerto ${puerto} como "servidor LIS"/"Host" en el equipo, y corre una muestra.\n`);
-  });
-  server.on("error", (e) => log(`[Captura HL7] ERROR al escuchar: ${e.message} (¿otro programa ya está usando ese puerto?)`));
+  log(`[Captura HL7] IP(s) de esta computadora, para configurar en el equipo: ${ipsLocales().join(", ") || "(no se detectó ninguna red activa)"}`);
+  log(`[Captura HL7] Puerto(s) escuchando: ${puertos.join(", ")}. Configura esa IP y CUALQUIERA de esos puertos como "servidor LIS"/"Host" en el equipo, y corre una muestra.\n`);
 } else if (modo === "cliente") {
   const ip = process.argv[3];
   const puerto = parseInt(process.argv[4], 10) || 5001;
