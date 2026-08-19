@@ -14,6 +14,15 @@
     return session.secciones.indexOf(seccion) !== -1;
   }
 
+  /* Validar y firmar un resultado es un acto clínico — se queda SIEMPRE
+     exclusivo de Administrador y Bacteriólogo(a)/Bioanalista, sin importar
+     qué permisos adicionales tenga un usuario de Recepción/Auxiliar. Ese
+     perfil puede guardar borrador o marcar preliminar (ver puedeEditar),
+     pero nunca ve el botón de validar. */
+  function puedeValidar(session) {
+    return session.rol === "admin" || session.rol === "superadmin" || session.rol === "bacteriologo";
+  }
+
   function tuboChip(tuboKey) {
     var t = C.tuboInfo(tuboKey);
     return '<span class="chip" style="background:#fff"><span style="width:10px;height:10px;border-radius:50%;background:' + t.color + ';display:inline-block"></span>' + U.esc(t.nombre) + "</span>";
@@ -30,7 +39,7 @@
       var rows = [];
       orders.forEach(function (o) {
         o.examenes.forEach(function (ex, idx) {
-          if (!puedeEditar(session, ex.seccion) && session.rol === "bacteriologo") return;
+          if (!puedeEditar(session, ex.seccion)) return;
           rows.push({ order: o, ex: ex, idx: idx });
         });
       });
@@ -441,8 +450,10 @@
             (flag.texto ? '<span class="flag-' + flag.clase + '">' + U.esc(flag.texto) + "</span>" : "") + "</td></tr>";
         }).join("");
 
+        var puedeFirmar = puedeValidar(session);
         card.innerHTML = headerHtml() +
           (!editable ? '<p class="text-muted">Esta sección no está asignada a tu usuario. Solo lectura.</p>' : "") +
+          (editable && !puedeFirmar ? '<p class="text-muted" style="font-size:12.5px">✍️ Puedes guardar el resultado como borrador o preliminar — la validación y firma final le corresponde a un Bacteriólogo(a)/Bioanalista.</p>' : "") +
           (editable ? '<div class="checkbox-row" style="margin-bottom:12px"><input type="checkbox" id="chk-remitido"/><label style="margin:0" for="chk-remitido">Este examen se remite a un laboratorio externo (no se procesa en este laboratorio)</label></div>' : "") +
           (rowsHtml ? '<div class="table-wrap"><table><thead><tr><th>Parámetro</th><th>Resultado</th><th>Unidad</th><th>Valor de referencia</th><th>Interpretación</th></tr></thead><tbody>' + rowsHtml + "</tbody></table></div>" : "") +
           parametrosPanel.map(panelBoxHtml).join("") +
@@ -450,7 +461,7 @@
           '<div class="flex gap-2 wrap" style="margin-top:10px">' +
           (editable ? '<button class="btn btn-outline btn-sm" data-action="borrador">Guardar borrador</button>' : "") +
           (editable ? '<button class="btn btn-outline btn-sm" data-action="preliminar">Guardar como preliminar</button>' : "") +
-          (editable ? '<button class="btn btn-primary btn-sm" data-action="validar">' + U.icon("check") + " Validar y Firmar</button>" : "") +
+          (editable && puedeFirmar ? '<button class="btn btn-primary btn-sm" data-action="validar">' + U.icon("check") + " Validar y Firmar</button>" : "") +
           "</div>";
 
         var chk = card.querySelector("#chk-remitido");

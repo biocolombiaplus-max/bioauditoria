@@ -61,8 +61,11 @@
      calculan el menú y las rutas permitidas de la sesión actual, en vez de
      leer NAV/ALLOWED_ROUTES directo por rol. */
   function permisosExtraDeSesion(session, tenant) {
-    if (session.rol !== "bacteriologo" || !session.permisosExtra || !session.permisosExtra.length) return [];
-    return BIO_CATALOG.PERMISOS_EXTRA_BACTERIOLOGO.filter(function (p) {
+    var catalogo = session.rol === "bacteriologo" ? BIO_CATALOG.PERMISOS_EXTRA_BACTERIOLOGO
+      : session.rol === "recepcion" ? BIO_CATALOG.PERMISOS_EXTRA_RECEPCION
+      : null;
+    if (!catalogo || !session.permisosExtra || !session.permisosExtra.length) return [];
+    return catalogo.filter(function (p) {
       return session.permisosExtra.indexOf(p.route) !== -1 && (!p.soloCO || (tenant && tenant.pais === "CO"));
     });
   }
@@ -70,7 +73,7 @@
     var base = NAV[session.rol] || [];
     var extra = permisosExtraDeSesion(session, tenant);
     if (!extra.length) return base;
-    return base.concat([{ sec: "PERMISOS ADICIONALES", items: extra.map(function (p) { return { route: p.route, label: p.label, icon: p.icon }; }) }]);
+    return base.concat([{ sec: "PERMISOS ADICIONALES", items: extra.map(function (p) { return { route: p.route, label: p.navLabel || p.label, icon: p.icon }; }) }]);
   }
   function rutasPermitidas(session, tenant) {
     var base = ALLOWED_ROUTES[session.rol] || [];

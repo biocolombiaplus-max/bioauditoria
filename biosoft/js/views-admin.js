@@ -65,7 +65,7 @@
         "<td>" + (u.secciones && u.secciones.length ? u.secciones.map(function (s) { return C.seccionNombre(s, tenant); }).join(", ") : "—") +
         (u.puedeGestionarRemisiones ? ' <span class="badge badge-preliminar" title="Puede gestionar remisiones a laboratorio de referencia">Remisiones</span>' : "") +
         (u.permisosExtra && u.permisosExtra.length ? u.permisosExtra.map(function (r) {
-          var p = C.PERMISOS_EXTRA_BACTERIOLOGO.filter(function (x) { return x.route === r; })[0];
+          var p = C.PERMISOS_EXTRA_BACTERIOLOGO.concat(C.PERMISOS_EXTRA_RECEPCION).filter(function (x) { return x.route === r; })[0];
           return p ? ' <span class="badge badge-preliminar" title="Permiso adicional">' + U.esc(p.label) + "</span>" : "";
         }).join("") : "") + "</td>" +
         "<td>" + (u.activo ? '<span class="badge badge-validado">Activo</span>' : '<span class="badge badge-pendiente">Inactivo</span>') + "</td>" +
@@ -101,13 +101,14 @@
       function renderSecciones() {
         var rol = wrap.querySelector("#f_rol").value;
         var box = wrap.querySelector("#secciones-box");
-        if (rol !== "bacteriologo") { box.innerHTML = ""; return; }
-        box.innerHTML = "<label>Secciones que puede capturar y validar</label><div class='form-grid'>" +
+        if (rol !== "bacteriologo" && rol !== "recepcion") { box.innerHTML = ""; return; }
+        var etiqueta = rol === "bacteriologo" ? "Secciones que puede capturar y validar" : "Secciones en las que puede ingresar resultados (solo si además tiene el permiso adicional \"Resultados\" — nunca puede validar/firmar)";
+        box.innerHTML = "<label>" + etiqueta + "</label><div class='form-grid'>" +
           C.seccionesEfectivas(tenant).map(function (s) {
             var checked = (user.secciones || []).indexOf(s.id) !== -1;
             return '<div class="checkbox-row"><input type="checkbox" data-sec="' + s.id + '" ' + (checked ? "checked" : "") + '/><label style="margin:0">' + s.nombre + "</label></div>";
           }).join("") + "</div>" +
-          '<div class="checkbox-row" style="margin-top:10px"><input type="checkbox" id="f_puedeGestionarRemisiones" ' + (user.puedeGestionarRemisiones ? "checked" : "") + '/><label style="margin:0" for="f_puedeGestionarRemisiones">Puede gestionar remisiones a laboratorio de referencia (generar Hoja de Remisión, marcar exámenes remitidos y cargar los resultados externos)</label></div>';
+          (rol === "bacteriologo" ? '<div class="checkbox-row" style="margin-top:10px"><input type="checkbox" id="f_puedeGestionarRemisiones" ' + (user.puedeGestionarRemisiones ? "checked" : "") + '/><label style="margin:0" for="f_puedeGestionarRemisiones">Puede gestionar remisiones a laboratorio de referencia (generar Hoja de Remisión, marcar exámenes remitidos y cargar los resultados externos)</label></div>' : "");
       }
       // Además de sus secciones, un Bacteriólogo(a)/Bioanalista puede recibir
       // acceso a pantallas que normalmente son de Recepción/Administración
@@ -119,8 +120,9 @@
       function renderPermisosExtra() {
         var rol = wrap.querySelector("#f_rol").value;
         var box = wrap.querySelector("#permisos-extra-box");
-        if (rol !== "bacteriologo") { box.innerHTML = ""; return; }
-        var disponibles = C.PERMISOS_EXTRA_BACTERIOLOGO.filter(function (p) { return !p.soloCO || (tenant && tenant.pais === "CO"); });
+        var catalogo = rol === "bacteriologo" ? C.PERMISOS_EXTRA_BACTERIOLOGO : rol === "recepcion" ? C.PERMISOS_EXTRA_RECEPCION : null;
+        if (!catalogo) { box.innerHTML = ""; return; }
+        var disponibles = catalogo.filter(function (p) { return !p.soloCO || (tenant && tenant.pais === "CO"); });
         box.innerHTML = "<label>Permisos adicionales (además de sus secciones)</label><div class='form-grid'>" +
           disponibles.map(function (p) {
             var checked = (user.permisosExtra || []).indexOf(p.route) !== -1;
@@ -168,7 +170,7 @@
           puedeGestionarRemisiones: false
         };
         if (data.rol === "bacteriologo" && chkRemisiones) data.puedeGestionarRemisiones = chkRemisiones.checked;
-        if (data.rol === "bacteriologo") {
+        if (data.rol === "bacteriologo" || data.rol === "recepcion") {
           data.permisosExtra = Array.prototype.slice.call(wrap.querySelectorAll("[data-permextra]:checked")).map(function (c) { return c.dataset.permextra; });
         } else {
           data.permisosExtra = [];
@@ -1021,6 +1023,10 @@
         '<p class="text-muted" style="margin:6px 0 0;font-size:12.5px">Ajusta aquí el color del texto del menú, de los títulos de cada sección (como "Identidad y Datos del Laboratorio") y de los subtítulos de cada recuadro (como "Marca e Identidad Visual") — todo se actualiza al instante en esta misma pantalla para que veas cómo queda antes de guardar.</p>' +
         '<div id="logo-preview" style="margin-top:8px">' + (logoTemp ? '<img src="' + logoTemp + '" style="height:52px;border-radius:8px"/>' : '<span class="text-muted">Sin logo cargado</span>') + "</div>" +
         "</fieldset>" +
+        '<fieldset><legend>Operación</legend>' +
+        '<div class="checkbox-row"><input type="checkbox" id="f_mostrarPrecioOrden" ' + (tenant.mostrarPrecioOrden ? "checked" : "") + '/><label style="margin:0" for="f_mostrarPrecioOrden">Permitir indicar el valor a cobrar al crear una orden</label></div>' +
+        '<p class="text-muted" style="margin:4px 0 0;font-size:12.5px">Actívalo si en tu laboratorio la persona que recibe al paciente (Recepción, un Bacteriólogo(a) o cualquiera que registre la orden) también le informa cuánto debe pagar en ese momento. Se queda desactivado por defecto — actívalo solo si lo necesitas.</p>' +
+        "</fieldset>" +
         '<fieldset><legend>Seguridad — Clave de Administrador para Correcciones</legend>' +
         '<p class="text-muted" style="margin-top:0">Esta clave se solicita cuando un bacteriólogo necesita corregir un resultado ya validado, garantizando trazabilidad y control.</p>' +
         '<div class="form-grid">' +
@@ -1089,6 +1095,7 @@
       tenant.telefonos = g("telefonos"); tenant.email = g("email"); tenant.sitioWeb = g("sitioWeb");
       tenant.resolucionHabilitacion = g("resolucionHabilitacion"); tenant.codigoREPS = g("codigoREPS"); tenant.nivel = parseInt(g("nivel"), 10);
       tenant.bacteriologoResponsable = { nombre: g("bactNombre"), registro: g("bactRegistro") };
+      tenant.mostrarPrecioOrden = document.getElementById("f_mostrarPrecioOrden").checked;
       tenant.colorPrimario = document.getElementById("f_colorPrimario").value;
       tenant.colorSecundario = document.getElementById("f_colorSecundario").value;
       tenant.colorTextoMenu = document.getElementById("f_colorTextoMenu").value;
@@ -1107,7 +1114,7 @@
         nombre: tenant.nombre, nit: tenant.nit, pais: tenant.pais, direccion: tenant.direccion,
         telefonos: tenant.telefonos, email: tenant.email, sitioWeb: tenant.sitioWeb,
         resolucionHabilitacion: tenant.resolucionHabilitacion, codigoREPS: tenant.codigoREPS, nivel: tenant.nivel,
-        bacteriologoResponsable: tenant.bacteriologoResponsable,
+        bacteriologoResponsable: tenant.bacteriologoResponsable, mostrarPrecioOrden: tenant.mostrarPrecioOrden,
         colorPrimario: tenant.colorPrimario, colorSecundario: tenant.colorSecundario, colorTextoMenu: tenant.colorTextoMenu,
         colorTitulos: tenant.colorTitulos, colorSubtitulos: tenant.colorSubtitulos, logoDataUrl: tenant.logoDataUrl
       };

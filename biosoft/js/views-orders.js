@@ -3,6 +3,7 @@
   "use strict";
   window.BIO_VIEWS = window.BIO_VIEWS || {};
   var U = BIO_UI, S = BIO_STORE, C = BIO_CATALOG, F = window.BIO_formHelpers;
+  function fmtMoneda(n) { return "$" + Math.round(n || 0).toLocaleString("es-CO"); }
 
   window.BIO_VIEWS.ordenes = function (root, param) {
     if (param && (param === "nueva" || param.indexOf("nueva-") === 0)) {
@@ -15,22 +16,25 @@
 
   function renderList(root) {
     var session = BIO_AUTH.getSession();
+    var tenant = BIO_AUTH.currentTenant();
     var orders = S.listOrders(session.tenantId);
+    var conPrecio = !!(tenant && tenant.mostrarPrecioOrden);
     root.innerHTML =
       '<div class="card"><div class="card-header"><h3 class="card-title">Órdenes de Laboratorio (' + orders.length + ')</h3>' +
       '<button class="btn btn-primary" id="btn-new-ord">' + U.icon("plus") + ' Nueva Orden</button></div>' +
-      '<div class="table-wrap"><table><thead><tr><th>N° Orden</th><th>Paciente</th><th>Fecha</th><th>Prioridad</th><th># Exámenes</th><th>Estado</th><th></th></tr></thead><tbody>' +
-      (orders.length ? orders.map(rowOrder).join("") : '<tr><td colspan="7" class="text-muted">No hay órdenes registradas.</td></tr>') +
+      '<div class="table-wrap"><table><thead><tr><th>N° Orden</th><th>Paciente</th><th>Fecha</th><th>Prioridad</th><th># Exámenes</th>' + (conPrecio ? "<th>Valor a Cobrar</th>" : "") + '<th>Estado</th><th></th></tr></thead><tbody>' +
+      (orders.length ? orders.map(function (o) { return rowOrder(o, conPrecio); }).join("") : '<tr><td colspan="' + (conPrecio ? 8 : 7) + '" class="text-muted">No hay órdenes registradas.</td></tr>') +
       "</tbody></table></div></div>";
     document.getElementById("btn-new-ord").addEventListener("click", function () { location.hash = "#/ordenes/nueva"; });
     root.querySelectorAll("[data-view]").forEach(function (b) { b.addEventListener("click", function () { location.hash = "#/ordenes/" + b.dataset.view; }); });
   }
 
-  function rowOrder(o) {
+  function rowOrder(o, conPrecio) {
     var pac = S.getPatient(o.patientId);
     return "<tr><td><b>" + o.numeroOrden + "</b></td><td>" + (pac ? U.esc(U.nombreCompleto(pac)) : "—") + "</td><td>" + U.fmtFecha(o.fechaOrden) + "</td>" +
       '<td><span class="badge badge-' + (o.prioridad === "Urgente" ? "urgente" : "rutina") + '">' + o.prioridad + "</span></td>" +
-      "<td>" + o.examenes.length + "</td><td>" + window.BIO_badgeEstado(o.estadoGeneral) + '</td><td><button class="btn btn-outline btn-sm" data-view="' + o.id + '">Ver</button></td></tr>';
+      "<td>" + o.examenes.length + "</td>" + (conPrecio ? "<td>" + (o.valorCobrar ? fmtMoneda(o.valorCobrar) : "—") + "</td>" : "") +
+      "<td>" + window.BIO_badgeEstado(o.estadoGeneral) + '</td><td><button class="btn btn-outline btn-sm" data-view="' + o.id + '">Ver</button></td></tr>';
   }
 
   function renderNewOrder(root, prefillId) {
@@ -57,6 +61,7 @@
           F.sel("procedencia", "Procedencia", C.PROCEDENCIAS.map(function (p) { return "<option>" + p + "</option>"; }).join("")) +
           F.inp("diagnostico", "Diagnóstico / Motivo", "") +
           (tenant.pais === "CO" ? F.inp("numAutorizacion", "N° de Autorización (si aplica, para RIPS)", "") + F.inp("diagnosticoCIE10", "Código CIE-10 (opcional, para RIPS)", "") : "") +
+          (tenant.mostrarPrecioOrden ? F.inp("valorCobrar", "Valor a Cobrar", "", false, "number") : "") +
         "</div>" +
         '<div style="margin:6px 0 10px"><a class="btn btn-outline btn-sm" id="btn-new-patient-inline">' + U.icon("plus") + ' Registrar paciente nuevo</a></div>' +
       "</div>" +
@@ -161,6 +166,7 @@
         diagnostico: document.getElementById("f_diagnostico").value,
         numAutorizacion: tenant.pais === "CO" ? document.getElementById("f_numAutorizacion").value : "",
         diagnosticoCIE10: tenant.pais === "CO" ? document.getElementById("f_diagnosticoCIE10").value : "",
+        valorCobrar: tenant.mostrarPrecioOrden ? (parseFloat(document.getElementById("f_valorCobrar").value) || 0) : null,
         examenes: selectedExams.map(function (id) {
           var exCat = C.examenEfectivo(id, tenant);
           return {
@@ -230,6 +236,7 @@
             field("Prioridad", order.prioridad) +
             field("Fecha de Orden", U.fmtFecha(order.fechaOrden)) +
             field("Diagnóstico", order.diagnostico || "—") +
+            (tenant.mostrarPrecioOrden ? field("Valor a Cobrar", order.valorCobrar ? fmtMoneda(order.valorCobrar) : "—") : "") +
           "</div></div>" +
 
         '<div class="card" style="margin-top:16px"><div class="card-header"><h3 class="card-title">Exámenes de la Orden</h3></div>' +

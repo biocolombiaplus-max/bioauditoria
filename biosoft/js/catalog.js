@@ -637,6 +637,18 @@
     { route: "facturacion", label: "Facturación y RIPS", icon: "file", soloCO: true }
   ];
 
+  /* Igual que con el Bacteriólogo(a), una Recepción/Auxiliar/Asistente puede
+     recibir el permiso extra de ingresar resultados — común en laboratorios
+     donde el auxiliar digita lo que arroja el equipo y el Bacteriólogo(a)
+     solo revisa y firma. IMPORTANTE: este permiso NUNCA incluye poder
+     validar/firmar — esa acción se queda exclusiva de Administrador y
+     Bacteriólogo(a) sin importar qué se marque aquí (ver views-results.js
+     -> puedeValidar). Las secciones concretas donde puede capturar se
+     asignan igual que a un Bacteriólogo(a), con el mismo checklist. */
+  var PERMISOS_EXTRA_RECEPCION = [
+    { route: "resultados", navLabel: "Resultados", label: "Resultados (solo borrador o preliminar — nunca puede validar/firmar)", icon: "flask" }
+  ];
+
   function seccionNombre(id, tenant) {
     var s = SECCIONES.filter(function (x) { return x.id === id; })[0];
     if (s) return s.nombre;
@@ -1202,6 +1214,7 @@
     normalizarDocumentoTributario: normalizarDocumentoTributario,
     SECCIONES: SECCIONES,
     PERMISOS_EXTRA_BACTERIOLOGO: PERMISOS_EXTRA_BACTERIOLOGO,
+    PERMISOS_EXTRA_RECEPCION: PERMISOS_EXTRA_RECEPCION,
     TUBOS: TUBOS,
     EXAMENES: EXAMENES,
     TIPOS_DOCUMENTO: TIPOS_DOCUMENTO,

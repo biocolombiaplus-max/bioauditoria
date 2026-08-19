@@ -198,6 +198,7 @@
     var wrap = U.openModal(
       '<h3 class="modal-title">' + (isEdit ? "Editar Paciente" : "Nuevo Paciente") + '</h3>' +
       '<p class="text-muted" style="margin-top:0">Registro completo según normativa de habilitación (Colombia / Venezuela / Ecuador).</p>' +
+      '<div id="pac-existente-banner" class="hidden" style="background:var(--surface-2);border:1px solid var(--border);border-radius:8px;padding:10px 12px;margin-bottom:12px;font-size:13px"></div>' +
       '<form id="pac-form">' +
         '<fieldset><legend>País e Identificación</legend><div class="form-grid">' +
           sel("pais", "País", ["CO", "VE", "EC"].map(function (p) { return '<option value="' + p + '" ' + (p === patient.pais ? "selected" : "") + ">" + (p === "CO" ? "Colombia" : p === "VE" ? "Venezuela" : "Ecuador") + "</option>"; }).join("")) +
@@ -245,6 +246,37 @@
     }
     wrap.querySelector("#f_pais").addEventListener("change", refreshDependentSelects);
 
+    // Si el paciente ya asistió antes, no hace falta volver a digitar todo:
+    // al escribir un número de documento que ya existe en este laboratorio,
+    // se precargan sus datos y, al guardar, se actualiza ese mismo registro
+    // en vez de crear uno duplicado. Solo aplica en "Nuevo Paciente" — al
+    // editar uno ya abierto, esto no se activa.
+    var pacienteExistenteId = null;
+    function buscarPacienteExistente() {
+      if (isEdit) return;
+      var tipoDoc = wrap.querySelector("#f_tipoDocumento").value;
+      var numDoc = wrap.querySelector("#f_numeroDocumento").value.trim();
+      var banner = wrap.querySelector("#pac-existente-banner");
+      if (!numDoc) { pacienteExistenteId = null; banner.classList.add("hidden"); return; }
+      var encontrado = S.listPatients(session.tenantId).filter(function (p) { return p.numeroDocumento === numDoc && p.tipoDocumento === tipoDoc; })[0];
+      if (!encontrado) { pacienteExistenteId = null; banner.classList.add("hidden"); return; }
+      pacienteExistenteId = encontrado.id;
+      var campos = ["pais", "tipoDocumento", "fechaNacimiento", "sexo", "primerNombre", "segundoNombre", "primerApellido", "segundoApellido",
+        "direccion", "ciudad", "telefono", "celular", "email", "tipoAfiliacion", "eps", "medicoRemitente", "procedencia", "ocupacion",
+        "observaciones", "zonaResidencial", "codigoMunicipioDane"];
+      campos.forEach(function (c) {
+        var el = wrap.querySelector("#f_" + c);
+        if (el && encontrado[c] != null) el.value = encontrado[c];
+      });
+      refreshDependentSelects();
+      wrap.querySelector("#f_tipoDocumento").value = tipoDoc;
+      wrap.querySelector("#f_tipoAfiliacion").value = encontrado.tipoAfiliacion || "";
+      banner.classList.remove("hidden");
+      banner.innerHTML = "✅ <b>" + U.esc(U.nombreCompleto(encontrado)) + "</b> ya está registrado(a) — se cargaron sus datos. Si guardas, se actualiza este mismo registro (no se crea uno duplicado). Revisa que sea la misma persona antes de guardar.";
+    }
+    wrap.querySelector("#f_numeroDocumento").addEventListener("blur", buscarPacienteExistente);
+    wrap.querySelector("#f_tipoDocumento").addEventListener("change", buscarPacienteExistente);
+
     wrap.querySelector("#pac-form").addEventListener("submit", function (e) {
       e.preventDefault();
       var g = function (id) { return wrap.querySelector("#f_" + id).value.trim(); };
@@ -260,10 +292,11 @@
         U.toast("Completa los campos obligatorios: documento, primer nombre, primer apellido y fecha de nacimiento.", "error");
         return;
       }
-      if (isEdit) {
-        S.updatePatient(patient.id, data);
-        S.addAudit(session.tenantId, session.nombre, session.rol, "UPDATE_PATIENT", "paciente", patient.id, "Actualizó datos del paciente " + U.nombreCompleto(data));
-        U.toast("Paciente actualizado.", "success");
+      if (isEdit || pacienteExistenteId) {
+        var idAActualizar = isEdit ? patient.id : pacienteExistenteId;
+        S.updatePatient(idAActualizar, data);
+        S.addAudit(session.tenantId, session.nombre, session.rol, "UPDATE_PATIENT", "paciente", idAActualizar, "Actualizó datos del paciente " + U.nombreCompleto(data));
+        U.toast(pacienteExistenteId && !isEdit ? "Ya estaba registrado(a) — se actualizaron sus datos." : "Paciente actualizado.", "success");
         U.closeModal(wrap);
         onSaved();
       } else {

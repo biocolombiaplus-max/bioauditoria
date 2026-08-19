@@ -48,7 +48,7 @@
       return "<tr><td><b>" + o.numeroOrden + "</b></td><td>" + (pac ? U.esc(U.nombreCompleto(pac)) : "—") + "</td><td>" + window.BIO_badgeEstado(o.estadoGeneral) + "</td>" +
         "<td>" + (o.enviado ? '<span class="badge badge-enviado">Enviado ' + U.fmtFechaCorta(o.fechaEnvio) + "</span>" : '<span class="text-muted">No enviado</span>') + "</td>" +
         '<td><div class="flex gap-2 wrap"><button class="btn btn-outline btn-sm" data-pdf="' + o.id + '">' + U.icon("file") + " Ver / Descargar</button>" +
-        '<button class="btn btn-primary btn-sm" data-send="' + o.id + '">' + U.icon("send") + " Enviar por Correo</button></div></td></tr>";
+        '<button class="btn btn-primary btn-sm" data-send="' + o.id + '">' + U.icon("send") + " Enviar Resultados</button></div></td></tr>";
     }
 
     // ---------------------------------------------------------------------
@@ -145,8 +145,8 @@
       '<div id="send-step2" class="hidden" style="margin-top:16px;border-top:1px solid var(--border);padding-top:14px">' +
       '<p style="margin:0 0 4px"><b>2. Elige dónde enviarlo</b></p>' +
       '<p class="text-muted" style="margin:0 0 4px;font-size:12.5px">Se abrirá el correo o WhatsApp ya redactado — solo adjunta el PDF que acabas de descargar antes de darle enviar.</p>' +
-      U.emailProviderButtonsHtml("send") +
-      '<a class="btn btn-whatsapp btn-block" id="send-wa" target="_blank" rel="noopener" style="margin-top:8px">' + U.icon("send") + " Enviar por WhatsApp</a>" +
+      '<a class="btn btn-whatsapp btn-block" id="send-wa" target="_blank" rel="noopener">' + U.icon("send") + " Enviar por WhatsApp</a>" +
+      '<div style="margin-top:8px">' + U.emailProviderButtonsHtml("send") + "</div>" +
       "</div>"
     );
     wrap.querySelector("#send-go").addEventListener("click", async function () {
