@@ -145,9 +145,9 @@
     var left = [
       ["Paciente:", U.nombreCompleto(patient)],
       ["Documento:", patient.tipoDocumento + " " + patient.numeroDocumento],
-      ["Edad / Sexo:", edad + " / " + patient.sexo],
-      ["EPS / Asegurador:", patient.eps || "Particular"]
+      ["Edad / Sexo:", edad + " / " + patient.sexo]
     ];
+    if (patient.pais === "CO") left.push(["EPS / Asegurador:", patient.eps || "Particular"]);
     var right = [
       ["N° de Orden:", order.numeroOrden],
       ["Fecha de Orden:", U.fmtFecha(order.fechaOrden)],

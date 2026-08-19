@@ -912,7 +912,7 @@
       F.inp("nombre", "Nombre del Equipo (ej: Mindray BC-10 — Hematología)", "", true) +
       '<div class="field"><label>Marca / Modelo (opcional)</label><input id="f_marcaModelo" list="equipos-sugeridos" placeholder="Ej. Mindray BC-10"/>' +
       '<datalist id="equipos-sugeridos">' +
-      ["Mindray BC-10 (Hematología)", "Mindray BS-XXX (Química)", "Dirui CS-T240 (Química)", "Dymind DF52 (Hematología)", "Maglumi 800 (Inmunoensayo)", "Rayto (Química)", "Rayto (Hematología)"]
+      ["Mindray BC-10 (Hematología)", "Mindray BC-700 / serie touch (Hematología)", "Mindray BS-XXX (Química)", "Mindray CL-900i (Inmunoensayo/Quimioluminiscencia)", "Dirui CS-T240 (Química)", "Dymind DF52 (Hematología)", "Maglumi 800 (Inmunoensayo)", "TotalCare (Química)", "Rayto (Química)", "Rayto (Hematología)"]
         .map(function (o) { return "<option value='" + o + "'></option>"; }).join("") +
       "</datalist></div>" +
       F.sel("seccion", "Sección", seccionesConExamenes.map(function (s) { return "<option value='" + s.id + "'>" + s.nombre + "</option>"; }).join("")) +

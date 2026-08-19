@@ -173,7 +173,7 @@
     }
 
     function rowPatient(p) {
-      return "<tr><td>" + p.tipoDocumento + " " + U.esc(p.numeroDocumento) + "</td><td>" + U.esc(U.nombreCompleto(p)) + "</td><td>" + U.calcEdad(p.fechaNacimiento) + "</td><td>" + p.sexo + "</td><td>" + U.esc(p.eps || "—") + "</td><td>" + U.esc(p.ciudad || "—") + "</td>" +
+      return "<tr><td>" + p.tipoDocumento + " " + U.esc(p.numeroDocumento) + "</td><td>" + U.esc(U.nombreCompleto(p)) + "</td><td>" + U.calcEdad(p.fechaNacimiento) + "</td><td>" + p.sexo + "</td><td>" + (p.pais === "CO" ? U.esc(p.eps || "—") : "—") + "</td><td>" + U.esc(p.ciudad || "—") + "</td>" +
         '<td><div class="flex gap-2"><button class="btn btn-ghost btn-sm" data-edit="' + p.id + '">' + U.icon("edit") + " Editar</button>" +
         (session.rol !== "bacteriologo" || BIO_AUTH.tienePermisoExtra("ordenes") ? '<button class="btn btn-outline btn-sm" data-neworden="' + p.id + '">' + U.icon("plus") + " Orden</button>" : "") +
         "</div></td></tr>";
@@ -224,7 +224,7 @@
         "</div></fieldset>" +
         '<fieldset><legend>Aseguramiento y Remisión</legend><div class="form-grid">' +
           sel("tipoAfiliacion", "Tipo de Afiliación", afilOptions(patient.pais, patient.tipoAfiliacion)) +
-          '<div class="field"><label>EPS / Asegurador / Entidad Responsable de Pago</label><input list="eps-list" id="f_eps" value="' + U.esc(patient.eps || "") + '"/><datalist id="eps-list">' + epsOptions() + "</datalist></div>" +
+          '<div class="field" id="eps-field" style="display:' + (patient.pais === "CO" ? "block" : "none") + '"><label>EPS / Asegurador / Entidad Responsable de Pago</label><input list="eps-list" id="f_eps" value="' + U.esc(patient.eps || "") + '"/><datalist id="eps-list">' + epsOptions() + "</datalist></div>" +
           inp("medicoRemitente", "Médico que Remite", patient.medicoRemitente) +
           sel("procedencia", "Procedencia", C.PROCEDENCIAS.map(function (p) { return '<option ' + (p === patient.procedencia ? "selected" : "") + ">" + p + "</option>"; }).join("")) +
           inp("ocupacion", "Ocupación", patient.ocupacion) +
@@ -243,6 +243,12 @@
       wrap.querySelector("#f_tipoDocumento").innerHTML = docOptions(pais, patient.tipoDocumento);
       wrap.querySelector("#f_tipoAfiliacion").innerHTML = afilOptions(pais, patient.tipoAfiliacion);
       wrap.querySelector("#co-rips-fields").style.display = pais === "CO" ? "grid" : "none";
+      // La EPS es una figura exclusivamente colombiana — para pacientes de
+      // otros países ni se pide ni se guarda, para no confundir con un
+      // concepto que no aplica ahí.
+      var epsField = wrap.querySelector("#eps-field");
+      epsField.style.display = pais === "CO" ? "block" : "none";
+      if (pais !== "CO") wrap.querySelector("#f_eps").value = "";
     }
     wrap.querySelector("#f_pais").addEventListener("change", refreshDependentSelects);
 
@@ -320,7 +326,7 @@
       "Le confirmamos que su registro en " + tenant.nombre + " se realizó exitosamente el " + U.fmtFechaCorta(patient.creadoEn) + ".\n\n" +
       "Datos registrados:\n" +
       "- Documento: " + patient.tipoDocumento + " " + patient.numeroDocumento + "\n" +
-      "- EPS / Asegurador: " + (patient.eps || "Particular") + "\n" +
+      (patient.pais === "CO" ? "- EPS / Asegurador: " + (patient.eps || "Particular") + "\n" : "") +
       "- Médico remitente: " + (patient.medicoRemitente || "—") + "\n\n" +
       "Si su información es correcta, no necesita hacer nada más. Si detecta algún error, por favor respóndanos a este correo o comuníquese con nosotros.\n\n" +
       "Gracias por confiar en " + tenant.nombre + " para el cuidado de su salud.\n\n" +

@@ -239,7 +239,7 @@
           '<div class="form-grid">' +
             field("Paciente", pac ? U.nombreCompleto(pac) + " (" + pac.tipoDocumento + " " + pac.numeroDocumento + ")" : "—") +
             field("Edad / Sexo", (pac ? U.calcEdad(pac.fechaNacimiento) : "—") + " · " + (pac ? pac.sexo : "")) +
-            field("EPS / Seguro", pac ? (pac.eps || "—") : "—") +
+            (pac && pac.pais === "CO" ? field("EPS / Seguro", pac.eps || "—") : "") +
             field("Médico Remitente", order.medicoRemitente || "—") +
             field("Procedencia", order.procedencia) +
             field("Prioridad", order.prioridad) +
