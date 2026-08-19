@@ -32,9 +32,22 @@
     utmMedium: params.get("utm_medium") || "",
     utmCampaign: params.get("utm_campaign") || ""
   };
-  document.getElementById("f_plan").innerHTML = BIO_PLANES.PLANES.map(function (p) {
-    return '<option value="' + p.id + '" ' + (p.id === planPreseleccionado ? "selected" : "") + '>' + p.nombre + " (" + p.usuarios + ") — $" + p.precioFmt + "/mes</option>";
-  }).join("");
+  // El precio se muestra en la moneda que de verdad usa el cliente: pesos
+  // colombianos solo para Colombia, dólares para cualquier otro país — así
+  // no confunde a alguien en Venezuela/Ecuador/México con un precio en COP
+  // que no le dice nada. Se recalcula cada vez que cambia el país elegido,
+  // sin perder el plan que ya tenía seleccionado.
+  function renderPlanOptions() {
+    var selEl = document.getElementById("f_plan");
+    var valorActual = selEl.value || planPreseleccionado;
+    var esCO = document.getElementById("f_labPais").value === "CO";
+    selEl.innerHTML = BIO_PLANES.PLANES.map(function (p) {
+      var precioTxt = esCO ? "$" + p.precioFmt + " COP/mes" : "$" + p.usd + " USD/mes";
+      return '<option value="' + p.id + '" ' + (p.id === valorActual ? "selected" : "") + '>' + p.nombre + " (" + p.usuarios + ") — " + precioTxt + "</option>";
+    }).join("");
+  }
+  renderPlanOptions();
+  document.getElementById("f_labPais").addEventListener("change", renderPlanOptions);
 
   document.getElementById("act-secciones").innerHTML = C.SECCIONES.map(function (s) {
     return '<div class="checkbox-row"><input type="checkbox" data-seccion="' + s.id + '"/><label style="margin:0">' + s.emoji + " " + s.nombre + "</label></div>";
