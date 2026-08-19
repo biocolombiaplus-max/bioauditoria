@@ -428,6 +428,19 @@
   // ---------------------------------------------------------------------
   // STICKERS DE MUESTRA (rotulado de tubos)
   // ---------------------------------------------------------------------
+  /* Iniciales de un examen para las etiquetas pequeñas, donde no cabe el
+     nombre completo (ej. "Cuadro Hemático (Hemograma IV)" -> "CH") — quita
+     lo que va entre paréntesis y palabras de enlace, y si el nombre es una
+     sola palabra usa sus primeras letras en vez de una sola inicial (ej.
+     "Creatinina" -> "CREA") para que siga siendo reconocible. */
+  function siglaExamen(nombre) {
+    var limpio = (nombre || "").replace(/\([^)]*\)/g, "").trim();
+    var stop = { de: 1, del: 1, y: 1, la: 1, el: 1, en: 1, con: 1, para: 1, los: 1, las: 1 };
+    var palabras = limpio.split(/\s+/).filter(function (w) { return w && !stop[w.toLowerCase()]; });
+    if (palabras.length <= 1) return (palabras[0] || nombre || "").substring(0, 4).toUpperCase();
+    return palabras.map(function (w) { return w.charAt(0).toUpperCase(); }).join("");
+  }
+
   /* perfil (opcional): { anchoMm, altoMm } — ver "Impresoras y Tamaños de
      Etiqueta" en Configuración. Sin perfil, usa el tamaño estándar de
      siempre (9 x 3,8 cm) para no romper el diseño de quien no configuró
@@ -463,16 +476,21 @@
       doc.setTextColor(20, 20, 20);
 
       if (compacto) {
-        doc.setFont("helvetica", "bold"); doc.setFontSize(Math.max(7, altoMm * 0.32));
-        doc.text(order.numeroOrden, mL, altoMm * 0.38);
-        doc.setFont("helvetica", "normal"); doc.setFontSize(Math.max(5.5, altoMm * 0.22));
-        doc.text(U.nombreCompleto(patient).substring(0, Math.round(anchoMm * 0.55)), mL, altoMm * 0.62);
-        doc.setFontSize(Math.max(5, altoMm * 0.18));
-        doc.text(tubo.nombre, mL, altoMm * 0.87);
+        var bcWc = anchoMm * 0.32, bcHc = altoMm * 0.4;
+        var anchoTexto = anchoMm - mL - bcWc - rightPad - 2;
+        var siglas = byTubo[key].map(function (e) { return siglaExamen(e.nombre); }).join(",");
+
+        doc.setFont("helvetica", "bold"); doc.setFontSize(Math.max(6.5, altoMm * 0.26));
+        doc.text(order.numeroOrden, mL, altoMm * 0.24);
+        doc.setFont("helvetica", "normal"); doc.setFontSize(Math.max(5, altoMm * 0.17));
+        doc.text(U.nombreCompleto(patient).substring(0, Math.round(anchoMm * 0.55)), mL, altoMm * 0.44, { maxWidth: anchoTexto });
+        doc.setFontSize(Math.max(4.5, altoMm * 0.15));
+        doc.text("Doc: " + patient.tipoDocumento + " " + patient.numeroDocumento, mL, altoMm * 0.64, { maxWidth: anchoTexto });
+        doc.setFont("helvetica", "bold"); doc.setFontSize(Math.max(4.2, altoMm * 0.13));
+        doc.text((tubo.nombre + (siglas ? " — " + siglas : "")).substring(0, Math.round(anchoMm * 1.1)), mL, altoMm * 0.88, { maxWidth: anchoTexto });
         try {
           var canvasC = document.createElement("canvas");
           window.JsBarcode(canvasC, order.numeroOrden, { format: "CODE128", width: 1, height: 30, displayValue: false, margin: 0 });
-          var bcWc = anchoMm * 0.32, bcHc = altoMm * 0.45;
           doc.addImage(canvasC.toDataURL("image/png"), "PNG", anchoMm - bcWc - rightPad, altoMm * 0.08, bcWc, bcHc);
         } catch (e) {}
       } else {
