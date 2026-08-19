@@ -538,5 +538,37 @@
     });
   }
 
-  global.BIO_PDF = { buildResultadosPDF: buildResultadosPDF, previewOrModal: previewOrModal, buildStickersPDF: buildStickersPDF, previewStickers: previewStickers };
+  /* Impresión rápida: para el trabajo diario de recepción, generar el PDF y
+     mandarlo directo al diálogo de imprimir del navegador (con el perfil de
+     etiqueta predeterminado) — sin la ventana de vista previa de por medio.
+     El navegador SIEMPRE va a mostrar su propio diálogo de impresión (por
+     seguridad, ningún sitio web puede imprimir sin que el usuario lo
+     confirme ahí) — lo que se elimina es el paso extra de previsualizar y
+     abrir en pestaña nueva antes de llegar a ese diálogo. */
+  function imprimirStickersRapido(order, patient, tenant) {
+    if (!order.examenes.length) { U.toast("Esta orden no tiene exámenes.", "error"); return; }
+    var perfiles = tenant.perfilesEtiqueta || [];
+    var perfil = perfiles.filter(function (p) { return p.predeterminado; })[0] || perfiles[0] || null;
+    var doc = buildStickersPDF(order, patient, tenant, perfil);
+    var blobUrl = doc.output("bloburl");
+    var iframe = document.createElement("iframe");
+    iframe.style.cssText = "position:fixed;right:0;bottom:0;width:0;height:0;border:0";
+    iframe.src = blobUrl;
+    var yaImprimio = false;
+    function lanzarImpresion() {
+      if (yaImprimio) return;
+      yaImprimio = true;
+      try { iframe.contentWindow.focus(); iframe.contentWindow.print(); } catch (e) { window.open(blobUrl, "_blank"); }
+    }
+    iframe.onload = function () { setTimeout(lanzarImpresion, 150); };
+    document.body.appendChild(iframe);
+    setTimeout(lanzarImpresion, 1200); // respaldo por si el visor de PDF del navegador no dispara "load"
+    setTimeout(function () { iframe.remove(); }, 60000);
+    U.toast("Abriendo el diálogo de impresión de tu navegador…", "success");
+  }
+
+  global.BIO_PDF = {
+    buildResultadosPDF: buildResultadosPDF, previewOrModal: previewOrModal, buildStickersPDF: buildStickersPDF,
+    previewStickers: previewStickers, imprimirStickersRapido: imprimirStickersRapido
+  };
 })(window);

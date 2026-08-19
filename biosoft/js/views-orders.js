@@ -192,12 +192,20 @@
       '<p class="text-muted">¿Deseas imprimir ahora los stickers para rotular los tubos de esta orden?</p>' +
       '<div class="flex gap-2 justify-between">' +
       '<button class="btn btn-ghost" id="btn-skip">Continuar sin imprimir</button>' +
-      '<button class="btn btn-primary" id="btn-stickers-now">' + U.icon("printer") + " Imprimir Stickers</button></div>"
+      '<div class="flex gap-2">' +
+      '<button class="btn btn-outline btn-sm" id="btn-stickers-preview" title="Ver antes de imprimir o elegir otra impresora">Vista previa</button>' +
+      '<button class="btn btn-primary" id="btn-stickers-now">' + U.icon("printer") + " Imprimir Stickers</button>" +
+      "</div></div>"
     );
     wrap.querySelector("#btn-skip").addEventListener("click", function () { U.closeModal(wrap); location.hash = "#/ordenes/" + order.id; });
-    wrap.querySelector("#btn-stickers-now").addEventListener("click", function () {
+    wrap.querySelector("#btn-stickers-preview").addEventListener("click", function () {
       U.closeModal(wrap);
       window.BIO_PDF.previewStickers(order, pac, tenant);
+      location.hash = "#/ordenes/" + order.id;
+    });
+    wrap.querySelector("#btn-stickers-now").addEventListener("click", function () {
+      U.closeModal(wrap);
+      window.BIO_PDF.imprimirStickersRapido(order, pac, tenant);
       location.hash = "#/ordenes/" + order.id;
     });
   }
@@ -224,6 +232,7 @@
           '<div class="card-header"><h3 class="card-title">Orden ' + order.numeroOrden + " — " + window.BIO_badgeEstado(order.estadoGeneral) + '</h3>' +
           '<div class="flex gap-2 wrap"><a class="btn btn-ghost btn-sm" id="btn-back">Volver</a>' +
           '<button class="btn btn-outline btn-sm" id="btn-stickers">' + U.icon("printer") + " Imprimir Stickers</button>" +
+          '<button class="btn btn-ghost btn-sm" id="btn-stickers-preview" title="Ver antes de imprimir o elegir otra impresora">Vista previa de stickers</button>' +
           '<button class="btn btn-outline btn-sm" id="btn-preview">' + U.icon("file") + " Ver / Descargar PDF</button>" +
           (puedeGestionarRemision(session) ? '<button class="btn btn-outline btn-sm" id="btn-remision">' + U.icon("send") + " Hoja de Remisión</button>" : "") +
           "</div></div>" +
@@ -261,7 +270,8 @@
 
       document.getElementById("btn-back").addEventListener("click", function () { location.hash = "#/ordenes"; });
       document.getElementById("btn-preview").addEventListener("click", function () { window.BIO_PDF.previewOrModal(order, pac, tenant); });
-      document.getElementById("btn-stickers").addEventListener("click", function () { window.BIO_PDF.previewStickers(order, pac, tenant); });
+      document.getElementById("btn-stickers").addEventListener("click", function () { window.BIO_PDF.imprimirStickersRapido(order, pac, tenant); });
+      document.getElementById("btn-stickers-preview").addEventListener("click", function () { window.BIO_PDF.previewStickers(order, pac, tenant); });
       var btnRemision = document.getElementById("btn-remision");
       if (btnRemision) btnRemision.addEventListener("click", function () { abrirGenerarRemision(order, pac, tenant, build); });
       root.querySelectorAll("[data-goresult]").forEach(function (b) {
