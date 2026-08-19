@@ -150,6 +150,18 @@ fbq('track', 'PageView');
   .lp-img-slot img { width: 100%; display: block; border-radius: var(--radius); box-shadow: var(--shadow-lg); object-fit: cover; max-height: 420px; border: 1px solid rgba(15,23,42,.06); }
   .lp-hero .lp-img-slot { max-width: 640px; margin: 22px auto 4px; }
   .lp-hero .lp-img-slot img { max-height: 300px; border-radius: 18px; box-shadow: 0 20px 44px -14px rgba(0,0,0,.45); }
+  /* Cuando SÍ hay foto configurada para el héroe (landing-images.js agrega
+     la clase lp-tiene-img automáticamente al cargarla), pasa a ser un fondo
+     a pantalla completa detrás del texto — ya no es un recuadro aparte que
+     empuja el contenido y obliga a hacer scroll — con un degradado oscuro
+     encima para que el título y los botones se sigan leyendo bien. Sin
+     imagen configurada, el héroe se ve exactamente igual que siempre. */
+  .lp-hero.lp-tiene-img > .lp-img-slot { position: absolute; inset: 0; z-index: 0; margin: 0; max-width: none; }
+  .lp-hero.lp-tiene-img > .lp-img-slot img { width: 100%; height: 100%; max-height: none; object-fit: cover; border-radius: 0; box-shadow: none; border: 0; }
+  .lp-hero.lp-tiene-img > .lp-img-slot::after {
+    content: ""; position: absolute; inset: 0;
+    background: linear-gradient(180deg, rgba(11,7,26,.8) 0%, rgba(11,7,26,.5) 45%, var(--lp-navy) 100%);
+  }
   .lp-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(260px,1fr)); gap: 20px; }
   .lp-feature { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 24px; box-shadow: var(--shadow-sm); transition: transform .2s ease, box-shadow .2s ease; }
   .lp-feature:hover { transform: translateY(-4px); box-shadow: 0 16px 32px -12px rgba(124,58,237,.28); }
