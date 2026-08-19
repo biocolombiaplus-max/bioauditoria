@@ -665,6 +665,23 @@
     tenant.equiposConectados = (tenant.equiposConectados || []).filter(function (e) { return e.id !== equipoId; });
   }
 
+  /* Perfiles de impresora/tamaño de etiqueta (ver "Impresoras y Tamaños de
+     Etiqueta" en Configuración) — un laboratorio puede tener varios (una
+     impresora en Recepción, otra en el área de toma de muestras, etc.) y
+     elegir cuál usar cada vez que imprime stickers. Solo uno puede quedar
+     marcado como predeterminado a la vez. */
+  function agregarPerfilEtiqueta(tenant, datos) {
+    tenant.perfilesEtiqueta = tenant.perfilesEtiqueta || [];
+    var id = "LBL_" + Date.now().toString(36).toUpperCase();
+    var nuevo = Object.assign({ id: id, creadoEn: nowISO() }, datos);
+    if (nuevo.predeterminado) tenant.perfilesEtiqueta.forEach(function (p) { p.predeterminado = false; });
+    tenant.perfilesEtiqueta.push(nuevo);
+    return nuevo;
+  }
+  function eliminarPerfilEtiqueta(tenant, perfilId) {
+    tenant.perfilesEtiqueta = (tenant.perfilesEtiqueta || []).filter(function (p) { return p.id !== perfilId; });
+  }
+
   function createTenant(data) {
     var db = loadDB();
     var id = uid("lab");
@@ -1262,6 +1279,8 @@
     createTenant: createTenant,
     agregarEquipoConectado: agregarEquipoConectado,
     eliminarEquipoConectado: eliminarEquipoConectado,
+    agregarPerfilEtiqueta: agregarPerfilEtiqueta,
+    eliminarPerfilEtiqueta: eliminarPerfilEtiqueta,
     getOrderByNumero: getOrderByNumero,
     recibirResultadoEquipo: recibirResultadoEquipo,
     listUsers: listUsers,

@@ -649,6 +649,29 @@
     { route: "resultados", navLabel: "Resultados", label: "Resultados (solo borrador o preliminar — nunca puede validar/firmar)", icon: "flask" }
   ];
 
+  /* Tamaños de etiqueta térmica más comunes en laboratorios de la región,
+     para el selector rápido al agregar un "Perfil de Impresora" (ver
+     "Impresoras y Tamaños de Etiqueta" en Configuración) — el laboratorio
+     igual puede escribir cualquier medida personalizada si la suya no está
+     en la lista. El tamaño "Sticker BIOsoft estándar" es el que el sistema
+     usaba antes de que esto fuera configurable, así nadie pierde su diseño
+     actual al actualizar. */
+  var TAMANOS_ETIQUETA_SUGERIDOS = [
+    { nombre: "5,7 x 1,9 cm (rollo térmico típico, ej. Xprinter)", anchoMm: 57, altoMm: 19 },
+    { nombre: "4 x 2 cm", anchoMm: 40, altoMm: 20 },
+    { nombre: "5 x 2,5 cm", anchoMm: 50, altoMm: 25 },
+    { nombre: "5 x 3 cm", anchoMm: 50, altoMm: 30 },
+    { nombre: "Sticker BIOsoft estándar (9 x 3,8 cm)", anchoMm: 90, altoMm: 38 },
+    { nombre: "6 x 4 cm", anchoMm: 60, altoMm: 40 },
+    { nombre: "10 x 5 cm (etiqueta grande)", anchoMm: 100, altoMm: 50 }
+  ];
+  /* Solo como referencia/sugerencia al nombrar un perfil — BIOsoft imprime
+     generando un PDF al tamaño exacto de la etiqueta y dejando que el
+     navegador lo mande a cualquier impresora ya instalada en el sistema
+     operativo (no habla directo con el hardware), así que en la práctica
+     funciona con cualquier marca que tenga su driver instalado en Windows. */
+  var IMPRESORAS_ETIQUETA_SUGERIDAS = ["Xprinter (térmica USB)", "Zebra GK420d / ZD220", "TSC TE244 / TTP-244", "Godex G500", "Brother QL-800 / QL-820NWB", "Honeywell PC42t"];
+
   function seccionNombre(id, tenant) {
     var s = SECCIONES.filter(function (x) { return x.id === id; })[0];
     if (s) return s.nombre;
@@ -1215,6 +1238,8 @@
     SECCIONES: SECCIONES,
     PERMISOS_EXTRA_BACTERIOLOGO: PERMISOS_EXTRA_BACTERIOLOGO,
     PERMISOS_EXTRA_RECEPCION: PERMISOS_EXTRA_RECEPCION,
+    TAMANOS_ETIQUETA_SUGERIDOS: TAMANOS_ETIQUETA_SUGERIDOS,
+    IMPRESORAS_ETIQUETA_SUGERIDAS: IMPRESORAS_ETIQUETA_SUGERIDAS,
     TUBOS: TUBOS,
     EXAMENES: EXAMENES,
     TIPOS_DOCUMENTO: TIPOS_DOCUMENTO,

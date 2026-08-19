@@ -964,6 +964,89 @@
   }
 
   // ------------------------------------------------------------------
+  // PERFILES DE IMPRESORA / TAMAÑO DE ETIQUETA (para stickers de muestra)
+  // ------------------------------------------------------------------
+  function perfilesEtiquetaCardHtml(tenant) {
+    var perfiles = tenant.perfilesEtiqueta || [];
+    return '<div class="card"><div class="card-header"><h3 class="card-title">🏷️ Impresoras y Tamaños de Etiqueta</h3></div>' +
+      '<p class="text-muted" style="margin-top:0">Guarda aquí las impresoras/tamaños de sticker que uses (puede haber varias — una por área, por ejemplo). Al imprimir stickers de una orden, eliges cuál usar; el que marques como predeterminado sale seleccionado de una vez.</p>' +
+      (perfiles.length
+        ? '<div class="table-wrap"><table><thead><tr><th>Nombre</th><th>Tamaño</th><th>Predeterminado</th><th></th></tr></thead><tbody>' +
+          perfiles.map(function (p) {
+            return "<tr><td>" + U.esc(p.nombre) + "</td><td>" + p.anchoMm + " x " + p.altoMm + " mm</td>" +
+              "<td>" + (p.predeterminado ? '<span class="badge badge-validado">Sí</span>' : "—") + "</td>" +
+              '<td><button type="button" class="btn btn-ghost btn-sm" data-quitar-perfil-etiqueta="' + p.id + '">Eliminar</button></td></tr>';
+          }).join("") + "</tbody></table></div>"
+        : '<p class="text-muted" style="font-size:12.5px">Aún no has agregado ninguna — se está usando el tamaño estándar de BIOsoft (9 x 3,8 cm) mientras tanto.</p>') +
+      '<button type="button" class="btn btn-outline btn-sm" id="btn-agregar-perfil-etiqueta" style="margin-top:10px">' + U.icon("plus") + " Agregar Impresora / Tamaño</button>" +
+      "</div>";
+  }
+
+  function wirePerfilesEtiquetaCard(tenant, reabrir) {
+    var btnAgregar = document.getElementById("btn-agregar-perfil-etiqueta");
+    if (btnAgregar) btnAgregar.addEventListener("click", function () { abrirAgregarPerfilEtiqueta(tenant, reabrir); });
+    document.querySelectorAll("[data-quitar-perfil-etiqueta]").forEach(function (btn) {
+      btn.addEventListener("click", function () {
+        var session = BIO_AUTH.getSession();
+        var perfil = (tenant.perfilesEtiqueta || []).filter(function (p) { return p.id === btn.dataset.quitarPerfilEtiqueta; })[0];
+        S.eliminarPerfilEtiqueta(tenant, btn.dataset.quitarPerfilEtiqueta);
+        S.updateTenant(tenant.id, { perfilesEtiqueta: tenant.perfilesEtiqueta });
+        if (perfil) S.addAudit(session.tenantId, session.nombre, session.rol, "REMOVE_LABEL_PROFILE", "catalogo", perfil.id, 'Eliminó el perfil de etiqueta "' + perfil.nombre + '".');
+        U.toast("Perfil eliminado.", "success");
+        reabrir();
+      });
+    });
+  }
+
+  function abrirAgregarPerfilEtiqueta(tenant, onSaved) {
+    var sugeridos = C.TAMANOS_ETIQUETA_SUGERIDOS;
+    var wrap = U.openModal(
+      '<h3 class="modal-title">Agregar Impresora / Tamaño de Etiqueta</h3>' +
+      '<p class="text-muted" style="margin-top:0">BIOsoft genera el sticker ya ajustado a esta medida exacta y lo manda a imprimir por el navegador — funciona con cualquier impresora de etiquetas que ya tengas instalada en Windows (Xprinter, Zebra, TSC, etc.), solo necesitas el tamaño correcto de tu rollo.</p>' +
+      '<form id="perfil-etiqueta-form">' +
+      '<div class="field"><label>Nombre del perfil (ej. "Impresora de Recepción — Xprinter")</label><input id="f_nombrePerfil" list="impresoras-sugeridas" required/>' +
+      '<datalist id="impresoras-sugeridas">' + C.IMPRESORAS_ETIQUETA_SUGERIDAS.map(function (o) { return "<option value='" + o + "'></option>"; }).join("") + "</datalist></div>" +
+      '<div class="field"><label>Tamaño de la etiqueta</label><select id="f_tamanoPreset">' +
+      sugeridos.map(function (t, i) { return "<option value='" + i + "'>" + U.esc(t.nombre) + " — " + t.anchoMm + " x " + t.altoMm + " mm</option>"; }).join("") +
+      "<option value='personalizado'>Personalizado (otra medida)</option>" +
+      "</select></div>" +
+      '<div class="form-grid hidden" id="tamano-custom-box">' +
+      '<div class="field"><label>Ancho (mm)</label><input type="number" id="f_anchoMm" min="10" step="0.1"/></div>' +
+      '<div class="field"><label>Alto (mm)</label><input type="number" id="f_altoMm" min="10" step="0.1"/></div>' +
+      "</div>" +
+      '<div class="checkbox-row" style="margin-top:8px"><input type="checkbox" id="f_predeterminado"/><label style="margin:0" for="f_predeterminado">Usar como predeterminada</label></div>' +
+      '<p class="text-muted" style="margin:6px 0 0;font-size:12px">Etiquetas muy pequeñas (menos de 2,5 cm de alto) imprimen menos información — solo N° de orden, paciente, tubo y código de barras — para que el texto siga siendo legible.</p>' +
+      '<div class="flex gap-2 justify-between" style="margin-top:10px"><button type="button" class="btn btn-ghost" data-modal-close>Cancelar</button><button type="submit" class="btn btn-primary">' + U.icon("check") + " Guardar</button></div>" +
+      "</form>"
+    );
+    wrap.querySelector("#f_tamanoPreset").addEventListener("change", function () {
+      wrap.querySelector("#tamano-custom-box").classList.toggle("hidden", this.value !== "personalizado");
+    });
+    wrap.querySelector("#perfil-etiqueta-form").addEventListener("submit", function (e) {
+      e.preventDefault();
+      var nombre = wrap.querySelector("#f_nombrePerfil").value.trim();
+      if (!nombre) { U.toast("Ponle un nombre al perfil.", "error"); return; }
+      var presetVal = wrap.querySelector("#f_tamanoPreset").value;
+      var anchoMm, altoMm;
+      if (presetVal === "personalizado") {
+        anchoMm = parseFloat(wrap.querySelector("#f_anchoMm").value);
+        altoMm = parseFloat(wrap.querySelector("#f_altoMm").value);
+        if (!anchoMm || !altoMm) { U.toast("Indica el ancho y el alto en milímetros.", "error"); return; }
+      } else {
+        var preset = sugeridos[parseInt(presetVal, 10)];
+        anchoMm = preset.anchoMm; altoMm = preset.altoMm;
+      }
+      var session = BIO_AUTH.getSession();
+      var nuevo = S.agregarPerfilEtiqueta(tenant, { nombre: nombre, anchoMm: anchoMm, altoMm: altoMm, predeterminado: wrap.querySelector("#f_predeterminado").checked });
+      S.updateTenant(tenant.id, { perfilesEtiqueta: tenant.perfilesEtiqueta });
+      S.addAudit(session.tenantId, session.nombre, session.rol, "ADD_LABEL_PROFILE", "catalogo", nuevo.id, 'Agregó el perfil de etiqueta "' + nombre + '" (' + anchoMm + " x " + altoMm + " mm).");
+      U.toast("Perfil agregado.", "success");
+      U.closeModal(wrap);
+      onSaved();
+    });
+  }
+
+  // ------------------------------------------------------------------
   // CONFIGURACIÓN DEL LABORATORIO
   // ------------------------------------------------------------------
   window.BIO_VIEWS.config = function (root) {
@@ -979,6 +1062,7 @@
       '<button type="button" class="btn btn-primary" id="btn-manual-enviar">' + U.icon("send") + ' Enviar por WhatsApp o Correo</button>' +
       "</div></div>" +
       equiposCardHtml(tenant) +
+      perfilesEtiquetaCardHtml(tenant) +
       '<div class="card"><div class="card-header"><h3 class="card-title">Identidad y Datos del Laboratorio</h3></div>' +
       '<form id="cfg-form">' +
         '<div class="form-grid">' +
@@ -1037,6 +1121,7 @@
       "</form></div>";
 
     wireEquiposCard(tenant, function () { window.BIO_VIEWS.config(root); });
+    wirePerfilesEtiquetaCard(tenant, function () { window.BIO_VIEWS.config(root); });
 
     actualizarLabelDocumento(document, "pais", "nit");
     document.getElementById("f_pais").addEventListener("change", function () { actualizarLabelDocumento(document, "pais", "nit"); });

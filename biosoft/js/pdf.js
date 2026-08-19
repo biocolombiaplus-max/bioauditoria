@@ -428,7 +428,14 @@
   // ---------------------------------------------------------------------
   // STICKERS DE MUESTRA (rotulado de tubos)
   // ---------------------------------------------------------------------
-  function buildStickersPDF(order, patient, tenant) {
+  /* perfil (opcional): { anchoMm, altoMm } — ver "Impresoras y Tamaños de
+     Etiqueta" en Configuración. Sin perfil, usa el tamaño estándar de
+     siempre (9 x 3,8 cm) para no romper el diseño de quien no configuró
+     nada. El diseño completo se reescala proporcionalmente al tamaño
+     elegido; en etiquetas muy pequeñas (menos de 2,5 cm de alto) cambia a
+     un diseño reducido, porque a ese tamaño el texto completo ya no cabe
+     de forma legible. */
+  function buildStickersPDF(order, patient, tenant, perfil) {
     var jsPDFCtor = window.jspdf ? window.jspdf.jsPDF : window.jsPDF;
     var byTubo = {};
     order.examenes.forEach(function (ex) {
@@ -437,33 +444,60 @@
       (byTubo[key] = byTubo[key] || []).push(exCat);
     });
     var tuboKeys = Object.keys(byTubo);
-    var doc = new jsPDFCtor({ unit: "mm", format: [90, 38], orientation: "landscape" });
+    var anchoMm = (perfil && perfil.anchoMm) || 90;
+    var altoMm = (perfil && perfil.altoMm) || 38;
+    var orientacion = anchoMm >= altoMm ? "landscape" : "portrait";
+    var compacto = altoMm < 25;
+    var doc = new jsPDFCtor({ unit: "mm", format: [anchoMm, altoMm], orientation: orientacion });
+
+    var k = altoMm / 38; // escala vertical respecto al diseño de referencia (9 x 3,8 cm)
+    var barW = Math.min(6, anchoMm * 0.08);
+    var mL = barW + 3;
+    var rightPad = 3;
 
     tuboKeys.forEach(function (key, idx) {
-      if (idx > 0) doc.addPage([90, 38], "landscape");
+      if (idx > 0) doc.addPage([anchoMm, altoMm], orientacion);
       var tubo = C.tuboInfo(key);
       var rgb = hexToRgb(tubo.color);
-      doc.setFillColor(rgb[0], rgb[1], rgb[2]); doc.rect(0, 0, 6, 38, "F");
-      doc.setFont("helvetica", "bold"); doc.setFontSize(8); doc.setTextColor(20, 20, 20);
-      doc.text((tenant.nombre || "").substring(0, 34), 9, 6);
-      if (order.prioridad === "Urgente") {
-        doc.setTextColor(214, 69, 69); doc.setFontSize(7); doc.text("URGENTE", 78, 6, { align: "right" });
-        doc.setTextColor(20, 20, 20);
-      }
-      doc.setFontSize(11); doc.text(order.numeroOrden, 9, 13);
-      doc.setFontSize(8.5); doc.text(U.nombreCompleto(patient).substring(0, 36), 9, 19);
-      doc.setFont("helvetica", "normal"); doc.setFontSize(7);
-      doc.text(patient.tipoDocumento + " " + patient.numeroDocumento + " · " + (U.calcEdad(patient.fechaNacimiento) || ""), 9, 23.5);
-      doc.setFont("helvetica", "bold"); doc.setFontSize(7);
-      doc.text(tubo.nombre, 9, 28);
-      doc.setFont("helvetica", "normal"); doc.setFontSize(6.3);
-      doc.text(byTubo[key].map(function (e) { return e.nombre; }).join(", "), 9, 32, { maxWidth: 78 });
+      doc.setFillColor(rgb[0], rgb[1], rgb[2]); doc.rect(0, 0, barW, altoMm, "F");
+      doc.setTextColor(20, 20, 20);
 
-      try {
-        var canvas = document.createElement("canvas");
-        window.JsBarcode(canvas, order.numeroOrden, { format: "CODE128", width: 1.2, height: 16, displayValue: false, margin: 0 });
-        doc.addImage(canvas.toDataURL("image/png"), "PNG", 52, 4, 35, 9);
-      } catch (e) {}
+      if (compacto) {
+        doc.setFont("helvetica", "bold"); doc.setFontSize(Math.max(7, altoMm * 0.32));
+        doc.text(order.numeroOrden, mL, altoMm * 0.38);
+        doc.setFont("helvetica", "normal"); doc.setFontSize(Math.max(5.5, altoMm * 0.22));
+        doc.text(U.nombreCompleto(patient).substring(0, Math.round(anchoMm * 0.55)), mL, altoMm * 0.62);
+        doc.setFontSize(Math.max(5, altoMm * 0.18));
+        doc.text(tubo.nombre, mL, altoMm * 0.87);
+        try {
+          var canvasC = document.createElement("canvas");
+          window.JsBarcode(canvasC, order.numeroOrden, { format: "CODE128", width: 1, height: 30, displayValue: false, margin: 0 });
+          var bcWc = anchoMm * 0.32, bcHc = altoMm * 0.45;
+          doc.addImage(canvasC.toDataURL("image/png"), "PNG", anchoMm - bcWc - rightPad, altoMm * 0.08, bcWc, bcHc);
+        } catch (e) {}
+      } else {
+        doc.setFont("helvetica", "bold"); doc.setFontSize(8 * k);
+        doc.text((tenant.nombre || "").substring(0, 34), mL, 6 * k);
+        if (order.prioridad === "Urgente") {
+          doc.setTextColor(214, 69, 69); doc.setFontSize(7 * k); doc.text("URGENTE", anchoMm - rightPad, 6 * k, { align: "right" });
+          doc.setTextColor(20, 20, 20);
+        }
+        doc.setFontSize(11 * k); doc.text(order.numeroOrden, mL, 13 * k);
+        doc.setFontSize(8.5 * k); doc.text(U.nombreCompleto(patient).substring(0, 36), mL, 19 * k);
+        doc.setFont("helvetica", "normal"); doc.setFontSize(7 * k);
+        doc.text(patient.tipoDocumento + " " + patient.numeroDocumento + " · " + (U.calcEdad(patient.fechaNacimiento) || ""), mL, 23.5 * k);
+        doc.setFont("helvetica", "bold"); doc.setFontSize(7 * k);
+        doc.text(tubo.nombre, mL, 28 * k);
+        doc.setFont("helvetica", "normal"); doc.setFontSize(6.3 * k);
+        doc.text(byTubo[key].map(function (e) { return e.nombre; }).join(", "), mL, 32 * k, { maxWidth: anchoMm - mL - rightPad });
+
+        try {
+          var canvas = document.createElement("canvas");
+          window.JsBarcode(canvas, order.numeroOrden, { format: "CODE128", width: 1.2, height: 16, displayValue: false, margin: 0 });
+          var bcW = anchoMm * 0.39, bcH = 9 * k;
+          doc.addImage(canvas.toDataURL("image/png"), "PNG", anchoMm - bcW - rightPad, 4 * k, bcW, bcH);
+        } catch (e) {}
+      }
     });
 
     return doc;
@@ -471,18 +505,32 @@
 
   function previewStickers(order, patient, tenant) {
     if (!order.examenes.length) { U.toast("Esta orden no tiene exámenes.", "error"); return; }
-    var doc = buildStickersPDF(order, patient, tenant);
+    var perfiles = tenant.perfilesEtiqueta || [];
+    var perfilActual = perfiles.filter(function (p) { return p.predeterminado; })[0] || perfiles[0] || null;
+    var doc = buildStickersPDF(order, patient, tenant, perfilActual);
     var wrap = U.openModal(
       '<h3 class="modal-title">Stickers de Muestra — Orden ' + order.numeroOrden + '</h3>' +
       '<p class="text-muted">Se genera un sticker por cada tipo de tubo/recipiente requerido para los exámenes de esta orden, listo para imprimir en impresora de etiquetas o papel normal.</p>' +
-      '<div class="flex gap-2" style="margin-bottom:10px">' +
+      (perfiles.length > 1
+        ? '<div class="field" style="max-width:360px"><label>Impresora / Tamaño de etiqueta</label><select id="st-perfil">' +
+          perfiles.map(function (p) { return '<option value="' + p.id + '" ' + (perfilActual && p.id === perfilActual.id ? "selected" : "") + '>' + U.esc(p.nombre) + " (" + p.anchoMm + " x " + p.altoMm + " mm)</option>"; }).join("") +
+          "</select></div>"
+        : "") +
+      '<div class="flex gap-2" style="margin:10px 0">' +
       '<button class="btn btn-primary btn-sm" id="st-download">' + U.icon("download") + ' Descargar</button>' +
       '<button class="btn btn-outline btn-sm" id="st-print">' + U.icon("printer") + ' Abrir para Imprimir</button>' +
       '<button class="btn btn-ghost btn-sm" data-modal-close>Cerrar</button></div>' +
       '<iframe id="st-frame" style="width:100%;height:55vh;border:1px solid var(--border);border-radius:8px"></iframe>',
       { lg: true }
     );
-    wrap.querySelector("#st-frame").src = doc.output("datauristring");
+    function actualizarFrame() { wrap.querySelector("#st-frame").src = doc.output("datauristring"); }
+    actualizarFrame();
+    var selPerfil = wrap.querySelector("#st-perfil");
+    if (selPerfil) selPerfil.addEventListener("change", function () {
+      perfilActual = perfiles.filter(function (p) { return p.id === selPerfil.value; })[0] || null;
+      doc = buildStickersPDF(order, patient, tenant, perfilActual);
+      actualizarFrame();
+    });
     wrap.querySelector("#st-download").addEventListener("click", function () { doc.save("Stickers_" + order.numeroOrden + ".pdf"); });
     wrap.querySelector("#st-print").addEventListener("click", function () {
       window.open(doc.output("bloburl"), "_blank");
