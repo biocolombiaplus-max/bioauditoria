@@ -38,8 +38,8 @@
 
   <div id="act-form-block">
     <div class="act-intro">
-      <h1>Activemos tu BIOsoft 🎉</h1>
-      <p>Este NO es el sistema definitivo: es el paso para que personalicemos <b>tu</b> BIOsoft. Cuéntanos de tu laboratorio, tu plan y tu marca — en <b>7 a 10 días hábiles</b> tendrás todo funcionando, con tu logo, tus colores y el catálogo que necesitas. Todo se adapta a ti; esto es solo el punto de partida.</p>
+      <h1>Activa tu BIOsoft 🎉</h1>
+      <p>Completa estos datos y tu BIOsoft queda <b>listo y funcionando al instante</b> — con tu laboratorio, tu usuario administrador y tu plan ya activos. Después, desde "Configuración", puedes ajustar tu logo, tus colores y personalizar todo lo demás con calma.</p>
     </div>
 
     <div class="card">
@@ -49,18 +49,21 @@
           <div class="form-grid">
             <div class="field"><label>Nombre del Laboratorio *</label><input id="f_labNombre" required/></div>
             <div class="field"><label>NIT / RIF / RUC</label><input id="f_labNit"/></div>
-            <div class="field"><label>Ciudad</label><input id="f_labCiudad"/></div>
+            <div class="field"><label>Ciudad / Dirección</label><input id="f_labCiudad"/></div>
             <div class="field"><label>País</label><select id="f_labPais"></select></div>
           </div>
         </fieldset>
 
         <fieldset>
-          <legend>Contacto para la Activación</legend>
+          <legend>Tu Acceso como Administrador</legend>
+          <p class="text-muted" style="margin:0 0 10px;font-size:13px">Este correo y esta contraseña son con los que vas a ingresar a BIOsoft de ahora en adelante — guárdalos bien.</p>
           <div class="form-grid">
             <div class="field"><label>Tu Nombre *</label><input id="f_contNombre" required/></div>
             <div class="field"><label>Cargo</label><input id="f_contCargo"/></div>
             <div class="field"><label>WhatsApp (con indicativo, solo números) *</label><input id="f_contWhatsapp" required placeholder="573001234567"/></div>
-            <div class="field"><label>Correo Electrónico *</label><input id="f_contCorreo" type="email" required/></div>
+            <div class="field"><label>Correo Electrónico (será tu usuario de ingreso) *</label><input id="f_contCorreo" type="email" required/></div>
+            <div class="field"><label>Crea tu Contraseña (mínimo 6 caracteres) *</label><input id="f_contPass" type="text" required minlength="6"/></div>
+            <div class="field"><label>Confirma tu Contraseña *</label><input id="f_contPass2" type="text" required minlength="6"/></div>
           </div>
         </fieldset>
 
@@ -90,16 +93,21 @@
         <div class="field"><label>Notas o instrucciones especiales (opcional)</label><textarea id="f_notas" rows="3" placeholder="Ej: formato de reporte que ya usan, casos especiales de tu laboratorio, etc."></textarea></div>
 
         <p id="act-error" class="text-danger hidden" style="font-size:13px"></p>
-        <button type="submit" class="btn btn-primary btn-block" id="act-submit">Enviar mis datos de activación</button>
+        <button type="submit" class="btn btn-primary btn-block" id="act-submit">🚀 Activar mi BIOsoft Ahora</button>
       </form>
     </div>
   </div>
 
   <div id="act-success-block" class="card act-success hidden">
     <div class="ic-ok">✅</div>
-    <h2>¡Listo! Recibimos tus datos</h2>
-    <p>En <b>7 a 10 días hábiles</b> tendrás tu BIOsoft personalizado y funcionando, con tu logo, tus colores y el catálogo de tu laboratorio. Te escribiremos por WhatsApp para confirmar cualquier detalle.</p>
-    <p class="text-muted" style="font-size:13px">Recuerda: la demo que viste es solo un ejemplo — tu sistema real se adapta 100% a lo que tu laboratorio necesita.</p>
+    <h2>¡Tu BIOsoft ya está activo!</h2>
+    <p>Tu laboratorio quedó creado y funcionando — ya puedes ingresar y empezar a usarlo.</p>
+    <div class="card" style="background:var(--surface-2);box-shadow:none;text-align:left;max-width:380px;margin:16px auto">
+      <p style="margin:0 0 4px"><b>Usuario:</b> <span id="act-res-user"></span></p>
+      <p style="margin:0">Contraseña: la que acabas de crear.</p>
+    </div>
+    <a class="btn btn-primary" href="app.html#login" id="act-btn-login">Ingresar a mi BIOsoft →</a>
+    <p class="text-muted" style="font-size:13px;margin-top:16px">Desde "Configuración" puedes subir tu logo, elegir tus colores y ajustar lo demás con calma. Si tienes cualquier duda, escríbenos por WhatsApp.</p>
   </div>
 </div>
 
@@ -111,6 +119,6 @@
 <script src="js/planes.js?v=5"></script>
 <script src="js/store.js?v=15"></script>
 <script src="js/ui.js?v=5"></script>
-<script src="js/activar.js?v=1"></script>
+<script src="js/activar.js?v=2"></script>
 </body>
 </html>
