@@ -440,10 +440,20 @@
           // Cuando hay más de un rango que aplica igual al paciente (ej. las
           // fases del ciclo menstrual, que no se distinguen solo por
           // sexo/edad) se muestra un selector para elegir cuál corresponde.
-          var candidatos = p.tipo === "numerico" ? C.candidatosBanda(C.getBandas(tenant, ex.examId, p.codigo), pac) : [];
+          var bandasParam = p.tipo === "numerico" ? C.getBandas(tenant, ex.examId, p.codigo) : [];
+          var candidatos = C.candidatosBanda(bandasParam, pac);
+          // La "key" que identifica cada banda al guardar/reabrir NO puede
+          // ser solo su etiqueta: cuando el laboratorio no le puso una
+          // (queda ""), dos o más bandas comparten esa misma clave vacía y
+          // se pierde cuál se eligió — por eso, sin etiqueta, se identifica
+          // por su posición ("#0", "#1"…) en vez de por texto.
           var categoriaHtml = candidatos.length > 1
             ? '<select data-categoria="' + p.codigo + '" ' + (!editable ? "disabled" : "") + ' style="margin-top:4px;font-size:11.5px">' +
-              candidatos.map(function (c, i) { var etq = c.etiqueta || ("Opción " + (i + 1)); return '<option value="' + U.esc(etq) + '" ' + (categoriaOverrides[p.codigo] === etq ? "selected" : "") + ">" + U.esc(etq) + "</option>"; }).join("") +
+              candidatos.map(function (c, i) {
+                var key = c.etiqueta || ("#" + bandasParam.indexOf(c));
+                var etq = c.etiqueta || ("Opción " + (i + 1));
+                return '<option value="' + U.esc(key) + '" ' + (categoriaOverrides[p.codigo] === key ? "selected" : "") + ">" + U.esc(etq) + "</option>";
+              }).join("") +
               "</select>"
             : "";
           return "<tr><td>" + U.esc(p.nombre) + "</td><td style='min-width:160px'>" + inputHtml + categoriaHtml + "</td><td>" + (p.unidad || "—") + "</td><td>" + U.esc(p.refText) + '</td><td class="flag-cell" data-flagfor="' + p.codigo + '">' +

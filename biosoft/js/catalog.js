@@ -1166,8 +1166,20 @@
     candidatas = candidatas.slice().sort(function (a, b) { return especificidadBanda(b) - especificidadBanda(a); });
     return candidatas[0];
   }
+  /* "etiqueta" es normalmente el texto real de la banda (ej. "Fase
+     Folicular"), pero cuando el laboratorio no le puso una, la pantalla de
+     captura la identifica por su posición dentro del arreglo ("#0", "#1"…)
+     — ver el "Opción N" del selector en views-results.js. Sin este segundo
+     camino, elegir manualmente una banda sin etiqueta no tenía ningún
+     efecto: la búsqueda por texto fallaba en silencio (porque comparaba
+     contra un etiqueta vacío) y siempre se volvía a la banda por defecto. */
   function bandaPorEtiqueta(bandas, etiqueta) {
-    return (bandas || []).filter(function (b) { return b.etiqueta && b.etiqueta === etiqueta; })[0] || null;
+    if (!bandas || !etiqueta) return null;
+    if (etiqueta.charAt(0) === "#") {
+      var idx = parseInt(etiqueta.slice(1), 10);
+      return isNaN(idx) ? null : (bandas[idx] || null);
+    }
+    return bandas.filter(function (b) { return b.etiqueta && b.etiqueta === etiqueta; })[0] || null;
   }
   /* A partir de los valores ya guardados de un examen, arma el mapa
      {codigo: etiqueta} de las categorías (bandas) que se eligieron
@@ -1196,7 +1208,7 @@
     return Object.assign({}, param, {
       min: banda.min, max: banda.max,
       refText: banda.refText || ((banda.etiqueta ? banda.etiqueta + ": " : "") + banda.min + " - " + banda.max + " " + (param.unidad || "")),
-      bandaEtiqueta: banda.etiqueta || ""
+      bandaEtiqueta: banda.etiqueta || ("#" + bandas.indexOf(banda))
     });
   }
   /* Igual que examenEfectivo, pero además resuelve las bandas de

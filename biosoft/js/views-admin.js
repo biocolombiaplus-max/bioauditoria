@@ -693,12 +693,29 @@
         });
       });
       if (error) { U.toast("Revisa que cada rango tenga un mínimo y un máximo válidos.", "error"); return; }
+      // Dos rangos son ambiguos si un mismo paciente puede calzar con AMBOS
+      // a la vez — no solo cuando el género y la edad son idénticos, sino
+      // cada vez que se solapan (ej. uno "Masculino sin edad" y otro "Ambos
+      // 18-99 años" también compiten por el mismo paciente). Sin esta
+      // verificación más amplia, es fácil terminar con dos rangos que
+      // aplican al mismo paciente sin darse cuenta, y en la captura de
+      // resultados aparece un genérico "Opción 1 / Opción 2" en vez de algo
+      // que se entienda — por eso aquí si se solapan, se exige Etiqueta.
+      function generosSuperpuestos(a, b) {
+        if (!a || a === "ambos" || !b || b === "ambos") return true;
+        return a === b;
+      }
+      function edadesSuperpuestas(aMin, aMax, bMin, bMax) {
+        var loA = aMin == null ? -Infinity : aMin, hiA = aMax == null ? Infinity : aMax;
+        var loB = bMin == null ? -Infinity : bMin, hiB = bMax == null ? Infinity : bMax;
+        return loA <= hiB && loB <= hiA;
+      }
       var ambiguos = nuevasBandas.some(function (a, i) {
         return !a.etiqueta && nuevasBandas.some(function (b, j) {
-          return i !== j && a.genero === b.genero && a.edadMinAnios === b.edadMinAnios && a.edadMaxAnios === b.edadMaxAnios;
+          return i !== j && generosSuperpuestos(a.genero, b.genero) && edadesSuperpuestas(a.edadMinAnios, a.edadMaxAnios, b.edadMinAnios, b.edadMaxAnios);
         });
       });
-      if (ambiguos) { U.toast("Dos o más rangos aplican exactamente al mismo tipo de paciente — ponles una Etiqueta a cada uno para poder distinguirlos al capturar (ej. Fase Folicular, Fase Lútea…).", "error"); return; }
+      if (ambiguos) { U.toast("Dos o más rangos pueden aplicarle al mismo paciente (se solapan en género y/o edad) — ponles una Etiqueta a cada uno para poder distinguirlos al capturar (ej. Fase Folicular, Fase Lútea…). Si en realidad no necesitas dos rangos distintos, quita uno.", "error"); return; }
       C.setBandas(tenant, examId, param.codigo, nuevasBandas);
       S.updateTenant(tenant.id, { refBandas: tenant.refBandas || {} });
       S.addAudit(session.tenantId, session.nombre, session.rol, "UPDATE_REF_BANDAS", "catalogo", examId + ":" + param.codigo,
