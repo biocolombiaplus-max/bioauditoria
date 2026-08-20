@@ -107,8 +107,15 @@
     var jsPDFCtor = window.jspdf ? window.jspdf.jsPDF : window.jsPDF;
     var doc = new jsPDFCtor({ unit: "pt", format: "letter" });
     var pageW = doc.internal.pageSize.getWidth();
+    var pageH = doc.internal.pageSize.getHeight();
     var margin = 40;
     var y = margin;
+    // Límite inferior para el contenido de las tablas de resultados, y
+    // estimación (deliberadamente generosa) de cuánto ocupa cada fila —
+    // se usan para decidir CON ANTICIPACIÓN si un examen completo cabe en
+    // lo que queda de página, en vez de dejar que se corte a la mitad.
+    var pageBottom = pageH - 55;
+    var ROW_H = 17, HEAD_H = 22;
     var rgb = hexToRgb(tenant.colorPrimario);
 
     if (tenant.logoDataUrl) {
@@ -193,17 +200,13 @@
       // tabla de un solo valor por fila — se recogen aparte para armarles su
       // propia tabla, justo después de la tabla principal de la sección.
       var panelesDeSeccion = [];
-      // Una sola tabla para toda la sección (no una tabla por examen: con
-      // secciones de muchos exámenes de un solo parámetro, como Química
-      // Sanguínea, eso partía el reporte en muchas tablitas con encabezados
-      // repetidos y se veía desordenado). La columna "Examen" se fusiona
-      // verticalmente (rowSpan) cuando un examen tiene varios parámetros, en
-      // vez de repetir su nombre en cada fila.
-      var body = [];
-      var esAnormalPorFila = [];
+      // Primero se agrupan los parámetros por examen (para poder fusionar
+      // verticalmente la columna "Examen" con rowSpan en vez de repetir su
+      // nombre en cada fila).
+      var grupos = [];
       bySeccion[seccionId].forEach(function (ex) {
         var exCat = C.examenParaPaciente(ex.examId, tenant, patient, C.categoriasDeValores(ex.valores));
-        var filasExamen = [];
+        var filas = [];
         exCat.parametros.forEach(function (p) {
           if (p.tipo === "panel") {
             var entry = ex.valores.filter(function (v) { return v.codigo === p.codigo; })[0];
@@ -213,20 +216,27 @@
           }
           var val = (ex.valores.filter(function (v) { return v.codigo === p.codigo; })[0] || {}).valor || "-";
           var flag = C.calcularFlag(p, val);
-          filasExamen.push({
+          filas.push({
             fila: [p.nombre, val + (p.unidad ? " " + p.unidad : ""), p.refText || "", flag.texto || ""],
             anormal: flag.clase !== "" && flag.clase !== "normal"
           });
         });
-        filasExamen.forEach(function (f, i) {
-          body.push(i === 0
-            ? [{ content: exCat.nombre, rowSpan: filasExamen.length, styles: { valign: "middle", fontStyle: "bold", textColor: [60, 60, 60] } }].concat(f.fila)
-            : f.fila);
-          esAnormalPorFila.push(f.anormal);
-        });
+        if (filas.length) grupos.push({ nombre: exCat.nombre, filas: filas });
       });
 
-      if (body.length) {
+      // Luego se arma la tabla en "trozos" que quepan completos en lo que
+      // resta de la página: en un informe con muchos exámenes (20 o más),
+      // esto evita que un examen con varios parámetros (ej. un Cuadro
+      // Hemático) quede cortado a la mitad entre una página y la siguiente
+      // — que es justo lo que más confunde a un médico leyendo el reporte.
+      // Solo se salta de página cuando el siguiente examen de verdad no
+      // cabe completo, nunca sección por sección, así se usan las menos
+      // hojas posibles y todo queda consecutivo.
+      var body = [];
+      var esAnormalPorFila = [];
+      var yEstimado = y;
+      function volcarTablaSeccion() {
+        if (!body.length) return;
         doc.autoTable({
           startY: y, margin: { left: margin, right: margin },
           head: [["Examen", "Parámetro", "Resultado", "Valor de Referencia", "Interpretación"]],
@@ -244,7 +254,29 @@
           }
         });
         y = doc.lastAutoTable.finalY + 10;
+        body = []; esAnormalPorFila = [];
       }
+
+      grupos.forEach(function (g) {
+        var necesita = (body.length ? 0 : HEAD_H) + g.filas.length * ROW_H;
+        if (body.length && yEstimado + necesita > pageBottom) {
+          volcarTablaSeccion();
+          doc.addPage(); y = margin;
+          doc.setFont("helvetica", "italic"); doc.setFontSize(8); doc.setTextColor(120, 120, 120);
+          doc.text(C.seccionNombre(seccionId, tenant).toUpperCase() + " (continuación)", margin, y);
+          y += 14;
+          yEstimado = y + HEAD_H;
+        } else {
+          yEstimado += necesita;
+        }
+        g.filas.forEach(function (f, i) {
+          body.push(i === 0
+            ? [{ content: g.nombre, rowSpan: g.filas.length, styles: { valign: "middle", fontStyle: "bold", textColor: [60, 60, 60] } }].concat(f.fila)
+            : f.fila);
+          esAnormalPorFila.push(f.anormal);
+        });
+      });
+      volcarTablaSeccion();
 
       panelesDeSeccion.forEach(function (panelInfo) {
         if (y > 690) { doc.addPage(); y = margin; }
