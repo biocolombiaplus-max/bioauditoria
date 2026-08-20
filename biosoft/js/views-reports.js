@@ -141,42 +141,102 @@
         (hasPreliminar ? '<option value="preliminar">Informe Preliminar (resultados anticipados)</option>' : "") +
       "</select></div>" +
       '<div class="field"><label>Mensaje</label><textarea id="send-msg">Estimado(a) ' + U.esc(U.nombreCompleto(pac)) + ',\n\nAdjuntamos sus resultados de laboratorio correspondientes a la orden ' + order.numeroOrden + '.\n\n' + U.esc(tenant.nombre) + "</textarea></div>" +
-      '<div class="flex gap-2 justify-between"><button class="btn btn-ghost" data-modal-close>Cancelar</button><button class="btn btn-primary" id="send-go">' + U.icon("download") + " 1. Descargar PDF</button></div>" +
-      '<div id="send-step2" class="hidden" style="margin-top:16px;border-top:1px solid var(--border);padding-top:14px">' +
-      '<p style="margin:0 0 4px"><b>2. Elige dónde enviarlo</b></p>' +
-      '<p class="text-muted" style="margin:0 0 4px;font-size:12.5px">Se abrirá el correo o WhatsApp ya redactado — solo adjunta el PDF que acabas de descargar antes de darle enviar.</p>' +
-      '<a class="btn btn-whatsapp btn-block" id="send-wa" target="_blank" rel="noopener">' + U.icon("send") + " Enviar por WhatsApp</a>" +
-      '<div style="margin-top:8px">' + U.emailProviderButtonsHtml("send") + "</div>" +
+      '<p class="text-muted" style="margin:0 0 10px;font-size:12.5px">Un solo clic: se descarga el PDF y se abre WhatsApp o tu correo ya redactado — solo adjunta el archivo que se acaba de descargar antes de darle enviar (ningún navegador permite adjuntarlo automáticamente).</p>' +
+      '<button type="button" class="btn btn-whatsapp btn-block" id="send-wa">' + U.icon("send") + " Enviar por WhatsApp</button>" +
+      '<div class="flex gap-2 wrap" style="margin-top:8px">' +
+      '<button type="button" class="btn btn-outline btn-sm" id="send-gmail">📧 Enviar por Gmail</button>' +
+      '<button type="button" class="btn btn-outline btn-sm" id="send-outlook">📧 Enviar por Outlook / Hotmail</button>' +
+      '<button type="button" class="btn btn-ghost btn-sm" id="send-mailto">Mi correo predeterminado</button>' +
+      "</div>" +
+      '<div class="flex gap-2 justify-between" style="margin-top:14px;border-top:1px solid var(--border);padding-top:12px">' +
+      '<button class="btn btn-ghost" data-modal-close>Cancelar</button>' +
+      '<button type="button" class="btn btn-outline btn-sm" id="send-solo-descargar">' + U.icon("download") + " Solo descargar PDF</button>" +
       "</div>"
     );
-    wrap.querySelector("#send-go").addEventListener("click", async function () {
-      var email = wrap.querySelector("#send-email").value.trim();
-      var whatsapp = wrap.querySelector("#send-whatsapp").value.trim();
+
+    // Los tres botones de canal (WhatsApp/Gmail/Outlook/correo predeterminado)
+    // y el de "solo descargar" hacen lo mismo primero: generan y descargan
+    // el PDF una única vez (nunca dos veces, gracias a pdfCache) — no hace
+    // falta que el cliente descargue aparte antes de poder enviar. Adjuntar
+    // el archivo al mensaje sigue siendo manual porque ningún navegador
+    // permite adjuntarlo automáticamente desde un enlace de WhatsApp/correo.
+    var pdfCache = null;
+    function obtenerPdf() {
+      if (pdfCache) return Promise.resolve(pdfCache);
       var tipo = wrap.querySelector("#send-tipo").value;
-      var msg = wrap.querySelector("#send-msg").value;
-      if (!email && !whatsapp) { U.toast("Ingresa un correo o un número de WhatsApp.", "error"); return; }
-      var btn = wrap.querySelector("#send-go");
-      btn.disabled = true; btn.textContent = "Generando PDF…";
-      var bytes = await window.BIO_PDF.buildResultadosPDF(order, pac, tenant, tipo);
-      U.downloadBytes(bytes, "Resultados_" + order.numeroOrden + "_" + (tipo === "final" ? "Final" : "Preliminar") + ".pdf");
-      order.enviado = true; order.fechaEnvio = S.nowISO();
-      S.saveOrder(order);
-      S.addAudit(session.tenantId, session.nombre, session.rol, "SEND_REPORT", "orden", order.id, "Envió el informe (" + tipo + ") de la orden " + order.numeroOrden + " a " + (email || whatsapp) + ".");
-      btn.disabled = false; btn.textContent = "PDF descargado ✓";
-      var asunto = "Resultados de Laboratorio - Orden " + order.numeroOrden + " - " + tenant.nombre;
-      var cuerpo = msg + "\n\n(Adjunte el archivo PDF que se acaba de descargar a su equipo)";
-      wrap.querySelector("#send-step2").classList.remove("hidden");
-      U.wireEmailProviderButtons(wrap, "send", email, asunto, cuerpo);
-      var waBtn = wrap.querySelector("#send-wa");
-      if (whatsapp) {
-        var numero = whatsapp.replace(/\D/g, "");
-        if (numero.length === 10 && numero.charAt(0) === "3") numero = "57" + numero;
-        waBtn.href = "https://wa.me/" + numero + "?text=" + encodeURIComponent(msg + "\n\n(Adjunte el PDF que se acaba de descargar antes de enviar)");
-      } else {
-        waBtn.classList.add("hidden");
-      }
-      U.toast("PDF descargado. Elige por dónde enviarlo.", "success");
+      return window.BIO_PDF.buildResultadosPDF(order, pac, tenant, tipo).then(function (bytes) {
+        pdfCache = bytes;
+        U.downloadBytes(bytes, "Resultados_" + order.numeroOrden + "_" + (tipo === "final" ? "Final" : "Preliminar") + ".pdf");
+        order.enviado = true; order.fechaEnvio = S.nowISO();
+        S.saveOrder(order);
+        return bytes;
+      });
+    }
+    function registrarEnvio(destino) {
+      var tipo = wrap.querySelector("#send-tipo").value;
+      S.addAudit(session.tenantId, session.nombre, session.rol, "SEND_REPORT", "orden", order.id, "Envió el informe (" + tipo + ") de la orden " + order.numeroOrden + " a " + destino + ".");
       onDone();
+    }
+    function conBotonOcupado(btn, tarea) {
+      var htmlOriginal = btn.innerHTML;
+      btn.disabled = true; btn.innerHTML = "Generando PDF…";
+      return tarea().finally(function () { btn.disabled = false; btn.innerHTML = htmlOriginal; });
+    }
+
+    wrap.querySelector("#send-wa").addEventListener("click", function (e) {
+      var whatsapp = wrap.querySelector("#send-whatsapp").value.trim();
+      if (!whatsapp) { U.toast("Ingresa el WhatsApp del paciente.", "error"); return; }
+      // La pestaña se abre EN BLANCO aquí mismo, de forma síncrona dentro del
+      // clic (para que el navegador no la bloquee como pop-up no solicitado)
+      // y solo se le asigna la URL de WhatsApp una vez el PDF ya se generó y
+      // descargó — si se abriera después del await, Chrome suele bloquearla
+      // en silencio porque ya no la reconoce como originada por un clic.
+      var pestana = window.open("", "_blank");
+      conBotonOcupado(e.currentTarget, function () {
+        return obtenerPdf().then(function () {
+          var msg = wrap.querySelector("#send-msg").value;
+          var numero = whatsapp.replace(/\D/g, "");
+          if (numero.length === 10 && numero.charAt(0) === "3") numero = "57" + numero;
+          var url = "https://wa.me/" + numero + "?text=" + encodeURIComponent(msg + "\n\n(Adjunte el PDF que se acaba de descargar antes de enviar)");
+          if (pestana) pestana.location.href = url; else window.open(url, "_blank");
+          registrarEnvio(whatsapp);
+          U.toast("PDF descargado y WhatsApp abierto — adjunta el archivo antes de enviar.", "success");
+        }).catch(function (err) {
+          if (pestana) pestana.close();
+          throw err;
+        });
+      });
+    });
+
+    [
+      { id: "send-gmail", buildUrl: function (links) { return links.gmail; } },
+      { id: "send-outlook", buildUrl: function (links) { return links.outlook; } },
+      { id: "send-mailto", buildUrl: function (links) { return links.mailto; } }
+    ].forEach(function (canal) {
+      wrap.querySelector("#" + canal.id).addEventListener("click", function (e) {
+        var correo = wrap.querySelector("#send-email").value.trim();
+        if (!correo) { U.toast("Ingresa el correo del destinatario.", "error"); return; }
+        var pestana = window.open("", "_blank");
+        conBotonOcupado(e.currentTarget, function () {
+          return obtenerPdf().then(function () {
+            var asunto = "Resultados de Laboratorio - Orden " + order.numeroOrden + " - " + tenant.nombre;
+            var cuerpo = wrap.querySelector("#send-msg").value + "\n\n(Adjunte el archivo PDF que se acaba de descargar a su equipo)";
+            var url = canal.buildUrl(U.emailLinks(correo, asunto, cuerpo));
+            if (pestana) pestana.location.href = url; else window.open(url, "_blank");
+            registrarEnvio(correo);
+            U.toast("PDF descargado y correo abierto — adjunta el archivo antes de enviar.", "success");
+          }).catch(function (err) {
+            if (pestana) pestana.close();
+            throw err;
+          });
+        });
+      });
+    });
+
+    wrap.querySelector("#send-solo-descargar").addEventListener("click", function (e) {
+      conBotonOcupado(e.currentTarget, function () {
+        return obtenerPdf().then(function () { U.toast("PDF descargado.", "success"); });
+      });
     });
   }
 })();
