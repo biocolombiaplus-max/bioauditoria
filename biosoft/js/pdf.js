@@ -421,7 +421,7 @@
       doc.text(f.nombre, margin, y + 22);
       doc.setFont("helvetica", "normal"); doc.setFontSize(8); doc.setTextColor(90, 90, 90);
       doc.text(f.registroProfesional ? "Registro Profesional: " + f.registroProfesional : "", margin, y + 33);
-      doc.text("Bacteriólogo(a) y Laboratorista Clínico", margin, y + 44);
+      doc.text(C.tituloFirmaProfesional(tenant.pais), margin, y + 44);
       y += 62;
     }
     var signBlockBottom = y;

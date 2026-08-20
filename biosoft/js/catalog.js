@@ -21,6 +21,20 @@
     return mapa[rol] || rol;
   }
 
+  /* Título profesional que aparece bajo la firma en el PDF de resultados —
+     distinto del rótulo corto de rolLabel() (usado en menús y tablas): aquí
+     va el nombre completo de la profesión tal como se reconoce en cada país,
+     ya que en Venezuela quien firma es un(a) Bioanalista, no un(a)
+     "Bacteriólogo(a) y Laboratorista Clínico" (título colombiano). */
+  var TITULO_FIRMA_POR_PAIS = {
+    CO: "Bacteriólogo(a) y Laboratorista Clínico",
+    VE: "Licenciado(a) en Bioanálisis",
+    EC: "Técnico(a) de Laboratorio Clínico"
+  };
+  function tituloFirmaProfesional(pais) {
+    return TITULO_FIRMA_POR_PAIS[pais] || TITULO_FIRMA_POR_PAIS.CO;
+  }
+
   /* El identificador tributario del laboratorio también cambia de nombre
      según el país (aunque el campo interno siga llamándose "nit" en el
      modelo de datos, por compatibilidad con los laboratorios ya creados). */
@@ -1250,6 +1264,7 @@
   global.BIO_CATALOG = {
     PAISES: PAISES,
     rolLabel: rolLabel,
+    tituloFirmaProfesional: tituloFirmaProfesional,
     documentoTributarioLabel: documentoTributarioLabel,
     normalizarDocumentoTributario: normalizarDocumentoTributario,
     SECCIONES: SECCIONES,

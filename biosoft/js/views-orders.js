@@ -46,6 +46,16 @@
     var selectedExams = []; // {examId}
     var activeSection = secciones[0].id;
     var searchTerm = "";
+    // Precios ya configurados por el laboratorio (Cotizador → Lista de
+    // Precios), para sugerir el "Valor a Cobrar" automáticamente según los
+    // exámenes que se van marcando, en vez de dejarlo siempre en blanco para
+    // digitarlo a mano. Sigue siendo editable: si quien registra la orden lo
+    // cambia manualmente, ya no se vuelve a recalcular solo.
+    var preciosPorId = {};
+    if (tenant.mostrarPrecioOrden) {
+      S.cotizador.listPrecios(session.tenantId).forEach(function (p) { preciosPorId[p.examId] = p.precio; });
+    }
+    var precioEditadoManualmente = false;
 
     root.innerHTML =
       '<div class="card">' +
@@ -61,7 +71,8 @@
           F.sel("procedencia", "Procedencia", C.PROCEDENCIAS.map(function (p) { return "<option>" + p + "</option>"; }).join("")) +
           F.inp("diagnostico", "Diagnóstico / Motivo", "") +
           (tenant.pais === "CO" ? F.inp("numAutorizacion", "N° de Autorización (si aplica, para RIPS)", "") + F.inp("diagnosticoCIE10", "Código CIE-10 (opcional, para RIPS)", "") : "") +
-          (tenant.mostrarPrecioOrden ? F.inp("valorCobrar", "Valor a Cobrar", "", false, "number") : "") +
+          (tenant.mostrarPrecioOrden ? '<div class="field"><label>Valor a Cobrar</label><input id="f_valorCobrar" type="number" step="any" value=""/>' +
+            '<span class="text-muted" style="font-size:11px" id="valorCobrar-hint">Se calcula solo según los exámenes que selecciones — puedes ajustarlo a mano.</span></div>' : "") +
         "</div>" +
         '<div style="margin:6px 0 10px"><a class="btn btn-outline btn-sm" id="btn-new-patient-inline">' + U.icon("plus") + ' Registrar paciente nuevo</a></div>' +
       "</div>" +
@@ -128,15 +139,23 @@
         chk.addEventListener("change", function () {
           var id = chk.dataset.exam;
           if (chk.checked) selectedExams.push(id); else selectedExams = selectedExams.filter(function (x) { return x !== id; });
-          renderChips(); renderSections();
+          renderChips(); renderSections(); sugerirValorCobrar();
         });
       });
       var btnAll = document.getElementById("btn-select-all");
       if (btnAll) btnAll.addEventListener("click", function () {
         if (allChecked) selectedExams = selectedExams.filter(function (id) { return !pool.some(function (e) { return e.id === id; }); });
         else pool.forEach(function (e) { if (selectedExams.indexOf(e.id) === -1) selectedExams.push(e.id); });
-        renderExams(); renderChips(); renderSections();
+        renderExams(); renderChips(); renderSections(); sugerirValorCobrar();
       });
+    }
+
+    function sugerirValorCobrar() {
+      if (!tenant.mostrarPrecioOrden || precioEditadoManualmente) return;
+      var input = document.getElementById("f_valorCobrar");
+      if (!input) return;
+      var total = selectedExams.reduce(function (sum, id) { return sum + (preciosPorId[id] || 0); }, 0);
+      input.value = total || "";
     }
 
     function renderChips() {
@@ -148,11 +167,18 @@
       document.querySelectorAll("[data-remove]").forEach(function (b) {
         b.addEventListener("click", function () {
           selectedExams = selectedExams.filter(function (x) { return x !== b.dataset.remove; });
-          renderChips(); renderExams(); renderSections();
+          renderChips(); renderExams(); renderSections(); sugerirValorCobrar();
         });
       });
     }
     renderSections(); renderExams(); renderChips();
+    if (tenant.mostrarPrecioOrden) {
+      document.getElementById("f_valorCobrar").addEventListener("input", function () {
+        precioEditadoManualmente = true;
+        var hint = document.getElementById("valorCobrar-hint");
+        if (hint) hint.textContent = "Ajustado manualmente.";
+      });
+    }
 
     document.getElementById("btn-save-order").addEventListener("click", function () {
       var patientId = document.getElementById("f_patient").value;
