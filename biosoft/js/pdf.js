@@ -189,27 +189,20 @@
     });
 
     Object.keys(bySeccion).forEach(function (seccionId) {
-      if (y > 700) { doc.addPage(); y = margin; }
-      doc.setFillColor(rgb[0], rgb[1], rgb[2]);
-      doc.rect(margin, y, pageW - margin * 2, 16, "F");
-      doc.setTextColor(255, 255, 255); doc.setFont("helvetica", "bold"); doc.setFontSize(9.5);
-      doc.text(C.seccionNombre(seccionId, tenant).toUpperCase(), margin + 6, y + 11);
-      y += 24;
-
       // Los parámetros tipo "panel" (antibiograma/alergia) no encajan en la
       // tabla de un solo valor por fila — se recogen aparte para armarles su
       // propia tabla, justo después de la tabla principal de la sección.
       var panelesDeSeccion = [];
-      // Primero se agrupan los parámetros por examen (para poder fusionar
+      // Se agrupan los parámetros por examen (para poder fusionar
       // verticalmente la columna "Examen" con rowSpan en vez de repetir su
-      // nombre en cada fila). El método/técnica de cada examen se guarda
-      // aparte (no dentro de la celda: ahí no hay espacio para una segunda
-      // línea sin desordenar la tabla) y se muestra al final de la sección,
-      // agrupado por técnica en vez de una línea por examen.
-      // Los métodos/técnicas se agrupan por técnica (no por examen): varios
-      // exámenes de Química suelen compartir el mismo método, así que en vez
-      // de una línea por examen queda una sola línea por técnica con los
-      // exámenes que la usan — mucho más compacto que antes.
+      // nombre en cada fila) y los métodos por TÉCNICA (no por examen: varios
+      // exámenes de Química suelen compartir el mismo método, así que queda
+      // una sola línea por técnica con los exámenes que la usan, al final de
+      // la sección, en vez de una línea repetida por cada examen). Todo esto
+      // se calcula ANTES de dibujar el banner de la sección para poder
+      // decidir si hace falta pasar de página antes de empezar — así nunca
+      // queda el banner solo, sin ninguna fila debajo, al fondo de una
+      // página.
       var grupos = [];
       var metodosMap = {};
       bySeccion[seccionId].forEach(function (ex) {
@@ -236,6 +229,22 @@
         });
         if (filas.length) grupos.push({ nombre: exCat.nombre, filas: filas });
       });
+
+      // Antes de dibujar el banner rojo de la sección, se verifica que
+      // quepa completo junto con el encabezado de la tabla y al menos el
+      // primer examen — si no cabe, se pasa de página ANTES del banner, en
+      // vez de dejarlo solo al fondo de la página sin ninguna fila debajo
+      // (que es justo lo que se veía feo: el banner de HEMATOLOGÍA quedando
+      // huérfano al final de una página y los resultados empezando recién
+      // en la siguiente).
+      var altoPrimerGrupo = grupos.length ? grupos[0].filas.length * ROW_H : 0;
+      if (y + 24 + HEAD_H + altoPrimerGrupo > pageBottom) { doc.addPage(); y = margin; }
+
+      doc.setFillColor(rgb[0], rgb[1], rgb[2]);
+      doc.rect(margin, y, pageW - margin * 2, 16, "F");
+      doc.setTextColor(255, 255, 255); doc.setFont("helvetica", "bold"); doc.setFontSize(9.5);
+      doc.text(C.seccionNombre(seccionId, tenant).toUpperCase(), margin + 6, y + 11);
+      y += 24;
 
       // Luego se arma la tabla en "trozos" que quepan completos en lo que
       // resta de la página: en un informe con muchos exámenes (20 o más),
