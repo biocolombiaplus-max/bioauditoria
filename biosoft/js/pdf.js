@@ -193,25 +193,23 @@
       // tabla de un solo valor por fila — se recogen aparte para armarles su
       // propia tabla, justo después de la tabla principal de la sección.
       var panelesDeSeccion = [];
-      // Se agrupan los parámetros por examen (para poder fusionar
-      // verticalmente la columna "Examen" con rowSpan en vez de repetir su
-      // nombre en cada fila) y los métodos por TÉCNICA (no por examen: varios
-      // exámenes de Química suelen compartir el mismo método, así que queda
-      // una sola línea por técnica con los exámenes que la usan, al final de
-      // la sección, en vez de una línea repetida por cada examen). Todo esto
-      // se calcula ANTES de dibujar el banner de la sección para poder
-      // decidir si hace falta pasar de página antes de empezar — así nunca
-      // queda el banner solo, sin ninguna fila debajo, al fondo de una
-      // página.
+      // Se agrupan los parámetros por examen. Ya no hay una columna "Examen"
+      // aparte de "Parámetro": con exámenes de un solo parámetro (la mayoría
+      // en Química) esas dos columnas mostraban casi el mismo texto una al
+      // lado de la otra y se veía redundante. Ahora el nombre del examen (y
+      // su método, si lo tiene) van como una fila-título en negrita que
+      // abarca todo el ancho de la tabla — el mismo formato que usan los
+      // laboratorios de referencia grandes para reportes de panel — y debajo
+      // van sus parámetros, cada uno con su propio nombre en la columna
+      // "Parámetro". Todo esto se calcula ANTES de dibujar el banner de la
+      // sección para poder decidir si hace falta pasar de página antes de
+      // empezar — así nunca queda el banner solo, sin ninguna fila debajo,
+      // al fondo de una página.
       var grupos = [];
-      var metodosMap = {};
+      var examIdsConGrupo = {};
       bySeccion[seccionId].forEach(function (ex) {
         var exCat = C.examenParaPaciente(ex.examId, tenant, patient, C.categoriasDeValores(ex.valores));
         var metodoTexto = C.examenEfectivo(ex.examId, tenant).metodo || "";
-        if (metodoTexto) {
-          if (!metodosMap[metodoTexto]) metodosMap[metodoTexto] = [];
-          metodosMap[metodoTexto].push(exCat.nombre);
-        }
         var filas = [];
         exCat.parametros.forEach(function (p) {
           if (p.tipo === "panel") {
@@ -227,17 +225,21 @@
             anormal: flag.clase !== "" && flag.clase !== "normal"
           });
         });
-        if (filas.length) grupos.push({ nombre: exCat.nombre, filas: filas });
+        if (filas.length) { grupos.push({ nombre: exCat.nombre, metodo: metodoTexto, filas: filas }); examIdsConGrupo[ex.examId] = true; }
       });
+
+      // Alto estimado de un grupo: su fila-título + (opcional) su fila de
+      // método + una fila por parámetro.
+      function altoGrupo(g) { return (1 + (g.metodo ? 1 : 0) + g.filas.length) * ROW_H; }
 
       // Antes de dibujar el banner rojo de la sección, se verifica que
       // quepa completo junto con el encabezado de la tabla y al menos el
       // primer examen — si no cabe, se pasa de página ANTES del banner, en
       // vez de dejarlo solo al fondo de la página sin ninguna fila debajo
-      // (que es justo lo que se veía feo: el banner de HEMATOLOGÍA quedando
+      // (que es justo lo que se veía feo: el banner de una sección quedando
       // huérfano al final de una página y los resultados empezando recién
       // en la siguiente).
-      var altoPrimerGrupo = grupos.length ? grupos[0].filas.length * ROW_H : 0;
+      var altoPrimerGrupo = grupos.length ? altoGrupo(grupos[0]) : 0;
       if (y + 24 + HEAD_H + altoPrimerGrupo > pageBottom) { doc.addPage(); y = margin; }
 
       doc.setFillColor(rgb[0], rgb[1], rgb[2]);
@@ -255,32 +257,34 @@
       // cabe completo, nunca sección por sección, así se usan las menos
       // hojas posibles y todo queda consecutivo.
       var body = [];
-      var esAnormalPorFila = [];
+      var filaMeta = []; // una entrada por fila de "body", en el mismo orden
       var yEstimado = y;
       function volcarTablaSeccion() {
         if (!body.length) return;
         doc.autoTable({
           startY: y, margin: { left: margin, right: margin },
-          head: [["Examen", "Parámetro", "Resultado", "Valor de Referencia", "Interpretación"]],
+          head: [["Parámetro", "Resultado", "Valor de Referencia", "Interpretación"]],
           body: body, theme: "grid", styles: { fontSize: 8, cellPadding: 4 },
           headStyles: { fillColor: [240, 244, 247], textColor: 40, fontStyle: "bold" },
           didParseCell: function (data) {
             if (data.section !== "body") return;
+            var meta = filaMeta[data.row.index];
+            if (!meta || meta.tipo !== "dato") return;
             // El resultado siempre en negrita: es el dato que más le importa
             // leer rápido a un médico remitente en un reporte con muchos
             // parámetros.
-            if (data.column.index === 2) data.cell.styles.fontStyle = "bold";
-            if (data.column.index === 4 && esAnormalPorFila[data.row.index]) {
+            if (data.column.index === 1) data.cell.styles.fontStyle = "bold";
+            if (data.column.index === 3 && meta.anormal) {
               data.cell.styles.textColor = [214, 69, 69]; data.cell.styles.fontStyle = "bold";
             }
           }
         });
         y = doc.lastAutoTable.finalY + 10;
-        body = []; esAnormalPorFila = [];
+        body = []; filaMeta = [];
       }
 
       grupos.forEach(function (g) {
-        var necesita = (body.length ? 0 : HEAD_H) + g.filas.length * ROW_H;
+        var necesita = (body.length ? 0 : HEAD_H) + altoGrupo(g);
         if (body.length && yEstimado + necesita > pageBottom) {
           volcarTablaSeccion();
           doc.addPage(); y = margin;
@@ -291,11 +295,15 @@
         } else {
           yEstimado += necesita;
         }
-        g.filas.forEach(function (f, i) {
-          body.push(i === 0
-            ? [{ content: g.nombre, rowSpan: g.filas.length, styles: { valign: "middle", fontStyle: "bold", textColor: [60, 60, 60] } }].concat(f.fila)
-            : f.fila);
-          esAnormalPorFila.push(f.anormal);
+        body.push([{ content: g.nombre, colSpan: 4, styles: { fillColor: [246, 247, 249], textColor: [50, 50, 50], fontStyle: "bold", fontSize: 8.5 } }]);
+        filaMeta.push({ tipo: "titulo" });
+        if (g.metodo) {
+          body.push([{ content: "Método: " + g.metodo, colSpan: 4, styles: { fontStyle: "italic", textColor: [140, 140, 140], fontSize: 6.8 } }]);
+          filaMeta.push({ tipo: "metodo" });
+        }
+        g.filas.forEach(function (f) {
+          body.push(f.fila);
+          filaMeta.push({ tipo: "dato", anormal: f.anormal });
         });
       });
       volcarTablaSeccion();
@@ -305,6 +313,16 @@
         doc.setFont("helvetica", "bold"); doc.setFontSize(9); doc.setTextColor(rgb[0], rgb[1], rgb[2]);
         doc.text((panelInfo.p.panelTipo === "alergia" ? "PANEL DE ALERGIA" : "ANTIBIOGRAMA") + " — " + panelInfo.exNombre, margin, y);
         y += 12;
+        // El método solo se repite aquí si ese examen no tiene su propia
+        // fila-título en la tabla principal de arriba (ej. un panel de
+        // alergia que es 100% panel, sin ningún parámetro normal) — si ya
+        // salió junto a su nombre en la tabla, no hace falta mostrarlo de nuevo.
+        var metodoPanel = !examIdsConGrupo[panelInfo.exId] ? (C.examenEfectivo(panelInfo.exId, tenant).metodo || "") : "";
+        if (metodoPanel) {
+          doc.setFont("helvetica", "italic"); doc.setFontSize(7); doc.setTextColor(140, 140, 140);
+          doc.text("Método: " + metodoPanel, margin, y);
+          y += 10;
+        }
         if (panelInfo.p.panelTipo === "alergia") {
           var interpPorFila = panelInfo.items.map(function (it) {
             return it.valor !== "" && it.valor != null ? C.claseIgE(it.valor) : null;
@@ -338,27 +356,6 @@
         }
         y = doc.lastAutoTable.finalY + 10;
       });
-
-      // Métodos/técnicas usados en la sección: una sola línea por técnica
-      // (con los exámenes que la comparten), no una línea por examen — así
-      // no se ve amontonado ni repetitivo, sobre todo en secciones como
-      // Química Sanguínea donde varios exámenes usan el mismo método.
-      var tecnicas = Object.keys(metodosMap);
-      if (tecnicas.length) {
-        if (y > 715) { doc.addPage(); y = margin; }
-        doc.setFont("helvetica", "bold"); doc.setFontSize(7); doc.setTextColor(140, 140, 140);
-        doc.text("MÉTODOS", margin, y);
-        y += 9;
-        doc.setFont("helvetica", "normal"); doc.setFontSize(7);
-        tecnicas.forEach(function (tecnica) {
-          doc.setTextColor(90, 90, 90);
-          var lineas = doc.splitTextToSize(tecnica + ": " + metodosMap[tecnica].join(", "), pageW - margin * 2);
-          if (y + lineas.length * 8 > 755) { doc.addPage(); y = margin; }
-          doc.text(lineas, margin, y);
-          y += lineas.length * 8 + 2;
-        });
-        y += 4;
-      }
 
       // Las observaciones que el bacteriólogo(a) escribió en cada examen al
       // validarlo (ej. "muestra tomada por sonda urinaria") también deben
