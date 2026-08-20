@@ -3,6 +3,17 @@
   "use strict";
   var U = BIO_UI, C = BIO_CATALOG, S = BIO_STORE;
 
+  /* Cuando un parámetro tiene varios rangos de interpretación (ej. un perfil
+     lipídico con Óptimo/Intermedio/Alto/Muy Alto, o valores distintos para
+     niños), C.textoReferenciaRangos() los junta en un solo texto separado
+     por " · " para mostrarlo compacto en la pantalla de captura. En el PDF
+     ese mismo texto, todo en una sola línea corrida, se ve amontonado y no
+     se distingue un rango de otro — aquí se parte cada rango en su propia
+     línea dentro de la celda para que se lea como una lista clara. */
+  function formatearValorReferencia(refText) {
+    return (refText || "").split(" · ").join("\n");
+  }
+
   function hexToRgb(hex) {
     hex = (hex || "#f97316").replace("#", "");
     return [parseInt(hex.substring(0, 2), 16), parseInt(hex.substring(2, 4), 16), parseInt(hex.substring(4, 6), 16)];
@@ -118,11 +129,17 @@
     var ROW_H = 17, HEAD_H = 22;
     var rgb = hexToRgb(tenant.colorPrimario);
 
+    // El logo sale más grande que antes (antes 46pt, ahora 62pt) para que
+    // resalte más en el reporte que recibe el paciente — con el nombre y los
+    // datos del laboratorio recorriendo su posición proporcionalmente, para
+    // que el encabezado se vea equilibrado y no amontonado.
+    var logoSize = 62;
     if (tenant.logoDataUrl) {
-      try { doc.addImage(tenant.logoDataUrl, "PNG", margin, y - 6, 46, 46); } catch (e) {}
+      try { doc.addImage(tenant.logoDataUrl, "PNG", margin, y - 9, logoSize, logoSize); } catch (e) {}
     }
+    var textX = margin + (tenant.logoDataUrl ? logoSize + 14 : 0);
     doc.setFont("helvetica", "bold"); doc.setFontSize(15); doc.setTextColor(rgb[0], rgb[1], rgb[2]);
-    doc.text(tenant.nombre, margin + (tenant.logoDataUrl ? 56 : 0), y + 10);
+    doc.text(tenant.nombre, textX, y + 12);
     doc.setFont("helvetica", "normal"); doc.setFontSize(8.5); doc.setTextColor(90, 90, 90);
     var metaLines = [
       C.documentoTributarioLabel(tenant.pais) + " " + tenant.nit + (tenant.codigoREPS ? " · Código REPS " + tenant.codigoREPS : ""),
@@ -130,10 +147,10 @@
       tenant.email + (tenant.sitioWeb ? " · " + tenant.sitioWeb : ""),
       tenant.resolucionHabilitacion || ""
     ];
-    metaLines.forEach(function (line, i) { doc.text(line, margin + (tenant.logoDataUrl ? 56 : 0), y + 22 + i * 10); });
+    metaLines.forEach(function (line, i) { doc.text(line, textX, y + 25 + i * 10); });
 
     doc.setDrawColor(rgb[0], rgb[1], rgb[2]); doc.setLineWidth(2);
-    y += 62; doc.line(margin, y, pageW - margin, y); y += 20;
+    y += 72; doc.line(margin, y, pageW - margin, y); y += 20;
 
     doc.setFont("helvetica", "bold"); doc.setFontSize(13); doc.setTextColor(20, 20, 20);
     doc.text("INFORME DE RESULTADOS DE LABORATORIO CLÍNICO", margin, y);
@@ -220,17 +237,27 @@
           }
           var val = (ex.valores.filter(function (v) { return v.codigo === p.codigo; })[0] || {}).valor || "-";
           var flag = C.calcularFlag(p, val);
+          var refFormateado = formatearValorReferencia(p.refText);
           filas.push({
-            fila: [p.nombre, val + (p.unidad ? " " + p.unidad : ""), p.refText || "", flag.texto || ""],
-            anormal: flag.clase !== "" && flag.clase !== "normal"
+            fila: [p.nombre, val + (p.unidad ? " " + p.unidad : ""), refFormateado, flag.texto || ""],
+            anormal: flag.clase !== "" && flag.clase !== "normal",
+            // Parámetros con varios rangos de interpretación (ver arriba)
+            // ocupan varias líneas en la columna "Valor de Referencia" — se
+            // cuentan para que la estimación de espacio de la página no se
+            // quede corta y termine cortando la fila a la mitad.
+            lineas: Math.max(1, refFormateado.split("\n").length)
           });
         });
         if (filas.length) { grupos.push({ nombre: exCat.nombre, metodo: metodoTexto, filas: filas }); examIdsConGrupo[ex.examId] = true; }
       });
 
       // Alto estimado de un grupo: su fila-título + (opcional) su fila de
-      // método + una fila por parámetro.
-      function altoGrupo(g) { return (1 + (g.metodo ? 1 : 0) + g.filas.length) * ROW_H; }
+      // método + una fila por parámetro (cada una según cuántas líneas
+      // ocupe su valor de referencia, no siempre 1).
+      function altoGrupo(g) {
+        var filasAlto = g.filas.reduce(function (sum, f) { return sum + f.lineas; }, 0);
+        return (1 + (g.metodo ? 1 : 0) + filasAlto) * ROW_H;
+      }
 
       // Antes de dibujar el banner rojo de la sección, se verifica que
       // quepa completo junto con el encabezado de la tabla y al menos el

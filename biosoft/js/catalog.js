@@ -1010,7 +1010,11 @@
     if (!exCat) return exCat;
     if (!tenant) return exCat;
     var custom = examCustomDe(examId, tenant);
-    if (!tenant.refOverrides && !custom) return exCat;
+    // Si el laboratorio solo configuró "Rangos de Interpretación" (sin tocar
+    // refOverrides ni personalizar el examen de ninguna otra forma), esto
+    // también debe entrar a mapear los parámetros — si no, esos rangos
+    // quedan definidos pero nunca se aplican, tanto en captura como en el PDF.
+    if (!tenant.refOverrides && !tenant.refRangos && !custom) return exCat;
 
     var clone = Object.assign({}, exCat);
     var parametros = exCat.parametros.map(function (p) { return parametroEfectivo(examId, p, tenant); });
