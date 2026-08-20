@@ -191,18 +191,19 @@
 
       // Los parámetros tipo "panel" (antibiograma/alergia) no encajan en la
       // tabla de un solo valor por fila — se recogen aparte para armarles su
-      // propia tabla, justo después de las tablas de parámetros normales de
-      // la sección.
+      // propia tabla, justo después de la tabla principal de la sección.
       var panelesDeSeccion = [];
-      // Una tabla POR EXAMEN (con su nombre como subtítulo arriba) en vez de
-      // una sola tabla con columna "Examen" repetida en cada fila — con un
-      // solo examen por sección (el caso más común) esa columna repetía el
-      // mismo texto en todas las filas y no aportaba nada, solo se veía
-      // recargado y confundía la lectura del reporte.
+      // Una sola tabla para toda la sección (no una tabla por examen: con
+      // secciones de muchos exámenes de un solo parámetro, como Química
+      // Sanguínea, eso partía el reporte en muchas tablitas con encabezados
+      // repetidos y se veía desordenado). La columna "Examen" se fusiona
+      // verticalmente (rowSpan) cuando un examen tiene varios parámetros, en
+      // vez de repetir su nombre en cada fila.
+      var body = [];
+      var esAnormalPorFila = [];
       bySeccion[seccionId].forEach(function (ex) {
         var exCat = C.examenParaPaciente(ex.examId, tenant, patient, C.categoriasDeValores(ex.valores));
-        var body = [];
-        var esAnormalPorFila = [];
+        var filasExamen = [];
         exCat.parametros.forEach(function (p) {
           if (p.tipo === "panel") {
             var entry = ex.valores.filter(function (v) { return v.codigo === p.codigo; })[0];
@@ -212,29 +213,38 @@
           }
           var val = (ex.valores.filter(function (v) { return v.codigo === p.codigo; })[0] || {}).valor || "-";
           var flag = C.calcularFlag(p, val);
-          body.push([p.nombre, val + (p.unidad ? " " + p.unidad : ""), p.refText || "", flag.texto || ""]);
-          esAnormalPorFila.push(flag.clase !== "" && flag.clase !== "normal");
-        });
-
-        if (body.length) {
-          if (y > 690) { doc.addPage(); y = margin; }
-          doc.setFont("helvetica", "bold"); doc.setFontSize(9); doc.setTextColor(60, 60, 60);
-          doc.text(exCat.nombre, margin, y);
-          y += 10;
-          doc.autoTable({
-            startY: y, margin: { left: margin, right: margin },
-            head: [["Parámetro", "Resultado", "Valor de Referencia", "Interpretación"]],
-            body: body, theme: "grid", styles: { fontSize: 8, cellPadding: 4 },
-            headStyles: { fillColor: [240, 244, 247], textColor: 40, fontStyle: "bold" },
-            didParseCell: function (data) {
-              if (data.section === "body" && data.column.index === 3 && esAnormalPorFila[data.row.index]) {
-                data.cell.styles.textColor = [214, 69, 69]; data.cell.styles.fontStyle = "bold";
-              }
-            }
+          filasExamen.push({
+            fila: [p.nombre, val + (p.unidad ? " " + p.unidad : ""), p.refText || "", flag.texto || ""],
+            anormal: flag.clase !== "" && flag.clase !== "normal"
           });
-          y = doc.lastAutoTable.finalY + 10;
-        }
+        });
+        filasExamen.forEach(function (f, i) {
+          body.push(i === 0
+            ? [{ content: exCat.nombre, rowSpan: filasExamen.length, styles: { valign: "middle", fontStyle: "bold", textColor: [60, 60, 60] } }].concat(f.fila)
+            : f.fila);
+          esAnormalPorFila.push(f.anormal);
+        });
       });
+
+      if (body.length) {
+        doc.autoTable({
+          startY: y, margin: { left: margin, right: margin },
+          head: [["Examen", "Parámetro", "Resultado", "Valor de Referencia", "Interpretación"]],
+          body: body, theme: "grid", styles: { fontSize: 8, cellPadding: 4 },
+          headStyles: { fillColor: [240, 244, 247], textColor: 40, fontStyle: "bold" },
+          didParseCell: function (data) {
+            if (data.section !== "body") return;
+            // El resultado siempre en negrita: es el dato que más le importa
+            // leer rápido a un médico remitente en un reporte con muchos
+            // parámetros.
+            if (data.column.index === 2) data.cell.styles.fontStyle = "bold";
+            if (data.column.index === 4 && esAnormalPorFila[data.row.index]) {
+              data.cell.styles.textColor = [214, 69, 69]; data.cell.styles.fontStyle = "bold";
+            }
+          }
+        });
+        y = doc.lastAutoTable.finalY + 10;
+      }
 
       panelesDeSeccion.forEach(function (panelInfo) {
         if (y > 690) { doc.addPage(); y = margin; }
