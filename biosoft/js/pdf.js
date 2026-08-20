@@ -129,11 +129,12 @@
     var ROW_H = 17, HEAD_H = 22;
     var rgb = hexToRgb(tenant.colorPrimario);
 
-    // El logo sale bien grande (84pt — subió de 46 a 62 y ahora a 84) para
-    // que resalte con fuerza en el reporte que recibe el paciente, incluso
-    // impreso en papel. El nombre y los datos del laboratorio se recorren
-    // proporcionalmente para que el encabezado se vea equilibrado.
-    var logoSize = 84;
+    // El logo sale bien grande (100pt — subió de 46 a 62, a 84 y ahora a
+    // 100) para aprovechar el espacio en blanco que quedaba debajo suyo en
+    // el encabezado y que resalte con fuerza incluso impreso en papel. El
+    // nombre y los datos del laboratorio se recorren proporcionalmente para
+    // que el encabezado se vea equilibrado.
+    var logoSize = 100;
     if (tenant.logoDataUrl) {
       try { doc.addImage(tenant.logoDataUrl, "PNG", margin, y - 9, logoSize, logoSize); } catch (e) {}
     }
