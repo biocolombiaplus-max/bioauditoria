@@ -202,16 +202,23 @@
       var panelesDeSeccion = [];
       // Primero se agrupan los parámetros por examen (para poder fusionar
       // verticalmente la columna "Examen" con rowSpan en vez de repetir su
-      // nombre en cada fila).
+      // nombre en cada fila). El método/técnica del examen (si el
+      // laboratorio lo definió en el catálogo) va como una segunda línea
+      // pequeña y gris debajo del nombre, DENTRO de esa misma celda — en vez
+      // de un bloque aparte al final de la sección listando "Examen —
+      // Método" para cada uno, que quedaba confuso y desordenado con muchos
+      // exámenes.
       var grupos = [];
+      var examIdsConGrupo = {};
       bySeccion[seccionId].forEach(function (ex) {
         var exCat = C.examenParaPaciente(ex.examId, tenant, patient, C.categoriasDeValores(ex.valores));
+        var metodoTexto = C.examenEfectivo(ex.examId, tenant).metodo || "";
         var filas = [];
         exCat.parametros.forEach(function (p) {
           if (p.tipo === "panel") {
             var entry = ex.valores.filter(function (v) { return v.codigo === p.codigo; })[0];
             var items = C.parsePanelValor(entry ? entry.valor : "");
-            if (items.length) panelesDeSeccion.push({ exNombre: exCat.nombre, p: p, items: items });
+            if (items.length) panelesDeSeccion.push({ exNombre: exCat.nombre, exId: ex.examId, p: p, items: items });
             return;
           }
           var val = (ex.valores.filter(function (v) { return v.codigo === p.codigo; })[0] || {}).valor || "-";
@@ -221,7 +228,7 @@
             anormal: flag.clase !== "" && flag.clase !== "normal"
           });
         });
-        if (filas.length) grupos.push({ nombre: exCat.nombre, filas: filas });
+        if (filas.length) { grupos.push({ nombre: exCat.nombre, filas: filas, metodo: metodoTexto }); examIdsConGrupo[ex.examId] = true; }
       });
 
       // Luego se arma la tabla en "trozos" que quepan completos en lo que
@@ -244,12 +251,38 @@
           headStyles: { fillColor: [240, 244, 247], textColor: 40, fontStyle: "bold" },
           didParseCell: function (data) {
             if (data.section !== "body") return;
+            // El nombre del examen (con su método debajo) se dibuja a mano en
+            // didDrawCell para poder usar dos tamaños/colores de letra en la
+            // misma celda — aquí solo se apaga el texto por defecto.
+            if (data.column.index === 0 && data.cell.raw && typeof data.cell.raw === "object" && data.cell.raw.rowSpan) {
+              data.cell.text = [];
+              return;
+            }
             // El resultado siempre en negrita: es el dato que más le importa
             // leer rápido a un médico remitente en un reporte con muchos
             // parámetros.
             if (data.column.index === 2) data.cell.styles.fontStyle = "bold";
             if (data.column.index === 4 && esAnormalPorFila[data.row.index]) {
               data.cell.styles.textColor = [214, 69, 69]; data.cell.styles.fontStyle = "bold";
+            }
+          },
+          didDrawCell: function (data) {
+            if (data.section !== "body" || data.column.index !== 0) return;
+            var raw = data.cell.raw;
+            if (!raw || typeof raw !== "object" || !raw.rowSpan) return;
+            var padX = (data.cell.padding && data.cell.padding("left")) || 4;
+            var cx = data.cell.x + padX;
+            var anchoTexto = data.cell.width - padX * 2;
+            var lineasNombre = doc.splitTextToSize(raw.content, anchoTexto);
+            var lineasMetodo = raw._metodo ? doc.splitTextToSize("Método: " + raw._metodo, anchoTexto) : [];
+            var altoTotal = lineasNombre.length * 9 + (lineasMetodo.length ? 3 + lineasMetodo.length * 7 : 0);
+            var cy = data.cell.y + (data.cell.height - altoTotal) / 2 + 7;
+            doc.setFont("helvetica", "bold"); doc.setFontSize(8); doc.setTextColor(60, 60, 60);
+            lineasNombre.forEach(function (linea, i) { doc.text(linea, cx, cy + i * 9); });
+            if (lineasMetodo.length) {
+              var yMetodo = cy + lineasNombre.length * 9 + 3;
+              doc.setFont("helvetica", "normal"); doc.setFontSize(6.5); doc.setTextColor(140, 140, 140);
+              lineasMetodo.forEach(function (linea, i) { doc.text(linea, cx, yMetodo + i * 7); });
             }
           }
         });
@@ -258,7 +291,10 @@
       }
 
       grupos.forEach(function (g) {
-        var necesita = (body.length ? 0 : HEAD_H) + g.filas.length * ROW_H;
+        // Si el examen tiene método, su fila queda un poco más alta (nombre +
+        // método en dos líneas dentro de la misma celda) — se refleja en la
+        // estimación para que la paginación siga calculando bien cuánto cabe.
+        var necesita = (body.length ? 0 : HEAD_H) + g.filas.length * ROW_H + (g.metodo ? 9 : 0);
         if (body.length && yEstimado + necesita > pageBottom) {
           volcarTablaSeccion();
           doc.addPage(); y = margin;
@@ -271,7 +307,7 @@
         }
         g.filas.forEach(function (f, i) {
           body.push(i === 0
-            ? [{ content: g.nombre, rowSpan: g.filas.length, styles: { valign: "middle", fontStyle: "bold", textColor: [60, 60, 60] } }].concat(f.fila)
+            ? [{ content: g.nombre, rowSpan: g.filas.length, _metodo: g.metodo, styles: { valign: "middle", fontStyle: "bold", textColor: [60, 60, 60] } }].concat(f.fila)
             : f.fila);
           esAnormalPorFila.push(f.anormal);
         });
@@ -283,6 +319,17 @@
         doc.setFont("helvetica", "bold"); doc.setFontSize(9); doc.setTextColor(rgb[0], rgb[1], rgb[2]);
         doc.text((panelInfo.p.panelTipo === "alergia" ? "PANEL DE ALERGIA" : "ANTIBIOGRAMA") + " — " + panelInfo.exNombre, margin, y);
         y += 12;
+        // El método solo se repite aquí si ese examen no tiene su propia
+        // fila en la tabla principal de arriba (ej. un panel de alergia que
+        // es 100% panel, sin ningún parámetro normal) — si ya salió junto a
+        // su nombre en la tabla, no hace falta mostrarlo dos veces.
+        var metodoPanel = !examIdsConGrupo[panelInfo.exId] ? (C.examenEfectivo(panelInfo.exId, tenant).metodo || "") : "";
+        if (metodoPanel) {
+          doc.setFont("helvetica", "normal"); doc.setFontSize(7); doc.setTextColor(130, 130, 130);
+          var lineasMetodoPanel = doc.splitTextToSize("Método: " + metodoPanel, pageW - margin * 2);
+          doc.text(lineasMetodoPanel, margin, y);
+          y += lineasMetodoPanel.length * 8 + 4;
+        }
         if (panelInfo.p.panelTipo === "alergia") {
           var interpPorFila = panelInfo.items.map(function (it) {
             return it.valor !== "" && it.valor != null ? C.claseIgE(it.valor) : null;
@@ -316,22 +363,6 @@
         }
         y = doc.lastAutoTable.finalY + 10;
       });
-
-      // El método/técnica de cada examen es opcional (ver Catálogo → Editar):
-      // si el laboratorio no lo definió, no se muestra nada.
-      var metodoExams = bySeccion[seccionId].filter(function (ex) { return C.examenEfectivo(ex.examId, tenant).metodo; });
-      if (metodoExams.length) {
-        doc.setFont("helvetica", "normal"); doc.setFontSize(7.5); doc.setTextColor(110, 110, 110);
-        metodoExams.forEach(function (ex) {
-          var exCat = C.examenEfectivo(ex.examId, tenant);
-          var texto = exCat.nombre + " — Método: " + exCat.metodo;
-          var lineas = doc.splitTextToSize(texto, pageW - margin * 2);
-          if (y + lineas.length * 9 > 750) { doc.addPage(); y = margin; }
-          doc.text(lineas, margin, y);
-          y += lineas.length * 9 + 2;
-        });
-        y += 4;
-      }
 
       // Las observaciones que el bacteriólogo(a) escribió en cada examen al
       // validarlo (ej. "muestra tomada por sonda urinaria") también deben
