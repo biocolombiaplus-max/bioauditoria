@@ -445,12 +445,12 @@
           var flag = C.calcularFlag(p, val);
           var inputHtml;
           if (p.tipo === "numerico") {
-            inputHtml = '<input type="number" step="any" data-param="' + p.codigo + '" value="' + U.esc(val) + '" ' + (!editable ? "disabled" : "") + "/>";
+            inputHtml = '<input type="number" step="any" placeholder="Escribe aquí…" data-param="' + p.codigo + '" value="' + U.esc(val) + '" ' + (!editable ? "disabled" : "") + "/>";
           } else if (p.tipo === "cualitativo" || p.tipo === "descriptivo") {
-            inputHtml = '<select data-param="' + p.codigo + '" ' + (!editable ? "disabled" : "") + '><option value="">— Seleccionar —</option>' +
+            inputHtml = '<select data-param="' + p.codigo + '" ' + (!editable ? "disabled" : "") + '><option value="">— Selecciona el resultado —</option>' +
               p.opciones.map(function (o) { return '<option ' + (o === val ? "selected" : "") + ">" + o + "</option>"; }).join("") + "</select>";
           } else {
-            inputHtml = '<textarea data-param="' + p.codigo + '" ' + (!editable ? "disabled" : "") + ">" + U.esc(val) + "</textarea>" +
+            inputHtml = '<textarea placeholder="Escribe aquí…" data-param="' + p.codigo + '" ' + (!editable ? "disabled" : "") + ">" + U.esc(val) + "</textarea>" +
               (editable && p.sugerencias ? sugerenciasHtml(p) : "");
           }
           // Cuando hay más de un rango que aplica igual al paciente (ej. las
@@ -472,7 +472,7 @@
               }).join("") +
               "</select>"
             : "";
-          return "<tr><td>" + U.esc(p.nombre) + "</td><td style='min-width:160px'>" + inputHtml + categoriaHtml + "</td><td>" + (p.unidad || "—") + "</td><td>" + U.esc(p.refText) + '</td><td class="flag-cell" data-flagfor="' + p.codigo + '">' +
+          return "<tr><td>" + U.esc(p.nombre) + '</td><td class="celda-resultado' + (editable ? "" : " celda-resultado-solo-lectura") + '" style="min-width:160px">' + inputHtml + categoriaHtml + "</td><td>" + (p.unidad || "—") + "</td><td>" + U.esc(p.refText) + '</td><td class="flag-cell" data-flagfor="' + p.codigo + '">' +
             (flag.texto ? '<span class="flag-' + flag.clase + '">' + U.esc(flag.texto) + "</span>" : "") + "</td></tr>";
         }).join("");
 
@@ -481,7 +481,7 @@
           (!editable ? '<p class="text-muted">Esta sección no está asignada a tu usuario. Solo lectura.</p>' : "") +
           (editable && !puedeFirmar ? '<p class="text-muted" style="font-size:12.5px">✍️ Puedes guardar el resultado como borrador o preliminar — la validación y firma final le corresponde a un Bacteriólogo(a)/Bioanalista.</p>' : "") +
           (editable ? '<div class="checkbox-row" style="margin-bottom:12px"><input type="checkbox" id="chk-remitido"/><label style="margin:0" for="chk-remitido">Este examen se remite a un laboratorio externo (no se procesa en este laboratorio)</label></div>' : "") +
-          (rowsHtml ? '<div class="table-wrap"><table><thead><tr><th>Parámetro</th><th>Resultado</th><th>Unidad</th><th>Valor de referencia</th><th>Interpretación</th></tr></thead><tbody>' + rowsHtml + "</tbody></table></div>" : "") +
+          (rowsHtml ? '<div class="table-wrap"><table><thead><tr><th>Parámetro</th><th class="th-resultado">✏️ Resultado</th><th>Unidad</th><th>Valor de referencia</th><th>Interpretación</th></tr></thead><tbody>' + rowsHtml + "</tbody></table></div>" : "") +
           parametrosPanel.map(panelBoxHtml).join("") +
           '<div class="field" style="margin-top:12px"><label>Observaciones del examen</label><textarea data-obs ' + (!editable ? "disabled" : "") + ">" + U.esc(ex.observaciones || "") + "</textarea></div>" +
           '<div class="flex gap-2 wrap" style="margin-top:10px">' +

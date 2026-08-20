@@ -188,6 +188,16 @@ fieldset legend { font-family: 'Poppins', sans-serif; font-weight: 700; font-siz
 }
 @media (max-width: 900px) { .barra-acciones-flotante { left: 0; padding: 10px 14px; } }
 
+/* Resalta con claridad la columna donde se digita el resultado en la
+   captura de resultados — para que un bacteriólogo(a)/bioanalista nunca
+   dude, entre columnas de solo lectura (unidad, valor de referencia), en
+   cuál casilla debe escribir. */
+th.th-resultado { background: color-mix(in srgb, var(--brand-primary) 14%, var(--surface-2)); color: var(--brand-secondary); }
+td.celda-resultado { background: color-mix(in srgb, var(--brand-primary) 5%, transparent); border-left: 3px solid var(--brand-primary); }
+td.celda-resultado input, td.celda-resultado select, td.celda-resultado textarea { border-color: color-mix(in srgb, var(--brand-primary) 40%, var(--border)); background: #fff; }
+td.celda-resultado.celda-resultado-solo-lectura { background: transparent; border-left-color: var(--border); }
+td.celda-resultado.celda-resultado-solo-lectura input, td.celda-resultado.celda-resultado-solo-lectura select, td.celda-resultado.celda-resultado-solo-lectura textarea { border-color: var(--border); }
+
 /* ---------------- Tablas ---------------- */
 .table-wrap { overflow-x: auto; border-radius: var(--radius-sm); border: 1px solid var(--border); }
 table { width: 100%; border-collapse: collapse; font-size: 13.5px; background: #fff; }
