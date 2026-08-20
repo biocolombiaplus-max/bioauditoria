@@ -818,21 +818,26 @@
      la próxima vez. Frecuencia relativa según la bibliografía de
      microbiología clínica de uso general en Colombia; no reemplaza el
      criterio del bacteriólogo sobre el caso concreto. */
+  // "grupo" es solo para AGRUPAR visualmente los botones de selección rápida
+  // (bacilos gram negativos / cocos gram positivos / hongos) y así sea más
+  // fácil de escanear para el bacteriólogo — no tiene ningún efecto clínico
+  // ni se usa para calcular nada, es puramente de organización visual.
   var GERMENES_URINARIOS_BASE = [
-    { codigo: "ECOLI", nombre: "Escherichia coli" },
-    { codigo: "KPNEU", nombre: "Klebsiella pneumoniae" },
-    { codigo: "PMIRA", nombre: "Proteus mirabilis" },
-    { codigo: "EFAEC", nombre: "Enterococcus faecalis" },
-    { codigo: "SSAPR", nombre: "Staphylococcus saprophyticus" },
-    { codigo: "PAERU", nombre: "Pseudomonas aeruginosa" },
-    { codigo: "KOXY", nombre: "Klebsiella oxytoca" },
-    { codigo: "ECLOA", nombre: "Enterobacter cloacae" },
-    { codigo: "CFREU", nombre: "Citrobacter freundii" },
-    { codigo: "SAUR", nombre: "Staphylococcus aureus" },
-    { codigo: "SAGAL", nombre: "Streptococcus agalactiae (Grupo B)" },
-    { codigo: "CALB", nombre: "Candida albicans" }
+    { codigo: "ECOLI", nombre: "Escherichia coli", grupo: "Bacilos Gram Negativos" },
+    { codigo: "KPNEU", nombre: "Klebsiella pneumoniae", grupo: "Bacilos Gram Negativos" },
+    { codigo: "PMIRA", nombre: "Proteus mirabilis", grupo: "Bacilos Gram Negativos" },
+    { codigo: "PAERU", nombre: "Pseudomonas aeruginosa", grupo: "Bacilos Gram Negativos" },
+    { codigo: "KOXY", nombre: "Klebsiella oxytoca", grupo: "Bacilos Gram Negativos" },
+    { codigo: "ECLOA", nombre: "Enterobacter cloacae", grupo: "Bacilos Gram Negativos" },
+    { codigo: "CFREU", nombre: "Citrobacter freundii", grupo: "Bacilos Gram Negativos" },
+    { codigo: "EFAEC", nombre: "Enterococcus faecalis", grupo: "Cocos Gram Positivos" },
+    { codigo: "SSAPR", nombre: "Staphylococcus saprophyticus", grupo: "Cocos Gram Positivos" },
+    { codigo: "SAUR", nombre: "Staphylococcus aureus", grupo: "Cocos Gram Positivos" },
+    { codigo: "SAGAL", nombre: "Streptococcus agalactiae (Grupo B)", grupo: "Cocos Gram Positivos" },
+    { codigo: "CALB", nombre: "Candida albicans", grupo: "Hongos / Levaduras" }
   ];
   var GERMENES_URINARIOS_FRECUENTES = ["ECOLI", "KPNEU", "PMIRA", "EFAEC", "SSAPR", "PAERU", "SAUR", "CALB"];
+  var GERMENES_URINARIOS_GRUPOS_ORDEN = ["Bacilos Gram Negativos", "Cocos Gram Positivos", "Hongos / Levaduras"];
 
   function germenesUrinariosEfectivos(tenant) {
     return tenant && tenant.germenesUrinariosPersonalizados && tenant.germenesUrinariosPersonalizados.length ? GERMENES_URINARIOS_BASE.concat(tenant.germenesUrinariosPersonalizados) : GERMENES_URINARIOS_BASE;
@@ -1310,6 +1315,7 @@
     alergenosEfectivos: alergenosEfectivos,
     crearAlergenoPersonalizado: crearAlergenoPersonalizado,
     GERMENES_URINARIOS_FRECUENTES: GERMENES_URINARIOS_FRECUENTES,
+    GERMENES_URINARIOS_GRUPOS_ORDEN: GERMENES_URINARIOS_GRUPOS_ORDEN,
     germenesUrinariosEfectivos: germenesUrinariosEfectivos,
     crearGermenUrinarioPersonalizado: crearGermenUrinarioPersonalizado,
     panelCatalogo: panelCatalogo,

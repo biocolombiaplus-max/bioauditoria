@@ -1182,12 +1182,18 @@
     document.getElementById("f_logo").addEventListener("change", function (e) {
       var file = e.target.files[0];
       if (!file) return;
-      var reader = new FileReader();
-      reader.onload = function (ev) {
-        logoTemp = ev.target.result;
+      // Se redimensiona a máximo 300px de lado antes de guardarlo: una foto
+      // de celular sin comprimir puede pesar varios MB y el guardado en el
+      // servidor falla en silencio (Firestore no admite documentos de más
+      // de 1 MiB) — sin este ajuste, el logo nuevo se ve en la pantalla
+      // actual pero al recargar reaparece el logo anterior porque nunca se
+      // llegó a guardar de verdad.
+      U.redimensionarImagen(file, 300).then(function (dataUrl) {
+        logoTemp = dataUrl;
         document.getElementById("logo-preview").innerHTML = '<img src="' + logoTemp + '" style="height:52px;border-radius:8px"/>';
-      };
-      reader.readAsDataURL(file);
+      }).catch(function () {
+        U.toast("No se pudo procesar la imagen. Intenta con otro archivo.", "error");
+      });
     });
 
     document.getElementById("cfg-form").addEventListener("submit", function (e) {

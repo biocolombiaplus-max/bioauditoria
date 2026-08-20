@@ -178,6 +178,16 @@ fieldset legend { font-family: 'Poppins', sans-serif; font-weight: 700; font-siz
 
 .overlay-bd { position: fixed; inset: 0; background: rgba(15,23,42,.5); z-index: 0; }
 
+/* Barra de acciones que queda siempre visible al fondo de la pantalla, sin
+   que el usuario tenga que hacer scroll para encontrar el botón principal
+   (ej. "Crear Orden") en formularios largos. */
+.barra-acciones-flotante {
+  position: fixed; left: var(--sidebar-w); right: 0; bottom: 0; z-index: 25;
+  background: var(--surface); border-top: 1px solid var(--border); box-shadow: 0 -6px 16px rgba(15,23,42,.08);
+  padding: 12px 26px; display: flex; align-items: center; justify-content: flex-end; gap: 10px;
+}
+@media (max-width: 900px) { .barra-acciones-flotante { left: 0; padding: 10px 14px; } }
+
 /* ---------------- Tablas ---------------- */
 .table-wrap { overflow-x: auto; border-radius: var(--radius-sm); border: 1px solid var(--border); }
 table { width: 100%; border-collapse: collapse; font-size: 13.5px; background: #fff; }

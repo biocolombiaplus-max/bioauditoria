@@ -189,14 +189,20 @@
       doc.text(C.seccionNombre(seccionId, tenant).toUpperCase(), margin + 6, y + 11);
       y += 24;
 
-      var body = [];
-      var esAnormalPorFila = [];
       // Los parámetros tipo "panel" (antibiograma/alergia) no encajan en la
       // tabla de un solo valor por fila — se recogen aparte para armarles su
-      // propia tabla, justo después de la tabla principal de la sección.
+      // propia tabla, justo después de las tablas de parámetros normales de
+      // la sección.
       var panelesDeSeccion = [];
+      // Una tabla POR EXAMEN (con su nombre como subtítulo arriba) en vez de
+      // una sola tabla con columna "Examen" repetida en cada fila — con un
+      // solo examen por sección (el caso más común) esa columna repetía el
+      // mismo texto en todas las filas y no aportaba nada, solo se veía
+      // recargado y confundía la lectura del reporte.
       bySeccion[seccionId].forEach(function (ex) {
         var exCat = C.examenParaPaciente(ex.examId, tenant, patient, C.categoriasDeValores(ex.valores));
+        var body = [];
+        var esAnormalPorFila = [];
         exCat.parametros.forEach(function (p) {
           if (p.tipo === "panel") {
             var entry = ex.valores.filter(function (v) { return v.codigo === p.codigo; })[0];
@@ -206,25 +212,29 @@
           }
           var val = (ex.valores.filter(function (v) { return v.codigo === p.codigo; })[0] || {}).valor || "-";
           var flag = C.calcularFlag(p, val);
-          body.push([exCat.nombre, p.nombre, val + (p.unidad ? " " + p.unidad : ""), p.refText || "", flag.texto || ""]);
+          body.push([p.nombre, val + (p.unidad ? " " + p.unidad : ""), p.refText || "", flag.texto || ""]);
           esAnormalPorFila.push(flag.clase !== "" && flag.clase !== "normal");
         });
-      });
 
-      if (body.length) {
-        doc.autoTable({
-          startY: y, margin: { left: margin, right: margin },
-          head: [["Examen", "Parámetro", "Resultado", "Valor de Referencia", "Interpretación"]],
-          body: body, theme: "grid", styles: { fontSize: 8, cellPadding: 4 },
-          headStyles: { fillColor: [240, 244, 247], textColor: 40, fontStyle: "bold" },
-          didParseCell: function (data) {
-            if (data.section === "body" && data.column.index === 4 && esAnormalPorFila[data.row.index]) {
-              data.cell.styles.textColor = [214, 69, 69]; data.cell.styles.fontStyle = "bold";
+        if (body.length) {
+          if (y > 690) { doc.addPage(); y = margin; }
+          doc.setFont("helvetica", "bold"); doc.setFontSize(9); doc.setTextColor(60, 60, 60);
+          doc.text(exCat.nombre, margin, y);
+          y += 10;
+          doc.autoTable({
+            startY: y, margin: { left: margin, right: margin },
+            head: [["Parámetro", "Resultado", "Valor de Referencia", "Interpretación"]],
+            body: body, theme: "grid", styles: { fontSize: 8, cellPadding: 4 },
+            headStyles: { fillColor: [240, 244, 247], textColor: 40, fontStyle: "bold" },
+            didParseCell: function (data) {
+              if (data.section === "body" && data.column.index === 3 && esAnormalPorFila[data.row.index]) {
+                data.cell.styles.textColor = [214, 69, 69]; data.cell.styles.fontStyle = "bold";
+              }
             }
-          }
-        });
-        y = doc.lastAutoTable.finalY + 10;
-      }
+          });
+          y = doc.lastAutoTable.finalY + 10;
+        }
+      });
 
       panelesDeSeccion.forEach(function (panelInfo) {
         if (y > 690) { doc.addPage(); y = margin; }

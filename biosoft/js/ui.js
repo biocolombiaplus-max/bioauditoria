@@ -214,11 +214,42 @@
     if (m) m.addEventListener("click", function () { window.open(links.mailto, "_blank"); });
   }
 
+  /* Reduce cualquier imagen (logo, etc.) a un PNG de máximo maxDim px de
+     lado antes de guardarla como data URL. Un logo sin redimensionar (ej.
+     una foto de celular de varios MB) puede superar el límite de tamaño de
+     un documento en Firestore (1 MiB) y el guardado en el servidor falla en
+     silencio — el cambio se ve en la pantalla actual pero, al recargar o
+     entrar desde otro dispositivo, reaparece el logo anterior porque nunca
+     llegó a guardarse. Redimensionar aquí evita ese problema de raíz. */
+  function redimensionarImagen(file, maxDim) {
+    return new Promise(function (resolve, reject) {
+      var reader = new FileReader();
+      reader.onerror = reject;
+      reader.onload = function (ev) {
+        var img = new Image();
+        img.onerror = reject;
+        img.onload = function () {
+          var w = img.width, h = img.height;
+          var scale = Math.min(1, maxDim / Math.max(w, h));
+          var canvas = document.createElement("canvas");
+          canvas.width = Math.round(w * scale);
+          canvas.height = Math.round(h * scale);
+          var ctx = canvas.getContext("2d");
+          ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+          resolve(canvas.toDataURL("image/png"));
+        };
+        img.src = ev.target.result;
+      };
+      reader.readAsDataURL(file);
+    });
+  }
+
   global.BIO_UI = {
     icon: icon, esc: esc, toast: toast, openModal: openModal, closeModal: closeModal,
     calcEdad: calcEdad, fmtFecha: fmtFecha, fmtFechaCorta: fmtFechaCorta, nombreCompleto: nombreCompleto,
     applyTenantTheme: applyTenantTheme, resetTheme: resetTheme, contrastColor: contrastColor, dataUrlToBlob: dataUrlToBlob, openDataUrlInNewTab: openDataUrlInNewTab,
     downloadBytes: downloadBytes, normalizar: normalizar, emailLinks: emailLinks,
-    emailProviderButtonsHtml: emailProviderButtonsHtml, wireEmailProviderButtons: wireEmailProviderButtons
+    emailProviderButtonsHtml: emailProviderButtonsHtml, wireEmailProviderButtons: wireEmailProviderButtons,
+    redimensionarImagen: redimensionarImagen
   };
 })(window);

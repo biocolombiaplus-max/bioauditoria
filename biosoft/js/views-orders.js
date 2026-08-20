@@ -77,11 +77,14 @@
         '<div class="flex wrap gap-2" id="chips" style="margin-top:14px"></div>' +
       "</div>" +
 
-      '<div class="flex justify-between" style="margin-top:16px">' +
-        '<div></div><button class="btn btn-primary" id="btn-save-order">' + U.icon("check") + " Crear Orden</button>" +
+      '<div style="height:64px"></div>' +
+      '<div class="barra-acciones-flotante">' +
+        '<button class="btn btn-ghost" id="btn-cancel-bottom">Cancelar</button>' +
+        '<button class="btn btn-primary" id="btn-save-order">' + U.icon("check") + " Crear Orden</button>" +
       "</div>";
 
     document.getElementById("btn-cancel").addEventListener("click", function () { location.hash = "#/ordenes"; });
+    document.getElementById("btn-cancel-bottom").addEventListener("click", function () { location.hash = "#/ordenes"; });
     document.getElementById("btn-new-patient-inline").addEventListener("click", function () {
       window.BIO_openPatientForm(null, function () { location.hash = "#/ordenes/nueva"; BIO_ROUTER.renderRoute(); });
     });

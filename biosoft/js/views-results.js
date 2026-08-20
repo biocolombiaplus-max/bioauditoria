@@ -354,11 +354,27 @@
         if (p.sugerencias !== "urocultivo") return "";
         var catalogo = C.germenesUrinariosEfectivos(tenant);
         var frecuentes = C.GERMENES_URINARIOS_FRECUENTES.map(function (cod) { return catalogo.filter(function (g) { return g.codigo === cod; })[0]; }).filter(Boolean);
+        // Agrupados por tipo (gram negativos / gram positivos / hongos) en
+        // vez de una sola fila revuelta, para que el bacteriólogo escanee
+        // más rápido qué botón corresponde a lo que está viendo al
+        // microscopio o en la placa de cultivo.
+        var grupos = C.GERMENES_URINARIOS_GRUPOS_ORDEN.map(function (nombreGrupo) {
+          return { nombre: nombreGrupo, germenes: frecuentes.filter(function (g) { return g.grupo === nombreGrupo; }) };
+        }).filter(function (gr) { return gr.germenes.length; });
+        var sinGrupo = frecuentes.filter(function (g) { return !g.grupo; });
+        if (sinGrupo.length) grupos.push({ nombre: null, germenes: sinGrupo });
         return '<div style="margin-top:6px" data-sugerencias-box="' + p.codigo + '">' +
-          '<div class="flex gap-2 wrap" style="margin-bottom:6px">' +
-          '<button type="button" class="btn btn-outline btn-sm" data-germen-negativo="' + p.codigo + '">Negativo</button>' +
-          frecuentes.map(function (g) { return '<button type="button" class="btn btn-outline btn-sm" data-germen-sel="' + p.codigo + ":" + g.codigo + '">+ ' + U.esc(g.nombre) + "</button>"; }).join("") +
+          '<div style="margin-bottom:8px">' +
+          '<button type="button" class="btn btn-outline btn-sm" style="border-color:var(--brand-primary);color:var(--brand-primary);font-weight:700" data-germen-negativo="' + p.codigo + '">✓ Sin crecimiento (Negativo)</button>' +
           "</div>" +
+          '<p class="text-muted" style="font-size:11px;margin:0 0 4px;text-transform:uppercase;letter-spacing:.03em;font-weight:700">Germen aislado — selección rápida:</p>' +
+          grupos.map(function (gr) {
+            return '<div style="margin-bottom:6px">' +
+              (gr.nombre ? '<div class="text-muted" style="font-size:11px;margin-bottom:3px">' + U.esc(gr.nombre) + "</div>" : "") +
+              '<div class="flex gap-2 wrap">' +
+              gr.germenes.map(function (g) { return '<button type="button" class="btn btn-outline btn-sm" data-germen-sel="' + p.codigo + ":" + g.codigo + '">+ ' + U.esc(g.nombre) + "</button>"; }).join("") +
+              "</div></div>";
+          }).join("") +
           '<div class="flex gap-2 wrap" style="margin-bottom:4px">' +
           '<select data-germen-buscar="' + p.codigo + '" style="flex:1;min-width:180px;font-size:12.5px"><option value="">Buscar otro microorganismo…</option>' +
           catalogo.map(function (g) { return '<option value="' + U.esc(g.codigo) + '">' + U.esc(g.nombre) + "</option>"; }).join("") +
