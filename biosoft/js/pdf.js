@@ -129,11 +129,11 @@
     var ROW_H = 17, HEAD_H = 22;
     var rgb = hexToRgb(tenant.colorPrimario);
 
-    // El logo sale más grande que antes (antes 46pt, ahora 62pt) para que
-    // resalte más en el reporte que recibe el paciente — con el nombre y los
-    // datos del laboratorio recorriendo su posición proporcionalmente, para
-    // que el encabezado se vea equilibrado y no amontonado.
-    var logoSize = 62;
+    // El logo sale bien grande (84pt — subió de 46 a 62 y ahora a 84) para
+    // que resalte con fuerza en el reporte que recibe el paciente, incluso
+    // impreso en papel. El nombre y los datos del laboratorio se recorren
+    // proporcionalmente para que el encabezado se vea equilibrado.
+    var logoSize = 84;
     if (tenant.logoDataUrl) {
       try { doc.addImage(tenant.logoDataUrl, "PNG", margin, y - 9, logoSize, logoSize); } catch (e) {}
     }
@@ -150,7 +150,7 @@
     metaLines.forEach(function (line, i) { doc.text(line, textX, y + 25 + i * 10); });
 
     doc.setDrawColor(rgb[0], rgb[1], rgb[2]); doc.setLineWidth(2);
-    y += 72; doc.line(margin, y, pageW - margin, y); y += 20;
+    y += 96; doc.line(margin, y, pageW - margin, y); y += 20;
 
     doc.setFont("helvetica", "bold"); doc.setFontSize(13); doc.setTextColor(20, 20, 20);
     doc.text("INFORME DE RESULTADOS DE LABORATORIO CLÍNICO", margin, y);
