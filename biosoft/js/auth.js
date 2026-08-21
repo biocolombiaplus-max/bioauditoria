@@ -88,6 +88,20 @@
           sessionStorage.removeItem(SESSION_KEY);
           return false;
         }
+        // La sesión guarda una FOTO de secciones/permisosExtra tomada al
+        // iniciar sesión — si un administrador le cambia esos permisos a un
+        // usuario que ya tenía la pestaña abierta, sin esto el cambio nunca
+        // se reflejaba hasta que esa persona cerrara sesión del todo (un
+        // simple refrescar de página no alcanzaba). Aquí se refresca desde
+        // su documento real, que restoreRealtime ya acaba de traer.
+        var usuarioActual = BIO_STORE.listUsers(s.tenantId).filter(function (u) { return u.id === s.userId; })[0];
+        if (usuarioActual) {
+          s.secciones = usuarioActual.secciones || [];
+          s.permisosExtra = usuarioActual.permisosExtra || [];
+          s.puedeGestionarRemisiones = !!usuarioActual.puedeGestionarRemisiones;
+          s.rol = usuarioActual.rol || s.rol;
+          sessionStorage.setItem(SESSION_KEY, JSON.stringify(s));
+        }
       }
       return true;
     }).catch(function () {
