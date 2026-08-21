@@ -1084,6 +1084,7 @@
       '<form id="cfg-form">' +
         '<div class="form-grid">' +
           F.inp("nombre", "Nombre del Laboratorio", tenant.nombre, true) +
+          F.inp("slogan", "Eslogan (aparece bajo el nombre en el encabezado de los resultados)", tenant.slogan) +
           F.inp("nit", "NIT / RIF / RUC", tenant.nit) +
           F.sel("pais", "País", ["CO", "VE", "EC"].map(function (p) { return '<option value="' + p + '" ' + (p === tenant.pais ? "selected" : "") + ">" + (p === "CO" ? "Colombia" : p === "VE" ? "Venezuela" : "Ecuador") + "</option>"; }).join("")) +
           F.inp("direccion", "Dirección", tenant.direccion) +
@@ -1199,7 +1200,7 @@
     document.getElementById("cfg-form").addEventListener("submit", function (e) {
       e.preventDefault();
       var g = function (id) { return document.getElementById("f_" + id).value.trim(); };
-      tenant.nombre = g("nombre"); tenant.nit = C.normalizarDocumentoTributario(g("nit"), g("pais")); tenant.pais = g("pais"); tenant.direccion = g("direccion");
+      tenant.nombre = g("nombre"); tenant.slogan = g("slogan"); tenant.nit = C.normalizarDocumentoTributario(g("nit"), g("pais")); tenant.pais = g("pais"); tenant.direccion = g("direccion");
       tenant.telefonos = g("telefonos"); tenant.email = g("email"); tenant.sitioWeb = g("sitioWeb");
       tenant.resolucionHabilitacion = g("resolucionHabilitacion"); tenant.codigoREPS = g("codigoREPS"); tenant.nivel = parseInt(g("nivel"), 10);
       tenant.bacteriologoResponsable = { nombre: g("bactNombre"), registro: g("bactRegistro") };
@@ -1219,7 +1220,7 @@
       }
 
       var patch = {
-        nombre: tenant.nombre, nit: tenant.nit, pais: tenant.pais, direccion: tenant.direccion,
+        nombre: tenant.nombre, slogan: tenant.slogan, nit: tenant.nit, pais: tenant.pais, direccion: tenant.direccion,
         telefonos: tenant.telefonos, email: tenant.email, sitioWeb: tenant.sitioWeb,
         resolucionHabilitacion: tenant.resolucionHabilitacion, codigoREPS: tenant.codigoREPS, nivel: tenant.nivel,
         bacteriologoResponsable: tenant.bacteriologoResponsable, mostrarPrecioOrden: tenant.mostrarPrecioOrden,

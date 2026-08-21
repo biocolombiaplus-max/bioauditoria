@@ -141,6 +141,12 @@
     var textX = margin + (tenant.logoDataUrl ? logoSize + 14 : 0);
     doc.setFont("helvetica", "bold"); doc.setFontSize(15); doc.setTextColor(rgb[0], rgb[1], rgb[2]);
     doc.text(tenant.nombre, textX, y + 12);
+    var metaStartOffset = 25;
+    if (tenant.slogan) {
+      doc.setFont("helvetica", "italic"); doc.setFontSize(9); doc.setTextColor(rgb[0], rgb[1], rgb[2]);
+      doc.text(tenant.slogan, textX, y + 23);
+      metaStartOffset = 35;
+    }
     doc.setFont("helvetica", "normal"); doc.setFontSize(8.5); doc.setTextColor(90, 90, 90);
     var metaLines = [
       C.documentoTributarioLabel(tenant.pais) + " " + tenant.nit + (tenant.codigoREPS ? " · Código REPS " + tenant.codigoREPS : ""),
@@ -148,10 +154,10 @@
       tenant.email + (tenant.sitioWeb ? " · " + tenant.sitioWeb : ""),
       tenant.resolucionHabilitacion || ""
     ];
-    metaLines.forEach(function (line, i) { doc.text(line, textX, y + 25 + i * 10); });
+    metaLines.forEach(function (line, i) { doc.text(line, textX, y + metaStartOffset + i * 10); });
 
     doc.setDrawColor(rgb[0], rgb[1], rgb[2]); doc.setLineWidth(2);
-    y += 96; doc.line(margin, y, pageW - margin, y); y += 20;
+    y += tenant.slogan ? 106 : 96; doc.line(margin, y, pageW - margin, y); y += 20;
 
     doc.setFont("helvetica", "bold"); doc.setFontSize(13); doc.setTextColor(20, 20, 20);
     doc.text("INFORME DE RESULTADOS DE LABORATORIO CLÍNICO", margin, y);
