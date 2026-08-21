@@ -392,6 +392,9 @@
       if (modalidad === "solo_implementacion") {
         return { totalCOP: implementacionCOP, totalUSD: implementacionUSD, mesesCobro: 0, conceptoLabel: "Solo implementación (sin mensualidad)", cuotasTrasEstePago: 2 };
       }
+      if (modalidad === "sin_implementacion") {
+        return { totalCOP: plan.precio, totalUSD: plan.usd, mesesCobro: 1, conceptoLabel: "Solo mensualidad — implementación gratis", cuotasTrasEstePago: 2 };
+      }
       if (modalidad === "contado" && cuotasPagadas < 2) {
         return { totalCOP: plan.precio + implementacionCOP, totalUSD: plan.usd + implementacionUSD, mesesCobro: 1, conceptoLabel: "Mensualidad + implementación completa de una vez", cuotasTrasEstePago: 2 };
       }
@@ -405,7 +408,7 @@
     function abrirMarcarPagado(c) {
       var plan = BIO_PLANES.porId(c.planId);
       if (!plan) { U.toast("Asigna un plan a este cliente antes de marcarlo como pagado.", "error"); return; }
-      var modalidadInicial = ["mensual", "contado", "semestral"].indexOf(c.modalidadPago) !== -1 ? c.modalidadPago : "mensual";
+      var modalidadInicial = ["mensual", "contado", "semestral", "sin_implementacion"].indexOf(c.modalidadPago) !== -1 ? c.modalidadPago : "mensual";
       var implementacionInicial = c.implementacionCOP || BIO_PLANES.IMPLEMENTACION.cop;
       var wrap = U.openModal(
         '<h3 class="modal-title">Marcar como Pagado — ' + U.esc(c.laboratorio.nombre || "") + '</h3>' +
@@ -413,6 +416,7 @@
         '<div class="field"><label>Modalidad de pago</label><select id="mp-modalidad">' +
         '<option value="mensual" ' + (modalidadInicial === "mensual" ? "selected" : "") + '>Mes a mes (implementación en 2 cuotas)</option>' +
         '<option value="contado" ' + (modalidadInicial === "contado" ? "selected" : "") + '>Mes a mes (implementación pagada de una vez)</option>' +
+        '<option value="sin_implementacion" ' + (modalidadInicial === "sin_implementacion" ? "selected" : "") + '>Mes a mes (implementación gratis)</option>' +
         '<option value="semestral" ' + (modalidadInicial === "semestral" ? "selected" : "") + '>6 meses de una vez (sin implementación)</option>' +
         '<option value="solo_implementacion">Solo implementación (sin mensualidad)</option>' +
         "</select></div>" +
@@ -432,7 +436,7 @@
         var calc = calcularTotalesPago(c, plan, modalidad, implementacionActual());
         wrap.querySelector("#mp-concepto").textContent = calc.conceptoLabel;
         wrap.querySelector("#mp-total").textContent = "$" + calc.totalCOP.toLocaleString("es-CO") + " COP (aprox. $" + calc.totalUSD + " USD)";
-        wrap.querySelector("#mp-implementacion-box").classList.toggle("hidden", modalidad === "semestral");
+        wrap.querySelector("#mp-implementacion-box").classList.toggle("hidden", modalidad === "semestral" || modalidad === "sin_implementacion");
         var esSoloImplementacion = modalidad === "solo_implementacion";
         wrap.querySelector("#mp-implementado-box").classList.toggle("hidden", esSoloImplementacion);
         wrap.querySelector("#mp-implementado-ayuda").classList.toggle("hidden", esSoloImplementacion);
@@ -451,7 +455,7 @@
         var yaImplementado = !esSoloImplementacion && wrap.querySelector("#mp-implementado").checked;
         var proxima = yaImplementado ? new Date(fechaPago.getTime() + calc.mesesCobro * 30 * 864e5) : null;
         var patch = {
-          modalidadPago: esSoloImplementacion ? (["mensual", "contado", "semestral"].indexOf(c.modalidadPago) !== -1 ? c.modalidadPago : "mensual") : modalidad,
+          modalidadPago: esSoloImplementacion ? (["mensual", "contado", "semestral", "sin_implementacion"].indexOf(c.modalidadPago) !== -1 ? c.modalidadPago : "mensual") : modalidad,
           implementacionCOP: implementacionCOP,
           totalPrimerPagoFmt: calc.totalCOP.toLocaleString("es-CO"),
           totalPrimerPagoUSD: calc.totalUSD
@@ -850,8 +854,9 @@
         F.sel("plan", "Plan Contratado", BIO_PLANES.PLANES.map(function (p) { return "<option value='" + p.id + "' " + (p.id === cliente.planId ? "selected" : "") + ">" + p.nombre + " (" + p.usuarios + ") — $" + p.precioFmt + "/mes</option>"; }).join("")) +
         F.sel("estado", "Etapa", Object.keys(ESTADO_LABEL).map(function (k) { return "<option value='" + k + "' " + (k === cliente.estado ? "selected" : "") + ">" + ESTADO_LABEL[k] + "</option>"; }).join("")) +
         F.sel("modalidadPago", "Modalidad de Pago", [
-          "<option value='mensual' " + (cliente.modalidadPago !== "semestral" && cliente.modalidadPago !== "contado" ? "selected" : "") + ">Mes a mes (implementación en 2 cuotas)</option>",
+          "<option value='mensual' " + (["semestral", "contado", "sin_implementacion"].indexOf(cliente.modalidadPago) === -1 ? "selected" : "") + ">Mes a mes (implementación en 2 cuotas)</option>",
           "<option value='contado' " + (cliente.modalidadPago === "contado" ? "selected" : "") + ">Mes a mes (implementación pagada de una vez)</option>",
+          "<option value='sin_implementacion' " + (cliente.modalidadPago === "sin_implementacion" ? "selected" : "") + ">Mes a mes (implementación gratis)</option>",
           "<option value='semestral' " + (cliente.modalidadPago === "semestral" ? "selected" : "") + ">6 meses de una vez (sin implementación)</option>"
         ].join("")) +
         "</div></fieldset>" +
