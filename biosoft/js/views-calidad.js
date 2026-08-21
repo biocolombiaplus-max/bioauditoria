@@ -23,10 +23,41 @@
     var tenantId = session.tenantId;
     var vista = "captura";
     var controles = [];
+    // Controles que el usuario decidió volver a capturar hoy a pesar de ya
+    // tener una lectura (botón "Corregir") — mientras un id esté aquí, esa
+    // fila vuelve a mostrar el campo de captura en vez del resultado de hoy.
+    var forzarCaptura = {};
 
     function cargar() {
       controles = S.qc.listControles(tenantId);
       build();
+    }
+
+    function descargarInformeCalidad() {
+      if (!controles.length) { U.toast("Aún no tienes controles de calidad configurados.", "error"); return; }
+      var btn = document.getElementById("btn-informe-calidad");
+      var htmlOriginal = btn.innerHTML;
+      btn.disabled = true; btn.innerHTML = "Generando…";
+      var tenant = BIO_AUTH.currentTenant();
+      var lecturasPorControlId = {};
+      controles.forEach(function (c) { lecturasPorControlId[c.id] = S.qc.listLecturas(c.id); });
+      BIO_PDF_CALIDAD.buildInformeCalidadPDF(controles, lecturasPorControlId, tenant).then(function (bytes) {
+        U.downloadBytes(bytes, "Informe_Control_Calidad_" + (tenant.nombre || "BIOsoft").replace(/\s+/g, "_") + ".pdf");
+        U.toast("Informe de Control de Calidad descargado.", "success");
+      }).catch(function () {
+        U.toast("No se pudo generar el informe.", "error");
+      }).finally(function () {
+        btn.disabled = false; btn.innerHTML = htmlOriginal;
+      });
+    }
+
+    // La lectura de HOY de un control, si ya se registró — se compara solo
+    // la fecha (no la hora) para que "hoy" siga siendo hoy sin importar a
+    // qué hora del día se haya capturado.
+    function lecturaDeHoy(controlId) {
+      var hoy = new Date().toISOString().slice(0, 10);
+      var lecturas = S.qc.listLecturas(controlId).filter(function (l) { return (l.fecha || "").slice(0, 10) === hoy; });
+      return lecturas.length ? lecturas[lecturas.length - 1] : null;
     }
 
     function build() {
@@ -34,11 +65,13 @@
         '<div class="card"><div class="card-header"><h3 class="card-title">Control de Calidad</h3>' +
         '<div class="flex gap-2 wrap">' +
         '<div class="crm-view-toggle"><button type="button" class="' + (vista === "captura" ? "active" : "") + '" data-vista="captura">📋 Captura de Hoy</button><button type="button" class="' + (vista === "controles" ? "active" : "") + '" data-vista="controles">⚙️ Controles</button></div>' +
+        '<button class="btn btn-outline btn-sm" id="btn-informe-calidad">' + U.icon("file") + " Descargar Informe</button>" +
         '<button class="btn btn-primary btn-sm" id="btn-nuevo-control">' + U.icon("plus") + " Nuevo Control</button>" +
         "</div></div>" +
         (vista === "captura" ? buildCapturaHtml() : buildControlesHtml()) +
         "</div>";
       document.getElementById("btn-nuevo-control").addEventListener("click", function () { abrirFormControl(null); });
+      document.getElementById("btn-informe-calidad").addEventListener("click", descargarInformeCalidad);
       root.querySelectorAll("[data-vista]").forEach(function (b) { b.addEventListener("click", function () { vista = b.dataset.vista; build(); }); });
       if (vista === "captura") wireCaptura(); else wireControles();
     }
@@ -58,12 +91,29 @@
           '<div class="table-wrap"><table><thead><tr><th>Control</th><th>Lote</th><th>Media / DS</th><th>Valor de hoy</th><th></th></tr></thead><tbody>' +
           lista.map(function (c) {
             var info = analitoInfo(c.seccion, c.analitoCodigo);
+            var lecturaHoy = !forzarCaptura[c.id] ? lecturaDeHoy(c.id) : null;
+            var celdaCaptura;
+            // Si ya se guardó un valor hoy para este control, NO vuelve a
+            // mostrar el campo en blanco (que era justo lo que hacía parecer
+            // que nunca se había guardado) — en su lugar queda visible el
+            // valor y el resultado de Westgard de forma permanente, con la
+            // opción de corregirlo si hiciera falta.
+            if (lecturaHoy) {
+              var claseHoy = lecturaHoy.estado === "rechazo" ? "qc-alerta-rechazo" : lecturaHoy.estado === "aviso" ? "qc-alerta-aviso" : "qc-alerta-ok";
+              var etiquetaHoy = lecturaHoy.estado === "rechazo" ? "🔴 Rechazado" : lecturaHoy.estado === "aviso" ? "🟡 Aviso" : "🟢 En control";
+              celdaCaptura = "<td colspan='2'><div class='" + claseHoy + "' style='padding:8px 10px'>" +
+                "<b>✓ Hoy: " + lecturaHoy.valor + " " + U.esc(info.unidad) + " — " + etiquetaHoy + (typeof lecturaHoy.z === "number" ? " · z = " + lecturaHoy.z.toFixed(2) : "") + "</b>" +
+                (lecturaHoy.reglas && lecturaHoy.reglas.length ? '<ul style="margin:4px 0 0;padding-left:16px;font-size:12px">' + lecturaHoy.reglas.map(function (r) { return "<li>" + U.esc(Q.RECOMENDACIONES && Q.RECOMENDACIONES[r] || r) + "</li>"; }).join("") + "</ul>" : "") +
+                "</div></td>" +
+                "<td><button class='btn btn-ghost btn-sm' data-corregir='" + c.id + "'>Corregir</button></td>";
+            } else {
+              celdaCaptura = "<td style='min-width:140px'><input type='number' step='any' data-captura='" + c.id + "' placeholder='Ej: " + c.media + "'/></td>" +
+                "<td><button class='btn btn-primary btn-sm' data-guardar-captura='" + c.id + "'>" + U.icon("check") + " Guardar</button></td>";
+            }
             return "<tr><td><b>" + U.esc(info.nombre) + "</b><div class='text-muted' style='font-size:11px'>" + U.esc(c.nivel) + "</div></td>" +
               "<td>" + U.esc(c.lote || "—") + "</td>" +
               "<td>" + c.media + " ± " + c.ds + " " + U.esc(info.unidad) + "</td>" +
-              "<td style='min-width:140px'><input type='number' step='any' data-captura='" + c.id + "' placeholder='Ej: " + c.media + "'/></td>" +
-              "<td><button class='btn btn-primary btn-sm' data-guardar-captura='" + c.id + "'>" + U.icon("check") + " Guardar</button></td>" +
-              "</tr><tr class='qc-resultado-row hidden' data-resultado-de='" + c.id + "'><td colspan='5'></td></tr>";
+              celdaCaptura + "</tr>";
           }).join("") + "</tbody></table></div>";
       }).join("");
     }
@@ -83,23 +133,16 @@
             tenantId: tenantId, controlId: id, fecha: S.nowISO(), valor: valor,
             usuario: session.nombre, z: resultado.z, reglas: resultado.reglas, estado: resultado.estado
           });
-          mostrarResultadoCaptura(id, resultado, control);
           S.addAudit(tenantId, session.nombre, session.rol, "QC_LECTURA", "control_calidad", id,
             "Registró lectura de QC (" + analitoInfo(control.seccion, control.analitoCodigo).nombre + " " + control.nivel + "): " + valor + (resultado.reglas.length ? " — " + resultado.estado.toUpperCase() : ""));
-          input.value = "";
+          delete forzarCaptura[id];
+          U.toast(resultado.estado === "rechazo" ? "🔴 Lectura guardada — quedó en RECHAZO según las reglas de Westgard." : resultado.estado === "aviso" ? "🟡 Lectura guardada — quedó en AVISO." : "🟢 Lectura guardada — en control.", resultado.estado === "rechazo" ? "error" : "success");
+          build();
         });
       });
-    }
-
-    function mostrarResultadoCaptura(controlId, resultado, control) {
-      var row = root.querySelector("[data-resultado-de='" + controlId + "']");
-      if (!row) return;
-      row.classList.remove("hidden");
-      var clase = resultado.estado === "rechazo" ? "qc-alerta-rechazo" : resultado.estado === "aviso" ? "qc-alerta-aviso" : "qc-alerta-ok";
-      row.querySelector("td").innerHTML =
-        '<div class="' + clase + '"><b>' + (resultado.estado === "rechazo" ? "🔴 Rechazado" : resultado.estado === "aviso" ? "🟡 Aviso" : "🟢 En control") +
-        (resultado.z !== null ? " · z = " + resultado.z.toFixed(2) : "") + "</b>" +
-        '<ul style="margin:6px 0 0;padding-left:18px">' + resultado.recomendaciones.map(function (r) { return "<li>" + U.esc(r) + "</li>"; }).join("") + "</ul></div>";
+      root.querySelectorAll("[data-corregir]").forEach(function (b) {
+        b.addEventListener("click", function () { forzarCaptura[b.dataset.corregir] = true; build(); });
+      });
     }
 
     // ---------------------------------------------------------------------

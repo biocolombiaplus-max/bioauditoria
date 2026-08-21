@@ -131,5 +131,5 @@
     return { z: zActual, reglas: reglas, estado: estado, recomendaciones: recomendaciones };
   }
 
-  global.BIO_QC = { ANALITOS: ANALITOS, NIVELES: NIVELES, evaluar: evaluar };
+  global.BIO_QC = { ANALITOS: ANALITOS, NIVELES: NIVELES, evaluar: evaluar, RECOMENDACIONES: RECOMENDACIONES, RECHAZO: RECHAZO };
 })(window);
