@@ -326,22 +326,25 @@
 
     function buildPreciosHtml() {
       var moneda = tenant.monedaAdicional || {};
+      var actualizada = moneda.actualizada ? new Date(moneda.actualizada).toLocaleString("es-CO", { day: "2-digit", month: "short", hour: "2-digit", minute: "2-digit" }) : "";
       return '<p class="text-muted" style="margin-top:14px">Define el precio de cada examen. También puedes descargar una plantilla en Excel, editarla y volver a subirla si son muchos.</p>' +
         '<div class="flex gap-2 wrap" style="margin-bottom:12px">' +
         '<button class="btn btn-outline btn-sm" id="btn-descargar-plantilla">' + U.icon("download") + " Descargar Plantilla Excel</button>" +
         '<label class="btn btn-outline btn-sm" style="cursor:pointer">' + U.icon("plus") + ' Subir Excel de Precios<input type="file" id="input-excel-precios" accept=".xlsx,.xls,.csv" style="display:none"/></label>' +
         "</div>" +
-        '<fieldset style="margin-bottom:14px"><legend>Moneda adicional (opcional)</legend>' +
-        '<p class="text-muted" style="margin-top:0;font-size:12.5px">Si tus clientes prefieren ver el equivalente en otra moneda (ej. dólares), actívala aquí — se muestra junto al total en cotizaciones, recibos e historial, sin reemplazar tu moneda principal.</p>' +
+        '<fieldset style="margin-bottom:14px"><legend>Moneda adicional / Tasa de cambio (opcional)</legend>' +
+        '<p class="text-muted" style="margin-top:0;font-size:12.5px">Si tus clientes prefieren ver el equivalente en otra moneda (ej. dólares o bolívares), actívala aquí y actualiza la tasa cada vez que cambie (por ejemplo, a diario) — el equivalente se muestra junto al precio en esta lista, en cotizaciones, recibos, órdenes e historial, sin reemplazar tu moneda principal.</p>' +
         '<div class="form-grid" style="align-items:end">' +
         '<div class="field"><label>Código de moneda</label><select id="moneda-codigo">' +
         ["", "USD", "EUR", "VES", "COP"].map(function (cod) { return '<option value="' + cod + '" ' + (cod === (moneda.codigo || "") ? "selected" : "") + ">" + (cod || "— Ninguna —") + "</option>"; }).join("") +
         "</select></div>" +
         '<div class="field"><label>Cuántas unidades de tu moneda = 1 de esa moneda</label><input type="number" step="any" min="0" id="moneda-tasa" value="' + (moneda.tasa || "") + '" placeholder="Ej: 4000"/></div>' +
         '<button type="button" class="btn btn-outline btn-sm" id="btn-guardar-moneda">' + U.icon("check") + " Guardar Moneda</button>" +
-        "</div></fieldset>" +
+        "</div>" +
+        (actualizada ? '<p class="text-muted" id="moneda-actualizada" style="margin:6px 0 0;font-size:12px">Última actualización de la tasa: ' + actualizada + "</p>" : "") +
+        "</fieldset>" +
         '<div class="field" style="margin-bottom:12px"><input id="precio-search" placeholder="Buscar examen por nombre o código CUPS…"/></div>' +
-        '<div class="table-wrap" style="max-height:480px;overflow-y:auto"><table><thead><tr><th>Examen</th><th>Sección</th><th>CUPS</th><th style="min-width:140px">Precio (COP)</th></tr></thead><tbody id="precios-tbody"></tbody></table></div>' +
+        '<div class="table-wrap" style="max-height:480px;overflow-y:auto"><table><thead><tr><th>Examen</th><th>Sección</th><th>CUPS</th><th style="min-width:150px">Precio (COP)</th></tr></thead><tbody id="precios-tbody"></tbody></table></div>' +
         '<button class="btn btn-primary" id="btn-guardar-precios" style="margin-top:14px">' + U.icon("check") + " Guardar Cambios</button>";
     }
 
@@ -354,10 +357,16 @@
       document.getElementById("precios-tbody").innerHTML = pool.map(function (e) {
         var valor = preciosEditados.hasOwnProperty(e.id) ? preciosEditados[e.id] : precioDe(e.id);
         return "<tr><td>" + U.esc(e.nombre) + "</td><td>" + resolverSeccionNombre(e.seccion) + "</td><td>" + e.cups + "</td>" +
-          "<td><input type='number' step='any' min='0' data-precio-exam='" + e.id + "' value='" + (valor || "") + "' placeholder='0'/></td></tr>";
+          "<td><input type='number' step='any' min='0' data-precio-exam='" + e.id + "' value='" + (valor || "") + "' placeholder='0'/>" +
+          '<span data-precio-equiv="' + e.id + '" class="text-muted" style="display:block;font-size:11px;margin-top:2px">' + equivalenteMonedaTexto(valor) + "</span></td></tr>";
       }).join("") || '<tr><td colspan="4" class="text-muted">Sin resultados.</td></tr>';
       document.querySelectorAll("[data-precio-exam]").forEach(function (inp) {
-        inp.addEventListener("input", function () { preciosEditados[inp.dataset.precioExam] = parseFloat(inp.value) || 0; });
+        inp.addEventListener("input", function () {
+          var precio = parseFloat(inp.value) || 0;
+          preciosEditados[inp.dataset.precioExam] = precio;
+          var equiv = document.querySelector('[data-precio-equiv="' + inp.dataset.precioExam + '"]');
+          if (equiv) equiv.textContent = equivalenteMonedaTexto(precio);
+        });
         // Guarda de inmediato al salir del campo (clic afuera o Enter), para
         // que un solo precio quede aplicado al instante sin tener que buscar
         // el botón "Guardar Cambios" al final de una lista larga.
@@ -372,17 +381,22 @@
       });
     }
 
+    function equivalenteMonedaTexto(valorBase) {
+      var extra = C.fmtMonedaAdicional(tenant, valorBase || 0);
+      return extra || "";
+    }
+
     function wirePrecios() {
       renderPreciosTabla();
       document.getElementById("precio-search").addEventListener("input", function (e) { precioSearchTerm = e.target.value; renderPreciosTabla(); });
       document.getElementById("btn-guardar-moneda").addEventListener("click", function () {
         var codigo = document.getElementById("moneda-codigo").value;
         var tasa = parseFloat(document.getElementById("moneda-tasa").value) || 0;
-        var monedaAdicional = codigo && tasa > 0 ? { codigo: codigo, tasa: tasa } : null;
+        var monedaAdicional = codigo && tasa > 0 ? { codigo: codigo, tasa: tasa, actualizada: new Date().toISOString() } : null;
         tenant.monedaAdicional = monedaAdicional;
         S.updateTenant(tenantId, { monedaAdicional: monedaAdicional });
-        U.toast(monedaAdicional ? "Moneda adicional guardada." : "Moneda adicional desactivada.", "success");
-        renderPreciosTabla();
+        U.toast(monedaAdicional ? "Tasa de cambio guardada." : "Moneda adicional desactivada.", "success");
+        build();
       });
       document.getElementById("btn-guardar-precios").addEventListener("click", function () {
         var pares = Object.keys(preciosEditados).map(function (examId) { return { examId: examId, precio: preciosEditados[examId] }; });

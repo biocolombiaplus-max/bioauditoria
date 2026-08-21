@@ -4,6 +4,10 @@
   window.BIO_VIEWS = window.BIO_VIEWS || {};
   var U = BIO_UI, S = BIO_STORE, C = BIO_CATALOG, F = window.BIO_formHelpers;
   function fmtMoneda(n) { return "$" + Math.round(n || 0).toLocaleString("es-CO"); }
+  function fmtMonedaEquiv(tenant, n) {
+    var extra = C.fmtMonedaAdicional(tenant, n || 0);
+    return extra ? ' <span class="text-muted" style="font-size:11px">(' + extra + ')</span>' : "";
+  }
 
   window.BIO_VIEWS.ordenes = function (root, param) {
     if (param && (param === "nueva" || param.indexOf("nueva-") === 0)) {
@@ -23,17 +27,17 @@
       '<div class="card"><div class="card-header"><h3 class="card-title">Órdenes de Laboratorio (' + orders.length + ')</h3>' +
       '<button class="btn btn-primary" id="btn-new-ord">' + U.icon("plus") + ' Nueva Orden</button></div>' +
       '<div class="table-wrap"><table><thead><tr><th>N° Orden</th><th>Paciente</th><th>Fecha</th><th>Prioridad</th><th># Exámenes</th>' + (conPrecio ? "<th>Valor a Cobrar</th>" : "") + '<th>Estado</th><th></th></tr></thead><tbody>' +
-      (orders.length ? orders.map(function (o) { return rowOrder(o, conPrecio); }).join("") : '<tr><td colspan="' + (conPrecio ? 8 : 7) + '" class="text-muted">No hay órdenes registradas.</td></tr>') +
+      (orders.length ? orders.map(function (o) { return rowOrder(o, conPrecio, tenant); }).join("") : '<tr><td colspan="' + (conPrecio ? 8 : 7) + '" class="text-muted">No hay órdenes registradas.</td></tr>') +
       "</tbody></table></div></div>";
     document.getElementById("btn-new-ord").addEventListener("click", function () { location.hash = "#/ordenes/nueva"; });
     root.querySelectorAll("[data-view]").forEach(function (b) { b.addEventListener("click", function () { location.hash = "#/ordenes/" + b.dataset.view; }); });
   }
 
-  function rowOrder(o, conPrecio) {
+  function rowOrder(o, conPrecio, tenant) {
     var pac = S.getPatient(o.patientId);
     return "<tr><td><b>" + o.numeroOrden + "</b></td><td>" + (pac ? U.esc(U.nombreCompleto(pac)) : "—") + "</td><td>" + U.fmtFecha(o.fechaOrden) + "</td>" +
       '<td><span class="badge badge-' + (o.prioridad === "Urgente" ? "urgente" : "rutina") + '">' + o.prioridad + "</span></td>" +
-      "<td>" + o.examenes.length + "</td>" + (conPrecio ? "<td>" + (o.valorCobrar ? fmtMoneda(o.valorCobrar) : "—") + "</td>" : "") +
+      "<td>" + o.examenes.length + "</td>" + (conPrecio ? "<td>" + (o.valorCobrar ? fmtMoneda(o.valorCobrar) + fmtMonedaEquiv(tenant, o.valorCobrar) : "—") + "</td>" : "") +
       "<td>" + window.BIO_badgeEstado(o.estadoGeneral) + '</td><td><button class="btn btn-outline btn-sm" data-view="' + o.id + '">Ver</button></td></tr>';
   }
 
@@ -72,7 +76,8 @@
           F.inp("diagnostico", "Diagnóstico / Motivo", "") +
           (tenant.pais === "CO" ? F.inp("numAutorizacion", "N° de Autorización (si aplica, para RIPS)", "") + F.inp("diagnosticoCIE10", "Código CIE-10 (opcional, para RIPS)", "") : "") +
           (tenant.mostrarPrecioOrden ? '<div class="field"><label>Valor a Cobrar</label><input id="f_valorCobrar" type="number" step="any" value=""/>' +
-            '<span class="text-muted" style="font-size:11px" id="valorCobrar-hint">Se calcula solo según los exámenes que selecciones — puedes ajustarlo a mano.</span></div>' : "") +
+            '<span class="text-muted" style="font-size:11px" id="valorCobrar-hint">Se calcula solo según los exámenes que selecciones — puedes ajustarlo a mano.</span>' +
+            '<span class="text-muted" style="font-size:11px;display:block" id="valorCobrar-equiv"></span></div>' : "") +
         "</div>" +
         '<div style="margin:6px 0 10px"><a class="btn btn-outline btn-sm" id="btn-new-patient-inline">' + U.icon("plus") + ' Registrar paciente nuevo</a></div>' +
       "</div>" +
@@ -151,11 +156,17 @@
     }
 
     function sugerirValorCobrar() {
-      if (!tenant.mostrarPrecioOrden || precioEditadoManualmente) return;
+      if (!tenant.mostrarPrecioOrden) return;
+      var equiv = document.getElementById("valorCobrar-equiv");
+      if (precioEditadoManualmente) {
+        if (equiv) equiv.textContent = C.fmtMonedaAdicional(tenant, parseFloat(document.getElementById("f_valorCobrar").value) || 0);
+        return;
+      }
       var input = document.getElementById("f_valorCobrar");
       if (!input) return;
       var total = selectedExams.reduce(function (sum, id) { return sum + (preciosPorId[id] || 0); }, 0);
       input.value = total || "";
+      if (equiv) equiv.textContent = C.fmtMonedaAdicional(tenant, total);
     }
 
     function renderChips() {
@@ -173,11 +184,14 @@
     }
     renderSections(); renderExams(); renderChips();
     if (tenant.mostrarPrecioOrden) {
-      document.getElementById("f_valorCobrar").addEventListener("input", function () {
+      document.getElementById("f_valorCobrar").addEventListener("input", function (e) {
         precioEditadoManualmente = true;
         var hint = document.getElementById("valorCobrar-hint");
         if (hint) hint.textContent = "Ajustado manualmente.";
+        var equiv = document.getElementById("valorCobrar-equiv");
+        if (equiv) equiv.textContent = C.fmtMonedaAdicional(tenant, parseFloat(e.target.value) || 0);
       });
+      sugerirValorCobrar();
     }
 
     document.getElementById("btn-save-order").addEventListener("click", function () {
@@ -274,7 +288,7 @@
             field("Prioridad", order.prioridad) +
             field("Fecha de Orden", U.fmtFecha(order.fechaOrden)) +
             field("Diagnóstico", order.diagnostico || "—") +
-            (tenant.mostrarPrecioOrden ? field("Valor a Cobrar", order.valorCobrar ? fmtMoneda(order.valorCobrar) : "—") : "") +
+            (tenant.mostrarPrecioOrden ? fieldHtml("Valor a Cobrar", order.valorCobrar ? U.esc(fmtMoneda(order.valorCobrar)) + fmtMonedaEquiv(tenant, order.valorCobrar) : "—") : "") +
           "</div></div>" +
 
         '<div class="card" style="margin-top:16px"><div class="card-header"><h3 class="card-title">Exámenes de la Orden</h3></div>' +
@@ -427,6 +441,9 @@
 
   function field(label, value) {
     return '<div class="field"><label>' + label + "</label><div style='padding:9px 0;font-weight:600'>" + U.esc(value) + "</div></div>";
+  }
+  function fieldHtml(label, html) {
+    return '<div class="field"><label>' + label + "</label><div style='padding:9px 0;font-weight:600'>" + html + "</div></div>";
   }
 
   // Se expone para que views-results.js (la Bandeja de Resultados, donde
