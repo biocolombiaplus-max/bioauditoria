@@ -233,6 +233,7 @@
     var wrap = U.openModal(
       '<h3 class="modal-title">Orden ' + order.numeroOrden + " creada</h3>" +
       '<p class="text-muted">¿Deseas imprimir ahora los stickers para rotular los tubos de esta orden?</p>' +
+      (puedeReciboOrden(tenant) ? '<button class="btn btn-outline btn-block" id="btn-recibo-orden" style="margin-bottom:12px">' + U.icon("send") + " Recibo de Pago (confirmar y enviar)</button>" : "") +
       '<div class="flex gap-2 justify-between">' +
       '<button class="btn btn-ghost" id="btn-skip">Continuar sin imprimir</button>' +
       '<div class="flex gap-2">' +
@@ -240,6 +241,7 @@
       '<button class="btn btn-primary" id="btn-stickers-now">' + U.icon("printer") + " Imprimir Stickers</button>" +
       "</div></div>"
     );
+    if (puedeReciboOrden(tenant)) wrap.querySelector("#btn-recibo-orden").addEventListener("click", function () { U.closeModal(wrap); abrirReciboOrden(order, tenant); });
     wrap.querySelector("#btn-skip").addEventListener("click", function () { U.closeModal(wrap); location.hash = "#/ordenes/" + order.id; });
     wrap.querySelector("#btn-stickers-preview").addEventListener("click", function () {
       U.closeModal(wrap);
@@ -250,6 +252,79 @@
       U.closeModal(wrap);
       window.BIO_PDF.imprimirStickersRapido(order, pac, tenant);
       location.hash = "#/ordenes/" + order.id;
+    });
+  }
+
+  // -------------------------------------------------------------------
+  // RECIBO DE PAGO DE LA ORDEN — sobre todo para laboratorios de
+  // Venezuela, que cobran con un equivalente en bolívares según la tasa
+  // del día (tenant.monedaAdicional). Antes de generar/enviar el recibo
+  // siempre se pide confirmar que el cliente ya pagó, para no emitir un
+  // recibo sin respaldo.
+  // -------------------------------------------------------------------
+  function puedeReciboOrden(tenant) {
+    return !!tenant && tenant.pais === "VE" && !!tenant.mostrarPrecioOrden;
+  }
+
+  function abrirReciboOrden(order, tenant, onDone) {
+    var pac = S.getPatient(order.patientId);
+    var precios = {};
+    S.cotizador.listPrecios(order.tenantId).forEach(function (p) { precios[p.examId] = p.precio; });
+
+    function generarYEnviar(pago) {
+      var bytes = BIO_PDF_RECIBO_ORDEN.buildReciboOrdenPDF(order, pac, tenant, pago, precios);
+      U.downloadBytes(bytes, "Recibo_Orden_" + order.numeroOrden + ".pdf");
+      U.toast("Recibo generado y descargado.", "success");
+      var monto = pago.monto != null ? pago.monto : order.valorCobrar;
+      var extra = C.fmtMonedaAdicional(tenant, monto);
+      var mensaje = "Hola " + (pac ? U.nombreCompleto(pac).split(" ")[0] : "") + " 👋 Adjunto el recibo de pago de tu orden " + order.numeroOrden + " en " + tenant.nombre + " por " + fmtMoneda(monto) + (extra ? " (" + extra + ")" : "") + ". ¡Gracias por tu confianza!";
+      var wrapEnvio = U.openModal(
+        '<h3 class="modal-title">Recibo listo</h3>' +
+        '<p class="text-muted" style="margin-top:0">Ya se descargó el PDF. Adjúntalo antes de enviar por el canal que elijas, o imprímelo directamente.</p>' +
+        '<div class="flex gap-2 wrap">' +
+        '<button class="btn btn-outline btn-sm" id="rec-ord-print">' + U.icon("printer") + " Imprimir</button>" +
+        (pac && pac.celular ? '<button class="btn btn-whatsapp btn-sm" id="rec-ord-wa">' + U.icon("send") + " Enviar por WhatsApp</button>" : "") +
+        "</div>" +
+        (pac && pac.email ? U.emailProviderButtonsHtml("rec-ord-mail") : '<p class="text-muted" style="font-size:12px;margin-top:10px">Este paciente no tiene correo ni WhatsApp guardados para enviarlo directo — descarga e imprime, o agrégalos a su ficha.</p>') +
+        '<div class="flex justify-between" style="margin-top:16px"><button class="btn btn-ghost" data-modal-close>Cerrar</button></div>'
+      );
+      wrapEnvio.querySelector("#rec-ord-print").addEventListener("click", function () {
+        var blob = new Blob([bytes], { type: "application/pdf" });
+        var url = URL.createObjectURL(blob);
+        var w = window.open(url, "_blank");
+        if (w) w.addEventListener("load", function () { w.print(); });
+      });
+      var btnWa = wrapEnvio.querySelector("#rec-ord-wa");
+      if (btnWa) btnWa.addEventListener("click", function () {
+        var numero = U.numeroWhatsapp(pac.celular, tenant.pais);
+        window.open("https://wa.me/" + numero + "?text=" + encodeURIComponent(mensaje), "_blank");
+      });
+      if (pac && pac.email) U.wireEmailProviderButtons(wrapEnvio, "rec-ord-mail", pac.email, "Recibo de pago — " + tenant.nombre, mensaje);
+      if (onDone) onDone();
+    }
+
+    if (order.pago) { generarYEnviar(order.pago); return; }
+
+    var wrapConfirm = U.openModal(
+      '<h3 class="modal-title">Recibo de Pago — Orden ' + order.numeroOrden + '</h3>' +
+      '<p class="text-muted" style="margin-top:0">Antes de generar el recibo, confirma que el cliente ya realizó el pago.</p>' +
+      '<div class="field"><label>Método de Pago</label><select id="rec-ord-metodo">' +
+      Object.keys(BIO_PDF_RECIBO_ORDEN.METODO_PAGO_LABEL).map(function (k) { return '<option value="' + k + '">' + BIO_PDF_RECIBO_ORDEN.METODO_PAGO_LABEL[k] + "</option>"; }).join("") +
+      "</select></div>" +
+      '<label class="checkbox-row" style="margin-top:10px"><input type="checkbox" id="rec-ord-confirmo"/> Confirmo que el cliente ya pagó ' + fmtMoneda(order.valorCobrar) + fmtMonedaEquiv(tenant, order.valorCobrar) + "</label>" +
+      '<div class="flex justify-between" style="margin-top:16px"><button class="btn btn-ghost" data-modal-close>Cancelar</button><button class="btn btn-primary" id="rec-ord-confirmar" disabled>Confirmar Pago y Generar Recibo</button></div>'
+    );
+    var chk = wrapConfirm.querySelector("#rec-ord-confirmo");
+    var btnConfirmar = wrapConfirm.querySelector("#rec-ord-confirmar");
+    chk.addEventListener("change", function () { btnConfirmar.disabled = !chk.checked; });
+    btnConfirmar.addEventListener("click", function () {
+      var session = BIO_AUTH.getSession();
+      var pago = { fecha: new Date().toISOString(), metodoPago: wrapConfirm.querySelector("#rec-ord-metodo").value, monto: order.valorCobrar, confirmadoPor: session.nombre };
+      order.pago = pago;
+      S.saveOrder(order);
+      S.addAudit(order.tenantId, session.nombre, session.rol, "CONFIRMAR_PAGO_ORDEN", "orden", order.id, "Confirmó el pago de la orden " + order.numeroOrden + " y generó el recibo.");
+      U.closeModal(wrapConfirm);
+      generarYEnviar(pago);
     });
   }
 
@@ -278,6 +353,7 @@
           '<button class="btn btn-ghost btn-sm" id="btn-stickers-preview" title="Ver antes de imprimir o elegir otra impresora">Vista previa de stickers</button>' +
           '<button class="btn btn-outline btn-sm" id="btn-preview">' + U.icon("file") + " Ver / Descargar PDF</button>" +
           (puedeGestionarRemision(session) ? '<button class="btn btn-outline btn-sm" id="btn-remision">' + U.icon("send") + " Hoja de Remisión</button>" : "") +
+          (puedeReciboOrden(tenant) ? '<button class="btn btn-outline btn-sm" id="btn-recibo-orden">' + U.icon("send") + (order.pago ? " Reenviar Recibo de Pago" : " Recibo de Pago") + "</button>" : "") +
           "</div></div>" +
           '<div class="form-grid">' +
             field("Paciente", pac ? U.nombreCompleto(pac) + " (" + pac.tipoDocumento + " " + pac.numeroDocumento + ")" : "—") +
@@ -289,6 +365,7 @@
             field("Fecha de Orden", U.fmtFecha(order.fechaOrden)) +
             field("Diagnóstico", order.diagnostico || "—") +
             (tenant.mostrarPrecioOrden ? fieldHtml("Valor a Cobrar", order.valorCobrar ? U.esc(fmtMoneda(order.valorCobrar)) + fmtMonedaEquiv(tenant, order.valorCobrar) : "—") : "") +
+            (puedeReciboOrden(tenant) ? field("Estado de Pago", order.pago ? "✓ Pagado (" + (BIO_PDF_RECIBO_ORDEN.METODO_PAGO_LABEL[order.pago.metodoPago] || order.pago.metodoPago) + ") — " + U.fmtFecha(order.pago.fecha) : "Pendiente de confirmar") : "") +
           "</div></div>" +
 
         '<div class="card" style="margin-top:16px"><div class="card-header"><h3 class="card-title">Exámenes de la Orden</h3></div>' +
@@ -317,6 +394,8 @@
       document.getElementById("btn-stickers-preview").addEventListener("click", function () { window.BIO_PDF.previewStickers(order, pac, tenant); });
       var btnRemision = document.getElementById("btn-remision");
       if (btnRemision) btnRemision.addEventListener("click", function () { abrirGenerarRemision(order, pac, tenant, build); });
+      var btnReciboOrden = document.getElementById("btn-recibo-orden");
+      if (btnReciboOrden) btnReciboOrden.addEventListener("click", function () { abrirReciboOrden(order, tenant, build); });
       root.querySelectorAll("[data-goresult]").forEach(function (b) {
         b.addEventListener("click", function () { location.hash = "#/resultados/" + order.id; });
       });
