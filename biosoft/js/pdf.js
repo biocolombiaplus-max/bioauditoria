@@ -455,10 +455,13 @@
     var signBlockBottom = y;
 
     try {
-      var qrTexto = "BIOsoft | Documento validado electrónicamente\n" +
-        "Laboratorio: " + tenant.nombre + "\nOrden: " + order.numeroOrden +
-        "\nPaciente: " + patient.tipoDocumento + " " + patient.numeroDocumento +
-        "\nValidado: " + new Date().toLocaleString("es-CO");
+      var qrTexto = "BIOsoft | Verificación de Documento\n" +
+        "Laboratorio: " + tenant.nombre +
+        "\nPaciente: " + U.nombreCompleto(patient) +
+        "\nDocumento: " + patient.tipoDocumento + " " + patient.numeroDocumento +
+        "\nOrden: " + order.numeroOrden + " · " + U.fmtFecha(order.fechaOrden) +
+        "\nValidado: " + new Date().toLocaleString("es-CO") +
+        "\nVálido si coincide con el paciente y la fecha del informe.";
       var qrDataUrl = buildQrDataUrl(qrTexto, 220);
       var qrSize = 58;
       var qrX = pageW - margin - qrSize;

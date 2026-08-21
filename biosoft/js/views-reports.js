@@ -133,8 +133,15 @@
     var wrap = U.openModal(
       '<h3 class="modal-title">Enviar Resultados — Orden ' + order.numeroOrden + '</h3>' +
       '<div class="form-grid">' +
-      '<div class="field"><label>Correo electrónico del destinatario</label><input id="send-email" type="email" value="' + U.esc(pac.email || "") + '"/></div>' +
-      '<div class="field"><label>WhatsApp del paciente</label><input id="send-whatsapp" value="' + U.esc(pac.celular || "") + '"/></div>' +
+      '<div class="field"><label>Correo electrónico del destinatario</label><input id="send-email" type="email" value="' + U.esc(pac.email || "") + '" autocomplete="off"/></div>' +
+      '<div class="field"><label>WhatsApp del paciente</label><input id="send-whatsapp" value="' + U.esc(pac.celular || "") + '" autocomplete="off"/></div>' +
+      "</div>" +
+      // Ya vienen precargados del registro del paciente (arriba) — este
+      // aviso solo aparece si al paciente le falta guardar el correo y/o el
+      // WhatsApp, para poder agregarlo aquí mismo sin salir de la pantalla.
+      '<div id="send-sin-contacto" class="' + (pac.email && pac.celular ? "hidden" : "") + '" style="background:var(--surface-2);border:1px solid var(--border);border-radius:8px;padding:10px 12px;margin-bottom:12px;font-size:12.5px;display:flex;align-items:center;justify-content:space-between;gap:10px">' +
+      '<span>Este paciente no tiene ' + (!pac.email && !pac.celular ? "correo ni WhatsApp guardados" : !pac.email ? "correo guardado" : "WhatsApp guardado") + ' — puedes escribirlo arriba solo para este envío, o agregarlo a su ficha para que quede precargado la próxima vez.</span>' +
+      '<button type="button" class="btn btn-outline btn-sm" id="send-agregar-contacto" style="flex-shrink:0">Agregar a su ficha</button>' +
       "</div>" +
       '<div class="field"><label>Tipo de envío</label><select id="send-tipo">' +
         (hasValidado ? '<option value="final">Informe Final (resultados validados)</option>' : "") +
@@ -153,6 +160,23 @@
       '<button type="button" class="btn btn-outline btn-sm" id="send-solo-descargar">' + U.icon("download") + " Solo descargar PDF</button>" +
       "</div>"
     );
+
+    var btnAgregarContacto = wrap.querySelector("#send-agregar-contacto");
+    if (btnAgregarContacto) {
+      btnAgregarContacto.addEventListener("click", function () {
+        window.BIO_openPatientForm(pac, function () {
+          // Al guardar, se refresca el paciente y se precargan los campos
+          // de este mismo modal (sin cerrarlo, para no perder el mensaje
+          // que ya se haya escrito) en vez de exigir volver a abrir "Enviar
+          // Resultados" desde cero.
+          pac = S.getPatient(order.patientId);
+          wrap.querySelector("#send-email").value = pac.email || "";
+          wrap.querySelector("#send-whatsapp").value = pac.celular || "";
+          wrap.querySelector("#send-sin-contacto").classList.toggle("hidden", !!(pac.email && pac.celular));
+          U.toast("Datos de contacto actualizados.", "success");
+        });
+      });
+    }
 
     // Los tres botones de canal (WhatsApp/Gmail/Outlook/correo predeterminado)
     // y el de "solo descargar" hacen lo mismo primero: generan y descargan
