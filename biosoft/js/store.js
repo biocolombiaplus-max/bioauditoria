@@ -1119,6 +1119,15 @@
     fbWrite("insumos", ins.id, ins);
     return ins;
   }
+  function deleteInsumo(tenantId, id) {
+    var db = loadDB();
+    db.insumos = db.insumos.filter(function (i) { return i.id !== id; });
+    var recetasAQuitar = (db.recetasReactivos || []).filter(function (r) { return r.insumoId === id; });
+    db.recetasReactivos = (db.recetasReactivos || []).filter(function (r) { return r.insumoId !== id; });
+    saveDB(db);
+    fbDelete("insumos", id);
+    recetasAQuitar.forEach(function (r) { fbDelete("recetasReactivos", r.id); });
+  }
 
   function listRecetas(tenantId, examId) {
     var db = loadDB();
@@ -1326,7 +1335,7 @@
       listContactos: listRemarketingContactos, registrarContacto: registrarContactoRemarketing
     },
     inventario: {
-      listInsumos: listInsumos, getInsumo: getInsumo, createInsumo: createInsumo, updateInsumo: updateInsumo,
+      listInsumos: listInsumos, getInsumo: getInsumo, createInsumo: createInsumo, updateInsumo: updateInsumo, deleteInsumo: deleteInsumo,
       listRecetas: listRecetas, guardarRecetaExamen: guardarRecetaExamen,
       listKardex: listKardex, registrarEntrada: registrarEntradaInventario, registrarAjuste: registrarAjusteInventario
     },

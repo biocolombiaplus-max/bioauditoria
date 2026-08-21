@@ -8,6 +8,7 @@
 
   var CATEGORIAS_INSUMO = ["Reactivo", "Insumo", "Control", "Material"];
   var DIAS_ALERTA_VENCIMIENTO = 30;
+  var UNIDADES_MEDIDA = ["mL", "L", "mg", "g", "kg", "unidades", "tiras", "viales", "frascos", "cajas", "kits", "pruebas", "ampollas", "sobres", "rollos", "pares", "tubos"];
 
   function fmtMoneda(n) { return "$" + Math.round(n || 0).toLocaleString("es-CO"); }
   function fmtFechaCorta(iso) {
@@ -86,12 +87,27 @@
           "<button class='btn btn-outline btn-sm' data-editar-insumo='" + i.id + "'>Editar</button>" +
           "<button class='btn btn-outline btn-sm' data-entrada-insumo='" + i.id + "'>+ Entrada</button>" +
           "<button class='btn btn-ghost btn-sm' data-ajustar-insumo='" + i.id + "'>Ajustar</button>" +
+          "<button class='btn btn-ghost btn-sm' data-eliminar-insumo='" + i.id + "' title='Eliminar insumo' style='color:#d64545'>" + U.icon("trash") + "</button>" +
           "</div></td></tr>";
       }).join("") || '<tr><td colspan="7" class="text-muted">Aún no has registrado insumos. Crea el primero con "Nuevo Insumo".</td></tr>';
 
       root.querySelectorAll("[data-editar-insumo]").forEach(function (b) { b.addEventListener("click", function () { abrirFormInsumo(insumoPorId(b.dataset.editarInsumo)); }); });
       root.querySelectorAll("[data-entrada-insumo]").forEach(function (b) { b.addEventListener("click", function () { abrirFormEntrada(insumoPorId(b.dataset.entradaInsumo)); }); });
       root.querySelectorAll("[data-ajustar-insumo]").forEach(function (b) { b.addEventListener("click", function () { abrirFormAjuste(insumoPorId(b.dataset.ajustarInsumo)); }); });
+      root.querySelectorAll("[data-eliminar-insumo]").forEach(function (b) {
+        b.addEventListener("click", function () {
+          var ins = insumoPorId(b.dataset.eliminarInsumo);
+          if (!ins) return;
+          var enUso = recetas.some(function (r) { return r.insumoId === ins.id; });
+          var aviso = '¿Eliminar el insumo "' + ins.nombre + '"? Esta acción no se puede deshacer.' +
+            (ins.stockActual > 0 ? " Tiene " + ins.stockActual + " " + ins.unidadMedida + " en stock." : "") +
+            (enUso ? " Se usa en una o más recetas de examen — también se quitará de ellas." : "");
+          if (!confirm(aviso)) return;
+          S.inventario.deleteInsumo(tenantId, ins.id);
+          U.toast("Insumo eliminado.", "success");
+          cargar();
+        });
+      });
     }
 
     function wireInsumos() {
@@ -107,7 +123,8 @@
         '<form id="insumo-form"><div class="form-grid">' +
         F.inp("insNombre", "Nombre del Insumo/Reactivo", insumo.nombre, true) +
         F.sel("insCategoria", "Categoría", CATEGORIAS_INSUMO.map(function (c) { return "<option value='" + c + "' " + (c === insumo.categoria ? "selected" : "") + ">" + c + "</option>"; }).join("")) +
-        F.inp("insUnidad", "Unidad de Medida (mL, unidades, tiras…)", insumo.unidadMedida, true) +
+        '<div class="field"><label>Unidad de Medida *</label><input id="f_insUnidad" list="unidades-medida-datalist" value="' + U.esc(insumo.unidadMedida || "") + '" required/>' +
+        '<datalist id="unidades-medida-datalist">' + UNIDADES_MEDIDA.map(function (u) { return "<option value='" + u + "'></option>"; }).join("") + "</datalist></div>" +
         F.inp("insStockMinimo", "Stock Mínimo (alerta)", insumo.stockMinimo, false, "number") +
         F.inp("insCosto", "Costo Unitario", insumo.costoUnitario, false, "number") +
         (isEdit ? "" : F.inp("insStockInicial", "Stock Inicial (opcional)", 0, false, "number")) +
