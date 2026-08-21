@@ -196,6 +196,34 @@
     };
   }
 
+  /* Indicativo telefónico según el país del laboratorio — para prellenar el
+     campo de celular al registrar un paciente y para armar bien el número al
+     enviar por WhatsApp (ver numeroWhatsapp más abajo). */
+  var INDICATIVO_POR_PAIS = { CO: "57", VE: "58", EC: "593" };
+  function indicativoPais(pais) { return INDICATIVO_POR_PAIS[pais] || INDICATIVO_POR_PAIS.CO; }
+
+  /* Arma el número completo (con indicativo, solo dígitos) que necesita un
+     enlace wa.me a partir de lo que haya en el campo de celular, usando el
+     país del laboratorio para saber qué indicativo agregar si hace falta.
+     Antes, en varios lugares del código, solo se reconocía el caso de un
+     celular colombiano de 10 dígitos que empieza en "3" — para un
+     laboratorio de Venezuela o Ecuador el número quedaba incompleto y el
+     enlace de WhatsApp no abría la conversación correcta. */
+  function numeroWhatsapp(numero, pais) {
+    var cod = indicativoPais(pais);
+    var largoLocal = pais === "EC" ? 9 : 10;
+    var digitos = (numero || "").replace(/\D/g, "");
+    if (!digitos) return "";
+    // Ya trae el indicativo de este país (u otro indicativo internacional,
+    // a juzgar por el largo total) -> se deja tal cual.
+    if (digitos.indexOf(cod) === 0 && digitos.length > largoLocal) return digitos;
+    if (digitos.length > largoLocal + 1) return digitos;
+    // Quita el "0" inicial típico de marcado local (ej. Venezuela 0424…,
+    // Ecuador 099…) antes de anteponer el indicativo.
+    if (digitos.length === largoLocal + 1 && digitos.charAt(0) === "0") digitos = digitos.slice(1);
+    return cod + digitos;
+  }
+
   function emailProviderButtonsHtml(idPrefix) {
     return '<div class="flex gap-2 wrap" style="margin-top:10px">' +
       '<button type="button" class="btn btn-outline btn-sm" id="' + idPrefix + '-gmail">📧 Abrir en Gmail</button>' +
@@ -250,6 +278,6 @@
     applyTenantTheme: applyTenantTheme, resetTheme: resetTheme, contrastColor: contrastColor, dataUrlToBlob: dataUrlToBlob, openDataUrlInNewTab: openDataUrlInNewTab,
     downloadBytes: downloadBytes, normalizar: normalizar, emailLinks: emailLinks,
     emailProviderButtonsHtml: emailProviderButtonsHtml, wireEmailProviderButtons: wireEmailProviderButtons,
-    redimensionarImagen: redimensionarImagen
+    redimensionarImagen: redimensionarImagen, indicativoPais: indicativoPais, numeroWhatsapp: numeroWhatsapp
   };
 })(window);

@@ -183,7 +183,29 @@
   function openPatientForm(patient, onSaved) {
     var session = BIO_AUTH.getSession();
     var isEdit = !!patient;
-    patient = patient || { pais: "CO", tipoDocumento: "CC", sexo: "Femenino", tipoAfiliacion: "Contributivo", procedencia: "Ambulatorio" };
+    // Para un paciente nuevo, el país por defecto es el del propio
+    // laboratorio (un laboratorio en Venezuela normalmente registra
+    // pacientes venezolanos) — solo si es uno de los que este formulario
+    // maneja (CO/VE/EC); cualquier otro país de tenant cae a Colombia, que
+    // sigue siendo el valor por defecto de siempre.
+    var tenant = BIO_AUTH.currentTenant();
+    var paisPorDefecto = tenant && ["CO", "VE", "EC"].indexOf(tenant.pais) !== -1 ? tenant.pais : "CO";
+    // El tipo de documento y el tipo de afiliación por defecto también
+    // dependen del país: "CC"/"Contributivo" no existen en las listas de
+    // Venezuela ni Ecuador, así que se toma el primero de la lista de cada
+    // país (la cédula local y la afiliación más común, respectivamente).
+    var tipoDocumentoPorDefecto = (C.TIPOS_DOCUMENTO[paisPorDefecto] || [])[0];
+    var tipoAfiliacionPorDefecto = (C.TIPOS_AFILIACION[paisPorDefecto] || [])[0];
+    // El campo de celular arranca con el indicativo del país del
+    // laboratorio (ej. "+58 " en Venezuela) — así, cuando más adelante se
+    // envíe un resultado por WhatsApp, el número ya trae el indicativo
+    // correcto sin que quien registra el paciente tenga que acordarse de
+    // escribirlo a mano.
+    patient = patient || {
+      pais: paisPorDefecto, tipoDocumento: tipoDocumentoPorDefecto ? tipoDocumentoPorDefecto.v : "CC",
+      sexo: "Femenino", tipoAfiliacion: tipoAfiliacionPorDefecto || "Contributivo", procedencia: "Ambulatorio",
+      celular: "+" + U.indicativoPais(paisPorDefecto) + " "
+    };
 
     var docOptions = function (pais, current) {
       return (C.TIPOS_DOCUMENTO[pais] || []).map(function (d) { return '<option value="' + d.v + '" ' + (d.v === current ? "selected" : "") + ">" + d.t + "</option>"; }).join("");
@@ -249,6 +271,13 @@
       var epsField = wrap.querySelector("#eps-field");
       epsField.style.display = pais === "CO" ? "block" : "none";
       if (pais !== "CO") wrap.querySelector("#f_eps").value = "";
+      // Si el celular todavía es solo el indicativo (nadie escribió un
+      // número encima), lo actualiza al indicativo del país recién elegido
+      // — pero nunca toca un número que la persona ya empezó a digitar.
+      if (!isEdit) {
+        var celInput = wrap.querySelector("#f_celular");
+        if (/^\+\d+\s*$/.test(celInput.value.trim())) celInput.value = "+" + U.indicativoPais(pais) + " ";
+      }
     }
     wrap.querySelector("#f_pais").addEventListener("change", refreshDependentSelects);
 

@@ -195,8 +195,7 @@
       conBotonOcupado(e.currentTarget, function () {
         return obtenerPdf().then(function () {
           var msg = wrap.querySelector("#send-msg").value;
-          var numero = whatsapp.replace(/\D/g, "");
-          if (numero.length === 10 && numero.charAt(0) === "3") numero = "57" + numero;
+          var numero = U.numeroWhatsapp(whatsapp, tenant.pais);
           var url = "https://wa.me/" + numero + "?text=" + encodeURIComponent(msg + "\n\n(Adjunte el PDF que se acaba de descargar antes de enviar)");
           if (pestana) pestana.location.href = url; else window.open(url, "_blank");
           registrarEnvio(whatsapp);
