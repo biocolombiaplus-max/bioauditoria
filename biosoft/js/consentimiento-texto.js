@@ -58,7 +58,15 @@
 
   function buildTextoConsentimiento(tenantNombre, procedimientoKey, examenesNombres) {
     var proc = PROCEDIMIENTOS[procedimientoKey] || PROCEDIMIENTOS.venopuncion;
-    var listaExamenes = (examenesNombres && examenesNombres.length) ? examenesNombres.join(", ") : "los exámenes indicados en la orden";
+    // Se limita la lista a 6 exámenes en el texto (con "y N más") para que
+    // una orden con muchos exámenes no alargue el párrafo hasta desbordar
+    // la hoja — el detalle completo igual queda en la orden.
+    var listaExamenes = "los exámenes indicados en la orden";
+    if (examenesNombres && examenesNombres.length) {
+      listaExamenes = examenesNombres.length > 6
+        ? examenesNombres.slice(0, 6).join(", ") + " y " + (examenesNombres.length - 6) + " examen(es) más"
+        : examenesNombres.join(", ");
+    }
     return {
       titulo: "CONSENTIMIENTO INFORMADO PARA TOMA DE MUESTRAS DE LABORATORIO CLÍNICO",
       parrafos: [
