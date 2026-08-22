@@ -33,7 +33,7 @@
         '<p class="text-muted" style="margin-top:0">Documento conforme a la Resolución 3100 de 2019, para los procesos de toma de muestra que lo requieran.</p>' +
         (lista.length ? '<div class="table-wrap"><table><thead><tr><th>Fecha</th><th>Procedimiento</th><th>Estado</th><th></th></tr></thead><tbody>' +
           lista.map(function (c, i) {
-            return "<tr><td>" + U.fmtFecha(c.creadoEn) + "</td><td>" + (T.PROCEDIMIENTOS[c.procedimiento] || c.procedimiento) + "</td><td>" + estadoBadge(c) + "</td>" +
+            return "<tr><td>" + U.fmtFecha(c.creadoEn) + "</td><td>" + ((T.PROCEDIMIENTOS[c.procedimiento] && T.PROCEDIMIENTOS[c.procedimiento].nombre) || c.procedimiento) + "</td><td>" + estadoBadge(c) + "</td>" +
               "<td><div class='flex gap-2 wrap'>" +
               (c.estado === "firmado" ? "<button class='btn btn-outline btn-sm' data-descargar='" + i + "'>" + U.icon("download") + " PDF</button>" : "<button class='btn btn-outline btn-sm' data-reenviar='" + i + "'>" + U.icon("send") + " Reenviar enlace</button>") +
               "</div></td></tr>";
@@ -81,7 +81,7 @@
       var wrap = U.openModal(
         '<h3 class="modal-title">Nuevo Consentimiento Informado</h3>' +
         '<div class="field"><label>Procedimiento de toma de muestra</label><select id="f_procedimiento">' +
-        Object.keys(T.PROCEDIMIENTOS).map(function (k) { return "<option value='" + k + "'>" + T.PROCEDIMIENTOS[k] + "</option>"; }).join("") +
+        Object.keys(T.PROCEDIMIENTOS).map(function (k) { return "<option value='" + k + "'>" + T.PROCEDIMIENTOS[k].nombre + "</option>"; }).join("") +
         "</select></div>" +
         '<div class="field"><label>Exámenes que cubre este consentimiento</label><div class="form-grid">' +
         examenes.map(function (e) { return '<div class="checkbox-row"><input type="checkbox" checked data-consent-exam="' + e.id + '"/><label style="margin:0">' + U.esc(e.nombre) + "</label></div>"; }).join("") +
