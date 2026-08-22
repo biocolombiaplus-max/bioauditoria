@@ -32,7 +32,7 @@
       ],
       intro: "Solo para Administradores: esto se hace UNA VEZ, antes de empezar a trabajar, para que todo el sistema (pantallas, PDF, informes) lleve la identidad de tu laboratorio.",
       pasos: [
-        "Ve a “Configuración del Laboratorio” y completa Identidad y Datos: nombre, NIT/RIF/RUC, país, dirección, teléfonos, correo, sitio web, resolución de habilitación, código REPS y nivel de complejidad.",
+        "Ve a “Configuración del Laboratorio” y completa Identidad y Datos: nombre, eslogan (aparece bajo el nombre en el encabezado de los informes de resultados), NIT/RIF/RUC, país, dirección, teléfonos, correo, sitio web, resolución de habilitación, código REPS y nivel de complejidad.",
         "Sube tu logo y elige los colores institucionales (primario, secundario, texto del menú, títulos y subtítulos) — se aplican de inmediato a toda la app y a los PDF que genera el sistema.",
         "Define la clave de administrador: se pedirá cada vez que un bacteriólogo necesite corregir un resultado ya validado, para mantener la trazabilidad.",
         "Ve a “Usuarios del Laboratorio” y haz clic en “Nuevo Usuario” para crear el acceso de cada persona de tu equipo: nombre, usuario, contraseña y rol (Administrador, Bacteriólogo o Recepción).",
@@ -96,8 +96,10 @@
         "Selecciona el paciente (o créalo si es la primera vez que viene).",
         "Elige los exámenes por sección desde el catálogo (Hematología, Química, Inmunología, etc., incluyendo las categorías y exámenes propios que hayas agregado); puedes buscar por nombre.",
         "Registra el médico remitente y la procedencia si aplica.",
+        "Si tu laboratorio indica el valor a cobrar en la orden (activable en “Configuración del Laboratorio” → Operación), el campo “Valor a Cobrar” se calcula solo según los exámenes elegidos — puedes ajustarlo a mano si hace falta; si tienes una moneda adicional configurada, también verás el equivalente (ej. en bolívares).",
         "Guarda la orden — automáticamente queda disponible en la bandeja de cada bacteriólogo, según la sección de cada examen.",
-        "Desde aquí también puedes imprimir el sticker de identificación para los tubos de muestra."
+        "Desde aquí también puedes imprimir el sticker de identificación para los tubos de muestra.",
+        "Para laboratorios de Venezuela: al crear la orden (o después, desde su detalle) puedes generar un Recibo de Pago profesional en tamaño media carta — primero te pide confirmar que el cliente ya pagó y el método de pago, y luego puedes imprimirlo o enviarlo por WhatsApp/correo."
       ]
     },
     {
@@ -164,7 +166,8 @@
       pasos: [
         "Ve a “Reportes y Envíos” y busca la orden del paciente.",
         "Elige si el envío es del informe “Final” (resultados validados) o “Preliminar” (anticipado).",
-        "Descarga el PDF — queda listo con el logo, colores, firma digital del bacteriólogo y código QR de verificación.",
+        "Descarga el PDF — queda listo con el logo, colores, firma digital del bacteriólogo y un código QR que verifica el nombre del paciente y la fecha del informe.",
+        "El correo y el WhatsApp del paciente ya vienen precargados si están en su ficha; si falta alguno, verás un aviso con un botón para agregarlo sin salir de esta pantalla.",
         "Elige por dónde enviarlo: se abre WhatsApp o tu correo (Gmail/Outlook) ya redactado; solo adjunta el PDF que acabas de descargar."
       ]
     },
@@ -175,8 +178,9 @@
       pasos: [
         "Ve a “Control de Calidad” y configura los controles (niveles, valores esperados) por analito, una sola vez.",
         "Cada día, registra la lectura del control antes de procesar las muestras de pacientes.",
-        "El sistema evalúa automáticamente la lectura contra las reglas de Westgard y te avisa si hay una alerta.",
-        "Consulta la gráfica de Levey-Jennings para ver la tendencia de cada analito en el tiempo."
+        "El sistema evalúa automáticamente la lectura contra las reglas de Westgard y te avisa si hay una alerta; la confirmación con el resultado del día queda visible aunque cierres y vuelvas a entrar, con un botón “Corregir” si necesitas volver a capturarla.",
+        "Consulta la gráfica de Levey-Jennings para ver la tendencia de cada analito en el tiempo.",
+        "Haz clic en “Descargar Informe” para obtener un PDF profesional de Control de Calidad, con resumen ejecutivo, estadísticas (media real, DS real, CV%), la gráfica de cada control y el historial de violaciones de reglas de Westgard."
       ]
     },
     {
@@ -189,7 +193,7 @@
       pasos: [
         "Ve a “Cotizaciones” y haz clic en “Nueva Cotización”.",
         "Selecciona los exámenes desde el buscador rápido; el sistema calcula el total automáticamente según tu lista de precios.",
-        "En “Lista de Precios” puedes activar una moneda adicional (ej. dólares) con su tasa de cambio — se muestra junto al total en cotizaciones, recibos e historial, sin reemplazar tu moneda principal.",
+        "En “Lista de Precios” puedes activar una moneda adicional (ej. dólares o bolívares) con su tasa de cambio — actualízala cada vez que cambie (por ejemplo, a diario) y verás el equivalente junto a cada precio de la lista, en el total de cotizaciones, recibos, órdenes e historial, sin reemplazar tu moneda principal.",
         "Genera el PDF y envíalo por WhatsApp o correo directamente desde la pantalla.",
         "Consulta el historial de cotizaciones enviadas en cualquier momento."
       ]
@@ -209,10 +213,11 @@
       imagenes: [img("assets/manual/inventario.jpg")],
       intro: "Kardex profesional para controlar tus insumos, su costo y el gasto real por cada examen realizado.",
       pasos: [
-        "Ve a “Inventario y Reactivos” y entra a “Insumos” para registrar cada reactivo/insumo con su stock y costo.",
+        "Ve a “Inventario y Reactivos” y entra a “Insumos” para registrar cada reactivo/insumo con su stock y costo — la unidad de medida sugiere las más comunes (mL, L, mg, unidades, tiras, viales, cajas…) pero puedes escribir otra si lo necesitas.",
         "En “Recetas por Examen”, indica cuánto se gasta de cada insumo al realizar cada tipo de examen (disponible para los exámenes del catálogo general).",
         "A partir de ahí, el sistema descuenta el inventario automáticamente cada vez que se valida un resultado — no necesitas hacerlo manual.",
-        "Consulta el “Kardex” para ver cada movimiento de entrada/salida, y descarga los reportes de gasto de reactivos e inventario valorizado en PDF."
+        "Consulta el “Kardex” para ver cada movimiento de entrada/salida, y descarga los reportes de gasto de reactivos e inventario valorizado en PDF.",
+        "Si un insumo ya no lo usas, elimínalo con el botón 🗑 de su fila — el sistema te avisa si tiene stock o si está en uso en alguna receta de examen antes de confirmarlo."
       ]
     }
   ];

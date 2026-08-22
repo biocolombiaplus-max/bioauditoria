@@ -414,6 +414,7 @@
     db.tenants["demo"] = {
       id: "demo",
       nombre: "Laboratorio Clínico DEMO BIOsoft",
+      slogan: "Precisión, calidez y confianza en cada resultado",
       nit: "900123456-7",
       pais: "CO",
       direccion: "Cra 45 # 12 - 34, Bogotá D.C.",
@@ -428,6 +429,11 @@
       colorPrimario: "#f97316",
       colorSecundario: "#2e1065",
       claveAdmin: "ADMIN2026",
+      mostrarPrecioOrden: true,
+      // Muestra en la demo cómo se ve el equivalente en otra moneda (útil
+      // sobre todo para laboratorios de Venezuela/Ecuador) en la Lista de
+      // Precios del Cotizador y en Órdenes, en vez de dejarlo desactivado.
+      monedaAdicional: { codigo: "USD", tasa: 4000, actualizada: nowISO() },
       creadoEn: nowISO()
     };
 
@@ -478,7 +484,8 @@
           item("QUI-001", "validado", [{ codigo: "GLU", valor: "128" }], uLaura, nowISO()),
           item("QUI-008", "validado", [{ codigo: "CREA", valor: "0.9" }], uLaura, nowISO())
         ],
-        estadoGeneral: "validado", enviado: true, fechaEnvio: nowISO(), creadoEn: nowISO(), creadoPor: "recepcion.demo"
+        estadoGeneral: "validado", enviado: true, fechaEnvio: nowISO(), creadoEn: nowISO(), creadoPor: "recepcion.demo",
+        valorCobrar: 95000
       },
       {
         id: uid("ord"), tenantId: "demo", numeroOrden: "20260002", patientId: p2.id, fechaOrden: horasAntes(5),
@@ -490,7 +497,8 @@
           item("QUI-007", "validado", [{ codigo: "TGD", valor: "190" }], uLaura, nowISO()),
           item("URO-001", "pendiente", [])
         ],
-        estadoGeneral: "parcial", enviado: false, fechaEnvio: "", creadoEn: nowISO(), creadoPor: "recepcion.demo"
+        estadoGeneral: "parcial", enviado: false, fechaEnvio: "", creadoEn: nowISO(), creadoPor: "recepcion.demo",
+        valorCobrar: 150000
       },
       {
         id: uid("ord"), tenantId: "demo", numeroOrden: "20260003", patientId: p3.id, fechaOrden: horasAntes(3.5),
@@ -499,7 +507,8 @@
           item("MIC-001", "pendiente", []),
           item("HEM-001", "pendiente", [])
         ],
-        estadoGeneral: "pendiente", enviado: false, fechaEnvio: "", creadoEn: nowISO(), creadoPor: "recepcion.demo"
+        estadoGeneral: "pendiente", enviado: false, fechaEnvio: "", creadoEn: nowISO(), creadoPor: "recepcion.demo",
+        valorCobrar: 110000
       },
       {
         id: uid("ord"), tenantId: "demo", numeroOrden: "20260004", patientId: p4.id, fechaOrden: horasAntes(2),
@@ -509,7 +518,8 @@
           item("HOR-002", "validado", [{ codigo: "T4L", valor: "1.2" }], uAndres, nowISO()),
           item("MAR-001", "preliminar", [{ codigo: "PSA", valor: "1.8" }])
         ],
-        estadoGeneral: "parcial", enviado: false, fechaEnvio: "", creadoEn: nowISO(), creadoPor: "recepcion.demo"
+        estadoGeneral: "parcial", enviado: false, fechaEnvio: "", creadoEn: nowISO(), creadoPor: "recepcion.demo",
+        valorCobrar: 180000
       }
     );
 
