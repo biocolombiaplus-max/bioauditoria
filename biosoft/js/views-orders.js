@@ -355,6 +355,7 @@
           (puedeGestionarRemision(session) ? '<button class="btn btn-outline btn-sm" id="btn-remision">' + U.icon("send") + " Hoja de Remisión</button>" : "") +
           (puedeReciboOrden(tenant) ? '<button class="btn btn-outline btn-sm" id="btn-recibo-orden">' + U.icon("send") + (order.pago ? " Reenviar Recibo de Pago" : " Recibo de Pago") + "</button>" : "") +
           (tenant.pais === "CO" ? '<button class="btn btn-outline btn-sm" id="btn-consentimiento">' + U.icon("file") + " Consentimiento Informado</button>" : "") +
+          (tenant.pais === "CO" ? '<button class="btn btn-primary btn-sm" id="btn-firmar-consentimiento-aqui">' + U.icon("check") + " Firmar Consentimiento Aquí</button>" : "") +
           "</div></div>" +
           '<div class="form-grid">' +
             field("Paciente", pac ? U.nombreCompleto(pac) + " (" + pac.tipoDocumento + " " + pac.numeroDocumento + ")" : "—") +
@@ -399,6 +400,8 @@
       if (btnReciboOrden) btnReciboOrden.addEventListener("click", function () { abrirReciboOrden(order, tenant, build); });
       var btnConsentimiento = document.getElementById("btn-consentimiento");
       if (btnConsentimiento) btnConsentimiento.addEventListener("click", function () { window.BIO_VIEWS_CONSENTIMIENTOS.abrir(order, pac, tenant, build); });
+      var btnFirmarConsentimientoAqui = document.getElementById("btn-firmar-consentimiento-aqui");
+      if (btnFirmarConsentimientoAqui) btnFirmarConsentimientoAqui.addEventListener("click", function () { window.BIO_VIEWS_CONSENTIMIENTOS.abrirFirmarAqui(order, pac, tenant, build); });
       root.querySelectorAll("[data-goresult]").forEach(function (b) {
         b.addEventListener("click", function () { location.hash = "#/resultados/" + order.id; });
       });

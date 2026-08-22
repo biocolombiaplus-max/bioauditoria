@@ -22,7 +22,7 @@
     return c.estado === "firmado" ? '<span class="badge badge-validado">✓ Firmado</span>' : '<span class="badge badge-pendiente">Pendiente de firma</span>';
   }
 
-  window.BIO_VIEWS_CONSENTIMIENTOS.abrir = function (order, pac, tenant, onDone) {
+  function crearContexto(order, pac, tenant, onDone) {
     var session = BIO_AUTH.getSession();
     var lista = S.consentimientos.listPorOrden(tenant.id, order.id);
 
@@ -192,6 +192,17 @@
       wrap.querySelector("[data-modal-close]").addEventListener("click", build);
     }
 
-    build();
+    return { abrirLista: build, abrirNuevo: abrirNuevo };
+  }
+
+  window.BIO_VIEWS_CONSENTIMIENTOS.abrir = function (order, pac, tenant, onDone) {
+    crearContexto(order, pac, tenant, onDone).abrirLista();
+  };
+  // Atajo para el caso más común: el paciente está presente y va a firmar de
+  // una vez en el celular/tablet del laboratorio — salta directo a elegir
+  // los exámenes y firmar, sin pasar primero por la lista de consentimientos
+  // de la orden.
+  window.BIO_VIEWS_CONSENTIMIENTOS.abrirFirmarAqui = function (order, pac, tenant, onDone) {
+    crearContexto(order, pac, tenant, onDone).abrirNuevo();
   };
 })();
