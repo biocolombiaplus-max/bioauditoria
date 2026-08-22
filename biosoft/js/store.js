@@ -340,6 +340,44 @@
     });
   }
 
+  /* Diagnóstico de acceso (superadmin): un usuario puede tener su cuenta de
+     Firebase Auth funcionando perfectamente (login exitoso, contraseña
+     correcta) y aun así no poder entrar, porque loginReal() necesita
+     ADEMÁS un documento userProfiles/{uid} que apunte al tenant correcto.
+     Ese documento se crea solo una vez al aprovisionar la cuenta — si se
+     perdió, quedó apuntando a otro laboratorio, o nunca se creó, no hay
+     forma de arreglarlo desde la app salvo con esta herramienta. Para cada
+     usuario del laboratorio devuelve si ese enlace está bien, roto o
+     ausente. */
+  function diagnosticarAccesoTenant(tenantId) {
+    if (!firebaseDisponible()) return Promise.reject(errorFirebaseNoDisponible());
+    var db = global.BIO_FB.db;
+    return listUsuariosTenantOnce(tenantId).then(function (usuarios) {
+      return Promise.all(usuarios.map(function (u) {
+        return db.collection("userProfiles").doc(u.id).get().then(function (doc) {
+          var perfil = doc.exists ? doc.data() : null;
+          var estado = !perfil ? "sin_perfil" : perfil.tenantId !== tenantId ? "otro_tenant" : "ok";
+          return { usuario: u, perfil: perfil, estado: estado };
+        });
+      }));
+    });
+  }
+  /* Recrea/corrige el documento userProfiles/{uid} del usuario para que
+     vuelva a apuntar a este laboratorio con su rol actual — la reparación
+     concreta para los estados "sin_perfil" y "otro_tenant" de arriba. */
+  function repararPerfilAcceso(tenantId, usuario) {
+    if (!firebaseDisponible()) return Promise.reject(errorFirebaseNoDisponible());
+    var db = global.BIO_FB.db;
+    return db.collection("userProfiles").doc(usuario.id).set({ tenantId: tenantId, rol: usuario.rol }).then(function () {
+      var entry = {
+        id: uid("log"), tenantId: tenantId, fecha: nowISO(), usuario: "Soporte BIOsoft", rol: "superadmin",
+        accion: "REPAIR_USER_PROFILE", entidad: "usuario", entidadId: usuario.id,
+        detalle: "Reparó el perfil de acceso de " + (usuario.nombre || usuario.username) + " para que quedara enlazado a este laboratorio."
+      };
+      return db.collection("tenants").doc(tenantId).collection("auditLog").doc(entry.id).set(entry);
+    });
+  }
+
   /* Al recargar la página, sessionStorage conserva la sesión pero realCache
      se pierde (es memoria, no disco). Espera a que Firebase confirme que la
      sesión de Auth sigue viva y vuelve a poblar realCache sin pedir clave. */
@@ -1415,7 +1453,10 @@
     restoreRealtime: restoreRealtime,
     restoreSuperadminSession: restoreSuperadminSession,
     crm: { list: crmList, watch: crmWatch, create: crmCreate, update: crmUpdate },
-    tenantsGlobal: { list: tenantsListGlobal, watch: tenantsWatchGlobal, listUsuarios: listUsuariosTenantOnce, promoverUsuarioAAdmin: promoverUsuarioAAdmin },
+    tenantsGlobal: {
+      list: tenantsListGlobal, watch: tenantsWatchGlobal, listUsuarios: listUsuariosTenantOnce, promoverUsuarioAAdmin: promoverUsuarioAAdmin,
+      diagnosticarAcceso: diagnosticarAccesoTenant, repararPerfilAcceso: repararPerfilAcceso
+    },
     plantillas: { list: plantillasList, watch: plantillasWatch, create: plantillasCreate, update: plantillasUpdate, remove: plantillasDelete },
     landingImagenes: { list: landingImagenesList, set: landingImagenesSet, remove: landingImagenesDelete },
     qc: {

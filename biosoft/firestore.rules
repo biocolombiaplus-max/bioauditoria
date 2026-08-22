@@ -17,11 +17,17 @@ service cloud.firestore {
 
     // Cada usuario autenticado solo puede leer SU PROPIO perfil (para saber a
     // qué laboratorio pertenece). Solo se crea una vez, al aprovisionar la
-    // cuenta (el propio usuario recién creado escribe su documento).
+    // cuenta (el propio usuario recién creado escribe su documento). El
+    // superadmin también puede leer/crear/corregir cualquier perfil, para
+    // poder diagnosticar y reparar desde "Laboratorios Cliente" el caso de
+    // una cuenta de Firebase Auth que quedó sin este documento (o apuntando
+    // al laboratorio equivocado) — sin este acceso, ese enlace roto no se
+    // puede arreglar de ninguna forma una vez creada la cuenta.
     match /userProfiles/{uid} {
-      allow read: if autenticado() && request.auth.uid == uid;
-      allow create: if autenticado() && request.auth.uid == uid;
-      allow update, delete: if false;
+      allow read: if (autenticado() && request.auth.uid == uid) || esSuperadmin();
+      allow create: if (autenticado() && request.auth.uid == uid) || esSuperadmin();
+      allow update: if esSuperadmin();
+      allow delete: if false;
     }
 
     // CRM interno (leads y clientes de BIOsoft) — leer, editar y borrar solo

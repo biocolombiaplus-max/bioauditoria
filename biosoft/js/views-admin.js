@@ -1360,6 +1360,7 @@
             '<button class="btn btn-outline btn-sm" data-enviar-contrato="' + t.id + '">' + U.icon("file") + " Contrato</button>" +
             '<button class="btn btn-outline btn-sm" data-enviar-manual="' + t.id + '">' + U.icon("send") + " Manual</button>" +
             '<button class="btn btn-outline btn-sm" data-reenviar-acceso="' + t.id + '" title="Recordar el link de ingreso y el usuario al administrador">' + U.icon("send") + " Reenviar Acceso</button>" +
+            '<button class="btn btn-ghost btn-sm" data-diagnostico-acceso="' + t.id + '" title="Revisar si algún usuario quedó con el enlace de acceso roto (puede entrar con la contraseña correcta y aun así el sistema no lo reconoce)">🔍 Diagnóstico</button>' +
             '<button class="btn btn-ghost btn-sm" data-sync-crm="' + t.id + '" title="Crear/vincular este laboratorio en el CRM">' + U.icon("send") + " CRM</button>" +
             "</div></td></tr>";
         }).join("") : '<tr><td colspan="7" class="text-muted">Aún no hay laboratorios cliente creados.</td></tr>') + "</tbody></table></div></div>";
@@ -1389,6 +1390,11 @@
       root.querySelectorAll("[data-reenviar-acceso]").forEach(function (b) {
         b.addEventListener("click", function () {
           abrirReenviarAcceso(tenants.filter(function (t) { return t.id === b.dataset.reenviarAcceso; })[0]);
+        });
+      });
+      root.querySelectorAll("[data-diagnostico-acceso]").forEach(function (b) {
+        b.addEventListener("click", function () {
+          abrirDiagnosticoAcceso(tenants.filter(function (t) { return t.id === b.dataset.diagnosticoAcceso; })[0]);
         });
       });
       root.querySelectorAll("[data-enviar-contrato]").forEach(function (b) {
@@ -1852,6 +1858,55 @@
       }).catch(function (err) {
         U.toast("No se pudo cargar el usuario administrador: " + (err.message || err), "error");
       });
+    }
+
+    // Un usuario puede tener su cuenta de Firebase Auth funcionando
+    // perfectamente (la contraseña es correcta, incluso después de un
+    // restablecimiento) y aun así el sistema le diga "usuario no encontrado
+    // o inactivo" — porque falta, además, el documento que enlaza esa
+    // cuenta con este laboratorio. Esta herramienta detecta ese caso
+    // exacto por usuario, y permite repararlo con un clic.
+    function abrirDiagnosticoAcceso(tenant) {
+      var wrapCargando = U.openModal('<h3 class="modal-title">🔍 Diagnóstico de Acceso — ' + U.esc(tenant.nombre) + '</h3><p class="text-muted">Revisando el enlace de acceso de cada usuario…</p>');
+      function cargarYMostrar() {
+        S.tenantsGlobal.diagnosticarAcceso(tenant.id).then(function (resultados) {
+          U.closeModal(wrapCargando);
+          var wrap = U.openModal(
+            '<h3 class="modal-title">🔍 Diagnóstico de Acceso — ' + U.esc(tenant.nombre) + '</h3>' +
+            '<p class="text-muted" style="margin-top:0">Si un usuario ya cambió su contraseña (incluso con el enlace de restablecimiento) y el sistema le sigue diciendo "usuario no encontrado o inactivo", casi siempre es porque le falta este enlace — no un problema con su contraseña.</p>' +
+            '<div class="table-wrap"><table><thead><tr><th>Usuario</th><th>Nombre</th><th>Activo</th><th>Enlace de acceso</th><th></th></tr></thead><tbody>' +
+            resultados.map(function (r, i) {
+              var estadoTxt = r.estado === "ok" ? "<span class='badge badge-validado'>✓ En orden</span>"
+                : r.estado === "otro_tenant" ? "<span class='badge badge-urgente'>⚠️ Apunta a otro laboratorio</span>"
+                : "<span class='badge badge-urgente'>❌ Falta el perfil de acceso</span>";
+              return "<tr><td>" + U.esc(r.usuario.username) + "</td><td>" + U.esc(r.usuario.nombre || "—") + "</td><td>" + (r.usuario.activo === false ? "❌ Inactivo" : "✓ Activo") + "</td><td>" + estadoTxt + "</td>" +
+                "<td>" + (r.estado !== "ok" ? "<button class='btn btn-outline btn-sm' data-reparar='" + i + "'>🔧 Reparar</button>" : "") + "</td></tr>";
+            }).join("") + "</tbody></table></div>" +
+            (resultados.length ? "" : '<p class="text-muted">Este laboratorio no tiene usuarios todavía.</p>') +
+            '<div class="flex justify-between" style="margin-top:16px"><button class="btn btn-ghost" data-modal-close>Cerrar</button></div>',
+            { lg: true }
+          );
+          wrap.querySelectorAll("[data-reparar]").forEach(function (b) {
+            b.addEventListener("click", function () {
+              var r = resultados[Number(b.dataset.reparar)];
+              b.disabled = true; b.textContent = "Reparando…";
+              S.tenantsGlobal.repararPerfilAcceso(tenant.id, r.usuario).then(function () {
+                U.toast(r.usuario.nombre + " ya puede entrar con su usuario y contraseña actuales.", "success");
+                U.closeModal(wrap);
+                wrapCargando = U.openModal('<h3 class="modal-title">🔍 Diagnóstico de Acceso — ' + U.esc(tenant.nombre) + '</h3><p class="text-muted">Actualizando…</p>');
+                cargarYMostrar();
+              }).catch(function (err) {
+                b.disabled = false; b.textContent = "🔧 Reparar";
+                U.toast("No se pudo reparar: " + (err.message || err), "error");
+              });
+            });
+          });
+        }).catch(function (err) {
+          U.closeModal(wrapCargando);
+          U.toast("No se pudo cargar el diagnóstico: " + (err.message || err), "error");
+        });
+      }
+      cargarYMostrar();
     }
 
     // Crea un usuario administrador para un laboratorio YA existente que se
