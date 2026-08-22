@@ -158,7 +158,14 @@
     return global.BIO_FB.auth.signInWithEmailAndPassword(email, password).then(function (cred) {
       var uidAuth = cred.user.uid;
       return global.BIO_FB.db.collection("userProfiles").doc(uidAuth).get().then(function (doc) {
-        if (!doc.exists) throw new Error("Esta cuenta no tiene un laboratorio asociado.");
+        // Estos dos casos (perfil o usuario faltante) significan que la
+        // cuenta de Firebase Auth existe y la contraseña es correcta —
+        // por eso llega hasta aquí — pero su registro en Firestore está
+        // incompleto o se perdió (ej. se borró el usuario del laboratorio
+        // sin borrar también su cuenta de acceso). Se reportan con un
+        // mensaje específico en vez del genérico "Usuario no encontrado o
+        // inactivo.", para que soporte sepa exactamente qué falta arreglar.
+        if (!doc.exists) throw new Error("Tu cuenta de acceso existe pero no está asociada a ningún laboratorio en el sistema. Contacta a soporte de BIOsoft para que revisen tu perfil.");
         var perfil = doc.data();
         if (perfil.rol === "superadmin") {
           MODE = "real"; // habilita fbWrite/onSnapshot para el CRM sin tenant asociado
@@ -166,7 +173,7 @@
         }
         return initRealtime(perfil.tenantId).then(function () {
           var user = realCache.users.filter(function (u) { return u.id === uidAuth; })[0];
-          if (!user) throw new Error("No se encontró el usuario del laboratorio.");
+          if (!user) throw new Error("Tu cuenta de acceso existe pero no aparece como usuario de tu laboratorio en el sistema. Contacta a soporte de BIOsoft para que reparen tu perfil.");
           return user;
         });
       });

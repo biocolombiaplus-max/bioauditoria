@@ -17,7 +17,16 @@
     "auth/missing-email": "Ingresa tu correo electrónico."
   };
   function mapFirebaseError(err) {
-    return FIREBASE_ERRORS[err && err.code] || "Usuario no encontrado o inactivo.";
+    if (err && err.code && FIREBASE_ERRORS[err.code]) return FIREBASE_ERRORS[err.code];
+    // Errores propios que lanza loginReal() (ej. "Esta cuenta no tiene un
+    // laboratorio asociado." o "No se encontró el usuario del laboratorio.")
+    // no traen un código auth/* de Firebase — antes se perdían y siempre se
+    // mostraba el mensaje genérico, ocultando la causa real y dificultando
+    // el soporte a laboratorios que sí lograron entrar a Firebase Auth
+    // (ej. después de restablecer su contraseña) pero cuyo registro en el
+    // laboratorio quedó incompleto o desactivado.
+    if (err && err.message && !err.code) return err.message;
+    return "Usuario no encontrado o inactivo.";
   }
 
   function buildSession(user, esReal) {
@@ -50,6 +59,14 @@
           BIO_STORE.logoutReal();
           return { ok: false, error: "El acceso de tu laboratorio está suspendido por pago pendiente. Escríbenos por WhatsApp para reactivarlo." };
         }
+      }
+      // A diferencia del modo Demo, este chequeo faltaba en el camino real:
+      // un usuario desactivado por su administrador (ej. desde "Usuarios del
+      // Laboratorio") podía autenticarse contra Firebase Auth igual, ya que
+      // ese estado "activo" vive en Firestore, no en Firebase Auth.
+      if (realUser.rol !== "superadmin" && realUser.activo === false) {
+        BIO_STORE.logoutReal();
+        return { ok: false, error: "Tu usuario fue desactivado por el administrador de tu laboratorio." };
       }
       var session = buildSession(realUser, true);
       sessionStorage.setItem(SESSION_KEY, JSON.stringify(session));
