@@ -137,6 +137,23 @@ service cloud.firestore {
       match /convenioPrecios/{convenioPrecioId} {
         allow read, write: if esDeEsteLab(tenantId);
       }
+      // Consentimientos informados (Resolución 3100 de 2019): el paciente
+      // puede firmarlo a distancia desde firmar.html, SIN iniciar sesión —
+      // el id del documento (aleatorio, prácticamente imposible de
+      // adivinar) es lo que protege el acceso, igual que un enlace de
+      // firma electrónica de cualquier proveedor externo. Sin sesión solo
+      // se puede pasar de "pendiente" a "firmado", escribiendo únicamente
+      // los campos de la firma — nunca se puede reabrir uno ya firmado ni
+      // tocar el resto del documento.
+      match /consentimientos/{consentId} {
+        allow read: if true;
+        allow create, delete: if esDeEsteLab(tenantId);
+        allow update: if esDeEsteLab(tenantId) || (
+          resource.data.estado == "pendiente" &&
+          request.resource.data.estado == "firmado" &&
+          request.resource.data.diff(resource.data).affectedKeys().hasOnly(["estado", "firmaPacienteDataUrl", "nombreFirmante", "documentoFirmante", "relacionFirmante", "fechaFirma"])
+        );
+      }
     }
   }
 }

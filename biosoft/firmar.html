@@ -1,0 +1,95 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1"/>
+<title>Firma tu Consentimiento Informado — BIOsoft</title>
+<meta name="description" content="Firma tu consentimiento informado para la toma de muestra de laboratorio, de forma segura desde tu propio celular."/>
+<meta name="robots" content="noindex, nofollow"/>
+<link rel="icon" type="image/png" href="assets/favicon-biosoft.png"/>
+<link rel="stylesheet" href="css/styles.css?v=10"/>
+<style>
+  body { background: var(--bg); }
+  .fir-wrap { max-width: 640px; margin: 0 auto; padding: 24px 16px 60px; }
+  .fir-header { display: flex; align-items: center; gap: 12px; margin-bottom: 18px; }
+  .fir-header img { height: 44px; width: 44px; border-radius: 10px; object-fit: cover; }
+  .fir-header b { font-size: 16px; }
+  .fir-texto { max-height: 260px; overflow-y: auto; border: 1px solid var(--border); border-radius: 8px; padding: 12px 14px; background: var(--surface-2); font-size: 13px; line-height: 1.55; margin-bottom: 16px; }
+  .fir-texto p { margin: 0 0 9px; }
+  #fir-canvas { width: 100%; height: 160px; border: 1.5px dashed var(--border); border-radius: 8px; background: #fff; touch-action: none; }
+  .fir-estado { text-align: center; padding: 40px 16px; }
+  .fir-estado .ic-big { font-size: 52px; }
+  .fir-estado h2 { margin: 10px 0 8px; }
+  .fir-estado p { color: var(--text-muted); max-width: 480px; margin: 0 auto 6px; }
+  .hidden { display: none !important; }
+</style>
+</head>
+<body>
+
+<div class="fir-wrap">
+  <div class="fir-header">
+    <img id="fir-logo" src="assets/logo-biosoft.png" alt=""/>
+    <b id="fir-lab-nombre">BIOsoft</b>
+  </div>
+
+  <div id="fir-cargando" class="fir-estado">
+    <div class="ic-big">⏳</div>
+    <h2>Cargando tu consentimiento…</h2>
+  </div>
+
+  <div id="fir-error" class="fir-estado hidden">
+    <div class="ic-big">⚠️</div>
+    <h2>No pudimos abrir este documento</h2>
+    <p id="fir-error-msg">El enlace no es válido o ya expiró. Comunícate con el laboratorio para que te envíen uno nuevo.</p>
+  </div>
+
+  <div id="fir-firmado" class="fir-estado hidden">
+    <div class="ic-big">✅</div>
+    <h2>¡Gracias! Tu firma ya quedó registrada</h2>
+    <p>Tu consentimiento informado quedó firmado correctamente. Puedes descargar tu copia en PDF si la necesitas.</p>
+    <button class="btn btn-primary" id="fir-btn-descargar-firmado" style="margin-top:10px">Descargar mi copia en PDF</button>
+  </div>
+
+  <div id="fir-form-block" class="hidden">
+    <div class="card">
+      <h1 id="fir-titulo" style="font-size:17px;margin:0 0 4px"></h1>
+      <p class="text-muted" style="margin:0 0 14px;font-size:12.5px" id="fir-subtitulo"></p>
+      <div class="fir-texto" id="fir-texto"></div>
+
+      <fieldset>
+        <legend>Tu Firma</legend>
+        <div class="form-grid">
+          <div class="field"><label>¿Quién firma?</label><select id="f_relacion">
+            <option value="paciente">El propio paciente</option>
+            <option value="representante">Representante Legal / Padre-Madre (menor de edad)</option>
+            <option value="testigo">Testigo a Ruego (el paciente no puede firmar)</option>
+          </select></div>
+          <div class="field"><label>Nombre de quien firma</label><input id="f_nombreFirmante"/></div>
+          <div class="field"><label>Documento de quien firma</label><input id="f_documentoFirmante"/></div>
+        </div>
+        <p class="text-muted" style="font-size:12px;margin:6px 0">Firma con el dedo en el recuadro:</p>
+        <canvas id="fir-canvas"></canvas>
+        <button type="button" class="btn btn-ghost btn-sm" id="fir-btn-limpiar" style="margin-top:8px">Limpiar firma</button>
+      </fieldset>
+
+      <p id="fir-form-error" class="text-danger hidden" style="font-size:13px"></p>
+      <button class="btn btn-primary btn-block" id="fir-btn-firmar" style="margin-top:14px">✓ Firmar Consentimiento</button>
+    </div>
+  </div>
+
+  <p class="text-muted" style="text-align:center;font-size:11.5px;margin-top:24px">Documento generado por BIOsoft. Consentimiento informado según la Resolución 3100 de 2019, la Ley 23 de 1981 y la Ley 1581 de 2012 (Colombia).</p>
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
+<script src="js/firebase-config.js?v=2"></script>
+<script src="js/ui.js?v=7"></script>
+<script src="js/firma-pad.js?v=1"></script>
+<script src="js/consentimiento-texto.js?v=1"></script>
+<script src="js/pdf-consentimiento.js?v=1"></script>
+<script src="js/store.js?v=17"></script>
+<script src="js/firmar.js?v=1"></script>
+</body>
+</html>

@@ -99,7 +99,8 @@
         "Si tu laboratorio indica el valor a cobrar en la orden (activable en “Configuración del Laboratorio” → Operación), el campo “Valor a Cobrar” se calcula solo según los exámenes elegidos — puedes ajustarlo a mano si hace falta; si tienes una moneda adicional configurada, también verás el equivalente (ej. en bolívares).",
         "Guarda la orden — automáticamente queda disponible en la bandeja de cada bacteriólogo, según la sección de cada examen.",
         "Desde aquí también puedes imprimir el sticker de identificación para los tubos de muestra.",
-        "Para laboratorios de Venezuela: al crear la orden (o después, desde su detalle) puedes generar un Recibo de Pago profesional en tamaño media carta — primero te pide confirmar que el cliente ya pagó y el método de pago, y luego puedes imprimirlo o enviarlo por WhatsApp/correo."
+        "Para laboratorios de Venezuela: al crear la orden (o después, desde su detalle) puedes generar un Recibo de Pago profesional en tamaño media carta — primero te pide confirmar que el cliente ya pagó y el método de pago, y luego puedes imprimirlo o enviarlo por WhatsApp/correo.",
+        "Para laboratorios de Colombia: desde el detalle de la orden, el botón “Consentimiento Informado” genera el documento conforme a la Resolución 3100 de 2019 (una sola hoja, con los exámenes/procedimiento cubiertos). Puedes firmarlo ahí mismo entregando el celular o la tablet del laboratorio al paciente para que firme con el dedo, o enviarle un enlace único por WhatsApp/correo para que lo firme por su cuenta desde su propio celular, sin necesidad de instalar nada ni iniciar sesión."
       ]
     },
     {

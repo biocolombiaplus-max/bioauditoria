@@ -103,7 +103,8 @@
       attach("remarketingContactos", "remarketingContactos", false),
       attach("insumos", "insumos", false),
       attach("recetasReactivos", "recetasReactivos", false),
-      attach("kardexInventario", "kardexInventario", false)
+      attach("kardexInventario", "kardexInventario", false),
+      attach("consentimientos", "consentimientos", false)
     ]).then(function () { return realCache; });
   }
 
@@ -399,7 +400,7 @@
     return {
       tenants: {}, users: [], patients: [], orders: [], auditLog: [], qcControles: [], qcLecturas: [], preciosExamenes: [], cotizaciones: [],
       reglasRemarketing: [], remarketingContactos: [], insumos: [], recetasReactivos: [], kardexInventario: [], examenesPersonalizados: [],
-      ripsGenerados: [], facturasGeneradas: [], convenios: [], convenioPrecios: []
+      ripsGenerados: [], facturasGeneradas: [], convenios: [], convenioPrecios: [], consentimientos: []
     };
   }
 
@@ -522,6 +523,35 @@
         valorCobrar: 180000
       }
     );
+
+    // ---- Consentimiento Informado (Resolución 3100 de 2019): un consentimiento
+    // ya firmado sobre la primera orden, para que el módulo se vea con
+    // contenido real (y una firma dibujada de verdad) en vez de vacío. ----
+    (function seedConsentimiento() {
+      var firmaCanvas = document.createElement("canvas");
+      firmaCanvas.width = 220; firmaCanvas.height = 70;
+      var ctx = firmaCanvas.getContext("2d");
+      ctx.fillStyle = "#1e3a8a";
+      ctx.font = "italic 30px 'Segoe Script', 'Brush Script MT', cursive";
+      ctx.save(); ctx.translate(10, 46); ctx.rotate(-4 * Math.PI / 180); ctx.fillText("M. Rojas", 0, 0); ctx.restore();
+      var primeraOrden = db.orders[0];
+      db.consentimientos.push({
+        id: uid("cons"), tenantId: "demo", orderId: primeraOrden.id, patientId: p1.id, creadoPor: "recepcion.demo",
+        procedimiento: "venopuncion",
+        examenes: primeraOrden.examenes.map(function (ex) { return { examId: ex.examId, nombre: BIO_CATALOG.examenPorId(ex.examId).nombre }; }),
+        numeroOrden: primeraOrden.numeroOrden,
+        tenantNombre: db.tenants.demo.nombre, tenantNit: db.tenants.demo.nit, tenantPais: db.tenants.demo.pais,
+        tenantDireccion: db.tenants.demo.direccion, tenantTelefonos: db.tenants.demo.telefonos, tenantCodigoREPS: db.tenants.demo.codigoREPS,
+        tenantLogoDataUrl: db.tenants.demo.logoDataUrl, tenantColorPrimario: db.tenants.demo.colorPrimario,
+        pacienteNombre: [p1.primerNombre, p1.segundoNombre, p1.primerApellido, p1.segundoApellido].filter(Boolean).join(" "),
+        pacienteDocumento: p1.tipoDocumento + " " + p1.numeroDocumento,
+        estado: "firmado",
+        firmaPacienteDataUrl: firmaCanvas.toDataURL("image/png"),
+        nombreFirmante: p1.primerNombre + " " + p1.primerApellido, documentoFirmante: p1.tipoDocumento + " " + p1.numeroDocumento, relacionFirmante: "paciente",
+        nombreProfesional: "Juliana Torres (Recepción)",
+        fechaFirma: horasAntes(6), creadoEn: horasAntes(6)
+      });
+    })();
 
     // ---- Control de Calidad: controles con ~18 días de historial, para que
     // la demo muestre la gráfica de Levey-Jennings y el estado de las reglas
@@ -1283,6 +1313,58 @@
     return updateTenant(tenantId, { facturacionElectronica: datos });
   }
 
+  // ---------------------------------------------------------------------
+  // CONSENTIMIENTOS INFORMADOS (Resolución 3100 de 2019, Colombia) — para
+  // los procesos de toma de muestra que lo requieran. Se firman en el
+  // dispositivo del laboratorio (el paciente firma con el dedo) o a
+  // distancia: se genera un enlace público (sin necesidad de iniciar
+  // sesión) que el paciente abre en su propio celular desde firmar.html.
+  // ---------------------------------------------------------------------
+  function listConsentimientosPorOrden(tenantId, orderId) {
+    var db = loadDB();
+    return ((db && db.consentimientos) || []).filter(function (c) { return c.tenantId === tenantId && c.orderId === orderId; }).sort(function (a, b) { return b.creadoEn.localeCompare(a.creadoEn); });
+  }
+  function getConsentimiento(id) {
+    var db = loadDB();
+    return ((db && db.consentimientos) || []).filter(function (c) { return c.id === id; })[0];
+  }
+  function createConsentimiento(data) {
+    var db = loadDB();
+    db.consentimientos = db.consentimientos || [];
+    var c = Object.assign({ id: uid("cons"), estado: "pendiente", creadoEn: nowISO() }, data);
+    db.consentimientos.push(c);
+    saveDB(db);
+    fbWrite("consentimientos", c.id, c);
+    return c;
+  }
+  function updateConsentimiento(id, patch) {
+    var db = loadDB();
+    var c = (db.consentimientos || []).filter(function (x) { return x.id === id; })[0];
+    if (!c) return null;
+    Object.assign(c, patch);
+    saveDB(db);
+    fbWrite("consentimientos", c.id, c);
+    return c;
+  }
+  // Usada desde firmar.html en modo demo (sin sesión, mismo navegador): solo
+  // permite pasar de "pendiente" a "firmado" y solo toca los campos de la
+  // firma, igual que la regla equivalente de firestore.rules para el modo
+  // real — así el comportamiento es idéntico en ambos modos.
+  function firmarConsentimientoPublico(id, firma) {
+    var db = loadDB();
+    var c = ((db && db.consentimientos) || []).filter(function (x) { return x.id === id; })[0];
+    if (!c || c.estado !== "pendiente") return null;
+    c.estado = "firmado";
+    c.firmaPacienteDataUrl = firma.firmaPacienteDataUrl;
+    c.nombreFirmante = firma.nombreFirmante;
+    c.documentoFirmante = firma.documentoFirmante;
+    c.relacionFirmante = firma.relacionFirmante;
+    c.fechaFirma = nowISO();
+    saveDB(db);
+    fbWrite("consentimientos", c.id, c);
+    return c;
+  }
+
   global.BIO_STORE = {
     seedIfEmpty: seedIfEmpty,
     loadDB: loadDB,
@@ -1353,6 +1435,10 @@
       listRipsGenerados: listRipsGenerados, guardarRipsGenerado: guardarRipsGenerado,
       listFacturasGeneradas: listFacturasGeneradas, nextNumeroFactura: nextNumeroFactura, guardarFacturaGenerada: guardarFacturaGenerada,
       setProveedorFacturacion: setProveedorFacturacion
+    },
+    consentimientos: {
+      listPorOrden: listConsentimientosPorOrden, get: getConsentimiento, create: createConsentimiento,
+      update: updateConsentimiento, firmarPublico: firmarConsentimientoPublico
     }
   };
 })(window);
