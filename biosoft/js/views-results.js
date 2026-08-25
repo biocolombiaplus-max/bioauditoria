@@ -43,43 +43,63 @@
     var filtroEstado = "todos";
     var filtroSeccion = "todas";
 
+    // Construye la fila de UN examen, aislada con su propio try/catch: un
+    // dato viejo/corrupto en una sola orden ya no puede tumbar la bandeja
+    // completa (antes un solo undefined en rows.map rompía TODA la tabla,
+    // dejando a todo el laboratorio sin ver ningún examen de ninguna
+    // orden). Si algo puntual falla, esa fila se marca y el resto se sigue
+    // viendo con normalidad.
+    function rowHtmlSeguro(r) {
+      try {
+        return rowHtml(r);
+      } catch (err) {
+        console.error("BIOsoft: fallo al mostrar la fila de un examen en la bandeja:", err);
+        return "<tr><td colspan='7' class='text-danger'>⚠ No se pudo mostrar un examen de la orden " + U.esc((r.order && r.order.numeroOrden) || "") + " — contacta a soporte.</td></tr>";
+      }
+    }
+
     function build() {
-      var rows = [];
-      // Una sola orden con "examenes" ausente o dañado ya NO puede tumbar
-      // toda la bandeja (dejando a TODO el laboratorio sin ver ningún
-      // examen de ninguna orden) — se salta esa orden puntual y el resto se
-      // sigue viendo con normalidad.
-      orders.forEach(function (o) {
-        (o.examenes || []).forEach(function (ex, idx) {
-          if (!puedeEditar(session, ex.seccion)) return;
-          rows.push({ order: o, ex: ex, idx: idx });
+      // Red de seguridad final: si algo no previsto rompe la construcción
+      // de la bandeja, se ve el motivo exacto en pantalla (listo para
+      // copiar a soporte) en vez de una pantalla en blanco sin explicación.
+      try {
+        var rows = [];
+        orders.forEach(function (o) {
+          (o.examenes || []).forEach(function (ex, idx) {
+            if (!puedeEditar(session, ex.seccion)) return;
+            rows.push({ order: o, ex: ex, idx: idx });
+          });
         });
-      });
-      rows = rows.filter(function (r) {
-        var okEstado = filtroEstado === "todos" || r.ex.estado === filtroEstado || (filtroEstado === "pendiente" && r.ex.estado === "en_proceso");
-        var okSec = filtroSeccion === "todas" || r.ex.seccion === filtroSeccion;
-        return okEstado && okSec;
-      });
-      rows.sort(function (a, b) {
-        var pr = { Urgente: 0, Rutina: 1 };
-        return (pr[a.order.prioridad] - pr[b.order.prioridad]) || a.order.fechaOrden.localeCompare(b.order.fechaOrden);
-      });
+        rows = rows.filter(function (r) {
+          var okEstado = filtroEstado === "todos" || r.ex.estado === filtroEstado || (filtroEstado === "pendiente" && r.ex.estado === "en_proceso");
+          var okSec = filtroSeccion === "todas" || r.ex.seccion === filtroSeccion;
+          return okEstado && okSec;
+        });
+        rows.sort(function (a, b) {
+          var pr = { Urgente: 0, Rutina: 1 };
+          return (pr[a.order.prioridad] - pr[b.order.prioridad]) || a.order.fechaOrden.localeCompare(b.order.fechaOrden);
+        });
 
-      root.innerHTML =
-        '<div class="card"><div class="card-header"><h3 class="card-title">Bandeja de Resultados</h3>' +
-        '<div class="flex gap-2 wrap">' +
-        '<select id="f-estado"><option value="todos">Todos los estados</option><option value="pendiente">Pendientes</option><option value="preliminar">Preliminares</option><option value="validado">Validados</option><option value="remitido">Remitidos</option></select>' +
-        '<select id="f-seccion"><option value="todas">Todas las secciones</option>' + C.seccionesEfectivas(tenant).map(function (s) { return '<option value="' + s.id + '">' + s.nombre + "</option>"; }).join("") + "</select>" +
-        "</div></div>" +
-        '<div class="table-wrap"><table><thead><tr><th>Prioridad</th><th>N° Orden</th><th>Paciente</th><th>Examen</th><th>Sección</th><th>Estado</th><th></th></tr></thead><tbody>' +
-        (rows.length ? rows.map(rowHtml).join("") : '<tr><td colspan="7" class="text-muted">No hay exámenes que coincidan con el filtro.</td></tr>') +
-        "</tbody></table></div></div>";
+        root.innerHTML =
+          '<div class="card"><div class="card-header"><h3 class="card-title">Bandeja de Resultados</h3>' +
+          '<div class="flex gap-2 wrap">' +
+          '<select id="f-estado"><option value="todos">Todos los estados</option><option value="pendiente">Pendientes</option><option value="preliminar">Preliminares</option><option value="validado">Validados</option><option value="remitido">Remitidos</option></select>' +
+          '<select id="f-seccion"><option value="todas">Todas las secciones</option>' + C.seccionesEfectivas(tenant).map(function (s) { return '<option value="' + s.id + '">' + s.nombre + "</option>"; }).join("") + "</select>" +
+          "</div></div>" +
+          '<div class="table-wrap"><table><thead><tr><th>Prioridad</th><th>N° Orden</th><th>Paciente</th><th>Examen</th><th>Sección</th><th>Estado</th><th></th></tr></thead><tbody>' +
+          (rows.length ? rows.map(rowHtmlSeguro).join("") : '<tr><td colspan="7" class="text-muted">No hay exámenes que coincidan con el filtro.</td></tr>') +
+          "</tbody></table></div></div>";
 
-      document.getElementById("f-estado").value = filtroEstado;
-      document.getElementById("f-seccion").value = filtroSeccion;
-      document.getElementById("f-estado").addEventListener("change", function (e) { filtroEstado = e.target.value; build(); });
-      document.getElementById("f-seccion").addEventListener("change", function (e) { filtroSeccion = e.target.value; build(); });
-      root.querySelectorAll("[data-go]").forEach(function (b) { b.addEventListener("click", function () { location.hash = "#/resultados/" + b.dataset.go; }); });
+        document.getElementById("f-estado").value = filtroEstado;
+        document.getElementById("f-seccion").value = filtroSeccion;
+        document.getElementById("f-estado").addEventListener("change", function (e) { filtroEstado = e.target.value; build(); });
+        document.getElementById("f-seccion").addEventListener("change", function (e) { filtroSeccion = e.target.value; build(); });
+        root.querySelectorAll("[data-go]").forEach(function (b) { b.addEventListener("click", function () { location.hash = "#/resultados/" + b.dataset.go; }); });
+      } catch (err) {
+        console.error("BIOsoft: fallo al mostrar la Bandeja de Resultados:", err);
+        root.innerHTML = '<div class="card"><p class="text-danger" style="margin:0"><b>No se pudo mostrar la Bandeja de Resultados.</b></p>' +
+          '<p class="text-muted" style="font-size:12.5px;margin:6px 0 0">Envía una captura de este mensaje a soporte: <code>' + U.esc(String((err && err.message) || err)) + "</code></p></div>";
+      }
     }
 
     function rowHtml(r) {
@@ -121,33 +141,49 @@
       if (btnRemision) btnRemision.addEventListener("click", function () { window.BIO_REMISION.abrir(order, pac, tenant, build); });
 
       var host = document.getElementById("exam-cards");
-      if (!order.examenes || !order.examenes.length) {
-        host.innerHTML = '<div class="card"><p class="text-muted" style="margin:0">Esta orden no tiene ningún examen registrado.</p></div>';
-        return;
-      }
-      // Muestra las tarjetas de examen en el orden que el laboratorio haya
-      // personalizado (tenant.ordenExamenes), no en el orden en que se
-      // agregaron a la orden — así el bacteriólogo(a) las ve en el orden
-      // con el que ya está acostumbrado a trabajar.
-      var examenesOrdenados = C.ordenarPorExamen(order.examenes, tenant, function (ex) { return ex.examId; });
-      // Cada tarjeta se construye por separado, con su propio try/catch: un
-      // fallo inesperado en UN examen (dato viejo/corrupto, catálogo
-      // editado, etc.) ya no puede tumbar la pantalla completa de
-      // resultados — el resto de los exámenes de la orden se siguen viendo
-      // y editando con normalidad, y el roto queda señalado con un aviso.
-      examenesOrdenados.forEach(function (ex, idx) {
-        try {
-          host.appendChild(buildExamCard(ex, idx));
-        } catch (err) {
-          console.error("BIOsoft: fallo al construir la tarjeta del examen " + (ex && ex.examId) + ":", err);
-          var aviso = document.createElement("div");
-          aviso.className = "card";
-          aviso.style.marginBottom = "14px";
-          aviso.innerHTML = '<div class="card-header"><h3 class="card-title text-danger">' + U.icon("lock") + " Examen no disponible</h3></div>" +
-            '<p class="text-muted" style="margin:8px 0 0">Hubo un problema al mostrar este examen. Contacta a soporte para revisarlo — los demás exámenes de esta orden se pueden ver e ingresar con normalidad.</p>';
-          host.appendChild(aviso);
+      // Red de seguridad final: pase lo que pase al construir los exámenes
+      // de esta orden (dato viejo/corrupto, un contenedor que no se
+      // encontró, cualquier cosa no prevista), la pantalla YA NUNCA debe
+      // quedar en blanco sin explicación — como mínimo se ve el motivo
+      // exacto en pantalla, listo para copiar y mandar a soporte, en vez de
+      // un espacio vacío que no dice nada.
+      try {
+        if (!host) throw new Error("No se encontró el contenedor de exámenes de la orden.");
+        if (!order.examenes || !order.examenes.length) {
+          host.innerHTML = '<div class="card"><p class="text-muted" style="margin:0">Esta orden no tiene ningún examen registrado.</p></div>';
+          return;
         }
-      });
+        // Muestra las tarjetas de examen en el orden que el laboratorio haya
+        // personalizado (tenant.ordenExamenes), no en el orden en que se
+        // agregaron a la orden — así el bacteriólogo(a) las ve en el orden
+        // con el que ya está acostumbrado a trabajar.
+        var examenesOrdenados = C.ordenarPorExamen(order.examenes, tenant, function (ex) { return (ex && ex.examId) || ""; });
+        // Cada tarjeta se construye por separado, con su propio try/catch:
+        // un fallo inesperado en UN examen (dato viejo/corrupto, catálogo
+        // editado, etc.) ya no puede tumbar la pantalla completa de
+        // resultados — el resto de los exámenes de la orden se siguen
+        // viendo y editando con normalidad, y el roto queda señalado con un
+        // aviso.
+        examenesOrdenados.forEach(function (ex, idx) {
+          try {
+            host.appendChild(buildExamCard(ex, idx));
+          } catch (err) {
+            console.error("BIOsoft: fallo al construir la tarjeta del examen " + (ex && ex.examId) + ":", err);
+            var aviso = document.createElement("div");
+            aviso.className = "card";
+            aviso.style.marginBottom = "14px";
+            aviso.innerHTML = '<div class="card-header"><h3 class="card-title text-danger">' + U.icon("lock") + " Examen no disponible</h3></div>" +
+              '<p class="text-muted" style="margin:8px 0 0">Hubo un problema al mostrar este examen. Contacta a soporte para revisarlo — los demás exámenes de esta orden se pueden ver e ingresar con normalidad.</p>' +
+              '<p class="text-muted" style="margin:6px 0 0;font-size:11px">Detalle técnico: <code>' + U.esc(String((err && err.message) || err)) + "</code></p>";
+            host.appendChild(aviso);
+          }
+        });
+      } catch (err) {
+        console.error("BIOsoft: fallo al mostrar los exámenes de esta orden:", err);
+        var mensajeError = '<div class="card"><p class="text-danger" style="margin:0"><b>No se pudieron mostrar los exámenes de esta orden.</b></p>' +
+          '<p class="text-muted" style="font-size:12.5px;margin:6px 0 0">Envía una captura de este mensaje a soporte: <code>' + U.esc(String((err && err.message) || err)) + "</code></p></div>";
+        if (host) host.innerHTML = mensajeError; else root.insertAdjacentHTML("beforeend", mensajeError);
+      }
     }
 
     function buildExamCard(ex, idx) {
