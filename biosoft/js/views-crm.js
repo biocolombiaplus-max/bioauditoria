@@ -152,6 +152,7 @@
         '<div class="flex gap-2 wrap">' +
         '<div class="crm-view-toggle"><button type="button" class="' + (vista === "tabla" ? "active" : "") + '" data-vista="tabla">☰ Tabla</button><button type="button" class="' + (vista === "kanban" ? "active" : "") + '" data-vista="kanban">🗂️ Kanban</button></div>' +
         '<button class="btn btn-outline btn-sm" id="btn-plantillas">📝 Plantillas</button>' +
+        '<button class="btn btn-outline btn-sm" id="btn-propuesta">📄 Generar Propuesta</button>' +
         (nSel ? '<button class="btn btn-whatsapp btn-sm" id="btn-difusion">' + U.icon("send") + ' Difusión (' + nSel + ')</button>' : "") +
         '<button class="btn btn-primary btn-sm" id="btn-new-crm">' + U.icon("plus") + ' Nuevo Cliente</button>' +
         "</div></div>" +
@@ -159,6 +160,7 @@
         "</div>";
       document.getElementById("btn-new-crm").addEventListener("click", function () { openForm(null); });
       document.getElementById("btn-plantillas").addEventListener("click", abrirPlantillas);
+      document.getElementById("btn-propuesta").addEventListener("click", abrirGenerarPropuesta);
       var btnDif = document.getElementById("btn-difusion");
       if (btnDif) btnDif.addEventListener("click", abrirDifusion);
       root.querySelectorAll("[data-vista]").forEach(function (b) {
@@ -246,6 +248,41 @@
       });
       if (opts.contacto && opts.contacto.correo) U.wireEmailProviderButtons(wrap, "doc-mail", opts.contacto.correo, opts.asuntoCorreo, opts.mensaje);
       return wrap;
+    }
+
+    // Genera la propuesta comercial (todo lo que incluye cada plan) solo
+    // con nombre y correo de un prospecto — no requiere que ya exista como
+    // lead en el CRM, para poder responder rápido a "¿qué incluye cada
+    // plan?" aunque la conversación todavía vaya por WhatsApp o sea alguien
+    // que ni siquiera ha llenado el formulario público todavía.
+    function abrirGenerarPropuesta() {
+      var wrap = U.openModal(
+        '<h3 class="modal-title">📄 Generar Propuesta Comercial</h3>' +
+        '<p class="text-muted" style="margin-top:0">Solo el nombre y el correo — la propuesta lista TODO lo que incluye cada plan, lista para enviar por correo o WhatsApp.</p>' +
+        '<form id="propuesta-form"><div class="form-grid">' +
+        '<div class="field"><label>Nombre *</label><input id="pp-nombre" required/></div>' +
+        '<div class="field"><label>Correo *</label><input id="pp-correo" type="email" required/></div>' +
+        '<div class="field"><label>WhatsApp (opcional, con indicativo)</label><input id="pp-whatsapp" placeholder="573001234567"/></div>' +
+        "</div>" +
+        '<div class="flex gap-2 justify-between" style="margin-top:6px">' +
+        '<button type="button" class="btn btn-ghost" data-modal-close>Cancelar</button>' +
+        '<button type="submit" class="btn btn-primary">' + U.icon("check") + " Generar Propuesta</button>" +
+        "</div></form>"
+      );
+      wrap.querySelector("#propuesta-form").addEventListener("submit", function (e) {
+        e.preventDefault();
+        var nombre = wrap.querySelector("#pp-nombre").value.trim();
+        var correo = wrap.querySelector("#pp-correo").value.trim();
+        var whatsapp = wrap.querySelector("#pp-whatsapp").value.trim();
+        if (!nombre || !correo) { U.toast("Completa nombre y correo.", "error"); return; }
+        var bytes = BIO_PDF_CRM.buildPropuestaPDF({ nombre: nombre, correo: correo, telefono: whatsapp });
+        U.closeModal(wrap);
+        var mensaje = "Hola " + nombre.split(" ")[0] + " 👋 Te comparto la propuesta con todo lo que incluye cada plan de BIOsoft. Cualquier duda, quedo atento.";
+        abrirEnviarDocumento({
+          titulo: "Enviar Propuesta", bytes: bytes, nombreArchivo: "Propuesta_BIOsoft_" + nombre.replace(/\s+/g, "_") + ".pdf",
+          contacto: { correo: correo, whatsapp: whatsapp }, mensaje: mensaje, asuntoCorreo: "Propuesta Comercial — BIOsoft"
+        });
+      });
     }
 
     // Igual que abrirEnviarDocumento, pero sin PDF adjunto — para mensajes

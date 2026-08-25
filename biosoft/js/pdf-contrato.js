@@ -240,5 +240,77 @@
     return new Uint8Array(doc.output("arraybuffer"));
   }
 
-  global.BIO_PDF_CRM = { buildContratoPDF: buildContratoPDF, buildReciboPDF: buildReciboPDF, PROVEEDOR: PROVEEDOR };
+  // -----------------------------------------------------------------------
+  // PROPUESTA COMERCIAL — solo con nombre y correo de un prospecto (aún sin
+  // laboratorio creado ni lead formal en el CRM), lista todo lo que incluye
+  // cada plan para poder enviarla por correo o WhatsApp de una vez, sin
+  // tener que armar el resumen a mano cada vez que alguien pregunta "¿qué
+  // incluye cada plan?" (pedido frecuente de los clientes).
+  // -----------------------------------------------------------------------
+  function buildPropuestaPDF(datos) {
+    var jsPDFCtor = window.jspdf ? window.jspdf.jsPDF : window.jsPDF;
+    var doc = new jsPDFCtor({ unit: "pt", format: "letter" });
+    var pageW = doc.internal.pageSize.getWidth();
+    var margin = 50;
+    var maxW = pageW - margin * 2;
+    var PLANES = (window.BIO_PLANES && window.BIO_PLANES.PLANES) || [];
+    var IMPL = (window.BIO_PLANES && window.BIO_PLANES.IMPLEMENTACION) || { copFmt: "380.000", usd: 120 };
+
+    var y = encabezado(doc, margin, "PROPUESTA COMERCIAL", fechaLarga(new Date()));
+
+    function checkPage(minSpace) {
+      if (y > 760 - (minSpace || 40)) { doc.addPage(); y = margin; }
+    }
+    function parrafo(t, opts) {
+      opts = opts || {};
+      doc.setFont("helvetica", opts.bold ? "bold" : "normal"); doc.setFontSize(opts.size || 9.5); doc.setTextColor.apply(doc, opts.color || [30, 30, 30]);
+      var lines = doc.splitTextToSize(t, maxW);
+      checkPage(lines.length * (opts.lineH || 13) + 10);
+      doc.text(lines, margin, y);
+      y += lines.length * (opts.lineH || 13) + (opts.gap != null ? opts.gap : 12);
+    }
+
+    parrafo("Hola " + (datos.nombre || "").split(" ")[0] + ",", { bold: true, size: 11, gap: 4 });
+    parrafo(
+      "Gracias por tu interés en " + PROVEEDOR.producto + ". Aquí tienes el detalle de cada plan disponible, para que elijas el que mejor se ajuste al tamaño y las necesidades de tu laboratorio. Todos los planes incluyen personalización con tu marca, capacitación y soporte."
+    );
+
+    PLANES.forEach(function (plan) {
+      checkPage(120);
+      doc.setFillColor(plan.destacado ? 249 : 245, plan.destacado ? 115 : 245, plan.destacado ? 22 : 245);
+      doc.roundedRect(margin, y, maxW, 22, 4, 4, "F");
+      doc.setFont("helvetica", "bold"); doc.setFontSize(11); doc.setTextColor(plan.destacado ? 255 : 30, plan.destacado ? 255 : 30, plan.destacado ? 255 : 30);
+      doc.text("Plan " + plan.nombre + (plan.destacado ? "  ★ Más elegido" : ""), margin + 10, y + 15);
+      doc.setFont("helvetica", "bold"); doc.setFontSize(11);
+      doc.text("$" + plan.precioFmt + " COP/mes (≈$" + plan.usd + " USD)", pageW - margin - 10, y + 15, { align: "right" });
+      y += 30;
+      doc.setFont("helvetica", "normal"); doc.setFontSize(9); doc.setTextColor(90, 90, 90);
+      doc.text(plan.usuarios, margin, y); y += 14;
+      doc.setTextColor(30, 30, 30);
+      plan.items.forEach(function (it) {
+        var lines = doc.splitTextToSize("✓ " + it, maxW - 8);
+        checkPage(lines.length * 12 + 4);
+        doc.text(lines, margin + 6, y);
+        y += lines.length * 12 + 3;
+      });
+      y += 16;
+    });
+
+    checkPage(80);
+    parrafo("Costo único de implementación: $" + IMPL.copFmt + " COP (≈$" + IMPL.usd + " USD)", { bold: true });
+    parrafo(
+      "Este pago cubre la configuración inicial completa de tu BIOsoft (catálogo de exámenes, valores de referencia, logo y colores, firmas digitales) y se puede fraccionar en cuotas — pregúntanos por las opciones disponibles. La mensualidad del plan elegido inicia una vez tu sistema esté funcionando."
+    );
+
+    checkPage(60);
+    parrafo(
+      "¿Tienes dudas o quieres ver el software en acción? Escríbenos por WhatsApp al +" + PROVEEDOR.whatsapp + " o respóndenos a " + PROVEEDOR.correo + " y con gusto te ayudamos a elegir el plan ideal.",
+      { bold: true }
+    );
+
+    piePagina(doc, margin);
+    return new Uint8Array(doc.output("arraybuffer"));
+  }
+
+  global.BIO_PDF_CRM = { buildContratoPDF: buildContratoPDF, buildReciboPDF: buildReciboPDF, buildPropuestaPDF: buildPropuestaPDF, PROVEEDOR: PROVEEDOR };
 })(window);
