@@ -45,8 +45,12 @@
 
     function build() {
       var rows = [];
+      // Una sola orden con "examenes" ausente o dañado ya NO puede tumbar
+      // toda la bandeja (dejando a TODO el laboratorio sin ver ningún
+      // examen de ninguna orden) — se salta esa orden puntual y el resto se
+      // sigue viendo con normalidad.
       orders.forEach(function (o) {
-        o.examenes.forEach(function (ex, idx) {
+        (o.examenes || []).forEach(function (ex, idx) {
           if (!puedeEditar(session, ex.seccion)) return;
           rows.push({ order: o, ex: ex, idx: idx });
         });
@@ -80,9 +84,17 @@
 
     function rowHtml(r) {
       var pac = S.getPatient(r.order.patientId);
+      // Si el examen de esta fila ya no existe en el catálogo (se eliminó o
+      // se renombró después de crear la orden), examenEfectivo() devuelve
+      // undefined — antes esto tumbaba TODA la bandeja (rows.map crashea
+      // por completo con un solo undefined), dejando a todo el laboratorio
+      // sin ver ningún examen de ninguna orden. Ahora esa fila puntual se
+      // marca como no disponible y el resto de la bandeja se sigue viendo
+      // con normalidad.
       var exCat = C.examenEfectivo(r.ex.examId, tenant);
+      var nombreExamen = exCat ? U.esc(exCat.nombre) : '<span class="text-danger">⚠ Examen no disponible (código ' + U.esc(r.ex.examId) + ")</span>";
       return "<tr><td>" + '<span class="badge badge-' + (r.order.prioridad === "Urgente" ? "urgente" : "rutina") + '">' + r.order.prioridad + "</span></td>" +
-        "<td>" + r.order.numeroOrden + "</td><td>" + (pac ? U.esc(U.nombreCompleto(pac)) : "—") + "</td><td>" + U.esc(exCat.nombre) + "</td><td>" + C.seccionNombre(r.ex.seccion, tenant) + "</td>" +
+        "<td>" + r.order.numeroOrden + "</td><td>" + (pac ? U.esc(U.nombreCompleto(pac)) : "—") + "</td><td>" + nombreExamen + "</td><td>" + C.seccionNombre(r.ex.seccion, tenant) + "</td>" +
         "<td>" + window.BIO_badgeEstado(r.ex.estado === "en_proceso" ? "pendiente" : r.ex.estado) + '</td><td><button class="btn btn-outline btn-sm" data-go="' + r.order.id + '">Abrir</button></td></tr>';
     }
     build();
@@ -109,12 +121,33 @@
       if (btnRemision) btnRemision.addEventListener("click", function () { window.BIO_REMISION.abrir(order, pac, tenant, build); });
 
       var host = document.getElementById("exam-cards");
+      if (!order.examenes || !order.examenes.length) {
+        host.innerHTML = '<div class="card"><p class="text-muted" style="margin:0">Esta orden no tiene ningún examen registrado.</p></div>';
+        return;
+      }
       // Muestra las tarjetas de examen en el orden que el laboratorio haya
       // personalizado (tenant.ordenExamenes), no en el orden en que se
       // agregaron a la orden — así el bacteriólogo(a) las ve en el orden
       // con el que ya está acostumbrado a trabajar.
       var examenesOrdenados = C.ordenarPorExamen(order.examenes, tenant, function (ex) { return ex.examId; });
-      examenesOrdenados.forEach(function (ex, idx) { host.appendChild(buildExamCard(ex, idx)); });
+      // Cada tarjeta se construye por separado, con su propio try/catch: un
+      // fallo inesperado en UN examen (dato viejo/corrupto, catálogo
+      // editado, etc.) ya no puede tumbar la pantalla completa de
+      // resultados — el resto de los exámenes de la orden se siguen viendo
+      // y editando con normalidad, y el roto queda señalado con un aviso.
+      examenesOrdenados.forEach(function (ex, idx) {
+        try {
+          host.appendChild(buildExamCard(ex, idx));
+        } catch (err) {
+          console.error("BIOsoft: fallo al construir la tarjeta del examen " + (ex && ex.examId) + ":", err);
+          var aviso = document.createElement("div");
+          aviso.className = "card";
+          aviso.style.marginBottom = "14px";
+          aviso.innerHTML = '<div class="card-header"><h3 class="card-title text-danger">' + U.icon("lock") + " Examen no disponible</h3></div>" +
+            '<p class="text-muted" style="margin:8px 0 0">Hubo un problema al mostrar este examen. Contacta a soporte para revisarlo — los demás exámenes de esta orden se pueden ver e ingresar con normalidad.</p>';
+          host.appendChild(aviso);
+        }
+      });
     }
 
     function buildExamCard(ex, idx) {
@@ -124,26 +157,43 @@
       // valor — se recuperan aquí para que al reabrir la orden se siga
       // viendo/usando la misma categoría, y se completan con la selección
       // automática por defecto para los parámetros que aún no tienen una.
-      var categoriaOverrides = C.categoriasDeValores(ex.valores);
+      var categoriaOverrides = C.categoriasDeValores(ex.valores || []);
       var exCat;
       function actualizarExCat() {
         exCat = C.examenParaPaciente(ex.examId, tenant, pac, categoriaOverrides);
+        if (!exCat) return;
         exCat.parametros.forEach(function (p) {
           if (p.bandaEtiqueta && !categoriaOverrides[p.codigo]) categoriaOverrides[p.codigo] = p.bandaEtiqueta;
         });
       }
       actualizarExCat();
+      var card = document.createElement("div");
+      card.className = "card";
+      card.style.marginBottom = "14px";
+      // Un examen de la orden puede quedar apuntando a un código que ya no
+      // existe en el catálogo del laboratorio (se eliminó o se renombró
+      // desde Configuración → Catálogo, después de que esta orden ya se
+      // había creado). Antes esto rompía la construcción de ESTA tarjeta a
+      // mitad de camino, y como todas las tarjetas se agregan en un mismo
+      // forEach (ver build() más abajo), el error tumbaba TODA la pantalla
+      // de resultados dejándola en blanco — para cualquier usuario, no solo
+      // para Recepción/Auxiliar. Aquí se aísla: se avisa con claridad de
+      // cuál examen específico quedó roto, y el resto de la orden se sigue
+      // viendo y editando con total normalidad.
+      if (!exCat) {
+        card.innerHTML = '<div class="card-header"><div><h3 class="card-title text-danger">' + U.icon("lock") + " Examen no disponible</h3>" +
+          '<span class="text-muted" style="font-size:12px">Código: ' + U.esc(ex.examId) + "</span></div></div>" +
+          '<p class="text-muted" style="margin:8px 0 0">Este examen ya no existe en el catálogo de tu laboratorio (puede que se haya eliminado o renombrado desde Configuración → Catálogo después de crear esta orden). Contacta a soporte para revisarlo — mientras tanto, los demás exámenes de esta orden se pueden ver e ingresar con normalidad.</p>';
+        return card;
+      }
       var editable = puedeEditar(session, ex.seccion);
       var locked = ex.estado === "validado" || ex.estado === "remitido";
       var modoRemision = !!ex.remitido;
       var pdfPendienteDataUrl = "";
       var pdfPendienteNombre = "";
-      var card = document.createElement("div");
-      card.className = "card";
-      card.style.marginBottom = "14px";
 
       var valuesMap = {};
-      ex.valores.forEach(function (v) { valuesMap[v.codigo] = v.valor; });
+      (ex.valores || []).forEach(function (v) { valuesMap[v.codigo] = v.valor; });
 
       // Estado en memoria de cada parámetro tipo "panel" (antibiograma /
       // alergia): un arreglo de ítems elegidos del catálogo maestro, cada
