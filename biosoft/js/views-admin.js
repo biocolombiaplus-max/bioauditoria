@@ -924,8 +924,9 @@
   // ------------------------------------------------------------------
   // EQUIPOS CONECTADOS — módulo LIS: interfaz con analizadores (Mindray,
   // Dirui, Dymind, Maglumi, Rayto, u otro compatible con ASTM E1394) que
-  // envían resultados directamente a BIOsoft. Incluido sin costo en el plan
-  // Plus; en los demás planes se cobra $10 USD/mes por cada equipo.
+  // envían resultados directamente a BIOsoft. Se cobra $10 USD/mes por cada
+  // equipo conectado (los primeros 5 son gratis como oferta de lanzamiento
+  // al activarse, sin importar el plan — ver BIO_PLANES.PROMOCION_LANZAMIENTO).
   // ------------------------------------------------------------------
   function equiposCardHtml(tenant) {
     var plan = BIO_PLANES.porId(tenant.planId);

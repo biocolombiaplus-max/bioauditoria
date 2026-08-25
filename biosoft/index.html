@@ -611,7 +611,7 @@ fbq('track', 'PageView');
         <div class="lp-pdf-feature"><span>🔑</span> Clave de interfaz única y segura por cada equipo</div>
         <div class="lp-pdf-feature"><span>📋</span> Historial completo de qué equipo envió cada resultado, y cuándo</div>
         <a class="btn btn-primary btn-glow-brand btn-block" href="app.html">🚀 Ver Demo Gratis</a>
-        <p class="text-muted" style="font-size:11.5px;text-align:center;margin-top:8px">Incluido sin costo en el plan Plus · desde $10 USD/mes por equipo en Básico e Intermedio.</p>
+        <p class="text-muted" style="font-size:11.5px;text-align:center;margin-top:8px">Los primeros 5 equipos son gratis al activarte hoy, en cualquier plan · desde $10 USD/mes por equipo adicional.</p>
       </div>
     </div>
   </section>
@@ -907,7 +907,7 @@ fbq('track', 'PageView');
   <footer class="lp-footer">BIOsoft™ · Un producto de BIOMarketing · biomarketing.salud@gmail.com<br/>© 2026 Todos los derechos reservados.</footer>
 
   <script src="js/catalog.js?v=18"></script>
-  <script src="js/planes.js?v=5"></script>
+  <script src="js/planes.js?v=7"></script>
   <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
@@ -999,11 +999,12 @@ fbq('track', 'PageView');
     var modoPago = "mensual"; // "mensual" (promo de hoy: $0 implementación) | "semestral" (6 meses de una vez, sin implementación)
     var PROMESA_WA = "\n\n✅ Accedes de inmediato tras el pago\n📘 Te enviamos el manual de uso el mismo día\n📅 Agendamos tu capacitación cuando a tu equipo le quede mejor\n🔧 Ajustes de personalización en 2 a 4 días";
 
-    // En la landing solo se muestran los planes Básico e Intermedio — la
-    // única diferencia entre ellos es el número de usuarios. El plan Plus
+    // En la landing solo se muestran los 3 primeros planes — la única
+    // diferencia entre ellos es cuántos usuarios pueden usar el sistema al
+    // mismo tiempo, todos incluyen exactamente lo mismo. El plan Corporativo
     // sigue existiendo (CRM, contratos, cotizador) para laboratorios de más
     // de 10 usuarios, pero se ofrece a la medida por WhatsApp, no en la grilla.
-    var PLANES_LANDING = PLANES.filter(function (p) { return p.id !== "plus"; });
+    var PLANES_LANDING = PLANES.filter(function (p) { return p.id !== "corporativo"; });
 
     function renderPriceGrid() {
       document.getElementById("price-grid").innerHTML = PLANES_LANDING.map(function (p) {

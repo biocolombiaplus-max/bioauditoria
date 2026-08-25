@@ -258,9 +258,9 @@
     var pageW = doc.internal.pageSize.getWidth();
     var margin = 50;
     var maxW = pageW - margin * 2;
-    var PLANES = (window.BIO_PLANES && window.BIO_PLANES.PLANES_PROPUESTA) || [];
-    var ITEMS = (window.BIO_PLANES && window.BIO_PLANES.ITEMS_PROPUESTA) || [];
-    var PROMO = (window.BIO_PLANES && window.BIO_PLANES.PROMOCION_LANZAMIENTO_PROPUESTA) || { implementacionUsd: 120, equiposGratis: 5, costoPorEquipoUsd: 10 };
+    var PLANES = (window.BIO_PLANES && window.BIO_PLANES.PLANES) || [];
+    var ITEMS = (PLANES[0] && PLANES[0].items) || [];
+    var PROMO = (window.BIO_PLANES && window.BIO_PLANES.PROMOCION_LANZAMIENTO) || { implementacionUsd: 120, equiposGratis: 5, costoPorEquipoUsd: 10 };
 
     var y = encabezado(doc, margin, "PROPUESTA COMERCIAL", fechaLarga(new Date()));
 
