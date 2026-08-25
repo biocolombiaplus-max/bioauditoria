@@ -67,7 +67,10 @@
         (u.permisosExtra && u.permisosExtra.length ? u.permisosExtra.map(function (r) {
           var p = C.PERMISOS_EXTRA_BACTERIOLOGO.concat(C.PERMISOS_EXTRA_RECEPCION).filter(function (x) { return x.route === r; })[0];
           return p ? ' <span class="badge badge-preliminar" title="Permiso adicional">' + U.esc(p.label) + "</span>" : "";
-        }).join("") : "") + "</td>" +
+        }).join("") : "") +
+        (u.rol === "recepcion" && u.permisosExtra && u.permisosExtra.indexOf("resultados") !== -1 && (!u.secciones || !u.secciones.length) ?
+          ' <span class="badge badge-pendiente" title="Tiene el permiso de Resultados pero no tiene ninguna sección marcada: no va a ver ningún examen en su bandeja. Edítalo y marca al menos una sección.">⚠ Sin secciones asignadas</span>' : "") +
+        "</td>" +
         "<td>" + (u.activo ? '<span class="badge badge-validado">Activo</span>' : '<span class="badge badge-pendiente">Inactivo</span>') + "</td>" +
         '<td><div class="flex gap-2"><button class="btn btn-ghost btn-sm" data-edit="' + u.id + '">' + U.icon("edit") + " Editar</button>" +
         '<button class="btn btn-outline btn-sm" data-toggle="' + u.id + '">' + (u.activo ? "Desactivar" : "Activar") + "</button></div></td></tr>";
@@ -182,6 +185,10 @@
           data.firmaDataUrl = firmaTemp;
         }
         if (!data.nombre || !data.username || (!isEdit && !pass)) { U.toast("Completa nombre, usuario y contraseña.", "error"); return; }
+        if (data.rol === "recepcion" && data.permisosExtra.indexOf("resultados") !== -1 && !data.secciones.length) {
+          U.toast("Marca al menos una sección para que pueda ingresar resultados — si no, el permiso queda activo pero no va a ver ningún examen.", "error");
+          return;
+        }
         if (!isEdit) {
           var tenantAhora = S.getTenant(session.tenantId);
           var limiteAhora = tenantAhora && tenantAhora.maxUsuarios;

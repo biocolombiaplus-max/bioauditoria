@@ -90,9 +90,34 @@ service cloud.firestore {
         allow read: if esDeEsteLab(tenantId) || esSuperadmin();
         allow write: if esDeEsteLab(tenantId);
       }
+      // Un usuario de Recepción/Auxiliar con el permiso adicional
+      // "Resultados" puede capturar/guardar resultados, pero NUNCA validar
+      // ni firmar (ver views-results.js -> puedeValidar, y el comentario en
+      // catalog.js -> PERMISOS_EXTRA_RECEPCION). Esa restricción antes solo
+      // existía en el cliente (se podía saltar con una escritura directa a
+      // Firestore); aquí se refuerza a nivel de reglas: ningún examen puede
+      // pasar a "validado" o "remitido" por una escritura de este rol —
+      // solo se permite si ese mismo examen (mismo examId) ya estaba en ese
+      // estado en el documento existente, es decir, no lo "creó" esta
+      // escritura.
+      function esRecepcion() {
+        return perfil().rol == "recepcion";
+      }
+      function examenesSinNuevasValidaciones(examenesNuevos, examenesViejos) {
+        return examenesNuevos.all(e,
+          !(e.estado in ["validado", "remitido"]) ||
+          examenesViejos.exists(v, v.examId == e.examId && v.estado == e.estado)
+        );
+      }
       match /orders/{orderId} {
         allow read: if esDeEsteLab(tenantId) || esSuperadmin();
-        allow write: if esDeEsteLab(tenantId);
+        allow create: if esDeEsteLab(tenantId) && (
+          !esRecepcion() || !request.resource.data.examenes.exists(e, e.estado in ["validado", "remitido"])
+        );
+        allow update: if esDeEsteLab(tenantId) && (
+          !esRecepcion() || examenesSinNuevasValidaciones(request.resource.data.examenes, resource.data.examenes)
+        );
+        allow delete: if esDeEsteLab(tenantId);
       }
       match /auditLog/{logId} {
         // El superadmin también puede AGREGAR una entrada (nunca editar ni
