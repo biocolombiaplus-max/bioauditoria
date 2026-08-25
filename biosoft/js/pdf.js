@@ -129,6 +129,34 @@
     var ROW_H = 17, HEAD_H = 22;
     var rgb = hexToRgb(tenant.colorPrimario);
 
+    // Marca de agua opcional (solo para laboratorios que la activen en
+    // Configuración → "Diseño del Reporte de Resultados"): el logo grande,
+    // tenue y centrado, de fondo en CADA página, sin taparle los resultados
+    // a nadie. Se dibuja ANTES que cualquier otro contenido de la página
+    // (por eso queda detrás) y se suscribe al evento "addPage" de jsPDF
+    // para que también salga en las páginas siguientes de un informe largo,
+    // sin tener que tocar cada uno de los puntos del código donde se agrega
+    // una página nueva.
+    if (tenant.logoGrandeReporte && tenant.logoDataUrl) {
+      var dibujarMarcaAguaLogo = function () {
+        try {
+          var wmSize = Math.min(pageW, pageH) * 0.62;
+          var wmX = (pageW - wmSize) / 2;
+          var wmY = (pageH - wmSize) / 2;
+          if (doc.GState && doc.setGState) {
+            doc.saveGraphicsState();
+            doc.setGState(new doc.GState({ opacity: 0.07 }));
+            doc.addImage(tenant.logoDataUrl, "PNG", wmX, wmY, wmSize, wmSize);
+            doc.restoreGraphicsState();
+          } else {
+            doc.addImage(tenant.logoDataUrl, "PNG", wmX, wmY, wmSize, wmSize);
+          }
+        } catch (e) {}
+      };
+      dibujarMarcaAguaLogo();
+      if (doc.internal && doc.internal.events) doc.internal.events.subscribe("addPage", dibujarMarcaAguaLogo);
+    }
+
     // El logo sale bien grande (100pt — subió de 46 a 62, a 84 y ahora a
     // 100) para aprovechar el espacio en blanco que quedaba debajo suyo en
     // el encabezado y que resalte con fuerza incluso impreso en papel. El
@@ -426,6 +454,18 @@
         theme: "grid", styles: { fontSize: 8, cellPadding: 4 }, headStyles: { fillColor: [240, 244, 247], textColor: 40, fontStyle: "bold" }
       });
       y = doc.lastAutoTable.finalY + 18;
+    }
+
+    // Pie de página personalizado (opcional, definido en Configuración →
+    // "Diseño del Reporte de Resultados") — una frase propia del
+    // laboratorio (ej. su promesa de calidad), justo antes del bloque de
+    // firmas, tal como lo usan otros laboratorios de referencia.
+    if (tenant.piePaginaPersonalizado) {
+      if (y > 700) { doc.addPage(); y = margin; }
+      doc.setFont("helvetica", "italic"); doc.setFontSize(8.5); doc.setTextColor(90, 90, 90);
+      var lineasPie = doc.splitTextToSize(tenant.piePaginaPersonalizado, pageW - margin * 2);
+      doc.text(lineasPie, margin, y);
+      y += lineasPie.length * 11 + 10;
     }
 
     var firmantes = firmantesDe(order, tenant, examsToShow);

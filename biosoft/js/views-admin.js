@@ -1181,6 +1181,12 @@
         '<div class="checkbox-row"><input type="checkbox" id="f_mostrarPrecioOrden" ' + (tenant.mostrarPrecioOrden ? "checked" : "") + '/><label style="margin:0" for="f_mostrarPrecioOrden">Permitir indicar el valor a cobrar al crear una orden</label></div>' +
         '<p class="text-muted" style="margin:4px 0 0;font-size:12.5px">Actívalo si en tu laboratorio la persona que recibe al paciente (Recepción, un Bacteriólogo(a) o cualquiera que registre la orden) también le informa cuánto debe pagar en ese momento. Se queda desactivado por defecto — actívalo solo si lo necesitas.</p>' +
         "</fieldset>" +
+        '<fieldset><legend>Diseño del Reporte de Resultados</legend>' +
+        '<div class="checkbox-row"><input type="checkbox" id="f_logoGrandeReporte" ' + (tenant.logoGrandeReporte ? "checked" : "") + '/><label style="margin:0" for="f_logoGrandeReporte">Mostrar tu logo grande y centrado como marca de agua en cada hoja del informe de resultados</label></div>' +
+        '<p class="text-muted" style="margin:4px 0 12px;font-size:12.5px">Un diseño más llamativo: además del logo normal en el encabezado, tu logo aparece grande, tenue y centrado de fondo en cada página, sin taparte los resultados. Necesitas tener un logo cargado arriba para que se vea.</p>' +
+        '<div class="field"><label>Pie de página personalizado (aparece justo antes de la firma en cada informe)</label><textarea id="f_piePaginaPersonalizado" rows="2" placeholder="Ej: Nuestro laboratorio garantiza la calidad de sus análisis y el cumplimiento del sistema de control de calidad.">' + U.esc(tenant.piePaginaPersonalizado || "") + "</textarea></div>" +
+        '<p class="text-muted" style="margin:4px 0 0;font-size:12.5px">Déjalo vacío si no quieres ningún texto adicional — el pie de página estándar de BIOsoft se sigue mostrando siempre, con o sin este texto.</p>' +
+        "</fieldset>" +
         '<fieldset><legend>Seguridad — Clave de Administrador para Correcciones</legend>' +
         '<p class="text-muted" style="margin-top:0">Esta clave se solicita cuando un bacteriólogo necesita corregir un resultado ya validado, garantizando trazabilidad y control.</p>' +
         '<div class="form-grid">' +
@@ -1257,6 +1263,8 @@
       tenant.resolucionHabilitacion = g("resolucionHabilitacion"); tenant.codigoREPS = g("codigoREPS"); tenant.nivel = parseInt(g("nivel"), 10);
       tenant.bacteriologoResponsable = { nombre: g("bactNombre"), registro: g("bactRegistro") };
       tenant.mostrarPrecioOrden = document.getElementById("f_mostrarPrecioOrden").checked;
+      tenant.logoGrandeReporte = document.getElementById("f_logoGrandeReporte").checked;
+      tenant.piePaginaPersonalizado = g("piePaginaPersonalizado");
       tenant.colorPrimario = document.getElementById("f_colorPrimario").value;
       tenant.colorSecundario = document.getElementById("f_colorSecundario").value;
       tenant.colorTextoMenu = document.getElementById("f_colorTextoMenu").value;
@@ -1276,6 +1284,7 @@
         telefonos: tenant.telefonos, email: tenant.email, sitioWeb: tenant.sitioWeb,
         resolucionHabilitacion: tenant.resolucionHabilitacion, codigoREPS: tenant.codigoREPS, nivel: tenant.nivel,
         bacteriologoResponsable: tenant.bacteriologoResponsable, mostrarPrecioOrden: tenant.mostrarPrecioOrden,
+        logoGrandeReporte: tenant.logoGrandeReporte, piePaginaPersonalizado: tenant.piePaginaPersonalizado,
         colorPrimario: tenant.colorPrimario, colorSecundario: tenant.colorSecundario, colorTextoMenu: tenant.colorTextoMenu,
         colorTitulos: tenant.colorTitulos, colorSubtitulos: tenant.colorSubtitulos, logoDataUrl: tenant.logoDataUrl
       };
