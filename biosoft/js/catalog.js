@@ -1109,6 +1109,26 @@
     if (tenant.ordenExamenes) tenant.ordenExamenes = tenant.ordenExamenes.filter(function (id) { return id !== examId; });
   }
 
+  /* Botón de emergencia para un examen de FÁBRICA que el laboratorio
+     personalizó (nombre, método, campos ocultos/agregados/reordenados,
+     valores min/max, bandas por género/edad, rangos de interpretación): lo
+     deja exactamente como viene de fábrica en BIOsoft, por si alguna
+     personalización quedó mal armada y está causando problemas al capturar
+     resultados — sin tener que ir borrando override por override a mano.
+     Solo aplica a exámenes del catálogo global (con "factory" al que volver);
+     un examen 100% propio del laboratorio no tiene fábrica a la que
+     restablecer — para ese caso existe eliminarExamenPersonalizado. */
+  function restablecerExamenAFabrica(tenant, examId) {
+    if (tenant.examCustom) delete tenant.examCustom[examId];
+    var prefijo = examId + "::";
+    ["refOverrides", "refRangos", "refBandas"].forEach(function (campo) {
+      if (!tenant[campo]) return;
+      Object.keys(tenant[campo]).forEach(function (key) {
+        if (key.indexOf(prefijo) === 0) delete tenant[campo][key];
+      });
+    });
+  }
+
   /* Cambia el nombre visible de un examen SOLO para este laboratorio (el
      catálogo global de BIOsoft no se toca). Pasa una cadena vacía/null para
      restablecer el nombre de fábrica. */
@@ -1323,7 +1343,7 @@
     esExamenPropio: esExamenPropio,
     crearExamenPersonalizado: crearExamenPersonalizado,
     actualizarExamenPersonalizado: actualizarExamenPersonalizado,
-    eliminarExamenPersonalizado: eliminarExamenPersonalizado,
+    eliminarExamenPersonalizado: eliminarExamenPersonalizado, restablecerExamenAFabrica: restablecerExamenAFabrica,
     cambiarMetodoExamen: cambiarMetodoExamen,
     tuboInfo: tuboInfo,
     fmtMonedaAdicional: fmtMonedaAdicional, monedaBaseLabel: monedaBaseLabel,

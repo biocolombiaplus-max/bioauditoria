@@ -374,6 +374,26 @@
           build();
         });
       });
+      root.querySelectorAll("[data-restablecerexam]").forEach(function (b) {
+        b.addEventListener("click", function () {
+          restablecerExamenConfirmando(b.dataset.restablecerexam, build);
+        });
+      });
+    }
+
+    // Deja un examen de fábrica exactamente como viene de BIOsoft, por si
+    // alguna personalización (campo agregado/oculto, rango, banda por
+    // género/edad) quedó mal armada y está dando problemas — sin tener que
+    // ir quitando override por override a mano. Se usa tanto desde la lista
+    // como desde dentro del editor de un examen.
+    function restablecerExamenConfirmando(examId, alTerminar) {
+      var ex = C.examenPorId(examId) || C.examenPersonalizadoPorId(examId, tenant);
+      if (!confirm('¿Restablecer "' + (ex ? ex.nombre : examId) + '" a los valores originales de fábrica de BIOsoft? Se pierden el nombre, método, campos agregados/ocultados, orden, rangos y bandas que le hayas configurado a este examen en tu laboratorio — no afecta las órdenes ya guardadas.')) return;
+      C.restablecerExamenAFabrica(tenant, examId);
+      S.updateTenant(tenant.id, { examCustom: tenant.examCustom || {}, refOverrides: tenant.refOverrides || {}, refRangos: tenant.refRangos || {}, refBandas: tenant.refBandas || {} });
+      S.addAudit(session.tenantId, session.nombre, session.rol, "RESET_EXAM_TO_FACTORY", "catalogo", examId, "Restableció el examen " + (ex ? ex.nombre : examId) + " a los valores originales de fábrica.");
+      U.toast("Examen restablecido a valores de fábrica.", "success");
+      alTerminar();
     }
 
     function rowHtml(e, i, total, permiteOrdenar) {
@@ -388,6 +408,7 @@
         "<td>" + (propio ? '<span class="badge badge-validado">Examen propio</span>' : personalizado ? '<span class="badge badge-preliminar">Personalizado</span>' : '<span class="text-muted">Valores de fábrica</span>') + "</td>" +
         '<td><div class="flex gap-2 wrap"><button class="btn btn-outline btn-sm" data-editexam="' + e.id + '">' + U.icon("edit") + " Editar</button>" +
         (propio ? '<button class="btn btn-ghost btn-sm" data-eliminarexam="' + e.id + '" title="Eliminar este examen propio">' + U.icon("trash") + "</button>" : "") +
+        (!propio && personalizado ? '<button class="btn btn-ghost btn-sm" data-restablecerexam="' + e.id + '" title="Restablecer este examen a los valores originales de fábrica de BIOsoft">' + U.icon("history") + " Restablecer</button>" : "") +
         "</div></td></tr>";
     }
     build();
@@ -555,9 +576,25 @@
         ocultos.map(function (o) { return '<span class="chip">' + U.esc(o.nombre) + ' <button type="button" class="btn btn-ghost btn-sm" data-mostrar-campo="' + o.codigo + '" style="padding:2px 6px">Mostrar de nuevo</button></span>'; }).join("") +
         "</div></div>" : "") +
       '<button type="button" class="btn btn-outline btn-sm" id="btn-agregar-campo" style="margin-top:12px">' + U.icon("plus") + " Agregar Campo Personalizado</button>" +
-      '<div class="flex gap-2 justify-between" style="margin-top:14px"><button class="btn btn-ghost" data-modal-close>Cerrar</button><button class="btn btn-primary" id="cat-guardar">' + U.icon("check") + " Guardar Cambios</button></div>",
+      '<div class="flex gap-2 justify-between wrap" style="margin-top:14px">' +
+      '<div class="flex gap-2">' +
+      '<button class="btn btn-ghost" data-modal-close>Cerrar</button>' +
+      (!propio && C.tieneOverride(examId, tenant) ? '<button type="button" class="btn btn-ghost text-danger" id="btn-restablecer-todo">' + U.icon("history") + " Restablecer Todo a Fábrica</button>" : "") +
+      "</div>" +
+      '<button class="btn btn-primary" id="cat-guardar">' + U.icon("check") + " Guardar Cambios</button></div>",
       { lg: true }
     );
+
+    var btnRestablecerTodo = wrap.querySelector("#btn-restablecer-todo");
+    if (btnRestablecerTodo) btnRestablecerTodo.addEventListener("click", function () {
+      if (!confirm('¿Restablecer "' + exCat.nombre + '" a los valores originales de fábrica de BIOsoft? Se pierden el nombre, método, campos agregados/ocultados, orden, rangos y bandas que le hayas configurado a este examen en tu laboratorio — no afecta las órdenes ya guardadas.')) return;
+      C.restablecerExamenAFabrica(tenant, examId);
+      S.updateTenant(tenant.id, { examCustom: tenant.examCustom || {}, refOverrides: tenant.refOverrides || {}, refRangos: tenant.refRangos || {}, refBandas: tenant.refBandas || {} });
+      S.addAudit(session.tenantId, session.nombre, session.rol, "RESET_EXAM_TO_FACTORY", "catalogo", examId, "Restableció el examen " + exCat.nombre + " a los valores originales de fábrica.");
+      U.toast("Examen restablecido a valores de fábrica.", "success");
+      U.closeModal(wrap);
+      onDone();
+    });
 
     wrap.querySelectorAll("[data-reset]").forEach(function (btn) {
       btn.addEventListener("click", function () {
