@@ -657,8 +657,12 @@
      solo revisa y firma. IMPORTANTE: este permiso NUNCA incluye poder
      validar/firmar — esa acción se queda exclusiva de Administrador y
      Bacteriólogo(a) sin importar qué se marque aquí (ver views-results.js
-     -> puedeValidar). Las secciones concretas donde puede capturar se
-     asignan igual que a un Bacteriólogo(a), con el mismo checklist. */
+     -> puedeValidar). A diferencia del Bacteriólogo(a), aquí NO se limita
+     además por sección: con este único permiso marcado, el auxiliar ya
+     puede capturar cualquier examen de cualquier sección (ver
+     views-results.js -> puedeEditar) — así se evita el error más común de
+     este rol, "no me aparece el paciente", que pasaba cuando quedaba una
+     sección sin marcar. */
   var PERMISOS_EXTRA_RECEPCION = [
     { route: "resultados", navLabel: "Resultados", label: "Resultados (solo borrador o preliminar — nunca puede validar/firmar)", icon: "flask" }
   ];

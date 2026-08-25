@@ -104,7 +104,8 @@
       attach("insumos", "insumos", false),
       attach("recetasReactivos", "recetasReactivos", false),
       attach("kardexInventario", "kardexInventario", false),
-      attach("consentimientos", "consentimientos", false)
+      attach("consentimientos", "consentimientos", false),
+      attach("examenesReferencia", "examenesReferencia", false)
     ]).then(function () { return realCache; });
   }
 
@@ -439,6 +440,62 @@
     });
   }
 
+  /* Reparación remota (superadmin) de los permisos operativos de TODO el
+     personal de un laboratorio, de un solo clic — para cuando un laboratorio
+     reporta que "a los auxiliares no les aparece el paciente para ingresar
+     resultados" o similar, y no tiene sentido pedirle que edite usuario por
+     usuario. Dos reglas fijas, iguales para cualquier laboratorio (no es
+     nada específico de un tenant en particular):
+       - Todo usuario de Recepción/Auxiliar/Asistente recibe el permiso
+         adicional "resultados" (ingresar resultados en borrador o
+         preliminar — ver views-results.js -> puedeEditar/puedeValidar, que
+         ya nunca le permite validar/firmar, sin importar este permiso).
+       - Todo usuario Bacteriólogo(a)/Bioanalista recibe TODOS los permisos
+         adicionales disponibles para su rol y TODAS las secciones del
+         laboratorio marcadas (para que pueda capturar y validar cualquier
+         examen, además de crear pacientes/órdenes).
+     firestore.rules solo deja al superadmin tocar exactamente estos dos
+     campos (rol, permisosExtra, secciones) de un usuario ajeno — nunca su
+     contraseña, firma ni el resto de sus datos. */
+  function repararPermisosOperativos(tenantId) {
+    if (!firebaseDisponible()) return Promise.reject(errorFirebaseNoDisponible());
+    var db = global.BIO_FB.db;
+    return Promise.all([
+      tenantsColl().doc(tenantId).get().then(function (doc) { return doc.data(); }),
+      listUsuariosTenantOnce(tenantId)
+    ]).then(function (res) {
+      var tenant = res[0], usuarios = res[1];
+      var todasLasSecciones = BIO_CATALOG.seccionesEfectivas(tenant).map(function (s) { return s.id; });
+      var todosLosPermisosBact = BIO_CATALOG.PERMISOS_EXTRA_BACTERIOLOGO
+        .filter(function (p) { return !p.soloCO || (tenant && tenant.pais === "CO"); })
+        .map(function (p) { return p.route; });
+      var actualizados = [];
+      usuarios.forEach(function (u) {
+        if (u.rol === "recepcion") {
+          var yaLoTiene = u.permisosExtra && u.permisosExtra.indexOf("resultados") !== -1;
+          if (!yaLoTiene) actualizados.push({ u: u, patch: { permisosExtra: (u.permisosExtra || []).concat(["resultados"]) } });
+        } else if (u.rol === "bacteriologo") {
+          var faltanSecciones = todasLasSecciones.some(function (s) { return !u.secciones || u.secciones.indexOf(s) === -1; });
+          var faltanPermisos = todosLosPermisosBact.some(function (p) { return !u.permisosExtra || u.permisosExtra.indexOf(p) === -1; });
+          if (faltanSecciones || faltanPermisos) actualizados.push({ u: u, patch: { secciones: todasLasSecciones, permisosExtra: todosLosPermisosBact } });
+        }
+      });
+      if (!actualizados.length) return { totalUsuarios: usuarios.length, reparados: 0 };
+      return Promise.all(actualizados.map(function (a) {
+        return db.collection("tenants").doc(tenantId).collection("users").doc(a.u.id).set(a.patch, { merge: true });
+      })).then(function () {
+        var entry = {
+          id: uid("log"), tenantId: tenantId, fecha: nowISO(), usuario: "Soporte BIOsoft", rol: "superadmin",
+          accion: "REPAIR_OPERATIONAL_PERMISSIONS", entidad: "usuario", entidadId: tenantId,
+          detalle: "Reparó los permisos operativos de " + actualizados.length + " usuario(s): auxiliares con permiso de Resultados, bacteriólogos/bioanalistas con todas las secciones y permisos adicionales."
+        };
+        return db.collection("tenants").doc(tenantId).collection("auditLog").doc(entry.id).set(entry);
+      }).then(function () {
+        return { totalUsuarios: usuarios.length, reparados: actualizados.length };
+      });
+    });
+  }
+
   /* Al recargar la página, sessionStorage conserva la sesión pero realCache
      se pierde (es memoria, no disco). Espera a que Firebase confirme que la
      sesión de Auth sigue viva y vuelve a poblar realCache sin pedir clave. */
@@ -512,7 +569,7 @@
     return {
       tenants: {}, users: [], patients: [], orders: [], auditLog: [], qcControles: [], qcLecturas: [], preciosExamenes: [], cotizaciones: [],
       reglasRemarketing: [], remarketingContactos: [], insumos: [], recetasReactivos: [], kardexInventario: [], examenesPersonalizados: [],
-      ripsGenerados: [], facturasGeneradas: [], convenios: [], convenioPrecios: [], consentimientos: []
+      ripsGenerados: [], facturasGeneradas: [], convenios: [], convenioPrecios: [], consentimientos: [], examenesReferencia: []
     };
   }
 
@@ -1198,6 +1255,66 @@
   }
 
   // ---------------------------------------------------------------------
+  // EXÁMENES DE LABORATORIO DE REFERENCIA — catálogo INDEPENDIENTE del
+  // catálogo interno de exámenes: son los exámenes que este laboratorio
+  // REMITE a un tercero (ej. IDIME) para que los procese. No se ligan a un
+  // examId del catálogo propio a propósito — muchos son estudios muy
+  // especializados (patología, genética) que el laboratorio nunca ofrece
+  // por sí mismo, solo los remite, así que no hay un examen propio con el
+  // que emparejarlos. codigoRef (el código interno del laboratorio de
+  // referencia, ej. "COD IDIME") es el identificador único de cada fila —
+  // el CUPS NO sirve como identificador aquí porque un mismo código CUPS
+  // de patología suele agrupar decenas de marcadores distintos (ej. CD34,
+  // CD35, CD38... todos con el mismo CUPS 898807). Cada fila guarda el
+  // precio de COMPRA (lo que cobra el laboratorio de referencia) y el
+  // precio de VENTA (lo que este laboratorio le cobra a su paciente), para
+  // ver la ganancia de cada remisión de un vistazo.
+  // ---------------------------------------------------------------------
+  function listExamenesReferencia(tenantId) {
+    var db = loadDB();
+    return (db.examenesReferencia || []).filter(function (e) { return e.tenantId === tenantId; }).sort(function (a, b) { return (a.nombre || "").localeCompare(b.nombre || ""); });
+  }
+  function bulkUpsertExamenesReferencia(tenantId, laboratorioReferencia, filas) {
+    var db = loadDB();
+    db.examenesReferencia = db.examenesReferencia || [];
+    var porCodigo = {};
+    db.examenesReferencia.forEach(function (e) { if (e.tenantId === tenantId) porCodigo[e.codigoRef] = e; });
+    filas.forEach(function (f) {
+      var existente = porCodigo[f.codigoRef];
+      if (existente) {
+        existente.nombre = f.nombre; existente.cups = f.cups; existente.precioCompra = f.precioCompra;
+        existente.laboratorioReferencia = laboratorioReferencia; existente.actualizadoEn = nowISO();
+        fbWrite("examenesReferencia", existente.id, existente);
+      } else {
+        var nuevo = {
+          id: uid("exref"), tenantId: tenantId, laboratorioReferencia: laboratorioReferencia,
+          codigoRef: f.codigoRef, cups: f.cups || "", nombre: f.nombre, precioCompra: f.precioCompra, precioVenta: 0, actualizadoEn: nowISO()
+        };
+        db.examenesReferencia.push(nuevo);
+        porCodigo[f.codigoRef] = nuevo;
+        fbWrite("examenesReferencia", nuevo.id, nuevo);
+      }
+    });
+    saveDB(db);
+    return filas.length;
+  }
+  function setPrecioVentaReferencia(tenantId, id, precioVenta) {
+    var db = loadDB();
+    var reg = (db.examenesReferencia || []).filter(function (e) { return e.tenantId === tenantId && e.id === id; })[0];
+    if (!reg) return null;
+    reg.precioVenta = precioVenta; reg.actualizadoEn = nowISO();
+    saveDB(db);
+    fbWrite("examenesReferencia", reg.id, reg);
+    return reg;
+  }
+  function eliminarExamenReferencia(tenantId, id) {
+    var db = loadDB();
+    db.examenesReferencia = (db.examenesReferencia || []).filter(function (e) { return !(e.tenantId === tenantId && e.id === id); });
+    saveDB(db);
+    fbDelete("examenesReferencia", id);
+  }
+
+  // ---------------------------------------------------------------------
   // MARKETING DIGITAL — reglas de remarketing (recall clínico) y registro de
   // contactos ya enviados, por laboratorio (tenant).
   // ---------------------------------------------------------------------
@@ -1523,7 +1640,7 @@
     crm: { list: crmList, watch: crmWatch, create: crmCreate, update: crmUpdate },
     tenantsGlobal: {
       list: tenantsListGlobal, watch: tenantsWatchGlobal, listUsuarios: listUsuariosTenantOnce, promoverUsuarioAAdmin: promoverUsuarioAAdmin,
-      diagnosticarAcceso: diagnosticarAccesoTenant, repararPerfilAcceso: repararPerfilAcceso
+      diagnosticarAcceso: diagnosticarAccesoTenant, repararPerfilAcceso: repararPerfilAcceso, repararPermisosOperativos: repararPermisosOperativos
     },
     plantillas: { list: plantillasList, watch: plantillasWatch, create: plantillasCreate, update: plantillasUpdate, remove: plantillasDelete },
     landingImagenes: { list: landingImagenesList, set: landingImagenesSet, remove: landingImagenesDelete },
@@ -1536,7 +1653,9 @@
       listCotizaciones: listCotizaciones, createCotizacion: createCotizacion, updateCotizacion: updateCotizacion,
       listExamenesPersonalizados: listExamenesPersonalizados, bulkUpsertExamenesPersonalizados: bulkUpsertExamenesPersonalizados,
       listConvenios: listConvenios, createConvenio: createConvenio, updateConvenio: updateConvenio, eliminarConvenio: eliminarConvenio,
-      listConvenioPrecios: listConvenioPrecios, setConvenioPrecio: setConvenioPrecio, quitarConvenioPrecio: quitarConvenioPrecio
+      listConvenioPrecios: listConvenioPrecios, setConvenioPrecio: setConvenioPrecio, quitarConvenioPrecio: quitarConvenioPrecio,
+      listExamenesReferencia: listExamenesReferencia, bulkUpsertExamenesReferencia: bulkUpsertExamenesReferencia,
+      setPrecioVentaReferencia: setPrecioVentaReferencia, eliminarExamenReferencia: eliminarExamenReferencia
     },
     remarketing: {
       listReglas: listReglasRemarketing, bulkCreateReglas: bulkCreateReglasRemarketing, updateRegla: updateReglaRemarketing,

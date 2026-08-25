@@ -101,13 +101,15 @@ service cloud.firestore {
         // cambiarse a sí mismo el convenioId y leer resultados de un
         // convenio que no es el suyo).
         allow create: if esDeEsteLab(tenantId) || (esAliado(tenantId) && userId == request.auth.uid);
-        // El superadmin del panel de socios ("Restablecer Administrador")
-        // solo puede tocar el campo "rol" de un usuario ya existente (para
+        // El superadmin del panel de socios solo puede tocar tres campos de
+        // un usuario ya existente: "rol" (para "Restablecer Administrador",
         // darle también el rol de Administrador cuando el laboratorio se
-        // quedó sin ninguno) — no puede cambiar su contraseña, firma,
-        // secciones ni ningún otro dato del usuario.
+        // quedó sin ninguno) y "permisosExtra"/"secciones" (para "Reparar
+        // Permisos Operativos", cuando un laboratorio reporta fallas de
+        // acceso de sus auxiliares/bacteriólogos) — nunca su contraseña,
+        // firma ni ningún otro dato del usuario.
         allow update, delete: if esDeEsteLab(tenantId) ||
-          (esSuperadmin() && request.resource.data.diff(resource.data).affectedKeys().hasOnly(["rol"]));
+          (esSuperadmin() && request.resource.data.diff(resource.data).affectedKeys().hasOnly(["rol", "permisosExtra", "secciones"]));
       }
       match /patients/{patientId} {
         allow read: if esDeEsteLab(tenantId) || esSuperadmin();
@@ -199,6 +201,12 @@ service cloud.firestore {
         allow read, write: if esDeEsteLab(tenantId);
       }
       match /convenioPrecios/{convenioPrecioId} {
+        allow read, write: if esDeEsteLab(tenantId);
+      }
+      // Exámenes de laboratorio de referencia (ej. IDIME): precio de
+      // compra y de venta de los exámenes que este laboratorio remite a un
+      // tercero — catálogo independiente del catálogo interno de exámenes.
+      match /examenesReferencia/{examenRefId} {
         allow read, write: if esDeEsteLab(tenantId);
       }
       // Consentimientos informados (Resolución 3100 de 2019): el paciente

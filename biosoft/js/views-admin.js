@@ -74,14 +74,12 @@
       var contacto = [u.numeroDocumento ? "Doc. " + u.numeroDocumento : "", u.telefonoContacto || "", u.correoContacto || ""].filter(Boolean).join(" · ");
       var convenioDelAliado = u.rol === "aliado" && u.convenioId ? S.cotizador.listConvenios(tenant.id).filter(function (c) { return c.id === u.convenioId; })[0] : null;
       return "<tr><td><b>" + U.esc(u.nombre) + "</b>" + (contacto ? "<div class='text-muted' style='font-size:11px'>" + U.esc(contacto) + "</div>" : "") + "</td><td>" + U.esc(u.username) + "</td><td>" + U.esc(C.rolLabel(u.rol, tenant && tenant.pais)) + "</td>" +
-        "<td>" + (u.rol === "aliado" ? (convenioDelAliado ? "🤝 " + U.esc(convenioDelAliado.nombre) : '<span class="text-danger">⚠ Sin convenio asignado</span>') : (u.secciones && u.secciones.length ? u.secciones.map(function (s) { return C.seccionNombre(s, tenant); }).join(", ") : "—")) +
+        "<td>" + (u.rol === "aliado" ? (convenioDelAliado ? "🤝 " + U.esc(convenioDelAliado.nombre) : '<span class="text-danger">⚠ Sin convenio asignado</span>') : u.rol === "bacteriologo" ? (u.secciones && u.secciones.length ? u.secciones.map(function (s) { return C.seccionNombre(s, tenant); }).join(", ") : "—") : "") +
         (u.puedeGestionarRemisiones ? ' <span class="badge badge-preliminar" title="Puede gestionar remisiones a laboratorio de referencia">Remisiones</span>' : "") +
         (u.permisosExtra && u.permisosExtra.length ? u.permisosExtra.map(function (r) {
           var p = C.PERMISOS_EXTRA_BACTERIOLOGO.concat(C.PERMISOS_EXTRA_RECEPCION).filter(function (x) { return x.route === r; })[0];
           return p ? ' <span class="badge badge-preliminar" title="Permiso adicional">' + U.esc(p.label) + "</span>" : "";
         }).join("") : "") +
-        (u.rol === "recepcion" && u.permisosExtra && u.permisosExtra.indexOf("resultados") !== -1 && (!u.secciones || !u.secciones.length) ?
-          ' <span class="badge badge-pendiente" title="Tiene el permiso de Resultados pero no tiene ninguna sección marcada: no va a ver ningún examen en su bandeja. Edítalo y marca al menos una sección.">⚠ Sin secciones asignadas</span>' : "") +
         "</td>" +
         "<td>" + (u.activo ? '<span class="badge badge-validado">Activo</span>' : '<span class="badge badge-pendiente">Inactivo</span>') + "</td>" +
         '<td><div class="flex gap-2"><button class="btn btn-ghost btn-sm" data-edit="' + u.id + '">' + U.icon("edit") + " Editar</button>" +
@@ -117,14 +115,19 @@
       function renderSecciones() {
         var rol = wrap.querySelector("#f_rol").value;
         var box = wrap.querySelector("#secciones-box");
-        if (rol !== "bacteriologo" && rol !== "recepcion") { box.innerHTML = ""; return; }
-        var etiqueta = rol === "bacteriologo" ? "Secciones que puede capturar y validar" : "Secciones en las que puede ingresar resultados (solo si además tiene el permiso adicional \"Resultados\" — nunca puede validar/firmar)";
-        box.innerHTML = "<label>" + etiqueta + "</label><div class='form-grid'>" +
+        // Un Auxiliar/Asistente ya NO se limita por sección (ver
+        // views-results.js -> puedeEditar): con el permiso adicional
+        // "Resultados" marcado abajo, captura cualquier examen de
+        // cualquier sección — nunca valida/firma. Solo el Bacteriólogo(a)/
+        // Bioanalista sigue usando este checklist, para asignarle
+        // puntualmente en qué secciones captura y valida.
+        if (rol !== "bacteriologo") { box.innerHTML = ""; return; }
+        box.innerHTML = "<label>Secciones que puede capturar y validar</label><div class='form-grid'>" +
           C.seccionesEfectivas(tenant).map(function (s) {
             var checked = (user.secciones || []).indexOf(s.id) !== -1;
             return '<div class="checkbox-row"><input type="checkbox" data-sec="' + s.id + '" ' + (checked ? "checked" : "") + '/><label style="margin:0">' + s.nombre + "</label></div>";
           }).join("") + "</div>" +
-          (rol === "bacteriologo" ? '<div class="checkbox-row" style="margin-top:10px"><input type="checkbox" id="f_puedeGestionarRemisiones" ' + (user.puedeGestionarRemisiones ? "checked" : "") + '/><label style="margin:0" for="f_puedeGestionarRemisiones">Puede gestionar remisiones a laboratorio de referencia (generar Hoja de Remisión, marcar exámenes remitidos y cargar los resultados externos)</label></div>' : "");
+          '<div class="checkbox-row" style="margin-top:10px"><input type="checkbox" id="f_puedeGestionarRemisiones" ' + (user.puedeGestionarRemisiones ? "checked" : "") + '/><label style="margin:0" for="f_puedeGestionarRemisiones">Puede gestionar remisiones a laboratorio de referencia (generar Hoja de Remisión, marcar exámenes remitidos y cargar los resultados externos)</label></div>';
       }
       // Además de sus secciones, un Bacteriólogo(a)/Bioanalista puede recibir
       // acceso a pantallas que normalmente son de Recepción/Administración
@@ -226,10 +229,6 @@
           data.firmaDataUrl = firmaTemp;
         }
         if (!data.nombre || !data.username || (!isEdit && !pass)) { U.toast("Completa nombre, usuario y contraseña.", "error"); return; }
-        if (data.rol === "recepcion" && data.permisosExtra.indexOf("resultados") !== -1 && !data.secciones.length) {
-          U.toast("Marca al menos una sección para que pueda ingresar resultados — si no, el permiso queda activo pero no va a ver ningún examen.", "error");
-          return;
-        }
         if (data.rol === "aliado" && !data.convenioId) {
           U.toast("Selecciona a qué convenio/empresa queda ligado este acceso.", "error");
           return;
@@ -1423,6 +1422,7 @@
             '<button class="btn btn-outline btn-sm" data-enviar-manual="' + t.id + '">' + U.icon("send") + " Manual</button>" +
             '<button class="btn btn-outline btn-sm" data-reenviar-acceso="' + t.id + '" title="Recordar el link de ingreso y el usuario al administrador">' + U.icon("send") + " Reenviar Acceso</button>" +
             '<button class="btn btn-ghost btn-sm" data-diagnostico-acceso="' + t.id + '" title="Revisar si algún usuario quedó con el enlace de acceso roto (puede entrar con la contraseña correcta y aun así el sistema no lo reconoce)">🔍 Diagnóstico</button>' +
+            '<button class="btn btn-ghost btn-sm" data-reparar-permisos="' + t.id + '" title="Dar de un clic a todos los auxiliares el permiso de Resultados, y a todos los bacteriólogos/bioanalistas todas las secciones y permisos adicionales — para laboratorios que reportan fallas de acceso de su personal">🔧 Permisos</button>' +
             '<button class="btn btn-ghost btn-sm" data-sync-crm="' + t.id + '" title="Crear/vincular este laboratorio en el CRM">' + U.icon("send") + " CRM</button>" +
             "</div></td></tr>";
         }).join("") : '<tr><td colspan="7" class="text-muted">Aún no hay laboratorios cliente creados.</td></tr>') + "</tbody></table></div></div>";
@@ -1457,6 +1457,11 @@
       root.querySelectorAll("[data-diagnostico-acceso]").forEach(function (b) {
         b.addEventListener("click", function () {
           abrirDiagnosticoAcceso(tenants.filter(function (t) { return t.id === b.dataset.diagnosticoAcceso; })[0]);
+        });
+      });
+      root.querySelectorAll("[data-reparar-permisos]").forEach(function (b) {
+        b.addEventListener("click", function () {
+          abrirRepararPermisos(tenants.filter(function (t) { return t.id === b.dataset.repararPermisos; })[0]);
         });
       });
       root.querySelectorAll("[data-enviar-contrato]").forEach(function (b) {
@@ -1969,6 +1974,36 @@
         });
       }
       cargarYMostrar();
+    }
+
+    // Cuando un laboratorio reporta que su personal tiene fallas de acceso
+    // (típicamente: "a los auxiliares no les aparece el paciente para
+    // ingresar resultados"), en vez de pedirle que edite usuario por
+    // usuario, este botón corrige de un clic los permisos operativos de
+    // TODO su personal — ver store.js -> repararPermisosOperativos.
+    function abrirRepararPermisos(tenant) {
+      var wrap = U.openModal(
+        '<h3 class="modal-title">🔧 Reparar Permisos Operativos — ' + U.esc(tenant.nombre) + '</h3>' +
+        '<p class="text-muted" style="margin-top:0">Esto va a dejar así, de una vez, a TODO el personal de este laboratorio:</p>' +
+        '<ul style="margin:0 0 12px;padding-left:20px;font-size:13.5px;color:var(--text-muted)">' +
+        '<li>Todo <b>Auxiliar/Asistente</b> (Recepción) queda con el permiso de <b>Resultados</b> (puede crear pacientes, crear órdenes e ingresar resultados en borrador o preliminar — nunca validar/firmar).</li>' +
+        '<li>Todo <b>Bacteriólogo(a)/Bioanalista</b> queda con <b>todas las secciones</b> y <b>todos los permisos adicionales</b> (puede crear pacientes, crear órdenes, ingresar resultados y validar/firmar).</li>' +
+        "</ul>" +
+        '<p class="text-muted" style="font-size:13.5px">No toca contraseñas, firmas ni ningún otro dato de los usuarios — solo estos permisos.</p>' +
+        '<div class="flex gap-2 justify-between" style="margin-top:6px"><button class="btn btn-ghost" data-modal-close>Cancelar</button>' +
+        '<button class="btn btn-primary" id="btn-confirmar-reparar">' + U.icon("check") + " Reparar Ahora</button></div>"
+      );
+      wrap.querySelector("#btn-confirmar-reparar").addEventListener("click", function (e) {
+        var btn = e.currentTarget;
+        btn.disabled = true; btn.textContent = "Reparando…";
+        S.tenantsGlobal.repararPermisosOperativos(tenant.id).then(function (res) {
+          U.closeModal(wrap);
+          U.toast(res.reparados ? "Listo: se corrigieron los permisos de " + res.reparados + " usuario(s)." : "Todo el personal ya tenía los permisos correctos — no había nada que corregir.", "success");
+        }).catch(function (err) {
+          btn.disabled = false; btn.textContent = "Reparar Ahora";
+          U.toast("No se pudo reparar: " + (err.message || err), "error");
+        });
+      });
     }
 
     // Crea un usuario administrador para un laboratorio YA existente que se

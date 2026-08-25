@@ -11,6 +11,14 @@
 
   function puedeEditar(session, seccion) {
     if (session.rol === "admin" || session.rol === "superadmin") return true;
+    // Un usuario de Recepción/Auxiliar/Asistente solo llega a esta pantalla
+    // si ya tiene el permiso adicional "Resultados" (ver router.js ->
+    // rutasPermitidas) — así que aquí ya no hace falta exigirle además una
+    // sección puntual asignada: puede capturar cualquier examen de
+    // cualquier sección (nunca valida/firma, ver puedeValidar). Antes se
+    // exigía marcar secciones una por una y olvidar una era la causa más
+    // común de "no me aparece el paciente para ingresar resultados".
+    if (session.rol === "recepcion") return true;
     return session.secciones.indexOf(seccion) !== -1;
   }
 
