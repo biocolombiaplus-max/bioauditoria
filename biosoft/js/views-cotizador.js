@@ -32,6 +32,8 @@
     var customExams = []; // exámenes propios del laboratorio, fuera del catálogo global
     var convenios = [];
     var convenioPreciosPorConvenio = {}; // convenioId -> { examId -> {modo, valor} }
+    var examenesReferencia = []; // catálogo independiente: exámenes remitidos a un laboratorio de referencia (ver "🔬 Lab. Referencia")
+    var refSearchTerm = "";
 
     var TIPOS_CONVENIO = ["Laboratorio de Referencia", "Laboratorio de Contrarreferencia", "Cliente Institucional", "Otro"];
 
@@ -92,6 +94,7 @@
         S.cotizador.listConvenioPrecios(tenantId, cv.id).forEach(function (p) { mapa[p.examId] = p; });
         convenioPreciosPorConvenio[cv.id] = mapa;
       });
+      examenesReferencia = S.cotizador.listExamenesReferencia(tenantId);
       build();
     }
 
@@ -103,12 +106,13 @@
         '<button type="button" class="' + (vista === "recibo" ? "active" : "") + '" data-vista="recibo">💵 Recibo Directo</button>' +
         '<button type="button" class="' + (vista === "precios" ? "active" : "") + '" data-vista="precios">💲 Lista de Precios</button>' +
         '<button type="button" class="' + (vista === "convenios" ? "active" : "") + '" data-vista="convenios">🤝 Convenios</button>' +
+        '<button type="button" class="' + (vista === "labref" ? "active" : "") + '" data-vista="labref">🔬 Lab. Referencia</button>' +
         '<button type="button" class="' + (vista === "historial" ? "active" : "") + '" data-vista="historial">🕓 Historial</button>' +
         "</div></div>" +
-        (vista === "nueva" ? buildNuevaHtml() : vista === "recibo" ? buildReciboDirectoHtml() : vista === "precios" ? buildPreciosHtml() : vista === "convenios" ? buildConveniosHtml() : buildHistorialHtml()) +
+        (vista === "nueva" ? buildNuevaHtml() : vista === "recibo" ? buildReciboDirectoHtml() : vista === "precios" ? buildPreciosHtml() : vista === "convenios" ? buildConveniosHtml() : vista === "labref" ? buildLabReferenciaHtml() : buildHistorialHtml()) +
         "</div>";
       root.querySelectorAll("[data-vista]").forEach(function (b) { b.addEventListener("click", function () { vista = b.dataset.vista; build(); }); });
-      if (vista === "nueva") wireNueva(); else if (vista === "recibo") wireReciboDirecto(); else if (vista === "precios") wirePrecios(); else if (vista === "convenios") wireConvenios(); else wireHistorial();
+      if (vista === "nueva") wireNueva(); else if (vista === "recibo") wireReciboDirecto(); else if (vista === "precios") wirePrecios(); else if (vista === "convenios") wireConvenios(); else if (vista === "labref") wireLabReferencia(); else wireHistorial();
     }
 
     // ---------------------------------------------------------------------
@@ -895,6 +899,173 @@
       });
       renderTabla();
       wrap.querySelectorAll("[data-modal-close]").forEach(function (b) { b.addEventListener("click", function () { U.closeModal(wrap); }); });
+    }
+
+    // ---------------------------------------------------------------------
+    // LABORATORIO DE REFERENCIA — precio de compra (lo que cobra el
+    // laboratorio de referencia, ej. IDIME) y precio de venta (lo que este
+    // laboratorio le cobra a su paciente) de cada examen que se remite,
+    // para ver la ganancia de un vistazo. Es un catálogo independiente del
+    // catálogo interno de exámenes — se sube por Excel porque suele traer
+    // cientos o miles de exámenes muy especializados (patología, genética)
+    // que el laboratorio nunca ofrece por sí mismo.
+    // ---------------------------------------------------------------------
+    function fmtGanancia(compra, venta) {
+      var g = (venta || 0) - (compra || 0);
+      var color = g > 0 ? "#16a34a" : g < 0 ? "#dc2626" : "#6b7280";
+      return '<b style="color:' + color + '">' + (g >= 0 ? "+" : "") + fmtMoneda(g) + "</b>";
+    }
+    function buildLabReferenciaHtml() {
+      var nombreLab = (tenant.laboratorioReferenciaNombre || "").trim();
+      return '<p class="text-muted" style="margin-top:14px">Precio de compra al laboratorio de referencia y precio de venta a tu paciente de cada examen que remites — para ver tu ganancia en cada uno, de un vistazo. Sube el listado de tarifas de compra por Excel (código, examen y tarifa) y define aquí a cuánto lo vendes tú.</p>' +
+        '<div class="form-grid" style="align-items:end;margin-bottom:10px">' +
+        '<div class="field"><label>Nombre del Laboratorio de Referencia</label><input id="ref-nombre-lab" value="' + U.esc(nombreLab) + '" placeholder="Ej. IDIME"/></div>' +
+        '<button type="button" class="btn btn-outline btn-sm" id="btn-guardar-nombre-lab" style="height:38px">' + U.icon("check") + " Guardar Nombre</button>" +
+        "</div>" +
+        '<div class="flex gap-2 wrap" style="margin-bottom:12px">' +
+        '<button type="button" class="btn btn-outline btn-sm" id="btn-descargar-plantilla-ref">' + U.icon("download") + " Descargar Plantilla Excel</button>" +
+        '<label class="btn btn-outline btn-sm" style="cursor:pointer">' + U.icon("plus") + ' Subir Excel de Tarifas de Compra<input type="file" id="input-excel-ref" accept=".xlsx,.xls,.csv" style="display:none"/></label>' +
+        "</div>" +
+        (examenesReferencia.length
+          ? '<div class="field" style="margin-bottom:12px"><input id="ref-search" placeholder="Buscar por nombre, código o CUPS entre ' + examenesReferencia.length + ' exámenes…" value="' + U.esc(refSearchTerm) + '"/></div>' +
+            '<div class="table-wrap" style="max-height:520px;overflow-y:auto"><table><thead><tr><th>Examen</th><th>Código</th><th>Compra</th><th style="min-width:130px">Venta</th><th>Ganancia</th></tr></thead><tbody id="ref-tbody"></tbody></table></div>'
+          : '<p class="text-muted">Aún no has cargado tarifas de tu laboratorio de referencia. Descarga la plantilla, complétala con el código, el examen y la tarifa de compra, y súbela aquí para empezar a ver tu margen en cada examen que remites.</p>')
+        ;
+    }
+    function renderTablaLabReferencia() {
+      var tbody = document.getElementById("ref-tbody");
+      if (!tbody) return;
+      var term = U.normalizar(refSearchTerm.trim());
+      var pool = term
+        ? examenesReferencia.filter(function (e) {
+            return U.normalizar(e.nombre).indexOf(term) !== -1 || U.normalizar(e.codigoRef || "").indexOf(term) !== -1 || (e.cups || "").indexOf(term) !== -1;
+          })
+        : examenesReferencia.filter(function (e) { return e.precioVenta > 0; }); // sin buscar: solo los ya cotizados, para no listar miles de una
+      tbody.innerHTML = pool.length ? pool.map(function (e) {
+        return "<tr data-ref-row='" + e.id + "' style='cursor:pointer'><td>" + U.esc(e.nombre) + '<div class="text-muted" style="font-size:11px">' + U.esc(e.codigoRef || "") + (e.cups ? " · CUPS " + U.esc(e.cups) : "") + "</div></td>" +
+          "<td>" + U.esc(e.codigoRef || "—") + "</td>" +
+          "<td>" + fmtMoneda(e.precioCompra) + "</td>" +
+          "<td><input type='number' step='any' min='0' data-ref-venta='" + e.id + "' value='" + (e.precioVenta || "") + "' placeholder='0' onclick='event.stopPropagation()'/></td>" +
+          "<td data-ref-ganancia='" + e.id + "'>" + fmtGanancia(e.precioCompra, e.precioVenta) + "</td></tr>";
+      }).join("") : '<tr><td colspan="5" class="text-muted">' + (term ? "Sin resultados para tu búsqueda." : "Aún no le has puesto precio de venta a ningún examen — búscalo arriba para empezar.") + "</td></tr>";
+
+      tbody.querySelectorAll("[data-ref-venta]").forEach(function (inp) {
+        inp.addEventListener("change", function () {
+          var id = inp.dataset.refVenta;
+          var venta = parseFloat(inp.value) || 0;
+          S.cotizador.setPrecioVentaReferencia(tenantId, id, venta);
+          var e = examenesReferencia.filter(function (x) { return x.id === id; })[0];
+          if (e) e.precioVenta = venta;
+          var celdaGanancia = tbody.querySelector('[data-ref-ganancia="' + id + '"]');
+          if (celdaGanancia) celdaGanancia.innerHTML = fmtGanancia(e ? e.precioCompra : 0, venta);
+          U.toast("Precio de venta guardado.", "success");
+        });
+      });
+      tbody.querySelectorAll("[data-ref-row]").forEach(function (tr) {
+        tr.addEventListener("click", function () {
+          abrirDetalleExamenReferencia(examenesReferencia.filter(function (e) { return e.id === tr.dataset.refRow; })[0]);
+        });
+      });
+    }
+    function abrirDetalleExamenReferencia(examen) {
+      if (!examen) return;
+      var wrap = U.openModal(
+        '<h3 class="modal-title">' + U.esc(examen.nombre) + '</h3>' +
+        '<p class="text-muted" style="margin-top:0">' + U.esc(examen.laboratorioReferencia || "Laboratorio de referencia") + " · Código " + U.esc(examen.codigoRef || "—") + (examen.cups ? " · CUPS " + U.esc(examen.cups) : "") + "</p>" +
+        '<div class="form-grid">' +
+        '<div class="field"><label>Precio de Compra (' + U.esc(examen.laboratorioReferencia || "laboratorio de referencia") + ')</label><input value="' + fmtMoneda(examen.precioCompra) + '" disabled/></div>' +
+        '<div class="field"><label>Precio de Venta (a tu paciente)</label><input type="number" step="any" min="0" id="rd-venta" value="' + (examen.precioVenta || "") + '" placeholder="0"/></div>' +
+        "</div>" +
+        '<p style="margin:10px 0 0;font-size:14px">Ganancia: <span id="rd-ganancia">' + fmtGanancia(examen.precioCompra, examen.precioVenta) + "</span></p>" +
+        '<div class="flex gap-2 justify-between" style="margin-top:16px"><button class="btn btn-ghost" data-modal-close>Cerrar</button><button type="button" class="btn btn-primary" id="rd-guardar">' + U.icon("check") + " Guardar Precio de Venta</button></div>"
+      );
+      wrap.querySelector("#rd-venta").addEventListener("input", function (e) {
+        wrap.querySelector("#rd-ganancia").innerHTML = fmtGanancia(examen.precioCompra, parseFloat(e.target.value) || 0);
+      });
+      wrap.querySelector("#rd-guardar").addEventListener("click", function () {
+        var venta = parseFloat(wrap.querySelector("#rd-venta").value) || 0;
+        S.cotizador.setPrecioVentaReferencia(tenantId, examen.id, venta);
+        examen.precioVenta = venta;
+        U.toast("Precio de venta guardado.", "success");
+        U.closeModal(wrap);
+        cargar();
+      });
+    }
+    function wireLabReferencia() {
+      var btnGuardarNombre = document.getElementById("btn-guardar-nombre-lab");
+      if (btnGuardarNombre) btnGuardarNombre.addEventListener("click", function () {
+        var nombre = document.getElementById("ref-nombre-lab").value.trim();
+        tenant.laboratorioReferenciaNombre = nombre;
+        S.updateTenant(tenantId, { laboratorioReferenciaNombre: nombre });
+        U.toast("Nombre guardado.", "success");
+      });
+      var btnPlantilla = document.getElementById("btn-descargar-plantilla-ref");
+      if (btnPlantilla) btnPlantilla.addEventListener("click", function () {
+        var ws = XLSX.utils.json_to_sheet([{ Codigo: "K503", Examen: "ACIDO FOLICO EN SUERO", CUPS: "903105", Tarifa: 17000 }]);
+        var wb = XLSX.utils.book_new();
+        XLSX.utils.book_append_sheet(wb, ws, "Tarifas");
+        XLSX.writeFile(wb, "Plantilla_Tarifas_Laboratorio_Referencia.xlsx");
+      });
+      var inputExcel = document.getElementById("input-excel-ref");
+      if (inputExcel) inputExcel.addEventListener("change", subirExcelReferencia);
+      var search = document.getElementById("ref-search");
+      if (search) search.addEventListener("input", function (e) { refSearchTerm = e.target.value; renderTablaLabReferencia(); });
+      renderTablaLabReferencia();
+    }
+
+    function ubicarEncabezadoReferencia(filas) {
+      var maxFilasABuscar = Math.min(filas.length, 15);
+      for (var f = 0; f < maxFilasABuscar; f++) {
+        var fila = filas[f] || [];
+        var colCodigo = -1, colExamen = -1, colTarifa = -1, colCups = -1;
+        for (var c = 0; c < fila.length; c++) {
+          var t = U.normalizar(String(fila[c] || ""));
+          if (colCodigo === -1 && t.indexOf("cod") !== -1) colCodigo = c;
+          if (colExamen === -1 && (t.indexOf("examen") !== -1 || t.indexOf("nombre") !== -1 || t.indexOf("descripcion") !== -1)) colExamen = c;
+          if (colTarifa === -1 && (t.indexOf("tarifa") !== -1 || t.indexOf("precio") !== -1 || t.indexOf("valor") !== -1)) colTarifa = c;
+          if (colCups === -1 && t.indexOf("cups") !== -1) colCups = c;
+        }
+        if (colCodigo !== -1 && colExamen !== -1 && colTarifa !== -1) return { fila: f, colCodigo: colCodigo, colExamen: colExamen, colTarifa: colTarifa, colCups: colCups };
+      }
+      return null;
+    }
+    function subirExcelReferencia(e) {
+      var file = e.target.files[0];
+      if (!file) return;
+      var nombreLab = (tenant.laboratorioReferenciaNombre || "").trim();
+      if (!nombreLab) { U.toast('Primero escribe y guarda el "Nombre del Laboratorio de Referencia" arriba.', "error"); e.target.value = ""; return; }
+      var reader = new FileReader();
+      reader.onload = function (ev) {
+        try {
+          var wb = XLSX.read(new Uint8Array(ev.target.result), { type: "array" });
+          var filasValidas = [];
+          wb.SheetNames.forEach(function (nombreHoja) {
+            var filas = XLSX.utils.sheet_to_json(wb.Sheets[nombreHoja], { header: 1, defval: "" });
+            var encabezado = ubicarEncabezadoReferencia(filas);
+            if (!encabezado) return;
+            for (var i = encabezado.fila + 1; i < filas.length; i++) {
+              var fila = filas[i];
+              var codigo = String(fila[encabezado.colCodigo] || "").trim();
+              var nombre = String(fila[encabezado.colExamen] || "").trim();
+              var celdaTarifa = fila[encabezado.colTarifa];
+              var tarifa = typeof celdaTarifa === "number" ? celdaTarifa : parseFloat(String(celdaTarifa).replace(/[^0-9,.\-]/g, "").replace(/\./g, "").replace(",", "."));
+              var cups = encabezado.colCups !== -1 ? String(fila[encabezado.colCups] || "").trim() : "";
+              if (!codigo || !nombre || isNaN(tarifa)) continue;
+              filasValidas.push({ codigoRef: codigo, nombre: nombre, cups: cups, precioCompra: tarifa });
+            }
+          });
+          if (!filasValidas.length) {
+            U.toast('No encontramos columnas de Código, Examen y Tarifa en el archivo. Descarga la plantilla para ver el formato esperado.', "error");
+            return;
+          }
+          S.cotizador.bulkUpsertExamenesReferencia(tenantId, nombreLab, filasValidas);
+          U.toast(filasValidas.length + " examen(es) de " + nombreLab + " cargados/actualizados.", "success");
+          cargar();
+        } catch (err) {
+          U.toast("No se pudo leer el archivo: " + err.message, "error");
+        }
+      };
+      reader.readAsArrayBuffer(file);
     }
 
     // ---------------------------------------------------------------------
