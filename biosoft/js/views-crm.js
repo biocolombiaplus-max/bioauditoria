@@ -160,7 +160,7 @@
         "</div>";
       document.getElementById("btn-new-crm").addEventListener("click", function () { openForm(null); });
       document.getElementById("btn-plantillas").addEventListener("click", abrirPlantillas);
-      document.getElementById("btn-propuesta").addEventListener("click", abrirGenerarPropuesta);
+      document.getElementById("btn-propuesta").addEventListener("click", function () { abrirGenerarPropuesta(); });
       var btnDif = document.getElementById("btn-difusion");
       if (btnDif) btnDif.addEventListener("click", abrirDifusion);
       root.querySelectorAll("[data-vista]").forEach(function (b) {
@@ -188,6 +188,7 @@
         "<td><div class='flex gap-2 wrap'>" +
         "<button class='btn btn-outline btn-sm' data-contrato='" + c.id + "'>" + U.icon("file") + " Contrato</button>" +
         "<button class='btn btn-outline btn-sm' data-recibo='" + c.id + "'>" + U.icon("file") + " Recibo</button>" +
+        "<button class='btn btn-outline btn-sm' data-propuesta-cliente='" + c.id + "'>📄 Propuesta</button>" +
         (c.estado !== "activo" ? "<button class='btn btn-primary btn-sm' data-pagado='" + c.id + "'>" + U.icon("check") + " Marcar Pagado</button>" : "") +
         (c.estado === "pagado" ? "<button class='btn btn-primary btn-sm' data-activar='" + c.id + "' title='La implementación ya quedó lista, empieza a cobrar la mensualidad'>" + U.icon("check") + " Activar Cobro Mensual</button>" : "") +
         (!c.tenantId
@@ -256,10 +257,14 @@
     // lead en el CRM, para poder responder rápido a "¿qué incluye cada
     // plan?" aunque la conversación todavía vaya por WhatsApp o sea alguien
     // que ni siquiera ha llenado el formulario público todavía.
-    function abrirGenerarPropuesta() {
+    function abrirGenerarPropuesta(clientePrefill) {
+      var conLeads = clientes.filter(function (c) { return c.contacto && c.contacto.nombre; });
       var wrap = U.openModal(
         '<h3 class="modal-title">📄 Generar Propuesta Comercial</h3>' +
-        '<p class="text-muted" style="margin-top:0">Solo el nombre y el correo — la propuesta lista TODO lo que incluye cada plan, lista para enviar por correo o WhatsApp.</p>' +
+        '<p class="text-muted" style="margin-top:0">La propuesta lista TODO lo que incluye BIOsoft, lista para enviar por correo o WhatsApp.</p>' +
+        (conLeads.length ? '<div class="field"><label>¿Ya es un cliente o lead? Selecciónalo para traer sus datos</label><select id="pp-cliente"><option value="">— Escribir datos nuevos —</option>' +
+          conLeads.map(function (c) { return '<option value="' + c.id + '" ' + (clientePrefill && clientePrefill.id === c.id ? "selected" : "") + '>' + U.esc((c.laboratorio && c.laboratorio.nombre) || c.contacto.nombre) + " — " + U.esc(c.contacto.nombre) + "</option>"; }).join("") +
+          "</select></div>" : "") +
         '<form id="propuesta-form"><div class="form-grid">' +
         '<div class="field"><label>Nombre *</label><input id="pp-nombre" required/></div>' +
         '<div class="field"><label>Correo *</label><input id="pp-correo" type="email" required/></div>' +
@@ -270,6 +275,22 @@
         '<button type="submit" class="btn btn-primary">' + U.icon("check") + " Generar Propuesta</button>" +
         "</div></form>"
       );
+      // Al elegir un cliente/lead ya existente, se rellenan sus datos de
+      // contacto de una vez — evita escribirlos de nuevo (y el riesgo de
+      // errores de digitación) para alguien que ya está en el CRM.
+      function rellenarDesde(cliente) {
+        if (!cliente) return;
+        wrap.querySelector("#pp-nombre").value = cliente.contacto.nombre || "";
+        wrap.querySelector("#pp-correo").value = cliente.contacto.correo || "";
+        wrap.querySelector("#pp-whatsapp").value = cliente.contacto.whatsapp || "";
+      }
+      var selCliente = wrap.querySelector("#pp-cliente");
+      if (selCliente) {
+        selCliente.addEventListener("change", function () {
+          rellenarDesde(conLeads.filter(function (c) { return c.id === selCliente.value; })[0]);
+        });
+      }
+      if (clientePrefill) rellenarDesde(clientePrefill);
       wrap.querySelector("#propuesta-form").addEventListener("submit", function (e) {
         e.preventDefault();
         var nombre = wrap.querySelector("#pp-nombre").value.trim();
@@ -366,6 +387,10 @@
         });
         var p = (c.estado === "nuevo" ? S.crm.update(c.id, { estado: "contrato_enviado" }) : Promise.resolve());
         p.then(function () { return agregarActividad(c, "contrato", "Contrato generado para enviar."); }).then(cargar);
+      }); });
+
+      root.querySelectorAll("[data-propuesta-cliente]").forEach(function (b) { b.addEventListener("click", function () {
+        abrirGenerarPropuesta(clientes.filter(function (x) { return x.id === b.dataset.propuestaCliente; })[0]);
       }); });
 
       root.querySelectorAll("[data-recibo]").forEach(function (b) { b.addEventListener("click", function () {

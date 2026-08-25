@@ -242,10 +242,15 @@
 
   // -----------------------------------------------------------------------
   // PROPUESTA COMERCIAL — solo con nombre y correo de un prospecto (aún sin
-  // laboratorio creado ni lead formal en el CRM), lista todo lo que incluye
-  // cada plan para poder enviarla por correo o WhatsApp de una vez, sin
-  // tener que armar el resumen a mano cada vez que alguien pregunta "¿qué
-  // incluye cada plan?" (pedido frecuente de los clientes).
+  // laboratorio creado ni lead formal en el CRM), lista TODO lo que incluye
+  // BIOsoft y los 4 planes vigentes (que solo varían en cuántos usuarios
+  // pueden usar el sistema al mismo tiempo — ver BIO_PLANES.PLANES_PROPUESTA
+  // en planes.js), para poder enviarla por correo o WhatsApp de una vez.
+  //
+  // IMPORTANTE: los textos que van dentro de doc.text()/autoTable aquí NUNCA
+  // deben usar ✓/★/≈ ni ningún carácter fuera de WinAnsi — las fuentes base
+  // de jsPDF (Helvetica) no las soportan y el texto sale cortado o corrupto
+  // (bug real reportado). Se usan "-", "·" y palabras en su lugar.
   // -----------------------------------------------------------------------
   function buildPropuestaPDF(datos) {
     var jsPDFCtor = window.jspdf ? window.jspdf.jsPDF : window.jsPDF;
@@ -253,8 +258,9 @@
     var pageW = doc.internal.pageSize.getWidth();
     var margin = 50;
     var maxW = pageW - margin * 2;
-    var PLANES = (window.BIO_PLANES && window.BIO_PLANES.PLANES) || [];
-    var IMPL = (window.BIO_PLANES && window.BIO_PLANES.IMPLEMENTACION) || { copFmt: "380.000", usd: 120 };
+    var PLANES = (window.BIO_PLANES && window.BIO_PLANES.PLANES_PROPUESTA) || [];
+    var ITEMS = (window.BIO_PLANES && window.BIO_PLANES.ITEMS_PROPUESTA) || [];
+    var PROMO = (window.BIO_PLANES && window.BIO_PLANES.PROMOCION_LANZAMIENTO_PROPUESTA) || { implementacionUsd: 120, equiposGratis: 5, costoPorEquipoUsd: 10 };
 
     var y = encabezado(doc, margin, "PROPUESTA COMERCIAL", fechaLarga(new Date()));
 
@@ -263,49 +269,92 @@
     }
     function parrafo(t, opts) {
       opts = opts || {};
-      doc.setFont("helvetica", opts.bold ? "bold" : "normal"); doc.setFontSize(opts.size || 9.5); doc.setTextColor.apply(doc, opts.color || [30, 30, 30]);
-      var lines = doc.splitTextToSize(t, maxW);
+      doc.setFont("helvetica", opts.bold ? "bold" : "normal"); doc.setFontSize(opts.size || 9.5); doc.setTextColor.apply(doc, opts.color || [40, 40, 40]);
+      var lines = doc.splitTextToSize(t, opts.maxW || maxW);
       checkPage(lines.length * (opts.lineH || 13) + 10);
       doc.text(lines, margin, y);
       y += lines.length * (opts.lineH || 13) + (opts.gap != null ? opts.gap : 12);
+      return lines.length;
+    }
+    // Encabezado de sección: barra de color a la izquierda + texto en
+    // versalitas, siempre el mismo patrón visual en toda la propuesta.
+    function tituloSeccion(t) {
+      checkPage(34);
+      doc.setFillColor(249, 115, 22); doc.rect(margin, y - 10, 3, 14, "F");
+      doc.setFont("helvetica", "bold"); doc.setFontSize(11); doc.setTextColor(46, 16, 101);
+      doc.text(t.toUpperCase(), margin + 10, y);
+      y += 18;
+    }
+    // Recuadro con borde y relleno suave: la altura se calcula ANTES de
+    // dibujar (a partir de las líneas ya partidas con splitTextToSize), así
+    // el texto nunca se sale ni se corta, sin importar cuánto mida.
+    function recuadro(titulo, lineasItems) {
+      doc.setFont("helvetica", "bold"); doc.setFontSize(10.5);
+      var tituloLines = doc.splitTextToSize(titulo, maxW - 24);
+      doc.setFont("helvetica", "normal"); doc.setFontSize(9.3);
+      var itemBlocks = lineasItems.map(function (it) { return doc.splitTextToSize("- " + it, maxW - 24); });
+      var alto = 16 + tituloLines.length * 14 + itemBlocks.reduce(function (s, l) { return s + l.length * 12.5 + 5; }, 0) + 12;
+      checkPage(alto + 10);
+      doc.setFillColor(255, 247, 237); doc.setDrawColor(249, 115, 22); doc.setLineWidth(1);
+      doc.roundedRect(margin, y, maxW, alto, 6, 6, "FD");
+      var iy = y + 18;
+      doc.setFont("helvetica", "bold"); doc.setFontSize(10.5); doc.setTextColor(180, 83, 9);
+      doc.text(tituloLines, margin + 12, iy); iy += tituloLines.length * 14 + 4;
+      doc.setFont("helvetica", "normal"); doc.setFontSize(9.3); doc.setTextColor(60, 45, 30);
+      itemBlocks.forEach(function (lines) { doc.text(lines, margin + 12, iy); iy += lines.length * 12.5 + 5; });
+      y += alto + 16;
     }
 
-    parrafo("Hola " + (datos.nombre || "").split(" ")[0] + ",", { bold: true, size: 11, gap: 4 });
+    parrafo("Hola " + (datos.nombre || "").split(" ")[0] + ",", { bold: true, size: 12, color: [20, 20, 20], gap: 5 });
     parrafo(
-      "Gracias por tu interés en " + PROVEEDOR.producto + ". Aquí tienes el detalle de cada plan disponible, para que elijas el que mejor se ajuste al tamaño y las necesidades de tu laboratorio. Todos los planes incluyen personalización con tu marca, capacitación y soporte."
+      "Gracias por tu interés en " + PROVEEDOR.producto + ". Esta propuesta reúne todo lo que incluye BIOsoft y los planes disponibles, para que elijas el que mejor se ajuste al tamaño de tu equipo — con la información completa y sin letra pequeña."
     );
 
-    PLANES.forEach(function (plan) {
-      checkPage(120);
-      doc.setFillColor(plan.destacado ? 249 : 245, plan.destacado ? 115 : 245, plan.destacado ? 22 : 245);
-      doc.roundedRect(margin, y, maxW, 22, 4, 4, "F");
-      doc.setFont("helvetica", "bold"); doc.setFontSize(11); doc.setTextColor(plan.destacado ? 255 : 30, plan.destacado ? 255 : 30, plan.destacado ? 255 : 30);
-      doc.text("Plan " + plan.nombre + (plan.destacado ? "  ★ Más elegido" : ""), margin + 10, y + 15);
-      doc.setFont("helvetica", "bold"); doc.setFontSize(11);
-      doc.text("$" + plan.precioFmt + " COP/mes (≈$" + plan.usd + " USD)", pageW - margin - 10, y + 15, { align: "right" });
-      y += 30;
-      doc.setFont("helvetica", "normal"); doc.setFontSize(9); doc.setTextColor(90, 90, 90);
-      doc.text(plan.usuarios, margin, y); y += 14;
-      doc.setTextColor(30, 30, 30);
-      plan.items.forEach(function (it) {
-        var lines = doc.splitTextToSize("✓ " + it, maxW - 8);
-        checkPage(lines.length * 12 + 4);
-        doc.text(lines, margin + 6, y);
-        y += lines.length * 12 + 3;
-      });
-      y += 16;
+    recuadro("Oferta de lanzamiento — gratis al aceptar esta propuesta hoy", [
+      "Implementación, adaptación del catálogo y capacitación virtual a la medida de tu laboratorio: normalmente $" + PROMO.implementacionUsd + " USD, HOY sin ningún costo.",
+      "Conexión de hasta " + PROMO.equiposGratis + " equipos de laboratorio por interfaz (LIS): normalmente $" + PROMO.costoPorEquipoUsd + " USD/mes por equipo, HOY sin ningún costo."
+    ]);
+
+    tituloSeccion("Todo lo que incluye tu BIOsoft");
+    parrafo("Los 4 planes de abajo incluyen exactamente esto, sin excepciones ni módulos aparte. Lo único que cambia entre un plan y otro es cuántas personas pueden usar el sistema al mismo tiempo.", { size: 9, color: [90, 90, 90], gap: 10 });
+    var mitad = Math.ceil(ITEMS.length / 2);
+    var filas = [];
+    for (var i = 0; i < mitad; i++) {
+      filas.push(["- " + ITEMS[i], ITEMS[mitad + i] ? "- " + ITEMS[mitad + i] : ""]);
+    }
+    checkPage(filas.length * 16 + 20);
+    doc.autoTable({
+      startY: y, margin: { left: margin, right: margin },
+      body: filas, theme: "plain",
+      styles: { fontSize: 9.3, textColor: [40, 40, 40], cellPadding: { top: 2.5, bottom: 2.5, left: 0, right: 10 } },
+      columnStyles: { 0: { cellWidth: maxW / 2 }, 1: { cellWidth: maxW / 2 } }
     });
+    y = doc.lastAutoTable.finalY + 18;
 
-    checkPage(80);
-    parrafo("Costo único de implementación: $" + IMPL.copFmt + " COP (≈$" + IMPL.usd + " USD)", { bold: true });
-    parrafo(
-      "Este pago cubre la configuración inicial completa de tu BIOsoft (catálogo de exámenes, valores de referencia, logo y colores, firmas digitales) y se puede fraccionar en cuotas — pregúntanos por las opciones disponibles. La mensualidad del plan elegido inicia una vez tu sistema esté funcionando."
-    );
+    tituloSeccion("Elige tu plan según tu equipo");
+    checkPage(120);
+    doc.autoTable({
+      startY: y, margin: { left: margin, right: margin },
+      head: [["Plan", "Usuarios simultáneos", "Mensualidad"]],
+      body: PLANES.map(function (p) {
+        return [p.nombre + (p.destacado ? " (recomendado)" : ""), p.usuarios, "$" + p.precioFmt + " COP/mes\n(aprox. $" + p.usd + " USD)"];
+      }),
+      theme: "grid",
+      styles: { fontSize: 9.5, cellPadding: 8, valign: "middle" },
+      headStyles: { fillColor: [46, 16, 101], textColor: 255, fontStyle: "bold" },
+      columnStyles: { 2: { fontStyle: "bold", halign: "right" } },
+      didParseCell: function (data) {
+        if (data.section === "body" && PLANES[data.row.index] && PLANES[data.row.index].destacado) {
+          data.cell.styles.fillColor = [255, 247, 237];
+        }
+      }
+    });
+    y = doc.lastAutoTable.finalY + 16;
 
     checkPage(60);
     parrafo(
-      "¿Tienes dudas o quieres ver el software en acción? Escríbenos por WhatsApp al +" + PROVEEDOR.whatsapp + " o respóndenos a " + PROVEEDOR.correo + " y con gusto te ayudamos a elegir el plan ideal.",
-      { bold: true }
+      "¿Tienes dudas o quieres ver el software en acción antes de decidir? Escríbenos por WhatsApp al +" + PROVEEDOR.whatsapp + " o respóndenos a " + PROVEEDOR.correo + " y con gusto te acompañamos a elegir el plan ideal para tu laboratorio.",
+      { bold: true, color: [20, 20, 20] }
     );
 
     piePagina(doc, margin);

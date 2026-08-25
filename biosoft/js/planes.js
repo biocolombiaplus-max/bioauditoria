@@ -72,10 +72,48 @@
     return Math.round((corte - hoy) / 86400000);
   }
 
+  // ---------------------------------------------------------------------
+  // Planes y oferta de lanzamiento para la Propuesta Comercial del CRM
+  // (ver "📄 Generar Propuesta" en Clientes/CRM). Es un catálogo APARTE de
+  // PLANES (el que usan la landing pública, activar.html y los contratos ya
+  // firmados) a propósito: refleja la política de precios vigente hoy —
+  // los 4 planes incluyen exactamente lo mismo, la única diferencia es
+  // cuántos usuarios pueden usar el sistema al mismo tiempo — sin tocar
+  // ningún cobro o contrato que ya esté en producción con la estructura
+  // anterior. Cuando se decida unificarlos, se hace aparte y con cuidado
+  // (afecta la landing pública y el registro de nuevos clientes).
+  // ---------------------------------------------------------------------
+  var ITEMS_PROPUESTA = [
+    "Pacientes y órdenes de laboratorio sin ningún límite ni tope",
+    "Módulos con inteligencia artificial integrados",
+    "Resultados, validación y trazabilidad clínica completa",
+    "Firma digital de cada bacteriólogo(a) / bioanalista",
+    "Informes en PDF 100% personalizados con tu marca",
+    "Envío automático de resultados por correo y WhatsApp",
+    "Hojas de trabajo diarias y stickers de rotulado de muestras",
+    "Gestión de exámenes remitidos a otros laboratorios",
+    "Valores de referencia personalizables por examen",
+    "Cotizador, control de calidad y marketing digital",
+    "Trazabilidad y auditoría avanzada de todo el laboratorio",
+    "Soporte postventa las 24 horas, todos los días"
+  ];
+  var PLANES_PROPUESTA = [
+    { id: "individual", nombre: "Individual", usuarios: "1 usuario simultáneo", usd: 45, precioFmt: "120.000" },
+    { id: "equipo", nombre: "Equipo", usuarios: "2 a 5 usuarios simultáneos", usd: 60, precioFmt: "180.000", destacado: true },
+    { id: "avanzado", nombre: "Avanzado", usuarios: "6 a 10 usuarios simultáneos", usd: 80, precioFmt: "250.000" },
+    { id: "corporativo", nombre: "Corporativo", usuarios: "Más de 10 usuarios simultáneos", usd: 99, precioFmt: "320.000" }
+  ];
+  var PROMOCION_LANZAMIENTO_PROPUESTA = {
+    implementacionUsd: 120,
+    equiposGratis: 5,
+    costoPorEquipoUsd: 10
+  };
+
   global.BIO_PLANES = {
     IMPLEMENTACION: IMPLEMENTACION, PLANES: PLANES, TARJETAS_TXT: TARJETAS_TXT, porId: porId,
     INTERFAZ_EQUIPOS: INTERFAZ_EQUIPOS,
     ESTADOS_CUENTA: ESTADOS_CUENTA, DIAS_AVISO_VENCIMIENTO: DIAS_AVISO_VENCIMIENTO, estadoCuenta: estadoCuenta,
-    DIAS_PRUEBA_GRATIS: DIAS_PRUEBA_GRATIS, diasRestantes: diasRestantes
+    DIAS_PRUEBA_GRATIS: DIAS_PRUEBA_GRATIS, diasRestantes: diasRestantes,
+    ITEMS_PROPUESTA: ITEMS_PROPUESTA, PLANES_PROPUESTA: PLANES_PROPUESTA, PROMOCION_LANZAMIENTO_PROPUESTA: PROMOCION_LANZAMIENTO_PROPUESTA
   };
 })(window);
