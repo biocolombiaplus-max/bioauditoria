@@ -138,24 +138,23 @@
 
     if (tenant.logoGrandeReporte) {
       // Membrete centrado (activado en Configuración → "Diseño del Reporte
-      // de Resultados", pedido puntual de un cliente): el logo va justo al
-      // inicio del nombre del laboratorio, los dos en la misma línea y
-      // centrados juntos como un solo bloque — a toda opacidad, como un
-      // membrete impreso — en vez de apilar el logo grande arriba y el
-      // nombre debajo, que ocupaba mucho más alto de página.
+      // de Resultados", pedido puntual de un cliente): el logo centrado
+      // arriba y, justo debajo, el nombre del laboratorio también
+      // centrado — cada elemento se centra con su propio ancho conocido
+      // (la imagen) o con el centrado nativo de jsPDF (el texto, vía
+      // align:"center"), en vez de calcular a mano dónde empieza el
+      // nombre según el ancho medido del logo — ese cálculo manual es lo
+      // que se veía mal (el nombre quedaba lejos del logo y se desalineaba
+      // con el resto del membrete).
       var cx = pageW / 2;
-      var logoInlineSize = 62;
-      var gapLogoNombre = 12;
-      doc.setFont("helvetica", "bold"); doc.setFontSize(17); doc.setTextColor(rgb[0], rgb[1], rgb[2]);
-      var nombreW = doc.getTextWidth ? doc.getTextWidth(tenant.nombre) : tenant.nombre.length * 8.5;
-      var bloqueW = (tenant.logoDataUrl ? logoInlineSize + gapLogoNombre : 0) + nombreW;
-      var startX = cx - bloqueW / 2;
+      var logoCentradoSize = 76;
       if (tenant.logoDataUrl) {
-        try { doc.addImage(tenant.logoDataUrl, "PNG", startX, y - 4, logoInlineSize, logoInlineSize); } catch (e) {}
+        try { doc.addImage(tenant.logoDataUrl, "PNG", cx - logoCentradoSize / 2, y - 4, logoCentradoSize, logoCentradoSize); } catch (e) {}
       }
-      var nombreX = startX + (tenant.logoDataUrl ? logoInlineSize + gapLogoNombre : 0);
-      doc.text(tenant.nombre, nombreX, y + logoInlineSize / 2 + 6);
-      y += logoInlineSize + 10;
+      y += logoCentradoSize + 12;
+      doc.setFont("helvetica", "bold"); doc.setFontSize(16); doc.setTextColor(rgb[0], rgb[1], rgb[2]);
+      doc.text(tenant.nombre, cx, y, { align: "center" });
+      y += 15;
       if (tenant.slogan) {
         doc.setFont("helvetica", "italic"); doc.setFontSize(10.5); doc.setTextColor(rgb[0], rgb[1], rgb[2]);
         doc.text(tenant.slogan, cx, y, { align: "center" });
