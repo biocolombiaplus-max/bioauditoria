@@ -129,63 +129,64 @@
     var ROW_H = 17, HEAD_H = 22;
     var rgb = hexToRgb(tenant.colorPrimario);
 
-    // Marca de agua opcional (solo para laboratorios que la activen en
-    // Configuración → "Diseño del Reporte de Resultados"): el logo grande,
-    // tenue y centrado, de fondo en CADA página, sin taparle los resultados
-    // a nadie. Se dibuja ANTES que cualquier otro contenido de la página
-    // (por eso queda detrás) y se suscribe al evento "addPage" de jsPDF
-    // para que también salga en las páginas siguientes de un informe largo,
-    // sin tener que tocar cada uno de los puntos del código donde se agrega
-    // una página nueva.
-    if (tenant.logoGrandeReporte && tenant.logoDataUrl) {
-      var dibujarMarcaAguaLogo = function () {
-        try {
-          var wmSize = Math.min(pageW, pageH) * 0.62;
-          var wmX = (pageW - wmSize) / 2;
-          var wmY = (pageH - wmSize) / 2;
-          if (doc.GState && doc.setGState) {
-            doc.saveGraphicsState();
-            doc.setGState(new doc.GState({ opacity: 0.07 }));
-            doc.addImage(tenant.logoDataUrl, "PNG", wmX, wmY, wmSize, wmSize);
-            doc.restoreGraphicsState();
-          } else {
-            doc.addImage(tenant.logoDataUrl, "PNG", wmX, wmY, wmSize, wmSize);
-          }
-        } catch (e) {}
-      };
-      dibujarMarcaAguaLogo();
-      if (doc.internal && doc.internal.events) doc.internal.events.subscribe("addPage", dibujarMarcaAguaLogo);
-    }
-
-    // El logo sale bien grande (100pt — subió de 46 a 62, a 84 y ahora a
-    // 100) para aprovechar el espacio en blanco que quedaba debajo suyo en
-    // el encabezado y que resalte con fuerza incluso impreso en papel. El
-    // nombre y los datos del laboratorio se recorren proporcionalmente para
-    // que el encabezado se vea equilibrado.
-    var logoSize = 100;
-    if (tenant.logoDataUrl) {
-      try { doc.addImage(tenant.logoDataUrl, "PNG", margin, y - 9, logoSize, logoSize); } catch (e) {}
-    }
-    var textX = margin + (tenant.logoDataUrl ? logoSize + 14 : 0);
-    doc.setFont("helvetica", "bold"); doc.setFontSize(15); doc.setTextColor(rgb[0], rgb[1], rgb[2]);
-    doc.text(tenant.nombre, textX, y + 12);
-    var metaStartOffset = 25;
-    if (tenant.slogan) {
-      doc.setFont("helvetica", "italic"); doc.setFontSize(9); doc.setTextColor(rgb[0], rgb[1], rgb[2]);
-      doc.text(tenant.slogan, textX, y + 23);
-      metaStartOffset = 35;
-    }
-    doc.setFont("helvetica", "normal"); doc.setFontSize(8.5); doc.setTextColor(90, 90, 90);
     var metaLines = [
       C.documentoTributarioLabel(tenant.pais) + " " + tenant.nit + (tenant.codigoREPS ? " · Código REPS " + tenant.codigoREPS : ""),
       tenant.direccion + " · " + tenant.telefonos,
       tenant.email + (tenant.sitioWeb ? " · " + tenant.sitioWeb : ""),
       tenant.resolucionHabilitacion || ""
     ];
-    metaLines.forEach(function (line, i) { doc.text(line, textX, y + metaStartOffset + i * 10); });
 
-    doc.setDrawColor(rgb[0], rgb[1], rgb[2]); doc.setLineWidth(2);
-    y += tenant.slogan ? 106 : 96; doc.line(margin, y, pageW - margin, y); y += 20;
+    if (tenant.logoGrandeReporte) {
+      // Membrete grande y centrado (activado en Configuración →
+      // "Diseño del Reporte de Resultados", pedido puntual de un cliente):
+      // en vez del logo chico a la izquierda, el logo sale grande y
+      // centrado arriba de la página, con el nombre del laboratorio
+      // también centrado debajo — a toda opacidad, como un membrete
+      // impreso, no como marca de agua.
+      var logoGrandeSize = 130;
+      var cx = pageW / 2;
+      if (tenant.logoDataUrl) {
+        try { doc.addImage(tenant.logoDataUrl, "PNG", cx - logoGrandeSize / 2, y - 4, logoGrandeSize, logoGrandeSize); } catch (e) {}
+      }
+      y += logoGrandeSize + 12;
+      doc.setFont("helvetica", "bold"); doc.setFontSize(19); doc.setTextColor(rgb[0], rgb[1], rgb[2]);
+      doc.text(tenant.nombre, cx, y, { align: "center" });
+      y += 16;
+      if (tenant.slogan) {
+        doc.setFont("helvetica", "italic"); doc.setFontSize(10.5); doc.setTextColor(rgb[0], rgb[1], rgb[2]);
+        doc.text(tenant.slogan, cx, y, { align: "center" });
+        y += 15;
+      }
+      doc.setFont("helvetica", "normal"); doc.setFontSize(8.5); doc.setTextColor(90, 90, 90);
+      metaLines.forEach(function (line, i) { doc.text(line, cx, y + i * 10, { align: "center" }); });
+      y += metaLines.length * 10 + 14;
+      doc.setDrawColor(rgb[0], rgb[1], rgb[2]); doc.setLineWidth(2);
+      doc.line(margin, y, pageW - margin, y); y += 20;
+    } else {
+      // El logo sale bien grande (100pt — subió de 46 a 62, a 84 y ahora a
+      // 100) para aprovechar el espacio en blanco que quedaba debajo suyo en
+      // el encabezado y que resalte con fuerza incluso impreso en papel. El
+      // nombre y los datos del laboratorio se recorren proporcionalmente para
+      // que el encabezado se vea equilibrado.
+      var logoSize = 100;
+      if (tenant.logoDataUrl) {
+        try { doc.addImage(tenant.logoDataUrl, "PNG", margin, y - 9, logoSize, logoSize); } catch (e) {}
+      }
+      var textX = margin + (tenant.logoDataUrl ? logoSize + 14 : 0);
+      doc.setFont("helvetica", "bold"); doc.setFontSize(15); doc.setTextColor(rgb[0], rgb[1], rgb[2]);
+      doc.text(tenant.nombre, textX, y + 12);
+      var metaStartOffset = 25;
+      if (tenant.slogan) {
+        doc.setFont("helvetica", "italic"); doc.setFontSize(9); doc.setTextColor(rgb[0], rgb[1], rgb[2]);
+        doc.text(tenant.slogan, textX, y + 23);
+        metaStartOffset = 35;
+      }
+      doc.setFont("helvetica", "normal"); doc.setFontSize(8.5); doc.setTextColor(90, 90, 90);
+      metaLines.forEach(function (line, i) { doc.text(line, textX, y + metaStartOffset + i * 10); });
+
+      doc.setDrawColor(rgb[0], rgb[1], rgb[2]); doc.setLineWidth(2);
+      y += tenant.slogan ? 106 : 96; doc.line(margin, y, pageW - margin, y); y += 20;
+    }
 
     doc.setFont("helvetica", "bold"); doc.setFontSize(13); doc.setTextColor(20, 20, 20);
     doc.text("INFORME DE RESULTADOS DE LABORATORIO CLÍNICO", margin, y);

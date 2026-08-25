@@ -34,7 +34,7 @@
       pasos: [
         "Ve a “Configuración del Laboratorio” y completa Identidad y Datos: nombre, eslogan (aparece bajo el nombre en el encabezado de los informes de resultados), NIT/RIF/RUC, país, dirección, teléfonos, correo, sitio web, resolución de habilitación, código REPS y nivel de complejidad.",
         "Sube tu logo y elige los colores institucionales (primario, secundario, texto del menú, títulos y subtítulos) — se aplican de inmediato a toda la app y a los PDF que genera el sistema.",
-        "En “Diseño del Reporte de Resultados” puedes activar que tu logo aparezca grande, tenue y centrado de fondo en cada página del informe (marca de agua), y definir un pie de página propio (ej. tu promesa de calidad) que aparece justo antes de la firma en cada informe.",
+        "En “Diseño del Reporte de Resultados” puedes activar que tu logo salga grande y centrado en el encabezado del informe (como un membrete, en vez del logo chico a la izquierda), y definir un pie de página propio (ej. tu promesa de calidad) que aparece justo antes de la firma en cada informe.",
         "Define la clave de administrador: se pedirá cada vez que un bacteriólogo necesite corregir un resultado ya validado, para mantener la trazabilidad.",
         "Ve a “Usuarios del Laboratorio” y haz clic en “Nuevo Usuario” para crear el acceso de cada persona de tu equipo: nombre, usuario, contraseña y rol (Administrador, Bacteriólogo o Recepción).",
         "Para cada Bacteriólogo(a), asígnale las secciones que puede capturar y validar (Hematología, Química Sanguínea, etc.) y carga su firma digital — aparecerá en los informes que valide.",
