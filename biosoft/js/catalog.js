@@ -12,9 +12,9 @@
      mismo rol dentro de BIOsoft (que internamente sigue usando "bacteriologo"
      y "recepcion" como identificadores fijos, solo cambia la etiqueta visible). */
   var ROL_LABEL_POR_PAIS = {
-    CO: { admin: "Administrador", bacteriologo: "Bacteriólogo(a)", recepcion: "Auxiliar de Laboratorio" },
-    VE: { admin: "Administrador", bacteriologo: "Bioanalista", recepcion: "Asistente de Laboratorio" },
-    EC: { admin: "Administrador", bacteriologo: "Técnico(a) de Laboratorio", recepcion: "Asistente de Laboratorio" }
+    CO: { admin: "Administrador", bacteriologo: "Bacteriólogo(a)", recepcion: "Auxiliar de Laboratorio", aliado: "Aliado / Convenio (solo consulta)" },
+    VE: { admin: "Administrador", bacteriologo: "Bioanalista", recepcion: "Asistente de Laboratorio", aliado: "Aliado / Convenio (solo consulta)" },
+    EC: { admin: "Administrador", bacteriologo: "Técnico(a) de Laboratorio", recepcion: "Asistente de Laboratorio", aliado: "Aliado / Convenio (solo consulta)" }
   };
   function rolLabel(rol, pais) {
     var mapa = ROL_LABEL_POR_PAIS[pais] || ROL_LABEL_POR_PAIS.CO;

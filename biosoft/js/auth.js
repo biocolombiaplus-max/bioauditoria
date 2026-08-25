@@ -34,7 +34,8 @@
       userId: user.id, username: user.username, nombre: user.nombre, rol: user.rol, tenantId: user.tenantId,
       secciones: user.secciones || [], fotoUrl: user.fotoUrl || "", iniciadoEn: BIO_STORE.nowISO(), real: !!esReal,
       puedeGestionarRemisiones: !!user.puedeGestionarRemisiones,
-      permisosExtra: user.permisosExtra || []
+      permisosExtra: user.permisosExtra || [],
+      convenioId: user.convenioId || ""
     };
   }
 
@@ -96,7 +97,9 @@
   function rehydrate() {
     var s = getSession();
     if (!s || !s.real) return Promise.resolve(true);
-    var restaurar = s.rol === "superadmin" ? BIO_STORE.restoreSuperadminSession() : BIO_STORE.restoreRealtime(s.tenantId);
+    var restaurar = s.rol === "superadmin" ? BIO_STORE.restoreSuperadminSession()
+      : s.rol === "aliado" ? BIO_STORE.restoreRealtimePortalAliado(s.tenantId, s.convenioId)
+      : BIO_STORE.restoreRealtime(s.tenantId);
     return restaurar.then(function () {
       if (s.rol !== "superadmin") {
         var tenant = BIO_STORE.getTenant(s.tenantId);

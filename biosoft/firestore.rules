@@ -8,11 +8,21 @@ service cloud.firestore {
     function perfil() {
       return get(/databases/$(database)/documents/userProfiles/$(request.auth.uid)).data;
     }
+    // Un "aliado" (usuario de solo consulta de un convenio/empresa — ver
+    // rol "aliado" en catalog.js/router.js) NUNCA debe tener el acceso
+    // amplio de un miembro normal del laboratorio: por eso queda excluido
+    // aquí a propósito, aunque su perfil sí apunte al mismo tenantId. Su
+    // único acceso de lectura son las reglas puntuales que lo mencionan más
+    // abajo (tenants, su propio documento en users, y orders filtradas por
+    // su convenio) — nunca escritura de nada.
     function esDeEsteLab(tenantId) {
-      return autenticado() && perfil().tenantId == tenantId;
+      return autenticado() && perfil().tenantId == tenantId && perfil().rol != "aliado";
     }
     function esSuperadmin() {
       return autenticado() && perfil().rol == "superadmin";
+    }
+    function esAliado(tenantId) {
+      return autenticado() && perfil().tenantId == tenantId && perfil().rol == "aliado";
     }
 
     // Cada usuario autenticado solo puede leer SU PROPIO perfil (para saber a
@@ -67,7 +77,9 @@ service cloud.firestore {
     match /tenants/{tenantId} {
       // El superadmin necesita ver TODOS los laboratorios (panel "Laboratorios
       // Cliente"), no solo el propio — de ahí el esSuperadmin() en la lectura.
-      allow read: if esDeEsteLab(tenantId) || esSuperadmin();
+      // Un aliado también puede leer el documento del tenant (nombre/logo
+      // para el encabezado de su portal), pero nada más de esta colección.
+      allow read: if esDeEsteLab(tenantId) || esSuperadmin() || esAliado(tenantId);
       // El superadmin también puede actualizar (asignar/cambiar el plan y el
       // límite de usuarios de cada laboratorio desde el panel de socios).
       allow update: if esDeEsteLab(tenantId) || esSuperadmin();
@@ -77,13 +89,24 @@ service cloud.firestore {
       allow delete: if false;
 
       match /users/{userId} {
-        allow read: if esDeEsteLab(tenantId) || esSuperadmin();
+        // Un aliado solo puede leer SU PROPIO documento de usuario (para
+        // saber a qué convenio quedó asignado al iniciar sesión) — nunca la
+        // lista completa de usuarios del laboratorio.
+        allow read: if esDeEsteLab(tenantId) || esSuperadmin() || (esAliado(tenantId) && userId == request.auth.uid);
+        // El aprovisionamiento de CUALQUIER usuario real (ver
+        // provisionRealAccount en store.js) crea este documento autenticado
+        // como el usuario recién creado (no como quien lo está registrando),
+        // así que un aliado necesita poder crear UNA VEZ su propio
+        // documento — pero nunca actualizarlo después (para que no pueda
+        // cambiarse a sí mismo el convenioId y leer resultados de un
+        // convenio que no es el suyo).
+        allow create: if esDeEsteLab(tenantId) || (esAliado(tenantId) && userId == request.auth.uid);
         // El superadmin del panel de socios ("Restablecer Administrador")
         // solo puede tocar el campo "rol" de un usuario ya existente (para
         // darle también el rol de Administrador cuando el laboratorio se
         // quedó sin ninguno) — no puede cambiar su contraseña, firma,
         // secciones ni ningún otro dato del usuario.
-        allow write: if esDeEsteLab(tenantId) ||
+        allow update, delete: if esDeEsteLab(tenantId) ||
           (esSuperadmin() && request.resource.data.diff(resource.data).affectedKeys().hasOnly(["rol"]));
       }
       match /patients/{patientId} {
@@ -110,7 +133,11 @@ service cloud.firestore {
         );
       }
       match /orders/{orderId} {
-        allow read: if esDeEsteLab(tenantId) || esSuperadmin();
+        // Un aliado solo puede leer las órdenes de SU convenio (comparando
+        // resource.data.convenioId, el campo que views-orders.js graba en
+        // cada orden) — nunca las de otro convenio ni las de un paciente
+        // particular. Nunca puede escribir (no aparece en create/update).
+        allow read: if esDeEsteLab(tenantId) || esSuperadmin() || (esAliado(tenantId) && perfil().convenioId == resource.data.convenioId);
         allow create: if esDeEsteLab(tenantId) && (
           !esRecepcion() || !request.resource.data.examenes.exists(e, e.estado in ["validado", "remitido"])
         );
@@ -120,10 +147,16 @@ service cloud.firestore {
         allow delete: if esDeEsteLab(tenantId);
       }
       match /auditLog/{logId} {
-        // El superadmin también puede AGREGAR una entrada (nunca editar ni
-        // borrar) — por ejemplo, al dejar registro de que restableció el
-        // acceso de un laboratorio desde el panel de socios.
-        allow read, create: if esDeEsteLab(tenantId) || esSuperadmin();
+        // Un aliado nunca debe poder LEER la trazabilidad del laboratorio
+        // (acciones de todo el personal), así que aquí se queda fuera a
+        // propósito — pero sí necesita poder CREAR la única entrada que se
+        // escribe al aprovisionar su propia cuenta (ver provisionRealAccount
+        // en store.js, que la escribe autenticado como el usuario recién
+        // creado). El superadmin también puede AGREGAR una entrada (nunca
+        // editar ni borrar) — por ejemplo, al dejar registro de que
+        // restableció el acceso de un laboratorio desde el panel de socios.
+        allow read: if esDeEsteLab(tenantId) || esSuperadmin();
+        allow create: if esDeEsteLab(tenantId) || esSuperadmin() || esAliado(tenantId);
         allow update, delete: if false;
       }
       match /qcControles/{controlId} {

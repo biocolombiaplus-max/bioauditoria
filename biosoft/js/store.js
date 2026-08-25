@@ -108,6 +108,52 @@
     ]).then(function () { return realCache; });
   }
 
+  /* Espejo en memoria MUY reducido para el "Portal de Aliado" (usuario de
+     solo consulta de un convenio/empresa aliada — ver PERMISOS_EXTRA... no,
+     ver rol "aliado" en catalog.js/router.js). A diferencia de
+     initRealtime(), que sincroniza TODAS las colecciones del laboratorio
+     (porque cualquier otro rol de la app filtra lo que ve solo del lado del
+     cliente, con el mismo acceso de Firestore de fondo), un aliado NUNCA
+     debe poder leer pacientes, otras órdenes, usuarios, inventario, etc. —
+     por eso aquí solo se suscribe al documento del tenant (para el
+     encabezado con nombre/logo) y a las órdenes filtradas por su propio
+     convenioId, con una consulta con where() que coincide exactamente con lo
+     que permiten las reglas de Firestore (ver esAliado()/esAliadoDelConvenio
+     en firestore.rules). Los datos del paciente que necesita el PDF de
+     resultado van tomados del snapshot que ya viaja dentro de cada orden
+     (order.pacienteSnap), nunca de la colección patients. */
+  function initRealtimePortalAliado(tenantId, convenioId) {
+    MODE = "real";
+    FB_TENANT_ID = tenantId;
+    realCache = emptyDB();
+    var db = global.BIO_FB.db;
+
+    var tenantPromise = db.collection("tenants").doc(tenantId).get().then(function (doc) {
+      if (doc.exists) realCache.tenants[tenantId] = doc.data();
+      var unsub = db.collection("tenants").doc(tenantId).onSnapshot(function (doc) {
+        if (doc.exists) realCache.tenants[tenantId] = doc.data();
+        if (onRealtimeChangeCb) onRealtimeChangeCb();
+      });
+      realUnsubs.push(unsub);
+    });
+
+    var ordersQuery = fbColl("orders").where("convenioId", "==", convenioId);
+    var ordersPromise = ordersQuery.get().then(function (snap) {
+      snap.forEach(function (doc) { realCache.orders.push(doc.data()); });
+      var unsub = ordersQuery.onSnapshot(function (snap) {
+        snap.docChanges().forEach(function (change) {
+          if (change.type === "removed") { realCache.orders = realCache.orders.filter(function (x) { return x.id !== change.doc.id; }); return; }
+          var idx = realCache.orders.findIndex(function (x) { return x.id === change.doc.id; });
+          if (idx >= 0) realCache.orders[idx] = change.doc.data(); else realCache.orders.push(change.doc.data());
+        });
+        if (onRealtimeChangeCb) onRealtimeChangeCb();
+      });
+      realUnsubs.push(unsub);
+    });
+
+    return Promise.all([tenantPromise, ordersPromise]).then(function () { return realCache; });
+  }
+
   function stopRealtime() {
     realUnsubs.forEach(function (u) { try { u(); } catch (e) {} });
     realUnsubs = [];
@@ -170,6 +216,21 @@
         if (perfil.rol === "superadmin") {
           MODE = "real"; // habilita fbWrite/onSnapshot para el CRM sin tenant asociado
           return { id: uidAuth, username: email, nombre: perfil.nombre || "Soporte BIOsoft", rol: "superadmin", tenantId: null, secciones: [] };
+        }
+        // Un aliado (usuario de solo consulta de un convenio/empresa) nunca
+        // pasa por initRealtime(): esa función sincroniza todas las
+        // colecciones del laboratorio, y las reglas de Firestore ya NO se
+        // lo permiten a este rol a propósito (ver esDeEsteLab() en
+        // firestore.rules). Se lee su propio documento de usuario (permitido
+        // por regla, es lectura de su propio id) para saber a qué convenio
+        // quedó asignado, y de ahí se arma un espejo mínimo con
+        // initRealtimePortalAliado().
+        if (perfil.rol === "aliado") {
+          return db.collection("tenants").doc(perfil.tenantId).collection("users").doc(uidAuth).get().then(function (userDoc) {
+            if (!userDoc.exists) throw new Error("Tu cuenta de acceso existe pero no aparece como usuario de tu laboratorio en el sistema. Contacta a soporte de BIOsoft para que reparen tu perfil.");
+            var aliadoUser = userDoc.data();
+            return initRealtimePortalAliado(perfil.tenantId, aliadoUser.convenioId).then(function () { return aliadoUser; });
+          });
         }
         return initRealtime(perfil.tenantId).then(function () {
           var user = realCache.users.filter(function (u) { return u.id === uidAuth; })[0];
@@ -396,6 +457,12 @@
     return waitForAuthReady().then(function (user) {
       if (!user) throw new Error("La sesión de Firebase expiró.");
       return initRealtime(tenantId);
+    });
+  }
+  function restoreRealtimePortalAliado(tenantId, convenioId) {
+    return waitForAuthReady().then(function (user) {
+      if (!user) throw new Error("La sesión de Firebase expiró.");
+      return initRealtimePortalAliado(tenantId, convenioId);
     });
   }
   /* Igual que restoreRealtime, pero para el superadmin (que no tiene tenant):
@@ -1451,6 +1518,7 @@
     loginReal: loginReal,
     logoutReal: logoutReal,
     restoreRealtime: restoreRealtime,
+    restoreRealtimePortalAliado: restoreRealtimePortalAliado,
     restoreSuperadminSession: restoreSuperadminSession,
     crm: { list: crmList, watch: crmWatch, create: crmCreate, update: crmUpdate },
     tenantsGlobal: {

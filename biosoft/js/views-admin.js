@@ -47,6 +47,17 @@
         S.addAudit(session.tenantId, session.nombre, session.rol, "TOGGLE_USER", "usuario", u.id, (u.activo ? "Desactivó" : "Activó") + " al usuario " + u.nombre + ".");
         build();
       }); });
+
+      // Llega aquí desde el botón "🔑 Acceso de Aliado" de una tarjeta de
+      // convenio (Cotizaciones → 🤝 Convenios): abre directo el formulario
+      // de Nuevo Usuario con el rol y el convenio ya preseleccionados, para
+      // no obligar al admin a repetir la búsqueda del convenio.
+      var convenioPrefill;
+      try { convenioPrefill = sessionStorage.getItem("bio_prefill_aliado_convenio"); } catch (e) { convenioPrefill = null; }
+      if (convenioPrefill) {
+        try { sessionStorage.removeItem("bio_prefill_aliado_convenio"); } catch (e) {}
+        openForm(null, convenioPrefill);
+      }
     }
 
     function abrirLimiteAlcanzado(limite, tenant) {
@@ -61,8 +72,9 @@
 
     function rowHtml(u) {
       var contacto = [u.numeroDocumento ? "Doc. " + u.numeroDocumento : "", u.telefonoContacto || "", u.correoContacto || ""].filter(Boolean).join(" · ");
+      var convenioDelAliado = u.rol === "aliado" && u.convenioId ? S.cotizador.listConvenios(tenant.id).filter(function (c) { return c.id === u.convenioId; })[0] : null;
       return "<tr><td><b>" + U.esc(u.nombre) + "</b>" + (contacto ? "<div class='text-muted' style='font-size:11px'>" + U.esc(contacto) + "</div>" : "") + "</td><td>" + U.esc(u.username) + "</td><td>" + U.esc(C.rolLabel(u.rol, tenant && tenant.pais)) + "</td>" +
-        "<td>" + (u.secciones && u.secciones.length ? u.secciones.map(function (s) { return C.seccionNombre(s, tenant); }).join(", ") : "—") +
+        "<td>" + (u.rol === "aliado" ? (convenioDelAliado ? "🤝 " + U.esc(convenioDelAliado.nombre) : '<span class="text-danger">⚠ Sin convenio asignado</span>') : (u.secciones && u.secciones.length ? u.secciones.map(function (s) { return C.seccionNombre(s, tenant); }).join(", ") : "—")) +
         (u.puedeGestionarRemisiones ? ' <span class="badge badge-preliminar" title="Puede gestionar remisiones a laboratorio de referencia">Remisiones</span>' : "") +
         (u.permisosExtra && u.permisosExtra.length ? u.permisosExtra.map(function (r) {
           var p = C.PERMISOS_EXTRA_BACTERIOLOGO.concat(C.PERMISOS_EXTRA_RECEPCION).filter(function (x) { return x.route === r; })[0];
@@ -76,9 +88,9 @@
         '<button class="btn btn-outline btn-sm" data-toggle="' + u.id + '">' + (u.activo ? "Desactivar" : "Activar") + "</button></div></td></tr>";
     }
 
-    function openForm(user) {
+    function openForm(user, convenioPrefillId) {
       var isEdit = !!user;
-      user = user || { rol: "bacteriologo", secciones: [], activo: true };
+      user = user || (convenioPrefillId ? { rol: "aliado", secciones: [], activo: true, convenioId: convenioPrefillId } : { rol: "bacteriologo", secciones: [], activo: true });
       var firmaTemp = user.firmaDataUrl || "";
       var wrap = U.openModal(
         '<h3 class="modal-title">' + (isEdit ? "Editar Usuario" : "Nuevo Usuario") + '</h3>' +
@@ -90,10 +102,11 @@
             F.inp("telefonoContacto", "Teléfono / WhatsApp", user.telefonoContacto, false) +
             F.inp("username", "Usuario (login)", user.username, true) +
             F.inp("password", "Contraseña", user.password, !isEdit, "text") +
-            F.sel("rol", "Rol", ["admin", "bacteriologo", "recepcion"].map(function (r) { return '<option value="' + r + '" ' + (r === user.rol ? "selected" : "") + ">" + U.esc(C.rolLabel(r, tenant && tenant.pais)) + "</option>"; }).join("")) +
+            F.sel("rol", "Rol", ["admin", "bacteriologo", "recepcion", "aliado"].map(function (r) { return '<option value="' + r + '" ' + (r === user.rol ? "selected" : "") + ">" + U.esc(C.rolLabel(r, tenant && tenant.pais)) + "</option>"; }).join("")) +
           "</div>" +
           '<div id="secciones-box" class="field"></div>' +
           '<div id="permisos-extra-box" class="field"></div>' +
+          '<div id="convenio-aliado-box" class="field"></div>' +
           '<div id="firma-box"></div>' +
           '<div class="flex gap-2 justify-between" style="margin-top:6px">' +
             '<button type="button" class="btn btn-ghost" data-modal-close>Cancelar</button>' +
@@ -133,6 +146,27 @@
           }).join("") + "</div>" +
           '<p class="text-muted" style="margin:6px 0 0;font-size:12px">Marca solo lo que necesite este usuario en concreto — puedes agregar o quitar cualquiera de estos permisos después, editándolo de nuevo.</p>';
       }
+      // Un usuario "aliado" no es personal del laboratorio: es el acceso de
+      // solo consulta que se le entrega a una empresa/convenio (ver
+      // "🤝 Convenios" en Cotizaciones) para que vea SOLO los resultados
+      // ligados a ese convenio — nunca a ningún otro paciente ni orden. Por
+      // eso, en vez de secciones/permisos extra, aquí solo se le asigna A
+      // CUÁL convenio queda ligado; firestore.rules impide que vea nada más
+      // aunque intente escribir directo a Firestore.
+      function renderConvenioAliado() {
+        var rol = wrap.querySelector("#f_rol").value;
+        var box = wrap.querySelector("#convenio-aliado-box");
+        if (rol !== "aliado") { box.innerHTML = ""; return; }
+        var convenios = S.cotizador.listConvenios(tenant.id).filter(function (c) { return c.activo; });
+        if (!convenios.length) {
+          box.innerHTML = '<p class="text-danger" style="font-size:13px">Aún no has creado ningún convenio activo. Ve primero a Cotizaciones → 🤝 Convenios y crea el convenio de esta empresa antes de darle su acceso.</p>';
+          return;
+        }
+        box.innerHTML = "<label>Convenio / Empresa Aliada (solo verá resultados de este convenio)</label><select id='f_convenioId'>" +
+          '<option value="">Selecciona el convenio…</option>' +
+          convenios.map(function (c) { return '<option value="' + c.id + '" ' + (c.id === user.convenioId ? "selected" : "") + '>' + U.esc(c.nombre) + "</option>"; }).join("") +
+          "</select>";
+      }
       function renderFirma() {
         var rol = wrap.querySelector("#f_rol").value;
         var box = wrap.querySelector("#firma-box");
@@ -157,9 +191,10 @@
           reader.readAsDataURL(file);
         });
       }
-      wrap.querySelector("#f_rol").addEventListener("change", function () { renderSecciones(); renderPermisosExtra(); renderFirma(); });
+      wrap.querySelector("#f_rol").addEventListener("change", function () { renderSecciones(); renderPermisosExtra(); renderConvenioAliado(); renderFirma(); });
       renderSecciones();
       renderPermisosExtra();
+      renderConvenioAliado();
       renderFirma();
 
       wrap.querySelector("#user-form").addEventListener("submit", function (e) {
@@ -178,6 +213,12 @@
         } else {
           data.permisosExtra = [];
         }
+        if (data.rol === "aliado") {
+          var selConvenio = wrap.querySelector("#f_convenioId");
+          data.convenioId = selConvenio ? selConvenio.value : "";
+        } else {
+          data.convenioId = "";
+        }
         var pass = g("password");
         if (pass) data.password = pass;
         if (data.rol === "bacteriologo" || data.rol === "admin") {
@@ -187,6 +228,10 @@
         if (!data.nombre || !data.username || (!isEdit && !pass)) { U.toast("Completa nombre, usuario y contraseña.", "error"); return; }
         if (data.rol === "recepcion" && data.permisosExtra.indexOf("resultados") !== -1 && !data.secciones.length) {
           U.toast("Marca al menos una sección para que pueda ingresar resultados — si no, el permiso queda activo pero no va a ver ningún examen.", "error");
+          return;
+        }
+        if (data.rol === "aliado" && !data.convenioId) {
+          U.toast("Selecciona a qué convenio/empresa queda ligado este acceso.", "error");
           return;
         }
         if (!isEdit) {

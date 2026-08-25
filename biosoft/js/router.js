@@ -51,6 +51,9 @@
         { route: "cotizador", label: "Cotizaciones", icon: "file" },
         { route: "marketing", label: "Marketing Digital", icon: "trending" }
       ]}
+    ],
+    aliado: [
+      { sec: "GENERAL", items: [{ route: "portal-aliado", label: "Portal de Resultados", icon: "flask" }] }
     ]
   };
 
@@ -160,7 +163,7 @@
     config: "Configuración del Laboratorio", auditoria: "Trazabilidad y Auditoría", tenants: "Laboratorios Cliente",
     catalogo: "Valores de Referencia del Catálogo", productividad: "Productividad Mensual", crm: "Clientes (CRM)",
     calidad: "Control de Calidad", cotizador: "Cotizador de Exámenes", marketing: "Marketing Digital", inventario: "Inventario y Reactivos",
-    facturacion: "Facturación y RIPS", "landing-imagenes": "Imágenes de la Landing"
+    facturacion: "Facturación y RIPS", "landing-imagenes": "Imágenes de la Landing", "portal-aliado": "Portal de Resultados"
   };
 
   // Rutas visibles solo para laboratorios de Colombia (ver tenant.pais),
@@ -171,7 +174,8 @@
     superadmin: ["crm", "tenants", "dashboard", "landing-imagenes"],
     admin: ["dashboard", "pacientes", "ordenes", "resultados", "hojas-trabajo", "reportes", "productividad", "calidad", "cotizador", "marketing", "inventario", "usuarios", "config", "auditoria", "catalogo", "facturacion"],
     bacteriologo: ["dashboard", "resultados", "hojas-trabajo", "calidad"],
-    recepcion: ["dashboard", "pacientes", "ordenes", "hojas-trabajo", "reportes", "cotizador", "marketing"]
+    recepcion: ["dashboard", "pacientes", "ordenes", "hojas-trabajo", "reportes", "cotizador", "marketing"],
+    aliado: ["portal-aliado"]
   };
 
   function currentRoute() {

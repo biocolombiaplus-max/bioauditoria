@@ -35,7 +35,7 @@
 
   function rowOrder(o, conPrecio, tenant) {
     var pac = S.getPatient(o.patientId);
-    return "<tr><td><b>" + o.numeroOrden + "</b></td><td>" + (pac ? U.esc(U.nombreCompleto(pac)) : "—") + "</td><td>" + U.fmtFecha(o.fechaOrden) + "</td>" +
+    return "<tr><td><b>" + o.numeroOrden + "</b>" + (o.convenioNombre ? '<div class="text-muted" style="font-size:11px">🤝 ' + U.esc(o.convenioNombre) + "</div>" : "") + "</td><td>" + (pac ? U.esc(U.nombreCompleto(pac)) : "—") + "</td><td>" + U.fmtFecha(o.fechaOrden) + "</td>" +
       '<td><span class="badge badge-' + (o.prioridad === "Urgente" ? "urgente" : "rutina") + '">' + o.prioridad + "</span></td>" +
       "<td>" + o.examenes.length + "</td>" + (conPrecio ? "<td>" + (o.valorCobrar ? fmtMoneda(o.valorCobrar) + fmtMonedaEquiv(tenant, o.valorCobrar) : "—") + "</td>" : "") +
       "<td>" + window.BIO_badgeEstado(o.estadoGeneral) + '</td><td><button class="btn btn-outline btn-sm" data-view="' + o.id + '">Ver</button></td></tr>';
@@ -60,6 +60,29 @@
       S.cotizador.listPrecios(session.tenantId).forEach(function (p) { preciosPorId[p.examId] = p.precio; });
     }
     var precioEditadoManualmente = false;
+    // Convenio/aliado (empresa con precios especiales — ver "🤝 Convenios"
+    // en Cotizaciones): opcional, para dejar la orden ligada a esa empresa.
+    // Sirve tanto para sugerir el "Valor a Cobrar" con su precio especial
+    // como para que, si más adelante se le crea un acceso de solo consulta
+    // a esa empresa (rol "aliado"), esta orden aparezca en su portal.
+    var convenios = S.cotizador.listConvenios(session.tenantId).filter(function (c) { return c.activo; });
+    var convenioPreciosPorConvenio = {};
+    convenios.forEach(function (cv) {
+      var mapa = {};
+      S.cotizador.listConvenioPrecios(session.tenantId, cv.id).forEach(function (p) { mapa[p.examId] = p; });
+      convenioPreciosPorConvenio[cv.id] = mapa;
+    });
+    var convenioIdSel = "";
+    function precioConConvenio(examId) {
+      var base = preciosPorId[examId] || 0;
+      if (!convenioIdSel) return base;
+      var convenio = convenios.filter(function (c) { return c.id === convenioIdSel; })[0];
+      if (!convenio) return base;
+      var especial = (convenioPreciosPorConvenio[convenioIdSel] || {})[examId];
+      if (especial) return especial.modo === "fijo" ? especial.valor : Math.max(0, base * (1 - especial.valor / 100));
+      if (convenio.descuentoGeneral > 0) return Math.max(0, base * (1 - convenio.descuentoGeneral / 100));
+      return base;
+    }
 
     root.innerHTML =
       '<div class="card">' +
@@ -75,6 +98,8 @@
           F.sel("procedencia", "Procedencia", C.PROCEDENCIAS.map(function (p) { return "<option>" + p + "</option>"; }).join("")) +
           F.inp("diagnostico", "Diagnóstico / Motivo", "") +
           (tenant.pais === "CO" ? F.inp("numAutorizacion", "N° de Autorización (si aplica, para RIPS)", "") + F.inp("diagnosticoCIE10", "Código CIE-10 (opcional, para RIPS)", "") : "") +
+          (convenios.length ? '<div class="field"><label>Convenio / Empresa Aliada (opcional)</label><select id="f_convenio"><option value="">Sin convenio (particular)</option>' +
+            convenios.map(function (c) { return '<option value="' + c.id + '">' + U.esc(c.nombre) + "</option>"; }).join("") + "</select></div>" : "") +
           (tenant.mostrarPrecioOrden ? '<div class="field"><label>Valor a Cobrar</label><input id="f_valorCobrar" type="number" step="any" value=""/>' +
             '<span class="text-muted" style="font-size:11px" id="valorCobrar-hint">Se calcula solo según los exámenes que selecciones — puedes ajustarlo a mano.</span>' +
             '<span class="text-muted" style="font-size:11px;display:block" id="valorCobrar-equiv"></span></div>' : "") +
@@ -164,7 +189,7 @@
       }
       var input = document.getElementById("f_valorCobrar");
       if (!input) return;
-      var total = selectedExams.reduce(function (sum, id) { return sum + (preciosPorId[id] || 0); }, 0);
+      var total = selectedExams.reduce(function (sum, id) { return sum + precioConConvenio(id); }, 0);
       input.value = total || "";
       if (equiv) equiv.textContent = C.fmtMonedaAdicional(tenant, total);
     }
@@ -180,6 +205,14 @@
           selectedExams = selectedExams.filter(function (x) { return x !== b.dataset.remove; });
           renderChips(); renderExams(); renderSections(); sugerirValorCobrar();
         });
+      });
+    }
+    var selConvenioEl = document.getElementById("f_convenio");
+    if (selConvenioEl) {
+      selConvenioEl.addEventListener("change", function (e) {
+        convenioIdSel = e.target.value;
+        precioEditadoManualmente = false;
+        sugerirValorCobrar();
       });
     }
     renderSections(); renderExams(); renderChips();
@@ -198,10 +231,23 @@
       var patientId = document.getElementById("f_patient").value;
       if (!patientId) { U.toast("Selecciona un paciente.", "error"); return; }
       if (!selectedExams.length) { U.toast("Selecciona al menos un examen.", "error"); return; }
+      var pacSel = S.getPatient(patientId);
+      var convenioSel = convenioIdSel ? convenios.filter(function (c) { return c.id === convenioIdSel; })[0] : null;
       var order = {
         tenantId: session.tenantId,
         numeroOrden: S.nextOrderNumber(session.tenantId),
         patientId: patientId,
+        // Copia mínima de los datos del paciente que necesita el PDF de
+        // resultados (ver pdf.js -> buildResultadosPDF), para que un acceso
+        // de "aliado" (solo consulta de un convenio) pueda ver y descargar
+        // el resultado sin que sus reglas de Firestore necesiten darle
+        // lectura de la colección patients completa (ver firestore.rules).
+        pacienteSnap: pacSel ? {
+          primerNombre: pacSel.primerNombre, segundoNombre: pacSel.segundoNombre, primerApellido: pacSel.primerApellido, segundoApellido: pacSel.segundoApellido,
+          tipoDocumento: pacSel.tipoDocumento, numeroDocumento: pacSel.numeroDocumento, fechaNacimiento: pacSel.fechaNacimiento, sexo: pacSel.sexo, pais: pacSel.pais, eps: pacSel.eps || ""
+        } : null,
+        convenioId: convenioIdSel || "",
+        convenioNombre: convenioSel ? convenioSel.nombre : "",
         fechaOrden: new Date().toISOString(),
         prioridad: document.getElementById("f_prioridad").value,
         procedencia: document.getElementById("f_procedencia").value,

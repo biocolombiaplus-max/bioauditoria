@@ -604,6 +604,9 @@
         '<p style="margin:0 0 12px;font-size:13px">Precios especiales por examen: <b>' + numEspeciales + "</b></p>" +
         '<div class="flex gap-2 wrap">' +
         '<button type="button" class="btn btn-outline btn-sm" data-precios-especiales="' + c.id + '">💲 Precios Especiales</button>' +
+        '<label class="btn btn-outline btn-sm" style="cursor:pointer">📥 Excel de Precios<input type="file" data-excel-convenio="' + c.id + '" accept=".xlsx,.xls,.csv" style="display:none"/></label>' +
+        '<button type="button" class="btn btn-outline btn-sm" data-hoja-trabajo-convenio="' + c.id + '">📋 Hoja de Trabajo</button>' +
+        '<button type="button" class="btn btn-outline btn-sm" data-crear-aliado="' + c.id + '">🔑 Acceso de Aliado</button>' +
         '<button type="button" class="btn btn-ghost btn-sm" data-editar-convenio="' + c.id + '">' + U.icon("edit") + " Editar</button>" +
         '<button type="button" class="btn btn-ghost btn-sm" data-eliminar-convenio="' + c.id + '">' + U.icon("trash") + " Eliminar</button>" +
         "</div></div>";
@@ -624,6 +627,24 @@
           S.cotizador.eliminarConvenio(tenantId, c.id);
           U.toast("Convenio eliminado.", "success");
           cargar();
+        });
+      });
+      document.querySelectorAll("[data-excel-convenio]").forEach(function (inp) {
+        inp.addEventListener("change", function (e) {
+          var convenio = convenios.filter(function (c) { return c.id === inp.dataset.excelConvenio; })[0];
+          subirExcelPrecioConvenio(convenio, e.target.files[0]);
+          e.target.value = "";
+        });
+      });
+      document.querySelectorAll("[data-hoja-trabajo-convenio]").forEach(function (b) {
+        b.addEventListener("click", function () { abrirHojaTrabajoConvenio(convenios.filter(function (c) { return c.id === b.dataset.hojaTrabajoConvenio; })[0]); });
+      });
+      document.querySelectorAll("[data-crear-aliado]").forEach(function (b) {
+        b.addEventListener("click", function () {
+          var c = convenios.filter(function (x) { return x.id === b.dataset.crearAliado; })[0];
+          try { sessionStorage.setItem("bio_prefill_aliado_convenio", c.id); } catch (err) {}
+          U.toast("Ahora crea el usuario: rol \"Aliado / Convenio\", ya queda con " + c.nombre + " preseleccionado.", "success");
+          location.hash = "#/usuarios";
         });
       });
     }
@@ -734,6 +755,146 @@
       wrap.querySelector("#pe-search").addEventListener("input", function (e) { preciosEspecialesSearchTerm = e.target.value; renderTabla(); });
       renderTabla();
       wrap.querySelectorAll("[data-modal-close]").forEach(function (b) { b.addEventListener("click", function () { U.closeModal(wrap); cargar(); }); });
+    }
+
+    // Sube un Excel con el listado de tarifas que te pasó una empresa/
+    // convenio aliado y aplica esos precios como precios especiales FIJOS de
+    // ese convenio — reutiliza el mismo detector de encabezado (columnas
+    // CUPS + Tarifa/Precio/Valor) de la plantilla de precios regular, pero
+    // solo contra los exámenes que YA existen en tu catálogo (un convenio no
+    // agrega exámenes nuevos, solo les pone un precio especial).
+    function subirExcelPrecioConvenio(convenio, file) {
+      if (!file) return;
+      var reader = new FileReader();
+      reader.onload = function (ev) {
+        try {
+          var wb = XLSX.read(new Uint8Array(ev.target.result), { type: "array" });
+          var examenPorCups = {};
+          poolExamenes().forEach(function (ex) { examenPorCups[ex.cups] = ex; });
+          var matchesPorExamId = {};
+          var seEncontroEncabezado = false, filasConCupsYPrecio = 0;
+
+          wb.SheetNames.forEach(function (nombreHoja) {
+            var filas = XLSX.utils.sheet_to_json(wb.Sheets[nombreHoja], { header: 1, defval: "" });
+            var encabezado = ubicarEncabezado(filas);
+            if (!encabezado) return;
+            seEncontroEncabezado = true;
+            for (var i = encabezado.fila + 1; i < filas.length; i++) {
+              var fila = filas[i];
+              var cups = normalizarCups(fila[encabezado.colCups]);
+              var celdaPrecio = fila[encabezado.colPrecio];
+              var precio = typeof celdaPrecio === "number" ? celdaPrecio : parseFloat(String(celdaPrecio).replace(/[^0-9,.\-]/g, "").replace(/\./g, "").replace(",", "."));
+              if (!cups || isNaN(precio)) continue;
+              filasConCupsYPrecio++;
+              var nombreArchivo = encabezado.colNombre !== -1 ? String(fila[encabezado.colNombre] || "").trim() : "";
+              var exam = examenPorCups[cups];
+              if (exam) {
+                matchesPorExamId[exam.id] = {
+                  examId: exam.id, cups: cups, nombreCatalogo: exam.nombre, nombreArchivo: nombreArchivo, precio: precio,
+                  confiable: !nombreArchivo || pareceMismoExamen(exam.nombre, nombreArchivo)
+                };
+              }
+            }
+          });
+
+          var matches = Object.keys(matchesPorExamId).map(function (k) { return matchesPorExamId[k]; });
+          if (!matches.length) {
+            var msg = !seEncontroEncabezado
+              ? "No encontramos columnas de CUPS y Tarifa/Precio en el archivo. Verifica que tenga encabezados como \"CUPS\" y \"Tarifa\" o \"Precio\"."
+              : "Encontramos " + filasConCupsYPrecio + " fila(s) con CUPS y precio, pero ninguno coincide con exámenes de tu catálogo.";
+            U.toast(msg, "error");
+            return;
+          }
+          abrirConfirmarPreciosConvenio(convenio, matches);
+        } catch (err) {
+          U.toast("No se pudo leer el archivo: " + err.message, "error");
+        }
+      };
+      reader.readAsArrayBuffer(file);
+    }
+
+    function abrirConfirmarPreciosConvenio(convenio, matches) {
+      matches.sort(function (a, b) { return (a.confiable === b.confiable) ? 0 : a.confiable ? 1 : -1; });
+      var dudosos = matches.filter(function (m) { return !m.confiable; }).length;
+      var wrap = U.openModal(
+        '<h3 class="modal-title">Confirmar precios de "' + U.esc(convenio.nombre) + '" (' + matches.length + ')</h3>' +
+        '<p class="text-muted" style="margin-top:0">Revisa especialmente las filas en rojo (el nombre del archivo no se parece al de tu catálogo) antes de aplicarlas como precio especial fijo de este convenio.' +
+        (dudosos ? " Encontramos <b>" + dudosos + " caso(s)</b> así, ya vienen sin marcar." : "") + "</p>" +
+        '<div class="flex gap-2" style="margin-bottom:8px"><button type="button" class="btn btn-ghost btn-sm" id="cnvexc-marcar-todos">Marcar todos</button><button type="button" class="btn btn-ghost btn-sm" id="cnvexc-desmarcar-todos">Desmarcar todos</button></div>' +
+        '<div class="table-wrap" style="max-height:400px;overflow-y:auto"><table><thead><tr><th></th><th>CUPS</th><th>Tu catálogo</th><th>El archivo dice</th><th>Precio</th></tr></thead><tbody>' +
+        matches.map(function (m) {
+          return "<tr" + (m.confiable ? "" : " style='background:#fee2e2'") + ">" +
+            "<td><input type='checkbox' data-cnvexc-match='" + m.examId + "' " + (m.confiable ? "checked" : "") + "/></td>" +
+            "<td>" + U.esc(m.cups) + "</td><td>" + U.esc(m.nombreCatalogo) + "</td><td>" + U.esc(m.nombreArchivo || "—") + "</td><td>" + fmtMoneda(m.precio) + "</td></tr>";
+        }).join("") + "</tbody></table></div>" +
+        '<div class="flex gap-2 justify-between" style="margin-top:14px"><button class="btn btn-ghost" data-modal-close>Cancelar</button><button class="btn btn-primary" id="cnvexc-aplicar">' + U.icon("check") + " Aplicar como precios especiales</button></div>"
+      );
+      wrap.querySelector("#cnvexc-marcar-todos").addEventListener("click", function () {
+        wrap.querySelectorAll("[data-cnvexc-match]").forEach(function (c) { c.checked = true; });
+      });
+      wrap.querySelector("#cnvexc-desmarcar-todos").addEventListener("click", function () {
+        wrap.querySelectorAll("[data-cnvexc-match]").forEach(function (c) { c.checked = false; });
+      });
+      wrap.querySelector("#cnvexc-aplicar").addEventListener("click", function () {
+        var idsMarcados = Array.prototype.slice.call(wrap.querySelectorAll("[data-cnvexc-match]:checked")).map(function (c) { return c.dataset.cnvexcMatch; });
+        var aplicados = matches.filter(function (m) { return idsMarcados.indexOf(m.examId) !== -1; });
+        aplicados.forEach(function (m) { S.cotizador.setConvenioPrecio(tenantId, convenio.id, m.examId, "fijo", m.precio); });
+        U.toast((aplicados.length ? aplicados.length + " precio(s) especial(es) aplicados" : "Nada quedó marcado para aplicar") + ".", aplicados.length ? "success" : "error");
+        U.closeModal(wrap);
+        cargar();
+      });
+    }
+
+    // "Hoja de Trabajo" / reporte de un convenio: todos los exámenes de
+    // órdenes ligadas a ese convenio en un rango de fechas, para que el
+    // laboratorio pueda revisar o descargar (Excel) lo que le corresponde
+    // facturar/reportar a esa empresa aliada.
+    function abrirHojaTrabajoConvenio(convenio) {
+      var hoy = new Date().toISOString().slice(0, 10);
+      var hace30 = new Date(Date.now() - 30 * 86400000).toISOString().slice(0, 10);
+      var wrap = U.openModal(
+        '<h3 class="modal-title">📋 Hoja de Trabajo — ' + U.esc(convenio.nombre) + '</h3>' +
+        '<div class="form-grid">' +
+        '<div class="field"><label>Desde</label><input type="date" id="hwc-desde" value="' + hace30 + '"/></div>' +
+        '<div class="field"><label>Hasta</label><input type="date" id="hwc-hasta" value="' + hoy + '"/></div>' +
+        "</div>" +
+        '<div class="table-wrap" style="max-height:420px;overflow-y:auto;margin-top:10px"><table><thead><tr><th>N° Orden</th><th>Fecha</th><th>Paciente</th><th>Examen</th><th>Estado</th></tr></thead><tbody id="hwc-tbody"></tbody></table></div>' +
+        '<div class="flex gap-2 justify-between" style="margin-top:14px"><button class="btn btn-ghost" data-modal-close>Cerrar</button><button type="button" class="btn btn-outline" id="hwc-descargar">' + U.icon("download") + " Descargar Excel</button></div>",
+        { lg: true }
+      );
+      var filas = [];
+      function itemsEnRango() {
+        var desde = wrap.querySelector("#hwc-desde").value, hasta = wrap.querySelector("#hwc-hasta").value;
+        var orders = S.listOrders(tenantId).filter(function (o) { return o.convenioId === convenio.id && o.fechaOrden.slice(0, 10) >= desde && o.fechaOrden.slice(0, 10) <= hasta; });
+        var out = [];
+        orders.forEach(function (o) {
+          o.examenes.forEach(function (ex) {
+            var exCat = C.examenEfectivo(ex.examId, tenant);
+            out.push({
+              numeroOrden: o.numeroOrden, fecha: U.fmtFechaCorta(o.fechaOrden), paciente: o.pacienteSnap ? [o.pacienteSnap.primerNombre, o.pacienteSnap.primerApellido].filter(Boolean).join(" ") : "—",
+              examen: exCat ? exCat.nombre : ex.examId, estado: ex.estado
+            });
+          });
+        });
+        return out;
+      }
+      function renderTabla() {
+        filas = itemsEnRango();
+        wrap.querySelector("#hwc-tbody").innerHTML = filas.length ? filas.map(function (f) {
+          return "<tr><td>" + U.esc(f.numeroOrden) + "</td><td>" + U.esc(f.fecha) + "</td><td>" + U.esc(f.paciente) + "</td><td>" + U.esc(f.examen) + "</td><td>" + window.BIO_badgeEstado(f.estado === "en_proceso" ? "pendiente" : f.estado) + "</td></tr>";
+        }).join("") : '<tr><td colspan="5" class="text-muted">No hay exámenes de este convenio en el rango elegido.</td></tr>';
+      }
+      wrap.querySelector("#hwc-desde").addEventListener("change", renderTabla);
+      wrap.querySelector("#hwc-hasta").addEventListener("change", renderTabla);
+      wrap.querySelector("#hwc-descargar").addEventListener("click", function () {
+        if (!filas.length) { U.toast("No hay datos para descargar.", "error"); return; }
+        var ws = XLSX.utils.json_to_sheet(filas.map(function (f) { return { "N° Orden": f.numeroOrden, Fecha: f.fecha, Paciente: f.paciente, Examen: f.examen, Estado: f.estado }; }));
+        var wb = XLSX.utils.book_new();
+        XLSX.utils.book_append_sheet(wb, ws, "Hoja de Trabajo");
+        XLSX.writeFile(wb, "Hoja_Trabajo_" + convenio.nombre.replace(/[^a-z0-9]+/gi, "_") + ".xlsx");
+      });
+      renderTabla();
+      wrap.querySelectorAll("[data-modal-close]").forEach(function (b) { b.addEventListener("click", function () { U.closeModal(wrap); }); });
     }
 
     // ---------------------------------------------------------------------
