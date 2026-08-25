@@ -508,7 +508,7 @@
       if (!incluir) { box.innerHTML = ""; return; }
       var seleccionados = Array.prototype.slice.call(wrap.querySelectorAll("[data-remex]:checked")).map(function (c) { return parseInt(c.dataset.remex, 10); });
       if (!seleccionados.length) { box.innerHTML = '<p class="text-muted" style="font-size:12.5px">Selecciona primero los exámenes a remitir.</p>'; return; }
-      box.innerHTML = '<div class="field"><label>Valor de cada examen (COP)</label><div class="form-grid">' +
+      box.innerHTML = '<div class="field"><label>Valor de cada examen (' + U.esc(C.monedaBaseLabel(tenant)) + ')</label><div class="form-grid">' +
         seleccionados.map(function (idx) {
           var info = examenesInfo[idx];
           return '<div class="field"><label style="font-weight:400">' + U.esc(info.exCat.nombre) + '</label><input type="number" min="0" step="1000" data-remval="' + idx + '" value="0"/></div>';

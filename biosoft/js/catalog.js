@@ -913,6 +913,20 @@
     return "≈ " + valor.toLocaleString("es-CO", { maximumFractionDigits: 2 }) + " " + m.codigo;
   }
 
+  /* En qué moneda tiene el laboratorio cargados TODOS sus precios (la moneda
+     "base") — no siempre es la moneda oficial de su país: un laboratorio
+     venezolano puede manejar sus precios en Bs. o directo en USD (muy común
+     por la inflación), así que se deja elegir explícitamente en
+     tenant.monedaBase; si nunca lo eligió, se usa un valor por país solo
+     como sugerencia inicial razonable. Se usa únicamente para el RÓTULO que
+     ve el usuario junto a sus precios (ej. "Precio (Bs)") — nunca cambia el
+     número guardado, que siempre es el mismo tal como se digitó. */
+  var MONEDA_BASE_SUGERIDA_POR_PAIS = { CO: "COP", VE: "Bs", EC: "USD" };
+  function monedaBaseLabel(tenant) {
+    if (tenant && tenant.monedaBase) return tenant.monedaBase;
+    return MONEDA_BASE_SUGERIDA_POR_PAIS[tenant && tenant.pais] || "COP";
+  }
+
   /* Devuelve { texto, clase } — texto es lo que se muestra (NORMAL/ALTO/BAJO,
      o la etiqueta que el laboratorio haya definido en sus propios rangos de
      interpretación, ej. "Prediabetes"), y clase es "normal"/"alto"/"bajo"/
@@ -1301,7 +1315,7 @@
     eliminarExamenPersonalizado: eliminarExamenPersonalizado,
     cambiarMetodoExamen: cambiarMetodoExamen,
     tuboInfo: tuboInfo,
-    fmtMonedaAdicional: fmtMonedaAdicional,
+    fmtMonedaAdicional: fmtMonedaAdicional, monedaBaseLabel: monedaBaseLabel,
     calcularFlag: calcularFlag,
     examenEfectivo: examenEfectivo,
     parametroEfectivo: parametroEfectivo,
