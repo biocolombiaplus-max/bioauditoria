@@ -467,6 +467,10 @@
     var tenant = S.getTenant(session.tenantId);
     var propio = C.esExamenPropio(examId, tenant);
     var exCat = C.examenPorId(examId) || C.examenPersonalizadoPorId(examId, tenant);
+    // Un examen propio guardado sin ningún parámetro (se creó y se cerró
+    // este mismo editor antes de agregarle campos) no debe impedir volver a
+    // abrirlo para completarlo — se normaliza aquí en vez de romper.
+    if (exCat && !Array.isArray(exCat.parametros)) exCat = Object.assign({}, exCat, { parametros: [] });
     var efectivo = C.examenEfectivo(examId, tenant);
     var custom = (tenant.examCustom && tenant.examCustom[examId]) || {};
     var ocultos = (custom.ocultos || []).map(function (codigo) {

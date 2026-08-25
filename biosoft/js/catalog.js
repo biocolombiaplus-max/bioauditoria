@@ -1026,6 +1026,17 @@
   function examenEfectivo(examId, tenant) {
     var exCat = examenPorId(examId) || (tenant && examenPersonalizadoPorId(examId, tenant));
     if (!exCat) return exCat;
+    // "parametros" puede faltar en un examen propio que se guardó a medias
+    // (ej. se creó y se cerró el editor de "Valores de Referencia" antes de
+    // agregarle campos) — antes esto rompía por completo la captura de
+    // resultados de ESE examen (y de paso, por el forEach compartido, la de
+    // toda la orden). Se normaliza aquí, en el único lugar de origen, para
+    // que examenEfectivo()/examenParaPaciente() SIEMPRE devuelvan un
+    // arreglo (nunca undefined) sin importar qué camino tome la función más
+    // abajo — el resto del sistema (captura, PDF, editor de catálogo)
+    // puede confiar en eso siempre. No se muta exCat directamente porque
+    // puede ser la referencia compartida del catálogo global.
+    if (!Array.isArray(exCat.parametros)) exCat = Object.assign({}, exCat, { parametros: [] });
     if (!tenant) return exCat;
     var custom = examCustomDe(examId, tenant);
     // Si el laboratorio solo configuró "Rangos de Interpretación" (sin tocar
@@ -1041,7 +1052,7 @@
       if (custom.ocultos && custom.ocultos.length) {
         parametros = parametros.filter(function (p) { return custom.ocultos.indexOf(p.codigo) === -1; });
       }
-      if (custom.personalizados && custom.personalizados.length) {
+      if (Array.isArray(custom.personalizados) && custom.personalizados.length) {
         parametros = parametros.concat(custom.personalizados.map(function (p) { return parametroEfectivo(examId, p, tenant); }));
       }
       if (custom.orden && custom.orden.length) {
@@ -1067,7 +1078,7 @@
     var custom = examCustomDe(examId, tenant);
     if (custom && (custom.nombre || custom.metodo || (custom.ocultos && custom.ocultos.length) || (custom.personalizados && custom.personalizados.length) || (custom.orden && custom.orden.length))) return true;
     if (!tenant.refOverrides) return false;
-    return examenPorId(examId).parametros.some(function (p) { return !!tenant.refOverrides[overrideKey(examId, p.codigo)]; });
+    return (Array.isArray(examenPorId(examId).parametros) ? examenPorId(examId).parametros : []).some(function (p) { return !!tenant.refOverrides[overrideKey(examId, p.codigo)]; });
   }
 
   /* Cambia el método/técnica usado para un examen SOLO para este laboratorio
@@ -1261,7 +1272,7 @@
     var ex = examenEfectivo(examId, tenant);
     if (!ex || !tenant || !tenant.refBandas) return ex;
     var clone = Object.assign({}, ex);
-    clone.parametros = ex.parametros.map(function (p) {
+    clone.parametros = (Array.isArray(ex.parametros) ? ex.parametros : []).map(function (p) {
       return parametroParaPaciente(examId, p, tenant, paciente, categoriasElegidas ? categoriasElegidas[p.codigo] : null);
     });
     return clone;
