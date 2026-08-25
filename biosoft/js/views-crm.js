@@ -191,7 +191,8 @@
         (c.estado !== "activo" ? "<button class='btn btn-primary btn-sm' data-pagado='" + c.id + "'>" + U.icon("check") + " Marcar Pagado</button>" : "") +
         (c.estado === "pagado" ? "<button class='btn btn-primary btn-sm' data-activar='" + c.id + "' title='La implementación ya quedó lista, empieza a cobrar la mensualidad'>" + U.icon("check") + " Activar Cobro Mensual</button>" : "") +
         (!c.tenantId
-          ? "<button class='btn btn-sm " + ((c.estado === "pagado" || c.estado === "activo") ? "btn-primary" : "btn-outline") + "' data-crear-acceso='" + c.id + "' title='Ya pagó — crea su cuenta real en BIOsoft para poder enviarle usuario y clave'>" + U.icon("send") + " Crear Acceso</button>"
+          ? "<button class='btn btn-sm " + ((c.estado === "pagado" || c.estado === "activo") ? "btn-primary" : "btn-outline") + "' data-crear-acceso='" + c.id + "' title='Ya pagó — crea su cuenta real en BIOsoft para poder enviarle usuario y clave'>" + U.icon("send") + " Crear Acceso</button>" +
+            "<button class='btn btn-whatsapp btn-sm' data-enviar-registro='" + c.id + "' title='Para que el cliente llene sus propios datos y active su BIOsoft solo, sin que el equipo de BIOsoft los digite'>" + U.icon("send") + " Enviar Enlace de Registro</button>"
           : "<button class='btn btn-outline btn-sm' data-enviar-acceso='" + c.id + "' title='Reenviar las credenciales de ingreso'>" + U.icon("send") + " Enviar Acceso</button>") +
         "<button class='btn btn-whatsapp btn-sm' data-mensaje='" + c.id + "'>" + U.icon("send") + " Mensaje</button>" +
         "<button class='btn btn-outline btn-sm' data-correo='" + c.id + "'>📧 Correo</button>" +
@@ -393,6 +394,10 @@
 
       root.querySelectorAll("[data-crear-acceso]").forEach(function (b) { b.addEventListener("click", function () {
         abrirCrearAcceso(clientes.filter(function (x) { return x.id === b.dataset.crearAcceso; })[0]);
+      }); });
+
+      root.querySelectorAll("[data-enviar-registro]").forEach(function (b) { b.addEventListener("click", function () {
+        abrirEnviarEnlaceRegistro(clientes.filter(function (x) { return x.id === b.dataset.enviarRegistro; })[0]);
       }); });
 
       root.querySelectorAll("[data-enviar-acceso]").forEach(function (b) { b.addEventListener("click", function () {
@@ -610,6 +615,28 @@
           U.toast(msg, "error");
         });
       });
+    }
+
+    // Para el cliente que ya tomó la decisión y pagó, pero preferimos que
+    // llene sus propios datos (evita errores de digitación del equipo de
+    // BIOsoft): le mandamos el enlace del formulario público de
+    // autoactivación (activar.html), con su plan ya preseleccionado si lo
+    // tiene asignado. No crea ninguna cuenta — el cliente la crea solo al
+    // enviar el formulario, exactamente igual que si hubiera llegado por su
+    // cuenta desde la landing.
+    var URL_BASE_ACTIVAR = "https://bioauditoria.com/biosoft/activar.html";
+    function abrirEnviarEnlaceRegistro(c) {
+      var lab = c.laboratorio || {}, contacto = c.contacto || {};
+      var enlace = URL_BASE_ACTIVAR + (c.planId ? "?plan=" + encodeURIComponent(c.planId) : "");
+      var primerNombre = contacto.nombre ? contacto.nombre.split(" ")[0] : "";
+      var mensaje = "Hola " + primerNombre + " 👋 ¡Genial que ya te decidiste por BIOsoft! Para dejar todo con tus datos exactos, actívalo tú mismo aquí (toma menos de 5 minutos):\n\n" +
+        enlace + "\n\n" +
+        "Completa los datos de tu laboratorio, crea tu usuario y contraseña, y tu BIOsoft queda funcionando al instante — luego, desde Configuración, ajustas tu logo y colores con calma. Cualquier duda mientras lo llenas, aquí estamos.";
+      abrirEnviarMensaje({
+        titulo: "Enviar Enlace de Registro", descripcion: "Revisa el mensaje antes de enviarlo — el enlace lleva al formulario público donde " + (contacto.nombre || "el cliente") + " llena sus propios datos y activa su BIOsoft al instante.",
+        mensaje: mensaje, contacto: contacto, asuntoCorreo: "Activa tu BIOsoft — " + (lab.nombre || "")
+      });
+      agregarActividad(c, "enlace_registro", "Se envió el enlace de autoactivación para que el cliente registre sus propios datos.");
     }
 
     function abrirEnviarCredenciales(c, credenciales) {
