@@ -297,12 +297,23 @@
         var correo = wrap.querySelector("#pp-correo").value.trim();
         var whatsapp = wrap.querySelector("#pp-whatsapp").value.trim();
         if (!nombre || !correo) { U.toast("Completa nombre y correo.", "error"); return; }
-        var bytes = BIO_PDF_CRM.buildPropuestaPDF({ nombre: nombre, correo: correo, telefono: whatsapp });
-        U.closeModal(wrap);
-        var mensaje = "Hola " + nombre.split(" ")[0] + " 👋 Te comparto la propuesta con todo lo que incluye cada plan de BIOsoft. Cualquier duda, quedo atento.";
-        abrirEnviarDocumento({
-          titulo: "Enviar Propuesta", bytes: bytes, nombreArchivo: "Propuesta_BIOsoft_" + nombre.replace(/\s+/g, "_") + ".pdf",
-          contacto: { correo: correo, whatsapp: whatsapp }, mensaje: mensaje, asuntoCorreo: "Propuesta Comercial — BIOsoft"
+        // Genera de forma asíncrona: precarga las capturas de pantalla de
+        // cada módulo antes de armar el PDF (igual que el Manual de
+        // Usuario), así que el botón se deshabilita mientras tanto para
+        // que no se envíe el formulario dos veces.
+        var submitBtn = wrap.querySelector('button[type="submit"]');
+        var textoOriginal = submitBtn.textContent;
+        submitBtn.disabled = true; submitBtn.textContent = "Generando…";
+        BIO_PDF_CRM.buildPropuestaPDF({ nombre: nombre, correo: correo, telefono: whatsapp }).then(function (bytes) {
+          U.closeModal(wrap);
+          var mensaje = "Hola " + nombre.split(" ")[0] + " 👋 Te comparto la propuesta con todo lo que incluye BIOsoft. Cualquier duda, quedo atento.";
+          abrirEnviarDocumento({
+            titulo: "Enviar Propuesta", bytes: bytes, nombreArchivo: "Propuesta_BIOsoft_" + nombre.replace(/\s+/g, "_") + ".pdf",
+            contacto: { correo: correo, whatsapp: whatsapp }, mensaje: mensaje, asuntoCorreo: "Propuesta Comercial — BIOsoft"
+          });
+        }).catch(function () {
+          submitBtn.disabled = false; submitBtn.textContent = textoOriginal;
+          U.toast("No se pudo generar la propuesta. Intenta de nuevo.", "error");
         });
       });
     }

@@ -240,12 +240,48 @@
     return new Uint8Array(doc.output("arraybuffer"));
   }
 
+  // Vitrina módulo por módulo con capturas reales — reutiliza las mismas
+  // imágenes del Manual de Usuario (assets/manual/*.jpg), pero con copy de
+  // venta (el beneficio, no el paso a paso) y una selección corta (8, no
+  // las 15 del manual) para que la propuesta se vea completa sin ser larga.
+  var MODULOS_PROPUESTA = [
+    { img: "assets/manual/resultados.jpg", titulo: "Resultados y validación",
+      texto: "Captura, valida y firma resultados con trazabilidad total. Cada informe sale en PDF profesional con tu logo, tus colores y la firma digital de tu bacteriólogo(a) — listo para enviar en segundos." },
+    { img: "assets/manual/ordenes.jpg", titulo: "Órdenes de laboratorio",
+      texto: "Registra cada orden en segundos: exámenes, prioridad, procedencia y valor a cobrar en una sola pantalla. Todo tu flujo de recepción centralizado, sin papeles sueltos." },
+    { img: "assets/manual/equipos-conectados-lista.jpg", titulo: "Conexión de equipos (interfaz LIS)",
+      texto: "Conecta tus analizadores (Mindray, Dirui, Dymind, Maglumi, Rayto y otros) y los resultados llegan solos a BIOsoft — se acabó digitarlos uno por uno. Siempre queda como borrador hasta que un bacteriólogo lo revise y firme." },
+    { img: "assets/manual/catalogo-rangos-interpretacion.jpg", titulo: "Valores de referencia inteligentes",
+      texto: "Interpretación clínica automática con rangos por género, edad o categoría (ej. Hemoglobina Glicosilada: Normal / Prediabetes / Diabetes) — tu sistema piensa contigo, no solo digita." },
+    { img: "assets/manual/hojas-trabajo.jpg", titulo: "Hojas de trabajo diarias",
+      texto: "Organiza el día de cada sección del laboratorio con una hoja lista para imprimir o diligenciar en pantalla — nada se pierde ni se olvida." },
+    { img: "assets/manual/reportes.jpg", titulo: "Reportes y envío automático",
+      texto: "Envía resultados por correo o WhatsApp con un clic. Lo que antes tomaba horas ahora toma minutos, sin errores de digitación." },
+    { img: "assets/manual/control-calidad.jpg", titulo: "Control de calidad",
+      texto: "Lleva tu control de calidad interno con gráficos de Levey-Jennings e informes profesionales — cumple con la normativa y genera confianza con cada resultado que entregas." },
+    { img: "assets/manual/marketing-remarketing.jpg", titulo: "Marketing con inteligencia artificial",
+      texto: "Reglas de remarketing inteligente que identifican solas a qué pacientes recordarles su próximo control — más pacientes que regresan, sin esfuerzo manual." }
+  ];
+
+  function cargarImagen(url) {
+    return new Promise(function (resolve) {
+      if (!url) { resolve(null); return; }
+      var image = new Image();
+      image.onload = function () { resolve(image); };
+      image.onerror = function () { resolve(null); };
+      image.src = url;
+    });
+  }
+
   // -----------------------------------------------------------------------
   // PROPUESTA COMERCIAL — solo con nombre y correo de un prospecto (aún sin
   // laboratorio creado ni lead formal en el CRM), lista TODO lo que incluye
-  // BIOsoft y los 4 planes vigentes (que solo varían en cuántos usuarios
-  // pueden usar el sistema al mismo tiempo — ver BIO_PLANES.PLANES_PROPUESTA
-  // en planes.js), para poder enviarla por correo o WhatsApp de una vez.
+  // BIOsoft, los 4 planes vigentes (que solo varían en cuántos usuarios
+  // pueden usar el sistema al mismo tiempo — ver BIO_PLANES.PLANES en
+  // planes.js) y una vitrina módulo por módulo con capturas reales, para
+  // poder enviarla por correo o WhatsApp de una vez. Devuelve una Promesa
+  // (las capturas de pantalla se precargan de forma asíncrona, igual que en
+  // pdf-manual.js -> buildManualPDF).
   //
   // IMPORTANTE: los textos que van dentro de doc.text()/autoTable aquí NUNCA
   // deben usar ✓/★/≈ ni ningún carácter fuera de WinAnsi — las fuentes base
@@ -253,6 +289,12 @@
   // (bug real reportado). Se usan "-", "·" y palabras en su lugar.
   // -----------------------------------------------------------------------
   function buildPropuestaPDF(datos) {
+    return Promise.all(MODULOS_PROPUESTA.map(function (m) { return cargarImagen(m.img); })).then(function (imagenesCargadas) {
+      return buildPropuestaPDFConImagenes(datos, imagenesCargadas);
+    });
+  }
+
+  function buildPropuestaPDFConImagenes(datos, imagenesCargadas) {
     var jsPDFCtor = window.jspdf ? window.jspdf.jsPDF : window.jsPDF;
     var doc = new jsPDFCtor({ unit: "pt", format: "letter" });
     var pageW = doc.internal.pageSize.getWidth();
@@ -350,6 +392,37 @@
       }
     });
     y = doc.lastAutoTable.finalY + 16;
+
+    doc.addPage(); y = margin;
+    tituloSeccion("Así funciona tu BIOsoft, módulo por módulo");
+    parrafo("Un vistazo rápido a lo que vas a tener funcionando desde el primer día — con capturas reales del sistema.", { size: 9, color: [90, 90, 90], gap: 12 });
+
+    var imgMaxH = 118, capW = maxW;
+    MODULOS_PROPUESTA.forEach(function (m, i) {
+      var imagen = imagenesCargadas[i];
+      var imgW = capW, imgH = imgMaxH;
+      if (imagen && imagen.naturalWidth) {
+        imgH = imgW * (imagen.naturalHeight / imagen.naturalWidth);
+        if (imgH > imgMaxH) { imgH = imgMaxH; imgW = imgH * (imagen.naturalWidth / imagen.naturalHeight); }
+      }
+      doc.setFont("helvetica", "bold"); doc.setFontSize(9.5);
+      var tituloLines = doc.splitTextToSize(m.titulo, maxW);
+      doc.setFont("helvetica", "normal"); doc.setFontSize(9);
+      var textoLines = doc.splitTextToSize(m.texto, maxW);
+      var bloqueAlto = (imagen ? imgH + 8 : 0) + tituloLines.length * 12 + 6 + textoLines.length * 12 + 20;
+      checkPage(bloqueAlto);
+      if (imagen) {
+        var xImg = margin + (capW - imgW) / 2;
+        doc.setDrawColor(225, 225, 225); doc.setLineWidth(0.7);
+        doc.rect(xImg - 2, y - 2, imgW + 4, imgH + 4);
+        try { doc.addImage(imagen, "JPEG", xImg, y, imgW, imgH); } catch (e) {}
+        y += imgH + 10;
+      }
+      doc.setFont("helvetica", "bold"); doc.setFontSize(9.5); doc.setTextColor(46, 16, 101);
+      doc.text(tituloLines, margin, y); y += tituloLines.length * 12 + 4;
+      doc.setFont("helvetica", "normal"); doc.setFontSize(9); doc.setTextColor(50, 50, 50);
+      doc.text(textoLines, margin, y); y += textoLines.length * 12 + 18;
+    });
 
     checkPage(60);
     parrafo(
