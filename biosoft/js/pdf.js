@@ -64,14 +64,18 @@
     return firmantes;
   }
 
-  /* Las firmas escaneadas/fotografiadas que sube cada bacteriólogo(a) suelen
-     traer bastante espacio en blanco alrededor del trazo real, lo que hace
-     que se vea "flotando" lejos de la línea al imprimirla a un tamaño fijo.
-     Esta función recorta ese margen sobrante (detectando el rectángulo real
-     del trazo) para que la firma quede justo encima de la línea sin importar
-     cómo haya sido tomada la foto original — aplica por igual a las firmas
-     ya cargadas de cualquier cliente y a las que se suban de ahora en adelante. */
-  function recortarFirma(dataUrl) {
+  /* Las firmas escaneadas/fotografiadas, y los logos exportados desde un
+     editor de diseño, suelen traer bastante espacio en blanco/transparente
+     alrededor del trazo o el gráfico real — una firma "flota" lejos de la
+     línea, y un logo "ancho completo" (ver logoAnchoCompleto más abajo)
+     hereda ese espacio en blanco ampliado proporcionalmente al estirarlo,
+     dejando un membrete que se ve más vacío/alto de lo necesario aunque el
+     archivo en sí no cambió. Esta función recorta ese margen sobrante
+     (detectando el rectángulo real del contenido visible) para que tanto la
+     firma como el logo queden ajustados a su contenido real, sin importar
+     cómo se haya exportado el archivo original — aplica por igual a lo ya
+     cargado de cualquier cliente y a lo que se suba de ahora en adelante. */
+  function recortarEspacioSobrante(dataUrl) {
     return new Promise(function (resolve) {
       if (!dataUrl) { resolve(null); return; }
       var img = new Image();
@@ -151,24 +155,31 @@
         // "Logo a todo el ancho" (pedido puntual, ej. Yamdan): el logo ya
         // trae el nombre del laboratorio dibujado adentro, así que se
         // estira a todo el ancho de contenido de la hoja EN VEZ del
-        // cuadrado fijo de 76pt. La altura se calcula a partir de las
-        // proporciones reales del archivo (doc.getImageProperties), nunca
-        // se fuerza a cuadrado — así funciona bien con cualquier logo que
-        // suban, sea cuadrado, horizontal o vertical. Se limita una altura
-        // máxima para que un logo muy alto/vertical no desborde la hoja.
+        // cuadrado fijo de 76pt. Primero se recorta el espacio en
+        // blanco/transparente sobrante del archivo (ver
+        // recortarEspacioSobrante) — muchos logos exportados traen bastante
+        // margen alrededor del gráfico real, y al estirarlos a todo el
+        // ancho ese margen se amplía proporcionalmente, dejando un
+        // membrete más alto y "vacío" de lo necesario aunque el logo en sí
+        // se vea bien. Con el recorte, las proporciones que se usan son las
+        // del contenido visible real, nunca se fuerza a cuadrado. Se limita
+        // además una altura máxima para que un logo genuinamente
+        // vertical no desborde la hoja.
         if (tenant.logoAnchoCompleto) {
           var logoW = pageW - margin * 2;
           var logoH = logoW;
+          var logoParaDibujar = tenant.logoDataUrl;
           try {
-            var props = doc.getImageProperties(tenant.logoDataUrl);
-            if (props && props.width && props.height) {
-              logoH = logoW * (props.height / props.width);
-              var alturaMaxima = 170;
-              if (logoH > alturaMaxima) { logoH = alturaMaxima; logoW = logoH * (props.width / props.height); }
+            var recorteLogo = await recortarEspacioSobrante(tenant.logoDataUrl);
+            if (recorteLogo && recorteLogo.w && recorteLogo.h) {
+              logoParaDibujar = recorteLogo.url;
+              logoH = logoW * (recorteLogo.h / recorteLogo.w);
+              var alturaMaxima = 110;
+              if (logoH > alturaMaxima) { logoH = alturaMaxima; logoW = logoH * (recorteLogo.w / recorteLogo.h); }
             }
           } catch (e) {}
-          try { doc.addImage(tenant.logoDataUrl, "PNG", cx - logoW / 2, y - 4, logoW, logoH); } catch (e) {}
-          y += logoH + 12;
+          try { doc.addImage(logoParaDibujar, "PNG", cx - logoW / 2, y, logoW, logoH); } catch (e) {}
+          y += logoH + 8;
         } else {
           var logoCentradoSize = 76;
           try { doc.addImage(tenant.logoDataUrl, "PNG", cx - logoCentradoSize / 2, y - 4, logoCentradoSize, logoCentradoSize); } catch (e) {}
@@ -188,13 +199,13 @@
       if (tenant.slogan) {
         doc.setFont("helvetica", "italic"); doc.setFontSize(10.5); doc.setTextColor(rgb[0], rgb[1], rgb[2]);
         doc.text(tenant.slogan, cx, y, { align: "center" });
-        y += 15;
+        y += 13;
       }
       doc.setFont("helvetica", "normal"); doc.setFontSize(8.5); doc.setTextColor(90, 90, 90);
       metaLines.forEach(function (line, i) { doc.text(line, cx, y + i * 10, { align: "center" }); });
-      y += metaLines.length * 10 + 14;
+      y += metaLines.length * 10 + 10;
       doc.setDrawColor(rgb[0], rgb[1], rgb[2]); doc.setLineWidth(2);
-      doc.line(margin, y, pageW - margin, y); y += 20;
+      doc.line(margin, y, pageW - margin, y); y += 16;
     } else {
       // El logo sale bien grande (100pt — subió de 46 a 62, a 84 y ahora a
       // 100) para aprovechar el espacio en blanco que quedaba debajo suyo en
@@ -514,7 +525,7 @@
       if (y > 700) { doc.addPage(); y = margin; }
       if (f.firmaDataUrl) {
         try {
-          var recorte = await recortarFirma(f.firmaDataUrl);
+          var recorte = await recortarEspacioSobrante(f.firmaDataUrl);
           var maxW = 150, maxH = 40;
           var escala = Math.min(maxW / recorte.w, maxH / recorte.h, 1);
           var dw = recorte.w * escala, dh = recorte.h * escala;
