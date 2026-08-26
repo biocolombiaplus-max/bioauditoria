@@ -133,12 +133,17 @@
     var ROW_H = 17, HEAD_H = 22;
     var rgb = hexToRgb(tenant.colorPrimario);
 
-    var metaLines = [
-      C.documentoTributarioLabel(tenant.pais) + " " + tenant.nit + (tenant.codigoREPS ? " · Código REPS " + tenant.codigoREPS : ""),
-      tenant.direccion + " · " + tenant.telefonos,
-      tenant.email + (tenant.sitioWeb ? " · " + tenant.sitioWeb : ""),
-      tenant.resolucionHabilitacion || ""
-    ];
+    // Se agrupan los datos de contacto en 2 líneas densas en vez de 4 (una
+    // por dato) — nunca se pierde ningún dato, solo se juntan con " · " —
+    // para que el encabezado (sobre todo el membrete grande, ver
+    // logoGrandeReporte más abajo) no gaste una línea entera completa en un
+    // solo campo, muchas veces vacío (ej. "Resolución de Habilitación" casi
+    // nunca aplica fuera de Colombia).
+    var metaLineA = C.documentoTributarioLabel(tenant.pais) + " " + tenant.nit +
+      (tenant.codigoREPS ? " · Código REPS " + tenant.codigoREPS : "") +
+      (tenant.resolucionHabilitacion ? " · " + tenant.resolucionHabilitacion : "");
+    var metaLineB = [tenant.direccion, tenant.telefonos, tenant.email, tenant.sitioWeb].filter(Boolean).join(" · ");
+    var metaLines = [metaLineA, metaLineB].filter(Boolean);
 
     if (tenant.logoGrandeReporte) {
       // Membrete centrado (activado en Configuración → "Diseño del Reporte
@@ -151,20 +156,26 @@
       // que se veía mal (el nombre quedaba lejos del logo y se desalineaba
       // con el resto del membrete).
       var cx = pageW / 2;
+      // El logo "a todo el ancho" es un membrete deliberadamente compacto
+      // (pedido puntual, ej. Yamdan): arranca mucho más pegado al borde
+      // superior que el resto del informe (22pt en vez del margen general
+      // de 40pt) — hay margen de sobra para imprimirse bien en cualquier
+      // impresora normal, y así no se desperdicia espacio arriba del logo.
+      if (tenant.logoAnchoCompleto) y = 22;
       if (tenant.logoDataUrl) {
-        // "Logo a todo el ancho" (pedido puntual, ej. Yamdan): el logo ya
-        // trae el nombre del laboratorio dibujado adentro, así que se
-        // estira a todo el ancho de contenido de la hoja EN VEZ del
-        // cuadrado fijo de 76pt. Primero se recorta el espacio en
-        // blanco/transparente sobrante del archivo (ver
-        // recortarEspacioSobrante) — muchos logos exportados traen bastante
-        // margen alrededor del gráfico real, y al estirarlos a todo el
-        // ancho ese margen se amplía proporcionalmente, dejando un
-        // membrete más alto y "vacío" de lo necesario aunque el logo en sí
-        // se vea bien. Con el recorte, las proporciones que se usan son las
-        // del contenido visible real, nunca se fuerza a cuadrado. Se limita
-        // además una altura máxima para que un logo genuinamente
-        // vertical no desborde la hoja.
+        // "Logo a todo el ancho": el logo ya trae el nombre del
+        // laboratorio dibujado adentro, así que se estira a todo el ancho
+        // de contenido de la hoja EN VEZ del cuadrado fijo de 76pt.
+        // Primero se recorta el espacio en blanco/transparente sobrante
+        // del archivo (ver recortarEspacioSobrante) — muchos logos
+        // exportados traen bastante margen alrededor del gráfico real, y
+        // al estirarlos a todo el ancho ese margen se amplía
+        // proporcionalmente, dejando un membrete más alto y "vacío" de lo
+        // necesario aunque el logo en sí se vea bien. Con el recorte, las
+        // proporciones que se usan son las del contenido visible real,
+        // nunca se fuerza a cuadrado. Se limita además una altura máxima
+        // (deliberadamente baja, para un membrete discreto) para que un
+        // logo genuinamente vertical no desborde la hoja.
         if (tenant.logoAnchoCompleto) {
           var logoW = pageW - margin * 2;
           var logoH = logoW;
@@ -174,19 +185,19 @@
             if (recorteLogo && recorteLogo.w && recorteLogo.h) {
               logoParaDibujar = recorteLogo.url;
               logoH = logoW * (recorteLogo.h / recorteLogo.w);
-              var alturaMaxima = 75;
+              var alturaMaxima = 65;
               if (logoH > alturaMaxima) { logoH = alturaMaxima; logoW = logoH * (recorteLogo.w / recorteLogo.h); }
             }
           } catch (e) {}
           try { doc.addImage(logoParaDibujar, "PNG", cx - logoW / 2, y, logoW, logoH); } catch (e) {}
-          y += logoH + 4;
+          y += logoH + 3;
         } else {
           var logoCentradoSize = 76;
           try { doc.addImage(tenant.logoDataUrl, "PNG", cx - logoCentradoSize / 2, y - 4, logoCentradoSize, logoCentradoSize); } catch (e) {}
           y += logoCentradoSize + 12;
         }
       } else {
-        y += 76 + 12;
+        y += tenant.logoAnchoCompleto ? 65 + 3 : 76 + 12;
       }
       // Si el logo ya trae el nombre del laboratorio dibujado (como el de
       // Yamdan), mostrar además el nombre en texto debajo queda repetido —
@@ -194,18 +205,18 @@
       if (!tenant.ocultarNombreEncabezado) {
         doc.setFont("helvetica", "bold"); doc.setFontSize(16); doc.setTextColor(rgb[0], rgb[1], rgb[2]);
         doc.text(tenant.nombre, cx, y, { align: "center" });
-        y += 15;
+        y += 13;
       }
       if (tenant.slogan) {
         doc.setFont("helvetica", "italic"); doc.setFontSize(10.5); doc.setTextColor(rgb[0], rgb[1], rgb[2]);
         doc.text(tenant.slogan, cx, y, { align: "center" });
-        y += 13;
+        y += 11;
       }
       doc.setFont("helvetica", "normal"); doc.setFontSize(8.5); doc.setTextColor(90, 90, 90);
-      metaLines.forEach(function (line, i) { doc.text(line, cx, y + i * 9.5, { align: "center" }); });
-      y += metaLines.length * 9.5 + 6;
+      metaLines.forEach(function (line, i) { doc.text(line, cx, y + i * 9, { align: "center" }); });
+      y += metaLines.length * 9 + 4;
       doc.setDrawColor(rgb[0], rgb[1], rgb[2]); doc.setLineWidth(2);
-      doc.line(margin, y, pageW - margin, y); y += 12;
+      doc.line(margin, y, pageW - margin, y); y += 8;
     } else {
       // El logo sale bien grande (100pt — subió de 46 a 62, a 84 y ahora a
       // 100) para aprovechar el espacio en blanco que quedaba debajo suyo en
