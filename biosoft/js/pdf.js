@@ -185,19 +185,19 @@
             if (recorteLogo && recorteLogo.w && recorteLogo.h) {
               logoParaDibujar = recorteLogo.url;
               logoH = logoW * (recorteLogo.h / recorteLogo.w);
-              var alturaMaxima = 65;
+              var alturaMaxima = 50;
               if (logoH > alturaMaxima) { logoH = alturaMaxima; logoW = logoH * (recorteLogo.w / recorteLogo.h); }
             }
           } catch (e) {}
           try { doc.addImage(logoParaDibujar, "PNG", cx - logoW / 2, y, logoW, logoH); } catch (e) {}
-          y += logoH + 3;
+          y += logoH + 2;
         } else {
           var logoCentradoSize = 76;
           try { doc.addImage(tenant.logoDataUrl, "PNG", cx - logoCentradoSize / 2, y - 4, logoCentradoSize, logoCentradoSize); } catch (e) {}
           y += logoCentradoSize + 12;
         }
       } else {
-        y += tenant.logoAnchoCompleto ? 65 + 3 : 76 + 12;
+        y += tenant.logoAnchoCompleto ? 50 + 2 : 76 + 12;
       }
       // Si el logo ya trae el nombre del laboratorio dibujado (como el de
       // Yamdan), mostrar además el nombre en texto debajo queda repetido —
@@ -212,11 +212,11 @@
         doc.text(tenant.slogan, cx, y, { align: "center" });
         y += 11;
       }
-      doc.setFont("helvetica", "normal"); doc.setFontSize(8.5); doc.setTextColor(90, 90, 90);
-      metaLines.forEach(function (line, i) { doc.text(line, cx, y + i * 9, { align: "center" }); });
-      y += metaLines.length * 9 + 4;
+      doc.setFont("helvetica", "normal"); doc.setFontSize(8); doc.setTextColor(90, 90, 90);
+      metaLines.forEach(function (line, i) { doc.text(line, cx, y + i * 8.5, { align: "center" }); });
+      y += metaLines.length * 8.5 + 2;
       doc.setDrawColor(rgb[0], rgb[1], rgb[2]); doc.setLineWidth(2);
-      doc.line(margin, y, pageW - margin, y); y += 8;
+      doc.line(margin, y, pageW - margin, y); y += 6;
     } else {
       // El logo sale bien grande (100pt — subió de 46 a 62, a 84 y ahora a
       // 100) para aprovechar el espacio en blanco que quedaba debajo suyo en
