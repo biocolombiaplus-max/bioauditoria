@@ -1225,6 +1225,11 @@
         '<fieldset><legend>Diseño del Reporte de Resultados</legend>' +
         '<div class="checkbox-row"><input type="checkbox" id="f_logoGrandeReporte" ' + (tenant.logoGrandeReporte ? "checked" : "") + '/><label style="margin:0" for="f_logoGrandeReporte">Mostrar tu logo grande y centrado en el encabezado del informe, como un membrete</label></div>' +
         '<p class="text-muted" style="margin:4px 0 12px;font-size:12.5px">En vez del logo chico a la izquierda, tu logo sale grande y centrado arriba de la página, con el nombre de tu laboratorio también centrado debajo — un encabezado tipo membrete. Necesitas tener un logo cargado arriba para que se vea.</p>' +
+        '<div id="logo-grande-opciones" class="hidden" style="margin:0 0 12px;padding-left:2px">' +
+        '<div class="checkbox-row"><input type="checkbox" id="f_logoAnchoCompleto" ' + (tenant.logoAnchoCompleto ? "checked" : "") + '/><label style="margin:0" for="f_logoAnchoCompleto">Que el logo ocupe todo el ancho de la hoja (en vez de un cuadro chico)</label></div>' +
+        '<p class="text-muted" style="margin:4px 0 10px;font-size:12.5px">Para que se vea bien grande y nítido, sube un logo horizontal (más ancho que alto — como el que ya usas en tus recibos de papel), en formato PNG con fondo transparente si lo tienes. El sistema respeta las proporciones reales del archivo: no importa el tamaño exacto en píxeles, solo que sea horizontal para aprovechar bien el ancho.</p>' +
+        '<div class="checkbox-row"><input type="checkbox" id="f_ocultarNombreEncabezado" ' + (tenant.ocultarNombreEncabezado ? "checked" : "") + '/><label style="margin:0" for="f_ocultarNombreEncabezado">Ocultar el nombre del laboratorio en el encabezado (úsalo solo si tu logo ya trae el nombre escrito, para no repetirlo)</label></div>' +
+        "</div>" +
         '<div class="field"><label>Pie de página personalizado (aparece justo antes de la firma en cada informe)</label><textarea id="f_piePaginaPersonalizado" rows="2" placeholder="Ej: Nuestro laboratorio garantiza la calidad de sus análisis y el cumplimiento del sistema de control de calidad.">' + U.esc(tenant.piePaginaPersonalizado || "") + "</textarea></div>" +
         '<p class="text-muted" style="margin:4px 0 0;font-size:12.5px">Déjalo vacío si no quieres ningún texto adicional — el pie de página estándar de BIOsoft se sigue mostrando siempre, con o sin este texto.</p>' +
         "</fieldset>" +
@@ -1279,6 +1284,12 @@
       previewTema();
     });
 
+    function refrescarOpcionesLogoGrande() {
+      document.getElementById("logo-grande-opciones").classList.toggle("hidden", !document.getElementById("f_logoGrandeReporte").checked);
+    }
+    refrescarOpcionesLogoGrande();
+    document.getElementById("f_logoGrandeReporte").addEventListener("change", refrescarOpcionesLogoGrande);
+
     document.getElementById("f_logo").addEventListener("change", function (e) {
       var file = e.target.files[0];
       if (!file) return;
@@ -1305,6 +1316,8 @@
       tenant.bacteriologoResponsable = { nombre: g("bactNombre"), registro: g("bactRegistro") };
       tenant.mostrarPrecioOrden = document.getElementById("f_mostrarPrecioOrden").checked;
       tenant.logoGrandeReporte = document.getElementById("f_logoGrandeReporte").checked;
+      tenant.logoAnchoCompleto = document.getElementById("f_logoAnchoCompleto").checked;
+      tenant.ocultarNombreEncabezado = document.getElementById("f_ocultarNombreEncabezado").checked;
       tenant.piePaginaPersonalizado = g("piePaginaPersonalizado");
       tenant.colorPrimario = document.getElementById("f_colorPrimario").value;
       tenant.colorSecundario = document.getElementById("f_colorSecundario").value;
@@ -1325,7 +1338,8 @@
         telefonos: tenant.telefonos, email: tenant.email, sitioWeb: tenant.sitioWeb,
         resolucionHabilitacion: tenant.resolucionHabilitacion, codigoREPS: tenant.codigoREPS, nivel: tenant.nivel,
         bacteriologoResponsable: tenant.bacteriologoResponsable, mostrarPrecioOrden: tenant.mostrarPrecioOrden,
-        logoGrandeReporte: tenant.logoGrandeReporte, piePaginaPersonalizado: tenant.piePaginaPersonalizado,
+        logoGrandeReporte: tenant.logoGrandeReporte, logoAnchoCompleto: tenant.logoAnchoCompleto, ocultarNombreEncabezado: tenant.ocultarNombreEncabezado,
+        piePaginaPersonalizado: tenant.piePaginaPersonalizado,
         colorPrimario: tenant.colorPrimario, colorSecundario: tenant.colorSecundario, colorTextoMenu: tenant.colorTextoMenu,
         colorTitulos: tenant.colorTitulos, colorSubtitulos: tenant.colorSubtitulos, logoDataUrl: tenant.logoDataUrl
       };

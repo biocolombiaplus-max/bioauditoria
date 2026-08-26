@@ -147,14 +147,44 @@
       // que se veía mal (el nombre quedaba lejos del logo y se desalineaba
       // con el resto del membrete).
       var cx = pageW / 2;
-      var logoCentradoSize = 76;
       if (tenant.logoDataUrl) {
-        try { doc.addImage(tenant.logoDataUrl, "PNG", cx - logoCentradoSize / 2, y - 4, logoCentradoSize, logoCentradoSize); } catch (e) {}
+        // "Logo a todo el ancho" (pedido puntual, ej. Yamdan): el logo ya
+        // trae el nombre del laboratorio dibujado adentro, así que se
+        // estira a todo el ancho de contenido de la hoja EN VEZ del
+        // cuadrado fijo de 76pt. La altura se calcula a partir de las
+        // proporciones reales del archivo (doc.getImageProperties), nunca
+        // se fuerza a cuadrado — así funciona bien con cualquier logo que
+        // suban, sea cuadrado, horizontal o vertical. Se limita una altura
+        // máxima para que un logo muy alto/vertical no desborde la hoja.
+        if (tenant.logoAnchoCompleto) {
+          var logoW = pageW - margin * 2;
+          var logoH = logoW;
+          try {
+            var props = doc.getImageProperties(tenant.logoDataUrl);
+            if (props && props.width && props.height) {
+              logoH = logoW * (props.height / props.width);
+              var alturaMaxima = 170;
+              if (logoH > alturaMaxima) { logoH = alturaMaxima; logoW = logoH * (props.width / props.height); }
+            }
+          } catch (e) {}
+          try { doc.addImage(tenant.logoDataUrl, "PNG", cx - logoW / 2, y - 4, logoW, logoH); } catch (e) {}
+          y += logoH + 12;
+        } else {
+          var logoCentradoSize = 76;
+          try { doc.addImage(tenant.logoDataUrl, "PNG", cx - logoCentradoSize / 2, y - 4, logoCentradoSize, logoCentradoSize); } catch (e) {}
+          y += logoCentradoSize + 12;
+        }
+      } else {
+        y += 76 + 12;
       }
-      y += logoCentradoSize + 12;
-      doc.setFont("helvetica", "bold"); doc.setFontSize(16); doc.setTextColor(rgb[0], rgb[1], rgb[2]);
-      doc.text(tenant.nombre, cx, y, { align: "center" });
-      y += 15;
+      // Si el logo ya trae el nombre del laboratorio dibujado (como el de
+      // Yamdan), mostrar además el nombre en texto debajo queda repetido —
+      // se puede ocultar desde Configuración.
+      if (!tenant.ocultarNombreEncabezado) {
+        doc.setFont("helvetica", "bold"); doc.setFontSize(16); doc.setTextColor(rgb[0], rgb[1], rgb[2]);
+        doc.text(tenant.nombre, cx, y, { align: "center" });
+        y += 15;
+      }
       if (tenant.slogan) {
         doc.setFont("helvetica", "italic"); doc.setFontSize(10.5); doc.setTextColor(rgb[0], rgb[1], rgb[2]);
         doc.text(tenant.slogan, cx, y, { align: "center" });
