@@ -259,20 +259,34 @@
 
     doc.setFont("helvetica", "bold"); doc.setFontSize(13); doc.setTextColor(20, 20, 20);
     doc.text("INFORME DE RESULTADOS DE LABORATORIO CLÍNICO", margin, y);
+    y += 15;
+    // El aviso de preliminar/parcial va en su PROPIA línea debajo del
+    // título (antes iba a la derecha, en la misma línea que el título, y
+    // con textos largos las dos frases se montaban una sobre la otra).
     if (modo === "preliminar") {
-      doc.setTextColor(201, 126, 13); doc.setFontSize(10);
-      doc.text("RESULTADO PRELIMINAR — SUJETO A VALIDACIÓN FINAL", pageW - margin, y, { align: "right" });
+      doc.setFont("helvetica", "bold"); doc.setFontSize(9.5); doc.setTextColor(201, 126, 13);
+      doc.text("RESULTADO PRELIMINAR — SUJETO A VALIDACIÓN FINAL", margin, y);
+      y += 14;
     } else if (order.estadoGeneral !== "validado") {
-      doc.setTextColor(201, 126, 13); doc.setFontSize(10);
-      doc.text("INFORME PARCIAL — HAY EXÁMENES EN PROCESO", pageW - margin, y, { align: "right" });
+      doc.setFont("helvetica", "bold"); doc.setFontSize(9.5); doc.setTextColor(201, 126, 13);
+      doc.text("INFORME PARCIAL — HAY EXÁMENES EN PROCESO", margin, y);
+      y += 14;
+    } else {
+      y += 6;
     }
-    y += 20;
 
-    doc.setFontSize(9); doc.setTextColor(30, 30, 30); doc.setFont("helvetica", "normal");
+    // El nombre del paciente va destacado en su propia línea (más grande
+    // y en negrita) — es el primer dato que se busca al leer el informe —
+    // en vez de mezclado en la misma cuadrícula chica que el resto de los
+    // datos.
+    doc.setFont("helvetica", "bold"); doc.setFontSize(12.5); doc.setTextColor(20, 20, 20);
+    doc.text(U.nombreCompleto(patient), margin, y);
+    y += 17;
+
+    doc.setFontSize(9.5); doc.setTextColor(30, 30, 30);
     var edad = U.calcEdad(patient.fechaNacimiento);
     var col1 = margin, col2 = pageW / 2 + 10;
     var left = [
-      ["Paciente:", U.nombreCompleto(patient)],
       ["Documento:", patient.tipoDocumento + " " + patient.numeroDocumento],
       ["Edad / Sexo:", edad + " / " + patient.sexo]
     ];
@@ -283,15 +297,19 @@
       ["Médico Remitente:", order.medicoRemitente || "—"],
       ["Procedencia:", order.procedencia || "—"]
     ];
+    // Los datos del paciente van en negrita (etiqueta y valor) para un
+    // informe con más carácter profesional, en vez de valores en fuente
+    // normal más discretos.
+    doc.setFont("helvetica", "bold");
     left.forEach(function (row, i) {
-      doc.setFont("helvetica", "bold"); doc.text(row[0], col1, y + i * 14);
-      doc.setFont("helvetica", "normal"); doc.text(String(row[1]), col1 + 90, y + i * 14);
+      doc.text(row[0], col1, y + i * 14);
+      doc.text(String(row[1]), col1 + 90, y + i * 14);
     });
     right.forEach(function (row, i) {
-      doc.setFont("helvetica", "bold"); doc.text(row[0], col2, y + i * 14);
-      doc.setFont("helvetica", "normal"); doc.text(String(row[1]), col2 + 90, y + i * 14);
+      doc.text(row[0], col2, y + i * 14);
+      doc.text(String(row[1]), col2 + 90, y + i * 14);
     });
-    y += left.length * 14 + 16;
+    y += Math.max(left.length, right.length) * 14 + 16;
 
     var examsToShow = order.examenes.filter(function (ex) {
       var listos = ex.estado === "validado" || ex.estado === "remitido";
