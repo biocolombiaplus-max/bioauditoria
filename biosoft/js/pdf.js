@@ -282,17 +282,23 @@
     // El nombre y el documento del paciente van destacados, cada uno en su
     // propia línea, más grandes y en negrita — son los dos datos que
     // primero se buscan al leer el informe — en vez de mezclados en la
-    // misma cuadrícula chica que el resto de los datos.
+    // misma cuadrícula chica que el resto de los datos. La columna
+    // derecha (N° de orden, fecha, médico, procedencia) arranca desde el
+    // mismo punto de partida que el nombre, no desde abajo del documento
+    // — si no, queda un hueco vacío arriba a la derecha y el bloque se ve
+    // descuadrado.
+    var yInfoStart = y;
+    var col1 = margin, col2 = pageW / 2 + 10;
+
     doc.setFont("helvetica", "bold"); doc.setFontSize(12.5); doc.setTextColor(20, 20, 20);
-    doc.text(U.nombreCompleto(patient), margin, y);
+    doc.text(U.nombreCompleto(patient), col1, y);
     y += 15;
     doc.setFontSize(10.5); doc.setTextColor(50, 50, 50);
-    doc.text(patient.tipoDocumento + " " + patient.numeroDocumento, margin, y);
+    doc.text(patient.tipoDocumento + " " + patient.numeroDocumento, col1, y);
     y += 16;
 
     doc.setFontSize(9.5); doc.setTextColor(30, 30, 30);
     var edad = U.calcEdad(patient.fechaNacimiento);
-    var col1 = margin, col2 = pageW / 2 + 10;
     var left = [
       ["Edad / Sexo:", edad + " / " + patient.sexo]
     ];
@@ -312,10 +318,10 @@
       doc.text(String(row[1]), col1 + 90, y + i * 14);
     });
     right.forEach(function (row, i) {
-      doc.text(row[0], col2, y + i * 14);
-      doc.text(String(row[1]), col2 + 90, y + i * 14);
+      doc.text(row[0], col2, yInfoStart + i * 14);
+      doc.text(String(row[1]), col2 + 90, yInfoStart + i * 14);
     });
-    y += Math.max(left.length, right.length) * 14 + 16;
+    y = Math.max(y + left.length * 14, yInfoStart + right.length * 14) + 16;
 
     var examsToShow = order.examenes.filter(function (ex) {
       var listos = ex.estado === "validado" || ex.estado === "remitido";
