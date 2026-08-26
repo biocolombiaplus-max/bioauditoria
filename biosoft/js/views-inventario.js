@@ -10,7 +10,13 @@
   var DIAS_ALERTA_VENCIMIENTO = 30;
   var UNIDADES_MEDIDA = ["mL", "L", "mg", "g", "kg", "unidades", "tiras", "viales", "frascos", "cajas", "kits", "pruebas", "ampollas", "sobres", "rollos", "pares", "tubos"];
 
-  function fmtMoneda(n) { return "$" + Math.round(n || 0).toLocaleString("es-CO"); }
+  // Con decimales cuando el precio los tiene (típico en dólares, ej.
+  // "$4,50") pero sin ",00" de sobra en precios redondos.
+  function fmtMoneda(n) {
+    n = n || 0;
+    var dec = Math.round(n) === n ? 0 : 2;
+    return "$" + n.toLocaleString("es-CO", { minimumFractionDigits: dec, maximumFractionDigits: 2 });
+  }
   function fmtFechaCorta(iso) {
     if (!iso) return "—";
     return new Date(iso).toLocaleDateString("es-CO", { day: "2-digit", month: "short", year: "numeric" });

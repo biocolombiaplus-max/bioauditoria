@@ -13,7 +13,13 @@
   window.BIO_VIEWS = window.BIO_VIEWS || {};
   var U = BIO_UI, S = BIO_STORE, C = BIO_CATALOG;
 
-  function fmtMoneda(n) { return "$" + Math.round(n || 0).toLocaleString("es-CO"); }
+  // Con decimales cuando el precio los tiene (típico en dólares, ej.
+  // "$4,50") pero sin ",00" de sobra en precios redondos.
+  function fmtMoneda(n) {
+    n = n || 0;
+    var dec = Math.round(n) === n ? 0 : 2;
+    return "$" + n.toLocaleString("es-CO", { minimumFractionDigits: dec, maximumFractionDigits: 2 });
+  }
   function hoyISO() { return new Date().toISOString().slice(0, 10); }
   function primerDiaMesISO() {
     var d = new Date(); d.setDate(1);

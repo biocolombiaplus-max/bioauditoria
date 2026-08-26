@@ -13,7 +13,13 @@
     hex = (hex || "#f97316").replace("#", "");
     return [parseInt(hex.substring(0, 2), 16), parseInt(hex.substring(2, 4), 16), parseInt(hex.substring(4, 6), 16)];
   }
-  function fmtMoneda(n) { return "$" + Math.round(n || 0).toLocaleString("es-CO"); }
+  // Con decimales cuando el precio los tiene (típico en dólares, ej.
+  // "$4,50") pero sin ",00" de sobra en precios redondos.
+  function fmtMoneda(n) {
+    n = n || 0;
+    var dec = Math.round(n) === n ? 0 : 2;
+    return "$" + n.toLocaleString("es-CO", { minimumFractionDigits: dec, maximumFractionDigits: 2 });
+  }
 
   function numeroRecibo(order) {
     var fecha = new Date(order.fechaOrden);
@@ -22,7 +28,7 @@
 
   /* pago: { fecha, metodoPago, confirmadoPor }. preciosPorId: mapa examId -> precio,
      para poder desglosar el cobro por examen (la Orden solo guarda el total). */
-  function buildReciboOrdenPDF(order, pac, tenant, pago, preciosPorId) {
+  async function buildReciboOrdenPDF(order, pac, tenant, pago, preciosPorId) {
     pago = pago || {};
     preciosPorId = preciosPorId || {};
     var jsPDFCtor = window.jspdf ? window.jspdf.jsPDF : window.jsPDF;
@@ -30,23 +36,15 @@
     var pageW = doc.internal.pageSize.getWidth();
     var pageH = doc.internal.pageSize.getHeight();
     var margin = 28;
-    var y = margin;
     var rgb = hexToRgb(tenant.colorPrimario);
 
-    if (tenant.logoDataUrl) {
-      try { doc.addImage(tenant.logoDataUrl, "PNG", margin, y - 4, 36, 36); } catch (e) {}
-    }
-    doc.setFont("helvetica", "bold"); doc.setFontSize(12.5); doc.setTextColor(rgb[0], rgb[1], rgb[2]);
-    doc.text(tenant.nombre, margin + (tenant.logoDataUrl ? 42 : 0), y + 8, { maxWidth: pageW - margin * 2 - (tenant.logoDataUrl ? 42 : 0) });
-    doc.setFont("helvetica", "normal"); doc.setFontSize(7.5); doc.setTextColor(90, 90, 90);
-    var metaLines = [
-      C.documentoTributarioLabel(tenant.pais) + " " + (tenant.nit || "—"),
-      (tenant.direccion || "") + (tenant.telefonos ? " · " + tenant.telefonos : "")
-    ];
-    metaLines.forEach(function (line, i) { doc.text(line, margin + (tenant.logoDataUrl ? 42 : 0), y + 19 + i * 9, { maxWidth: pageW - margin * 2 - (tenant.logoDataUrl ? 42 : 0) }); });
-
-    doc.setDrawColor(rgb[0], rgb[1], rgb[2]); doc.setLineWidth(1.6);
-    y += 42; doc.line(margin, y, pageW - margin, y); y += 16;
+    // Mismo membrete (logo, nombre, datos de contacto) que el informe de
+    // resultados, la cotización y su recibo — un laboratorio que activa el
+    // membrete grande en Configuración lo ve igual en todos sus documentos
+    // impresos. La función escala el logo según el ancho real de la
+    // página, así que en esta hoja más angosta (media carta) queda
+    // proporcional en vez de desbordado.
+    var y = await window.BIO_PDF.dibujarMembrete(doc, tenant, margin);
 
     doc.setFont("helvetica", "bold"); doc.setFontSize(11); doc.setTextColor(20, 20, 20);
     doc.text("RECIBO DE PAGO", margin, y);

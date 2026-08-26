@@ -12,8 +12,12 @@
     hex = (hex || "#f97316").replace("#", "");
     return [parseInt(hex.substring(0, 2), 16), parseInt(hex.substring(2, 4), 16), parseInt(hex.substring(4, 6), 16)];
   }
+  // Con decimales cuando el precio los tiene (típico en dólares, ej.
+  // "$4,50") pero sin ",00" de sobra en precios redondos.
   function fmtMoneda(n) {
-    return "$" + Math.round(n || 0).toLocaleString("es-CO");
+    n = n || 0;
+    var dec = Math.round(n) === n ? 0 : 2;
+    return "$" + n.toLocaleString("es-CO", { minimumFractionDigits: dec, maximumFractionDigits: 2 });
   }
   function buildQrDataUrl(texto, sizePx) {
     if (!window.qrcode) return null;

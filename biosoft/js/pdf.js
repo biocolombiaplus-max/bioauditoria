@@ -118,19 +118,18 @@
     });
   }
 
-  async function buildResultadosPDF(order, patient, tenant, modo) {
-    var jsPDFCtor = window.jspdf ? window.jspdf.jsPDF : window.jsPDF;
-    var doc = new jsPDFCtor({ unit: "pt", format: "letter" });
+  /* Encabezado "membrete" compartido por TODOS los documentos imprimibles
+     con la marca del laboratorio (resultados, cotizaciones, recibos) — así
+     un laboratorio que activa el membrete grande y centrado (Configuración
+     → "Diseño del Reporte de Resultados") lo ve igual en cualquier PDF que
+     genere, en vez de que cada generador tenga su propio encabezado
+     independiente con un logo chico fijo. Dibuja el logo, el nombre del
+     laboratorio y los datos de contacto, y devuelve el nuevo valor de "y"
+     (justo debajo de la línea divisoria) para que el resto del documento
+     continúe desde ahí. */
+  async function dibujarMembrete(doc, tenant, margin) {
     var pageW = doc.internal.pageSize.getWidth();
-    var pageH = doc.internal.pageSize.getHeight();
-    var margin = 40;
     var y = margin;
-    // Límite inferior para el contenido de las tablas de resultados, y
-    // estimación (deliberadamente generosa) de cuánto ocupa cada fila —
-    // se usan para decidir CON ANTICIPACIÓN si un examen completo cabe en
-    // lo que queda de página, en vez de dejar que se corte a la mitad.
-    var pageBottom = pageH - 55;
-    var ROW_H = 17, HEAD_H = 22;
     var rgb = hexToRgb(tenant.colorPrimario);
 
     // Se agrupan los datos de contacto en 2 líneas densas en vez de 4 (una
@@ -236,12 +235,17 @@
       doc.setDrawColor(rgb[0], rgb[1], rgb[2]); doc.setLineWidth(2);
       doc.line(margin, y, pageW - margin, y); y += 18;
     } else {
-      // El logo sale bien grande (100pt — subió de 46 a 62, a 84 y ahora a
-      // 100) para aprovechar el espacio en blanco que quedaba debajo suyo en
-      // el encabezado y que resalte con fuerza incluso impreso en papel. El
-      // nombre y los datos del laboratorio se recorren proporcionalmente para
-      // que el encabezado se vea equilibrado.
-      var logoSize = 100;
+      // El logo sale bien grande (100pt en una hoja carta completa — subió
+      // de 46 a 62, a 84 y ahora a 100) para aprovechar el espacio en
+      // blanco que quedaba debajo suyo en el encabezado y que resalte con
+      // fuerza incluso impreso en papel. El nombre y los datos del
+      // laboratorio se recorren proporcionalmente para que el encabezado
+      // se vea equilibrado. Esta función también la usan documentos en
+      // hojas más angostas (ej. el recibo de pago en media carta), así que
+      // el tope real es relativo al ancho de la página — en una hoja
+      // carta da exactamente 100pt como siempre, pero en una más angosta
+      // se achica en proporción en vez de quedar desbordado.
+      var logoSize = Math.min(100, (pageW - margin * 2) * 0.22);
       if (tenant.logoDataUrl) {
         try { doc.addImage(tenant.logoDataUrl, "PNG", margin, y - 9, logoSize, logoSize); } catch (e) {}
       }
@@ -260,6 +264,25 @@
       doc.setDrawColor(rgb[0], rgb[1], rgb[2]); doc.setLineWidth(2);
       y += tenant.slogan ? 106 : 96; doc.line(margin, y, pageW - margin, y); y += 20;
     }
+    return y;
+  }
+
+  async function buildResultadosPDF(order, patient, tenant, modo) {
+    var jsPDFCtor = window.jspdf ? window.jspdf.jsPDF : window.jsPDF;
+    var doc = new jsPDFCtor({ unit: "pt", format: "letter" });
+    var pageW = doc.internal.pageSize.getWidth();
+    var pageH = doc.internal.pageSize.getHeight();
+    var margin = 40;
+    var y = margin;
+    // Límite inferior para el contenido de las tablas de resultados, y
+    // estimación (deliberadamente generosa) de cuánto ocupa cada fila —
+    // se usan para decidir CON ANTICIPACIÓN si un examen completo cabe en
+    // lo que queda de página, en vez de dejar que se corte a la mitad.
+    var pageBottom = pageH - 55;
+    var ROW_H = 17, HEAD_H = 22;
+    var rgb = hexToRgb(tenant.colorPrimario);
+
+    y = await dibujarMembrete(doc, tenant, margin);
 
     doc.setFont("helvetica", "bold"); doc.setFontSize(13); doc.setTextColor(20, 20, 20);
     doc.text("INFORME DE RESULTADOS DE LABORATORIO CLÍNICO", margin, y);
@@ -843,6 +866,7 @@
 
   global.BIO_PDF = {
     buildResultadosPDF: buildResultadosPDF, previewOrModal: previewOrModal, buildStickersPDF: buildStickersPDF,
-    previewStickers: previewStickers, imprimirStickersRapido: imprimirStickersRapido
+    previewStickers: previewStickers, imprimirStickersRapido: imprimirStickersRapido,
+    dibujarMembrete: dibujarMembrete
   };
 })(window);

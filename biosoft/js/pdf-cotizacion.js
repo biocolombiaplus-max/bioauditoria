@@ -7,33 +7,26 @@
     hex = (hex || "#f97316").replace("#", "");
     return [parseInt(hex.substring(0, 2), 16), parseInt(hex.substring(2, 4), 16), parseInt(hex.substring(4, 6), 16)];
   }
+  // Con decimales cuando el precio los tiene (típico en dólares, ej.
+  // "$4,50") pero sin ",00" de sobra en precios redondos.
   function fmtMoneda(n) {
-    return "$" + Math.round(n || 0).toLocaleString("es-CO");
+    n = n || 0;
+    var dec = Math.round(n) === n ? 0 : 2;
+    return "$" + n.toLocaleString("es-CO", { minimumFractionDigits: dec, maximumFractionDigits: 2 });
   }
 
-  function buildCotizacionPDF(cotizacion, tenant) {
+  async function buildCotizacionPDF(cotizacion, tenant) {
     var jsPDFCtor = window.jspdf ? window.jspdf.jsPDF : window.jsPDF;
     var doc = new jsPDFCtor({ unit: "pt", format: "letter" });
     var pageW = doc.internal.pageSize.getWidth();
     var margin = 40;
-    var y = margin;
     var rgb = hexToRgb(tenant.colorPrimario);
 
-    if (tenant.logoDataUrl) {
-      try { doc.addImage(tenant.logoDataUrl, "PNG", margin, y - 6, 46, 46); } catch (e) {}
-    }
-    doc.setFont("helvetica", "bold"); doc.setFontSize(15); doc.setTextColor(rgb[0], rgb[1], rgb[2]);
-    doc.text(tenant.nombre, margin + (tenant.logoDataUrl ? 56 : 0), y + 10);
-    doc.setFont("helvetica", "normal"); doc.setFontSize(8.5); doc.setTextColor(90, 90, 90);
-    var metaLines = [
-      C.documentoTributarioLabel(tenant.pais) + " " + (tenant.nit || "—"),
-      (tenant.direccion || "") + (tenant.telefonos ? " · " + tenant.telefonos : ""),
-      tenant.email || ""
-    ];
-    metaLines.forEach(function (line, i) { doc.text(line, margin + (tenant.logoDataUrl ? 56 : 0), y + 22 + i * 10); });
-
-    doc.setDrawColor(rgb[0], rgb[1], rgb[2]); doc.setLineWidth(2);
-    y += 62; doc.line(margin, y, pageW - margin, y); y += 20;
+    // Mismo membrete (logo, nombre, datos de contacto) que el informe de
+    // resultados — un laboratorio que activa el membrete grande en
+    // Configuración lo ve igual en todos sus documentos impresos, no solo
+    // en los resultados.
+    var y = await window.BIO_PDF.dibujarMembrete(doc, tenant, margin);
 
     doc.setFont("helvetica", "bold"); doc.setFontSize(13); doc.setTextColor(20, 20, 20);
     doc.text("COTIZACIÓN DE EXÁMENES DE LABORATORIO", margin, y);

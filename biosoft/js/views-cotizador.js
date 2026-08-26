@@ -241,7 +241,7 @@
       document.getElementById("btn-generar-cot").addEventListener("click", generarCotizacion);
     }
 
-    function generarCotizacion() {
+    async function generarCotizacion() {
       if (!pickerNueva.selected.length) { U.toast("Selecciona al menos un examen.", "error"); return; }
       var nombre = document.getElementById("cot-cliente-nombre").value.trim();
       var whatsapp = document.getElementById("cot-cliente-wa").value.trim();
@@ -252,7 +252,7 @@
       var cot = S.cotizador.createCotizacion({
         tenantId: tenantId, cliente: { nombre: nombre, whatsapp: whatsapp, correo: correo }, examenes: examenes, total: total, convenio: convenioAplicado(pickerNueva)
       });
-      var bytes = BIO_PDF_COTIZACION.buildCotizacionPDF(cot, tenant);
+      var bytes = await BIO_PDF_COTIZACION.buildCotizacionPDF(cot, tenant);
       var nombreArchivo = "Cotizacion_" + (nombre || "Cliente").replace(/\s+/g, "_") + ".pdf";
       U.downloadBytes(bytes, nombreArchivo);
       var mensaje = "Hola " + (nombre ? nombre.split(" ")[0] : "") + " 👋 Aquí tienes la cotización de " + tenant.nombre + " por " + fmtMoneda(total) + textoMonedaExtra(total) + ". Cualquier duda, quedamos atentos.";
@@ -1237,10 +1237,10 @@
       });
     }
 
-    function abrirEnviarRecibo(cot) {
+    async function abrirEnviarRecibo(cot) {
       var tenant = S.getTenant(tenantId);
       var cliente = cot.cliente || {};
-      var bytes = BIO_PDF_RECIBO_COTIZACION.buildReciboCotizacionPDF(cot, tenant);
+      var bytes = await BIO_PDF_RECIBO_COTIZACION.buildReciboCotizacionPDF(cot, tenant);
       U.downloadBytes(bytes, "Recibo_" + (cliente.nombre || "Cliente").replace(/\s+/g, "_") + ".pdf");
       var montoRecibo = (cot.pago && cot.pago.monto) || cot.total;
       var mensaje = "Hola " + (cliente.nombre ? cliente.nombre.split(" ")[0] : "") + " 👋 Adjunto el recibo de pago de tu compra en " + tenant.nombre + " por " + fmtMoneda(montoRecibo) + textoMonedaExtra(montoRecibo) + ". ¡Gracias por tu confianza! Cualquier duda, quedamos atentos.";
@@ -1258,10 +1258,10 @@
 
     function wireHistorial() {
       root.querySelectorAll("[data-redescargar]").forEach(function (b) {
-        b.addEventListener("click", function () {
+        b.addEventListener("click", async function () {
           var cot = cotizaciones.filter(function (c) { return c.id === b.dataset.redescargar; })[0];
           var tenant = S.getTenant(tenantId);
-          var bytes = BIO_PDF_COTIZACION.buildCotizacionPDF(cot, tenant);
+          var bytes = await BIO_PDF_COTIZACION.buildCotizacionPDF(cot, tenant);
           U.downloadBytes(bytes, "Cotizacion_" + ((cot.cliente && cot.cliente.nombre) || "Cliente").replace(/\s+/g, "_") + ".pdf");
         });
       });
@@ -1269,10 +1269,10 @@
         b.addEventListener("click", function () { abrirRegistrarPago(cotizaciones.filter(function (c) { return c.id === b.dataset.registrarPago; })[0]); });
       });
       root.querySelectorAll("[data-descargar-recibo]").forEach(function (b) {
-        b.addEventListener("click", function () {
+        b.addEventListener("click", async function () {
           var cot = cotizaciones.filter(function (c) { return c.id === b.dataset.descargarRecibo; })[0];
           var tenant = S.getTenant(tenantId);
-          var bytes = BIO_PDF_RECIBO_COTIZACION.buildReciboCotizacionPDF(cot, tenant);
+          var bytes = await BIO_PDF_RECIBO_COTIZACION.buildReciboCotizacionPDF(cot, tenant);
           U.downloadBytes(bytes, "Recibo_" + ((cot.cliente && cot.cliente.nombre) || "Cliente").replace(/\s+/g, "_") + ".pdf");
         });
       });

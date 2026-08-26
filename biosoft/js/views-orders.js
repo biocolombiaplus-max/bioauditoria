@@ -3,7 +3,13 @@
   "use strict";
   window.BIO_VIEWS = window.BIO_VIEWS || {};
   var U = BIO_UI, S = BIO_STORE, C = BIO_CATALOG, F = window.BIO_formHelpers;
-  function fmtMoneda(n) { return "$" + Math.round(n || 0).toLocaleString("es-CO"); }
+  // Con decimales cuando el precio los tiene (típico en dólares, ej.
+  // "$4,50") pero sin ",00" de sobra en precios redondos.
+  function fmtMoneda(n) {
+    n = n || 0;
+    var dec = Math.round(n) === n ? 0 : 2;
+    return "$" + n.toLocaleString("es-CO", { minimumFractionDigits: dec, maximumFractionDigits: 2 });
+  }
   function fmtMonedaEquiv(tenant, n) {
     var extra = C.fmtMonedaAdicional(tenant, n || 0);
     return extra ? ' <span class="text-muted" style="font-size:11px">(' + extra + ')</span>' : "";
@@ -312,13 +318,13 @@
     return !!tenant && tenant.pais === "VE" && !!tenant.mostrarPrecioOrden;
   }
 
-  function abrirReciboOrden(order, tenant, onDone) {
+  async function abrirReciboOrden(order, tenant, onDone) {
     var pac = S.getPatient(order.patientId);
     var precios = {};
     S.cotizador.listPrecios(order.tenantId).forEach(function (p) { precios[p.examId] = p.precio; });
 
-    function generarYEnviar(pago) {
-      var bytes = BIO_PDF_RECIBO_ORDEN.buildReciboOrdenPDF(order, pac, tenant, pago, precios);
+    async function generarYEnviar(pago) {
+      var bytes = await BIO_PDF_RECIBO_ORDEN.buildReciboOrdenPDF(order, pac, tenant, pago, precios);
       U.downloadBytes(bytes, "Recibo_Orden_" + order.numeroOrden + ".pdf");
       U.toast("Recibo generado y descargado.", "success");
       var monto = pago.monto != null ? pago.monto : order.valorCobrar;
@@ -349,7 +355,7 @@
       if (onDone) onDone();
     }
 
-    if (order.pago) { generarYEnviar(order.pago); return; }
+    if (order.pago) { await generarYEnviar(order.pago); return; }
 
     var wrapConfirm = U.openModal(
       '<h3 class="modal-title">Recibo de Pago — Orden ' + order.numeroOrden + '</h3>' +
@@ -363,14 +369,14 @@
     var chk = wrapConfirm.querySelector("#rec-ord-confirmo");
     var btnConfirmar = wrapConfirm.querySelector("#rec-ord-confirmar");
     chk.addEventListener("change", function () { btnConfirmar.disabled = !chk.checked; });
-    btnConfirmar.addEventListener("click", function () {
+    btnConfirmar.addEventListener("click", async function () {
       var session = BIO_AUTH.getSession();
       var pago = { fecha: new Date().toISOString(), metodoPago: wrapConfirm.querySelector("#rec-ord-metodo").value, monto: order.valorCobrar, confirmadoPor: session.nombre };
       order.pago = pago;
       S.saveOrder(order);
       S.addAudit(order.tenantId, session.nombre, session.rol, "CONFIRMAR_PAGO_ORDEN", "orden", order.id, "Confirmó el pago de la orden " + order.numeroOrden + " y generó el recibo.");
       U.closeModal(wrapConfirm);
-      generarYEnviar(pago);
+      await generarYEnviar(pago);
     });
   }
 
