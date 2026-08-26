@@ -230,7 +230,7 @@
       if (metaLineUnica) { doc.text(metaLineUnica, cx, y, { align: "center" }); y += 8.5; }
       y += 4;
       doc.setDrawColor(rgb[0], rgb[1], rgb[2]); doc.setLineWidth(2);
-      doc.line(margin, y, pageW - margin, y); y += 6;
+      doc.line(margin, y, pageW - margin, y); y += 18;
     } else {
       // El logo sale bien grande (100pt — subió de 46 a 62, a 84 y ahora a
       // 100) para aprovechar el espacio en blanco que quedaba debajo suyo en
