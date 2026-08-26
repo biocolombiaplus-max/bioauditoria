@@ -260,6 +260,7 @@
       var wrap = U.openModal(
         '<h3 class="modal-title">Cotización lista — ' + fmtMoneda(total) + fmtMonedaExtra(total) + '</h3>' +
         '<p class="text-muted" style="margin-top:0">Ya se descargó el PDF. Ahora elige por dónde enviarlo.</p>' +
+        '<p class="text-muted" style="margin:0 0 12px;font-size:12.5px">Queda guardada como <b>pendiente de pago</b> en la pestaña Historial — cuando el cliente pague, entra ahí y usa "Registrar Pago" para generar su recibo.</p>' +
         '<button class="btn btn-whatsapp btn-block" id="cot-send-wa">' + U.icon("send") + " Enviar por WhatsApp</button>" +
         (correo ? U.emailProviderButtonsHtml("cot-mail") : "") +
         '<div class="flex justify-between" style="margin-top:16px"><button class="btn btn-ghost" data-modal-close>Cerrar</button></div>'

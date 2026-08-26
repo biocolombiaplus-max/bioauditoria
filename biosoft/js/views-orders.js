@@ -29,21 +29,44 @@
     var tenant = BIO_AUTH.currentTenant();
     var orders = S.listOrders(session.tenantId);
     var conPrecio = !!(tenant && tenant.mostrarPrecioOrden);
+    // El estado de pago (Pagado / Pago pendiente) solo aplica donde se
+    // genera Recibo de Pago (ver puedeReciboOrden más abajo) — así el
+    // laboratorio ve de un vistazo, sin entrar a cada orden, cuáles
+    // órdenes con cobro ya se pagaron y cuáles siguen pendientes, con un
+    // botón directo para registrar el pago apenas el cliente pague — igual
+    // que ya funciona en Cotizaciones (pestaña Historial).
+    var conEstadoPago = conPrecio && puedeReciboOrden(tenant);
     root.innerHTML =
       '<div class="card"><div class="card-header"><h3 class="card-title">Órdenes de Laboratorio (' + orders.length + ')</h3>' +
       '<button class="btn btn-primary" id="btn-new-ord">' + U.icon("plus") + ' Nueva Orden</button></div>' +
-      '<div class="table-wrap"><table><thead><tr><th>N° Orden</th><th>Paciente</th><th>Fecha</th><th>Prioridad</th><th># Exámenes</th>' + (conPrecio ? "<th>Valor a Cobrar</th>" : "") + '<th>Estado</th><th></th></tr></thead><tbody>' +
-      (orders.length ? orders.map(function (o) { return rowOrder(o, conPrecio, tenant); }).join("") : '<tr><td colspan="' + (conPrecio ? 8 : 7) + '" class="text-muted">No hay órdenes registradas.</td></tr>') +
+      '<div class="table-wrap"><table><thead><tr><th>N° Orden</th><th>Paciente</th><th>Fecha</th><th>Prioridad</th><th># Exámenes</th>' + (conPrecio ? "<th>Valor a Cobrar</th>" : "") + (conEstadoPago ? "<th>Pago</th>" : "") + '<th>Estado</th><th></th></tr></thead><tbody>' +
+      (orders.length ? orders.map(function (o) { return rowOrder(o, conPrecio, conEstadoPago, tenant); }).join("") : '<tr><td colspan="' + (7 + (conPrecio ? 1 : 0) + (conEstadoPago ? 1 : 0)) + '" class="text-muted">No hay órdenes registradas.</td></tr>') +
       "</tbody></table></div></div>";
     document.getElementById("btn-new-ord").addEventListener("click", function () { location.hash = "#/ordenes/nueva"; });
     root.querySelectorAll("[data-view]").forEach(function (b) { b.addEventListener("click", function () { location.hash = "#/ordenes/" + b.dataset.view; }); });
+    root.querySelectorAll("[data-registrar-pago-orden]").forEach(function (b) {
+      b.addEventListener("click", function () {
+        var o = orders.filter(function (x) { return x.id === b.dataset.registrarPagoOrden; })[0];
+        if (o) abrirReciboOrden(o, tenant, function () { renderList(root); });
+      });
+    });
   }
 
-  function rowOrder(o, conPrecio, tenant) {
+  function rowOrder(o, conPrecio, conEstadoPago, tenant) {
     var pac = S.getPatient(o.patientId);
+    var celdaPago = "";
+    if (conEstadoPago) {
+      if (!o.valorCobrar) {
+        celdaPago = "<td>—</td>";
+      } else if (o.pago) {
+        celdaPago = '<td><span class="badge badge-validado">Pagado</span></td>';
+      } else {
+        celdaPago = '<td><span class="badge badge-pendiente">Pago pendiente</span> <button class="btn btn-outline btn-sm" style="margin-top:4px" data-registrar-pago-orden="' + o.id + '">' + U.icon("check") + " Registrar Pago</button></td>";
+      }
+    }
     return "<tr><td><b>" + o.numeroOrden + "</b>" + (o.convenioNombre ? '<div class="text-muted" style="font-size:11px">🤝 ' + U.esc(o.convenioNombre) + "</div>" : "") + "</td><td>" + (pac ? U.esc(U.nombreCompleto(pac)) : "—") + "</td><td>" + U.fmtFecha(o.fechaOrden) + "</td>" +
       '<td><span class="badge badge-' + (o.prioridad === "Urgente" ? "urgente" : "rutina") + '">' + o.prioridad + "</span></td>" +
-      "<td>" + o.examenes.length + "</td>" + (conPrecio ? "<td>" + (o.valorCobrar ? fmtMoneda(o.valorCobrar) + fmtMonedaEquiv(tenant, o.valorCobrar) : "—") + "</td>" : "") +
+      "<td>" + o.examenes.length + "</td>" + (conPrecio ? "<td>" + (o.valorCobrar ? fmtMoneda(o.valorCobrar) + fmtMonedaEquiv(tenant, o.valorCobrar) : "—") + "</td>" : "") + celdaPago +
       "<td>" + window.BIO_badgeEstado(o.estadoGeneral) + '</td><td><button class="btn btn-outline btn-sm" data-view="' + o.id + '">Ver</button></td></tr>';
   }
 
