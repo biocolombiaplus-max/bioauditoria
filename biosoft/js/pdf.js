@@ -139,8 +139,12 @@
     // logoGrandeReporte más abajo) no gaste una línea entera completa en un
     // solo campo, muchas veces vacío (ej. "Resolución de Habilitación" casi
     // nunca aplica fuera de Colombia).
+    // El "Código REPS" es un registro exclusivo de Colombia (Registro
+    // Especial de Prestadores de Servicios de Salud) — no aplica a
+    // laboratorios de otros países aunque el campo tenga un valor guardado
+    // (ej. de una migración de datos), así que solo se imprime para CO.
     var metaLineA = C.documentoTributarioLabel(tenant.pais) + " " + tenant.nit +
-      (tenant.codigoREPS ? " · Código REPS " + tenant.codigoREPS : "") +
+      (tenant.codigoREPS && tenant.pais === "CO" ? " · Código REPS " + tenant.codigoREPS : "") +
       (tenant.resolucionHabilitacion ? " · " + tenant.resolucionHabilitacion : "");
     var metaLineB = [tenant.direccion, tenant.telefonos, tenant.email, tenant.sitioWeb].filter(Boolean).join(" · ");
     var metaLines = [metaLineA, metaLineB].filter(Boolean);
@@ -275,19 +279,21 @@
       y += 6;
     }
 
-    // El nombre del paciente va destacado en su propia línea (más grande
-    // y en negrita) — es el primer dato que se busca al leer el informe —
-    // en vez de mezclado en la misma cuadrícula chica que el resto de los
-    // datos.
+    // El nombre y el documento del paciente van destacados, cada uno en su
+    // propia línea, más grandes y en negrita — son los dos datos que
+    // primero se buscan al leer el informe — en vez de mezclados en la
+    // misma cuadrícula chica que el resto de los datos.
     doc.setFont("helvetica", "bold"); doc.setFontSize(12.5); doc.setTextColor(20, 20, 20);
     doc.text(U.nombreCompleto(patient), margin, y);
-    y += 17;
+    y += 15;
+    doc.setFontSize(10.5); doc.setTextColor(50, 50, 50);
+    doc.text(patient.tipoDocumento + " " + patient.numeroDocumento, margin, y);
+    y += 16;
 
     doc.setFontSize(9.5); doc.setTextColor(30, 30, 30);
     var edad = U.calcEdad(patient.fechaNacimiento);
     var col1 = margin, col2 = pageW / 2 + 10;
     var left = [
-      ["Documento:", patient.tipoDocumento + " " + patient.numeroDocumento],
       ["Edad / Sexo:", edad + " / " + patient.sexo]
     ];
     if (patient.pais === "CO") left.push(["EPS / Asegurador:", patient.eps || "Particular"]);
