@@ -177,7 +177,16 @@
         // (deliberadamente baja, para un membrete discreto) para que un
         // logo genuinamente vertical no desborde la hoja.
         if (tenant.logoAnchoCompleto) {
-          var logoW = pageW - margin * 2;
+          // El ancho lo controla el propio laboratorio con un control
+          // deslizante en Configuración (tenant.logoAnchoPorcentaje, 20-100%
+          // del ancho de contenido de la hoja — 55% si nunca lo ha tocado),
+          // en vez de un tamaño fijo calculado a ciegas — así se ajusta
+          // directo, sin ir y venir probando valores. La altura sale
+          // siempre de las proporciones reales del archivo ya recortado
+          // (nunca se fuerza a cuadrado), con un tope de seguridad solo
+          // para el caso extremo de un logo genuinamente vertical.
+          var porcentaje = (tenant.logoAnchoPorcentaje || 55) / 100;
+          var logoW = (pageW - margin * 2) * porcentaje;
           var logoH = logoW;
           var logoParaDibujar = tenant.logoDataUrl;
           try {
@@ -185,7 +194,7 @@
             if (recorteLogo && recorteLogo.w && recorteLogo.h) {
               logoParaDibujar = recorteLogo.url;
               logoH = logoW * (recorteLogo.h / recorteLogo.w);
-              var alturaMaxima = 50;
+              var alturaMaxima = 140;
               if (logoH > alturaMaxima) { logoH = alturaMaxima; logoW = logoH * (recorteLogo.w / recorteLogo.h); }
             }
           } catch (e) {}
@@ -197,7 +206,7 @@
           y += logoCentradoSize + 12;
         }
       } else {
-        y += tenant.logoAnchoCompleto ? 50 + 2 : 76 + 12;
+        y += tenant.logoAnchoCompleto ? 40 + 2 : 76 + 12;
       }
       // Si el logo ya trae el nombre del laboratorio dibujado (como el de
       // Yamdan), mostrar además el nombre en texto debajo queda repetido —
@@ -212,9 +221,14 @@
         doc.text(tenant.slogan, cx, y, { align: "center" });
         y += 11;
       }
+      // "A lo largo": los datos de contacto van en UNA sola línea horizontal
+      // (en vez de apiladas una debajo de otra) — el membrete queda mucho
+      // más bajo. Nada se pierde, solo se separa con " · " en una sola
+      // fila, centrada como el resto del membrete.
       doc.setFont("helvetica", "normal"); doc.setFontSize(8); doc.setTextColor(90, 90, 90);
-      metaLines.forEach(function (line, i) { doc.text(line, cx, y + i * 8.5, { align: "center" }); });
-      y += metaLines.length * 8.5 + 2;
+      var metaLineUnica = metaLines.join("   ·   ");
+      if (metaLineUnica) { doc.text(metaLineUnica, cx, y, { align: "center" }); y += 8.5; }
+      y += 4;
       doc.setDrawColor(rgb[0], rgb[1], rgb[2]); doc.setLineWidth(2);
       doc.line(margin, y, pageW - margin, y); y += 6;
     } else {

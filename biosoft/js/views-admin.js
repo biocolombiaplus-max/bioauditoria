@@ -1228,6 +1228,11 @@
         '<div id="logo-grande-opciones" class="hidden" style="margin:0 0 12px;padding-left:2px">' +
         '<div class="checkbox-row"><input type="checkbox" id="f_logoAnchoCompleto" ' + (tenant.logoAnchoCompleto ? "checked" : "") + '/><label style="margin:0" for="f_logoAnchoCompleto">Que el logo ocupe todo el ancho de la hoja (en vez de un cuadro chico)</label></div>' +
         '<p class="text-muted" style="margin:4px 0 10px;font-size:12.5px">Para que se vea bien grande y nítido, sube un logo horizontal (más ancho que alto — como el que ya usas en tus recibos de papel), en formato PNG con fondo transparente si lo tienes. El sistema respeta las proporciones reales del archivo: no importa el tamaño exacto en píxeles, solo que sea horizontal para aprovechar bien el ancho.</p>' +
+        '<div id="logo-ancho-pct-row" class="hidden field" style="margin:0 0 12px">' +
+        '<label for="f_logoAnchoPorcentaje">Tamaño del logo: <span id="logo-ancho-pct-valor">' + (tenant.logoAnchoPorcentaje || 55) + '</span>% del ancho de la hoja</label>' +
+        '<input type="range" id="f_logoAnchoPorcentaje" min="20" max="100" step="5" value="' + (tenant.logoAnchoPorcentaje || 55) + '" style="width:100%"/>' +
+        '<p class="text-muted" style="margin:4px 0 0;font-size:12.5px">Ajusta el deslizante para agrandar o achicar el logo directamente. La altura se ajusta sola según las proporciones de tu archivo.</p>' +
+        "</div>" +
         '<div class="checkbox-row"><input type="checkbox" id="f_ocultarNombreEncabezado" ' + (tenant.ocultarNombreEncabezado ? "checked" : "") + '/><label style="margin:0" for="f_ocultarNombreEncabezado">Ocultar el nombre del laboratorio en el encabezado (úsalo solo si tu logo ya trae el nombre escrito, para no repetirlo)</label></div>' +
         "</div>" +
         '<div class="field"><label>Pie de página personalizado (aparece justo antes de la firma en cada informe)</label><textarea id="f_piePaginaPersonalizado" rows="2" placeholder="Ej: Nuestro laboratorio garantiza la calidad de sus análisis y el cumplimiento del sistema de control de calidad.">' + U.esc(tenant.piePaginaPersonalizado || "") + "</textarea></div>" +
@@ -1286,9 +1291,14 @@
 
     function refrescarOpcionesLogoGrande() {
       document.getElementById("logo-grande-opciones").classList.toggle("hidden", !document.getElementById("f_logoGrandeReporte").checked);
+      document.getElementById("logo-ancho-pct-row").classList.toggle("hidden", !document.getElementById("f_logoAnchoCompleto").checked);
     }
     refrescarOpcionesLogoGrande();
     document.getElementById("f_logoGrandeReporte").addEventListener("change", refrescarOpcionesLogoGrande);
+    document.getElementById("f_logoAnchoCompleto").addEventListener("change", refrescarOpcionesLogoGrande);
+    document.getElementById("f_logoAnchoPorcentaje").addEventListener("input", function (e) {
+      document.getElementById("logo-ancho-pct-valor").textContent = e.target.value;
+    });
 
     document.getElementById("f_logo").addEventListener("change", function (e) {
       var file = e.target.files[0];
@@ -1317,6 +1327,7 @@
       tenant.mostrarPrecioOrden = document.getElementById("f_mostrarPrecioOrden").checked;
       tenant.logoGrandeReporte = document.getElementById("f_logoGrandeReporte").checked;
       tenant.logoAnchoCompleto = document.getElementById("f_logoAnchoCompleto").checked;
+      tenant.logoAnchoPorcentaje = parseInt(document.getElementById("f_logoAnchoPorcentaje").value, 10);
       tenant.ocultarNombreEncabezado = document.getElementById("f_ocultarNombreEncabezado").checked;
       tenant.piePaginaPersonalizado = g("piePaginaPersonalizado");
       tenant.colorPrimario = document.getElementById("f_colorPrimario").value;
@@ -1338,7 +1349,7 @@
         telefonos: tenant.telefonos, email: tenant.email, sitioWeb: tenant.sitioWeb,
         resolucionHabilitacion: tenant.resolucionHabilitacion, codigoREPS: tenant.codigoREPS, nivel: tenant.nivel,
         bacteriologoResponsable: tenant.bacteriologoResponsable, mostrarPrecioOrden: tenant.mostrarPrecioOrden,
-        logoGrandeReporte: tenant.logoGrandeReporte, logoAnchoCompleto: tenant.logoAnchoCompleto, ocultarNombreEncabezado: tenant.ocultarNombreEncabezado,
+        logoGrandeReporte: tenant.logoGrandeReporte, logoAnchoCompleto: tenant.logoAnchoCompleto, logoAnchoPorcentaje: tenant.logoAnchoPorcentaje, ocultarNombreEncabezado: tenant.ocultarNombreEncabezado,
         piePaginaPersonalizado: tenant.piePaginaPersonalizado,
         colorPrimario: tenant.colorPrimario, colorSecundario: tenant.colorSecundario, colorTextoMenu: tenant.colorTextoMenu,
         colorTitulos: tenant.colorTitulos, colorSubtitulos: tenant.colorSubtitulos, logoDataUrl: tenant.logoDataUrl
