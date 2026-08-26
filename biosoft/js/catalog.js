@@ -930,7 +930,11 @@
     var baseEsDura = MONEDAS_DURAS.indexOf(base) !== -1;
     var adicionalEsDura = MONEDAS_DURAS.indexOf(m.codigo) !== -1;
     var valor = (baseEsDura && !adicionalEsDura) ? montoBase * m.tasa : montoBase / m.tasa;
-    return "≈ " + valor.toLocaleString("es-CO", { maximumFractionDigits: 2 }) + " " + m.codigo;
+    // "~" y no "≈": este texto termina impreso en PDFs con las fuentes base
+    // de jsPDF (Helvetica/WinAnsi), que no soportan "≈" — sale como un
+    // carácter corrupto (bug real reportado, ver la nota en
+    // pdf-contrato.js sobre no usar caracteres fuera de WinAnsi).
+    return "~ " + valor.toLocaleString("es-CO", { maximumFractionDigits: 2 }) + " " + m.codigo;
   }
 
   /* En qué moneda tiene el laboratorio cargados TODOS sus precios (la moneda
