@@ -329,11 +329,30 @@
     var preciosEditados = {};
 
     var MONEDAS_COMUNES = ["COP", "Bs", "VES", "USD", "EUR"];
+    var MONEDAS_DURAS = ["USD", "EUR"];
+    // Reutiliza SIEMPRE el mismo cálculo que ya usa C.fmtMonedaAdicional
+    // (el que se muestra de verdad junto a cada precio) — así este ejemplo
+    // nunca se puede desincronizar de lo que el laboratorio va a ver en la
+    // práctica, ni de la dirección correcta del cálculo según cuál de las
+    // dos monedas configuradas sea la dura (USD/EUR).
     function textoEjemploTasaCambio(monedaBase, moneda) {
       if (!moneda.codigo || !moneda.tasa) return "";
       var ejemploBase = 1000;
-      var ejemploEquiv = (ejemploBase / moneda.tasa).toLocaleString("es-CO", { maximumFractionDigits: 2 });
-      return "Ejemplo con esta tasa: un examen de " + ejemploBase.toLocaleString("es-CO") + " " + monedaBase + " equivale a ≈ " + ejemploEquiv + " " + moneda.codigo + ".";
+      var equiv = C.fmtMonedaAdicional({ monedaBase: monedaBase, monedaAdicional: moneda }, ejemploBase);
+      return "Ejemplo con esta tasa: un examen de " + ejemploBase.toLocaleString("es-CO") + " " + monedaBase + " equivale a " + equiv + ".";
+    }
+    // La tasa siempre se digita como la publica el Banco Central (o
+    // cualquier casa de cambio): cuántas unidades de la moneda LOCAL
+    // equivalen a 1 unidad de la moneda DURA (ej. "787,52 Bs por 1 USD") —
+    // sin importar cuál de las dos sea la moneda en la que el laboratorio
+    // tiene cargados sus precios. Si ninguna de las dos es una moneda dura
+    // reconocida, se deja la frase original (no hay una dirección "natural"
+    // clara entre, por ejemplo, Bs y COP).
+    function etiquetaTasa(monedaBase, codigoAdicional) {
+      var baseEsDura = MONEDAS_DURAS.indexOf(monedaBase) !== -1;
+      var adicionalEsDura = MONEDAS_DURAS.indexOf(codigoAdicional) !== -1;
+      if (baseEsDura && !adicionalEsDura) return "Cuántos " + codigoAdicional + " equivalen a 1 " + monedaBase;
+      return "Cuántos " + monedaBase + " equivalen a 1 " + (codigoAdicional || "esa moneda");
     }
     function hoyISO() {
       var d = new Date();
@@ -391,7 +410,7 @@
         '<div class="field"><label>Moneda adicional a mostrar (opcional)</label><select id="moneda-codigo">' +
         ["", "USD", "EUR", "VES", "Bs", "COP"].map(function (cod) { return '<option value="' + cod + '" ' + (cod === (moneda.codigo || "") ? "selected" : "") + ">" + (cod || "— Ninguna —") + "</option>"; }).join("") +
         "</select></div>" +
-        '<div class="field"><label id="moneda-tasa-label">Cuántos ' + U.esc(monedaBaseActual) + ' equivalen a 1 de esa moneda</label><input type="number" step="any" min="0" id="moneda-tasa" value="' + (moneda.tasa || "") + '" placeholder="Ej: 787.5196"/></div>' +
+        '<div class="field"><label id="moneda-tasa-label">' + U.esc(etiquetaTasa(monedaBaseActual, moneda.codigo || "")) + '</label><input type="number" step="any" min="0" id="moneda-tasa" value="' + (moneda.tasa || "") + '" placeholder="Ej: 787.5196"/></div>' +
         '<div class="field"><label>Fecha Valor</label><input type="date" id="moneda-fecha" value="' + (moneda.fecha || hoyISO()) + '"/></div>' +
         '<button type="button" class="btn btn-outline btn-sm" id="btn-guardar-moneda">' + U.icon("check") + " Guardar Moneda</button>" +
         "</div>" +
@@ -449,8 +468,8 @@
       // al revés y terminar mostrando un equivalente absurdo).
       function refrescarEtiquetasMoneda() {
         var baseElegida = document.getElementById("moneda-base").value;
-        document.getElementById("moneda-tasa-label").textContent = "Cuántos " + baseElegida + " equivalen a 1 de esa moneda";
         var codigo = document.getElementById("moneda-codigo").value;
+        document.getElementById("moneda-tasa-label").textContent = etiquetaTasa(baseElegida, codigo);
         var tasa = parseFloat(document.getElementById("moneda-tasa").value) || 0;
         var fecha = document.getElementById("moneda-fecha").value;
         document.getElementById("moneda-ejemplo").textContent = textoEjemploTasaCambio(baseElegida, { codigo: codigo, tasa: tasa });

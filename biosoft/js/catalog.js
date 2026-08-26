@@ -903,13 +903,33 @@
   /* Un laboratorio puede configurar UNA moneda adicional para su cotizador
      (tenant.monedaAdicional = { codigo, tasa }), útil sobre todo en
      Venezuela/Ecuador donde el cliente quiere ver el equivalente en otra
-     moneda. "tasa" son las unidades de la moneda base (la del laboratorio)
-     que equivalen a 1 unidad de esa moneda adicional. Devuelve "" si no hay
-     ninguna configurada, para poder concatenar siempre sin condicionales. */
+     moneda.
+
+     "tasa" SIEMPRE se digita como la publica el Banco Central (o cualquier
+     casa de cambio): cuántas unidades de la moneda LOCAL equivalen a 1
+     unidad de la moneda DURA — ej. "787,5196 Bs por 1 USD" — sin importar
+     cuál de las dos sea la moneda en la que el laboratorio tiene cargados
+     sus precios (tenant.monedaBase). Antes "tasa" se interpretaba siempre
+     como "cuántos [base] = 1 [adicional]", lo cual daba un resultado
+     absurdo (dividido al revés) apenas la moneda base fuera la dura y la
+     adicional la local — ej. precios en USD con una moneda adicional Bs
+     (caso real: Yamdan) calculaba $4 ≈ 0,005 Bs en vez de ≈ 3.150 Bs.
+     Ahora se detecta cuál de las dos monedas configuradas es la dura
+     (USD/EUR) y se multiplica o divide según corresponda — el número que
+     el laboratorio digita es siempre el mismo que ve publicado, sin
+     importar en qué moneda tenga sus precios. Si ninguna de las dos es una
+     moneda dura reconocida (ej. Bs vs COP), se mantiene el sentido
+     original (cuántos [base] = 1 [adicional]) por no haber una dirección
+     "natural" clara. Devuelve "" si no hay ninguna configurada, para poder
+     concatenar siempre sin condicionales. */
+  var MONEDAS_DURAS = ["USD", "EUR"];
   function fmtMonedaAdicional(tenant, montoBase) {
     var m = tenant && tenant.monedaAdicional;
     if (!m || !m.codigo || !m.tasa) return "";
-    var valor = montoBase / m.tasa;
+    var base = monedaBaseLabel(tenant);
+    var baseEsDura = MONEDAS_DURAS.indexOf(base) !== -1;
+    var adicionalEsDura = MONEDAS_DURAS.indexOf(m.codigo) !== -1;
+    var valor = (baseEsDura && !adicionalEsDura) ? montoBase * m.tasa : montoBase / m.tasa;
     return "≈ " + valor.toLocaleString("es-CO", { maximumFractionDigits: 2 }) + " " + m.codigo;
   }
 
