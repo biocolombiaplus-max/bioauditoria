@@ -622,7 +622,10 @@
     if (!hasFinal && !hasPreliminar) { U.toast("Esta orden aún no tiene resultados validados, remitidos ni preliminares para generar el PDF.", "error"); return; }
 
     var wrap = U.openModal(
-      '<h3 class="modal-title">Informe de Resultados — Orden ' + order.numeroOrden + '</h3>' +
+      '<div style="border-bottom:1px solid var(--border);padding-bottom:14px;margin-bottom:16px">' +
+      '<h3 class="modal-title" style="margin:0">Informe de Resultados</h3>' +
+      '<p class="text-muted" style="margin:4px 0 0;font-size:13px">Orden ' + order.numeroOrden + '</p>' +
+      '</div>' +
       '<div class="flex gap-2 wrap" style="margin-bottom:12px">' +
       (hasFinal ? '<button class="btn btn-primary btn-sm" id="pv-final">' + U.icon("download") + " Descargar Informe Final</button>" : "") +
       (hasPreliminar ? '<button class="btn btn-outline btn-sm" id="pv-prelim">' + U.icon("download") + " Descargar Informe Preliminar</button>" : "") +
