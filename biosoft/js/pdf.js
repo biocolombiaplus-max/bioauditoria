@@ -174,12 +174,12 @@
             if (recorteLogo && recorteLogo.w && recorteLogo.h) {
               logoParaDibujar = recorteLogo.url;
               logoH = logoW * (recorteLogo.h / recorteLogo.w);
-              var alturaMaxima = 110;
+              var alturaMaxima = 75;
               if (logoH > alturaMaxima) { logoH = alturaMaxima; logoW = logoH * (recorteLogo.w / recorteLogo.h); }
             }
           } catch (e) {}
           try { doc.addImage(logoParaDibujar, "PNG", cx - logoW / 2, y, logoW, logoH); } catch (e) {}
-          y += logoH + 8;
+          y += logoH + 4;
         } else {
           var logoCentradoSize = 76;
           try { doc.addImage(tenant.logoDataUrl, "PNG", cx - logoCentradoSize / 2, y - 4, logoCentradoSize, logoCentradoSize); } catch (e) {}
@@ -202,10 +202,10 @@
         y += 13;
       }
       doc.setFont("helvetica", "normal"); doc.setFontSize(8.5); doc.setTextColor(90, 90, 90);
-      metaLines.forEach(function (line, i) { doc.text(line, cx, y + i * 10, { align: "center" }); });
-      y += metaLines.length * 10 + 10;
+      metaLines.forEach(function (line, i) { doc.text(line, cx, y + i * 9.5, { align: "center" }); });
+      y += metaLines.length * 9.5 + 6;
       doc.setDrawColor(rgb[0], rgb[1], rgb[2]); doc.setLineWidth(2);
-      doc.line(margin, y, pageW - margin, y); y += 16;
+      doc.line(margin, y, pageW - margin, y); y += 12;
     } else {
       // El logo sale bien grande (100pt — subió de 46 a 62, a 84 y ahora a
       // 100) para aprovechar el espacio en blanco que quedaba debajo suyo en
