@@ -468,7 +468,7 @@
           var flag = C.calcularFlag(p, val);
           var refFormateado = formatearValorReferencia(p.refText);
           filas.push({
-            fila: [p.nombre, val + (p.unidad ? " " + p.unidad : ""), refFormateado, flag.texto || ""],
+            fila: [p.nombre + (p.calculado ? " (calculado)" : ""), val + (p.unidad ? " " + p.unidad : ""), refFormateado, flag.texto || ""],
             anormal: flag.clase !== "" && flag.clase !== "normal",
             // Parámetros con varios rangos de interpretación (ver arriba)
             // ocupan varias líneas en la columna "Valor de Referencia" — se

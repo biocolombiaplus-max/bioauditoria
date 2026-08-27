@@ -89,8 +89,16 @@
     capilar: { nombre: "Muestra Capilar (Lanceta)", color: "#f472b6" }
   };
 
-  function num(codigo, nombre, unidad, min, max, refText) {
-    return { codigo: codigo, nombre: nombre, unidad: unidad, tipo: "numerico", min: min, max: max, refText: refText || (min + " - " + max + " " + unidad) };
+  /* "formula" (opcional, ej. "COLT - HDL - (TGD/5)" para el LDL calculado
+     por Friedewald): si se pasa, el parámetro queda marcado como
+     calculado — su valor se obtiene automáticamente de otros parámetros
+     del catálogo (por su código) en vez de digitarse a mano. Ver
+     evaluarFormula() más abajo y su uso en la captura de resultados
+     (views-results.js). */
+  function num(codigo, nombre, unidad, min, max, refText, formula) {
+    var p = { codigo: codigo, nombre: nombre, unidad: unidad, tipo: "numerico", min: min, max: max, refText: refText || (min + " - " + max + " " + unidad) };
+    if (formula) { p.calculado = true; p.formula = formula; }
+    return p;
   }
   function cual(codigo, nombre, opciones, normal, refText) {
     return { codigo: codigo, nombre: nombre, unidad: "", tipo: "cualitativo", opciones: opciones, normal: normal, refText: refText || ("Normal: " + normal) };
@@ -179,7 +187,7 @@
     { id: "QUI-005", seccion: "quimica", nombre: "Colesterol HDL", cups: "903820", nivel: 1, muestra: "Suero", metodo: "Enzimático directo", tubo: "seco",
       parametros: [num("HDL", "HDL", "mg/dL", 40, 60)] },
     { id: "QUI-006", seccion: "quimica", nombre: "Colesterol LDL (calculado)", cups: "903822", nivel: 1, muestra: "Suero", metodo: "Fórmula de Friedewald", tubo: "seco",
-      parametros: [num("LDL", "LDL", "mg/dL", 0, 130)] },
+      parametros: [num("LDL", "LDL", "mg/dL", 0, 130, null, "COLT - HDL - (TGD/5)")] },
     { id: "QUI-007", seccion: "quimica", nombre: "Triglicéridos", cups: "903824", nivel: 1, muestra: "Suero", metodo: "Enzimático colorimétrico", tubo: "seco",
       parametros: [num("TGD", "Triglicéridos", "mg/dL", 0, 150)] },
     { id: "QUI-008", seccion: "quimica", nombre: "Creatinina", cups: "903895", nivel: 1, muestra: "Suero", metodo: "Jaffé cinético", tubo: "seco",
@@ -191,7 +199,7 @@
     { id: "QUI-011", seccion: "quimica", nombre: "Bilirrubinas Total y Directa", cups: "903810", nivel: 1, muestra: "Suero", metodo: "Colorimétrico (Jendrassik-Grof)", tubo: "seco",
       parametros: [num("BT", "Bilirrubina Total", "mg/dL", 0.2, 1.2), num("BD", "Bilirrubina Directa", "mg/dL", 0.0, 0.3), num("BI", "Bilirrubina Indirecta", "mg/dL", 0.1, 0.9)] },
     { id: "QUI-012", seccion: "quimica", nombre: "Proteínas Totales y Albúmina", cups: "903833", nivel: 1, muestra: "Suero", metodo: "Biuret / Verde de Bromocresol", tubo: "seco",
-      parametros: [num("PT_", "Proteínas Totales", "g/dL", 6.4, 8.3), num("ALB", "Albúmina", "g/dL", 3.5, 5.0), num("GLOB", "Globulinas", "g/dL", 2.0, 3.5)] },
+      parametros: [num("PT_", "Proteínas Totales", "g/dL", 6.4, 8.3), num("ALB", "Albúmina", "g/dL", 3.5, 5.0), num("GLOB", "Globulinas", "g/dL", 2.0, 3.5, null, "PT_ - ALB")] },
     { id: "QUI-013", seccion: "quimica", nombre: "AST (TGO)", cups: "903840", nivel: 1, muestra: "Suero", metodo: "UV cinético IFCC", tubo: "seco",
       parametros: [num("AST", "AST/TGO", "U/L", 5, 40)] },
     { id: "QUI-014", seccion: "quimica", nombre: "ALT (TGP)", cups: "903835", nivel: 1, muestra: "Suero", metodo: "UV cinético IFCC", tubo: "seco",
@@ -1338,8 +1346,90 @@
     });
   }
 
+  /* Evalúa una fórmula aritmética simple (ej. "COLT - HDL - (TGD/5)") para
+     un parámetro calculado — +, -, *, /, paréntesis, decimales y códigos
+     de otros parámetros como variables. Deliberadamente NO usa eval()/
+     Function(): es un parser propio, chico, para no ejecutar código
+     arbitrario a partir de un texto que el usuario escribió en un campo
+     de Configuración. "valores" es un mapa código -> valor ya capturado
+     (de cualquier examen de la misma orden, no solo del mismo examen —
+     ver captura de resultados). Lanza un Error con mensaje
+     "FALTA:<código>" si falta el valor de alguna variable que usa la
+     fórmula (el llamador lo usa para mostrar qué falta por diligenciar
+     en vez de un resultado), o un mensaje descriptivo si la fórmula
+     misma está mal escrita. */
+  function evaluarFormula(formula, valores) {
+    var s = String(formula || "").replace(/\s+/g, "");
+    if (!s) throw new Error("Fórmula vacía.");
+    var pos = 0;
+    function peek() { return s[pos]; }
+    function esDigito(c) { return c >= "0" && c <= "9"; }
+    function esLetraCodigo(c) { return /[A-Za-z0-9_]/.test(c || ""); }
+    function parseFactor() {
+      var c = peek();
+      if (c === undefined) throw new Error("Fórmula incompleta.");
+      if (c === "-") { pos++; return -parseFactor(); }
+      if (c === "+") { pos++; return parseFactor(); }
+      if (c === "(") {
+        pos++;
+        var v = parseExpr();
+        if (peek() !== ")") throw new Error('Falta un ")" en la fórmula.');
+        pos++;
+        return v;
+      }
+      if (esDigito(c) || c === ".") {
+        var inicio = pos;
+        while (pos < s.length && (esDigito(s[pos]) || s[pos] === ".")) pos++;
+        return parseFloat(s.slice(inicio, pos));
+      }
+      if (/[A-Za-z_]/.test(c)) {
+        var inicioCod = pos;
+        while (pos < s.length && esLetraCodigo(s[pos])) pos++;
+        var codigo = s.slice(inicioCod, pos);
+        if (!(codigo in valores) || valores[codigo] === "" || valores[codigo] === null || valores[codigo] === undefined) {
+          throw new Error("FALTA:" + codigo);
+        }
+        var num = parseFloat(valores[codigo]);
+        if (isNaN(num)) throw new Error("FALTA:" + codigo);
+        return num;
+      }
+      throw new Error('Carácter inesperado "' + c + '" en la fórmula.');
+    }
+    function parseTermino() {
+      var v = parseFactor();
+      while (peek() === "*" || peek() === "/") {
+        var op = peek(); pos++;
+        var v2 = parseFactor();
+        if (op === "*") v = v * v2; else v = v / v2;
+      }
+      return v;
+    }
+    function parseExpr() {
+      var v = parseTermino();
+      while (peek() === "+" || peek() === "-") {
+        var op = peek(); pos++;
+        var v2 = parseTermino();
+        if (op === "+") v = v + v2; else v = v - v2;
+      }
+      return v;
+    }
+    var resultado = parseExpr();
+    if (pos < s.length) throw new Error('Fórmula inválida cerca de "' + s.slice(pos) + '".');
+    return resultado;
+  }
+  /* Códigos de parámetro (variables) que usa una fórmula — para mostrar,
+     ANTES de intentar calcular, qué datos hacen falta (ej. "Se calcula
+     cuando completes: Colesterol Total, HDL, Triglicéridos") sin tener
+     que provocar el error de evaluarFormula() solo para leer los
+     nombres. */
+  function variablesDeFormula(formula) {
+    var m = String(formula || "").match(/[A-Za-z_][A-Za-z0-9_]*/g);
+    return m || [];
+  }
+
   global.BIO_CATALOG = {
     PAISES: PAISES,
+    evaluarFormula: evaluarFormula, variablesDeFormula: variablesDeFormula,
     rolLabel: rolLabel,
     tituloFirmaProfesional: tituloFirmaProfesional,
     documentoTributarioLabel: documentoTributarioLabel,

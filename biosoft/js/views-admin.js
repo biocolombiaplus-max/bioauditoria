@@ -517,14 +517,15 @@
         var bandasHtml = '<button type="button" class="btn btn-ghost btn-sm" data-bandas="' + p.codigo + '" title="Definir rangos distintos por género y/o edad">🚻 ' + (conBandas ? "Rangos (activo)" : "Por género/edad") + "</button>";
         var conRangos = C.tieneRangosInterpretacion(tenant, examId, p.codigo);
         var rangosHtml = '<button type="button" class="btn btn-ghost btn-sm" data-rangos="' + p.codigo + '" title="Definir varios tramos de valor con su propia interpretación (ej. Normal / Prediabetes / Diabetes)">📊 ' + (conRangos ? "Interpretación (activa)" : "Rangos de Interpretación") + "</button>";
+        var calculadoHtml = '<button type="button" class="btn btn-ghost btn-sm" data-calculado="' + p.codigo + '" title="Calcularlo automáticamente a partir de otros parámetros, en vez de digitarlo a mano">🧮 ' + (p.calculado ? "Calculado (activo)" : "Valor Calculado") + "</button>";
         return '<tr data-prow="' + p.codigo + '">' +
           "<td>" + moverHtml + "</td>" +
-          "<td>" + nombreHtml + '<div class="text-muted" style="font-size:11px">' + (p.unidad || "") + "</div></td>" +
+          "<td>" + nombreHtml + '<div class="text-muted" style="font-size:11px">' + (p.unidad || "") + (p.calculado ? ' · <span title="' + U.esc(p.formula || "") + '">🧮 Calculado</span>' : "") + "</div></td>" +
           '<td><input type="number" step="any" data-min value="' + p.min + '" style="width:90px" title="' + (conRangos ? "Se usa solo si un resultado no cae en ninguno de los rangos de interpretación" : "") + '"/></td>' +
           '<td><input type="number" step="any" data-max value="' + p.max + '" style="width:90px" title="' + (conRangos ? "Se usa solo si un resultado no cae en ninguno de los rangos de interpretación" : "") + '"/></td>' +
           '<td><input data-reftext value="' + U.esc(p.refText) + '" ' + (conRangos ? "disabled title='Se genera automáticamente a partir de los rangos de interpretación'" : "") + "/></td>" +
           '<td class="text-muted" style="font-size:11px">' + (esDeFabrica ? "Fábrica: " + base.min + " - " + base.max : "—") + "</td>" +
-          "<td><div class='flex gap-1 wrap'>" + (overNum ? '<button type="button" class="btn btn-ghost btn-sm" data-reset="' + p.codigo + '">Restablecer</button>' : "") + bandasHtml + rangosHtml + quitarHtml + "</div></td></tr>";
+          "<td><div class='flex gap-1 wrap'>" + (overNum ? '<button type="button" class="btn btn-ghost btn-sm" data-reset="' + p.codigo + '">Restablecer</button>' : "") + bandasHtml + rangosHtml + calculadoHtml + quitarHtml + "</div></td></tr>";
       }
       if (p.tipo === "cualitativo" || p.tipo === "descriptivo") {
         var overCual = base && (p.normal !== base.normal || p.refText !== base.refText);
@@ -658,6 +659,13 @@
       });
     });
 
+    wrap.querySelectorAll("[data-calculado]").forEach(function (btn) {
+      btn.addEventListener("click", function () {
+        var p = efectivo.parametros.filter(function (pp) { return pp.codigo === btn.dataset.calculado; })[0];
+        abrirCalculadoParametro(tenant, examId, p, reabrir);
+      });
+    });
+
     wrap.querySelector("#btn-agregar-campo").addEventListener("click", function () { abrirAgregarCampo(tenant, examId, exCat, reabrir); });
 
     wrap.querySelector("#cat-guardar").addEventListener("click", function () {
@@ -689,8 +697,13 @@
           // texto "congelado" que sobreviva si luego se quitan los rangos.
           var refText = conRangosGuardado ? (base ? base.refText : "") : row.querySelector("[data-reftext]").value.trim();
           if (isNaN(min) || isNaN(max)) return;
-          if (base && min === base.min && max === base.max && refText === base.refText) { C.clearOverride(tenant, examId, p.codigo); return; }
-          C.setOverride(tenant, examId, p.codigo, { min: min, max: max, refText: refText || (min + " - " + max + " " + (p.unidad || "")) });
+          // "p" ya trae calculado/formula tal como quedaron tras el modal
+          // 🧮 Valor Calculado (si se usó) — hay que conservarlos aquí,
+          // porque setOverride() reemplaza TODO el override del
+          // parámetro de una vez, no solo lo que cambió en esta tabla.
+          var calcIgualBase = !p.calculado === !(base && base.calculado) && (p.formula || "") === ((base && base.formula) || "");
+          if (base && min === base.min && max === base.max && refText === base.refText && calcIgualBase) { C.clearOverride(tenant, examId, p.codigo); return; }
+          C.setOverride(tenant, examId, p.codigo, { min: min, max: max, refText: refText || (min + " - " + max + " " + (p.unidad || "")), calculado: !!p.calculado, formula: p.formula || "" });
           cambios++;
         } else if (p.tipo === "cualitativo") {
           var normalSel = row.querySelector("[data-normal]");
@@ -886,6 +899,52 @@
       S.addAudit(session.tenantId, session.nombre, session.rol, "UPDATE_REF_RANGOS", "catalogo", examId + ":" + param.codigo,
         nuevosRangos.length ? "Definió " + nuevosRangos.length + " rango(s) de interpretación para " + param.nombre + " en " + exCat.nombre + "." : "Quitó los rangos de interpretación de " + param.nombre + " en " + exCat.nombre + ".");
       U.toast(nuevosRangos.length ? "Rangos de interpretación guardados." : "Rangos de interpretación eliminados — se usa el rango general.", "success");
+      U.closeModal(wrap);
+      onDone();
+    });
+  }
+
+  // -------------------------------------------------------------------
+  // VALOR CALCULADO — en vez de digitarlo a mano, el parámetro se calcula
+  // automáticamente a partir de otros parámetros ya capturados en la
+  // misma orden (ej. LDL por la fórmula de Friedewald a partir de
+  // Colesterol Total, HDL y Triglicéridos, aunque sean de exámenes
+  // distintos — ver captura de resultados en views-results.js, que es
+  // donde de verdad se evalúa la fórmula con C.evaluarFormula()). Aquí
+  // solo se activa/desactiva y se guarda el texto de la fórmula.
+  // -------------------------------------------------------------------
+  function abrirCalculadoParametro(tenant, examId, param, onDone) {
+    var session = BIO_AUTH.getSession();
+    var wrap = U.openModal(
+      '<h3 class="modal-title">🧮 Valor Calculado — ' + U.esc(param.nombre) + '</h3>' +
+      '<p class="text-muted" style="margin-top:0">En vez de digitarlo a mano, este valor se calcula solo a partir de otros parámetros ya capturados en la misma orden — usa el código de cada parámetro como si fuera una variable. Ej. para el LDL por la fórmula de Friedewald: <code>COLT - HDL - (TGD/5)</code>.</p>' +
+      '<div class="checkbox-row"><input type="checkbox" id="f_calc_activo" ' + (param.calculado ? "checked" : "") + '/><label style="margin:0" for="f_calc_activo">Este parámetro se calcula automáticamente</label></div>' +
+      '<div class="field" style="margin-top:10px"><label>Fórmula</label><input id="f_calc_formula" value="' + U.esc(param.formula || "") + '" placeholder="Ej: COLT - HDL - (TGD/5)"/></div>' +
+      '<p class="text-muted" style="margin:4px 0 0;font-size:12px">Operaciones permitidas: + − × ÷ y paréntesis. Usa los códigos de los parámetros (los ves en la tabla de valores de referencia de cada examen) como si fueran letras — puede referenciar parámetros de OTROS exámenes de la misma orden, no solo de este.</p>' +
+      '<div class="flex gap-2 justify-between" style="margin-top:16px">' +
+      '<button type="button" class="btn btn-ghost" data-modal-close>Cancelar</button>' +
+      '<button type="button" class="btn btn-primary" id="btn-guardar-calculado">' + U.icon("check") + " Guardar</button>" +
+      "</div>"
+    );
+    wrap.querySelector("#btn-guardar-calculado").addEventListener("click", function () {
+      var activo = wrap.querySelector("#f_calc_activo").checked;
+      var formulaTexto = wrap.querySelector("#f_calc_formula").value.trim();
+      if (activo) {
+        var vars = C.variablesDeFormula(formulaTexto);
+        if (!formulaTexto || !vars.length) { U.toast("Escribe una fórmula que use al menos un código de parámetro.", "error"); return; }
+        try {
+          var fake = {}; vars.forEach(function (v) { fake[v] = 1; });
+          C.evaluarFormula(formulaTexto, fake);
+        } catch (e) {
+          U.toast("Fórmula inválida — revísala (" + e.message + ").", "error");
+          return;
+        }
+      }
+      C.setOverride(tenant, examId, param.codigo, { min: param.min, max: param.max, refText: param.refText, calculado: activo, formula: activo ? formulaTexto : "" });
+      S.updateTenant(tenant.id, { refOverrides: tenant.refOverrides || {} });
+      S.addAudit(session.tenantId, session.nombre, session.rol, "UPDATE_PARAM_CALCULADO", "catalogo", examId + ":" + param.codigo,
+        activo ? "Activó el cálculo automático de " + param.nombre + " con la fórmula: " + formulaTexto : "Desactivó el cálculo automático de " + param.nombre + ".");
+      U.toast("Guardado.", "success");
       U.closeModal(wrap);
       onDone();
     });

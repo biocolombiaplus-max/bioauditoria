@@ -127,6 +127,49 @@
     var pac = S.getPatient(order.patientId);
     var tenant = BIO_AUTH.currentTenant();
 
+    // Registro de todos los parámetros "calculados" (ej. LDL, Globulinas)
+    // de ESTA orden, sin importar en qué tarjeta de examen estén — un
+    // valor calculado casi siempre depende de parámetros de OTROS
+    // exámenes (ej. LDL necesita Colesterol Total, HDL y Triglicéridos,
+    // cada uno su propio examen), no solo de los de su propia tarjeta. Se
+    // reconstruye entero cada vez que build() vuelve a renderizar todas
+    // las tarjetas (ver buildExamCard, donde cada tarjeta registra los
+    // suyos).
+    var formulasCalculadas = {};
+
+    // Recalcula TODOS los parámetros calculados de la orden a partir de
+    // los valores actuales en pantalla (de cualquier tarjeta) — se llama
+    // cada vez que el usuario edita un campo que NO es en sí mismo
+    // calculado (ver el listener "input" más abajo; si se llamara también
+    // para los campos calculados se entraría en un loop con su propio
+    // dispatchEvent). No usa eval()/Function(): ver C.evaluarFormula en
+    // catalog.js, un intérprete propio y chico de +,-,*,/ y paréntesis.
+    function recalcularCalculados() {
+      var contenedor = document.getElementById("exam-cards");
+      if (!contenedor) return;
+      var valores = {};
+      // Primero los valores YA GUARDADOS de toda la orden — cubre un
+      // examen del que depende la fórmula pero que ya quedó validado/
+      // bloqueado (sin campo editable en pantalla, ver
+      // renderCapturaNormalReadOnly) — y luego se sobrescriben con lo que
+      // haya en pantalla ahora mismo, para los exámenes aún pendientes de
+      // guardar.
+      (order.examenes || []).forEach(function (ex) { (ex.valores || []).forEach(function (v) { valores[v.codigo] = v.valor; }); });
+      contenedor.querySelectorAll("[data-param]").forEach(function (el) { valores[el.dataset.param] = el.value; });
+      Object.keys(formulasCalculadas).forEach(function (codigo) {
+        var el = contenedor.querySelector('[data-param="' + codigo + '"]');
+        if (!el) return;
+        var valorNuevo = "";
+        try {
+          var resultado = C.evaluarFormula(formulasCalculadas[codigo], valores);
+          if (isFinite(resultado)) valorNuevo = String(Math.round(resultado * 100) / 100);
+        } catch (e) {
+          valorNuevo = "";
+        }
+        if (el.value !== valorNuevo) { el.value = valorNuevo; el.dispatchEvent(new Event("input")); }
+      });
+    }
+
     function build() {
       var puedeRemision = window.BIO_REMISION && window.BIO_REMISION.puedeGestionar(session);
       root.innerHTML =
@@ -178,6 +221,11 @@
             host.appendChild(aviso);
           }
         });
+        // Recalcula de una vez los parámetros calculados (ej. LDL,
+        // Globulinas) con los valores ya guardados de esta orden — así se
+        // ve el valor correcto al abrir la orden, sin esperar a que se
+        // edite algún campo primero.
+        recalcularCalculados();
       } catch (err) {
         console.error("BIOsoft: fallo al mostrar los exámenes de esta orden:", err);
         var mensajeError = '<div class="card"><p class="text-danger" style="margin:0"><b>No se pudieron mostrar los exámenes de esta orden.</b></p>' +
@@ -539,7 +587,15 @@
           var flag = C.calcularFlag(p, val);
           var inputHtml;
           if (p.tipo === "numerico") {
-            inputHtml = '<input type="number" step="any" placeholder="Escribe aquí…" data-param="' + p.codigo + '" value="' + U.esc(val) + '" ' + (!editable ? "disabled" : "") + "/>";
+            // Un parámetro calculado (ej. LDL por la fórmula de
+            // Friedewald) se registra aquí para que recalcularCalculados()
+            // lo tenga en cuenta, y su campo queda de solo lectura — se
+            // rellena solo, nunca se digita a mano (ver el input
+            // "readonly" y el botón "🧮 Valor Calculado" en Configuración
+            // → Catálogo → un examen → Valores de Referencia).
+            if (p.calculado && p.formula) formulasCalculadas[p.codigo] = p.formula;
+            inputHtml = '<input type="number" step="any" placeholder="' + (p.calculado ? "Se calcula solo" : "Escribe aquí…") + '" data-param="' + p.codigo + '" value="' + U.esc(val) + '" ' + (!editable ? "disabled" : (p.calculado ? "readonly" : "")) + "/>" +
+              (p.calculado ? '<div class="text-muted" style="font-size:10.5px;margin-top:2px" title="Fórmula: ' + U.esc(p.formula) + '">🧮 Calculado automáticamente</div>' : "");
           } else if (p.tipo === "cualitativo" || p.tipo === "descriptivo") {
             inputHtml = '<select data-param="' + p.codigo + '" ' + (!editable ? "disabled" : "") + '><option value="">— Selecciona el resultado —</option>' +
               p.opciones.map(function (o) { return '<option ' + (o === val ? "selected" : "") + ">" + o + "</option>"; }).join("") + "</select>";
@@ -593,6 +649,13 @@
             var flag = C.calcularFlag(p, inputEl.value);
             var cell = card.querySelector('[data-flagfor="' + p.codigo + '"]');
             cell.innerHTML = flag.texto ? '<span class="flag-' + flag.clase + '">' + U.esc(flag.texto) + "</span>" : "";
+            // Si el campo que se acaba de editar es EN SÍ MISMO calculado
+            // (readonly, cambia solo por dispatchEvent desde
+            // recalcularCalculados), no hay que volver a recalcular todo —
+            // evita un loop. Para cualquier otro campo (los que sí digita
+            // el bacteriólogo), se recalculan los parámetros calculados
+            // que dependan de él, sean de esta tarjeta o de otra.
+            if (!p.calculado) recalcularCalculados();
           });
         });
 
@@ -672,7 +735,7 @@
         var rowsHtml = exCat.parametros.filter(function (p) { return p.tipo !== "panel"; }).map(function (p) {
           var val = valuesMap[p.codigo] || "";
           var flag = C.calcularFlag(p, val);
-          return "<tr><td>" + U.esc(p.nombre) + "</td><td><b>" + U.esc(val) + "</b></td><td>" + (p.unidad || "—") + "</td><td>" + U.esc(p.refText) + '</td><td>' +
+          return "<tr><td>" + U.esc(p.nombre) + (p.calculado ? ' <span class="text-muted" style="font-size:10px" title="Fórmula: ' + U.esc(p.formula || "") + '">🧮</span>' : "") + "</td><td><b>" + U.esc(val) + "</b></td><td>" + (p.unidad || "—") + "</td><td>" + U.esc(p.refText) + '</td><td>' +
             (flag.texto ? '<span class="flag-' + flag.clase + '">' + U.esc(flag.texto) + "</span>" : "") + "</td></tr>";
         }).join("");
         card.innerHTML = headerHtml() +
