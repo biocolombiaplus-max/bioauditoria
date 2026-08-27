@@ -1501,6 +1501,7 @@
         '<div class="card"><div class="card-header"><h3 class="card-title">Laboratorios Cliente (' + tenants.length + ')</h3>' +
         '<div class="flex gap-2 wrap">' +
         (tenantsVEconRifSinFormato.length ? '<button class="btn btn-outline btn-sm" id="btn-corregir-rif" title="Anteponer el prefijo V- a los RIF de Venezuela que aún no lo tienen">🔧 Corregir Formato RIF (' + tenantsVEconRifSinFormato.length + ")</button>" : "") +
+        '<button class="btn btn-outline" id="btn-enlace-autoregistro" title="Envíaselo a un laboratorio que quiera empezar — llena sus propios datos y crea su cuenta solo, sin que tú tengas que crearla">' + U.icon("send") + ' Enlace de Auto-Registro</button>' +
         '<button class="btn btn-primary" id="btn-new-tenant">' + U.icon("plus") + ' Crear Nuevo Laboratorio</button>' +
         "</div></div>" +
         '<div class="table-wrap"><table><thead><tr><th>Laboratorio</th><th>País</th><th>Plan</th><th>Estado de Pago</th><th>Próximo Pago</th><th>Usuarios</th><th></th></tr></thead><tbody>' +
@@ -1534,6 +1535,7 @@
             "</div></td></tr>";
         }).join("") : '<tr><td colspan="7" class="text-muted">Aún no hay laboratorios cliente creados.</td></tr>') + "</tbody></table></div></div>";
       document.getElementById("btn-new-tenant").addEventListener("click", openNewTenant);
+      document.getElementById("btn-enlace-autoregistro").addEventListener("click", abrirEnlaceAutoRegistro);
       var btnCorregirRif = document.getElementById("btn-corregir-rif");
       if (btnCorregirRif) {
         btnCorregirRif.addEventListener("click", function () {
@@ -2172,6 +2174,45 @@
             : (err && err.message) || "No se pudo crear el administrador.";
           U.toast(msg, "error");
         });
+      });
+    }
+
+    // Para no tener que crear cada laboratorio nuevo a mano (rellenando su
+    // formulario uno por uno): este botón da un enlace y un mensaje listos
+    // para enviarle a un laboratorio que quiera empezar, para que llene sus
+    // propios datos y cree su cuenta él mismo — el mismo formulario público
+    // de autoactivación (activar.html) que ya usa la landing y el CRM
+    // (ver abrirEnviarEnlaceRegistro en views-crm.js), pero aquí sin
+    // necesitar tener antes un contacto cargado en el CRM: sirve para
+    // cualquier prospecto, aunque todavía no esté registrado en ningún
+    // lado.
+    function abrirEnlaceAutoRegistro() {
+      var link = "https://bioauditoria.com/biosoft/activar.html";
+      var mensaje = "Hola 👋 Te comparto el enlace para activar tu BIOsoft — lo activas tú mismo, con tus propios datos, en menos de 5 minutos:\n\n" +
+        link + "\n\n" +
+        "Completa los datos de tu laboratorio, crea tu usuario y contraseña, y tu BIOsoft queda funcionando al instante. Luego, desde Configuración, ajustas tu logo y colores con calma. Cualquier duda mientras lo llenas, aquí estamos.";
+      var wrap = U.openModal(
+        '<h3 class="modal-title">Enlace de Auto-Registro</h3>' +
+        '<p class="text-muted" style="margin-top:0">Envíaselo a un laboratorio que quiera empezar: completa sus propios datos, crea su usuario y contraseña, y su BIOsoft queda activo al instante — sin que tengas que crear nada tú.</p>' +
+        '<div class="field"><label>Enlace</label><input id="ar-link" value="' + U.esc(link) + '" readonly/></div>' +
+        '<div class="field"><label>Mensaje sugerido (puedes editarlo antes de enviarlo)</label><textarea id="ar-mensaje" rows="6">' + U.esc(mensaje) + "</textarea></div>" +
+        '<div class="flex gap-2 wrap" style="margin-top:6px">' +
+        '<button class="btn btn-outline btn-sm" id="btn-copiar-link">' + U.icon("clipboard") + " Copiar Enlace</button>" +
+        '<button class="btn btn-outline btn-sm" id="btn-copiar-mensaje">' + U.icon("clipboard") + " Copiar Mensaje</button>" +
+        '<button class="btn btn-whatsapp btn-sm" id="btn-enviar-wa">' + U.icon("send") + " Enviar por WhatsApp</button>" +
+        "</div>" +
+        '<div class="flex justify-between" style="margin-top:16px"><button class="btn btn-ghost" data-modal-close>Cerrar</button></div>'
+      );
+      wrap.querySelector("#btn-copiar-link").addEventListener("click", function () {
+        navigator.clipboard.writeText(link).then(function () { U.toast("Enlace copiado.", "success"); }).catch(function () { U.toast("No se pudo copiar. Selecciónalo manualmente.", "error"); });
+      });
+      wrap.querySelector("#btn-copiar-mensaje").addEventListener("click", function () {
+        var texto = wrap.querySelector("#ar-mensaje").value;
+        navigator.clipboard.writeText(texto).then(function () { U.toast("Mensaje copiado.", "success"); }).catch(function () { U.toast("No se pudo copiar. Selecciónalo manualmente.", "error"); });
+      });
+      wrap.querySelector("#btn-enviar-wa").addEventListener("click", function () {
+        var texto = wrap.querySelector("#ar-mensaje").value;
+        window.open("https://wa.me/?text=" + encodeURIComponent(texto), "_blank");
       });
     }
 
