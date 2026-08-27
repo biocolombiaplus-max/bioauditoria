@@ -22,6 +22,13 @@
   // tiene al menos un examen personalizado propio.
   var SECCION_REF_EXT = { id: "ref-externa", nombre: "Enviados a Referencia (tu lista)" };
 
+  // Los paquetes de exámenes (ej. "Perfil Lipídico", "Perfil 20") aparecen
+  // en esta sección "virtual" propia, siempre primero en la lista, para
+  // que sea lo primero que ve quien está cotizando — igual que en un
+  // laboratorio grande, donde los perfiles conocidos se ofrecen antes que
+  // ir examen por examen.
+  var SECCION_PAQUETES = { id: "paquetes-virtual", nombre: "📦 Paquetes" };
+
   window.BIO_VIEWS.cotizador = function (root) {
     var session = BIO_AUTH.getSession();
     var tenantId = session.tenantId;
@@ -34,6 +41,7 @@
     var convenioPreciosPorConvenio = {}; // convenioId -> { examId -> {modo, valor} }
     var examenesReferencia = []; // catálogo independiente: exámenes remitidos a un laboratorio de referencia (ver "🔬 Lab. Referencia")
     var refSearchTerm = "";
+    var paquetes = []; // paquetes de exámenes con un precio total propio (ver "📦 Paquetes")
 
     var TIPOS_CONVENIO = ["Laboratorio de Referencia", "Laboratorio de Contrarreferencia", "Cliente Institucional", "Otro"];
 
@@ -71,13 +79,20 @@
     }
     function seccionesDisponibles() {
       var base = C.seccionesEfectivas(tenant);
-      return customExams.length ? base.concat([SECCION_REF_EXT]) : base;
+      var conRef = customExams.length ? base.concat([SECCION_REF_EXT]) : base;
+      return paquetesActivos().length ? [SECCION_PAQUETES].concat(conRef) : conRef;
     }
     function resolverExamen(id) {
       return C.examenEfectivo(id, tenant) || poolExamenes().filter(function (e) { return e.id === id; })[0] || null;
     }
     function resolverSeccionNombre(seccionId) {
       return seccionId === SECCION_REF_EXT.id ? SECCION_REF_EXT.nombre : C.seccionNombre(seccionId, tenant);
+    }
+    // Un paquete inactivo (temporalmente descontinuado) sigue mostrándose
+    // en la pestaña de administración "📦 Paquetes" para poder reactivarlo,
+    // pero no debe poder seleccionarse en una cotización nueva.
+    function paquetesActivos() {
+      return paquetes.filter(function (p) { return p.activo !== false; });
     }
 
     function cargar() {
@@ -87,6 +102,7 @@
       lista.forEach(function (p) { precios[p.examId] = p.precio; });
       cotizaciones = S.cotizador.listCotizaciones(tenantId);
       customExams = S.cotizador.listExamenesPersonalizados(tenantId);
+      paquetes = S.cotizador.listPaquetes(tenantId);
       convenios = S.cotizador.listConvenios(tenantId);
       convenioPreciosPorConvenio = {};
       convenios.forEach(function (cv) {
@@ -106,13 +122,14 @@
         '<button type="button" class="' + (vista === "recibo" ? "active" : "") + '" data-vista="recibo">💵 Recibo Directo</button>' +
         '<button type="button" class="' + (vista === "precios" ? "active" : "") + '" data-vista="precios">💲 Lista de Precios</button>' +
         '<button type="button" class="' + (vista === "convenios" ? "active" : "") + '" data-vista="convenios">🤝 Convenios</button>' +
+        '<button type="button" class="' + (vista === "paquetes" ? "active" : "") + '" data-vista="paquetes">📦 Paquetes</button>' +
         '<button type="button" class="' + (vista === "labref" ? "active" : "") + '" data-vista="labref">🔬 Lab. Referencia</button>' +
         '<button type="button" class="' + (vista === "historial" ? "active" : "") + '" data-vista="historial">🕓 Historial</button>' +
         "</div></div>" +
-        (vista === "nueva" ? buildNuevaHtml() : vista === "recibo" ? buildReciboDirectoHtml() : vista === "precios" ? buildPreciosHtml() : vista === "convenios" ? buildConveniosHtml() : vista === "labref" ? buildLabReferenciaHtml() : buildHistorialHtml()) +
+        (vista === "nueva" ? buildNuevaHtml() : vista === "recibo" ? buildReciboDirectoHtml() : vista === "precios" ? buildPreciosHtml() : vista === "convenios" ? buildConveniosHtml() : vista === "paquetes" ? buildPaquetesHtml() : vista === "labref" ? buildLabReferenciaHtml() : buildHistorialHtml()) +
         "</div>";
       root.querySelectorAll("[data-vista]").forEach(function (b) { b.addEventListener("click", function () { vista = b.dataset.vista; build(); }); });
-      if (vista === "nueva") wireNueva(); else if (vista === "recibo") wireReciboDirecto(); else if (vista === "precios") wirePrecios(); else if (vista === "convenios") wireConvenios(); else if (vista === "labref") wireLabReferencia(); else wireHistorial();
+      if (vista === "nueva") wireNueva(); else if (vista === "recibo") wireReciboDirecto(); else if (vista === "precios") wirePrecios(); else if (vista === "convenios") wireConvenios(); else if (vista === "paquetes") wirePaquetes(); else if (vista === "labref") wireLabReferencia(); else wireHistorial();
     }
 
     // ---------------------------------------------------------------------
@@ -120,7 +137,7 @@
     // Directo": cada pestaña tiene su propio estado de selección/búsqueda
     // (pickerNueva / pickerRecibo) pero reutilizan el mismo render.
     // ---------------------------------------------------------------------
-    function crearPickerState() { return { selected: [], activeSection: C.SECCIONES[0].id, searchTerm: "", convenioId: "" }; }
+    function crearPickerState() { return { selected: [], selectedPaquetes: [], activeSection: C.SECCIONES[0].id, searchTerm: "", convenioId: "" }; }
     var pickerNueva = crearPickerState();
     var pickerRecibo = crearPickerState();
 
@@ -163,7 +180,7 @@
 
     function renderPickerSecciones(prefix, st) {
       document.getElementById(prefix + "-sec-list").innerHTML = seccionesDisponibles().map(function (s) {
-        var count = st.selected.filter(function (id) { return resolverExamen(id).seccion === s.id; }).length;
+        var count = s.id === SECCION_PAQUETES.id ? st.selectedPaquetes.length : st.selected.filter(function (id) { return resolverExamen(id).seccion === s.id; }).length;
         return '<div class="sec-item ' + (!st.searchTerm && s.id === st.activeSection ? "active" : "") + '" data-sec="' + s.id + '">' + s.nombre + (count ? ' <span class="badge badge-validado" style="margin-left:4px">' + count + "</span>" : "") + "</div>";
       }).join("");
       document.querySelectorAll("#" + prefix + "-sec-list .sec-item").forEach(function (el) {
@@ -176,6 +193,28 @@
 
     function renderPickerExams(prefix, st) {
       var term = U.normalizar(st.searchTerm.trim());
+      // "📦 Paquetes" es una sección propia con su propia lista de
+      // casillas (una por paquete, no por examen) — no se mezcla con la
+      // búsqueda general de exámenes individuales.
+      if (!term && st.activeSection === SECCION_PAQUETES.id) {
+        document.getElementById(prefix + "-exam-list").innerHTML = paquetesActivos().length ? paquetesActivos().map(function (p) {
+          var checked = st.selectedPaquetes.indexOf(p.id) !== -1;
+          var cant = p.examenesIds.length;
+          var incluidos = p.examenesIds.map(function (id) { var e = resolverExamen(id); return e ? e.nombre : null; }).filter(Boolean).join(", ");
+          return '<label class="exam-row"><input type="checkbox" data-picker-prefix="' + prefix + '" data-picker-paquete="' + p.id + '" ' + (checked ? "checked" : "") + '/>' +
+            '<div class="grow"><div>' + U.esc(p.nombre) + "</div>" +
+            '<div class="meta">' + cant + " examen" + (cant === 1 ? "" : "es") + " incluido" + (cant === 1 ? "" : "s") + (incluidos ? " — " + U.esc(incluidos) : "") + "</div></div>" +
+            '<div style="text-align:right;white-space:nowrap"><div style="font-weight:700;font-size:13px">' + (p.precio ? fmtMoneda(p.precio) : '<span class="text-muted">Sin precio</span>') + "</div></div></label>";
+        }).join("") : '<p class="text-muted" style="padding:14px">Aún no has creado ningún paquete. Ve a la pestaña "📦 Paquetes" para crear el primero.</p>';
+        document.querySelectorAll('[data-picker-prefix="' + prefix + '"][data-picker-paquete]').forEach(function (chk) {
+          chk.addEventListener("change", function () {
+            var id = chk.dataset.pickerPaquete;
+            if (chk.checked) st.selectedPaquetes.push(id); else st.selectedPaquetes = st.selectedPaquetes.filter(function (x) { return x !== id; });
+            actualizarPickerTotales(prefix, st); renderPickerSecciones(prefix, st);
+          });
+        });
+        return;
+      }
       var todos = poolExamenes();
       var pool = term
         ? todos.filter(function (e) { return U.normalizar(e.nombre).indexOf(term) !== -1 || e.cups.indexOf(term) !== -1; })
@@ -204,17 +243,41 @@
       });
     }
 
+    function totalPaquetesSeleccionados(st) {
+      return st.selectedPaquetes.reduce(function (a, id) {
+        var p = paquetes.filter(function (x) { return x.id === id; })[0];
+        return a + (p ? p.precio || 0 : 0);
+      }, 0);
+    }
+
     function actualizarPickerTotales(prefix, st) {
-      var total = st.selected.reduce(function (a, id) { return a + precioConConvenio(id, st.convenioId); }, 0);
-      document.getElementById(prefix + "-count").textContent = st.selected.length;
+      var total = st.selected.reduce(function (a, id) { return a + precioConConvenio(id, st.convenioId); }, 0) + totalPaquetesSeleccionados(st);
+      document.getElementById(prefix + "-count").textContent = st.selected.length + st.selectedPaquetes.length;
       document.getElementById(prefix + "-total").innerHTML = fmtMoneda(total) + fmtMonedaExtra(total);
     }
 
+    // Un paquete seleccionado se representa como UNA sola línea con su
+    // propio precio total — no se desarma en sus exámenes individuales
+    // con precio propio, que es justo lo que se quiere evitar (un
+    // "Perfil Lipídico" cotizado con un solo valor, no la suma de sus 5
+    // exámenes por separado). El descuento de un convenio no aplica sobre
+    // el precio del paquete: ya es un precio especial fijado por el
+    // laboratorio de antemano.
     function examenesSeleccionados(st) {
-      return st.selected.map(function (id) {
+      var individuales = st.selected.map(function (id) {
         var e = resolverExamen(id);
         return { examId: id, nombre: e.nombre, seccion: e.seccion, seccionNombre: resolverSeccionNombre(e.seccion), precio: precioConConvenio(id, st.convenioId) };
       });
+      var dePaquetes = st.selectedPaquetes.map(function (id) {
+        var p = paquetes.filter(function (x) { return x.id === id; })[0];
+        if (!p) return null;
+        var incluidos = p.examenesIds.map(function (exId) { var e = resolverExamen(exId); return e ? e.nombre : null; }).filter(Boolean);
+        return {
+          examId: "paq:" + p.id, nombre: p.nombre + (incluidos.length ? " — incluye " + incluidos.join(", ") : ""),
+          seccion: SECCION_PAQUETES.id, seccionNombre: SECCION_PAQUETES.nombre, precio: p.precio || 0
+        };
+      }).filter(Boolean);
+      return individuales.concat(dePaquetes);
     }
 
     function convenioAplicado(st) {
@@ -242,7 +305,7 @@
     }
 
     async function generarCotizacion() {
-      if (!pickerNueva.selected.length) { U.toast("Selecciona al menos un examen.", "error"); return; }
+      if (!pickerNueva.selected.length && !pickerNueva.selectedPaquetes.length) { U.toast("Selecciona al menos un examen o paquete.", "error"); return; }
       var nombre = document.getElementById("cot-cliente-nombre").value.trim();
       var whatsapp = document.getElementById("cot-cliente-wa").value.trim();
       var correo = document.getElementById("cot-cliente-correo").value.trim();
@@ -268,7 +331,7 @@
       wrap.querySelector("#cot-send-wa").addEventListener("click", function () { window.open(waLinkTo(whatsapp, mensaje), "_blank"); });
       if (correo) U.wireEmailProviderButtons(wrap, "cot-mail", correo, "Cotización de exámenes — " + tenant.nombre, mensaje);
 
-      pickerNueva.selected = []; cargar();
+      pickerNueva.selected = []; pickerNueva.selectedPaquetes = []; cargar();
     }
 
     // ---------------------------------------------------------------------
@@ -304,7 +367,7 @@
     }
 
     function generarReciboDirecto() {
-      if (!pickerRecibo.selected.length) { U.toast("Selecciona al menos un examen.", "error"); return; }
+      if (!pickerRecibo.selected.length && !pickerRecibo.selectedPaquetes.length) { U.toast("Selecciona al menos un examen o paquete.", "error"); return; }
       var nombre = document.getElementById("rec-cliente-nombre").value.trim();
       var whatsapp = document.getElementById("rec-cliente-wa").value.trim();
       var correo = document.getElementById("rec-cliente-correo").value.trim();
@@ -318,7 +381,7 @@
         estado: "pagada", pago: { fecha: fechaPago, monto: total, metodoPago: metodoPago, vendedorNombre: vendedorNombre }
       });
       S.addAudit(session.tenantId, session.nombre, session.rol, "REGISTRAR_PAGO_COTIZACION", "cotizacion", cot.id, "Generó un recibo de pago directo para " + (nombre || "un cliente") + " por " + fmtMoneda(total) + " (atendido por " + vendedorNombre + ").");
-      pickerRecibo.selected = [];
+      pickerRecibo.selected = []; pickerRecibo.selectedPaquetes = [];
       cargar();
       abrirEnviarRecibo(cot);
     }
@@ -741,6 +804,126 @@
           U.toast("Ahora crea el usuario: rol \"Aliado / Convenio\", ya queda con " + c.nombre + " preseleccionado.", "success");
           location.hash = "#/usuarios";
         });
+      });
+    }
+
+    // ---------------------------------------------------------------------
+    // PAQUETES DE EXÁMENES — bultos de exámenes (ej. "Perfil Lipídico",
+    // "Perfil 20") vendidos como una sola línea con un precio total propio,
+    // en vez de sumar el precio de cada examen individual. Aparecen como
+    // una sección más ("📦 Paquetes") en el selector de exámenes de Nueva
+    // Cotización y Recibo Directo — ver SECCION_PAQUETES más arriba.
+    // ---------------------------------------------------------------------
+    function buildPaquetesHtml() {
+      return '<p class="text-muted" style="margin-top:14px">Agrupa varios exámenes en un paquete con un solo precio total (ej. "Perfil Lipídico", "Perfil 20") — aparece como una sola opción, con su propio precio, en el selector de exámenes de Nueva Cotización y Recibo Directo. No se cobra examen por examen: se cobra el paquete completo.</p>' +
+        '<button type="button" class="btn btn-primary btn-sm" id="btn-nuevo-paquete">' + U.icon("plus") + " Nuevo Paquete</button>" +
+        '<div id="paquetes-grid" class="flex wrap gap-2" style="margin-top:14px;align-items:stretch">' +
+        (paquetes.length ? paquetes.map(paqueteCardHtml).join("") : '<p class="text-muted">Aún no has creado ningún paquete.</p>') +
+        "</div>";
+    }
+
+    function paqueteCardHtml(p) {
+      var incluidos = p.examenesIds.map(function (id) { var e = resolverExamen(id); return e ? e.nombre : null; }).filter(Boolean);
+      var sumaIndividual = p.examenesIds.reduce(function (a, id) { return a + precioDe(id); }, 0);
+      var ahorro = sumaIndividual - (p.precio || 0);
+      return '<div class="card" style="width:300px' + (p.activo ? "" : ";opacity:.55") + '">' +
+        '<div class="flex justify-between items-start"><h4 style="margin:0">' + U.esc(p.nombre) + "</h4>" +
+        (p.activo ? '<span class="badge badge-validado">Activo</span>' : '<span class="badge badge-pendiente">Inactivo</span>') +
+        "</div>" +
+        '<p class="text-muted" style="margin:8px 0 4px;font-size:12px">' + U.esc(incluidos.join(", ")) + "</p>" +
+        '<p style="margin:10px 0 2px;font-size:20px;font-weight:800;color:var(--brand-primary)">' + fmtMoneda(p.precio) + "</p>" +
+        (ahorro > 0 ? '<p class="text-muted" style="margin:0 0 12px;font-size:12px">Suma individual: ' + fmtMoneda(sumaIndividual) + " — ahorro de " + fmtMoneda(ahorro) + "</p>" : '<div style="margin-bottom:12px"></div>') +
+        '<div class="flex gap-2 wrap">' +
+        '<button type="button" class="btn btn-ghost btn-sm" data-editar-paquete="' + p.id + '">' + U.icon("edit") + " Editar</button>" +
+        '<button type="button" class="btn btn-ghost btn-sm" data-eliminar-paquete="' + p.id + '">' + U.icon("trash") + " Eliminar</button>" +
+        "</div></div>";
+    }
+
+    function wirePaquetes() {
+      document.getElementById("btn-nuevo-paquete").addEventListener("click", function () { abrirFormPaquete(null); });
+      document.querySelectorAll("[data-editar-paquete]").forEach(function (b) {
+        b.addEventListener("click", function () { abrirFormPaquete(paquetes.filter(function (p) { return p.id === b.dataset.editarPaquete; })[0]); });
+      });
+      document.querySelectorAll("[data-eliminar-paquete]").forEach(function (b) {
+        b.addEventListener("click", function () {
+          var p = paquetes.filter(function (x) { return x.id === b.dataset.eliminarPaquete; })[0];
+          if (!confirm('¿Eliminar el paquete "' + p.nombre + '"?')) return;
+          S.cotizador.eliminarPaquete(tenantId, p.id);
+          S.addAudit(session.tenantId, session.nombre, session.rol, "ELIMINAR_PAQUETE", "paquete", p.id, "Eliminó el paquete " + p.nombre + ".");
+          U.toast("Paquete eliminado.", "success");
+          cargar();
+        });
+      });
+    }
+
+    function abrirFormPaquete(paquete) {
+      var isEdit = !!paquete;
+      paquete = paquete || { nombre: "", precio: 0, examenesIds: [], activo: true };
+      var seleccion = paquete.examenesIds.slice();
+      var searchTerm = "";
+      var wrap = U.openModal(
+        '<h3 class="modal-title">' + (isEdit ? "Editar Paquete" : "Nuevo Paquete de Exámenes") + '</h3>' +
+        '<p class="text-muted" style="margin-top:0">Un paquete agrupa varios exámenes (ej. "Perfil Lipídico": Colesterol Total, HDL, LDL, Triglicéridos) y se vende con UN solo precio total — no la suma de los exámenes individuales.</p>' +
+        '<form id="paquete-form">' +
+        '<div class="form-grid">' +
+        '<div class="field"><label>Nombre del Paquete</label><input id="f_paq_nombre" value="' + U.esc(paquete.nombre) + '" placeholder="Ej. Perfil Lipídico" required/></div>' +
+        '<div class="field"><label>Precio Total del Paquete</label><input type="number" step="any" min="0" id="f_paq_precio" value="' + (paquete.precio || "") + '" placeholder="0" required/></div>' +
+        '<div class="field"><label>Estado</label><select id="f_paq_activo"><option value="1" ' + (paquete.activo !== false ? "selected" : "") + '>Activo</option><option value="0" ' + (paquete.activo === false ? "selected" : "") + ">Inactivo</option></select></div>" +
+        "</div>" +
+        '<div class="field" style="margin:10px 0 6px"><label>Exámenes incluidos</label><input id="paq-search" placeholder="Buscar examen por nombre o código CUPS…"/></div>' +
+        '<div class="table-wrap" style="max-height:320px;overflow-y:auto" id="paq-lista"></div>' +
+        '<p class="text-muted" style="margin:6px 0 0;font-size:12.5px" id="paq-contador"></p>' +
+        '<div class="flex gap-2 justify-between" style="margin-top:14px">' +
+        '<button type="button" class="btn btn-ghost" data-modal-close>Cancelar</button>' +
+        '<button type="submit" class="btn btn-primary">' + U.icon("check") + " Guardar Paquete</button>" +
+        "</div></form>",
+        { lg: true }
+      );
+
+      function renderLista() {
+        var term = U.normalizar(searchTerm.trim());
+        var todos = poolExamenes();
+        var pool = term ? todos.filter(function (e) { return U.normalizar(e.nombre).indexOf(term) !== -1 || e.cups.indexOf(term) !== -1; }) : todos;
+        wrap.querySelector("#paq-lista").innerHTML = pool.length ? pool.map(function (e) {
+          var checked = seleccion.indexOf(e.id) !== -1;
+          return '<label class="checkbox-row"><input type="checkbox" data-paq-exam="' + e.id + '" ' + (checked ? "checked" : "") + '/> ' + U.esc(e.nombre) +
+            ' <span class="text-muted" style="font-size:11px">— ' + U.esc(resolverSeccionNombre(e.seccion)) + " · " + fmtMoneda(precioDe(e.id)) + "</span></label>";
+        }).join("") : '<p class="text-muted" style="padding:10px">Sin resultados.</p>';
+        wrap.querySelectorAll("[data-paq-exam]").forEach(function (chk) {
+          chk.addEventListener("change", function () {
+            var id = chk.dataset.paqExam;
+            if (chk.checked) { if (seleccion.indexOf(id) === -1) seleccion.push(id); }
+            else seleccion = seleccion.filter(function (x) { return x !== id; });
+            actualizarContador();
+          });
+        });
+        actualizarContador();
+      }
+      function actualizarContador() {
+        var sumaIndividual = seleccion.reduce(function (a, id) { return a + precioDe(id); }, 0);
+        wrap.querySelector("#paq-contador").textContent = seleccion.length + " examen(es) seleccionado(s) — suma individual: " + fmtMoneda(sumaIndividual) + " (solo de referencia, el precio del paquete lo defines arriba).";
+      }
+      wrap.querySelector("#paq-search").addEventListener("input", function (e) { searchTerm = e.target.value; renderLista(); });
+      renderLista();
+
+      wrap.querySelector("#paquete-form").addEventListener("submit", function (e) {
+        e.preventDefault();
+        var nombre = wrap.querySelector("#f_paq_nombre").value.trim();
+        var precio = parseFloat(wrap.querySelector("#f_paq_precio").value) || 0;
+        var activo = wrap.querySelector("#f_paq_activo").value === "1";
+        if (!nombre) { U.toast("Escribe el nombre del paquete.", "error"); return; }
+        if (!seleccion.length) { U.toast("Selecciona al menos un examen para el paquete.", "error"); return; }
+        var data = { tenantId: tenantId, nombre: nombre, precio: precio, examenesIds: seleccion, activo: activo };
+        if (isEdit) {
+          S.cotizador.updatePaquete(paquete.id, data);
+          S.addAudit(session.tenantId, session.nombre, session.rol, "UPDATE_PAQUETE", "paquete", paquete.id, "Actualizó el paquete " + nombre + ".");
+        } else {
+          var creado = S.cotizador.createPaquete(data);
+          S.addAudit(session.tenantId, session.nombre, session.rol, "CREATE_PAQUETE", "paquete", creado.id, "Creó el paquete " + nombre + " (" + seleccion.length + " exámenes, " + fmtMoneda(precio) + ").");
+        }
+        U.toast("Paquete guardado.", "success");
+        U.closeModal(wrap);
+        cargar();
       });
     }
 

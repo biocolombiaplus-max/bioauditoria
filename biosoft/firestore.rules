@@ -209,6 +209,11 @@ service cloud.firestore {
       match /examenesReferencia/{examenRefId} {
         allow read, write: if esDeEsteLab(tenantId);
       }
+      // Paquetes de exámenes (ej. "Perfil Lipídico", "Perfil 20"): un
+      // bulto de exámenes del catálogo vendido con un solo precio total.
+      match /paquetesExamenes/{paqueteId} {
+        allow read, write: if esDeEsteLab(tenantId);
+      }
       // Consentimientos informados (Resolución 3100 de 2019): el paciente
       // puede firmarlo a distancia desde firmar.html, SIN iniciar sesión —
       // el id del documento (aleatorio, prácticamente imposible de

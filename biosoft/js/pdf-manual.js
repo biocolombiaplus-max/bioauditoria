@@ -195,6 +195,7 @@
       pasos: [
         "Ve a “Cotizaciones” y haz clic en “Nueva Cotización”.",
         "Selecciona los exámenes desde el buscador rápido; el sistema calcula el total automáticamente según tu lista de precios.",
+        "En “Paquetes” arma perfiles como “Perfil Lipídico” o “Perfil 20”: elige qué exámenes incluye y ponle un solo precio total (distinto de sumar cada examen por separado). El paquete aparece como una opción más en el selector, siempre primero en la lista, con su propio precio — así cotizas de un clic los combos que más vendes.",
         "En “Lista de Precios” puedes activar una moneda adicional (ej. dólares o bolívares) con su tasa de cambio — actualízala cada vez que cambie (por ejemplo, a diario) y verás el equivalente junto a cada precio de la lista, en el total de cotizaciones, recibos, órdenes e historial, sin reemplazar tu moneda principal.",
         "Genera el PDF y envíalo por WhatsApp o correo directamente desde la pantalla.",
         "Consulta el historial de cotizaciones enviadas en cualquier momento."

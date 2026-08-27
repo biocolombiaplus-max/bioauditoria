@@ -105,7 +105,19 @@
       attach("recetasReactivos", "recetasReactivos", false),
       attach("kardexInventario", "kardexInventario", false),
       attach("consentimientos", "consentimientos", false),
-      attach("examenesReferencia", "examenesReferencia", false)
+      attach("examenesReferencia", "examenesReferencia", false),
+      // Estas 5 colecciones se escriben con fbWrite/fbDelete desde hace
+      // tiempo (convenios, RIPS y facturas generadas) pero nunca se habían
+      // agregado aquí — sin esto, en modo real (producción) desaparecían
+      // de la pantalla apenas se recargaba la página o se volvía a iniciar
+      // sesión (seguían existiendo en Firestore, solo dejaban de cargarse
+      // de vuelta a memoria). paquetesExamenes se agrega ya de una vez
+      // junto con las demás para no repetir el mismo olvido.
+      attach("convenios", "convenios", false),
+      attach("convenioPrecios", "convenioPrecios", false),
+      attach("ripsGenerados", "ripsGenerados", false),
+      attach("facturasGeneradas", "facturasGeneradas", false),
+      attach("paquetesExamenes", "paquetesExamenes", false)
     ]).then(function () { return realCache; });
   }
 
@@ -569,7 +581,7 @@
     return {
       tenants: {}, users: [], patients: [], orders: [], auditLog: [], qcControles: [], qcLecturas: [], preciosExamenes: [], cotizaciones: [],
       reglasRemarketing: [], remarketingContactos: [], insumos: [], recetasReactivos: [], kardexInventario: [], examenesPersonalizados: [],
-      ripsGenerados: [], facturasGeneradas: [], convenios: [], convenioPrecios: [], consentimientos: [], examenesReferencia: []
+      ripsGenerados: [], facturasGeneradas: [], convenios: [], convenioPrecios: [], consentimientos: [], examenesReferencia: [], paquetesExamenes: []
     };
   }
 
@@ -1255,6 +1267,44 @@
   }
 
   // ---------------------------------------------------------------------
+  // PAQUETES DE EXÁMENES — bultos de exámenes del catálogo (propios o
+  // personalizados) que el laboratorio vende como una sola línea con UN
+  // precio total (ej. "Perfil Lipídico", "Perfil 20"), en vez de sumar el
+  // precio individual de cada examen — igual que hacen los laboratorios
+  // grandes con sus "perfiles". Aparecen como un ítem más, seleccionable
+  // de un clic, en el selector de exámenes del Cotizador (ver
+  // views-cotizador.js).
+  // ---------------------------------------------------------------------
+  function listPaquetes(tenantId) {
+    var db = loadDB();
+    return (db.paquetesExamenes || []).filter(function (p) { return p.tenantId === tenantId; }).sort(function (a, b) { return (a.nombre || "").localeCompare(b.nombre || ""); });
+  }
+  function createPaquete(data) {
+    var db = loadDB();
+    db.paquetesExamenes = db.paquetesExamenes || [];
+    var p = Object.assign({ id: uid("paq"), activo: true, examenesIds: [], precio: 0, creadoEn: nowISO() }, data);
+    db.paquetesExamenes.push(p);
+    saveDB(db);
+    fbWrite("paquetesExamenes", p.id, p);
+    return p;
+  }
+  function updatePaquete(id, patch) {
+    var db = loadDB();
+    var p = (db.paquetesExamenes || []).filter(function (x) { return x.id === id; })[0];
+    if (!p) return null;
+    Object.assign(p, patch);
+    saveDB(db);
+    fbWrite("paquetesExamenes", p.id, p);
+    return p;
+  }
+  function eliminarPaquete(tenantId, paqueteId) {
+    var db = loadDB();
+    db.paquetesExamenes = (db.paquetesExamenes || []).filter(function (p) { return p.id !== paqueteId; });
+    saveDB(db);
+    fbDelete("paquetesExamenes", paqueteId);
+  }
+
+  // ---------------------------------------------------------------------
   // EXÁMENES DE LABORATORIO DE REFERENCIA — catálogo INDEPENDIENTE del
   // catálogo interno de exámenes: son los exámenes que este laboratorio
   // REMITE a un tercero (ej. IDIME) para que los procese. No se ligan a un
@@ -1654,6 +1704,7 @@
       listExamenesPersonalizados: listExamenesPersonalizados, bulkUpsertExamenesPersonalizados: bulkUpsertExamenesPersonalizados,
       listConvenios: listConvenios, createConvenio: createConvenio, updateConvenio: updateConvenio, eliminarConvenio: eliminarConvenio,
       listConvenioPrecios: listConvenioPrecios, setConvenioPrecio: setConvenioPrecio, quitarConvenioPrecio: quitarConvenioPrecio,
+      listPaquetes: listPaquetes, createPaquete: createPaquete, updatePaquete: updatePaquete, eliminarPaquete: eliminarPaquete,
       listExamenesReferencia: listExamenesReferencia, bulkUpsertExamenesReferencia: bulkUpsertExamenesReferencia,
       setPrecioVentaReferencia: setPrecioVentaReferencia, eliminarExamenReferencia: eliminarExamenReferencia
     },
