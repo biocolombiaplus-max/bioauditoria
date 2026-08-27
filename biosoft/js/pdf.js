@@ -131,6 +131,32 @@
     var pageW = doc.internal.pageSize.getWidth();
     var y = margin;
     var rgb = hexToRgb(tenant.colorPrimario);
+    // Tipografía elegida en Configuración (Helvetica/Times/Courier — las
+    // 3 fuentes base que jsPDF sabe dibujar sin tener que incrustar un
+    // archivo de fuente aparte). "helvetica" si el laboratorio nunca lo
+    // ha tocado, para no cambiar nada a quien no pidió esto.
+    var fontFam = tenant.fuenteReporte || "helvetica";
+
+    // Prepara un logo para dibujarlo dentro de una caja de ancho "boxW":
+    // recorta su espacio en blanco/transparente sobrante (ver
+    // recortarEspacioSobrante) y calcula el alto según sus proporciones
+    // reales, con un tope de altura para que un logo muy vertical no se
+    // desborde. La usan tanto el logo propio como el "logo secundario"
+    // (tenant.logoSecundarioDataUrl) — algunos laboratorios necesitan dos
+    // logos en el membrete, ej. el propio y el del laboratorio aliado que
+    // procesa la muestra, uno junto al otro.
+    async function prepararLogo(url, boxW, alturaMaxima) {
+      var w = boxW, h = boxW, urlFinal = url;
+      try {
+        var r = await recortarEspacioSobrante(url);
+        if (r && r.w && r.h) {
+          urlFinal = r.url;
+          h = boxW * (r.h / r.w);
+          if (alturaMaxima && h > alturaMaxima) { h = alturaMaxima; w = h * (r.w / r.h); }
+        }
+      } catch (e) {}
+      return { url: urlFinal, w: w, h: h };
+    }
 
     // Se agrupan los datos de contacto en 2 líneas densas en vez de 4 (una
     // por dato) — nunca se pierde ningún dato, solo se juntan con " · " —
@@ -189,20 +215,47 @@
           // (nunca se fuerza a cuadrado), con un tope de seguridad solo
           // para el caso extremo de un logo genuinamente vertical.
           var porcentaje = (tenant.logoAnchoPorcentaje || 55) / 100;
-          var logoW = (pageW - margin * 2) * porcentaje;
-          var logoH = logoW;
-          var logoParaDibujar = tenant.logoDataUrl;
-          try {
-            var recorteLogo = await recortarEspacioSobrante(tenant.logoDataUrl);
-            if (recorteLogo && recorteLogo.w && recorteLogo.h) {
-              logoParaDibujar = recorteLogo.url;
-              logoH = logoW * (recorteLogo.h / recorteLogo.w);
-              var alturaMaxima = 140;
-              if (logoH > alturaMaxima) { logoH = alturaMaxima; logoW = logoH * (recorteLogo.w / recorteLogo.h); }
-            }
-          } catch (e) {}
-          try { doc.addImage(logoParaDibujar, "PNG", cx - logoW / 2, y, logoW, logoH); } catch (e) {}
-          y += logoH + 2;
+          var anchoDisponible = (pageW - margin * 2) * porcentaje;
+          if (tenant.logoSecundarioDataUrl) {
+            // Dos logos lado a lado (ej. el propio y el de un laboratorio
+            // aliado que procesa la muestra) — cada uno se recorta y
+            // escala dentro de la mitad del espacio que le toca, y se
+            // alinean por el centro vertical de la fila más alta.
+            var gapLogos = 14;
+            var mitad = (anchoDisponible - gapLogos) / 2;
+            var logoIzq = await prepararLogo(tenant.logoDataUrl, mitad, 90);
+            var logoDer = await prepararLogo(tenant.logoSecundarioDataUrl, mitad, 90);
+            var altoFila = Math.max(logoIzq.h, logoDer.h);
+            var startX = cx - anchoDisponible / 2;
+            try { doc.addImage(logoIzq.url, "PNG", startX, y + (altoFila - logoIzq.h) / 2, logoIzq.w, logoIzq.h); } catch (e) {}
+            try { doc.addImage(logoDer.url, "PNG", startX + anchoDisponible - logoDer.w, y + (altoFila - logoDer.h) / 2, logoDer.w, logoDer.h); } catch (e) {}
+            y += altoFila + 2;
+          } else {
+            var logoW = anchoDisponible;
+            var logoH = logoW;
+            var logoParaDibujar = tenant.logoDataUrl;
+            try {
+              var recorteLogo = await recortarEspacioSobrante(tenant.logoDataUrl);
+              if (recorteLogo && recorteLogo.w && recorteLogo.h) {
+                logoParaDibujar = recorteLogo.url;
+                logoH = logoW * (recorteLogo.h / recorteLogo.w);
+                var alturaMaxima = 140;
+                if (logoH > alturaMaxima) { logoH = alturaMaxima; logoW = logoH * (recorteLogo.w / recorteLogo.h); }
+              }
+            } catch (e) {}
+            try { doc.addImage(logoParaDibujar, "PNG", cx - logoW / 2, y, logoW, logoH); } catch (e) {}
+            y += logoH + 2;
+          }
+        } else if (tenant.logoSecundarioDataUrl) {
+          var gapPar = 10, boxPar = 64;
+          var parIzq = await prepararLogo(tenant.logoDataUrl, boxPar, boxPar);
+          var parDer = await prepararLogo(tenant.logoSecundarioDataUrl, boxPar, boxPar);
+          var altoPar = Math.max(parIzq.h, parDer.h);
+          var totalPar = parIzq.w + gapPar + parDer.w;
+          var startPar = cx - totalPar / 2;
+          try { doc.addImage(parIzq.url, "PNG", startPar, y - 4 + (altoPar - parIzq.h) / 2, parIzq.w, parIzq.h); } catch (e) {}
+          try { doc.addImage(parDer.url, "PNG", startPar + parIzq.w + gapPar, y - 4 + (altoPar - parDer.h) / 2, parDer.w, parDer.h); } catch (e) {}
+          y += altoPar + 12;
         } else {
           var logoCentradoSize = 76;
           try { doc.addImage(tenant.logoDataUrl, "PNG", cx - logoCentradoSize / 2, y - 4, logoCentradoSize, logoCentradoSize); } catch (e) {}
@@ -215,12 +268,12 @@
       // Yamdan), mostrar además el nombre en texto debajo queda repetido —
       // se puede ocultar desde Configuración.
       if (!tenant.ocultarNombreEncabezado) {
-        doc.setFont("helvetica", "bold"); doc.setFontSize(16); doc.setTextColor(rgb[0], rgb[1], rgb[2]);
+        doc.setFont(fontFam, "bold"); doc.setFontSize(16); doc.setTextColor(rgb[0], rgb[1], rgb[2]);
         doc.text(tenant.nombre, cx, y, { align: "center" });
         y += 13;
       }
       if (tenant.slogan) {
-        doc.setFont("helvetica", "italic"); doc.setFontSize(10.5); doc.setTextColor(rgb[0], rgb[1], rgb[2]);
+        doc.setFont(fontFam, "italic"); doc.setFontSize(10.5); doc.setTextColor(rgb[0], rgb[1], rgb[2]);
         doc.text(tenant.slogan, cx, y, { align: "center" });
         y += 11;
       }
@@ -228,7 +281,7 @@
       // (en vez de apiladas una debajo de otra) — el membrete queda mucho
       // más bajo. Nada se pierde, solo se separa con " · " en una sola
       // fila, centrada como el resto del membrete.
-      doc.setFont("helvetica", "normal"); doc.setFontSize(8); doc.setTextColor(90, 90, 90);
+      doc.setFont(fontFam, "normal"); doc.setFontSize(8); doc.setTextColor(90, 90, 90);
       var metaLineUnica = metaLines.join("   ·   ");
       if (metaLineUnica) { doc.text(metaLineUnica, cx, y, { align: "center" }); y += 8.5; }
       y += 4;
@@ -249,16 +302,25 @@
       if (tenant.logoDataUrl) {
         try { doc.addImage(tenant.logoDataUrl, "PNG", margin, y - 9, logoSize, logoSize); } catch (e) {}
       }
+      // Logo secundario (ej. un laboratorio aliado que procesa la
+      // muestra) arriba a la derecha, con el mismo tope de tamaño que el
+      // logo propio pero respetando sus proporciones reales — el patrón
+      // clásico de "nuestro logo a la izquierda, el del laboratorio que
+      // procesa a la derecha" que usan varios laboratorios clínicos.
+      if (tenant.logoSecundarioDataUrl) {
+        var logoDerDefault = await prepararLogo(tenant.logoSecundarioDataUrl, logoSize, logoSize);
+        try { doc.addImage(logoDerDefault.url, "PNG", pageW - margin - logoDerDefault.w, y - 9, logoDerDefault.w, logoDerDefault.h); } catch (e) {}
+      }
       var textX = margin + (tenant.logoDataUrl ? logoSize + 14 : 0);
-      doc.setFont("helvetica", "bold"); doc.setFontSize(15); doc.setTextColor(rgb[0], rgb[1], rgb[2]);
+      doc.setFont(fontFam, "bold"); doc.setFontSize(15); doc.setTextColor(rgb[0], rgb[1], rgb[2]);
       doc.text(tenant.nombre, textX, y + 12);
       var metaStartOffset = 25;
       if (tenant.slogan) {
-        doc.setFont("helvetica", "italic"); doc.setFontSize(9); doc.setTextColor(rgb[0], rgb[1], rgb[2]);
+        doc.setFont(fontFam, "italic"); doc.setFontSize(9); doc.setTextColor(rgb[0], rgb[1], rgb[2]);
         doc.text(tenant.slogan, textX, y + 23);
         metaStartOffset = 35;
       }
-      doc.setFont("helvetica", "normal"); doc.setFontSize(8.5); doc.setTextColor(90, 90, 90);
+      doc.setFont(fontFam, "normal"); doc.setFontSize(8.5); doc.setTextColor(90, 90, 90);
       metaLines.forEach(function (line, i) { doc.text(line, textX, y + metaStartOffset + i * 10); });
 
       doc.setDrawColor(rgb[0], rgb[1], rgb[2]); doc.setLineWidth(2);
@@ -281,21 +343,24 @@
     var pageBottom = pageH - 55;
     var ROW_H = 17, HEAD_H = 22;
     var rgb = hexToRgb(tenant.colorPrimario);
+    // Tipografía elegida en Configuración (Helvetica/Times/Courier) —
+    // "helvetica" si el laboratorio nunca lo ha tocado.
+    var fontFam = tenant.fuenteReporte || "helvetica";
 
     y = await dibujarMembrete(doc, tenant, margin);
 
-    doc.setFont("helvetica", "bold"); doc.setFontSize(13); doc.setTextColor(20, 20, 20);
+    doc.setFont(fontFam, "bold"); doc.setFontSize(13); doc.setTextColor(20, 20, 20);
     doc.text("INFORME DE RESULTADOS DE LABORATORIO CLÍNICO", margin, y);
     y += 15;
     // El aviso de preliminar/parcial va en su PROPIA línea debajo del
     // título (antes iba a la derecha, en la misma línea que el título, y
     // con textos largos las dos frases se montaban una sobre la otra).
     if (modo === "preliminar") {
-      doc.setFont("helvetica", "bold"); doc.setFontSize(9.5); doc.setTextColor(201, 126, 13);
+      doc.setFont(fontFam, "bold"); doc.setFontSize(9.5); doc.setTextColor(201, 126, 13);
       doc.text("RESULTADO PRELIMINAR — SUJETO A VALIDACIÓN FINAL", margin, y);
       y += 14;
     } else if (order.estadoGeneral !== "validado") {
-      doc.setFont("helvetica", "bold"); doc.setFontSize(9.5); doc.setTextColor(201, 126, 13);
+      doc.setFont(fontFam, "bold"); doc.setFontSize(9.5); doc.setTextColor(201, 126, 13);
       doc.text("INFORME PARCIAL — HAY EXÁMENES EN PROCESO", margin, y);
       y += 14;
     } else {
@@ -313,7 +378,7 @@
     var yInfoStart = y;
     var col1 = margin, col2 = pageW / 2 + 10;
 
-    doc.setFont("helvetica", "bold"); doc.setFontSize(12.5); doc.setTextColor(20, 20, 20);
+    doc.setFont(fontFam, "bold"); doc.setFontSize(12.5); doc.setTextColor(20, 20, 20);
     doc.text(U.nombreCompleto(patient), col1, y);
     y += 15;
     doc.setFontSize(10.5); doc.setTextColor(50, 50, 50);
@@ -322,20 +387,26 @@
 
     doc.setFontSize(9.5); doc.setTextColor(30, 30, 30);
     var edad = U.calcEdad(patient.fechaNacimiento);
-    var left = [
-      ["Edad / Sexo:", edad + " / " + patient.sexo]
-    ];
-    if (patient.pais === "CO") left.push(["EPS / Asegurador:", patient.eps || "Particular"]);
+    // Qué datos adicionales van en el reporte, elegido en Configuración
+    // → "Diseño del Reporte de Resultados". Nombre, documento, N° de
+    // orden y fecha son siempre obligatorios (son los identificadores
+    // básicos de cualquier informe clínico); estos 4 son opcionales —
+    // "true" salvo que el laboratorio los haya apagado explícitamente,
+    // para no cambiar nada a quien nunca tocó esta configuración.
+    var campos = tenant.camposReporte || {};
+    var left = [];
+    if (campos.edadSexo !== false) left.push(["Edad / Sexo:", edad + " / " + patient.sexo]);
+    if (patient.pais === "CO" && campos.eps !== false) left.push(["EPS / Asegurador:", patient.eps || "Particular"]);
     var right = [
       ["N° de Orden:", order.numeroOrden],
-      ["Fecha de Orden:", U.fmtFecha(order.fechaOrden)],
-      ["Médico Remitente:", order.medicoRemitente || "—"],
-      ["Procedencia:", order.procedencia || "—"]
+      ["Fecha de Orden:", U.fmtFecha(order.fechaOrden)]
     ];
+    if (campos.medico !== false) right.push(["Médico Remitente:", order.medicoRemitente || "—"]);
+    if (campos.procedencia !== false) right.push(["Procedencia:", order.procedencia || "—"]);
     // Los datos del paciente van en negrita (etiqueta y valor) para un
     // informe con más carácter profesional, en vez de valores en fuente
     // normal más discretos.
-    doc.setFont("helvetica", "bold");
+    doc.setFont(fontFam, "bold");
     left.forEach(function (row, i) {
       doc.text(row[0], col1, y + i * 14);
       doc.text(String(row[1]), col1 + 90, y + i * 14);
@@ -429,7 +500,7 @@
 
       doc.setFillColor(rgb[0], rgb[1], rgb[2]);
       doc.rect(margin, y, pageW - margin * 2, 16, "F");
-      doc.setTextColor(255, 255, 255); doc.setFont("helvetica", "bold"); doc.setFontSize(9.5);
+      doc.setTextColor(255, 255, 255); doc.setFont(fontFam, "bold"); doc.setFontSize(9.5);
       doc.text(C.seccionNombre(seccionId, tenant).toUpperCase(), margin + 6, y + 11);
       y += 24;
 
@@ -449,7 +520,7 @@
         doc.autoTable({
           startY: y, margin: { left: margin, right: margin },
           head: [["Parámetro", "Resultado", "Valor de Referencia", "Interpretación"]],
-          body: body, theme: "grid", styles: { fontSize: 8, cellPadding: 4 },
+          body: body, theme: "grid", styles: { font: fontFam, fontSize: 8, cellPadding: 4 },
           headStyles: { fillColor: [240, 244, 247], textColor: 40, fontStyle: "bold" },
           didParseCell: function (data) {
             if (data.section !== "body") return;
@@ -473,7 +544,7 @@
         if (body.length && yEstimado + necesita > pageBottom) {
           volcarTablaSeccion();
           doc.addPage(); y = margin;
-          doc.setFont("helvetica", "italic"); doc.setFontSize(8); doc.setTextColor(120, 120, 120);
+          doc.setFont(fontFam, "italic"); doc.setFontSize(8); doc.setTextColor(120, 120, 120);
           doc.text(C.seccionNombre(seccionId, tenant).toUpperCase() + " (continuación)", margin, y);
           y += 14;
           yEstimado = y + HEAD_H;
@@ -495,7 +566,7 @@
 
       panelesDeSeccion.forEach(function (panelInfo) {
         if (y > 690) { doc.addPage(); y = margin; }
-        doc.setFont("helvetica", "bold"); doc.setFontSize(9); doc.setTextColor(rgb[0], rgb[1], rgb[2]);
+        doc.setFont(fontFam, "bold"); doc.setFontSize(9); doc.setTextColor(rgb[0], rgb[1], rgb[2]);
         doc.text((panelInfo.p.panelTipo === "alergia" ? "PANEL DE ALERGIA" : "ANTIBIOGRAMA") + " — " + panelInfo.exNombre, margin, y);
         y += 12;
         // El método solo se repite aquí si ese examen no tiene su propia
@@ -504,7 +575,7 @@
         // salió junto a su nombre en la tabla, no hace falta mostrarlo de nuevo.
         var metodoPanel = !examIdsConGrupo[panelInfo.exId] ? (C.examenEfectivo(panelInfo.exId, tenant).metodo || "") : "";
         if (metodoPanel) {
-          doc.setFont("helvetica", "italic"); doc.setFontSize(7); doc.setTextColor(140, 140, 140);
+          doc.setFont(fontFam, "italic"); doc.setFontSize(7); doc.setTextColor(140, 140, 140);
           doc.text("Método: " + metodoPanel, margin, y);
           y += 10;
         }
@@ -519,7 +590,7 @@
               var c = interpPorFila[i];
               return [it.nombre, c ? String(c.clase) : "-", (it.valor || "-") + " kU/L", c ? c.interpretacion : "-"];
             }),
-            theme: "grid", styles: { fontSize: 8, cellPadding: 4 }, headStyles: { fillColor: [240, 244, 247], textColor: 40, fontStyle: "bold" },
+            theme: "grid", styles: { font: fontFam, fontSize: 8, cellPadding: 4 }, headStyles: { fillColor: [240, 244, 247], textColor: 40, fontStyle: "bold" },
             didParseCell: function (data) {
               if (data.section === "body" && data.column.index === 3 && interpPorFila[data.row.index] && interpPorFila[data.row.index].interpretacion === "Positivo") {
                 data.cell.styles.textColor = [214, 69, 69]; data.cell.styles.fontStyle = "bold";
@@ -531,7 +602,7 @@
             startY: y, margin: { left: margin, right: margin },
             head: [["Antibiótico", "Resultado"]],
             body: panelInfo.items.map(function (it) { return [it.nombre, it.resultado || "-"]; }),
-            theme: "grid", styles: { fontSize: 8, cellPadding: 4 }, headStyles: { fillColor: [240, 244, 247], textColor: 40, fontStyle: "bold" },
+            theme: "grid", styles: { font: fontFam, fontSize: 8, cellPadding: 4 }, headStyles: { fillColor: [240, 244, 247], textColor: 40, fontStyle: "bold" },
             didParseCell: function (data) {
               if (data.section === "body" && data.column.index === 1 && panelInfo.items[data.row.index] && panelInfo.items[data.row.index].resultado === "Resistente") {
                 data.cell.styles.textColor = [214, 69, 69]; data.cell.styles.fontStyle = "bold";
@@ -547,7 +618,7 @@
       // salir en el reporte que recibe el paciente, no solo en la pantalla.
       var obsExams = bySeccion[seccionId].filter(function (ex) { return ex.observaciones; });
       if (obsExams.length) {
-        doc.setFont("helvetica", "italic"); doc.setFontSize(8); doc.setTextColor(80, 80, 80);
+        doc.setFont(fontFam, "italic"); doc.setFontSize(8); doc.setTextColor(80, 80, 80);
         obsExams.forEach(function (ex) {
           var exCat = C.examenEfectivo(ex.examId, tenant);
           var texto = (obsExams.length > 1 ? exCat.nombre + " — " : "") + "Observaciones: " + ex.observaciones;
@@ -564,7 +635,7 @@
       if (y > 680) { doc.addPage(); y = margin; }
       doc.setFillColor(90, 90, 90);
       doc.rect(margin, y, pageW - margin * 2, 16, "F");
-      doc.setTextColor(255, 255, 255); doc.setFont("helvetica", "bold"); doc.setFontSize(9.5);
+      doc.setTextColor(255, 255, 255); doc.setFont(fontFam, "bold"); doc.setFontSize(9.5);
       doc.text("EXÁMENES PROCESADOS POR LABORATORIO DE REFERENCIA", margin + 6, y + 11);
       y += 24;
       doc.autoTable({
@@ -574,7 +645,7 @@
           var exCat = C.examenEfectivo(ex.examId, tenant);
           return [exCat.nombre, ex.laboratorioRemision || "—", "Ver informe original anexo en las páginas siguientes"];
         }),
-        theme: "grid", styles: { fontSize: 8, cellPadding: 4 }, headStyles: { fillColor: [240, 244, 247], textColor: 40, fontStyle: "bold" }
+        theme: "grid", styles: { font: fontFam, fontSize: 8, cellPadding: 4 }, headStyles: { fillColor: [240, 244, 247], textColor: 40, fontStyle: "bold" }
       });
       y = doc.lastAutoTable.finalY + 18;
     }
@@ -585,7 +656,7 @@
     // firmas, tal como lo usan otros laboratorios de referencia.
     if (tenant.piePaginaPersonalizado) {
       if (y > 700) { doc.addPage(); y = margin; }
-      doc.setFont("helvetica", "italic"); doc.setFontSize(8.5); doc.setTextColor(90, 90, 90);
+      doc.setFont(fontFam, "italic"); doc.setFontSize(8.5); doc.setTextColor(90, 90, 90);
       var lineasPie = doc.splitTextToSize(tenant.piePaginaPersonalizado, pageW - margin * 2);
       doc.text(lineasPie, margin, y);
       y += lineasPie.length * 11 + 10;
@@ -614,9 +685,9 @@
         } catch (e) {}
       }
       doc.setDrawColor(180, 180, 180); doc.line(margin, y + 10, margin + lineW, y + 10);
-      doc.setFont("helvetica", "bold"); doc.setFontSize(9); doc.setTextColor(20, 20, 20);
+      doc.setFont(fontFam, "bold"); doc.setFontSize(9); doc.setTextColor(20, 20, 20);
       doc.text(f.nombre, margin, y + 22);
-      doc.setFont("helvetica", "normal"); doc.setFontSize(8); doc.setTextColor(90, 90, 90);
+      doc.setFont(fontFam, "normal"); doc.setFontSize(8); doc.setTextColor(90, 90, 90);
       doc.text(f.registroProfesional ? "Registro Profesional: " + f.registroProfesional : "", margin, y + 33);
       doc.text(C.tituloFirmaProfesional(tenant.pais), margin, y + 44);
       y += 62;
@@ -642,7 +713,7 @@
       if (qrY + qrSize + 20 > 760) { doc.addPage(); qrY = margin + 10; }
       doc.addImage(qrDataUrl, "PNG", qrX, qrY, qrSize, qrSize);
       doc.setDrawColor(210, 210, 210); doc.setLineWidth(0.6); doc.rect(qrX - 2, qrY - 2, qrSize + 4, qrSize + 4);
-      doc.setFont("helvetica", "bold"); doc.setFontSize(6.3); doc.setTextColor(120, 120, 120);
+      doc.setFont(fontFam, "bold"); doc.setFontSize(6.3); doc.setTextColor(120, 120, 120);
       doc.text("DOCUMENTO VALIDADO", qrX + qrSize / 2, qrY + qrSize + 9, { align: "center" });
       doc.text("ELECTRÓNICAMENTE", qrX + qrSize / 2, qrY + qrSize + 16, { align: "center" });
     } catch (e) {}

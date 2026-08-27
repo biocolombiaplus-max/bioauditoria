@@ -1163,6 +1163,8 @@
     var session = BIO_AUTH.getSession();
     var tenant = S.getTenant(session.tenantId);
     var logoTemp = tenant.logoDataUrl;
+    var logo2Temp = tenant.logoSecundarioDataUrl;
+    var campos = tenant.camposReporte || {};
 
     root.innerHTML =
       '<div class="card"><div class="card-header"><h3 class="card-title">📘 Manual de Usuario del Sistema</h3></div>' +
@@ -1214,9 +1216,19 @@
             "</div>" +
           "</div>" +
           '<div class="field"><label>Logo del Laboratorio</label><input type="file" id="f_logo" accept="image/*"/></div>' +
+          '<div class="field"><label>Logo Secundario (opcional)</label><input type="file" id="f_logo2" accept="image/*"/></div>' +
+          '<div class="field"><label>Tipografía del Reporte</label><select id="f_fuenteReporte">' +
+            '<option value="helvetica"' + (!tenant.fuenteReporte || tenant.fuenteReporte === "helvetica" ? " selected" : "") + '>Helvetica (moderna, sin serifa)</option>' +
+            '<option value="times"' + (tenant.fuenteReporte === "times" ? " selected" : "") + '>Times (clásica, con serifa)</option>' +
+            '<option value="courier"' + (tenant.fuenteReporte === "courier" ? " selected" : "") + '>Courier (monoespaciada)</option>' +
+          "</select></div>" +
         "</div>" +
         '<p class="text-muted" style="margin:6px 0 0;font-size:12.5px">Ajusta aquí el color del texto del menú, de los títulos de cada sección (como "Identidad y Datos del Laboratorio") y de los subtítulos de cada recuadro (como "Marca e Identidad Visual") — todo se actualiza al instante en esta misma pantalla para que veas cómo queda antes de guardar.</p>' +
-        '<div id="logo-preview" style="margin-top:8px">' + (logoTemp ? '<img src="' + logoTemp + '" style="height:52px;border-radius:8px"/>' : '<span class="text-muted">Sin logo cargado</span>') + "</div>" +
+        '<div class="flex gap-2 wrap" style="margin-top:8px">' +
+        '<div><div class="text-muted" style="font-size:11px;margin-bottom:2px">Logo</div><div id="logo-preview">' + (logoTemp ? '<img src="' + logoTemp + '" style="height:52px;border-radius:8px"/>' : '<span class="text-muted">Sin logo cargado</span>') + "</div></div>" +
+        '<div><div class="text-muted" style="font-size:11px;margin-bottom:2px">Logo secundario</div><div id="logo2-preview">' + (logo2Temp ? '<img src="' + logo2Temp + '" style="height:52px;border-radius:8px"/>' : '<span class="text-muted">Sin logo secundario</span>') + "</div></div>" +
+        "</div>" +
+        '<p class="text-muted" style="margin:8px 0 0;font-size:12.5px">El logo secundario es opcional — úsalo si tu laboratorio trabaja con un aliado (ej. otro laboratorio que procesa la muestra) y necesitas que su logo también aparezca en tus reportes, cotizaciones y recibos, junto al tuyo.</p>' +
         "</fieldset>" +
         '<fieldset><legend>Operación</legend>' +
         '<div class="checkbox-row"><input type="checkbox" id="f_mostrarPrecioOrden" ' + (tenant.mostrarPrecioOrden ? "checked" : "") + '/><label style="margin:0" for="f_mostrarPrecioOrden">Permitir indicar el valor a cobrar al crear una orden</label></div>' +
@@ -1234,6 +1246,13 @@
         '<p class="text-muted" style="margin:4px 0 0;font-size:12.5px">Ajusta el deslizante para agrandar o achicar el logo directamente. La altura se ajusta sola según las proporciones de tu archivo.</p>' +
         "</div>" +
         '<div class="checkbox-row"><input type="checkbox" id="f_ocultarNombreEncabezado" ' + (tenant.ocultarNombreEncabezado ? "checked" : "") + '/><label style="margin:0" for="f_ocultarNombreEncabezado">Ocultar el nombre del laboratorio en el encabezado (úsalo solo si tu logo ya trae el nombre escrito, para no repetirlo)</label></div>' +
+        "</div>" +
+        '<div class="field" style="margin:4px 0 6px"><label style="margin-bottom:4px">Datos adicionales que se muestran en el reporte del paciente</label>' +
+        '<div class="checkbox-row"><input type="checkbox" id="f_campoEdadSexo" ' + (campos.edadSexo !== false ? "checked" : "") + '/><label style="margin:0" for="f_campoEdadSexo">Edad / Sexo</label></div>' +
+        (tenant.pais === "CO" ? '<div class="checkbox-row"><input type="checkbox" id="f_campoEps" ' + (campos.eps !== false ? "checked" : "") + '/><label style="margin:0" for="f_campoEps">EPS / Asegurador</label></div>' : "") +
+        '<div class="checkbox-row"><input type="checkbox" id="f_campoMedico" ' + (campos.medico !== false ? "checked" : "") + '/><label style="margin:0" for="f_campoMedico">Médico Remitente</label></div>' +
+        '<div class="checkbox-row"><input type="checkbox" id="f_campoProcedencia" ' + (campos.procedencia !== false ? "checked" : "") + '/><label style="margin:0" for="f_campoProcedencia">Procedencia</label></div>' +
+        '<p class="text-muted" style="margin:4px 0 0;font-size:12.5px">El nombre, documento, N° de orden y fecha siempre aparecen — son los datos básicos de identificación de cualquier informe. Desmarca aquí solo los que no necesites.</p>' +
         "</div>" +
         '<div class="field"><label>Pie de página personalizado (aparece justo antes de la firma en cada informe)</label><textarea id="f_piePaginaPersonalizado" rows="2" placeholder="Ej: Nuestro laboratorio garantiza la calidad de sus análisis y el cumplimiento del sistema de control de calidad.">' + U.esc(tenant.piePaginaPersonalizado || "") + "</textarea></div>" +
         '<p class="text-muted" style="margin:4px 0 0;font-size:12.5px">Déjalo vacío si no quieres ningún texto adicional — el pie de página estándar de BIOsoft se sigue mostrando siempre, con o sin este texto.</p>' +
@@ -1317,6 +1336,17 @@
       });
     });
 
+    document.getElementById("f_logo2").addEventListener("change", function (e) {
+      var file = e.target.files[0];
+      if (!file) return;
+      U.redimensionarImagen(file, 300).then(function (dataUrl) {
+        logo2Temp = dataUrl;
+        document.getElementById("logo2-preview").innerHTML = '<img src="' + logo2Temp + '" style="height:52px;border-radius:8px"/>';
+      }).catch(function () {
+        U.toast("No se pudo procesar la imagen. Intenta con otro archivo.", "error");
+      });
+    });
+
     document.getElementById("cfg-form").addEventListener("submit", function (e) {
       e.preventDefault();
       var g = function (id) { return document.getElementById("f_" + id).value.trim(); };
@@ -1329,6 +1359,13 @@
       tenant.logoAnchoCompleto = document.getElementById("f_logoAnchoCompleto").checked;
       tenant.logoAnchoPorcentaje = parseInt(document.getElementById("f_logoAnchoPorcentaje").value, 10);
       tenant.ocultarNombreEncabezado = document.getElementById("f_ocultarNombreEncabezado").checked;
+      var campoEpsEl = document.getElementById("f_campoEps");
+      tenant.camposReporte = {
+        edadSexo: document.getElementById("f_campoEdadSexo").checked,
+        eps: campoEpsEl ? campoEpsEl.checked : (campos.eps !== false),
+        medico: document.getElementById("f_campoMedico").checked,
+        procedencia: document.getElementById("f_campoProcedencia").checked
+      };
       tenant.piePaginaPersonalizado = g("piePaginaPersonalizado");
       tenant.colorPrimario = document.getElementById("f_colorPrimario").value;
       tenant.colorSecundario = document.getElementById("f_colorSecundario").value;
@@ -1336,6 +1373,8 @@
       tenant.colorTitulos = document.getElementById("f_colorTitulos").value;
       tenant.colorSubtitulos = document.getElementById("f_colorSubtitulos").value;
       tenant.logoDataUrl = logoTemp;
+      tenant.logoSecundarioDataUrl = logo2Temp;
+      tenant.fuenteReporte = document.getElementById("f_fuenteReporte").value;
 
       var claveActual = g("claveActual"), claveNueva = g("claveNueva");
       if (claveNueva) {
@@ -1350,9 +1389,11 @@
         resolucionHabilitacion: tenant.resolucionHabilitacion, codigoREPS: tenant.codigoREPS, nivel: tenant.nivel,
         bacteriologoResponsable: tenant.bacteriologoResponsable, mostrarPrecioOrden: tenant.mostrarPrecioOrden,
         logoGrandeReporte: tenant.logoGrandeReporte, logoAnchoCompleto: tenant.logoAnchoCompleto, logoAnchoPorcentaje: tenant.logoAnchoPorcentaje, ocultarNombreEncabezado: tenant.ocultarNombreEncabezado,
+        camposReporte: tenant.camposReporte, fuenteReporte: tenant.fuenteReporte,
         piePaginaPersonalizado: tenant.piePaginaPersonalizado,
         colorPrimario: tenant.colorPrimario, colorSecundario: tenant.colorSecundario, colorTextoMenu: tenant.colorTextoMenu,
-        colorTitulos: tenant.colorTitulos, colorSubtitulos: tenant.colorSubtitulos, logoDataUrl: tenant.logoDataUrl
+        colorTitulos: tenant.colorTitulos, colorSubtitulos: tenant.colorSubtitulos, logoDataUrl: tenant.logoDataUrl,
+        logoSecundarioDataUrl: tenant.logoSecundarioDataUrl
       };
       if (claveNueva) patch.claveAdmin = tenant.claveAdmin;
       S.updateTenant(tenant.id, patch);
