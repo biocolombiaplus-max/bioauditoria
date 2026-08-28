@@ -20,12 +20,29 @@
   var realUnsubs = [];
   var onRealtimeChangeCb = null;
 
+  /* Caso real que motivó esto: guardar Configuración del Laboratorio se
+     quedaba en "Guardando…" PARA SIEMPRE, sin llegar siquiera a mostrar un
+     error — ni el de éxito, ni el de fallo, ni el del límite de 8
+     segundos agregado después. La causa: cuando un laboratorio nunca
+     había subido un logo, tenant.logoDataUrl quedaba en `undefined`, y el
+     SDK de Firestore lanza una excepción SÍNCRONA (no una promesa
+     rechazada) apenas se le llama .set()/.update() con un campo en
+     `undefined` en cualquier parte del objeto — "Unsupported field value:
+     undefined". Esa excepción ocurría ANTES de que el código llegara a
+     construir la promesa con límite de tiempo, así que ese límite nunca
+     alcanzaba a protegerlo. limpiarUndefined() quita esos campos del
+     objeto antes de escribir (con merge:true, omitir un campo es
+     exactamente lo mismo que no tocarlo — nunca se quiso mandar
+     "undefined" como valor real de nada). */
+  function limpiarUndefined(obj) {
+    return JSON.parse(JSON.stringify(obj));
+  }
   function fbColl(coll) {
     return global.BIO_FB.db.collection("tenants").doc(FB_TENANT_ID).collection(coll);
   }
   function fbWrite(coll, id, data) {
     if (MODE !== "real") return;
-    fbColl(coll).doc(id).set(data).catch(function (e) { console.error("BIOsoft Firestore write error (" + coll + "/" + id + "):", e); });
+    fbColl(coll).doc(id).set(limpiarUndefined(data)).catch(function (e) { console.error("BIOsoft Firestore write error (" + coll + "/" + id + "):", e); });
   }
   function fbDelete(coll, id) {
     if (MODE !== "real") return;
@@ -33,7 +50,7 @@
   }
   function fbWriteTenant(tenant) {
     if (MODE !== "real") return;
-    global.BIO_FB.db.collection("tenants").doc(tenant.id).set(tenant).catch(function (e) { console.error("BIOsoft Firestore write error (tenant):", e); });
+    global.BIO_FB.db.collection("tenants").doc(tenant.id).set(limpiarUndefined(tenant)).catch(function (e) { console.error("BIOsoft Firestore write error (tenant):", e); });
   }
   /* Escribe SOLO los campos de patch (merge), en vez de reemplazar el
      documento completo. Evita que una foto en memoria desactualizada del
@@ -41,7 +58,7 @@
      borre por accidente datos que ya estaban guardados en Firestore. */
   function fbUpdateTenant(tenantId, patch) {
     if (MODE !== "real") return Promise.resolve();
-    return global.BIO_FB.db.collection("tenants").doc(tenantId).set(patch, { merge: true }).catch(function (e) {
+    return global.BIO_FB.db.collection("tenants").doc(tenantId).set(limpiarUndefined(patch), { merge: true }).catch(function (e) {
       console.error("BIOsoft Firestore update error (tenant):", e);
       throw e;
     });
@@ -906,7 +923,22 @@
     var actualizado = Object.assign({}, actual, patch, { id: tenantId });
     db.tenants[tenantId] = actualizado;
     saveDB(db);
-    var promesaFirestore = fbUpdateTenant(tenantId, patch);
+    var promesaFirestore;
+    // El SDK de Firestore puede lanzar de forma SÍNCRONA (no como promesa
+    // rechazada) ante datos que rechaza — por ejemplo, un valor
+    // `undefined` en cualquier campo (ver limpiarUndefined arriba, que ya
+    // cubre ese caso puntual) u otro motivo de validación que no se haya
+    // previsto. Si eso pasara igual, sin este try/catch la excepción
+    // rompería updateTenant() por completo ahí mismo, dejando a quien
+    // llamó sin ninguna promesa que esperar — exactamente el bug real que
+    // dejaba el botón de Configuración en "Guardando…" para siempre, sin
+    // que el límite de 8 segundos alcanzara siquiera a activarse.
+    try {
+      promesaFirestore = fbUpdateTenant(tenantId, patch);
+    } catch (e) {
+      console.error("BIOsoft: fbUpdateTenant lanzó de forma síncrona ->", e);
+      promesaFirestore = Promise.reject(e);
+    }
     promesaFirestore.catch(function () {});
     actualizado._fbPromise = promesaFirestore;
     return actualizado;

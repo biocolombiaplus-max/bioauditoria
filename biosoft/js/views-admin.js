@@ -1517,6 +1517,14 @@
             : "No se pudo guardar en el servidor" + (err && err.code ? " (código: " + err.code + ")" : "") + ". Los cambios quedaron solo en este dispositivo — inténtalo de nuevo con conexión estable.";
           U.toast(msg, "error");
         });
+      }).catch(function (err) {
+        // Red de seguridad final: si algo revienta de forma síncrona en
+        // cualquier punto de esta cadena (antes de llegar siquiera al
+        // límite de 8 segundos), el botón igual se libera en vez de
+        // quedarse en "Guardando…" para siempre sin ninguna pista.
+        console.error("BIOsoft: error inesperado guardando Configuración ->", err);
+        submitBtn.disabled = false; submitBtn.textContent = textoOriginal;
+        U.toast("Ocurrió un error inesperado al guardar" + (err && err.message ? " (" + err.message + ")" : "") + ". Inténtalo de nuevo.", "error");
       });
     });
   };
