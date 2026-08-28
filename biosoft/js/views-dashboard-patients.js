@@ -170,12 +170,34 @@
       document.getElementById("pac-search").addEventListener("input", function (e) { renderList(e.target.value); });
       root.querySelectorAll("[data-edit]").forEach(function (b) { b.addEventListener("click", function () { openPatientForm(S.getPatient(b.dataset.edit), function () { renderList(filter); }); }); });
       root.querySelectorAll("[data-neworden]").forEach(function (b) { b.addEventListener("click", function () { location.hash = "#/ordenes/nueva-" + b.dataset.neworden; }); });
+      // Solo el Administrador puede eliminar un paciente — pensado para
+      // corregir un error de digitación (persona equivocada, duplicado),
+      // no como una acción de uso diario. Además, solo se puede borrar si
+      // el paciente todavía no tiene ninguna orden asociada (ver
+      // deletePatient en store.js), para no dejar órdenes/resultados
+      // huérfanos apuntando a un paciente que ya no existe.
+      root.querySelectorAll("[data-eliminar-pac]").forEach(function (b) {
+        b.addEventListener("click", function () {
+          var p = S.getPatient(b.dataset.eliminarPac);
+          if (!p) return;
+          var tieneOrdenes = S.listOrders(session.tenantId).some(function (o) { return o.patientId === p.id; });
+          if (tieneOrdenes) { U.toast("Este paciente ya tiene órdenes registradas — no se puede eliminar.", "error"); return; }
+          if (!confirm('¿Eliminar al paciente "' + U.nombreCompleto(p) + '" (' + p.tipoDocumento + " " + p.numeroDocumento + ')? Esta acción no se puede deshacer.')) return;
+          var res = S.deletePatient(p.id);
+          if (!res.ok) { U.toast(res.error, "error"); return; }
+          S.addAudit(session.tenantId, session.nombre, session.rol, "DELETE_PATIENT", "paciente", p.id, "Eliminó al paciente " + U.nombreCompleto(p) + ".");
+          U.toast("Paciente eliminado.", "success");
+          renderList(filter);
+        });
+      });
     }
 
     function rowPatient(p) {
+      var esAdmin = session.rol === "admin";
       return "<tr><td>" + p.tipoDocumento + " " + U.esc(p.numeroDocumento) + "</td><td>" + U.esc(U.nombreCompleto(p)) + "</td><td>" + U.calcEdad(p.fechaNacimiento) + "</td><td>" + p.sexo + "</td><td>" + (p.pais === "CO" ? U.esc(p.eps || "—") : "—") + "</td><td>" + U.esc(p.ciudad || "—") + "</td>" +
         '<td><div class="flex gap-2"><button class="btn btn-ghost btn-sm" data-edit="' + p.id + '">' + U.icon("edit") + " Editar</button>" +
         (session.rol !== "bacteriologo" || BIO_AUTH.tienePermisoExtra("ordenes") ? '<button class="btn btn-outline btn-sm" data-neworden="' + p.id + '">' + U.icon("plus") + " Orden</button>" : "") +
+        (esAdmin ? '<button class="btn btn-ghost btn-sm" data-eliminar-pac="' + p.id + '" title="Eliminar paciente (solo si aún no tiene órdenes)">' + U.icon("trash") + "</button>" : "") +
         "</div></td></tr>";
     }
   };

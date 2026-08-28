@@ -1054,6 +1054,22 @@
     fbWrite("patients", p.id, p);
     return p;
   }
+  /* Solo pensado para corregir un paciente que se creó por error (dato
+     duplicado, se equivocó de persona al digitar) — por eso se niega si
+     ya tiene alguna orden asociada: borrar ahí dejaría órdenes/resultados
+     "huérfanos" señalando a un paciente que ya no existe. El llamador
+     (views-dashboard-patients.js) ya revisa esto antes de mostrar el
+     botón de confirmar, pero se repite aquí para que no se pueda saltar
+     escribiendo directo a la consola. */
+  function deletePatient(id) {
+    var db = loadDB();
+    var tieneOrdenes = db.orders.some(function (o) { return o.patientId === id; });
+    if (tieneOrdenes) return { ok: false, error: "Este paciente ya tiene órdenes registradas — no se puede eliminar." };
+    db.patients = db.patients.filter(function (p) { return p.id !== id; });
+    saveDB(db);
+    fbDelete("patients", id);
+    return { ok: true };
+  }
 
   // ---------------------------------------------------------------------
   // ÓRDENES / RESULTADOS
@@ -1758,6 +1774,7 @@
     getPatient: getPatient,
     createPatient: createPatient,
     updatePatient: updatePatient,
+    deletePatient: deletePatient,
     listOrders: listOrders,
     getOrder: getOrder,
     nextOrderNumber: nextOrderNumber,
