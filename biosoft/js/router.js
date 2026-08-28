@@ -263,9 +263,42 @@
     actualizar();
   }
 
+  /* Cada cambio en tiempo real de Firestore (de CUALQUIER colección, por
+     CUALQUIER usuario del laboratorio — otro compañero registrando un
+     paciente, actualizando una orden, moviendo inventario, etc.) volvía a
+     renderizar la pantalla completa de inmediato (content.innerHTML = "" y
+     reconstruir desde cero) sin importar qué estuviera haciendo quien la
+     tiene abierta. Si esa persona estaba escribiendo en un campo (ej. el
+     buscador de exámenes al crear una orden), el campo se recreaba vacío
+     a mitad de tecleo — se sentía como que "se congela" o "salta a otro
+     campo" con cada letra, apenas alguien más en el laboratorio tocara
+     cualquier dato (bug real reportado, muy notorio en un laboratorio con
+     varios usuarios activos a la vez). Mientras el foco esté en un campo
+     de formulario dentro del contenido, se pospone el refresco — se
+     aplica en cuanto esa persona termine (blur) ese campo, para no perder
+     cambios en tiempo real por mucho tiempo. */
   function boot() {
     BIO_STORE.seedIfEmpty();
-    BIO_STORE.onRealtimeChange(function () { renderRoute(); });
+    var renderPendiente = false;
+    function estaEscribiendoEnFormulario() {
+      var activo = document.activeElement;
+      var content = document.getElementById("content");
+      if (!activo || !content || !content.contains(activo)) return false;
+      return activo.tagName === "INPUT" || activo.tagName === "TEXTAREA" || activo.tagName === "SELECT";
+    }
+    BIO_STORE.onRealtimeChange(function () {
+      if (estaEscribiendoEnFormulario()) { renderPendiente = true; return; }
+      renderRoute();
+    });
+    document.getElementById("content").addEventListener("focusout", function () {
+      if (!renderPendiente) return;
+      // Se espera un instante: si el foco se movió a OTRO campo del mismo
+      // formulario (ej. Tab), no hay que interrumpir — solo se refresca
+      // cuando realmente se sale del formulario por completo.
+      setTimeout(function () {
+        if (renderPendiente && !estaEscribiendoEnFormulario()) { renderPendiente = false; renderRoute(); }
+      }, 150);
+    });
     wireOfflineBanner();
     wireLogin();
     document.getElementById("burger").addEventListener("click", function () {
