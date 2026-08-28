@@ -1442,24 +1442,58 @@
         S.addAudit(session.tenantId, session.nombre, session.rol, "CHANGE_ADMIN_PASSWORD", "laboratorio", tenant.id, "Cambió la clave de administrador del laboratorio.");
       }
 
-      var patch = {
-        nombre: tenant.nombre, slogan: tenant.slogan, nit: tenant.nit, pais: tenant.pais, direccion: tenant.direccion,
-        telefonos: tenant.telefonos, email: tenant.email, sitioWeb: tenant.sitioWeb,
-        resolucionHabilitacion: tenant.resolucionHabilitacion, codigoREPS: tenant.codigoREPS, nivel: tenant.nivel,
-        bacteriologoResponsable: tenant.bacteriologoResponsable, mostrarPrecioOrden: tenant.mostrarPrecioOrden,
-        logoGrandeReporte: tenant.logoGrandeReporte, logoAnchoCompleto: tenant.logoAnchoCompleto, logoAnchoPorcentaje: tenant.logoAnchoPorcentaje, ocultarNombreEncabezado: tenant.ocultarNombreEncabezado,
-        camposReporte: tenant.camposReporte, fuenteReporte: tenant.fuenteReporte,
-        piePaginaPersonalizado: tenant.piePaginaPersonalizado,
-        colorPrimario: tenant.colorPrimario, colorSecundario: tenant.colorSecundario, colorTextoMenu: tenant.colorTextoMenu,
-        colorTitulos: tenant.colorTitulos, colorSubtitulos: tenant.colorSubtitulos, logoDataUrl: tenant.logoDataUrl,
-        logoSecundarioDataUrl: tenant.logoSecundarioDataUrl
-      };
-      if (claveNueva) patch.claveAdmin = tenant.claveAdmin;
-      S.updateTenant(tenant.id, patch);
-      S.addAudit(session.tenantId, session.nombre, session.rol, "CONFIG_CHANGE", "laboratorio", tenant.id, "Actualizó la configuración e identidad visual del laboratorio.");
-      BIO_UI.applyTenantTheme(tenant);
-      BIO_ROUTER.renderShell();
-      U.toast("Configuración guardada.", "success");
+      var submitBtn = document.querySelector("#cfg-form button[type=submit]");
+      var textoOriginal = submitBtn.textContent;
+      submitBtn.disabled = true; submitBtn.textContent = "Guardando…";
+
+      // El logo (y el logo secundario) se "sanan" aquí antes de guardar,
+      // aunque no se haya tocado el archivo en este guardado — un logo
+      // viejo cargado antes de que existiera la compresión automática al
+      // subir la imagen se quedaba pesado para siempre, y cualquier
+      // guardado posterior de Configuración (aunque fuera solo para
+      // cambiar un checkbox) lo mandaba tal cual, arriesgándose a superar
+      // el límite de 1 MiB por documento de Firestore y tumbar TODO el
+      // guardado sin aviso.
+      Promise.all([
+        U.recomprimirDataUrlSiHaceFalta(logoTemp, 300, 400000),
+        U.recomprimirDataUrlSiHaceFalta(logo2Temp, 300, 400000)
+      ]).then(function (logosListos) {
+        tenant.logoDataUrl = logosListos[0];
+        tenant.logoSecundarioDataUrl = logosListos[1];
+
+        var patch = {
+          nombre: tenant.nombre, slogan: tenant.slogan, nit: tenant.nit, pais: tenant.pais, direccion: tenant.direccion,
+          telefonos: tenant.telefonos, email: tenant.email, sitioWeb: tenant.sitioWeb,
+          resolucionHabilitacion: tenant.resolucionHabilitacion, codigoREPS: tenant.codigoREPS, nivel: tenant.nivel,
+          bacteriologoResponsable: tenant.bacteriologoResponsable, mostrarPrecioOrden: tenant.mostrarPrecioOrden,
+          logoGrandeReporte: tenant.logoGrandeReporte, logoAnchoCompleto: tenant.logoAnchoCompleto, logoAnchoPorcentaje: tenant.logoAnchoPorcentaje, ocultarNombreEncabezado: tenant.ocultarNombreEncabezado,
+          camposReporte: tenant.camposReporte, fuenteReporte: tenant.fuenteReporte,
+          piePaginaPersonalizado: tenant.piePaginaPersonalizado,
+          colorPrimario: tenant.colorPrimario, colorSecundario: tenant.colorSecundario, colorTextoMenu: tenant.colorTextoMenu,
+          colorTitulos: tenant.colorTitulos, colorSubtitulos: tenant.colorSubtitulos, logoDataUrl: tenant.logoDataUrl,
+          logoSecundarioDataUrl: tenant.logoSecundarioDataUrl
+        };
+        if (claveNueva) patch.claveAdmin = tenant.claveAdmin;
+        var resultado = S.updateTenant(tenant.id, patch);
+        S.addAudit(session.tenantId, session.nombre, session.rol, "CONFIG_CHANGE", "laboratorio", tenant.id, "Actualizó la configuración e identidad visual del laboratorio.");
+        BIO_UI.applyTenantTheme(tenant);
+        BIO_ROUTER.renderShell();
+        // El toast de "Guardado" ya no se muestra a ciegas: espera a que la
+        // escritura a Firestore de verdad se confirme (ver _fbPromise en
+        // store.js). Antes, si esa escritura fallaba, el mensaje decía
+        // "guardado" igual y el cambio se perdía apenas se recargaba la
+        // página, sin ninguna pista de qué había pasado.
+        return (resultado._fbPromise || Promise.resolve()).then(function () {
+          submitBtn.disabled = false; submitBtn.textContent = textoOriginal;
+          U.toast("Configuración guardada.", "success");
+        }).catch(function (err) {
+          submitBtn.disabled = false; submitBtn.textContent = textoOriginal;
+          var msg = err && err.message && /longer than|exceeds the maximum|too large/i.test(err.message)
+            ? "El logo que subiste es muy pesado y no se pudo guardar — usa una imagen más liviana (menos de 1 MB) y vuelve a intentar."
+            : "No se pudo guardar en el servidor" + (err && err.code ? " (código: " + err.code + ")" : "") + ". Los cambios quedaron solo en este dispositivo — inténtalo de nuevo con conexión estable.";
+          U.toast(msg, "error");
+        });
+      });
     });
   };
 

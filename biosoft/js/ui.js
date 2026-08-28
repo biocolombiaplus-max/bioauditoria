@@ -272,12 +272,46 @@
     });
   }
 
+  /* Igual que redimensionarImagen, pero para un logo que YA está guardado
+     como data URL (no un File recién elegido) — se usa al guardar
+     Configuración para "sanar" de una vez cualquier logo viejo que se haya
+     quedado sin comprimir de una versión anterior del formulario. Sin
+     esto, un logo pesado quedaba pesado para siempre: cada guardado
+     posterior de Configuración (aunque fuera para cambiar cualquier otro
+     campo, sin tocar el logo) volvía a mandarlo tal cual y podía superar
+     el límite de 1 MiB por documento de Firestore, tumbando el guardado
+     completo sin ningún aviso. Si el dataURL ya es liviano, esto no le
+     cambia nada visible (mismo PNG, mismo tamaño en pantalla). */
+  function recomprimirDataUrlSiHaceFalta(dataUrl, maxDim, maxBytesAprox) {
+    if (!dataUrl) return Promise.resolve(dataUrl);
+    // Un caracter en base64 representa ~0.75 bytes reales — cálculo rápido
+    // sin decodificar todo el string, solo para decidir si vale la pena
+    // recomprimir (evita el trabajo de canvas para logos que ya están bien).
+    if (dataUrl.length * 0.75 <= maxBytesAprox) return Promise.resolve(dataUrl);
+    return new Promise(function (resolve) {
+      var img = new Image();
+      img.onerror = function () { resolve(dataUrl); }; // si no se puede procesar, se deja tal cual (mejor que romper el guardado)
+      img.onload = function () {
+        var w = img.width, h = img.height;
+        var scale = Math.min(1, maxDim / Math.max(w, h));
+        var canvas = document.createElement("canvas");
+        canvas.width = Math.round(w * scale);
+        canvas.height = Math.round(h * scale);
+        var ctx = canvas.getContext("2d");
+        ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+        resolve(canvas.toDataURL("image/png"));
+      };
+      img.src = dataUrl;
+    });
+  }
+
   global.BIO_UI = {
     icon: icon, esc: esc, toast: toast, openModal: openModal, closeModal: closeModal,
     calcEdad: calcEdad, fmtFecha: fmtFecha, fmtFechaCorta: fmtFechaCorta, nombreCompleto: nombreCompleto,
     applyTenantTheme: applyTenantTheme, resetTheme: resetTheme, contrastColor: contrastColor, dataUrlToBlob: dataUrlToBlob, openDataUrlInNewTab: openDataUrlInNewTab,
     downloadBytes: downloadBytes, normalizar: normalizar, emailLinks: emailLinks,
     emailProviderButtonsHtml: emailProviderButtonsHtml, wireEmailProviderButtons: wireEmailProviderButtons,
-    redimensionarImagen: redimensionarImagen, indicativoPais: indicativoPais, numeroWhatsapp: numeroWhatsapp
+    redimensionarImagen: redimensionarImagen, recomprimirDataUrlSiHaceFalta: recomprimirDataUrlSiHaceFalta,
+    indicativoPais: indicativoPais, numeroWhatsapp: numeroWhatsapp
   };
 })(window);

@@ -40,8 +40,11 @@
      tenant (tomada antes de un cambio concurrente en otra sesión/pestaña)
      borre por accidente datos que ya estaban guardados en Firestore. */
   function fbUpdateTenant(tenantId, patch) {
-    if (MODE !== "real") return;
-    global.BIO_FB.db.collection("tenants").doc(tenantId).set(patch, { merge: true }).catch(function (e) { console.error("BIOsoft Firestore update error (tenant):", e); });
+    if (MODE !== "real") return Promise.resolve();
+    return global.BIO_FB.db.collection("tenants").doc(tenantId).set(patch, { merge: true }).catch(function (e) {
+      console.error("BIOsoft Firestore update error (tenant):", e);
+      throw e;
+    });
   }
 
   function onRealtimeChange(cb) { onRealtimeChangeCb = cb; }
@@ -883,13 +886,29 @@
      documento). Úsala siempre que solo se estén editando algunos campos de
      un tenant ya existente, para no arriesgarse a borrar datos guardados
      por otra sesión/pestaña mientras esta tenía una copia desactualizada. */
+  // Caso real que motivó lo de _fbPromise: en modo real, la escritura a
+  // Firestore de fbUpdateTenant() siempre fue "fire and forget" — si
+  // fallaba (ej. el documento superó el límite de 1 MiB de Firestore por
+  // un logo sin comprimir, o un permission-denied), quien llamó a
+  // updateTenant() nunca se enteraba, porque este devuelve el objeto ya
+  // actualizado LOCALMENTE de forma síncrona, sin esperar nada. Eso hacía
+  // que pantallas como "Configuración del Laboratorio" mostraran "Guardado"
+  // aunque el cambio jamás llegara a Firestore. Los ~30 llamados que ya
+  // existían y que no revisan el resultado no cambian de comportamiento
+  // (siguen recibiendo el objeto sincrónico de siempre); el que SÍ quiera
+  // confirmar el guardado real puede usar el resultado._fbPromise que se
+  // agrega aquí. El .catch(no-op) sobre la promesa original evita que
+  // Chrome marque "unhandled promise rejection" para esos ~30 llamados que
+  // no la leen.
   function updateTenant(tenantId, patch) {
     var db = loadDB();
     var actual = db.tenants[tenantId] || { id: tenantId };
     var actualizado = Object.assign({}, actual, patch, { id: tenantId });
     db.tenants[tenantId] = actualizado;
     saveDB(db);
-    fbUpdateTenant(tenantId, patch);
+    var promesaFirestore = fbUpdateTenant(tenantId, patch);
+    promesaFirestore.catch(function () {});
+    actualizado._fbPromise = promesaFirestore;
     return actualizado;
   }
 
