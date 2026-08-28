@@ -1483,9 +1483,33 @@
         // store.js). Antes, si esa escritura fallaba, el mensaje decía
         // "guardado" igual y el cambio se perdía apenas se recargaba la
         // página, sin ninguna pista de qué había pasado.
-        return (resultado._fbPromise || Promise.resolve()).then(function () {
+        //
+        // PERO esa promesa de Firestore solo resuelve cuando el servidor
+        // confirma la escritura — si el navegador está sin buena conexión,
+        // Firestore la deja en su cola local y la promesa puede quedarse
+        // pendiente indefinidamente (no falla, simplemente nunca se
+        // resuelve), dejando el botón en "Guardando…" para siempre. Por
+        // eso aquí se limita la ESPERA (no la escritura en sí, que sigue
+        // su curso en segundo plano y Firestore la reintentará solo) a 8
+        // segundos, para que el botón siempre vuelva a responder.
+        var yaResolvio = false;
+        var promesaFirestore = resultado._fbPromise || Promise.resolve();
+        // Se engancha por separado (no como parte de la carrera) para que,
+        // si el timeout gana la carrera y luego esta promesa igual
+        // termina rechazada más tarde, no quede como "unhandled promise
+        // rejection" en la consola — ya nadie más la va a escuchar.
+        promesaFirestore.then(function () { yaResolvio = true; }, function () {});
+        var promesaConLimite = Promise.race([
+          promesaFirestore,
+          new Promise(function (resolve) { setTimeout(resolve, 8000); })
+        ]);
+        return promesaConLimite.then(function () {
           submitBtn.disabled = false; submitBtn.textContent = textoOriginal;
-          U.toast("Configuración guardada.", "success");
+          if (yaResolvio) {
+            U.toast("Configuración guardada.", "success");
+          } else {
+            U.toast("Los cambios quedaron guardados en este dispositivo. Sigue intentando confirmar con el servidor — si tarda mucho, revisa tu conexión a internet y vuelve a guardar.", "success");
+          }
         }).catch(function (err) {
           submitBtn.disabled = false; submitBtn.textContent = textoOriginal;
           var msg = err && err.message && /longer than|exceeds the maximum|too large/i.test(err.message)
