@@ -60,7 +60,10 @@
       if (especial) {
         return especial.modo === "fijo" ? especial.valor : Math.max(0, base * (1 - especial.valor / 100));
       }
-      if (convenio.descuentoGeneral > 0) return Math.max(0, base * (1 - convenio.descuentoGeneral / 100));
+      if (convenio.descuentoGeneral > 0) {
+        var factor = convenio.tipoAjuste === "recargo" ? (1 + convenio.descuentoGeneral / 100) : (1 - convenio.descuentoGeneral / 100);
+        return Math.max(0, base * factor);
+      }
       return base;
     }
     function fmtMonedaExtra(monto) {
@@ -744,7 +747,7 @@
     // laboratorios de contrarreferencia o clientes institucionales.
     // ---------------------------------------------------------------------
     function buildConveniosHtml() {
-      return '<p class="text-muted" style="margin-top:14px">Crea un convenio para cada laboratorio de referencia, laboratorio de contrarreferencia o cliente institucional con precios especiales. Puedes definir un descuento general (aplica a todos los exámenes) y/o precios especiales puntuales por examen — el precio puntual siempre tiene prioridad sobre el descuento general.</p>' +
+      return '<p class="text-muted" style="margin-top:14px">Crea un convenio (o "tarifa") para cada laboratorio de referencia, laboratorio de contrarreferencia, cliente institucional o tipo de cliente (ej. "Tarifa Particular", "Tarifa EPS X") con sus propios precios. Puedes definir un descuento o recargo general (aplica a todos los exámenes) y/o precios especiales puntuales por examen — a mano o cargando un Excel completo — el precio puntual siempre tiene prioridad sobre el ajuste general.</p>' +
         '<button type="button" class="btn btn-primary btn-sm" id="btn-nuevo-convenio">' + U.icon("plus") + " Nuevo Convenio</button>" +
         '<div id="convenios-grid" class="flex wrap gap-2" style="margin-top:14px;align-items:stretch">' +
         (convenios.length ? convenios.map(convenioCardHtml).join("") : '<p class="text-muted">Aún no has creado ningún convenio.</p>') +
@@ -753,12 +756,15 @@
 
     function convenioCardHtml(c) {
       var numEspeciales = Object.keys(convenioPreciosPorConvenio[c.id] || {}).length;
+      var esRecargo = c.tipoAjuste === "recargo";
       return '<div class="card" style="width:300px' + (c.activo ? "" : ";opacity:.55") + '">' +
         '<div class="flex justify-between items-start"><div><h4 style="margin:0 0 2px">' + U.esc(c.nombre) + "</h4>" +
-        '<span class="badge" style="font-size:11px">' + U.esc(c.tipo) + "</span></div>" +
+        '<span class="badge" style="font-size:11px">' + U.esc(c.tipo) + "</span>" +
+        (c.referencia ? '<span class="text-muted" style="font-size:11px;margin-left:6px">Ref. ' + U.esc(c.referencia) + "</span>" : "") +
+        "</div>" +
         (c.activo ? '<span class="badge badge-validado">Activo</span>' : '<span class="badge badge-pendiente">Inactivo</span>') +
         "</div>" +
-        '<p style="margin:10px 0 4px;font-size:13px">Descuento general: <b>' + (c.descuentoGeneral || 0) + "%</b></p>" +
+        '<p style="margin:10px 0 4px;font-size:13px">' + (esRecargo ? "Recargo" : "Descuento") + " general: <b>" + (c.descuentoGeneral || 0) + "%</b></p>" +
         '<p style="margin:0 0 12px;font-size:13px">Precios especiales por examen: <b>' + numEspeciales + "</b></p>" +
         '<div class="flex gap-2 wrap">' +
         '<button type="button" class="btn btn-outline btn-sm" data-precios-especiales="' + c.id + '">💲 Precios Especiales</button>' +
@@ -929,18 +935,22 @@
 
     function abrirFormConvenio(convenio) {
       var isEdit = !!convenio;
-      convenio = convenio || { nombre: "", tipo: TIPOS_CONVENIO[0], descuentoGeneral: 0, activo: true };
+      convenio = convenio || { nombre: "", referencia: "", tipo: TIPOS_CONVENIO[0], descuentoGeneral: 0, tipoAjuste: "descuento", activo: true };
       var wrap = U.openModal(
-        '<h3 class="modal-title">' + (isEdit ? "Editar Convenio" : "Nuevo Convenio") + '</h3>' +
+        '<h3 class="modal-title">' + (isEdit ? "Editar Convenio / Tarifa" : "Nuevo Convenio / Tarifa") + '</h3>' +
         '<form id="convenio-form"><div class="form-grid">' +
-        '<div class="field"><label>Nombre del Convenio</label><input id="f_cnv_nombre" value="' + U.esc(convenio.nombre) + '" placeholder="Ej. Laboratorio ABC Referencia" required/></div>' +
+        '<div class="field"><label>Nombre</label><input id="f_cnv_nombre" value="' + U.esc(convenio.nombre) + '" placeholder="Ej. Tarifa Particular, Laboratorio ABC Referencia" required/></div>' +
+        '<div class="field"><label>Referencia / Código (opcional)</label><input id="f_cnv_referencia" value="' + U.esc(convenio.referencia || "") + '" placeholder="Ej. TAR-2026, ISS-2001"/></div>' +
         '<div class="field"><label>Tipo</label><select id="f_cnv_tipo">' +
         TIPOS_CONVENIO.map(function (t) { return '<option ' + (t === convenio.tipo ? "selected" : "") + ">" + t + "</option>"; }).join("") +
         "</select></div>" +
-        '<div class="field"><label>Descuento General (%)</label><input type="number" step="any" min="0" max="100" id="f_cnv_descuento" value="' + (convenio.descuentoGeneral || 0) + '"/></div>' +
+        '<div class="field"><label>Ajuste General</label><div class="flex gap-2">' +
+        '<select id="f_cnv_tipoajuste" style="max-width:130px"><option value="descuento" ' + (convenio.tipoAjuste !== "recargo" ? "selected" : "") + '>Descuento</option><option value="recargo" ' + (convenio.tipoAjuste === "recargo" ? "selected" : "") + ">Recargo</option></select>" +
+        '<input type="number" step="any" min="0" max="100" id="f_cnv_descuento" value="' + (convenio.descuentoGeneral || 0) + '" style="max-width:90px"/><span style="align-self:center">%</span>' +
+        "</div></div>" +
         '<div class="field"><label>Estado</label><select id="f_cnv_activo"><option value="1" ' + (convenio.activo ? "selected" : "") + '>Activo</option><option value="0" ' + (!convenio.activo ? "selected" : "") + ">Inactivo</option></select></div>" +
         "</div>" +
-        '<p class="text-muted" style="font-size:12.5px;margin:0 0 6px">El descuento general se aplica a TODOS los exámenes de este convenio, salvo que definas un precio especial puntual para alguno (desde "💲 Precios Especiales", después de guardar).</p>' +
+        '<p class="text-muted" style="font-size:12.5px;margin:0 0 6px">El % elegido (descuento o recargo) se aplica a TODOS los exámenes de este convenio/tarifa, salvo que definas un precio especial puntual para alguno — a mano (desde "💲 Precios Especiales") o cargando un Excel completo (desde "📥 Excel de Precios"), ambos disponibles después de guardar.</p>' +
         '<div class="flex gap-2 justify-between" style="margin-top:6px">' +
         '<button type="button" class="btn btn-ghost" data-modal-close>Cancelar</button>' +
         '<button type="submit" class="btn btn-primary">' + U.icon("check") + " Guardar Convenio</button>" +
@@ -951,7 +961,9 @@
         var data = {
           tenantId: tenantId,
           nombre: wrap.querySelector("#f_cnv_nombre").value.trim(),
+          referencia: wrap.querySelector("#f_cnv_referencia").value.trim(),
           tipo: wrap.querySelector("#f_cnv_tipo").value,
+          tipoAjuste: wrap.querySelector("#f_cnv_tipoajuste").value,
           descuentoGeneral: parseFloat(wrap.querySelector("#f_cnv_descuento").value) || 0,
           activo: wrap.querySelector("#f_cnv_activo").value === "1"
         };
