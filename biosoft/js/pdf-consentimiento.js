@@ -95,8 +95,11 @@
     doc.roundedRect(x, y0, w, h, 4, 4, "FD");
     if (firmaDataUrl) {
       try { doc.addImage(firmaDataUrl, "PNG", x + 8, y0 + 6, w - 16, imgH, undefined, "FAST"); } catch (e) {}
+      // Sin "✓": ese glifo está fuera de WinAnsi y las fuentes base de
+      // jsPDF (Helvetica) lo renderizan corrupto — ver el mismo problema
+      // en pdf-recibo-orden.js.
       doc.setFont("helvetica", "bold"); doc.setFontSize(6.8); doc.setTextColor(11, 138, 74);
-      doc.text("✓ FIRMADO ELECTRÓNICAMENTE", x + w / 2, y0 + h - pieH + 3, { align: "center" });
+      doc.text("FIRMADO ELECTRÓNICAMENTE", x + w / 2, y0 + h - pieH + 3, { align: "center" });
     } else {
       doc.setFont("helvetica", "italic"); doc.setFontSize(8.5); doc.setTextColor(170, 170, 170);
       doc.text("Pendiente de firma", x + w / 2, y0 + 6 + imgH / 2, { align: "center" });
