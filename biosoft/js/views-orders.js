@@ -50,6 +50,29 @@
         if (o) abrirReciboOrden(o, tenant, function () { renderList(root); });
       });
     });
+    root.querySelectorAll("[data-reenviar-recibo-orden]").forEach(function (b) {
+      b.addEventListener("click", function () {
+        var o = orders.filter(function (x) { return x.id === b.dataset.reenviarReciboOrden; })[0];
+        if (o) abrirReciboOrden(o, tenant, function () { renderList(root); });
+      });
+    });
+    // Para cuando una orden se creó de más por error (ej. dos veces
+    // seguidas para el mismo paciente) — borra la orden completa, sin
+    // dejar ningún rastro "cancelado" a la vista. No toca al paciente ni
+    // a ningún otro dato.
+    root.querySelectorAll("[data-eliminar-orden]").forEach(function (b) {
+      b.addEventListener("click", function () {
+        var o = orders.filter(function (x) { return x.id === b.dataset.eliminarOrden; })[0];
+        if (!o) return;
+        var pac = S.getPatient(o.patientId);
+        if (!confirm('¿Eliminar la orden ' + o.numeroOrden + " de " + (pac ? U.nombreCompleto(pac) : "este paciente") + "? Esta acción no se puede deshacer.")) return;
+        S.deleteOrder(o.id);
+        var session2 = BIO_AUTH.getSession();
+        S.addAudit(session2.tenantId, session2.nombre, session2.rol, "DELETE_ORDER", "orden", o.id, "Eliminó la orden " + o.numeroOrden + ".");
+        U.toast("Orden eliminada.", "success");
+        renderList(root);
+      });
+    });
   }
 
   function rowOrder(o, conPrecio, conEstadoPago, tenant) {
@@ -59,7 +82,7 @@
       if (!o.valorCobrar) {
         celdaPago = "<td>—</td>";
       } else if (o.pago) {
-        celdaPago = '<td><span class="badge badge-validado">Pagado</span></td>';
+        celdaPago = '<td><span class="badge badge-validado">Pagado</span> <button class="btn btn-ghost btn-sm" style="margin-top:4px" data-reenviar-recibo-orden="' + o.id + '" title="Reenviar el recibo de pago">' + U.icon("send") + " Recibo</button></td>";
       } else {
         celdaPago = '<td><span class="badge badge-pendiente">Pago pendiente</span> <button class="btn btn-outline btn-sm" style="margin-top:4px" data-registrar-pago-orden="' + o.id + '">' + U.icon("check") + " Registrar Pago</button></td>";
       }
@@ -67,7 +90,8 @@
     return "<tr><td><b>" + o.numeroOrden + "</b>" + (o.convenioNombre ? '<div class="text-muted" style="font-size:11px">🤝 ' + U.esc(o.convenioNombre) + "</div>" : "") + "</td><td>" + (pac ? U.esc(U.nombreCompleto(pac)) : "—") + "</td><td>" + U.fmtFecha(o.fechaOrden) + "</td>" +
       '<td><span class="badge badge-' + (o.prioridad === "Urgente" ? "urgente" : "rutina") + '">' + o.prioridad + "</span></td>" +
       "<td>" + o.examenes.length + "</td>" + (conPrecio ? "<td>" + (o.valorCobrar ? fmtMoneda(o.valorCobrar) + fmtMonedaEquiv(tenant, o.valorCobrar) : "—") + "</td>" : "") + celdaPago +
-      "<td>" + window.BIO_badgeEstado(o.estadoGeneral) + '</td><td><button class="btn btn-outline btn-sm" data-view="' + o.id + '">Ver</button></td></tr>';
+      "<td>" + window.BIO_badgeEstado(o.estadoGeneral) + '</td><td class="flex gap-2 wrap"><button class="btn btn-outline btn-sm" data-view="' + o.id + '">Ver</button>' +
+      '<button class="btn btn-ghost btn-sm" data-eliminar-orden="' + o.id + '" title="Eliminar esta orden (ej. se creó de más por error)">' + U.icon("trash") + "</button></td></tr>";
   }
 
   function renderNewOrder(root, prefillId) {
@@ -331,14 +355,18 @@
   }
 
   // -------------------------------------------------------------------
-  // RECIBO DE PAGO DE LA ORDEN — sobre todo para laboratorios de
-  // Venezuela, que cobran con un equivalente en bolívares según la tasa
-  // del día (tenant.monedaAdicional). Antes de generar/enviar el recibo
-  // siempre se pide confirmar que el cliente ya pagó, para no emitir un
-  // recibo sin respaldo.
+  // RECIBO DE PAGO DE LA ORDEN — nació pensado sobre todo para laboratorios
+  // de Venezuela, que cobran con un equivalente en bolívares según la tasa
+  // del día (tenant.monedaAdicional), pero el PDF en sí (pdf-recibo-orden.js)
+  // no tiene nada específico de ningún país — solo necesita que el
+  // laboratorio use "Valor a Cobrar" en sus órdenes. Se generalizó a
+  // cualquier país (antes exigía tenant.pais === "VE") a pedido de un
+  // laboratorio de Colombia que también lo necesitaba. Antes de generar/
+  // enviar el recibo siempre se pide confirmar que el cliente ya pagó,
+  // para no emitir un recibo sin respaldo.
   // -------------------------------------------------------------------
   function puedeReciboOrden(tenant) {
-    return !!tenant && tenant.pais === "VE" && !!tenant.mostrarPrecioOrden;
+    return !!tenant && !!tenant.mostrarPrecioOrden;
   }
 
   async function abrirReciboOrden(order, tenant, onDone) {

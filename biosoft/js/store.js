@@ -1083,6 +1083,15 @@
     fbWrite("orders", o.id, o);
     return o;
   }
+  /* Elimina una orden por completo (ej. se creó de más por error, con
+     exámenes equivocados). No toca al paciente ni a ningún otro registro
+     — es un borrado directo, sin dejar la orden "cancelada" a la vista. */
+  function deleteOrder(id) {
+    var db = loadDB();
+    db.orders = db.orders.filter(function (o) { return o.id !== id; });
+    saveDB(db);
+    fbDelete("orders", id);
+  }
   function saveOrder(order) {
     var db = loadDB();
     var idx = db.orders.findIndex(function (o) { return o.id === order.id; });
@@ -1721,6 +1730,7 @@
     getOrder: getOrder,
     nextOrderNumber: nextOrderNumber,
     createOrder: createOrder,
+    deleteOrder: deleteOrder,
     saveOrder: saveOrder,
     recalcEstadoGeneral: recalcEstadoGeneral,
     isRealMode: function () { return MODE === "real"; },
