@@ -596,7 +596,19 @@
             if (p.calculado && p.formula) formulasCalculadas[p.codigo] = p.formula;
             inputHtml = '<input type="number" step="any" placeholder="' + (p.calculado ? "Se calcula solo" : "Escribe aquí…") + '" data-param="' + p.codigo + '" value="' + U.esc(val) + '" ' + (!editable ? "disabled" : (p.calculado ? "readonly" : "")) + "/>" +
               (p.calculado ? '<div class="text-muted" style="font-size:10.5px;margin-top:2px" title="Fórmula: ' + U.esc(p.formula) + '">🧮 Calculado automáticamente</div>' : "");
-          } else if (p.tipo === "cualitativo" || p.tipo === "descriptivo") {
+          } else if (p.tipo === "cualitativo" || (p.tipo === "descriptivo" && Array.isArray(p.opciones) && p.opciones.length)) {
+            // Un campo "descriptivo" del catálogo de fábrica sí trae
+            // opciones predefinidas (ej. Color de heces) y se ve como
+            // este selector — pero un campo "Descriptivo (texto libre)"
+            // que un laboratorio agrega por su cuenta ("Agregar Campo
+            // Personalizado") a propósito NO trae ninguna opción (por
+            // eso "texto libre" en su nombre): antes, esta rama entraba
+            // igual y .opciones.map() reventaba con "Cannot read
+            // properties of undefined (reading 'map')" — tumbando la
+            // tarjeta de ESE examen (y de paso toda la pantalla de
+            // resultados, antes del aislamiento por tarjeta agregado en
+            // build()). Ahora, sin opciones reales, cae al textarea de
+            // abajo, que es justo el comportamiento de "texto libre".
             inputHtml = '<select data-param="' + p.codigo + '" ' + (!editable ? "disabled" : "") + '><option value="">— Selecciona el resultado —</option>' +
               p.opciones.map(function (o) { return '<option ' + (o === val ? "selected" : "") + ">" + o + "</option>"; }).join("") + "</select>";
           } else {
@@ -870,7 +882,10 @@
     var valoresAnteriores = ex.valores.slice();
     var rowsHtml = exCat.parametros.map(function (p) {
       var current = (ex.valores.filter(function (v) { return v.codigo === p.codigo; })[0] || {}).valor || "";
-      var inputHtml = (p.tipo === "cualitativo" || p.tipo === "descriptivo")
+      // Mismo caso que en renderCapturaNormal(): un "descriptivo" de texto
+      // libre (campo personalizado sin opciones predefinidas) no debe
+      // intentar armar un <select> con .opciones.map() — cae al <input>.
+      var inputHtml = (p.tipo === "cualitativo" || (p.tipo === "descriptivo" && Array.isArray(p.opciones) && p.opciones.length))
         ? '<select data-cparam="' + p.codigo + '">' + p.opciones.map(function (o) { return '<option ' + (o === current ? "selected" : "") + ">" + o + "</option>"; }).join("") + "</select>"
         : '<input data-cparam="' + p.codigo + '" value="' + U.esc(current) + '"/>';
       return "<tr><td>" + U.esc(p.nombre) + "</td><td>" + inputHtml + "</td><td>" + (p.unidad || "") + "</td></tr>";
