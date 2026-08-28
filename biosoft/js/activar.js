@@ -127,12 +127,17 @@
 
     // El registro en el CRM es solo trazabilidad interna — si falla (ej. sin
     // internet un instante), no debe impedir que el laboratorio se active.
+    // El id se deriva del correo (no es aleatorio) para que reenviar este
+    // mismo formulario dos veces (doble clic, reintento tras un error) no
+    // deje leads duplicados: la segunda escritura cae sobre el mismo
+    // documento y Firestore la rechaza sola (ver comentario de crmCreate en
+    // store.js), así que este catch también cubre ese caso a propósito.
     S.crm.create({
       origen: "formulario_publico", origenDetalle: origenDetalle,
       laboratorio: { nombre: labNombre, nit: g("f_labNit"), ciudad: g("f_labCiudad"), pais: pais },
       contacto: { nombre: contNombre, cargo: g("f_contCargo"), whatsapp: whatsapp, correo: correo },
       planId: planId, seccionesIds: secciones, logoDataUrl: logoDataUrl, pedirDisenoLogo: pedirLogo, notas: g("f_notas")
-    }).catch(function (err) { console.warn("BIOsoft: no se pudo registrar el lead en el CRM ->", err); });
+    }, "lead-" + correo.toLowerCase().replace(/[^a-z0-9]/g, "")).catch(function (err) { console.warn("BIOsoft: no se pudo registrar el lead en el CRM ->", err); });
 
     S.provisionRealAccount({
       tenantData: {

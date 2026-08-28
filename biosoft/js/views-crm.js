@@ -154,6 +154,7 @@
         '<button class="btn btn-outline btn-sm" id="btn-plantillas">📝 Plantillas</button>' +
         '<button class="btn btn-outline btn-sm" id="btn-propuesta">📄 Generar Propuesta</button>' +
         (nSel ? '<button class="btn btn-whatsapp btn-sm" id="btn-difusion">' + U.icon("send") + ' Difusión (' + nSel + ')</button>' : "") +
+        (nSel ? '<button class="btn btn-outline btn-sm" id="btn-eliminar-seleccion" title="Para borrar leads duplicados de una vez">' + U.icon("trash") + ' Eliminar (' + nSel + ')</button>' : "") +
         '<button class="btn btn-primary btn-sm" id="btn-new-crm">' + U.icon("plus") + ' Nuevo Cliente</button>' +
         "</div></div>" +
         (vista === "tabla" ? buildTablaHtml() : buildKanbanHtml()) +
@@ -163,6 +164,8 @@
       document.getElementById("btn-propuesta").addEventListener("click", function () { abrirGenerarPropuesta(); });
       var btnDif = document.getElementById("btn-difusion");
       if (btnDif) btnDif.addEventListener("click", abrirDifusion);
+      var btnElimSel = document.getElementById("btn-eliminar-seleccion");
+      if (btnElimSel) btnElimSel.addEventListener("click", eliminarSeleccionados);
       root.querySelectorAll("[data-vista]").forEach(function (b) {
         b.addEventListener("click", function () { vista = b.dataset.vista; build(); });
       });
@@ -199,6 +202,7 @@
         "<button class='btn btn-outline btn-sm' data-correo='" + c.id + "'>📧 Correo</button>" +
         "<button class='btn btn-ghost btn-sm' data-actividad='" + c.id + "'>🕓</button>" +
         "<button class='btn btn-ghost btn-sm' data-editar='" + c.id + "'>" + U.icon("edit") + "</button>" +
+        "<button class='btn btn-ghost btn-sm' data-eliminar-crm='" + c.id + "' title='Eliminar este cliente/lead del CRM (ej. un duplicado). No borra el laboratorio ni sus datos si ya tiene acceso creado.'>" + U.icon("trash") + "</button>" +
         "</div></td></tr>";
     }
 
@@ -454,6 +458,26 @@
 
       root.querySelectorAll("[data-editar]").forEach(function (b) { b.addEventListener("click", function () {
         openForm(clientes.filter(function (x) { return x.id === b.dataset.editar; })[0]);
+      }); });
+
+      // Borra solo el registro de CRM (seguimiento comercial) — nunca el
+      // laboratorio ni sus datos, aunque ya tenga acceso creado (tenantId).
+      // Para el caso real que motivó esto (un lead duplicado 2-3 veces por
+      // reenvíos del formulario público) se advierte de forma distinta si
+      // el registro que se va a borrar ya tiene un laboratorio asociado,
+      // para no borrar por error el que sí está en uso.
+      root.querySelectorAll("[data-eliminar-crm]").forEach(function (b) { b.addEventListener("click", function () {
+        var c = clientes.filter(function (x) { return x.id === b.dataset.eliminarCrm; })[0];
+        if (!c) return;
+        var nombre = (c.laboratorio && c.laboratorio.nombre) || (c.contacto && c.contacto.nombre) || "este registro";
+        var msg = c.tenantId
+          ? 'Este cliente ya tiene un laboratorio activo en BIOsoft. ¿Eliminar de todas formas su registro de seguimiento en el CRM ("' + nombre + '")? El laboratorio y sus datos NO se borran.'
+          : '¿Eliminar el lead "' + nombre + '" del CRM? Esta acción no se puede deshacer.';
+        if (!confirm(msg)) return;
+        S.crm.delete(c.id).then(function () {
+          U.toast("Eliminado del CRM.", "success");
+          cargar();
+        }).catch(function (err) { U.toast("No se pudo eliminar: " + err.message, "error"); });
       }); });
     }
 
@@ -833,6 +857,27 @@
       });
     }
 
+    // Pensado sobre todo para limpiar leads duplicados de un solo golpe
+    // (ej. el mismo laboratorio que quedó registrado 2-3 veces por
+    // reenvíos del formulario público): se marcan con el checkbox de cada
+    // fila y se borran todos con un clic, en vez de uno por uno.
+    function eliminarSeleccionados() {
+      var ids = Object.keys(seleccionados).filter(function (k) { return seleccionados[k]; });
+      var lista = clientes.filter(function (c) { return ids.indexOf(c.id) !== -1; });
+      if (!lista.length) return;
+      var conTenant = lista.filter(function (c) { return c.tenantId; }).length;
+      var nombres = lista.map(function (c) { return (c.laboratorio && c.laboratorio.nombre) || (c.contacto && c.contacto.nombre) || "—"; }).join(", ");
+      var msg = "¿Eliminar " + lista.length + " registro(s) del CRM (" + nombres + ")?" +
+        (conTenant ? " " + conTenant + " de ellos ya tiene(n) un laboratorio activo — solo se borra su seguimiento en el CRM, no el laboratorio." : "") +
+        " Esta acción no se puede deshacer.";
+      if (!confirm(msg)) return;
+      Promise.all(ids.map(function (id) { return S.crm.delete(id); })).then(function () {
+        seleccionados = {};
+        U.toast(lista.length + " registro(s) eliminado(s).", "success");
+        cargar();
+      }).catch(function (err) { U.toast("No se pudo eliminar todo: " + err.message, "error"); cargar(); });
+    }
+
     function abrirDifusion() {
       var ids = Object.keys(seleccionados).filter(function (k) { return seleccionados[k]; });
       var lista = clientes.filter(function (c) { return ids.indexOf(c.id) !== -1 && c.contacto && c.contacto.whatsapp; });
@@ -992,6 +1037,27 @@
           seccionesIds: secciones,
           notas: wrap.querySelector("#crm-notas").value.trim()
         };
+        // El caso real que motivó esto: el mismo laboratorio quedó
+        // registrado 3 veces en el CRM (mismo nombre y mismo contacto) por
+        // reintentos del formulario público — aquí se evita que ADEMÁS un
+        // administrador cree manualmente un duplicado del mismo lab, sea
+        // por NIT, por correo del contacto o, a falta de esos dos, por
+        // nombre exacto del laboratorio.
+        if (!isEdit) {
+          var nitNuevo = data.laboratorio.nit.trim().toLowerCase();
+          var correoNuevo = data.contacto.correo.trim().toLowerCase();
+          var nombreNuevo = data.laboratorio.nombre.trim().toLowerCase();
+          var duplicado = clientes.filter(function (c) {
+            var lab = c.laboratorio || {}, cont = c.contacto || {};
+            if (nitNuevo && (lab.nit || "").trim().toLowerCase() === nitNuevo) return true;
+            if (correoNuevo && (cont.correo || "").trim().toLowerCase() === correoNuevo) return true;
+            return (lab.nombre || "").trim().toLowerCase() === nombreNuevo;
+          })[0];
+          if (duplicado) {
+            U.toast('Ya existe un cliente/lead con estos datos: "' + (duplicado.laboratorio && duplicado.laboratorio.nombre) + '". Edita ese registro en vez de crear uno nuevo.', "error");
+            return;
+          }
+        }
         var promesa = isEdit ? S.crm.update(cliente.id, data) : S.crm.create(Object.assign({ origen: "manual" }, data));
         promesa.then(function () {
           U.toast("Cliente guardado.", "success");

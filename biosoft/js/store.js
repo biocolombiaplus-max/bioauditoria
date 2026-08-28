@@ -286,15 +286,28 @@
     if (!firebaseDisponible()) return function () {};
     return crmColl().onSnapshot(function () { onChange(); }, function (err) { console.error("BIOsoft CRM listener error:", err); });
   }
-  function crmCreate(data) {
+  /* forzarId (opcional): el formulario público de activación (activar.js) lo
+     usa con un id determinístico a partir del correo del contacto, para que
+     reenviar el mismo formulario dos veces (doble clic, reintento tras un
+     error de red, etc.) no deje leads duplicados en el CRM — la segunda
+     escritura cae sobre el MISMO documento, y como firestore.rules exige
+     esSuperadmin() para "update" (solo permite "create" público), Firestore
+     la rechaza sola y el .catch() de quien llama ya la ignora en silencio,
+     sin necesidad de leer primero si el lead ya existe (algo que el
+     formulario público no puede hacer: no tiene permiso de lectura). */
+  function crmCreate(data, forzarId) {
     if (!firebaseDisponible()) return Promise.reject(errorFirebaseNoDisponible());
-    var id = uid("crm");
+    var id = forzarId || uid("crm");
     var doc = Object.assign({ estado: "nuevo", creadoEn: nowISO() }, data, { id: id });
     return crmColl().doc(id).set(doc).then(function () { return doc; });
   }
   function crmUpdate(id, patch) {
     if (!firebaseDisponible()) return Promise.reject(errorFirebaseNoDisponible());
     return crmColl().doc(id).update(patch);
+  }
+  function crmDelete(id) {
+    if (!firebaseDisponible()) return Promise.reject(errorFirebaseNoDisponible());
+    return crmColl().doc(id).delete();
   }
 
   // -----------------------------------------------------------------------
@@ -1687,7 +1700,7 @@
     restoreRealtime: restoreRealtime,
     restoreRealtimePortalAliado: restoreRealtimePortalAliado,
     restoreSuperadminSession: restoreSuperadminSession,
-    crm: { list: crmList, watch: crmWatch, create: crmCreate, update: crmUpdate },
+    crm: { list: crmList, watch: crmWatch, create: crmCreate, update: crmUpdate, delete: crmDelete },
     tenantsGlobal: {
       list: tenantsListGlobal, watch: tenantsWatchGlobal, listUsuarios: listUsuariosTenantOnce, promoverUsuarioAAdmin: promoverUsuarioAAdmin,
       diagnosticarAcceso: diagnosticarAccesoTenant, repararPerfilAcceso: repararPerfilAcceso, repararPermisosOperativos: repararPermisosOperativos
