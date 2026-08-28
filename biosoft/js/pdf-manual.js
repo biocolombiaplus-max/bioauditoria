@@ -34,7 +34,8 @@
       pasos: [
         "Ve a “Configuración del Laboratorio” y completa Identidad y Datos: nombre, eslogan (aparece bajo el nombre en el encabezado de los informes de resultados), NIT/RIF/RUC, país, dirección, teléfonos, correo, sitio web, resolución de habilitación, código REPS y nivel de complejidad.",
         "Sube tu logo y elige los colores institucionales (primario, secundario, texto del menú, títulos y subtítulos) — se aplican de inmediato a toda la app y a los PDF que genera el sistema.",
-        "En “Diseño del Reporte de Resultados” puedes activar que tu logo salga grande y centrado en el encabezado del informe (como un membrete, en vez del logo chico a la izquierda), y definir un pie de página propio (ej. tu promesa de calidad) que aparece justo antes de la firma en cada informe.",
+        "Si trabajas con un aliado (ej. otro laboratorio que procesa la muestra) puedes subir también un Logo Secundario — aparece junto al tuyo en reportes, cotizaciones y recibos. También puedes elegir la Tipografía del Reporte (Helvetica, Times o Courier) para que combine con la imagen de tu laboratorio.",
+        "En “Diseño del Reporte de Resultados” puedes activar que tu logo salga grande y centrado en el encabezado del informe (como un membrete, en vez del logo chico a la izquierda), elegir qué Datos Adicionales se muestran en el reporte del paciente (Edad/Sexo, EPS/Asegurador, Médico Remitente, Procedencia — desmarca los que no necesites), y definir un pie de página propio (ej. tu promesa de calidad) que aparece justo antes de la firma en cada informe.",
         "Define la clave de administrador: se pedirá cada vez que un bacteriólogo necesite corregir un resultado ya validado, para mantener la trazabilidad.",
         "Ve a “Usuarios del Laboratorio” y haz clic en “Nuevo Usuario” para crear el acceso de cada persona de tu equipo: nombre, usuario, contraseña y rol (Administrador, Bacteriólogo o Recepción).",
         "Para cada Bacteriólogo(a), asígnale las secciones que puede capturar y validar (Hematología, Química Sanguínea, etc.) y carga su firma digital — aparecerá en los informes que valide.",
@@ -74,7 +75,8 @@
         "Si necesitas una categoría que no está en la lista (Hematología, Química Sanguínea, etc.), créala con “Nueva Categoría” — queda disponible de inmediato en órdenes, resultados, usuarios y reportes.",
         "Para parámetros que varían según el sexo o la edad del paciente (ej. Hemoglobina distinta en hombres y mujeres), usa el botón “Por género/edad” y define cada rango — el sistema elige automáticamente el que corresponde a cada paciente.",
         "Para casos donde el rango no se puede saber solo con el sexo/edad (ej. las fases del ciclo menstrual en hormonas como FSH o LH), ponle una Etiqueta a cada rango (Fase Folicular, Ovulación, Lútea…). Al capturar el resultado, el sistema mostrará un selector para elegir cuál corresponde a esa paciente.",
-        "Para exámenes con interpretación por tramos en vez del simple Bajo/Normal/Alto (ej. Hemoglobina Glicosilada: Normal / Prediabetes / Diabetes), usa el botón “Rangos de Interpretación” y define cada tramo con su propia etiqueta — se aplica solo según el valor que se capture."
+        "Para exámenes con interpretación por tramos en vez del simple Bajo/Normal/Alto (ej. Hemoglobina Glicosilada: Normal / Prediabetes / Diabetes), usa el botón “Rangos de Interpretación” y define cada tramo con su propia etiqueta — se aplica solo según el valor que se capture.",
+        "Para un parámetro que se calcula a partir de otros (ej. el Colesterol LDL, por la fórmula de Friedewald, o las Globulinas como Proteínas Totales menos Albúmina), usa el botón “Valor Calculado” y escribe la fórmula usando el código de cada parámetro como si fuera una variable (ej. COLT - HDL - (TGD/5)) — puede referenciar parámetros de otros exámenes de la misma orden, no solo del examen actual. Durante la captura de resultados, ese campo se llena solo, en tiempo real, y queda de solo lectura con una nota que muestra la fórmula usada; LDL y Globulinas ya vienen preconfigurados como ejemplo."
       ]
     },
     {
@@ -85,7 +87,8 @@
         "Ve a “Pacientes” en el menú lateral y haz clic en “Nuevo Paciente”.",
         "Completa los datos personales, documento de identidad, EPS/asegurador y datos de contacto.",
         "Guarda el paciente. Ya queda disponible para crearle órdenes cuando lo necesites.",
-        "Puedes buscar un paciente existente por nombre o número de documento en cualquier momento."
+        "Puedes buscar un paciente existente por nombre o número de documento en cualquier momento.",
+        "Si alguien del equipo se equivocó al registrar un paciente (persona equivocada, duplicado), solo el Administrador ve un botón para eliminarlo — y solo funciona si ese paciente todavía no tiene ninguna orden creada, para no dejar resultados huérfanos."
       ]
     },
     {
@@ -97,10 +100,11 @@
         "Selecciona el paciente (o créalo si es la primera vez que viene).",
         "Elige los exámenes por sección desde el catálogo (Hematología, Química, Inmunología, etc., incluyendo las categorías y exámenes propios que hayas agregado); puedes buscar por nombre.",
         "Registra el médico remitente y la procedencia si aplica.",
-        "Si tu laboratorio indica el valor a cobrar en la orden (activable en “Configuración del Laboratorio” → Operación), el campo “Valor a Cobrar” se calcula solo según los exámenes elegidos — puedes ajustarlo a mano si hace falta; si tienes una moneda adicional configurada, también verás el equivalente (ej. en bolívares).",
+        "Si tu laboratorio indica el valor a cobrar en la orden (activable en “Configuración del Laboratorio”, sección Operación), el campo “Valor a Cobrar” se calcula solo según los exámenes elegidos — puedes ajustarlo a mano si hace falta; si tienes una moneda adicional configurada, también verás el equivalente (ej. en bolívares).",
         "Guarda la orden — automáticamente queda disponible en la bandeja de cada bacteriólogo, según la sección de cada examen.",
         "Desde aquí también puedes imprimir el sticker de identificación para los tubos de muestra.",
-        "Para laboratorios de Venezuela: al crear la orden (o después, desde su detalle) puedes generar un Recibo de Pago profesional en tamaño media carta — primero te pide confirmar que el cliente ya pagó y el método de pago, y luego puedes imprimirlo o enviarlo por WhatsApp/correo.",
+        "Si tu laboratorio indica el valor a cobrar en la orden, la lista de Órdenes muestra el estado del pago de cada una (“Pago pendiente” o “Pagado”) sin necesidad de abrirlas: con “Registrar Pago” confirmas que el cliente ya pagó (y el método) y se genera un Recibo de Pago profesional en tamaño carta, listo para imprimir o enviar por WhatsApp/correo; las que ya están pagadas tienen un botón “Recibo” para reimprimirlo o reenviarlo cuando lo necesites.",
+        "Si una orden se creó de más por error (ej. dos veces seguidas para el mismo paciente), puedes eliminarla directamente desde la lista con el botón de eliminar (ícono de basurero) de su fila.",
         "Para laboratorios de Colombia: desde el detalle de la orden, el botón “Consentimiento Informado” genera el documento conforme a la Resolución 3100 de 2019 (una sola hoja, con los exámenes/procedimiento cubiertos). Puedes firmarlo ahí mismo entregando el celular o la tablet del laboratorio al paciente para que firme con el dedo, o enviarle un enlace único por WhatsApp/correo para que lo firme por su cuenta desde su propio celular, sin necesidad de instalar nada ni iniciar sesión."
       ]
     },
@@ -220,7 +224,7 @@
         "En “Recetas por Examen”, indica cuánto se gasta de cada insumo al realizar cada tipo de examen (disponible para los exámenes del catálogo general).",
         "A partir de ahí, el sistema descuenta el inventario automáticamente cada vez que se valida un resultado — no necesitas hacerlo manual.",
         "Consulta el “Kardex” para ver cada movimiento de entrada/salida, y descarga los reportes de gasto de reactivos e inventario valorizado en PDF.",
-        "Si un insumo ya no lo usas, elimínalo con el botón 🗑 de su fila — el sistema te avisa si tiene stock o si está en uso en alguna receta de examen antes de confirmarlo."
+        "Si un insumo ya no lo usas, elimínalo con el botón de eliminar (ícono de basurero) de su fila — el sistema te avisa si tiene stock o si está en uso en alguna receta de examen antes de confirmarlo."
       ]
     }
   ];

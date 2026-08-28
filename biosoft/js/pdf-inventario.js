@@ -147,8 +147,10 @@
       return bajo || vence;
     });
     if (alertas.length) {
+      // Sin "⚠": fuera de WinAnsi, las fuentes base de jsPDF lo renderizan
+      // corrupto (mismo problema ya corregido con "✓"/"≈" en otros PDF).
       doc.setFont("helvetica", "bold"); doc.setFontSize(11); doc.setTextColor(200, 40, 40);
-      doc.text("⚠ Alertas de Stock Bajo o Vencimiento Próximo", margin, y); y += 6;
+      doc.text("Alertas de Stock Bajo o Vencimiento Próximo", margin, y); y += 6;
       doc.autoTable({
         startY: y, margin: { left: margin, right: margin },
         head: [["Insumo", "Stock Actual", "Stock Mínimo", "Vence"]],
