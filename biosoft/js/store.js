@@ -282,9 +282,19 @@
       return out;
     });
   }
+  // Se registra también en realUnsubs (el mismo arreglo que usa
+  // initRealtime() para las colecciones de un laboratorio) para que
+  // stopRealtime()/logoutReal() lo cierre solo al salir — antes quedaba
+  // vivo para siempre en la pestaña, aunque el superadmin cerrara sesión:
+  // cada cambio en crmClientes seguía intentando notificar a un listener
+  // sin sesión válida, y la consola se llenaba de "Missing or insufficient
+  // permissions" en cada intento de inicio de sesión posterior en la misma
+  // pestaña (ruido que complicaba diagnosticar fallos de acceso reales).
   function crmWatch(onChange) {
     if (!firebaseDisponible()) return function () {};
-    return crmColl().onSnapshot(function () { onChange(); }, function (err) { console.error("BIOsoft CRM listener error:", err); });
+    var unsub = crmColl().onSnapshot(function () { onChange(); }, function (err) { console.error("BIOsoft CRM listener error:", err); });
+    realUnsubs.push(unsub);
+    return unsub;
   }
   /* forzarId (opcional): el formulario público de activación (activar.js) lo
      usa con un id determinístico a partir del correo del contacto, para que
@@ -326,7 +336,9 @@
   }
   function plantillasWatch(onChange) {
     if (!firebaseDisponible()) return function () {};
-    return plantillasColl().onSnapshot(function () { onChange(); }, function (err) { console.error("BIOsoft plantillas listener error:", err); });
+    var unsub = plantillasColl().onSnapshot(function () { onChange(); }, function (err) { console.error("BIOsoft plantillas listener error:", err); });
+    realUnsubs.push(unsub);
+    return unsub;
   }
   function plantillasCreate(data) {
     if (!firebaseDisponible()) return Promise.reject(errorFirebaseNoDisponible());
@@ -392,7 +404,9 @@
   }
   function tenantsWatchGlobal(onChange) {
     if (!firebaseDisponible()) return function () {};
-    return tenantsColl().onSnapshot(function () { onChange(); }, function (err) { console.error("BIOsoft tenants listener error:", err); });
+    var unsub = tenantsColl().onSnapshot(function () { onChange(); }, function (err) { console.error("BIOsoft tenants listener error:", err); });
+    realUnsubs.push(unsub);
+    return unsub;
   }
 
   /* Lectura puntual (sin caché local) de los usuarios de UN laboratorio
