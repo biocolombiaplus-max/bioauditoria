@@ -379,6 +379,27 @@
           restablecerExamenConfirmando(b.dataset.restablecerexam, build);
         });
       });
+      root.querySelectorAll("[data-ocultarexam]").forEach(function (b) {
+        b.addEventListener("click", function () {
+          var ex = C.examenPorId(b.dataset.ocultarexam);
+          if (!confirm('¿Dejar de ofrecer "' + (ex ? ex.nombre : b.dataset.ocultarexam) + '" en órdenes y cotizaciones nuevas de tu laboratorio? Las órdenes que ya lo tengan no se afectan — puedes volver a ofrecerlo cuando quieras con "Mostrar".')) return;
+          C.ocultarExamenFabrica(tenant, b.dataset.ocultarexam);
+          S.updateTenant(tenant.id, { examenesOcultos: tenant.examenesOcultos });
+          S.addAudit(session.tenantId, session.nombre, session.rol, "HIDE_EXAM", "catalogo", b.dataset.ocultarexam, "Dejó de ofrecer el examen " + (ex ? ex.nombre : b.dataset.ocultarexam) + ".");
+          U.toast("Ya no se ofrecerá este examen en órdenes/cotizaciones nuevas.", "success");
+          build();
+        });
+      });
+      root.querySelectorAll("[data-mostrarexam]").forEach(function (b) {
+        b.addEventListener("click", function () {
+          var ex = C.examenPorId(b.dataset.mostrarexam);
+          C.mostrarExamenFabrica(tenant, b.dataset.mostrarexam);
+          S.updateTenant(tenant.id, { examenesOcultos: tenant.examenesOcultos });
+          S.addAudit(session.tenantId, session.nombre, session.rol, "SHOW_EXAM", "catalogo", b.dataset.mostrarexam, "Volvió a ofrecer el examen " + (ex ? ex.nombre : b.dataset.mostrarexam) + ".");
+          U.toast("Examen disponible de nuevo.", "success");
+          build();
+        });
+      });
     }
 
     // Deja un examen de fábrica exactamente como viene de BIOsoft, por si
@@ -399,16 +420,20 @@
     function rowHtml(e, i, total, permiteOrdenar) {
       var personalizado = C.tieneOverride(e.id, tenant);
       var propio = C.esExamenPropio(e.id, tenant);
+      var oculto = !propio && C.examenOculto(tenant, e.id);
       return "<tr>" +
         (permiteOrdenar ? "<td><div class='flex gap-2'>" +
           '<button class="btn btn-ghost btn-sm" data-mover="' + e.id + '" data-dir="-1" ' + (i === 0 ? "disabled" : "") + ' title="Subir">▲</button>' +
           '<button class="btn btn-ghost btn-sm" data-mover="' + e.id + '" data-dir="1" ' + (i === total - 1 ? "disabled" : "") + ' title="Bajar">▼</button>' +
           "</div></td>" : "") +
         "<td>" + U.esc(e.nombre) + "<div class='text-muted' style='font-size:11px'>" + (e.cups ? "CUPS " + U.esc(e.cups) : "Sin CUPS") + "</div></td><td>" + C.seccionNombre(e.seccion) + "</td><td>" + e.parametros.length + "</td>" +
-        "<td>" + (propio ? '<span class="badge badge-validado">Examen propio</span>' : personalizado ? '<span class="badge badge-preliminar">Personalizado</span>' : '<span class="text-muted">Valores de fábrica</span>') + "</td>" +
+        "<td>" + (oculto ? '<span class="badge badge-suspendido">No ofrecido</span>' : propio ? '<span class="badge badge-validado">Examen propio</span>' : personalizado ? '<span class="badge badge-preliminar">Personalizado</span>' : '<span class="text-muted">Valores de fábrica</span>') + "</td>" +
         '<td><div class="flex gap-2 wrap"><button class="btn btn-outline btn-sm" data-editexam="' + e.id + '">' + U.icon("edit") + " Editar</button>" +
         (propio ? '<button class="btn btn-ghost btn-sm" data-eliminarexam="' + e.id + '" title="Eliminar este examen propio">' + U.icon("trash") + "</button>" : "") +
         (!propio && personalizado ? '<button class="btn btn-ghost btn-sm" data-restablecerexam="' + e.id + '" title="Restablecer este examen a los valores originales de fábrica de BIOsoft">' + U.icon("history") + " Restablecer</button>" : "") +
+        (!propio ? (oculto ?
+          '<button class="btn btn-ghost btn-sm" data-mostrarexam="' + e.id + '" title="Volver a ofrecer este examen en órdenes y cotizaciones nuevas">' + U.icon("eye") + " Mostrar</button>" :
+          '<button class="btn btn-ghost btn-sm" data-ocultarexam="' + e.id + '" title="Dejar de ofrecer este examen en órdenes y cotizaciones nuevas (las órdenes ya creadas con él no se afectan)">' + U.icon("eye-off") + " No Ofrecer</button>") : "") +
         "</div></td></tr>";
     }
     build();

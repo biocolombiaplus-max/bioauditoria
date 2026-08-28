@@ -97,7 +97,7 @@
   function renderNewOrder(root, prefillId) {
     var session = BIO_AUTH.getSession();
     var tenant = BIO_AUTH.currentTenant();
-    var examenes = C.examenesEfectivos(tenant);
+    var examenes = C.examenesDisponibles(tenant);
     var secciones = C.seccionesEfectivas(tenant);
     var patients = S.listPatients(session.tenantId);
     var selectedExams = []; // {examId}
@@ -462,7 +462,7 @@
           "</div></div>" +
           '<div class="form-grid">' +
             field("Paciente", pac ? U.nombreCompleto(pac) + " (" + pac.tipoDocumento + " " + pac.numeroDocumento + ")" : "—") +
-            field("Edad / Sexo", (pac ? U.calcEdad(pac.fechaNacimiento) : "—") + " · " + (pac ? pac.sexo : "")) +
+            field("Edad / Sexo", (pac ? U.edadTexto(pac) : "—") + " · " + (pac ? pac.sexo : "")) +
             (pac && pac.pais === "CO" ? field("EPS / Seguro", pac.eps || "—") : "") +
             field("Médico Remitente", order.medicoRemitente || "—") +
             field("Procedencia", order.procedencia) +
@@ -596,7 +596,7 @@
       var remision = {
         numero: numero, fecha: fecha,
         laboratorioDestino: { nombre: labNombre, direccion: wrap.querySelector("#f_labDireccion").value.trim(), telefono: wrap.querySelector("#f_labTelefono").value.trim() },
-        paciente: { nombre: pac ? U.nombreCompleto(pac) : "—", tipoDocumento: pac ? pac.tipoDocumento : "", numeroDocumento: pac ? pac.numeroDocumento : "", edadTexto: pac ? U.calcEdad(pac.fechaNacimiento) : "", sexo: pac ? pac.sexo : "" },
+        paciente: { nombre: pac ? U.nombreCompleto(pac) : "—", tipoDocumento: pac ? pac.tipoDocumento : "", numeroDocumento: pac ? pac.numeroDocumento : "", edadTexto: pac ? U.edadTexto(pac) : "", sexo: pac ? pac.sexo : "" },
         numeroOrden: order.numeroOrden, medicoRemitente: order.medicoRemitente, procedencia: order.procedencia,
         examenes: examenesRemision, incluirValores: incluirValores,
         observaciones: wrap.querySelector("#rem-observaciones").value.trim()

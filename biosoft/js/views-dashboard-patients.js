@@ -194,7 +194,7 @@
 
     function rowPatient(p) {
       var esAdmin = session.rol === "admin";
-      return "<tr><td>" + p.tipoDocumento + " " + U.esc(p.numeroDocumento) + "</td><td>" + U.esc(U.nombreCompleto(p)) + "</td><td>" + U.calcEdad(p.fechaNacimiento) + "</td><td>" + p.sexo + "</td><td>" + (p.pais === "CO" ? U.esc(p.eps || "—") : "—") + "</td><td>" + U.esc(p.ciudad || "—") + "</td>" +
+      return "<tr><td>" + p.tipoDocumento + " " + U.esc(p.numeroDocumento) + "</td><td>" + U.esc(U.nombreCompleto(p)) + "</td><td>" + U.edadTexto(p) + "</td><td>" + p.sexo + "</td><td>" + (p.pais === "CO" ? U.esc(p.eps || "—") : "—") + "</td><td>" + U.esc(p.ciudad || "—") + "</td>" +
         '<td><div class="flex gap-2"><button class="btn btn-ghost btn-sm" data-edit="' + p.id + '">' + U.icon("edit") + " Editar</button>" +
         (session.rol !== "bacteriologo" || BIO_AUTH.tienePermisoExtra("ordenes") ? '<button class="btn btn-outline btn-sm" data-neworden="' + p.id + '">' + U.icon("plus") + " Orden</button>" : "") +
         (esAdmin ? '<button class="btn btn-ghost btn-sm" data-eliminar-pac="' + p.id + '" title="Eliminar paciente (solo si aún no tiene órdenes)">' + U.icon("trash") + "</button>" : "") +
@@ -248,9 +248,11 @@
           sel("pais", "País", ["CO", "VE", "EC"].map(function (p) { return '<option value="' + p + '" ' + (p === patient.pais ? "selected" : "") + ">" + (p === "CO" ? "Colombia" : p === "VE" ? "Venezuela" : "Ecuador") + "</option>"; }).join("")) +
           sel("tipoDocumento", "Tipo de Documento", docOptions(patient.pais, patient.tipoDocumento)) +
           inp("numeroDocumento", "Número de Documento", patient.numeroDocumento, true) +
-          inp("fechaNacimiento", "Fecha de Nacimiento", patient.fechaNacimiento, true, "date") +
+          inp("fechaNacimiento", "Fecha de Nacimiento", patient.fechaNacimiento, false, "date") +
+          inp("edadAnios", "Edad Aproximada en Años (si no conoce la fecha de nacimiento)", patient.edadAnios, false, "number") +
           sel("sexo", "Sexo Biológico", ["Femenino", "Masculino", "Indeterminado"].map(function (s) { return '<option ' + (s === patient.sexo ? "selected" : "") + ">" + s + "</option>"; }).join("")) +
-        "</div></fieldset>" +
+        "</div>" +
+        '<p class="text-muted" style="margin:0 0 8px">Ingresa la fecha de nacimiento o, si no se conoce, al menos la edad aproximada — no hace falta llenar los dos.</p></fieldset>' +
         '<fieldset><legend>Nombres</legend><div class="form-grid">' +
           inp("primerNombre", "Primer Nombre", patient.primerNombre, true) + inp("segundoNombre", "Segundo Nombre", patient.segundoNombre) +
           inp("primerApellido", "Primer Apellido", patient.primerApellido, true) + inp("segundoApellido", "Segundo Apellido", patient.segundoApellido) +
@@ -318,7 +320,7 @@
       var encontrado = S.listPatients(session.tenantId).filter(function (p) { return p.numeroDocumento === numDoc && p.tipoDocumento === tipoDoc; })[0];
       if (!encontrado) { pacienteExistenteId = null; banner.classList.add("hidden"); return; }
       pacienteExistenteId = encontrado.id;
-      var campos = ["pais", "tipoDocumento", "fechaNacimiento", "sexo", "primerNombre", "segundoNombre", "primerApellido", "segundoApellido",
+      var campos = ["pais", "tipoDocumento", "fechaNacimiento", "edadAnios", "sexo", "primerNombre", "segundoNombre", "primerApellido", "segundoApellido",
         "direccion", "ciudad", "telefono", "celular", "email", "tipoAfiliacion", "eps", "medicoRemitente", "procedencia", "ocupacion",
         "observaciones", "zonaResidencial", "codigoMunicipioDane"];
       campos.forEach(function (c) {
@@ -340,13 +342,17 @@
       var data = {
         tenantId: session.tenantId, pais: g("pais"), tipoDocumento: g("tipoDocumento"), numeroDocumento: g("numeroDocumento"),
         primerNombre: g("primerNombre"), segundoNombre: g("segundoNombre"), primerApellido: g("primerApellido"), segundoApellido: g("segundoApellido"),
-        fechaNacimiento: g("fechaNacimiento"), sexo: g("sexo"), direccion: g("direccion"), ciudad: g("ciudad"), telefono: g("telefono"),
+        fechaNacimiento: g("fechaNacimiento"), edadAnios: g("edadAnios"), sexo: g("sexo"), direccion: g("direccion"), ciudad: g("ciudad"), telefono: g("telefono"),
         celular: g("celular"), email: g("email"), tipoAfiliacion: g("tipoAfiliacion"), eps: g("eps"), medicoRemitente: g("medicoRemitente"),
         procedencia: g("procedencia"), ocupacion: g("ocupacion"), observaciones: g("observaciones"),
         zonaResidencial: g("zonaResidencial"), codigoMunicipioDane: g("codigoMunicipioDane")
       };
-      if (!data.numeroDocumento || !data.primerNombre || !data.primerApellido || !data.fechaNacimiento) {
-        U.toast("Completa los campos obligatorios: documento, primer nombre, primer apellido y fecha de nacimiento.", "error");
+      if (!data.numeroDocumento || !data.primerNombre || !data.primerApellido) {
+        U.toast("Completa los campos obligatorios: documento, primer nombre y primer apellido.", "error");
+        return;
+      }
+      if (!data.fechaNacimiento && !data.edadAnios) {
+        U.toast("Ingresa la fecha de nacimiento o, si no se conoce, al menos la edad aproximada del paciente.", "error");
         return;
       }
       if (isEdit || pacienteExistenteId) {

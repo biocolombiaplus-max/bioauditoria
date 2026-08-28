@@ -73,7 +73,7 @@
     }
 
     function poolExamenes() {
-      return C.examenesEfectivos(tenant).concat(customExams.map(function (ce) {
+      return C.examenesDisponibles(tenant).concat(customExams.map(function (ce) {
         return { id: ce.id, nombre: ce.nombre, cups: ce.cups, seccion: SECCION_REF_EXT.id };
       }));
     }

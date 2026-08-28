@@ -177,7 +177,7 @@
         '<div class="flex gap-2 wrap"><a class="btn btn-ghost btn-sm" id="btn-back">Volver a la bandeja</a>' +
         (puedeRemision ? '<button class="btn btn-outline btn-sm" id="btn-remision">' + U.icon("send") + " Hoja de Remisión</button>" : "") +
         "</div></div>" +
-        '<p class="text-muted" style="margin:0">' + (pac ? U.calcEdad(pac.fechaNacimiento) + " · " + pac.sexo + " · " + (pac.eps || "Particular") : "") + " · Médico remitente: " + U.esc(order.medicoRemitente || "—") + "</p></div>" +
+        '<p class="text-muted" style="margin:0">' + (pac ? U.edadTexto(pac) + " · " + pac.sexo + " · " + (pac.eps || "Particular") : "") + " · Médico remitente: " + U.esc(order.medicoRemitente || "—") + "</p></div>" +
         '<div id="exam-cards" style="margin-top:16px"></div>';
       document.getElementById("btn-back").addEventListener("click", function () { location.hash = "#/resultados"; });
       var btnRemision = document.getElementById("btn-remision");

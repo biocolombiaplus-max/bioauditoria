@@ -57,7 +57,7 @@
           items.map(function (it) {
             var pac = S.getPatient(it.order.patientId);
             var exCat = C.examenEfectivo(it.ex.examId, tenant);
-            return "<tr><td>" + it.order.numeroOrden + (it.order.prioridad === "Urgente" ? ' <span class="badge badge-urgente">URG</span>' : "") + "</td><td>" + (pac ? U.esc(U.nombreCompleto(pac)) : "—") + "</td><td>" + (pac ? U.calcEdad(pac.fechaNacimiento) + "/" + pac.sexo[0] : "") + "</td><td>" + U.esc(exCat.nombre) + '<div class="text-muted" style="font-size:11px">' + exCat.parametros.map(function (p) { return p.nombre; }).join(", ") + "</div></td>" +
+            return "<tr><td>" + it.order.numeroOrden + (it.order.prioridad === "Urgente" ? ' <span class="badge badge-urgente">URG</span>' : "") + "</td><td>" + (pac ? U.esc(U.nombreCompleto(pac)) : "—") + "</td><td>" + (pac ? U.edadTexto(pac) + "/" + pac.sexo[0] : "") + "</td><td>" + U.esc(exCat.nombre) + '<div class="text-muted" style="font-size:11px">' + exCat.parametros.map(function (p) { return p.nombre; }).join(", ") + "</div></td>" +
               '<td style="min-width:160px;border-left:1px dashed #cbd5e1">&nbsp;</td><td style="min-width:140px">&nbsp;</td></tr>';
           }).join("") + "</tbody></table></div>" +
           '<p style="margin-top:26px" class="text-muted">Firma del Bacteriólogo(a) responsable: _______________________________</p>';

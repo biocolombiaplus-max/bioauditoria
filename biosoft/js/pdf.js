@@ -386,7 +386,7 @@
     y += 16;
 
     doc.setFontSize(9.5); doc.setTextColor(30, 30, 30);
-    var edad = U.calcEdad(patient.fechaNacimiento);
+    var edad = U.edadTexto(patient);
     // Qué datos adicionales van en el reporte, elegido en Configuración
     // → "Diseño del Reporte de Resultados". Nombre, documento, N° de
     // orden y fecha son siempre obligatorios (son los identificadores
@@ -853,7 +853,7 @@
         doc.setFontSize(11 * k); doc.text(order.numeroOrden, mL, 13 * k);
         doc.setFontSize(8.5 * k); doc.text(U.nombreCompleto(patient).substring(0, 36), mL, 19 * k);
         doc.setFont("helvetica", "normal"); doc.setFontSize(7 * k);
-        doc.text(patient.tipoDocumento + " " + patient.numeroDocumento + " · " + (U.calcEdad(patient.fechaNacimiento) || ""), mL, 23.5 * k);
+        doc.text(patient.tipoDocumento + " " + patient.numeroDocumento + " · " + (U.edadTexto(patient) || ""), mL, 23.5 * k);
         doc.setFont("helvetica", "bold"); doc.setFontSize(7 * k);
         doc.text(tubo.nombre, mL, 28 * k);
         doc.setFont("helvetica", "normal"); doc.setFontSize(6.3 * k);

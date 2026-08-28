@@ -894,14 +894,45 @@
     return EXAMENES.filter(function (e) { return e.id === id; })[0];
   }
 
+  /* Un laboratorio puede dejar de ofrecer un examen de FÁBRICA (compartido
+     con todo BIOsoft) sin afectar a los demás laboratorios — ej. porque ya
+     no lo procesa o lo reemplazó por una versión propia con otro nombre
+     (caso real: reemplazar "Cuadro Hemático (Hemograma IV)" por un
+     "Hemograma V" propio). No aplica a exámenes propios (esos se borran
+     directo con eliminarExamenPersonalizado) ni afecta órdenes ya creadas
+     con ese examen — solo dejan de ofrecerse para órdenes/cotizaciones
+     NUEVAS (ver examenesDisponibles). */
+  function ocultarExamenFabrica(tenant, examId) {
+    tenant.examenesOcultos = tenant.examenesOcultos || [];
+    if (tenant.examenesOcultos.indexOf(examId) === -1) tenant.examenesOcultos.push(examId);
+  }
+  function mostrarExamenFabrica(tenant, examId) {
+    if (tenant.examenesOcultos) tenant.examenesOcultos = tenant.examenesOcultos.filter(function (id) { return id !== examId; });
+  }
+  function examenOculto(tenant, examId) {
+    return !!(tenant && tenant.examenesOcultos && tenant.examenesOcultos.indexOf(examId) !== -1);
+  }
+
   /* Todo el catálogo, más los exámenes 100% propios del laboratorio, con el
      nombre/método que cada laboratorio haya personalizado (ver
      renombrarExamen/cambiarMetodoExamen) — para listados/buscadores que
-     necesitan mostrar el catálogo completo ya "vestido" con esos ajustes. */
+     necesitan mostrar el catálogo completo ya "vestido" con esos ajustes.
+     Incluye los exámenes de fábrica que el laboratorio ocultó (para que el
+     editor de catálogo los siga mostrando y se puedan reactivar) — usa
+     examenesDisponibles() en su lugar donde se eligen exámenes para una
+     orden/cotización nueva. */
   function examenesEfectivos(tenant) {
     if (!tenant) return EXAMENES;
     var propios = tenant.examenesPersonalizados || [];
     return EXAMENES.concat(propios).map(function (e) { return examenEfectivo(e.id, tenant); });
+  }
+
+  /* Los exámenes que realmente se pueden elegir para una orden o cotización
+     NUEVA: el catálogo efectivo, sin los exámenes de fábrica que el
+     laboratorio ocultó. */
+  function examenesDisponibles(tenant) {
+    if (!tenant) return EXAMENES;
+    return examenesEfectivos(tenant).filter(function (e) { return !examenOculto(tenant, e.id); });
   }
 
   function tuboInfo(key) {
@@ -1236,6 +1267,22 @@
     if (isNaN(nac.getTime())) return null;
     return (Date.now() - nac.getTime()) / (365.25 * 86400000);
   }
+  /* Igual que edadEnAniosDecimal(), pero con el mismo respaldo que
+     U.edadTexto(): si el paciente no tiene fecha de nacimiento registrada
+     (la fecha de nacimiento ya no es obligatoria — algunos laboratorios
+     solo conocen la edad aproximada) usa el campo edadAnios guardado a
+     mano en su lugar, para que las bandas de referencia por edad
+     (pediátrico/adulto/etc.) sigan funcionando para esos pacientes. */
+  function edadDecimalDelPaciente(paciente) {
+    if (!paciente) return null;
+    var porFecha = edadEnAniosDecimal(paciente.fechaNacimiento);
+    if (porFecha != null) return porFecha;
+    if (paciente.edadAnios != null && paciente.edadAnios !== "") {
+      var n = parseFloat(paciente.edadAnios);
+      return isNaN(n) ? null : n;
+    }
+    return null;
+  }
   function especificidadBanda(b) {
     var s = 0;
     if (b.genero && b.genero !== "ambos") s += 2;
@@ -1251,7 +1298,7 @@
   function candidatosBanda(bandas, paciente) {
     if (!bandas || !bandas.length) return [];
     var sexo = paciente && (paciente.sexo === "Masculino" || paciente.sexo === "Femenino") ? paciente.sexo : null;
-    var edad = paciente ? edadEnAniosDecimal(paciente.fechaNacimiento) : null;
+    var edad = paciente ? edadDecimalDelPaciente(paciente) : null;
     return bandas.filter(function (b) {
       var okGenero = !b.genero || b.genero === "ambos" || b.genero === sexo;
       var okEdadMin = b.edadMinAnios == null || (edad != null && edad >= b.edadMinAnios);
@@ -1453,6 +1500,10 @@
     eliminarSeccionPersonalizada: eliminarSeccionPersonalizada,
     examenPorId: examenPorId,
     examenesEfectivos: examenesEfectivos,
+    examenesDisponibles: examenesDisponibles,
+    ocultarExamenFabrica: ocultarExamenFabrica,
+    mostrarExamenFabrica: mostrarExamenFabrica,
+    examenOculto: examenOculto,
     examenPersonalizadoPorId: examenPersonalizadoPorId,
     esExamenPropio: esExamenPropio,
     crearExamenPersonalizado: crearExamenPersonalizado,
@@ -1478,6 +1529,7 @@
     setBandas: setBandas,
     tieneBandas: tieneBandas,
     edadEnAniosDecimal: edadEnAniosDecimal,
+    edadDecimalDelPaciente: edadDecimalDelPaciente,
     seleccionarBanda: seleccionarBanda,
     candidatosBanda: candidatosBanda,
     bandaPorEtiqueta: bandaPorEtiqueta,

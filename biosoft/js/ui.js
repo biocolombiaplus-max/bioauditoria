@@ -28,7 +28,9 @@
     history: "M3 12a9 9 0 1 0 3-6.7M3 3v6h6M12 7v5l3 3",
     lock: "M6 11V7a6 6 0 1 1 12 0v4M5 11h14v9a1 1 0 0 1-1 1H6a1 1 0 0 1-1-1v-9Z",
     key: "M21 2l-2 2m-7.5 7.5a4 4 0 1 1-5.7 5.7 4 4 0 0 1 5.7-5.7Zm0 0L17 5m0 0 3 3m-3-3-2.5 2.5M19 8l-3-3",
-    trending: "M23 6 13.5 15.5l-5-5L1 18M17 6h6v6"
+    trending: "M23 6 13.5 15.5l-5-5L1 18M17 6h6v6",
+    eye: "M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8ZM12 15a3 3 0 1 0 0-6 3 3 0 0 0 0 6Z",
+    "eye-off": "M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24M1 1l22 22"
   };
 
   function icon(name, cls) {
@@ -91,6 +93,19 @@
     if (months >= 1) return months + " meses";
     var diffDays = Math.max(0, Math.round((hoy - nac) / 86400000));
     return diffDays + " días";
+  }
+
+  /* Igual que calcEdad(), pero recibe el paciente completo: la fecha de
+     nacimiento ya no es obligatoria en el registro de pacientes (algunos
+     laboratorios solo conocen la edad aproximada), así que si no hay
+     fecha registrada cae al campo edadAnios que se haya guardado a mano.
+     Devuelve "" si no hay ninguno de los dos datos. */
+  function edadTexto(paciente) {
+    if (!paciente) return "";
+    var porFecha = calcEdad(paciente.fechaNacimiento);
+    if (porFecha) return porFecha;
+    if (paciente.edadAnios != null && paciente.edadAnios !== "") return paciente.edadAnios + " años";
+    return "";
   }
 
   function fmtFecha(iso) {
@@ -307,7 +322,7 @@
 
   global.BIO_UI = {
     icon: icon, esc: esc, toast: toast, openModal: openModal, closeModal: closeModal,
-    calcEdad: calcEdad, fmtFecha: fmtFecha, fmtFechaCorta: fmtFechaCorta, nombreCompleto: nombreCompleto,
+    calcEdad: calcEdad, edadTexto: edadTexto, fmtFecha: fmtFecha, fmtFechaCorta: fmtFechaCorta, nombreCompleto: nombreCompleto,
     applyTenantTheme: applyTenantTheme, resetTheme: resetTheme, contrastColor: contrastColor, dataUrlToBlob: dataUrlToBlob, openDataUrlInNewTab: openDataUrlInNewTab,
     downloadBytes: downloadBytes, normalizar: normalizar, emailLinks: emailLinks,
     emailProviderButtonsHtml: emailProviderButtonsHtml, wireEmailProviderButtons: wireEmailProviderButtons,
