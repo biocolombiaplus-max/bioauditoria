@@ -26,6 +26,19 @@
     // (ej. después de restablecer su contraseña) pero cuyo registro en el
     // laboratorio quedó incompleto o desactivado.
     if (err && err.message && !err.code) return err.message;
+    // Caso real que motivó esto: un usuario cuya contraseña SÍ era correcta
+    // (Firebase Auth lo dejaba entrar, con fecha de acceso actualizándose
+    // cada intento) y cuyo enlace de perfil estaba en orden, seguía viendo
+    // "Usuario no encontrado o inactivo" — porque un error real de
+    // Firestore (ej. "permission-denied" al cargar las colecciones del
+    // laboratorio en initRealtime) tiene SÍ un err.code, pero uno que no es
+    // auth/* y por eso no estaba en FIREBASE_ERRORS ni en el chequeo de
+    // arriba — así que caía aquí y se mostraba el mismo mensaje genérico de
+    // "cuenta inactiva", mandando a cualquiera a revisar la cuenta cuando
+    // el problema real estaba en otro lado. Ahora, si hay un código
+    // reconocible (aunque no tenga traducción amigable), se muestra tal
+    // cual — mejor un mensaje técnico que uno que oculta la causa real.
+    if (err && err.code) return "No se pudo completar el ingreso (código: " + err.code + "). Si tu correo y contraseña son correctos, escríbenos a soporte con este código.";
     return "Usuario no encontrado o inactivo.";
   }
 
@@ -80,6 +93,12 @@
       BIO_STORE.addAudit(realUser.tenantId, realUser.nombre, realUser.rol, "LOGIN", "sesion", realUser.id, "Inicio de sesión exitoso.");
       return { ok: true, session: session };
     }).catch(function (err) {
+      // Se deja en consola el error crudo (código y mensaje de Firebase/
+      // Firestore) — el mensaje que ve el usuario ya se simplifica para no
+      // asustarlo, pero sin esto, diagnosticar un fallo real (ej. un
+      // permission-denied en alguna colección de initRealtime) exigía
+      // reproducirlo con las herramientas de desarrollador abiertas.
+      console.error("BIOsoft: error de inicio de sesión ->", err && err.code, err && err.message);
       return { ok: false, error: mapFirebaseError(err) };
     });
   }
