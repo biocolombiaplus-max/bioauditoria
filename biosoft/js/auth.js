@@ -52,7 +52,13 @@
       BIO_STORE.addAudit(user.tenantId, user.nombre, user.rol, "LOGIN", "sesion", user.id, "Inicio de sesión exitoso.");
       return Promise.resolve({ ok: true, session: session });
     }
-    if (username.indexOf("@") === -1) return Promise.resolve({ ok: false, error: "Usuario no encontrado o inactivo." });
+    // Si no es un usuario Demo y tampoco tiene forma de correo, lo más
+    // probable es que sea un usuario real escribiendo su nombre de usuario
+    // en vez de su correo (las cuentas reales SIEMPRE inician sesión con
+    // correo electrónico) — antes esto devolvía el mismo mensaje genérico
+    // de "inactivo", que hacía pensar que su cuenta estaba dañada cuando en
+    // realidad solo le faltaba escribir el correo completo.
+    if (username.indexOf("@") === -1) return Promise.resolve({ ok: false, error: "Si tu laboratorio ya tiene BIOsoft, ingresa tu correo electrónico completo (el que usaste al crear tu cuenta), no solo tu nombre de usuario." });
     return BIO_STORE.loginReal(username, password).then(function (realUser) {
       if (realUser.tenantId) {
         var tenant = BIO_STORE.getTenant(realUser.tenantId);
