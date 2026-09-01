@@ -94,14 +94,26 @@
       '<button class="btn btn-ghost btn-sm" data-eliminar-orden="' + o.id + '" title="Eliminar esta orden (ej. se creó de más por error)">' + U.icon("trash") + "</button></td></tr>";
   }
 
+  // Paquetes de exámenes (ej. "Perfil Lipídico"): se crean en Cotizaciones
+  // → "📦 Paquetes" — aquí solo se seleccionan y se EXPANDEN a sus exámenes
+  // individuales al crear la orden (ver btn-save-order más abajo), porque
+  // una orden necesita un renglón real por examen para captura de
+  // resultados, permisos por sección y validación — un paquete es solo un
+  // atajo de selección + precio con descuento, no puede quedar como un
+  // solo "examen" opaco en la orden como sí se permite en una cotización.
+  var SECCION_PAQUETES_ORDEN = { id: "paquetes-virtual", nombre: "📦 Paquetes" };
+
   function renderNewOrder(root, prefillId) {
     var session = BIO_AUTH.getSession();
     var tenant = BIO_AUTH.currentTenant();
     var examenes = C.examenesDisponibles(tenant);
-    var secciones = C.seccionesEfectivas(tenant);
+    var paquetes = S.cotizador.listPaquetes(session.tenantId).filter(function (p) { return p.activo !== false && p.examenesIds && p.examenesIds.length; });
+    var seccionesReales = C.seccionesEfectivas(tenant);
+    var secciones = paquetes.length ? [SECCION_PAQUETES_ORDEN].concat(seccionesReales) : seccionesReales;
     var patients = S.listPatients(session.tenantId);
     var selectedExams = []; // {examId}
-    var activeSection = secciones[0].id;
+    var selectedPaquetes = []; // {paqueteId}
+    var activeSection = seccionesReales[0].id;
     var searchTerm = "";
     // Precios ya configurados por el laboratorio (Cotizador → Lista de
     // Precios), para sugerir el "Valor a Cobrar" automáticamente según los
@@ -186,7 +198,7 @@
 
     function renderSections() {
       document.getElementById("sec-list").innerHTML = secciones.map(function (s) {
-        var count = selectedExams.filter(function (id) { return C.examenEfectivo(id, tenant).seccion === s.id; }).length;
+        var count = s.id === SECCION_PAQUETES_ORDEN.id ? selectedPaquetes.length : selectedExams.filter(function (id) { return C.examenEfectivo(id, tenant).seccion === s.id; }).length;
         return '<div class="sec-item ' + (!searchTerm && s.id === activeSection ? "active" : "") + '" data-sec="' + s.id + '">' + s.nombre + (count ? ' <span class="badge badge-validado" style="margin-left:4px">' + count + "</span>" : "") + "</div>";
       }).join("");
       document.querySelectorAll(".sec-item").forEach(function (el) {
@@ -199,6 +211,30 @@
 
     function renderExams() {
       var term = U.normalizar(searchTerm.trim());
+      // "📦 Paquetes" es una sección propia con su propia lista de
+      // casillas (una por paquete, no por examen) — no se mezcla con la
+      // búsqueda general de exámenes individuales, igual que en el
+      // Cotizador.
+      if (!term && activeSection === SECCION_PAQUETES_ORDEN.id) {
+        document.getElementById("exam-list").innerHTML = paquetes.length ? paquetes.map(function (p) {
+          var checked = selectedPaquetes.indexOf(p.id) !== -1;
+          var cant = p.examenesIds.length;
+          var incluidos = p.examenesIds.map(function (id) { var e = C.examenPorId(id) || C.examenEfectivo(id, tenant); return e ? e.nombre : null; }).filter(Boolean).join(", ");
+          return '<label class="exam-row"><input type="checkbox" data-paquete="' + p.id + '" ' + (checked ? "checked" : "") + '/>' +
+            '<div class="grow"><div>' + U.esc(p.nombre) + "</div>" +
+            '<div class="meta">' + cant + " examen" + (cant === 1 ? "" : "es") + " incluido" + (cant === 1 ? "" : "s") + (incluidos ? " — " + U.esc(incluidos) : "") + "</div></div>" +
+            (tenant.mostrarPrecioOrden ? '<div style="text-align:right;white-space:nowrap;font-weight:700;font-size:13px">' + (p.precio ? fmtMoneda(p.precio) : '<span class="text-muted">Sin precio</span>') + "</div>" : "") +
+            "</label>";
+        }).join("") : '<p class="text-muted" style="padding:14px">Aún no has creado ningún paquete. Ve a Cotizaciones → "📦 Paquetes" para crear el primero.</p>';
+        document.querySelectorAll("[data-paquete]").forEach(function (chk) {
+          chk.addEventListener("change", function () {
+            var id = chk.dataset.paquete;
+            if (chk.checked) selectedPaquetes.push(id); else selectedPaquetes = selectedPaquetes.filter(function (x) { return x !== id; });
+            renderChips(); renderSections(); sugerirValorCobrar();
+          });
+        });
+        return;
+      }
       var pool = term
         ? examenes.filter(function (e) { return U.normalizar(e.nombre).indexOf(term) !== -1 || e.cups.indexOf(term) !== -1; })
         : examenes.filter(function (e) { return e.seccion === activeSection; });
@@ -242,20 +278,46 @@
       }
       var input = document.getElementById("f_valorCobrar");
       if (!input) return;
-      var total = selectedExams.reduce(function (sum, id) { return sum + precioConConvenio(id); }, 0);
+      // El precio de un paquete es el precio TOTAL que se le fijó al
+      // crearlo (con su descuento ya incluido) — no la suma de sus
+      // exámenes individuales, igual que en el Cotizador.
+      var totalPaquetes = selectedPaquetes.reduce(function (sum, id) {
+        var p = paquetes.filter(function (x) { return x.id === id; })[0];
+        return sum + (p ? p.precio || 0 : 0);
+      }, 0);
+      // Un examen ya cubierto por un paquete seleccionado no se vuelve a
+      // sumar por separado, aunque también esté marcado a mano — su costo
+      // ya está incluido en el precio del paquete.
+      var idsEnPaquetes = {};
+      selectedPaquetes.forEach(function (id) {
+        var p = paquetes.filter(function (x) { return x.id === id; })[0];
+        if (p) p.examenesIds.forEach(function (exId) { idsEnPaquetes[exId] = true; });
+      });
+      var total = selectedExams.filter(function (id) { return !idsEnPaquetes[id]; }).reduce(function (sum, id) { return sum + precioConConvenio(id); }, 0) + totalPaquetes;
       input.value = total || "";
       if (equiv) equiv.textContent = C.fmtMonedaAdicional(tenant, total);
     }
 
     function renderChips() {
-      document.getElementById("sel-count").textContent = selectedExams.length + " seleccionados";
-      document.getElementById("chips").innerHTML = selectedExams.map(function (id) {
+      document.getElementById("sel-count").textContent = (selectedExams.length + selectedPaquetes.length) + " seleccionados";
+      var chipsExamenes = selectedExams.map(function (id) {
         var e = C.examenEfectivo(id, tenant);
         return '<span class="chip">' + U.esc(e.nombre) + ' <button data-remove="' + id + '">' + U.icon("x") + "</button></span>";
-      }).join("");
+      });
+      var chipsPaquetes = selectedPaquetes.map(function (id) {
+        var p = paquetes.filter(function (x) { return x.id === id; })[0];
+        return '<span class="chip" style="border-color:var(--brand-primary)">📦 ' + U.esc(p ? p.nombre : id) + ' <button data-remove-paquete="' + id + '">' + U.icon("x") + "</button></span>";
+      });
+      document.getElementById("chips").innerHTML = chipsPaquetes.join("") + chipsExamenes.join("");
       document.querySelectorAll("[data-remove]").forEach(function (b) {
         b.addEventListener("click", function () {
           selectedExams = selectedExams.filter(function (x) { return x !== b.dataset.remove; });
+          renderChips(); renderExams(); renderSections(); sugerirValorCobrar();
+        });
+      });
+      document.querySelectorAll("[data-remove-paquete]").forEach(function (b) {
+        b.addEventListener("click", function () {
+          selectedPaquetes = selectedPaquetes.filter(function (x) { return x !== b.dataset.removePaquete; });
           renderChips(); renderExams(); renderSections(); sugerirValorCobrar();
         });
       });
@@ -283,7 +345,19 @@
     document.getElementById("btn-save-order").addEventListener("click", function () {
       var patientId = document.getElementById("f_patient").value;
       if (!patientId) { U.toast("Selecciona un paciente.", "error"); return; }
-      if (!selectedExams.length) { U.toast("Selecciona al menos un examen.", "error"); return; }
+      if (!selectedExams.length && !selectedPaquetes.length) { U.toast("Selecciona al menos un examen o paquete.", "error"); return; }
+      // Un paquete no es un "examen" real del catálogo — es un atajo de
+      // selección (varios exámenes con un precio con descuento). La orden
+      // necesita un renglón real por examen para poder capturar
+      // resultados, así que aquí se EXPANDE cada paquete elegido a sus
+      // exámenes individuales, sin duplicar uno que ya esté incluido a
+      // mano o en dos paquetes distintos.
+      var idsExamenesFinal = selectedExams.slice();
+      selectedPaquetes.forEach(function (paqId) {
+        var p = paquetes.filter(function (x) { return x.id === paqId; })[0];
+        if (!p) return;
+        p.examenesIds.forEach(function (exId) { if (idsExamenesFinal.indexOf(exId) === -1) idsExamenesFinal.push(exId); });
+      });
       var pacSel = S.getPatient(patientId);
       var convenioSel = convenioIdSel ? convenios.filter(function (c) { return c.id === convenioIdSel; })[0] : null;
       var order = {
@@ -309,7 +383,7 @@
         numAutorizacion: tenant.pais === "CO" ? document.getElementById("f_numAutorizacion").value : "",
         diagnosticoCIE10: tenant.pais === "CO" ? document.getElementById("f_diagnosticoCIE10").value : "",
         valorCobrar: tenant.mostrarPrecioOrden ? (parseFloat(document.getElementById("f_valorCobrar").value) || 0) : null,
-        examenes: selectedExams.map(function (id) {
+        examenes: idsExamenesFinal.map(function (id) {
           var exCat = C.examenEfectivo(id, tenant);
           return {
             examId: id, seccion: exCat.seccion, estado: "pendiente", valores: [], observaciones: "",
@@ -320,7 +394,8 @@
         estadoGeneral: "pendiente", creadoPor: session.username
       };
       var created = S.createOrder(order);
-      S.addAudit(session.tenantId, session.nombre, session.rol, "CREATE_ORDER", "orden", created.id, "Creó la orden " + created.numeroOrden + " con " + selectedExams.length + " examen(es).");
+      var detallePaquetes = selectedPaquetes.length ? " (incluye " + selectedPaquetes.length + " paquete(s))" : "";
+      S.addAudit(session.tenantId, session.nombre, session.rol, "CREATE_ORDER", "orden", created.id, "Creó la orden " + created.numeroOrden + " con " + idsExamenesFinal.length + " examen(es)" + detallePaquetes + ".");
       U.toast("Orden " + created.numeroOrden + " creada.", "success");
       ofrecerStickers(created);
     });
