@@ -315,17 +315,47 @@
       }
 
       function renderFormularioRemision() {
+        // "Recortar encabezado" (mm desde arriba del PDF subido): al armar
+        // el informe final, en vez de pegar la primera página del PDF del
+        // laboratorio externo tal cual (con su logo y sus datos), se le
+        // recorta esa franja superior y se dibuja ENCIMA el membrete propio
+        // del laboratorio — el resultado se ve como un examen más del
+        // informe, sin ningún rastro del laboratorio de referencia (ver el
+        // merge de "referidos" con recorte en buildResultsPdf, pdf.js). Es
+        // una franja FIJA en milímetros, no una vista previa recortable en
+        // pantalla — cada laboratorio de referencia diseña su PDF distinto,
+        // así que este valor es una estimación que puede necesitar ajuste;
+        // se puede volver a guardar cuantas veces haga falta sin tener que
+        // resubir el archivo. Por defecto queda en 0 (no recortar, se pega
+        // el PDF completo tal cual, como funcionaba antes de este ajuste)
+        // a propósito — un valor por defecto distinto de 0 podría recortar
+        // sin querer resultados reales de un laboratorio cuyo PDF trae poco
+        // o ningún encabezado; hay que revisar el archivo con "Ver archivo
+        // original" y decidir el recorte a propósito.
+        var recorteActual = ex.pdfRemitidoRecorteMm || 0;
         card.innerHTML = headerHtml() +
-          '<p class="text-muted">Marca este examen como remitido cuando se envía a procesar en un laboratorio externo más especializado. El PDF que subas aquí será el que se le entregue al paciente para este examen, conforme a la Resolución 3100.</p>' +
+          '<p class="text-muted">Marca este examen como remitido cuando se envía a procesar en un laboratorio externo más especializado. El PDF que subas aquí queda como respaldo interno; en el informe que recibe el paciente, esa primera página se muestra con TU membrete y diseño en vez del logo y los datos del laboratorio de referencia, conforme a la Resolución 3100.</p>' +
           (editable ? '<div class="checkbox-row" style="margin-bottom:12px"><input type="checkbox" id="chk-remitido" checked/><label style="margin:0" for="chk-remitido">Este examen se remite a un laboratorio externo</label></div>' : "") +
           '<div class="form-grid">' +
           '<div class="field"><label>Laboratorio de Referencia *</label><input id="f-labref" value="' + U.esc(ex.laboratorioRemision || "") + '" placeholder="Ej: Laboratorio Especializado XYZ"/></div>' +
           '<div class="field"><label>PDF del Informe Remitido *</label><input type="file" id="f-pdfref" accept="application/pdf"/></div>' +
+          '<div class="field"><label>Recortar encabezado del PDF (mm desde arriba)</label><input type="number" id="f-pdfref-recorte" min="0" step="1" value="' + recorteActual + '"/>' +
+          '<span class="text-muted" style="font-size:11px">0 = no recortar, se pega el PDF completo tal cual (como antes). Abre el archivo con "Ver archivo original" para calcular cuánto mide el logo/encabezado del otro laboratorio.</span></div>' +
           "</div>" +
           '<div id="pdfref-preview" class="text-muted" style="font-size:12.5px">' + (ex.pdfRemitidoNombre ? "Archivo actual: " + U.esc(ex.pdfRemitidoNombre) : "Sin archivo cargado") + "</div>" +
+          '<div class="flex gap-2 wrap" style="margin-top:8px" id="pdfref-verbtn-wrap"></div>' +
           '<div class="flex gap-2 wrap" style="margin-top:12px">' +
           '<button class="btn btn-primary btn-sm" data-action="guardar-remision">' + U.icon("check") + " Guardar Remisión</button>" +
           "</div>";
+
+        function actualizarBotonVer() {
+          var wrap2 = card.querySelector("#pdfref-verbtn-wrap");
+          var pdfActual = pdfPendienteDataUrl || ex.pdfRemitidoDataUrl;
+          wrap2.innerHTML = pdfActual ? '<button type="button" class="btn btn-outline btn-sm" data-action="ver-original">' + U.icon("file") + " Ver archivo original</button>" : "";
+          var bv2 = wrap2.querySelector('[data-action="ver-original"]');
+          if (bv2) bv2.addEventListener("click", function () { U.openDataUrlInNewTab(pdfActual); });
+        }
+        actualizarBotonVer();
 
         var chk = card.querySelector("#chk-remitido");
         if (chk) chk.addEventListener("change", function () { if (!chk.checked) { modoRemision = false; renderCapturaNormal(); } });
@@ -337,6 +367,7 @@
             pdfPendienteDataUrl = ev.target.result;
             pdfPendienteNombre = file.name;
             card.querySelector("#pdfref-preview").textContent = "Archivo seleccionado: " + file.name;
+            actualizarBotonVer();
           };
           reader.readAsDataURL(file);
         });
@@ -344,9 +375,11 @@
           var lab = card.querySelector("#f-labref").value.trim();
           var pdf = pdfPendienteDataUrl || ex.pdfRemitidoDataUrl;
           var pdfNombre = pdfPendienteNombre || ex.pdfRemitidoNombre;
+          var recorteMm = parseFloat(card.querySelector("#f-pdfref-recorte").value);
           if (!lab) { U.toast("Indica el nombre del laboratorio de referencia.", "error"); return; }
           if (!pdf) { U.toast("Adjunta el PDF del informe remitido.", "error"); return; }
           ex.remitido = true; ex.laboratorioRemision = lab; ex.pdfRemitidoDataUrl = pdf; ex.pdfRemitidoNombre = pdfNombre;
+          ex.pdfRemitidoRecorteMm = isNaN(recorteMm) ? 0 : Math.max(0, recorteMm);
           ex.estado = "remitido"; ex.validadoPor = session.nombre; ex.validadoPorUserId = session.userId; ex.fechaValidacion = S.nowISO();
           S.recalcEstadoGeneral(order); S.saveOrder(order);
           S.addAudit(session.tenantId, session.nombre, session.rol, "MARK_REFERRED_EXAM", "resultado", order.id + ":" + ex.examId, "Registró remisión de " + exCat.nombre + " al laboratorio " + lab + " (Orden " + order.numeroOrden + ").");

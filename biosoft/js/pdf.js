@@ -763,11 +763,70 @@
       var PDFDocument = window.PDFLib.PDFDocument;
       var finalDoc = await PDFDocument.load(coverBytes);
       for (var i = 0; i < referidos.length; i++) {
-        if (!referidos[i].pdfRemitidoDataUrl) continue;
-        var donorBytes = dataUrlToUint8Array(referidos[i].pdfRemitidoDataUrl);
+        var refEx = referidos[i];
+        if (!refEx.pdfRemitidoDataUrl) continue;
+        var donorBytes = dataUrlToUint8Array(refEx.pdfRemitidoDataUrl);
         var donor = await PDFDocument.load(donorBytes);
-        var pages = await finalDoc.copyPages(donor, donor.getPageIndices());
-        pages.forEach(function (p) { finalDoc.addPage(p); });
+        var recorteMm = refEx.pdfRemitidoRecorteMm || 0;
+        if (!recorteMm) {
+          var pages = await finalDoc.copyPages(donor, donor.getPageIndices());
+          pages.forEach(function (p) { finalDoc.addPage(p); });
+          continue;
+        }
+        // Con recorte pedido: la primera página del PDF del laboratorio
+        // de referencia se pega SIN su franja superior (donde suele ir
+        // su logo y sus datos), y encima se dibuja el membrete PROPIO
+        // del laboratorio — para el paciente, el resultado remitido se
+        // ve como una página más del informe, no como un documento
+        // ajeno pegado. jsPDF (que dibuja membretes) y pdf-lib (que
+        // recorta/incrusta PDFs ajenos) son librerías distintas que no
+        // comparten un mismo lienzo, así que se arma en dos pasos:
+        // primero se dibuja el membrete en un PDF chico aparte con
+        // jsPDF, se copia esa página ya lista al documento final, y
+        // AHÍ ENCIMA se incrusta (con pdf-lib) el contenido recortado
+        // del laboratorio de referencia, debajo de la línea del
+        // membrete. Si algo sale mal (ej. un PDF con un formato que
+        // pdf-lib no logra leer), se cae al comportamiento de siempre:
+        // pegar el PDF completo del laboratorio de referencia tal cual.
+        try {
+          var exCatRef = C.examenEfectivo(refEx.examId, tenant);
+          var headerDoc = new jsPDFCtor({ unit: "pt", format: "letter" });
+          var yHeader = await dibujarMembrete(headerDoc, tenant, margin);
+          headerDoc.setFont(fontFam, "bold"); headerDoc.setFontSize(9.5); headerDoc.setTextColor(rgb[0], rgb[1], rgb[2]);
+          headerDoc.text("RESULTADO REMITIDO — " + (exCatRef ? exCatRef.nombre : ""), margin, yHeader);
+          yHeader += 12;
+          headerDoc.setFont(fontFam, "italic"); headerDoc.setFontSize(8); headerDoc.setTextColor(110, 110, 110);
+          headerDoc.text("Procesado por laboratorio de referencia: " + (refEx.laboratorioRemision || "—") + " — documento original disponible como respaldo interno.", margin, yHeader, { maxWidth: pageW - margin * 2 });
+          yHeader += 16;
+          var headerBytes = new Uint8Array(headerDoc.output("arraybuffer"));
+          var headerDonor = await PDFDocument.load(headerBytes);
+          var headerPages = await finalDoc.copyPages(headerDonor, [0]);
+          var nuevaPagina = headerPages[0];
+          finalDoc.addPage(nuevaPagina);
+
+          var donorPage = donor.getPage(0);
+          var donorSize = donorPage.getSize();
+          var recortePt = recorteMm * (72 / 25.4); // mm -> pt
+          var altoUtilDonante = Math.max(1, donorSize.height - recortePt);
+          var anchoDisponible = pageW - margin * 2;
+          var altoDisponible = Math.max(1, (pageH - 55) - yHeader);
+          var escala = Math.min(anchoDisponible / donorSize.width, altoDisponible / altoUtilDonante);
+          var anchoDibujado = donorSize.width * escala;
+          var altoDibujado = altoUtilDonante * escala;
+          var embebida = await finalDoc.embedPage(donorPage, { left: 0, bottom: 0, right: donorSize.width, top: altoUtilDonante });
+          nuevaPagina.drawPage(embebida, { x: margin, y: pageH - yHeader - altoDibujado, width: anchoDibujado, height: altoDibujado });
+
+          // El resto de páginas del PDF remitido (si tiene más de una) se
+          // pegan tal cual, sin recortar — normalmente solo la primera
+          // trae el logo/encabezado completo del laboratorio de referencia.
+          if (donor.getPageCount() > 1) {
+            var restoPages = await finalDoc.copyPages(donor, donor.getPageIndices().slice(1));
+            restoPages.forEach(function (p) { finalDoc.addPage(p); });
+          }
+        } catch (eRecorte) {
+          var pagesFallback = await finalDoc.copyPages(donor, donor.getPageIndices());
+          pagesFallback.forEach(function (p) { finalDoc.addPage(p); });
+        }
       }
       return await finalDoc.save();
     } catch (e) {
