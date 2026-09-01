@@ -802,7 +802,7 @@
     var jsPDFCtor = window.jspdf ? window.jspdf.jsPDF : window.jsPDF;
     var byTubo = {};
     order.examenes.forEach(function (ex) {
-      var exCat = C.examenPorId(ex.examId);
+      var exCat = C.examenEfectivo(ex.examId, tenant);
       var key = exCat.tubo || "otro";
       (byTubo[key] = byTubo[key] || []).push(exCat);
     });

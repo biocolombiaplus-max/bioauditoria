@@ -604,10 +604,12 @@
       '<div class="field"><label>Método / Técnica (opcional)</label>' +
       '<input id="cat-metodo-examen" placeholder="Ej: ELISA, Electroquimioluminiscencia…" value="' + U.esc(efectivo.metodo || "") + '"/></div>' +
       (!propio ? F.sel("cat_seccion", "Sección", C.seccionesEfectivas(tenant).map(function (s) { return "<option value='" + s.id + "' " + (s.id === efectivo.seccion ? "selected" : "") + ">" + s.nombre + "</option>"; }).join("")) : "") +
+      (!propio ? F.sel("cat_tubo", "Tubo de Recolección", Object.keys(C.TUBOS).map(function (k) { return "<option value='" + k + "' " + (k === efectivo.tubo ? "selected" : "") + ">" + C.TUBOS[k].nombre + "</option>"; }).join("")) : "") +
       "</div>" +
       (efectivo.nombre !== exCat.nombre ? '<p class="text-muted" style="margin:2px 0 12px;font-size:12px">Nombre de fábrica: ' + U.esc(exCat.nombre) + ' — <button type="button" class="btn btn-ghost btn-sm" id="btn-restablecer-nombre" style="padding:2px 6px">Restablecer</button></p>' : "") +
       (!propio && efectivo.seccion !== exCat.seccion ? '<p class="text-muted" style="margin:2px 0 12px;font-size:12px">Sección de fábrica: ' + U.esc(C.seccionNombre(exCat.seccion)) + ' — <button type="button" class="btn btn-ghost btn-sm" id="btn-restablecer-seccion" style="padding:2px 6px">Restablecer</button></p>' +
         '<p class="text-muted" style="margin:2px 0 12px;font-size:11.5px">Las órdenes ya creadas con este examen no se afectan — guardan su propia sección. Solo las órdenes nuevas usarán la sección recategorizada.</p>' : "") +
+      (!propio && efectivo.tubo !== exCat.tubo ? '<p class="text-muted" style="margin:2px 0 12px;font-size:12px">Tubo de fábrica: ' + U.esc(C.TUBOS[exCat.tubo] ? C.TUBOS[exCat.tubo].nombre : exCat.tubo) + ' — <button type="button" class="btn btn-ghost btn-sm" id="btn-restablecer-tubo" style="padding:2px 6px">Restablecer</button></p>' : "") +
       (propio ? '<fieldset style="margin:10px 0"><legend>Datos del examen propio</legend><div class="form-grid">' +
         F.sel("propio_seccion", "Sección", C.seccionesEfectivas(tenant).map(function (s) { return "<option value='" + s.id + "' " + (s.id === exCat.seccion ? "selected" : "") + ">" + s.nombre + "</option>"; }).join("")) +
         F.inp("propio_cups", "Código CUPS (opcional)", exCat.cups || "") +
@@ -692,6 +694,9 @@
     var btnRestablecerSeccion = wrap.querySelector("#btn-restablecer-seccion");
     if (btnRestablecerSeccion) btnRestablecerSeccion.addEventListener("click", function () { wrap.querySelector("#f_cat_seccion").value = exCat.seccion; });
 
+    var btnRestablecerTubo = wrap.querySelector("#btn-restablecer-tubo");
+    if (btnRestablecerTubo) btnRestablecerTubo.addEventListener("click", function () { wrap.querySelector("#f_cat_tubo").value = exCat.tubo; });
+
     wrap.querySelectorAll("[data-bandas]").forEach(function (btn) {
       btn.addEventListener("click", function () {
         var p = efectivo.parametros.filter(function (pp) { return pp.codigo === btn.dataset.bandas; })[0];
@@ -722,12 +727,19 @@
       var nuevoMetodo = wrap.querySelector("#cat-metodo-examen").value.trim();
       C.cambiarMetodoExamen(tenant, examId, nuevoMetodo === exCat.metodo ? "" : nuevoMetodo);
       var seccionCambio = false;
+      var tuboCambio = false;
       if (!propio) {
         var seccionSel = wrap.querySelector("#f_cat_seccion");
         if (seccionSel) {
           var nuevaSeccion = seccionSel.value;
           seccionCambio = nuevaSeccion !== efectivo.seccion;
           C.cambiarSeccionExamen(tenant, examId, nuevaSeccion);
+        }
+        var tuboSel = wrap.querySelector("#f_cat_tubo");
+        if (tuboSel) {
+          var nuevoTubo = tuboSel.value;
+          tuboCambio = nuevoTubo !== efectivo.tubo;
+          C.cambiarTuboExamen(tenant, examId, nuevoTubo);
         }
       }
       if (propio) {
@@ -778,6 +790,7 @@
       S.updateTenant(tenant.id, { refOverrides: tenant.refOverrides || {}, examCustom: tenant.examCustom || {} });
       if (nombreCambio) S.addAudit(session.tenantId, session.nombre, session.rol, "RENAME_EXAM", "catalogo", examId, "Renombró " + exCat.nombre + ' a "' + nuevoNombre + '" para su laboratorio.');
       if (seccionCambio) S.addAudit(session.tenantId, session.nombre, session.rol, "RECATEGORIZE_EXAM", "catalogo", examId, "Recategorizó " + exCat.nombre + " a la sección " + C.seccionNombre(wrap.querySelector("#f_cat_seccion").value, tenant) + " para su laboratorio.");
+      if (tuboCambio) S.addAudit(session.tenantId, session.nombre, session.rol, "CHANGE_EXAM_TUBE", "catalogo", examId, "Cambió el tubo de recolección de " + exCat.nombre + " a " + (C.TUBOS[wrap.querySelector("#f_cat_tubo").value] || {}).nombre + " para su laboratorio.");
       S.addAudit(session.tenantId, session.nombre, session.rol, "UPDATE_REF_RANGE", "catalogo", examId, "Actualizó valores de referencia de " + exCat.nombre + " (" + cambios + " parámetro(s) personalizado(s)).");
       U.toast("Cambios guardados para tu laboratorio.", "success");
       U.closeModal(wrap);

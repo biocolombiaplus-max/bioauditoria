@@ -1132,6 +1132,7 @@
     if (custom && custom.nombre) clone.nombre = custom.nombre;
     if (custom && custom.metodo) clone.metodo = custom.metodo;
     if (custom && custom.seccion) clone.seccion = custom.seccion;
+    if (custom && custom.tubo) clone.tubo = custom.tubo;
     clone.parametros = parametros;
     return clone;
   }
@@ -1140,7 +1141,7 @@
     if (!tenant) return false;
     if (!examenPorId(examId)) return true; // es un examen 100% propio del laboratorio
     var custom = examCustomDe(examId, tenant);
-    if (custom && (custom.nombre || custom.metodo || custom.seccion || (custom.ocultos && custom.ocultos.length) || (custom.personalizados && custom.personalizados.length) || (custom.orden && custom.orden.length))) return true;
+    if (custom && (custom.nombre || custom.metodo || custom.seccion || custom.tubo || (custom.ocultos && custom.ocultos.length) || (custom.personalizados && custom.personalizados.length) || (custom.orden && custom.orden.length))) return true;
     if (!tenant.refOverrides) return false;
     return (Array.isArray(examenPorId(examId).parametros) ? examenPorId(examId).parametros : []).some(function (p) { return !!tenant.refOverrides[overrideKey(examId, p.codigo)]; });
   }
@@ -1169,6 +1170,19 @@
     var exCat = examenPorId(examId);
     var c = asegurarExamCustom(tenant, examId);
     if (seccionId && exCat && seccionId !== exCat.seccion) c.seccion = seccionId; else delete c.seccion;
+  }
+
+  /* Cambia el tubo de recolección de un examen de FÁBRICA SOLO para este
+     laboratorio — la práctica varía por país/laboratorio (ej. Glucosa
+     viene de fábrica en tapa gris/fluoruro, pero en Colombia y Venezuela
+     muchos laboratorios la toman en tapa roja o amarilla). Se aplica de
+     inmediato al elegir exámenes para una orden nueva, a la etiqueta/
+     sticker de tubo impresa y a la hoja de remisión — no afecta a otros
+     laboratorios ni el catálogo global. */
+  function cambiarTuboExamen(tenant, examId, tuboKey) {
+    var exCat = examenPorId(examId);
+    var c = asegurarExamCustom(tenant, examId);
+    if (tuboKey && exCat && tuboKey !== exCat.tubo) c.tubo = tuboKey; else delete c.tubo;
   }
 
   function crearExamenPersonalizado(tenant, datos) {
@@ -1529,6 +1543,7 @@
     eliminarExamenPersonalizado: eliminarExamenPersonalizado, restablecerExamenAFabrica: restablecerExamenAFabrica,
     cambiarMetodoExamen: cambiarMetodoExamen,
     cambiarSeccionExamen: cambiarSeccionExamen,
+    cambiarTuboExamen: cambiarTuboExamen,
     tuboInfo: tuboInfo,
     fmtMonedaAdicional: fmtMonedaAdicional, monedaBaseLabel: monedaBaseLabel,
     calcularFlag: calcularFlag,
