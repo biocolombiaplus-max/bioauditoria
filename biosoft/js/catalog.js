@@ -1131,6 +1131,7 @@
     }
     if (custom && custom.nombre) clone.nombre = custom.nombre;
     if (custom && custom.metodo) clone.metodo = custom.metodo;
+    if (custom && custom.seccion) clone.seccion = custom.seccion;
     clone.parametros = parametros;
     return clone;
   }
@@ -1139,7 +1140,7 @@
     if (!tenant) return false;
     if (!examenPorId(examId)) return true; // es un examen 100% propio del laboratorio
     var custom = examCustomDe(examId, tenant);
-    if (custom && (custom.nombre || custom.metodo || (custom.ocultos && custom.ocultos.length) || (custom.personalizados && custom.personalizados.length) || (custom.orden && custom.orden.length))) return true;
+    if (custom && (custom.nombre || custom.metodo || custom.seccion || (custom.ocultos && custom.ocultos.length) || (custom.personalizados && custom.personalizados.length) || (custom.orden && custom.orden.length))) return true;
     if (!tenant.refOverrides) return false;
     return (Array.isArray(examenPorId(examId).parametros) ? examenPorId(examId).parametros : []).some(function (p) { return !!tenant.refOverrides[overrideKey(examId, p.codigo)]; });
   }
@@ -1151,6 +1152,23 @@
   function cambiarMetodoExamen(tenant, examId, metodo) {
     var c = asegurarExamCustom(tenant, examId);
     if (metodo && metodo.trim()) c.metodo = metodo.trim(); else delete c.metodo;
+  }
+
+  /* Recategoriza un examen de FÁBRICA a otra sección (existente o una que
+     el laboratorio haya creado con "Nueva Categoría") SOLO para este
+     laboratorio — no toca el catálogo global ni afecta a otros
+     laboratorios. Las órdenes YA CREADAS con este examen guardan su
+     propia sección al momento de crearse (ver "seccion" en
+     views-orders.js al armar order.examenes) y no se ven afectadas por
+     este cambio — ni en captura de resultados, ni en hojas de trabajo, ni
+     en el informe PDF, todos los cuales usan esa sección ya guardada en
+     la orden. Solo las órdenes/cotizaciones NUEVAS que se creen después
+     usan la sección recategorizada. Pasa la sección de fábrica del examen
+     para quitar la recategorización. */
+  function cambiarSeccionExamen(tenant, examId, seccionId) {
+    var exCat = examenPorId(examId);
+    var c = asegurarExamCustom(tenant, examId);
+    if (seccionId && exCat && seccionId !== exCat.seccion) c.seccion = seccionId; else delete c.seccion;
   }
 
   function crearExamenPersonalizado(tenant, datos) {
@@ -1510,6 +1528,7 @@
     actualizarExamenPersonalizado: actualizarExamenPersonalizado,
     eliminarExamenPersonalizado: eliminarExamenPersonalizado, restablecerExamenAFabrica: restablecerExamenAFabrica,
     cambiarMetodoExamen: cambiarMetodoExamen,
+    cambiarSeccionExamen: cambiarSeccionExamen,
     tuboInfo: tuboInfo,
     fmtMonedaAdicional: fmtMonedaAdicional, monedaBaseLabel: monedaBaseLabel,
     calcularFlag: calcularFlag,

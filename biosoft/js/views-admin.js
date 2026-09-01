@@ -314,8 +314,16 @@
     var busqueda = "";
     var tenant;
 
-    function build() {
-      tenant = S.getTenant(session.tenantId);
+    // El buscador y el filtro de sección viven en un "shell" que se
+    // renderiza una sola vez (build()) — antes, cada letra tecleada en
+    // "cat-busqueda" volvía a armar TODA la pantalla (root.innerHTML)
+    // incluyendo el propio campo de búsqueda, que se recreaba vacío y sin
+    // foco a mitad de tecleo: se sentía como que el buscador "se bloquea
+    // o se sale" con cada letra (bug real reportado). Ahora, teclear en
+    // el buscador solo vuelve a pintar la tabla de resultados
+    // (renderTabla(), que reemplaza únicamente "#cat-tabla-wrap") — el
+    // campo de búsqueda nunca se toca mientras se escribe en él.
+    function renderTabla() {
       var exams = C.examenesEfectivos(tenant).filter(function (e) {
         var okSec = filtroSeccion === "todas" || e.seccion === filtroSeccion;
         var okBusq = !busqueda || U.normalizar(e.nombre).indexOf(U.normalizar(busqueda)) !== -1 || e.cups.indexOf(busqueda) !== -1;
@@ -326,6 +334,59 @@
       // por eso las flechas de mover solo aparecen con una sección elegida.
       var permiteOrdenar = filtroSeccion !== "todas" && !busqueda;
       if (permiteOrdenar) exams = C.ordenarPorExamen(exams, tenant, function (e) { return e.id; });
+      document.getElementById("cat-tabla-wrap").innerHTML =
+        '<div class="table-wrap"><table><thead><tr>' + (permiteOrdenar ? "<th></th>" : "") + '<th>Examen</th><th>Sección</th><th># Parámetros</th><th>Estado</th><th></th></tr></thead><tbody>' +
+        (exams.length ? exams.map(function (e, i) { return rowHtml(e, i, exams.length, permiteOrdenar); }).join("") : '<tr><td colspan="' + (permiteOrdenar ? 6 : 5) + '" class="text-muted">Sin resultados.</td></tr>') +
+        "</tbody></table></div>";
+
+      root.querySelectorAll("[data-editexam]").forEach(function (b) { b.addEventListener("click", function () { openExamEditor(b.dataset.editexam, build); }); });
+      root.querySelectorAll("[data-eliminarexam]").forEach(function (b) {
+        b.addEventListener("click", function () {
+          if (!confirm("¿Eliminar este examen propio del laboratorio? Esta acción no se puede deshacer.")) return;
+          C.eliminarExamenPersonalizado(tenant, b.dataset.eliminarexam);
+          S.updateTenant(tenant.id, { examenesPersonalizados: tenant.examenesPersonalizados, examCustom: tenant.examCustom || {}, ordenExamenes: tenant.ordenExamenes || [] });
+          S.addAudit(session.tenantId, session.nombre, session.rol, "DELETE_EXAM", "catalogo", b.dataset.eliminarexam, "Eliminó un examen propio del catálogo del laboratorio.");
+          U.toast("Examen eliminado.", "success");
+          renderTabla();
+        });
+      });
+      root.querySelectorAll("[data-mover]").forEach(function (b) {
+        b.addEventListener("click", function () {
+          var nuevoOrden = moverExamen(tenant, b.dataset.mover, parseInt(b.dataset.dir, 10));
+          S.updateTenant(tenant.id, { ordenExamenes: nuevoOrden });
+          renderTabla();
+        });
+      });
+      root.querySelectorAll("[data-restablecerexam]").forEach(function (b) {
+        b.addEventListener("click", function () {
+          restablecerExamenConfirmando(b.dataset.restablecerexam, renderTabla);
+        });
+      });
+      root.querySelectorAll("[data-ocultarexam]").forEach(function (b) {
+        b.addEventListener("click", function () {
+          var ex = C.examenPorId(b.dataset.ocultarexam);
+          if (!confirm('¿Dejar de ofrecer "' + (ex ? ex.nombre : b.dataset.ocultarexam) + '" en órdenes y cotizaciones nuevas de tu laboratorio? Las órdenes que ya lo tengan no se afectan — puedes volver a ofrecerlo cuando quieras con "Mostrar".')) return;
+          C.ocultarExamenFabrica(tenant, b.dataset.ocultarexam);
+          S.updateTenant(tenant.id, { examenesOcultos: tenant.examenesOcultos });
+          S.addAudit(session.tenantId, session.nombre, session.rol, "HIDE_EXAM", "catalogo", b.dataset.ocultarexam, "Dejó de ofrecer el examen " + (ex ? ex.nombre : b.dataset.ocultarexam) + ".");
+          U.toast("Ya no se ofrecerá este examen en órdenes/cotizaciones nuevas.", "success");
+          renderTabla();
+        });
+      });
+      root.querySelectorAll("[data-mostrarexam]").forEach(function (b) {
+        b.addEventListener("click", function () {
+          var ex = C.examenPorId(b.dataset.mostrarexam);
+          C.mostrarExamenFabrica(tenant, b.dataset.mostrarexam);
+          S.updateTenant(tenant.id, { examenesOcultos: tenant.examenesOcultos });
+          S.addAudit(session.tenantId, session.nombre, session.rol, "SHOW_EXAM", "catalogo", b.dataset.mostrarexam, "Volvió a ofrecer el examen " + (ex ? ex.nombre : b.dataset.mostrarexam) + ".");
+          U.toast("Examen disponible de nuevo.", "success");
+          renderTabla();
+        });
+      });
+    }
+
+    function build() {
+      tenant = S.getTenant(session.tenantId);
       root.innerHTML =
         '<div class="card"><div class="card-header"><h3 class="card-title">Valores de Referencia del Catálogo</h3>' +
         '<button class="btn btn-primary btn-sm" id="btn-nuevo-examen">' + U.icon("plus") + " Agregar Examen Nuevo</button></div>" +
@@ -337,11 +398,9 @@
         (filtroSeccion !== "todas" && (tenant.seccionesPersonalizadas || []).some(function (s) { return s.id === filtroSeccion; }) ?
           '<button class="btn btn-ghost btn-sm" id="btn-eliminar-categoria" title="Eliminar esta categoría">' + U.icon("trash") + " Eliminar Categoría</button>" : "") +
         "</div>" +
-        '<div class="table-wrap"><table><thead><tr>' + (permiteOrdenar ? "<th></th>" : "") + '<th>Examen</th><th>Sección</th><th># Parámetros</th><th>Estado</th><th></th></tr></thead><tbody>' +
-        (exams.length ? exams.map(function (e, i) { return rowHtml(e, i, exams.length, permiteOrdenar); }).join("") : '<tr><td colspan="' + (permiteOrdenar ? 6 : 5) + '" class="text-muted">Sin resultados.</td></tr>') +
-        "</tbody></table></div></div>";
+        '<div id="cat-tabla-wrap"></div></div>';
 
-      document.getElementById("cat-busqueda").addEventListener("input", function (e) { busqueda = e.target.value; build(); });
+      document.getElementById("cat-busqueda").addEventListener("input", function (e) { busqueda = e.target.value; renderTabla(); });
       document.getElementById("cat-seccion").addEventListener("change", function (e) { filtroSeccion = e.target.value; build(); });
       document.getElementById("btn-nuevo-examen").addEventListener("click", function () { abrirCrearExamen(tenant, build); });
       document.getElementById("btn-nueva-categoria").addEventListener("click", function () { abrirCrearCategoria(tenant, build); });
@@ -356,50 +415,7 @@
         filtroSeccion = "todas";
         build();
       });
-      root.querySelectorAll("[data-editexam]").forEach(function (b) { b.addEventListener("click", function () { openExamEditor(b.dataset.editexam, build); }); });
-      root.querySelectorAll("[data-eliminarexam]").forEach(function (b) {
-        b.addEventListener("click", function () {
-          if (!confirm("¿Eliminar este examen propio del laboratorio? Esta acción no se puede deshacer.")) return;
-          C.eliminarExamenPersonalizado(tenant, b.dataset.eliminarexam);
-          S.updateTenant(tenant.id, { examenesPersonalizados: tenant.examenesPersonalizados, examCustom: tenant.examCustom || {}, ordenExamenes: tenant.ordenExamenes || [] });
-          S.addAudit(session.tenantId, session.nombre, session.rol, "DELETE_EXAM", "catalogo", b.dataset.eliminarexam, "Eliminó un examen propio del catálogo del laboratorio.");
-          U.toast("Examen eliminado.", "success");
-          build();
-        });
-      });
-      root.querySelectorAll("[data-mover]").forEach(function (b) {
-        b.addEventListener("click", function () {
-          var nuevoOrden = moverExamen(tenant, b.dataset.mover, parseInt(b.dataset.dir, 10));
-          S.updateTenant(tenant.id, { ordenExamenes: nuevoOrden });
-          build();
-        });
-      });
-      root.querySelectorAll("[data-restablecerexam]").forEach(function (b) {
-        b.addEventListener("click", function () {
-          restablecerExamenConfirmando(b.dataset.restablecerexam, build);
-        });
-      });
-      root.querySelectorAll("[data-ocultarexam]").forEach(function (b) {
-        b.addEventListener("click", function () {
-          var ex = C.examenPorId(b.dataset.ocultarexam);
-          if (!confirm('¿Dejar de ofrecer "' + (ex ? ex.nombre : b.dataset.ocultarexam) + '" en órdenes y cotizaciones nuevas de tu laboratorio? Las órdenes que ya lo tengan no se afectan — puedes volver a ofrecerlo cuando quieras con "Mostrar".')) return;
-          C.ocultarExamenFabrica(tenant, b.dataset.ocultarexam);
-          S.updateTenant(tenant.id, { examenesOcultos: tenant.examenesOcultos });
-          S.addAudit(session.tenantId, session.nombre, session.rol, "HIDE_EXAM", "catalogo", b.dataset.ocultarexam, "Dejó de ofrecer el examen " + (ex ? ex.nombre : b.dataset.ocultarexam) + ".");
-          U.toast("Ya no se ofrecerá este examen en órdenes/cotizaciones nuevas.", "success");
-          build();
-        });
-      });
-      root.querySelectorAll("[data-mostrarexam]").forEach(function (b) {
-        b.addEventListener("click", function () {
-          var ex = C.examenPorId(b.dataset.mostrarexam);
-          C.mostrarExamenFabrica(tenant, b.dataset.mostrarexam);
-          S.updateTenant(tenant.id, { examenesOcultos: tenant.examenesOcultos });
-          S.addAudit(session.tenantId, session.nombre, session.rol, "SHOW_EXAM", "catalogo", b.dataset.mostrarexam, "Volvió a ofrecer el examen " + (ex ? ex.nombre : b.dataset.mostrarexam) + ".");
-          U.toast("Examen disponible de nuevo.", "success");
-          build();
-        });
-      });
+      renderTabla();
     }
 
     // Deja un examen de fábrica exactamente como viene de BIOsoft, por si
@@ -426,7 +442,7 @@
           '<button class="btn btn-ghost btn-sm" data-mover="' + e.id + '" data-dir="-1" ' + (i === 0 ? "disabled" : "") + ' title="Subir">▲</button>' +
           '<button class="btn btn-ghost btn-sm" data-mover="' + e.id + '" data-dir="1" ' + (i === total - 1 ? "disabled" : "") + ' title="Bajar">▼</button>' +
           "</div></td>" : "") +
-        "<td>" + U.esc(e.nombre) + "<div class='text-muted' style='font-size:11px'>" + (e.cups ? "CUPS " + U.esc(e.cups) : "Sin CUPS") + "</div></td><td>" + C.seccionNombre(e.seccion) + "</td><td>" + e.parametros.length + "</td>" +
+        "<td>" + U.esc(e.nombre) + "<div class='text-muted' style='font-size:11px'>" + (e.cups ? "CUPS " + U.esc(e.cups) : "Sin CUPS") + "</div></td><td>" + C.seccionNombre(e.seccion, tenant) + "</td><td>" + e.parametros.length + "</td>" +
         "<td>" + (oculto ? '<span class="badge badge-suspendido">No ofrecido</span>' : propio ? '<span class="badge badge-validado">Examen propio</span>' : personalizado ? '<span class="badge badge-preliminar">Personalizado</span>' : '<span class="text-muted">Valores de fábrica</span>') + "</td>" +
         '<td><div class="flex gap-2 wrap"><button class="btn btn-outline btn-sm" data-editexam="' + e.id + '">' + U.icon("edit") + " Editar</button>" +
         (propio ? '<button class="btn btn-ghost btn-sm" data-eliminarexam="' + e.id + '" title="Eliminar este examen propio">' + U.icon("trash") + "</button>" : "") +
@@ -581,14 +597,17 @@
 
     var wrap = U.openModal(
       '<h3 class="modal-title">Valores de Referencia — ' + U.esc(exCat.nombre) + '</h3>' +
-      '<p class="text-muted" style="margin-top:0">Sección: ' + C.seccionNombre(exCat.seccion) + (exCat.cups ? " · CUPS " + U.esc(exCat.cups) : "") + " — reordena los campos con ▲▼, quita los que no uses o agrega uno propio, tal como lo trabajas en tu laboratorio.</p>" +
+      '<p class="text-muted" style="margin-top:0">' + (exCat.cups ? "CUPS " + U.esc(exCat.cups) + " — " : "") + "reordena los campos con ▲▼, quita los que no uses o agrega uno propio, tal como lo trabajas en tu laboratorio.</p>" +
       '<div class="form-grid" style="max-width:640px">' +
       '<div class="field"><label>Nombre del examen (como lo usa tu laboratorio)</label>' +
       '<input id="cat-nombre-examen" value="' + U.esc(efectivo.nombre) + '"/></div>' +
       '<div class="field"><label>Método / Técnica (opcional)</label>' +
       '<input id="cat-metodo-examen" placeholder="Ej: ELISA, Electroquimioluminiscencia…" value="' + U.esc(efectivo.metodo || "") + '"/></div>' +
+      (!propio ? F.sel("cat_seccion", "Sección", C.seccionesEfectivas(tenant).map(function (s) { return "<option value='" + s.id + "' " + (s.id === efectivo.seccion ? "selected" : "") + ">" + s.nombre + "</option>"; }).join("")) : "") +
       "</div>" +
       (efectivo.nombre !== exCat.nombre ? '<p class="text-muted" style="margin:2px 0 12px;font-size:12px">Nombre de fábrica: ' + U.esc(exCat.nombre) + ' — <button type="button" class="btn btn-ghost btn-sm" id="btn-restablecer-nombre" style="padding:2px 6px">Restablecer</button></p>' : "") +
+      (!propio && efectivo.seccion !== exCat.seccion ? '<p class="text-muted" style="margin:2px 0 12px;font-size:12px">Sección de fábrica: ' + U.esc(C.seccionNombre(exCat.seccion)) + ' — <button type="button" class="btn btn-ghost btn-sm" id="btn-restablecer-seccion" style="padding:2px 6px">Restablecer</button></p>' +
+        '<p class="text-muted" style="margin:2px 0 12px;font-size:11.5px">Las órdenes ya creadas con este examen no se afectan — guardan su propia sección. Solo las órdenes nuevas usarán la sección recategorizada.</p>' : "") +
       (propio ? '<fieldset style="margin:10px 0"><legend>Datos del examen propio</legend><div class="form-grid">' +
         F.sel("propio_seccion", "Sección", C.seccionesEfectivas(tenant).map(function (s) { return "<option value='" + s.id + "' " + (s.id === exCat.seccion ? "selected" : "") + ">" + s.nombre + "</option>"; }).join("")) +
         F.inp("propio_cups", "Código CUPS (opcional)", exCat.cups || "") +
@@ -670,6 +689,9 @@
     var btnRestablecerNombre = wrap.querySelector("#btn-restablecer-nombre");
     if (btnRestablecerNombre) btnRestablecerNombre.addEventListener("click", function () { wrap.querySelector("#cat-nombre-examen").value = exCat.nombre; });
 
+    var btnRestablecerSeccion = wrap.querySelector("#btn-restablecer-seccion");
+    if (btnRestablecerSeccion) btnRestablecerSeccion.addEventListener("click", function () { wrap.querySelector("#f_cat_seccion").value = exCat.seccion; });
+
     wrap.querySelectorAll("[data-bandas]").forEach(function (btn) {
       btn.addEventListener("click", function () {
         var p = efectivo.parametros.filter(function (pp) { return pp.codigo === btn.dataset.bandas; })[0];
@@ -699,6 +721,15 @@
       if (nuevoNombre === exCat.nombre) C.renombrarExamen(tenant, examId, ""); else C.renombrarExamen(tenant, examId, nuevoNombre);
       var nuevoMetodo = wrap.querySelector("#cat-metodo-examen").value.trim();
       C.cambiarMetodoExamen(tenant, examId, nuevoMetodo === exCat.metodo ? "" : nuevoMetodo);
+      var seccionCambio = false;
+      if (!propio) {
+        var seccionSel = wrap.querySelector("#f_cat_seccion");
+        if (seccionSel) {
+          var nuevaSeccion = seccionSel.value;
+          seccionCambio = nuevaSeccion !== efectivo.seccion;
+          C.cambiarSeccionExamen(tenant, examId, nuevaSeccion);
+        }
+      }
       if (propio) {
         C.actualizarExamenPersonalizado(tenant, examId, {
           seccion: wrap.querySelector("#f_propio_seccion").value,
@@ -746,6 +777,7 @@
       });
       S.updateTenant(tenant.id, { refOverrides: tenant.refOverrides || {}, examCustom: tenant.examCustom || {} });
       if (nombreCambio) S.addAudit(session.tenantId, session.nombre, session.rol, "RENAME_EXAM", "catalogo", examId, "Renombró " + exCat.nombre + ' a "' + nuevoNombre + '" para su laboratorio.');
+      if (seccionCambio) S.addAudit(session.tenantId, session.nombre, session.rol, "RECATEGORIZE_EXAM", "catalogo", examId, "Recategorizó " + exCat.nombre + " a la sección " + C.seccionNombre(wrap.querySelector("#f_cat_seccion").value, tenant) + " para su laboratorio.");
       S.addAudit(session.tenantId, session.nombre, session.rol, "UPDATE_REF_RANGE", "catalogo", examId, "Actualizó valores de referencia de " + exCat.nombre + " (" + cambios + " parámetro(s) personalizado(s)).");
       U.toast("Cambios guardados para tu laboratorio.", "success");
       U.closeModal(wrap);
