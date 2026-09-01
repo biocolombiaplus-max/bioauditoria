@@ -1891,11 +1891,22 @@
         tenant.suspendido = quedaSuspendido;
         if (quedaSuspendido && !estabaSuspendido) tenant.fechaSuspension = new Date().toISOString().slice(0, 10);
         if (!quedaSuspendido) tenant.fechaSuspension = null;
+        // BIO_PLANES.estadoCuenta() revisa esPruebaGratis ANTES que
+        // fechaProximoPago — si un laboratorio empezó con prueba gratis y
+        // el superadmin le asigna un plan real aquí, hay que apagar esa
+        // bandera; si no, el badge seguía mostrando "Prueba vencida" para
+        // siempre según la fecha de fin de prueba (ya vieja), sin importar
+        // qué plan o fecha de pago se le asignara después — el estado de
+        // cuenta nunca se "actualizaba" a los ojos del cliente (bug real
+        // reportado: cliente cambió de plan y guardó, pero seguía
+        // apareciendo "Prueba vencida"). Solo se apaga al asignar un plan
+        // real — dejar el plan en blanco no la vuelve a prender.
+        if (planId) tenant.esPruebaGratis = false;
         S.updateTenant(tenant.id, {
           planId: tenant.planId, maxUsuarios: tenant.maxUsuarios, fechaInicioPlan: tenant.fechaInicioPlan,
           fechaProximoPago: tenant.fechaProximoPago, cicloCobroDias: tenant.cicloCobroDias,
           mesesMembresiaGratis: tenant.mesesMembresiaGratis, mesesCortesia: tenant.mesesCortesia,
-          suspendido: tenant.suspendido, fechaSuspension: tenant.fechaSuspension
+          suspendido: tenant.suspendido, fechaSuspension: tenant.fechaSuspension, esPruebaGratis: tenant.esPruebaGratis
         });
         U.toast("Plan actualizado.", "success");
         U.closeModal(wrap);
