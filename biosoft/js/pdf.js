@@ -716,13 +716,30 @@
       // inferior derecha, siempre POR DEBAJO de las firmas (nunca antes),
       // para que no tape ninguna información previa; si el bloque de firmas
       // llega muy abajo, se corre aún más abajo o pasa a una página nueva.
-      var qrY = Math.max(signBlockBottom + 14, 690 - qrSize);
-      if (qrY + qrSize + 20 > 760) { doc.addPage(); qrY = margin + 10; }
+      // Si el laboratorio tiene un eslogan, se reserva espacio de sobra
+      // debajo de la insignia del QR para imprimirlo ahí también (con
+      // estilo, en cursiva y en su color de marca) — un toque de cierre
+      // más premium que dejar la insignia sola con el texto técnico de
+      // "documento validado electrónicamente".
+      var espacioSlogan = tenant.slogan ? 20 : 0;
+      var qrY = Math.max(signBlockBottom + 14, 690 - qrSize - espacioSlogan);
+      if (qrY + qrSize + 20 + espacioSlogan > 760) { doc.addPage(); qrY = margin + 10; }
       doc.addImage(qrDataUrl, "PNG", qrX, qrY, qrSize, qrSize);
       doc.setDrawColor(210, 210, 210); doc.setLineWidth(0.6); doc.rect(qrX - 2, qrY - 2, qrSize + 4, qrSize + 4);
       doc.setFont(fontFam, "bold"); doc.setFontSize(6.3); doc.setTextColor(120, 120, 120);
       doc.text("DOCUMENTO VALIDADO", qrX + qrSize / 2, qrY + qrSize + 9, { align: "center" });
       doc.text("ELECTRÓNICAMENTE", qrX + qrSize / 2, qrY + qrSize + 16, { align: "center" });
+      if (tenant.slogan) {
+        doc.setFont(fontFam, "italic"); doc.setFontSize(7.5); doc.setTextColor(rgb[0], rgb[1], rgb[2]);
+        // Alineado a la derecha con el propio borde derecho del QR (que ya
+        // coincide con el margen derecho de la hoja) — así el texto se
+        // extiende hacia la izquierda tanto como haga falta, sin arriesgarse
+        // nunca a salirse por ningún lado de la página, ni depender de un
+        // cálculo de centrado más frágil.
+        var anchoSlogan = Math.min(160, qrX + qrSize - margin);
+        var lineasSloganQr = doc.splitTextToSize(tenant.slogan, anchoSlogan);
+        doc.text(lineasSloganQr, qrX + qrSize, qrY + qrSize + 25, { align: "right" });
+      }
     } catch (e) {}
 
     doc.setFontSize(7); doc.setTextColor(140, 140, 140);
