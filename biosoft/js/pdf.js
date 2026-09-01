@@ -605,10 +605,15 @@
             }
           });
         } else {
+          // La columna de CIM (Concentración Inhibitoria Mínima) solo se
+          // imprime si el laboratorio la activó en Configuración — la
+          // mayoría trabaja solo con disco-difusión (Sensible/Intermedio/
+          // Resistente) y no necesita esta columna extra.
+          var conCIM = !!tenant.reportarCIM;
           doc.autoTable({
             startY: y, margin: { left: margin, right: margin },
-            head: [["Antibiótico", "Resultado"]],
-            body: panelInfo.items.map(function (it) { return [it.nombre, it.resultado || "-"]; }),
+            head: [conCIM ? ["Antibiótico", "Resultado", "CIM (µg/mL)"] : ["Antibiótico", "Resultado"]],
+            body: panelInfo.items.map(function (it) { return conCIM ? [it.nombre, it.resultado || "-", it.cim || "-"] : [it.nombre, it.resultado || "-"]; }),
             theme: "grid", styles: { font: fontFam, fontSize: tamanoBase, cellPadding: 4 }, headStyles: { fillColor: [240, 244, 247], textColor: 40, fontStyle: "bold" },
             didParseCell: function (data) {
               if (data.section === "body" && data.column.index === 1 && panelInfo.items[data.row.index] && panelInfo.items[data.row.index].resultado === "Resistente") {

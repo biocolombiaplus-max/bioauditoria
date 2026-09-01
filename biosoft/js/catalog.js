@@ -364,11 +364,11 @@
     { id: "MIC-001", seccion: "microbiologia", nombre: "Urocultivo y Antibiograma", cups: "907310", nivel: 1, muestra: "Orina limpia / sondaje", metodo: "Cultivo en agar CLED + antibiograma", tubo: "orina",
       parametros: [texto("UROCULT", "Recuento y germen aislado", "< 10.000 UFC/mL — Sin crecimiento significativo", "urocultivo"), panel("ATB", "Antibiograma", "antibiograma", "Sensible / Intermedio / Resistente según CLSI vigente")] },
     { id: "MIC-002", seccion: "microbiologia", nombre: "Coprocultivo", cups: "907320", nivel: 2, muestra: "Materia fecal", metodo: "Cultivo selectivo (SS, XLD, Mac Conkey)", tubo: "heces",
-      parametros: [texto("COPROCULT", "Germen aislado", "Flora habitual, no se aíslan patógenos")] },
+      parametros: [texto("COPROCULT", "Germen aislado", "Flora habitual, no se aíslan patógenos", "coprocultivo"), panel("ATB_COPRO", "Antibiograma", "antibiograma", "Sensible / Intermedio / Resistente según CLSI vigente")] },
     { id: "MIC-003", seccion: "microbiologia", nombre: "Cultivo de Secreción Vaginal", cups: "907330", nivel: 1, muestra: "Secreción vaginal", metodo: "Cultivo + Gram", tubo: "hisopo",
-      parametros: [texto("SVAG", "Resultado", "Flora vaginal habitual")] },
+      parametros: [texto("SVAG", "Resultado", "Flora vaginal habitual", "vaginal"), panel("ATB_VAG", "Antibiograma", "antibiograma", "Sensible / Intermedio / Resistente según CLSI vigente")] },
     { id: "MIC-004", seccion: "microbiologia", nombre: "Cultivo de Secreción Faríngea", cups: "907335", nivel: 1, muestra: "Hisopado faríngeo", metodo: "Cultivo en agar sangre", tubo: "hisopo",
-      parametros: [texto("SFAR", "Resultado", "Flora faríngea habitual")] },
+      parametros: [texto("SFAR", "Resultado", "Flora faríngea habitual", "faringeo"), panel("ATB_FAR", "Antibiograma", "antibiograma", "Sensible / Intermedio / Resistente según CLSI vigente")] },
     { id: "MIC-005", seccion: "microbiologia", nombre: "Coloración de Gram", cups: "907110", nivel: 1, muestra: "Según origen", metodo: "Microscopía directa", tubo: "hisopo",
       parametros: [texto("GRAM", "Descripción", "Sin microorganismos observados")] },
     { id: "MIC-006", seccion: "microbiologia", nombre: "KOH (Hongos y Levaduras)", cups: "907115", nivel: 1, muestra: "Escama / secreción", metodo: "Microscopía directa con KOH", tubo: "hisopo",
@@ -376,15 +376,15 @@
     { id: "MIC-007", seccion: "microbiologia", nombre: "Baciloscopia (BK) Directa", cups: "907360", nivel: 1, muestra: "Esputo", metodo: "Ziehl-Neelsen", tubo: "esputo",
       parametros: [cual("BK", "Bacilos ácido alcohol resistentes", ["No se observan (0)", "1-9 BAAR (Positivo +)", "10-99 BAAR (Positivo ++)", ">99 BAAR (Positivo +++)"], "No se observan (0)")] },
     { id: "MIC-008", seccion: "microbiologia", nombre: "Hemocultivo (Aerobio/Anaerobio)", cups: "907340", nivel: 2, muestra: "Sangre venosa", metodo: "Sistema automatizado + subcultivo", tubo: "hemocultivo",
-      parametros: [texto("HEMOC", "Resultado", "Negativo a las 5-7 días de incubación")] },
+      parametros: [texto("HEMOC", "Resultado", "Negativo a las 5-7 días de incubación", "hemocultivo"), panel("ATB_HEMO", "Antibiograma", "antibiograma", "Sensible / Intermedio / Resistente según CLSI vigente")] },
     { id: "MIC-009", seccion: "microbiologia", nombre: "Cultivo de Esputo", cups: "907345", nivel: 2, muestra: "Esputo", metodo: "Cultivo en agar sangre/chocolate", tubo: "esputo",
-      parametros: [texto("ESPUC", "Germen aislado", "Flora respiratoria habitual")] },
+      parametros: [texto("ESPUC", "Germen aislado", "Flora respiratoria habitual", "respiratorio"), panel("ATB_ESPU", "Antibiograma", "antibiograma", "Sensible / Intermedio / Resistente según CLSI vigente")] },
     { id: "MIC-010", seccion: "microbiologia", nombre: "Antígeno Estreptococo Grupo A (Prueba Rápida Faríngea)", cups: "907337", nivel: 1, muestra: "Hisopado faríngeo", metodo: "Inmunocromatografía", tubo: "hisopo",
       parametros: [cual("STREPA", "Resultado", ["Negativo", "Positivo"], "Negativo")] },
     { id: "MIC-011", seccion: "microbiologia", nombre: "Cultivo de Punta de Catéter", cups: "907350", nivel: 2, muestra: "Punta de catéter estéril", metodo: "Técnica de Maki (rodado en placa)", tubo: "hisopo",
-      parametros: [texto("CATCULT", "Resultado", "< 15 UFC — No significativo")] },
+      parametros: [texto("CATCULT", "Resultado", "< 15 UFC — No significativo", "piel_heridas"), panel("ATB_CAT", "Antibiograma", "antibiograma", "Sensible / Intermedio / Resistente según CLSI vigente")] },
     { id: "MIC-012", seccion: "microbiologia", nombre: "Cultivo y Frotis de Secreción Ótica", cups: "907338", nivel: 1, muestra: "Hisopado ótico", metodo: "Cultivo + Gram", tubo: "hisopo",
-      parametros: [texto("OTICO", "Resultado", "Flora habitual del conducto")] },
+      parametros: [texto("OTICO", "Resultado", "Flora habitual del conducto", "otico"), panel("ATB_OTI", "Antibiograma", "antibiograma", "Sensible / Intermedio / Resistente según CLSI vigente")] },
     { id: "MIC-013", seccion: "microbiologia", nombre: "Micológico Directo y Cultivo (Piel/Uñas/Cabello)", cups: "907365", nivel: 1, muestra: "Escamas / uña / cabello", metodo: "KOH + Cultivo en Sabouraud", tubo: "hisopo",
       parametros: [texto("MICOL", "Resultado", "No se observan estructuras fúngicas")] },
     { id: "MIC-014", seccion: "microbiologia", nombre: "Gota Gruesa y Extendido de Malaria", cups: "907370", nivel: 1, muestra: "Sangre total EDTA", metodo: "Microscopía (Coloración de Giemsa)", tubo: "edta",
@@ -876,6 +876,145 @@
     var codigo = "GUR_" + Date.now().toString(36).toUpperCase().slice(-6);
     var nuevo = { codigo: codigo, nombre: base };
     tenant.germenesUrinariosPersonalizados.push(nuevo);
+    return nuevo;
+  }
+
+  /* Mismos microorganismos "más frecuentes por selección rápida" que el
+     urocultivo de arriba, pero para el resto de cultivos con antibiograma
+     que un laboratorio de microbiología clínica maneja a diario —
+     hemocultivo, cultivo de secreción/herida, faríngeo, ótico, vaginal,
+     respiratorio bajo (esputo) y coprocultivo. Cada uno trae los
+     aislamientos más comunes para ESE tipo de muestra en particular (los
+     patógenos típicos de una herida no son los de un hemocultivo ni los
+     de un urocultivo) — igual que en un laboratorio de referencia grande,
+     donde el listado de "gérmenes esperados" que ofrece el software
+     cambia según de dónde viene la muestra. Frecuencia relativa según
+     bibliografía de microbiología clínica de uso general; no reemplaza el
+     criterio del bacteriólogo sobre el caso concreto. */
+  var GERMENES_HEMOCULTIVO_BASE = [
+    { codigo: "H_SAUR", nombre: "Staphylococcus aureus", grupo: "Cocos Gram Positivos" },
+    { codigo: "H_SCON", nombre: "Staphylococcus coagulasa negativo (ej. epidermidis)", grupo: "Cocos Gram Positivos" },
+    { codigo: "H_SPNEU", nombre: "Streptococcus pneumoniae", grupo: "Cocos Gram Positivos" },
+    { codigo: "H_EFAEC", nombre: "Enterococcus faecalis", grupo: "Cocos Gram Positivos" },
+    { codigo: "H_ECOLI", nombre: "Escherichia coli", grupo: "Bacilos Gram Negativos" },
+    { codigo: "H_KPNEU", nombre: "Klebsiella pneumoniae", grupo: "Bacilos Gram Negativos" },
+    { codigo: "H_PAERU", nombre: "Pseudomonas aeruginosa", grupo: "Bacilos Gram Negativos" },
+    { codigo: "H_CALB", nombre: "Candida albicans", grupo: "Hongos / Levaduras" }
+  ];
+  var GERMENES_HEMOCULTIVO_FRECUENTES = ["H_SAUR", "H_SCON", "H_ECOLI", "H_KPNEU", "H_EFAEC", "H_PAERU", "H_SPNEU", "H_CALB"];
+
+  var GERMENES_RESPIRATORIO_BASE = [
+    { codigo: "R_SPNEU", nombre: "Streptococcus pneumoniae", grupo: "Cocos Gram Positivos" },
+    { codigo: "R_SAUR", nombre: "Staphylococcus aureus", grupo: "Cocos Gram Positivos" },
+    { codigo: "R_HINFL", nombre: "Haemophilus influenzae", grupo: "Bacilos Gram Negativos" },
+    { codigo: "R_KPNEU", nombre: "Klebsiella pneumoniae", grupo: "Bacilos Gram Negativos" },
+    { codigo: "R_PAERU", nombre: "Pseudomonas aeruginosa", grupo: "Bacilos Gram Negativos" },
+    { codigo: "R_MCATA", nombre: "Moraxella catarrhalis", grupo: "Bacilos Gram Negativos" }
+  ];
+  var GERMENES_RESPIRATORIO_FRECUENTES = ["R_SPNEU", "R_HINFL", "R_KPNEU", "R_PAERU", "R_SAUR", "R_MCATA"];
+
+  var GERMENES_FARINGEO_BASE = [
+    { codigo: "F_SPYO", nombre: "Streptococcus pyogenes (Grupo A)", grupo: "Cocos Gram Positivos" },
+    { codigo: "F_SAUR", nombre: "Staphylococcus aureus", grupo: "Cocos Gram Positivos" },
+    { codigo: "F_HINFL", nombre: "Haemophilus influenzae", grupo: "Bacilos Gram Negativos" },
+    { codigo: "F_CALB", nombre: "Candida albicans", grupo: "Hongos / Levaduras" }
+  ];
+  var GERMENES_FARINGEO_FRECUENTES = ["F_SPYO", "F_SAUR", "F_HINFL", "F_CALB"];
+
+  var GERMENES_OTICO_BASE = [
+    { codigo: "O_PAERU", nombre: "Pseudomonas aeruginosa", grupo: "Bacilos Gram Negativos" },
+    { codigo: "O_PMIRA", nombre: "Proteus mirabilis", grupo: "Bacilos Gram Negativos" },
+    { codigo: "O_SAUR", nombre: "Staphylococcus aureus", grupo: "Cocos Gram Positivos" },
+    { codigo: "O_CALB", nombre: "Candida albicans", grupo: "Hongos / Levaduras" },
+    { codigo: "O_ANIGER", nombre: "Aspergillus niger (otomicosis)", grupo: "Hongos / Levaduras" }
+  ];
+  var GERMENES_OTICO_FRECUENTES = ["O_PAERU", "O_SAUR", "O_PMIRA", "O_CALB", "O_ANIGER"];
+
+  var GERMENES_PIEL_HERIDAS_BASE = [
+    { codigo: "P_SAUR", nombre: "Staphylococcus aureus", grupo: "Cocos Gram Positivos" },
+    { codigo: "P_SCON", nombre: "Staphylococcus coagulasa negativo (ej. epidermidis)", grupo: "Cocos Gram Positivos" },
+    { codigo: "P_SPYO", nombre: "Streptococcus pyogenes", grupo: "Cocos Gram Positivos" },
+    { codigo: "P_EFAEC", nombre: "Enterococcus faecalis", grupo: "Cocos Gram Positivos" },
+    { codigo: "P_ECOLI", nombre: "Escherichia coli", grupo: "Bacilos Gram Negativos" },
+    { codigo: "P_PMIRA", nombre: "Proteus mirabilis", grupo: "Bacilos Gram Negativos" },
+    { codigo: "P_PAERU", nombre: "Pseudomonas aeruginosa", grupo: "Bacilos Gram Negativos" }
+  ];
+  var GERMENES_PIEL_HERIDAS_FRECUENTES = ["P_SAUR", "P_SCON", "P_PAERU", "P_ECOLI", "P_PMIRA", "P_EFAEC", "P_SPYO"];
+
+  var GERMENES_VAGINAL_BASE = [
+    { codigo: "V_CALB", nombre: "Candida albicans", grupo: "Hongos / Levaduras" },
+    { codigo: "V_SAGAL", nombre: "Streptococcus agalactiae (Grupo B)", grupo: "Cocos Gram Positivos" },
+    { codigo: "V_SAUR", nombre: "Staphylococcus aureus", grupo: "Cocos Gram Positivos" },
+    { codigo: "V_EFAEC", nombre: "Enterococcus faecalis", grupo: "Cocos Gram Positivos" },
+    { codigo: "V_ECOLI", nombre: "Escherichia coli", grupo: "Bacilos Gram Negativos" },
+    { codigo: "V_GVAG", nombre: "Gardnerella vaginalis", grupo: "Bacilos Gram Negativos" }
+  ];
+  var GERMENES_VAGINAL_FRECUENTES = ["V_CALB", "V_SAGAL", "V_GVAG", "V_ECOLI", "V_EFAEC", "V_SAUR"];
+
+  var GERMENES_COPROCULTIVO_BASE = [
+    { codigo: "C_SALM", nombre: "Salmonella spp.", grupo: "Enterobacterias Patógenas" },
+    { codigo: "C_SHIG", nombre: "Shigella spp.", grupo: "Enterobacterias Patógenas" },
+    { codigo: "C_ECOLIE", nombre: "Escherichia coli enteropatógena", grupo: "Enterobacterias Patógenas" },
+    { codigo: "C_YENT", nombre: "Yersinia enterocolitica", grupo: "Enterobacterias Patógenas" },
+    { codigo: "C_CJEJ", nombre: "Campylobacter jejuni", grupo: "Otros Patógenos Entéricos" },
+    { codigo: "C_VCHOL", nombre: "Vibrio cholerae", grupo: "Otros Patógenos Entéricos" }
+  ];
+  var GERMENES_COPROCULTIVO_FRECUENTES = ["C_SALM", "C_SHIG", "C_ECOLIE", "C_CJEJ", "C_YENT", "C_VCHOL"];
+
+  var GERMENES_URINARIOS_GRUPOS_ORDEN_GENERICO = ["Bacilos Gram Negativos", "Cocos Gram Positivos", "Hongos / Levaduras"];
+
+  /* Tabla que conecta cada "tipo de muestra" (el mismo texto que se pasa
+     como 4º argumento de texto(), ej. "hemocultivo") con su catálogo base,
+     sus accesos rápidos y el orden de sus grupos — así sugerenciasHtml() en
+     views-results.js no necesita saber nada de microbiología, solo pedir
+     "dame los gérmenes típicos de este tipo de muestra". "urocultivo" no
+     está aquí porque ya tiene sus propias funciones dedicadas de siempre
+     (germenesUrinariosEfectivos) por compatibilidad — germenesEfectivos()
+     de abajo lo redirige ahí. */
+  var GERMENES_POR_TIPO_BASE = {
+    hemocultivo: GERMENES_HEMOCULTIVO_BASE, respiratorio: GERMENES_RESPIRATORIO_BASE,
+    faringeo: GERMENES_FARINGEO_BASE, otico: GERMENES_OTICO_BASE,
+    piel_heridas: GERMENES_PIEL_HERIDAS_BASE, vaginal: GERMENES_VAGINAL_BASE,
+    coprocultivo: GERMENES_COPROCULTIVO_BASE
+  };
+  var GERMENES_POR_TIPO_FRECUENTES = {
+    hemocultivo: GERMENES_HEMOCULTIVO_FRECUENTES, respiratorio: GERMENES_RESPIRATORIO_FRECUENTES,
+    faringeo: GERMENES_FARINGEO_FRECUENTES, otico: GERMENES_OTICO_FRECUENTES,
+    piel_heridas: GERMENES_PIEL_HERIDAS_FRECUENTES, vaginal: GERMENES_VAGINAL_FRECUENTES,
+    coprocultivo: GERMENES_COPROCULTIVO_FRECUENTES
+  };
+
+  /* Versión genérica de germenesUrinariosEfectivos()/crearGermenUrinarioPersonalizado()
+     para cualquier tipo de muestra — "urocultivo" sigue viviendo en
+     tenant.germenesUrinariosPersonalizados (el campo de siempre, para no
+     migrar datos de laboratorios que ya lo vienen usando); los demás tipos
+     nuevos usan tenant.germenesPersonalizadosPorTipo[tipo], una sola
+     bandeja compartida para todos los tipos de muestra que se agreguen de
+     aquí en adelante. */
+  function germenesEfectivos(tenant, tipo) {
+    if (tipo === "urocultivo") return germenesUrinariosEfectivos(tenant);
+    var base = GERMENES_POR_TIPO_BASE[tipo] || [];
+    var custom = (tenant && tenant.germenesPersonalizadosPorTipo && tenant.germenesPersonalizadosPorTipo[tipo]) || [];
+    return base.concat(custom);
+  }
+  function germenesFrecuentes(tipo) {
+    if (tipo === "urocultivo") return GERMENES_URINARIOS_FRECUENTES;
+    return GERMENES_POR_TIPO_FRECUENTES[tipo] || [];
+  }
+  function germenesGruposOrden(tipo) {
+    if (tipo === "urocultivo") return GERMENES_URINARIOS_GRUPOS_ORDEN;
+    return GERMENES_POR_TIPO_BASE[tipo] ? GERMENES_URINARIOS_GRUPOS_ORDEN_GENERICO : [];
+  }
+  function crearGermenPersonalizado(tenant, tipo, nombre) {
+    if (tipo === "urocultivo") return crearGermenUrinarioPersonalizado(tenant, nombre);
+    tenant.germenesPersonalizadosPorTipo = tenant.germenesPersonalizadosPorTipo || {};
+    tenant.germenesPersonalizadosPorTipo[tipo] = tenant.germenesPersonalizadosPorTipo[tipo] || [];
+    var base = (nombre || "").trim();
+    var existente = germenesEfectivos(tenant, tipo).filter(function (g) { return g.nombre.toLowerCase() === base.toLowerCase(); })[0];
+    if (existente) return existente;
+    var codigo = "GRM_" + Date.now().toString(36).toUpperCase().slice(-6);
+    var nuevo = { codigo: codigo, nombre: base };
+    tenant.germenesPersonalizadosPorTipo[tipo].push(nuevo);
     return nuevo;
   }
 
@@ -1586,6 +1725,10 @@
     GERMENES_URINARIOS_GRUPOS_ORDEN: GERMENES_URINARIOS_GRUPOS_ORDEN,
     germenesUrinariosEfectivos: germenesUrinariosEfectivos,
     crearGermenUrinarioPersonalizado: crearGermenUrinarioPersonalizado,
+    germenesEfectivos: germenesEfectivos,
+    germenesFrecuentes: germenesFrecuentes,
+    germenesGruposOrden: germenesGruposOrden,
+    crearGermenPersonalizado: crearGermenPersonalizado,
     panelCatalogo: panelCatalogo,
     panelFrecuentes: panelFrecuentes,
     panelAgregarPersonalizado: panelAgregarPersonalizado,

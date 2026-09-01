@@ -414,10 +414,17 @@
                 (interactivo ? "<td><button type='button' class='btn btn-ghost btn-sm' data-panel-quitar='" + p.codigo + ":" + it.codigo + "'>✕</button></td>" : "") + "</tr>";
             }).join("") + "</tbody></table></div>";
         }
-        return '<div class="table-wrap"><table><thead><tr><th>Antibiótico</th><th>Resultado</th>' + (interactivo ? "<th></th>" : "") + "</tr></thead><tbody>" +
+        // La Concentración Inhibitoria Mínima (CIM, µg/mL) es opcional —
+        // solo se muestra esta columna extra si el laboratorio la activó
+        // en Configuración (tenant.reportarCIM); muchos laboratorios
+        // trabajan solo con disco-difusión (Sensible/Intermedio/
+        // Resistente) y no necesitan digitar ningún número aparte.
+        var conCIM = !!tenant.reportarCIM;
+        return '<div class="table-wrap"><table><thead><tr><th>Antibiótico</th><th>Resultado</th>' + (conCIM ? "<th>CIM (µg/mL)</th>" : "") + (interactivo ? "<th></th>" : "") + "</tr></thead><tbody>" +
           items.map(function (it) {
             return "<tr><td>" + U.esc(it.nombre) + "</td><td style='min-width:160px'><select data-panel-res='" + p.codigo + ":" + it.codigo + "' " + (!interactivo ? "disabled" : "") + "><option value=''>— Seleccionar —</option>" +
               C.RESULTADOS_ANTIBIOGRAMA.map(function (o) { return "<option " + (o === it.resultado ? "selected" : "") + ">" + o + "</option>"; }).join("") + "</select></td>" +
+              (conCIM ? "<td style='min-width:90px'><input data-panel-cim='" + p.codigo + ":" + it.codigo + "' value='" + U.esc(it.cim || "") + "' placeholder='Ej: ≤0.5' " + (!interactivo ? "disabled" : "") + "/></td>" : "") +
               (interactivo ? "<td><button type='button' class='btn btn-ghost btn-sm' data-panel-quitar='" + p.codigo + ":" + it.codigo + "'>✕</button></td>" : "") + "</tr>";
           }).join("") + "</tbody></table></div>";
       }
@@ -428,7 +435,7 @@
 
         function agregarItem(item) {
           if ((panelState[p.codigo] || []).some(function (it) { return it.codigo === item.codigo; })) return;
-          panelState[p.codigo] = (panelState[p.codigo] || []).concat([p.panelTipo === "alergia" ? { codigo: item.codigo, nombre: item.nombre, valor: "" } : { codigo: item.codigo, nombre: item.nombre, resultado: "" }]);
+          panelState[p.codigo] = (panelState[p.codigo] || []).concat([p.panelTipo === "alergia" ? { codigo: item.codigo, nombre: item.nombre, valor: "" } : { codigo: item.codigo, nombre: item.nombre, resultado: "", cim: "" }]);
           reRenderCaja();
         }
 
@@ -470,6 +477,13 @@
             if (it) it.resultado = sel.value;
           });
         });
+        cajaWrap.querySelectorAll("input[data-panel-cim]").forEach(function (inp) {
+          inp.addEventListener("input", function () {
+            var codItem = inp.dataset.panelCim.split(":")[1];
+            var it = (panelState[p.codigo] || []).filter(function (x) { return x.codigo === codItem; })[0];
+            if (it) it.cim = inp.value;
+          });
+        });
         cajaWrap.querySelectorAll("input[data-panel-res]").forEach(function (inp) {
           inp.addEventListener("input", function () {
             var codItem = inp.dataset.panelRes.split(":")[1];
@@ -486,21 +500,28 @@
       }
 
       // ---------------------------------------------------------------
-      // Sugerencias rápidas para parámetros tipo "texto" (hoy solo
-      // "urocultivo" -> germenes más frecuentemente aislados en orina):
-      // a diferencia del panel de antibiograma/alergia, aquí no se arma una
-      // tabla de ítems — el clic simplemente escribe en el mismo textarea de
-      // siempre, que sigue siendo 100% editable a mano igual que antes.
+      // Sugerencias rápidas para parámetros tipo "texto" con germen
+      // aislado — el catálogo de microorganismos que se ofrece depende
+      // del TIPO DE MUESTRA de ese examen (p.sugerencias: "urocultivo",
+      // "hemocultivo", "respiratorio", "faringeo", "otico",
+      // "piel_heridas", "vaginal", "coprocultivo" — ver germenesEfectivos()
+      // en catalog.js), igual que en un laboratorio de referencia grande,
+      // donde los "gérmenes esperados" que sugiere el sistema cambian
+      // según de dónde viene la muestra. A diferencia del panel de
+      // antibiograma/alergia, aquí no se arma una tabla de ítems — el
+      // clic simplemente escribe en el mismo textarea de siempre, que
+      // sigue siendo 100% editable a mano igual que antes.
       // ---------------------------------------------------------------
       function sugerenciasHtml(p) {
-        if (p.sugerencias !== "urocultivo") return "";
-        var catalogo = C.germenesUrinariosEfectivos(tenant);
-        var frecuentes = C.GERMENES_URINARIOS_FRECUENTES.map(function (cod) { return catalogo.filter(function (g) { return g.codigo === cod; })[0]; }).filter(Boolean);
+        if (!p.sugerencias) return "";
+        var tipo = p.sugerencias;
+        var catalogo = C.germenesEfectivos(tenant, tipo);
+        var frecuentes = C.germenesFrecuentes(tipo).map(function (cod) { return catalogo.filter(function (g) { return g.codigo === cod; })[0]; }).filter(Boolean);
         // Agrupados por tipo (gram negativos / gram positivos / hongos) en
         // vez de una sola fila revuelta, para que el bacteriólogo escanee
         // más rápido qué botón corresponde a lo que está viendo al
         // microscopio o en la placa de cultivo.
-        var grupos = C.GERMENES_URINARIOS_GRUPOS_ORDEN.map(function (nombreGrupo) {
+        var grupos = C.germenesGruposOrden(tipo).map(function (nombreGrupo) {
           return { nombre: nombreGrupo, germenes: frecuentes.filter(function (g) { return g.grupo === nombreGrupo; }) };
         }).filter(function (gr) { return gr.germenes.length; });
         var sinGrupo = frecuentes.filter(function (g) { return !g.grupo; });
@@ -530,6 +551,7 @@
       }
 
       function wireSugerencias(p) {
+        var tipo = p.sugerencias;
         var box = card.querySelector('[data-sugerencias-box="' + p.codigo + '"]');
         var textarea = card.querySelector('[data-param="' + p.codigo + '"]');
         if (!box || !textarea) return;
@@ -552,7 +574,7 @@
         box.querySelectorAll("[data-germen-sel]").forEach(function (b) {
           b.addEventListener("click", function () {
             var codItem = b.dataset.germenSel.split(":")[1];
-            var item = C.germenesUrinariosEfectivos(tenant).filter(function (g) { return g.codigo === codItem; })[0];
+            var item = C.germenesEfectivos(tenant, tipo).filter(function (g) { return g.codigo === codItem; })[0];
             if (item) aplicarGermen(item.nombre);
           });
         });
@@ -560,7 +582,7 @@
         var btnAddSel = box.querySelector("[data-germen-addsel]");
         if (btnAddSel) btnAddSel.addEventListener("click", function () {
           if (!selBuscar.value) return;
-          var item = C.germenesUrinariosEfectivos(tenant).filter(function (g) { return g.codigo === selBuscar.value; })[0];
+          var item = C.germenesEfectivos(tenant, tipo).filter(function (g) { return g.codigo === selBuscar.value; })[0];
           if (item) aplicarGermen(item.nombre);
         });
         var inpNuevo = box.querySelector("[data-germen-nuevo]");
@@ -568,8 +590,8 @@
         if (btnAddNuevo) btnAddNuevo.addEventListener("click", function () {
           var nombre = inpNuevo.value.trim();
           if (!nombre) { U.toast("Escribe el nombre antes de agregarlo.", "error"); return; }
-          var nuevo = C.crearGermenUrinarioPersonalizado(tenant, nombre);
-          S.updateTenant(tenant.id, { germenesUrinariosPersonalizados: tenant.germenesUrinariosPersonalizados });
+          var nuevo = C.crearGermenPersonalizado(tenant, tipo, nombre);
+          S.updateTenant(tenant.id, tipo === "urocultivo" ? { germenesUrinariosPersonalizados: tenant.germenesUrinariosPersonalizados } : { germenesPersonalizadosPorTipo: tenant.germenesPersonalizadosPorTipo });
           aplicarGermen(nuevo.nombre);
           // Refresca el buscador para que el nuevo microorganismo quede
           // disponible ahí mismo la próxima vez, sin perder lo que el
