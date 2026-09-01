@@ -657,18 +657,6 @@
       y = doc.lastAutoTable.finalY + 18;
     }
 
-    // Pie de página personalizado (opcional, definido en Configuración →
-    // "Diseño del Reporte de Resultados") — una frase propia del
-    // laboratorio (ej. su promesa de calidad), justo antes del bloque de
-    // firmas, tal como lo usan otros laboratorios de referencia.
-    if (tenant.piePaginaPersonalizado) {
-      if (y > 700) { doc.addPage(); y = margin; }
-      doc.setFont(fontFam, "italic"); doc.setFontSize(8.5); doc.setTextColor(90, 90, 90);
-      var lineasPie = doc.splitTextToSize(tenant.piePaginaPersonalizado, pageW - margin * 2);
-      doc.text(lineasPie, margin, y);
-      y += lineasPie.length * 11 + 10;
-    }
-
     var firmantes = firmantesDe(order, tenant, examsToShow);
     var lineW = 190;
     // Espacio de seguridad antes de la primera firma: la imagen recortada
@@ -712,6 +700,16 @@
       var qrDataUrl = buildQrDataUrl(qrTexto, 220);
       var qrSize = 58;
       var qrX = pageW - margin - qrSize;
+      // Pie de página personalizado (opcional, definido en Configuración →
+      // "Diseño del Reporte de Resultados") — una frase propia del
+      // laboratorio (ej. su promesa de calidad, sus controles internos),
+      // pedida para salir CENTRADA en la hoja y debajo de la insignia del
+      // QR de verificación, en vez de arriba del bloque de firmas como
+      // antes — así el cierre del informe queda con el QR, el eslogan y el
+      // pie de página juntos, como lo manejan otros laboratorios de
+      // referencia.
+      var lineasPie = tenant.piePaginaPersonalizado ? doc.splitTextToSize(tenant.piePaginaPersonalizado, pageW - margin * 2 - 60) : [];
+      var altoPie = lineasPie.length ? lineasPie.length * 10 + 12 : 0;
       // El QR se ubica como una insignia de verificación en la esquina
       // inferior derecha, siempre POR DEBAJO de las firmas (nunca antes),
       // para que no tape ninguna información previa; si el bloque de firmas
@@ -720,15 +718,18 @@
       // debajo de la insignia del QR para imprimirlo ahí también (con
       // estilo, en cursiva y en su color de marca) — un toque de cierre
       // más premium que dejar la insignia sola con el texto técnico de
-      // "documento validado electrónicamente".
+      // "documento validado electrónicamente" — y lo mismo para el pie de
+      // página personalizado, que va debajo de todo lo anterior.
       var espacioSlogan = tenant.slogan ? 20 : 0;
-      var qrY = Math.max(signBlockBottom + 14, 690 - qrSize - espacioSlogan);
-      if (qrY + qrSize + 20 + espacioSlogan > 760) { doc.addPage(); qrY = margin + 10; }
+      var espacioReservado = qrSize + 20 + espacioSlogan + altoPie;
+      var qrY = Math.max(signBlockBottom + 14, 690 - espacioReservado);
+      if (qrY + espacioReservado > 760) { doc.addPage(); qrY = margin + 10; }
       doc.addImage(qrDataUrl, "PNG", qrX, qrY, qrSize, qrSize);
       doc.setDrawColor(210, 210, 210); doc.setLineWidth(0.6); doc.rect(qrX - 2, qrY - 2, qrSize + 4, qrSize + 4);
       doc.setFont(fontFam, "bold"); doc.setFontSize(6.3); doc.setTextColor(120, 120, 120);
       doc.text("DOCUMENTO VALIDADO", qrX + qrSize / 2, qrY + qrSize + 9, { align: "center" });
       doc.text("ELECTRÓNICAMENTE", qrX + qrSize / 2, qrY + qrSize + 16, { align: "center" });
+      var yDebajoQr = qrY + qrSize + 16;
       if (tenant.slogan) {
         doc.setFont(fontFam, "italic"); doc.setFontSize(7.5); doc.setTextColor(rgb[0], rgb[1], rgb[2]);
         // Alineado a la derecha con el propio borde derecho del QR (que ya
@@ -738,7 +739,12 @@
         // cálculo de centrado más frágil.
         var anchoSlogan = Math.min(160, qrX + qrSize - margin);
         var lineasSloganQr = doc.splitTextToSize(tenant.slogan, anchoSlogan);
-        doc.text(lineasSloganQr, qrX + qrSize, qrY + qrSize + 25, { align: "right" });
+        doc.text(lineasSloganQr, qrX + qrSize, yDebajoQr + 9, { align: "right" });
+        yDebajoQr += 9 + (lineasSloganQr.length - 1) * 9;
+      }
+      if (lineasPie.length) {
+        doc.setFont(fontFam, "italic"); doc.setFontSize(8.5); doc.setTextColor(90, 90, 90);
+        doc.text(lineasPie, pageW / 2, yDebajoQr + 16, { align: "center" });
       }
     } catch (e) {}
 
