@@ -1349,7 +1349,13 @@
           '<div class="field"><label>Tipografía del Reporte</label><select id="f_fuenteReporte">' +
             '<option value="helvetica"' + (!tenant.fuenteReporte || tenant.fuenteReporte === "helvetica" ? " selected" : "") + '>Helvetica (moderna, sin serifa)</option>' +
             '<option value="times"' + (tenant.fuenteReporte === "times" ? " selected" : "") + '>Times (clásica, con serifa)</option>' +
-            '<option value="courier"' + (tenant.fuenteReporte === "courier" ? " selected" : "") + '>Courier (monoespaciada)</option>' +
+            '<option value="courier"' + (tenant.fuenteReporte === "courier" ? " selected" : "") + '>Courier (monoespaciada, tipo consola)</option>' +
+          "</select></div>" +
+          '<div class="field"><label>Tamaño de Letra del Reporte</label><select id="f_tamanoFuenteReporte">' +
+            '<option value="7"' + (tenant.tamanoFuenteReporte === 7 ? " selected" : "") + '>Pequeña</option>' +
+            '<option value="8"' + (!tenant.tamanoFuenteReporte || tenant.tamanoFuenteReporte === 8 ? " selected" : "") + '>Normal</option>' +
+            '<option value="9"' + (tenant.tamanoFuenteReporte === 9 ? " selected" : "") + '>Grande</option>' +
+            '<option value="10"' + (tenant.tamanoFuenteReporte === 10 ? " selected" : "") + '>Muy grande</option>' +
           "</select></div>" +
         "</div>" +
         '<p class="text-muted" style="margin:6px 0 0;font-size:12.5px">Ajusta aquí el color del texto del menú, de los títulos de cada sección (como "Identidad y Datos del Laboratorio") y de los subtítulos de cada recuadro (como "Marca e Identidad Visual") — todo se actualiza al instante en esta misma pantalla para que veas cómo queda antes de guardar.</p>' +
@@ -1504,6 +1510,7 @@
       tenant.logoDataUrl = logoTemp;
       tenant.logoSecundarioDataUrl = logo2Temp;
       tenant.fuenteReporte = document.getElementById("f_fuenteReporte").value;
+      tenant.tamanoFuenteReporte = parseInt(document.getElementById("f_tamanoFuenteReporte").value, 10) || 8;
 
       var claveActual = g("claveActual"), claveNueva = g("claveNueva");
       if (claveNueva) {
@@ -1537,7 +1544,7 @@
           resolucionHabilitacion: tenant.resolucionHabilitacion, codigoREPS: tenant.codigoREPS, nivel: tenant.nivel,
           bacteriologoResponsable: tenant.bacteriologoResponsable, mostrarPrecioOrden: tenant.mostrarPrecioOrden,
           logoGrandeReporte: tenant.logoGrandeReporte, logoAnchoCompleto: tenant.logoAnchoCompleto, logoAnchoPorcentaje: tenant.logoAnchoPorcentaje, ocultarNombreEncabezado: tenant.ocultarNombreEncabezado,
-          camposReporte: tenant.camposReporte, fuenteReporte: tenant.fuenteReporte,
+          camposReporte: tenant.camposReporte, fuenteReporte: tenant.fuenteReporte, tamanoFuenteReporte: tenant.tamanoFuenteReporte,
           piePaginaPersonalizado: tenant.piePaginaPersonalizado,
           colorPrimario: tenant.colorPrimario, colorSecundario: tenant.colorSecundario, colorTextoMenu: tenant.colorTextoMenu,
           colorTitulos: tenant.colorTitulos, colorSubtitulos: tenant.colorSubtitulos, logoDataUrl: tenant.logoDataUrl,

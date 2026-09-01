@@ -346,6 +346,13 @@
     // Tipografía elegida en Configuración (Helvetica/Times/Courier) —
     // "helvetica" si el laboratorio nunca lo ha tocado.
     var fontFam = tenant.fuenteReporte || "helvetica";
+    // Tamaño de letra elegido en Configuración para el cuerpo del informe
+    // (la tabla de parámetro/resultado/referencia/interpretación, y las
+    // tablas de paneles y de exámenes remitidos) — 8pt si el laboratorio
+    // nunca lo ha tocado (el tamaño que siempre usó el sistema). El título
+    // del método y de cada grupo de examen se ajustan proporcionalmente
+    // para conservar la jerarquía visual sin importar el tamaño elegido.
+    var tamanoBase = tenant.tamanoFuenteReporte || 8;
 
     y = await dibujarMembrete(doc, tenant, margin);
 
@@ -520,7 +527,7 @@
         doc.autoTable({
           startY: y, margin: { left: margin, right: margin },
           head: [["Parámetro", "Resultado", "Valor de Referencia", "Interpretación"]],
-          body: body, theme: "grid", styles: { font: fontFam, fontSize: 8, cellPadding: 4 },
+          body: body, theme: "grid", styles: { font: fontFam, fontSize: tamanoBase, cellPadding: 4 },
           headStyles: { fillColor: [240, 244, 247], textColor: 40, fontStyle: "bold" },
           didParseCell: function (data) {
             if (data.section !== "body") return;
@@ -551,10 +558,10 @@
         } else {
           yEstimado += necesita;
         }
-        body.push([{ content: g.nombre, colSpan: 4, styles: { fillColor: [246, 247, 249], textColor: [50, 50, 50], fontStyle: "bold", fontSize: 8.5 } }]);
+        body.push([{ content: g.nombre, colSpan: 4, styles: { fillColor: [246, 247, 249], textColor: [50, 50, 50], fontStyle: "bold", fontSize: tamanoBase + 0.5 } }]);
         filaMeta.push({ tipo: "titulo" });
         if (g.metodo) {
-          body.push([{ content: "Método: " + g.metodo, colSpan: 4, styles: { fontStyle: "italic", textColor: [140, 140, 140], fontSize: 6.8 } }]);
+          body.push([{ content: "Método: " + g.metodo, colSpan: 4, styles: { fontStyle: "italic", textColor: [140, 140, 140], fontSize: tamanoBase - 1.2 } }]);
           filaMeta.push({ tipo: "metodo" });
         }
         g.filas.forEach(function (f) {
@@ -590,7 +597,7 @@
               var c = interpPorFila[i];
               return [it.nombre, c ? String(c.clase) : "-", (it.valor || "-") + " kU/L", c ? c.interpretacion : "-"];
             }),
-            theme: "grid", styles: { font: fontFam, fontSize: 8, cellPadding: 4 }, headStyles: { fillColor: [240, 244, 247], textColor: 40, fontStyle: "bold" },
+            theme: "grid", styles: { font: fontFam, fontSize: tamanoBase, cellPadding: 4 }, headStyles: { fillColor: [240, 244, 247], textColor: 40, fontStyle: "bold" },
             didParseCell: function (data) {
               if (data.section === "body" && data.column.index === 3 && interpPorFila[data.row.index] && interpPorFila[data.row.index].interpretacion === "Positivo") {
                 data.cell.styles.textColor = [214, 69, 69]; data.cell.styles.fontStyle = "bold";
@@ -602,7 +609,7 @@
             startY: y, margin: { left: margin, right: margin },
             head: [["Antibiótico", "Resultado"]],
             body: panelInfo.items.map(function (it) { return [it.nombre, it.resultado || "-"]; }),
-            theme: "grid", styles: { font: fontFam, fontSize: 8, cellPadding: 4 }, headStyles: { fillColor: [240, 244, 247], textColor: 40, fontStyle: "bold" },
+            theme: "grid", styles: { font: fontFam, fontSize: tamanoBase, cellPadding: 4 }, headStyles: { fillColor: [240, 244, 247], textColor: 40, fontStyle: "bold" },
             didParseCell: function (data) {
               if (data.section === "body" && data.column.index === 1 && panelInfo.items[data.row.index] && panelInfo.items[data.row.index].resultado === "Resistente") {
                 data.cell.styles.textColor = [214, 69, 69]; data.cell.styles.fontStyle = "bold";
@@ -645,7 +652,7 @@
           var exCat = C.examenEfectivo(ex.examId, tenant);
           return [exCat.nombre, ex.laboratorioRemision || "—", "Ver informe original anexo en las páginas siguientes"];
         }),
-        theme: "grid", styles: { font: fontFam, fontSize: 8, cellPadding: 4 }, headStyles: { fillColor: [240, 244, 247], textColor: 40, fontStyle: "bold" }
+        theme: "grid", styles: { font: fontFam, fontSize: tamanoBase, cellPadding: 4 }, headStyles: { fillColor: [240, 244, 247], textColor: 40, fontStyle: "bold" }
       });
       y = doc.lastAutoTable.finalY + 18;
     }
