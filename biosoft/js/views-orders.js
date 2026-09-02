@@ -415,7 +415,20 @@
       '<button class="btn btn-primary" id="btn-stickers-now">' + U.icon("printer") + " Imprimir Stickers</button>" +
       "</div></div>"
     );
-    if (puedeReciboOrden(tenant)) wrap.querySelector("#btn-recibo-orden").addEventListener("click", function () { U.closeModal(wrap); abrirReciboOrden(order, tenant); });
+    // Las otras 3 opciones de este modal (Continuar sin imprimir, Vista
+    // previa, Imprimir Stickers) SÍ llevaban a la orden recién creada
+    // (#/ordenes/:id) apenas se hacía clic — esta era la única que se
+    // quedaba sin navegar a ningún lado. La orden en sí quedaba bien
+    // creada (por eso el recibo se generaba perfecto), pero como el
+    // usuario seguía viendo detrás la MISMA pantalla de "Nueva Orden"
+    // (con el buscador de exámenes vacío), parecía que la orden nunca
+    // había terminado de crearse — bug real reportado. Se agrega la
+    // misma navegación que ya tienen las otras 3 opciones.
+    if (puedeReciboOrden(tenant)) wrap.querySelector("#btn-recibo-orden").addEventListener("click", function () {
+      U.closeModal(wrap);
+      abrirReciboOrden(order, tenant);
+      location.hash = "#/ordenes/" + order.id;
+    });
     wrap.querySelector("#btn-skip").addEventListener("click", function () { U.closeModal(wrap); location.hash = "#/ordenes/" + order.id; });
     wrap.querySelector("#btn-stickers-preview").addEventListener("click", function () {
       U.closeModal(wrap);
