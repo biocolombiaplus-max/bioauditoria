@@ -1527,9 +1527,18 @@
     var banda = categoriaElegida ? bandaPorEtiqueta(bandas, categoriaElegida) : null;
     if (!banda) banda = seleccionarBanda(bandas, paciente);
     if (!banda) return param;
+    // Si el parámetro también tiene "Rangos de Interpretación" (tramos con
+    // su propia etiqueta, ej. "Prediabetes" — ver parametroEfectivo), ese
+    // texto ya combinado es lo que debe imprimirse — no se reemplaza en
+    // silencio por el texto de la banda de género/edad. Antes, tener ambas
+    // cosas configuradas en el mismo parámetro hacía que los Rangos de
+    // Interpretación quedaran guardados pero nunca se vieran en el PDF
+    // (bug real reportado). El min/max de la banda sí se sigue aplicando,
+    // como respaldo para cuando el resultado no cae en ningún tramo.
+    var tieneRangos = param.rangosInterpretacion && param.rangosInterpretacion.length;
     return Object.assign({}, param, {
       min: banda.min, max: banda.max,
-      refText: banda.refText || ((banda.etiqueta ? banda.etiqueta + ": " : "") + banda.min + " - " + banda.max + " " + (param.unidad || "")),
+      refText: tieneRangos ? param.refText : (banda.refText || ((banda.etiqueta ? banda.etiqueta + ": " : "") + banda.min + " - " + banda.max + " " + (param.unidad || ""))),
       bandaEtiqueta: banda.etiqueta || ("#" + bandas.indexOf(banda))
     });
   }
