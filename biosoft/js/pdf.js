@@ -284,21 +284,21 @@
       doc.setFont(fontFam, "normal"); doc.setFontSize(8); doc.setTextColor(90, 90, 90);
       var metaLineUnica = metaLines.join("   ·   ");
       if (metaLineUnica) { doc.text(metaLineUnica, cx, y, { align: "center" }); y += 8.5; }
-      y += 4;
+      y += 2;
       doc.setDrawColor(rgb[0], rgb[1], rgb[2]); doc.setLineWidth(2);
-      doc.line(margin, y, pageW - margin, y); y += 18;
+      doc.line(margin, y, pageW - margin, y); y += 14;
     } else {
-      // El logo sale bien grande (100pt en una hoja carta completa — subió
-      // de 46 a 62, a 84 y ahora a 100) para aprovechar el espacio en
-      // blanco que quedaba debajo suyo en el encabezado y que resalte con
-      // fuerza incluso impreso en papel. El nombre y los datos del
-      // laboratorio se recorren proporcionalmente para que el encabezado
-      // se vea equilibrado. Esta función también la usan documentos en
-      // hojas más angostas (ej. el recibo de pago en media carta), así que
-      // el tope real es relativo al ancho de la página — en una hoja
-      // carta da exactamente 100pt como siempre, pero en una más angosta
-      // se achica en proporción en vez de quedar desbordado.
-      var logoSize = Math.min(100, (pageW - margin * 2) * 0.22);
+      // El logo se ve grande y premium (78pt en una hoja carta completa)
+      // pero ya no ocupa tanto encabezado como antes (llegó a subir hasta
+      // 100pt) — entre el membrete y los datos del paciente se estaba
+      // yendo demasiada hoja en blanco (queja real reportada). El nombre y
+      // los datos del laboratorio se recorren proporcionalmente para que
+      // el encabezado se vea equilibrado. Esta función también la usan
+      // documentos en hojas más angostas (ej. el recibo de pago en media
+      // carta), así que el tope real es relativo al ancho de la página —
+      // en una hoja carta da exactamente 78pt como siempre, pero en una
+      // más angosta se achica en proporción en vez de quedar desbordado.
+      var logoSize = Math.min(78, (pageW - margin * 2) * 0.17);
       if (tenant.logoDataUrl) {
         try { doc.addImage(tenant.logoDataUrl, "PNG", margin, y - 9, logoSize, logoSize); } catch (e) {}
       }
@@ -324,7 +324,7 @@
       metaLines.forEach(function (line, i) { doc.text(line, textX, y + metaStartOffset + i * 10); });
 
       doc.setDrawColor(rgb[0], rgb[1], rgb[2]); doc.setLineWidth(2);
-      y += tenant.slogan ? 106 : 96; doc.line(margin, y, pageW - margin, y); y += 20;
+      y += tenant.slogan ? 82 : 72; doc.line(margin, y, pageW - margin, y); y += 14;
     }
     return y;
   }
@@ -358,20 +358,20 @@
 
     doc.setFont(fontFam, "bold"); doc.setFontSize(13); doc.setTextColor(20, 20, 20);
     doc.text("INFORME DE RESULTADOS DE LABORATORIO CLÍNICO", margin, y);
-    y += 15;
+    y += 12;
     // El aviso de preliminar/parcial va en su PROPIA línea debajo del
     // título (antes iba a la derecha, en la misma línea que el título, y
     // con textos largos las dos frases se montaban una sobre la otra).
     if (modo === "preliminar") {
       doc.setFont(fontFam, "bold"); doc.setFontSize(9.5); doc.setTextColor(201, 126, 13);
       doc.text("RESULTADO PRELIMINAR — SUJETO A VALIDACIÓN FINAL", margin, y);
-      y += 14;
+      y += 12;
     } else if (order.estadoGeneral !== "validado") {
       doc.setFont(fontFam, "bold"); doc.setFontSize(9.5); doc.setTextColor(201, 126, 13);
       doc.text("INFORME PARCIAL — HAY EXÁMENES EN PROCESO", margin, y);
-      y += 14;
+      y += 12;
     } else {
-      y += 6;
+      y += 4;
     }
 
     // El nombre y el documento del paciente van destacados, cada uno en su
@@ -387,10 +387,10 @@
 
     doc.setFont(fontFam, "bold"); doc.setFontSize(12.5); doc.setTextColor(20, 20, 20);
     doc.text(U.nombreCompleto(patient), col1, y);
-    y += 15;
+    y += 13;
     doc.setFontSize(10.5); doc.setTextColor(50, 50, 50);
     doc.text(patient.tipoDocumento + " " + patient.numeroDocumento, col1, y);
-    y += 16;
+    y += 13;
 
     doc.setFontSize(9.5); doc.setTextColor(30, 30, 30);
     var edad = U.edadTexto(patient);
@@ -423,14 +423,14 @@
     // solapan sin importar qué tan larga sea.
     doc.setFont(fontFam, "bold");
     left.forEach(function (row, i) {
-      doc.text(row[0], col1, y + i * 14);
-      doc.text(String(row[1]), col1 + doc.getTextWidth(row[0]) + 6, y + i * 14);
+      doc.text(row[0], col1, y + i * 12);
+      doc.text(String(row[1]), col1 + doc.getTextWidth(row[0]) + 6, y + i * 12);
     });
     right.forEach(function (row, i) {
-      doc.text(row[0], col2, yInfoStart + i * 14);
-      doc.text(String(row[1]), col2 + doc.getTextWidth(row[0]) + 6, yInfoStart + i * 14);
+      doc.text(row[0], col2, yInfoStart + i * 12);
+      doc.text(String(row[1]), col2 + doc.getTextWidth(row[0]) + 6, yInfoStart + i * 12);
     });
-    y = Math.max(y + left.length * 14, yInfoStart + right.length * 14) + 16;
+    y = Math.max(y + left.length * 12, yInfoStart + right.length * 12) + 10;
 
     var examsToShow = order.examenes.filter(function (ex) {
       var listos = ex.estado === "validado" || ex.estado === "remitido";
@@ -735,7 +735,12 @@
       // página personalizado, que va debajo de todo lo anterior.
       var espacioSlogan = tenant.slogan ? 20 : 0;
       var espacioReservado = qrSize + 20 + espacioSlogan + altoPie;
-      var qrY = Math.max(signBlockBottom + 14, 690 - espacioReservado);
+      // El ancla (antes 690) dejaba un tramo de hoja en blanco bastante
+      // grande entre la insignia del QR y el pie de página (770) — se sube
+      // a 748 para que la insignia quede pegada de verdad a la esquina
+      // inferior, con solo el aire justo antes del pie de página (queja
+      // real reportada: "el QR más en la esquina, no tan arriba").
+      var qrY = Math.max(signBlockBottom + 14, 748 - espacioReservado);
       if (qrY + espacioReservado > 760) { doc.addPage(); qrY = margin + 10; }
       doc.addImage(qrDataUrl, "PNG", qrX, qrY, qrSize, qrSize);
       doc.setDrawColor(210, 210, 210); doc.setLineWidth(0.6); doc.rect(qrX - 2, qrY - 2, qrSize + 4, qrSize + 4);
