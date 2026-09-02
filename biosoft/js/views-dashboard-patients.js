@@ -59,21 +59,89 @@
     root.querySelectorAll("[data-route]").forEach(function (a) { a.addEventListener("click", function () { location.hash = "#/" + a.dataset.route; }); });
   };
 
+  function hoyISO() { return new Date().toISOString().slice(0, 10); }
+  function haceDiasISO(dias) { var d = new Date(); d.setDate(d.getDate() - dias); return d.toISOString().slice(0, 10); }
+  function textoSegundos(seg) {
+    if (seg < 60) return seg + " seg";
+    var min = Math.round(seg / 60);
+    return min + " min";
+  }
+
   function buildSuperadminDashboard(root) {
     var tenants = [];
     var cargando = true;
+    var ultimaActualizacion = null;
+    // Últimos 30 días (incluye hoy) por defecto — el laboratorio y el
+    // superadmin pueden cambiarlo a cualquier rango.
+    var rangoDesde = haceDiasISO(29);
+    var rangoHasta = hoyISO();
     root.innerHTML = '<div class="card"><p class="text-muted">Cargando resumen…</p></div>';
 
-    function cargar() {
-      S.tenantsGlobal.list().then(function (list) {
+    function cargar(silencioso) {
+      return S.tenantsGlobal.list().then(function (list) {
         tenants = list;
         cargando = false;
+        ultimaActualizacion = new Date();
         render();
       }).catch(function (err) {
         cargando = false;
         console.error("BIOsoft: no se pudo cargar el resumen global ->", err.code, err.message);
-        root.innerHTML = '<div class="card"><p class="text-muted">No se pudo cargar el resumen: ' + U.esc(err.message || String(err)) + '</p></div>';
+        if (!silencioso) root.innerHTML = '<div class="card"><p class="text-muted">No se pudo cargar el resumen: ' + U.esc(err.message || String(err)) + '</p></div>';
       });
+    }
+
+    // Refresca solo (sin tapar la pantalla con "Cargando…") cada 60
+    // segundos mientras este panel siga abierto, para que las cifras se
+    // vean actualizadas sin que el superadmin tenga que recargar la
+    // página a mano. Este router no tiene un gancho de "salir de la
+    // vista", así que el propio temporizador se autocancela apenas "root"
+    // ya no está conectado al documento (el siguiente cambio de pantalla
+    // lo desconecta al reemplazar #content) — evita dejar temporizadores
+    // corriendo de fondo, leyendo Firestore, en pantallas que ya no se ven.
+    var pollTimer = setInterval(function () {
+      if (!document.body.contains(root)) { clearInterval(pollTimer); return; }
+      cargar(true);
+    }, 60000);
+
+    function enRango(fechaISO) {
+      var f = (fechaISO || "").slice(0, 10);
+      return !!f && f >= rangoDesde && f <= rangoHasta;
+    }
+
+    function diasDelRango() {
+      var dias = [];
+      var d = new Date(rangoDesde + "T00:00:00");
+      var fin = new Date(rangoHasta + "T00:00:00");
+      // Un rango invertido o absurdamente largo (varios años, por un typo
+      // en la fecha) no debe intentar dibujar miles de barras — se limita
+      // a 366 días y, si el rango no tiene sentido, se muestra vacío en
+      // vez de trabar el navegador.
+      var limite = 366;
+      while (d <= fin && dias.length < limite) { dias.push(d.toISOString().slice(0, 10)); d.setDate(d.getDate() + 1); }
+      return dias;
+    }
+
+    function chartHtml(fechas) {
+      var dias = diasDelRango();
+      if (!dias.length) return '<p class="text-muted" style="margin:0">Elige un rango de fechas válido.</p>';
+      var porDia = {};
+      fechas.forEach(function (f) { if (enRango(f)) { var d = f.slice(0, 10); porDia[d] = (porDia[d] || 0) + 1; } });
+      var max = Math.max.apply(null, dias.map(function (d) { return porDia[d] || 0; }).concat([1]));
+      // Con muchos días mostrar la fecha bajo CADA barra se ve saturado —
+      // se reparten como mucho ~9 etiquetas a lo largo del rango.
+      var paso = Math.max(1, Math.ceil(dias.length / 9));
+      var barras = dias.map(function (d, i) {
+        var val = porDia[d] || 0;
+        var alturaPct = Math.max(3, Math.round((val / max) * 100));
+        var mostrarEtiqueta = i % paso === 0 || i === dias.length - 1;
+        return '<div style="flex:1 0 auto;min-width:5px;max-width:26px;display:flex;flex-direction:column;align-items:center;gap:4px">' +
+          '<div style="width:100%;height:96px;display:flex;align-items:flex-end">' +
+          '<div style="width:100%;height:' + alturaPct + '%;background:linear-gradient(180deg,var(--brand-primary),var(--brand-secondary));border-radius:3px 3px 0 0" title="' + U.fmtFechaCorta(d) + ': ' + val + ' paciente(s)"></div>' +
+          "</div>" +
+          '<div style="font-size:9px;color:var(--text-muted);white-space:nowrap">' + (mostrarEtiqueta ? U.fmtFechaCorta(d).slice(0, 5) : "") + "</div>" +
+          "</div>";
+      }).join("");
+      return '<div style="display:flex;align-items:flex-end;gap:3px;overflow-x:auto;padding-bottom:2px">' + barras + "</div>";
     }
 
     function render() {
@@ -85,21 +153,76 @@
       });
       var totalPacientes = tenants.reduce(function (a, t) { return a + (t._pacientes || 0); }, 0);
       var totalOrdenes = tenants.reduce(function (a, t) { return a + (t._ordenes || 0); }, 0);
+      var totalUsuarios = tenants.reduce(function (a, t) { return a + (t._usuarios || 0); }, 0);
       var urgentes = porEstado.vencido.concat(porEstado.por_vencer);
 
+      var todasFechasPacientes = [];
+      tenants.forEach(function (t) { (t._pacientesFechas || []).forEach(function (f) { todasFechasPacientes.push(f); }); });
+      var pacientesEnRango = todasFechasPacientes.filter(enRango).length;
+      var ordenesEnRango = 0;
+      tenants.forEach(function (t) { (t._ordenesFechas || []).forEach(function (f) { if (enRango(f)) ordenesEnRango++; }); });
+      var laboratoriosNuevosEnRango = tenants.filter(function (t) { return enRango(t.creadoEn); }).length;
+
+      // Ranking de laboratorios por actividad EN EL PERIODO elegido — el
+      // dato que realmente le interesa a BIOsoft para saber quién está
+      // usando de verdad el sistema (no solo quién tiene más pacientes
+      // acumulados históricamente).
+      var ranking = tenants.map(function (t) {
+        return {
+          t: t,
+          pacientesRango: (t._pacientesFechas || []).filter(enRango).length,
+          ordenesRango: (t._ordenesFechas || []).filter(enRango).length
+        };
+      }).sort(function (a, b) { return b.pacientesRango - a.pacientesRango || b.ordenesRango - a.ordenesRango; });
+
+      var segsDesdeUltima = ultimaActualizacion ? Math.round((Date.now() - ultimaActualizacion.getTime()) / 1000) : null;
+
       root.innerHTML =
+        '<div class="flex gap-2" style="align-items:center;justify-content:flex-end;flex-wrap:wrap;margin-bottom:14px">' +
+        '<span class="text-muted" style="font-size:11.5px">' + (segsDesdeUltima != null ? "🟢 Actualizado hace " + textoSegundos(segsDesdeUltima) + " · se refresca solo" : "") + "</span>" +
+        '<button type="button" class="btn btn-outline btn-sm" id="btn-resumen-refrescar">🔄 Actualizar ahora</button>' +
+        "</div>" +
         '<div class="kpi-grid">' +
-          kpi(tenants.length, "Laboratorios Cliente") +
-          kpi(totalPacientes, "Pacientes (todos los clientes)") +
-          kpi(totalOrdenes, "Órdenes Totales") +
-          kpi(porEstado.suspendido.length, "Suspendidos") +
-        '</div>' +
+        kpi(tenants.length, "Laboratorios Cliente") +
+        kpi(totalPacientes, "Pacientes (todos los clientes)") +
+        kpi(totalOrdenes, "Órdenes Totales") +
+        kpi(totalUsuarios, "Usuarios del Sistema") +
+        "</div>" +
         '<div class="kpi-grid">' +
-          kpi(porEstado.activo.length, "Al Día") +
-          kpi(porEstado.por_vencer.length, "Por Vencer (≤" + BIO_PLANES.DIAS_AVISO_VENCIMIENTO + " días)") +
-          kpi(porEstado.vencido.length, "Vencidos") +
-          kpi(porEstado.sin_fecha.length, "Sin Fecha de Pago") +
-        '</div>' +
+        kpi(porEstado.activo.length, "Al Día") +
+        kpi(porEstado.por_vencer.length, "Por Vencer (≤" + BIO_PLANES.DIAS_AVISO_VENCIMIENTO + " días)") +
+        kpi(porEstado.vencido.length, "Vencidos") +
+        kpi(porEstado.suspendido.length, "Suspendidos") +
+        "</div>" +
+        '<div class="card">' +
+        '<div class="card-header"><h3 class="card-title">📈 Actividad por Periodo</h3></div>' +
+        '<div class="form-grid" style="max-width:420px;margin-bottom:14px">' +
+        '<div class="field"><label>Desde</label><input type="date" id="resumen-desde" value="' + rangoDesde + '"/></div>' +
+        '<div class="field"><label>Hasta</label><input type="date" id="resumen-hasta" value="' + rangoHasta + '"/></div>' +
+        "</div>" +
+        '<div class="kpi-grid" style="margin-bottom:18px">' +
+        kpi(pacientesEnRango, "Pacientes Registrados en el Periodo") +
+        kpi(ordenesEnRango, "Órdenes Creadas en el Periodo") +
+        kpi(laboratoriosNuevosEnRango, "Laboratorios Nuevos en el Periodo") +
+        "</div>" +
+        '<h4 style="margin:0 0 8px;font-size:13px;color:var(--text-muted)">Pacientes registrados por día (todos los laboratorios)</h4>' +
+        chartHtml(todasFechasPacientes) +
+        "</div>" +
+        '<div class="card"><div class="card-header"><h3 class="card-title">🏆 Laboratorios Más Activos en el Periodo</h3></div>' +
+        '<div class="table-wrap"><table><thead><tr><th>Laboratorio</th><th>Plan</th><th>Estado</th><th>Pacientes (periodo)</th><th>Órdenes (periodo)</th><th>Usuarios</th><th>Total histórico</th><th>Cliente desde</th></tr></thead><tbody>' +
+        (ranking.length ? ranking.map(function (r) {
+          var t = r.t;
+          var plan = BIO_PLANES.porId(t.planId);
+          var info = BIO_PLANES.ESTADOS_CUENTA[BIO_PLANES.estadoCuenta(t)];
+          return "<tr><td><b>" + U.esc(t.nombre) + "</b></td><td>" + (plan ? U.esc(plan.nombre) : "—") + "</td>" +
+            "<td><span class='badge " + info.badge + "'>" + info.label + "</span></td>" +
+            "<td style='text-align:center;font-weight:700;color:var(--brand-secondary)'>" + r.pacientesRango + "</td>" +
+            "<td style='text-align:center'>" + r.ordenesRango + "</td>" +
+            "<td style='text-align:center'>" + (t._usuarios || 0) + "</td>" +
+            "<td style='text-align:center' class='text-muted'>" + (t._pacientes || 0) + " pac. · " + (t._ordenes || 0) + " ord.</td>" +
+            "<td class='text-muted'>" + (t.creadoEn ? U.fmtFechaCorta(t.creadoEn) : "—") + "</td></tr>";
+        }).join("") : '<tr><td colspan="8" class="text-muted">Sin laboratorios registrados.</td></tr>') +
+        "</tbody></table></div></div>" +
         (urgentes.length ?
           '<div class="card"><div class="card-header"><h3 class="card-title">⚠️ Requieren seguimiento de pago (' + urgentes.length + ')</h3>' +
           '<a class="btn btn-outline btn-sm" data-route="tenants">Ir a Laboratorios Cliente</a></div>' +
@@ -112,9 +235,7 @@
               "<td>" + (t.fechaProximoPago ? U.fmtFechaCorta(t.fechaProximoPago) : "—") + "</td>" +
               "<td><button class='btn btn-whatsapp btn-sm' data-recordar='" + t.id + "'>" + U.icon("send") + " Recordar</button></td></tr>";
           }).join("") + "</tbody></table></div></div>"
-          : '<div class="card"><h3 class="card-title">✅ Todos tus laboratorios cliente están al día con el pago</h3></div>') +
-        '<div class="card"><div class="card-header"><h3 class="card-title">Bienvenido a la consola de BIOsoft</h3></div>' +
-        '<p class="text-muted">Desde <b>Laboratorios Cliente</b> puedes crear un nuevo laboratorio, asignar su plan, enviarle el contrato y el manual de usuario, y hacer seguimiento a sus fechas de pago.</p></div>';
+          : '<div class="card"><h3 class="card-title">✅ Todos tus laboratorios cliente están al día con el pago</h3></div>');
 
       root.querySelectorAll("[data-route]").forEach(function (a) { a.addEventListener("click", function () { location.hash = "#/" + a.dataset.route; }); });
       root.querySelectorAll("[data-recordar]").forEach(function (b) {
@@ -128,9 +249,15 @@
           window.open("https://wa.me/" + numero + "?text=" + encodeURIComponent(msg), "_blank");
         });
       });
+      var btnRefrescar = document.getElementById("btn-resumen-refrescar");
+      if (btnRefrescar) btnRefrescar.addEventListener("click", function () { root.innerHTML = '<div class="card"><p class="text-muted">Actualizando…</p></div>'; cargando = true; cargar(false); });
+      var inpDesde = document.getElementById("resumen-desde");
+      var inpHasta = document.getElementById("resumen-hasta");
+      if (inpDesde) inpDesde.addEventListener("change", function () { rangoDesde = inpDesde.value; render(); });
+      if (inpHasta) inpHasta.addEventListener("change", function () { rangoHasta = inpHasta.value; render(); });
     }
 
-    cargar();
+    cargar(false);
   }
 
   function kpi(value, label) {

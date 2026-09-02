@@ -417,7 +417,20 @@
           tenantsColl().doc(t.id).collection("patients").get(),
           tenantsColl().doc(t.id).collection("orders").get()
         ]).then(function (snaps) {
-          return Object.assign({}, t, { _usuarios: snaps[0].size, _pacientes: snaps[1].size, _ordenes: snaps[2].size });
+          // Antes solo se guardaba snaps[1].size/snaps[2].size (el conteo) y
+          // se descartaban los documentos — para el Resumen Global "por
+          // fecha" (cuántos pacientes/órdenes se registraron día a día o en
+          // un rango) hace falta la fecha de creación de cada uno, así que
+          // se guarda aparte SIN pedir nada extra a Firestore (son los
+          // mismos documentos que ya se leyeron para el conteo).
+          var pacientesFechas = [];
+          snaps[1].forEach(function (doc) { var d = doc.data(); if (d.creadoEn) pacientesFechas.push(d.creadoEn); });
+          var ordenesFechas = [];
+          snaps[2].forEach(function (doc) { var d = doc.data(); if (d.fechaOrden) ordenesFechas.push(d.fechaOrden); });
+          return Object.assign({}, t, {
+            _usuarios: snaps[0].size, _pacientes: snaps[1].size, _ordenes: snaps[2].size,
+            _pacientesFechas: pacientesFechas, _ordenesFechas: ordenesFechas
+          });
         });
       }));
     });
