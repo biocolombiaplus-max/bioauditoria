@@ -160,13 +160,33 @@
         var el = contenedor.querySelector('[data-param="' + codigo + '"]');
         if (!el) return;
         var valorNuevo = "";
+        var hintTexto = "🧮 Calculado automáticamente";
+        var hintEsError = false;
         try {
           var resultado = C.evaluarFormula(formulasCalculadas[codigo], valores);
           if (isFinite(resultado)) valorNuevo = String(Math.round(resultado * 100) / 100);
+          else { hintTexto = "🧮 La fórmula no dio un número — revísala en Catálogo."; hintEsError = true; }
         } catch (e) {
           valorNuevo = "";
+          // "FALTA:<código>" lo lanza evaluarFormula() cuando el código que
+          // usa la fórmula no aparece capturado en NINGÚN examen de la
+          // orden — o porque aún no se ha digitado ese valor, o porque el
+          // código escrito en la fórmula no coincide con el código real del
+          // parámetro (bug real reportado: se copió el código del ejemplo
+          // del placeholder — "COLT" — en vez de revisar el código propio
+          // de "Colesterol Total" en esa orden). Antes esto quedaba en
+          // blanco sin ninguna pista; ahora se avisa cuál código falta.
+          var msg = String((e && e.message) || e);
+          if (msg.indexOf("FALTA:") === 0) {
+            hintTexto = '🧮 Falta el valor de "' + msg.slice(6) + '" — captúralo, o si ya lo hiciste, revisa que ese código exista tal cual en la fórmula (Catálogo → Valores de Referencia).';
+          } else {
+            hintTexto = "🧮 Fórmula inválida: " + msg;
+          }
+          hintEsError = true;
         }
         if (el.value !== valorNuevo) { el.value = valorNuevo; el.dispatchEvent(new Event("input")); }
+        var hintEl = contenedor.querySelector('[data-calc-hint="' + codigo + '"]');
+        if (hintEl) { hintEl.textContent = hintTexto; hintEl.style.color = hintEsError ? "var(--danger)" : ""; }
       });
     }
 
@@ -650,7 +670,13 @@
             // → Catálogo → un examen → Valores de Referencia).
             if (p.calculado && p.formula) formulasCalculadas[p.codigo] = p.formula;
             inputHtml = '<input type="number" step="any" placeholder="' + (p.calculado ? "Se calcula solo" : "Escribe aquí…") + '" data-param="' + p.codigo + '" value="' + U.esc(val) + '" ' + (!editable ? "disabled" : (p.calculado ? "readonly" : "")) + "/>" +
-              (p.calculado ? '<div class="text-muted" style="font-size:10.5px;margin-top:2px" title="Fórmula: ' + U.esc(p.formula) + '">🧮 Calculado automáticamente</div>' : "");
+              // "data-calc-hint" deja que recalcularCalculados() reemplace este
+              // texto por el motivo exacto cuando la fórmula no se puede
+              // evaluar (ej. el código que usa no coincide con ningún
+              // parámetro de la orden) — antes fallaba en silencio, dejando
+              // el campo en blanco sin ninguna pista de qué faltaba (bug real
+              // reportado: un HDL calculado que nunca se llenaba).
+              (p.calculado ? '<div class="text-muted" data-calc-hint="' + p.codigo + '" style="font-size:10.5px;margin-top:2px" title="Fórmula: ' + U.esc(p.formula) + '">🧮 Calculado automáticamente</div>' : "");
           } else if (p.tipo === "cualitativo" || (p.tipo === "descriptivo" && Array.isArray(p.opciones) && p.opciones.length)) {
             // Un campo "descriptivo" del catálogo de fábrica sí trae
             // opciones predefinidas (ej. Color de heces) y se ve como
