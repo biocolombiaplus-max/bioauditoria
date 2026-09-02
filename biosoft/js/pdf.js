@@ -288,17 +288,18 @@
       doc.setDrawColor(rgb[0], rgb[1], rgb[2]); doc.setLineWidth(2);
       doc.line(margin, y, pageW - margin, y); y += 14;
     } else {
-      // El logo se ve grande y premium (78pt en una hoja carta completa)
+      // El logo se ve grande y premium (70pt en una hoja carta completa)
       // pero ya no ocupa tanto encabezado como antes (llegó a subir hasta
       // 100pt) — entre el membrete y los datos del paciente se estaba
-      // yendo demasiada hoja en blanco (queja real reportada). El nombre y
-      // los datos del laboratorio se recorren proporcionalmente para que
-      // el encabezado se vea equilibrado. Esta función también la usan
+      // yendo demasiada hoja en blanco (queja real reportada, ajustada más
+      // de una vez hasta comprimirlo lo suficiente). El nombre y los datos
+      // del laboratorio se recorren proporcionalmente para que el
+      // encabezado se vea equilibrado. Esta función también la usan
       // documentos en hojas más angostas (ej. el recibo de pago en media
       // carta), así que el tope real es relativo al ancho de la página —
-      // en una hoja carta da exactamente 78pt como siempre, pero en una
+      // en una hoja carta da exactamente 70pt como siempre, pero en una
       // más angosta se achica en proporción en vez de quedar desbordado.
-      var logoSize = Math.min(78, (pageW - margin * 2) * 0.17);
+      var logoSize = Math.min(70, (pageW - margin * 2) * 0.155);
       if (tenant.logoDataUrl) {
         try { doc.addImage(tenant.logoDataUrl, "PNG", margin, y - 9, logoSize, logoSize); } catch (e) {}
       }
@@ -324,7 +325,7 @@
       metaLines.forEach(function (line, i) { doc.text(line, textX, y + metaStartOffset + i * 10); });
 
       doc.setDrawColor(rgb[0], rgb[1], rgb[2]); doc.setLineWidth(2);
-      y += tenant.slogan ? 82 : 72; doc.line(margin, y, pageW - margin, y); y += 14;
+      y += tenant.slogan ? 74 : 64; doc.line(margin, y, pageW - margin, y); y += 12;
     }
     return y;
   }
@@ -358,20 +359,20 @@
 
     doc.setFont(fontFam, "bold"); doc.setFontSize(13); doc.setTextColor(20, 20, 20);
     doc.text("INFORME DE RESULTADOS DE LABORATORIO CLÍNICO", margin, y);
-    y += 12;
+    y += 10;
     // El aviso de preliminar/parcial va en su PROPIA línea debajo del
     // título (antes iba a la derecha, en la misma línea que el título, y
     // con textos largos las dos frases se montaban una sobre la otra).
     if (modo === "preliminar") {
       doc.setFont(fontFam, "bold"); doc.setFontSize(9.5); doc.setTextColor(201, 126, 13);
       doc.text("RESULTADO PRELIMINAR — SUJETO A VALIDACIÓN FINAL", margin, y);
-      y += 12;
+      y += 11;
     } else if (order.estadoGeneral !== "validado") {
       doc.setFont(fontFam, "bold"); doc.setFontSize(9.5); doc.setTextColor(201, 126, 13);
       doc.text("INFORME PARCIAL — HAY EXÁMENES EN PROCESO", margin, y);
-      y += 12;
+      y += 11;
     } else {
-      y += 4;
+      y += 3;
     }
 
     // El nombre y el documento del paciente van destacados, cada uno en su
@@ -387,10 +388,10 @@
 
     doc.setFont(fontFam, "bold"); doc.setFontSize(12.5); doc.setTextColor(20, 20, 20);
     doc.text(U.nombreCompleto(patient), col1, y);
-    y += 13;
+    y += 12;
     doc.setFontSize(10.5); doc.setTextColor(50, 50, 50);
     doc.text(patient.tipoDocumento + " " + patient.numeroDocumento, col1, y);
-    y += 13;
+    y += 11;
 
     doc.setFontSize(9.5); doc.setTextColor(30, 30, 30);
     var edad = U.edadTexto(patient);
@@ -423,14 +424,14 @@
     // solapan sin importar qué tan larga sea.
     doc.setFont(fontFam, "bold");
     left.forEach(function (row, i) {
-      doc.text(row[0], col1, y + i * 12);
-      doc.text(String(row[1]), col1 + doc.getTextWidth(row[0]) + 6, y + i * 12);
+      doc.text(row[0], col1, y + i * 11);
+      doc.text(String(row[1]), col1 + doc.getTextWidth(row[0]) + 6, y + i * 11);
     });
     right.forEach(function (row, i) {
-      doc.text(row[0], col2, yInfoStart + i * 12);
-      doc.text(String(row[1]), col2 + doc.getTextWidth(row[0]) + 6, yInfoStart + i * 12);
+      doc.text(row[0], col2, yInfoStart + i * 11);
+      doc.text(String(row[1]), col2 + doc.getTextWidth(row[0]) + 6, yInfoStart + i * 11);
     });
-    y = Math.max(y + left.length * 12, yInfoStart + right.length * 12) + 10;
+    y = Math.max(y + left.length * 11, yInfoStart + right.length * 11) + 8;
 
     var examsToShow = order.examenes.filter(function (ex) {
       var listos = ex.estado === "validado" || ex.estado === "remitido";
@@ -503,21 +504,34 @@
         return (1 + (g.metodo ? 1 : 0) + filasAlto) * ROW_H;
       }
 
-      // Antes de dibujar el banner rojo de la sección, se verifica que
-      // quepa completo junto con el encabezado de la tabla y al menos el
-      // primer examen — si no cabe, se pasa de página ANTES del banner, en
-      // vez de dejarlo solo al fondo de la página sin ninguna fila debajo
-      // (que es justo lo que se veía feo: el banner de una sección quedando
+      // Antes de dibujar el banner de la sección, se verifica que quepa
+      // completo junto con el encabezado de la tabla y al menos el primer
+      // examen — si no cabe, se pasa de página ANTES del banner, en vez de
+      // dejarlo solo al fondo de la página sin ninguna fila debajo (que es
+      // justo lo que se veía feo: el banner de una sección quedando
       // huérfano al final de una página y los resultados empezando recién
       // en la siguiente).
+      // Estilo del banner de sección — el bloque sólido con el color de
+      // marca es el de siempre, pero un laboratorio puede preferir un
+      // estilo más neutro/minimalista sin ese bloque de color (opción en
+      // Configuración → "Diseño del Reporte de Resultados"), solo texto en
+      // negrita con una línea fina debajo — también un poco más compacto.
+      var alturaBanner = tenant.bandaSeccionSinColor ? 18 : 20;
       var altoPrimerGrupo = grupos.length ? altoGrupo(grupos[0]) : 0;
-      if (y + 24 + HEAD_H + altoPrimerGrupo > pageBottom) { doc.addPage(); y = margin; }
+      if (y + alturaBanner + HEAD_H + altoPrimerGrupo > pageBottom) { doc.addPage(); y = margin; }
 
-      doc.setFillColor(rgb[0], rgb[1], rgb[2]);
-      doc.rect(margin, y, pageW - margin * 2, 16, "F");
-      doc.setTextColor(255, 255, 255); doc.setFont(fontFam, "bold"); doc.setFontSize(9.5);
-      doc.text(C.seccionNombre(seccionId, tenant).toUpperCase(), margin + 6, y + 11);
-      y += 24;
+      if (tenant.bandaSeccionSinColor) {
+        doc.setTextColor(30, 30, 30); doc.setFont(fontFam, "bold"); doc.setFontSize(9.5);
+        doc.text(C.seccionNombre(seccionId, tenant).toUpperCase(), margin, y + 9);
+        doc.setDrawColor(180, 180, 180); doc.setLineWidth(0.8);
+        doc.line(margin, y + 13, pageW - margin, y + 13);
+      } else {
+        doc.setFillColor(rgb[0], rgb[1], rgb[2]);
+        doc.rect(margin, y, pageW - margin * 2, 16, "F");
+        doc.setTextColor(255, 255, 255); doc.setFont(fontFam, "bold"); doc.setFontSize(9.5);
+        doc.text(C.seccionNombre(seccionId, tenant).toUpperCase(), margin + 6, y + 11);
+      }
+      y += alturaBanner;
 
       // Luego se arma la tabla en "trozos" que quepan completos en lo que
       // resta de la página: en un informe con muchos exámenes (20 o más),

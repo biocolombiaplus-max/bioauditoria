@@ -1385,6 +1385,8 @@
         "</div>" +
         '<div class="checkbox-row"><input type="checkbox" id="f_ocultarNombreEncabezado" ' + (tenant.ocultarNombreEncabezado ? "checked" : "") + '/><label style="margin:0" for="f_ocultarNombreEncabezado">Ocultar el nombre del laboratorio en el encabezado (úsalo solo si tu logo ya trae el nombre escrito, para no repetirlo)</label></div>' +
         "</div>" +
+        '<div class="checkbox-row"><input type="checkbox" id="f_bandaSeccionSinColor" ' + (tenant.bandaSeccionSinColor ? "checked" : "") + '/><label style="margin:0" for="f_bandaSeccionSinColor">Barras de sección del informe sin color (solo texto en negrita con una línea fina)</label></div>' +
+        '<p class="text-muted" style="margin:4px 0 12px;font-size:12.5px">Por defecto, cada sección del informe (ej. "ENDOCRINOLOGÍA") sale en una barra sólida con tu color de marca. Actívalo si prefieres un estilo más neutro/minimalista, sin ese bloque de color.</p>' +
         '<div class="field" style="margin:4px 0 6px"><label style="margin-bottom:4px">Datos adicionales que se muestran en el reporte del paciente</label>' +
         '<div class="checkbox-row"><input type="checkbox" id="f_campoEdadSexo" ' + (campos.edadSexo !== false ? "checked" : "") + '/><label style="margin:0" for="f_campoEdadSexo">Edad / Sexo</label></div>' +
         (tenant.pais === "CO" ? '<div class="checkbox-row"><input type="checkbox" id="f_campoEps" ' + (campos.eps !== false ? "checked" : "") + '/><label style="margin:0" for="f_campoEps">EPS / Asegurador</label></div>' : "") +
@@ -1498,6 +1500,7 @@
       tenant.logoAnchoCompleto = document.getElementById("f_logoAnchoCompleto").checked;
       tenant.logoAnchoPorcentaje = parseInt(document.getElementById("f_logoAnchoPorcentaje").value, 10);
       tenant.ocultarNombreEncabezado = document.getElementById("f_ocultarNombreEncabezado").checked;
+      tenant.bandaSeccionSinColor = document.getElementById("f_bandaSeccionSinColor").checked;
       var campoEpsEl = document.getElementById("f_campoEps");
       tenant.camposReporte = {
         edadSexo: document.getElementById("f_campoEdadSexo").checked,
@@ -1548,6 +1551,7 @@
           resolucionHabilitacion: tenant.resolucionHabilitacion, codigoREPS: tenant.codigoREPS, nivel: tenant.nivel,
           bacteriologoResponsable: tenant.bacteriologoResponsable, mostrarPrecioOrden: tenant.mostrarPrecioOrden, reportarCIM: tenant.reportarCIM,
           logoGrandeReporte: tenant.logoGrandeReporte, logoAnchoCompleto: tenant.logoAnchoCompleto, logoAnchoPorcentaje: tenant.logoAnchoPorcentaje, ocultarNombreEncabezado: tenant.ocultarNombreEncabezado,
+          bandaSeccionSinColor: tenant.bandaSeccionSinColor,
           camposReporte: tenant.camposReporte, fuenteReporte: tenant.fuenteReporte, tamanoFuenteReporte: tenant.tamanoFuenteReporte,
           piePaginaPersonalizado: tenant.piePaginaPersonalizado,
           colorPrimario: tenant.colorPrimario, colorSecundario: tenant.colorSecundario, colorTextoMenu: tenant.colorTextoMenu,
