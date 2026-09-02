@@ -85,6 +85,20 @@
         "</select></div>" +
         '<button class="btn btn-primary btn-block" id="btn-rep-kardex" ' + (insumos.length ? "" : "disabled") + ">" + U.icon("download") + " Generar PDF</button>" +
         "</div>" +
+        '<div class="lp-feature">' +
+        '<div class="lp-ic">🧾</div><h3>Cartera de Clientes</h3>' +
+        '<p>Valor total, abonado y saldo pendiente de las órdenes del periodo — general, o agrupado por Aliado (Convenio) o por Paciente.</p>' +
+        '<div class="form-grid" style="margin:10px 0">' +
+        '<div class="field"><label>Desde</label><input type="date" id="rep-cartera-desde" value="' + primerDiaMes() + '"/></div>' +
+        '<div class="field"><label>Hasta</label><input type="date" id="rep-cartera-hasta" value="' + hoyISO() + '"/></div>' +
+        '</div>' +
+        '<div class="field" style="margin:0 0 10px"><label>Agrupar por</label><select id="rep-cartera-agrupar">' +
+        '<option value="aliado">Aliado (Convenio)</option>' +
+        '<option value="paciente">Paciente</option>' +
+        '<option value="general">Detalle general (sin agrupar)</option>' +
+        "</select></div>" +
+        '<button class="btn btn-primary btn-block" id="btn-rep-cartera">' + U.icon("download") + " Generar PDF</button>" +
+        "</div>" +
         "</div>";
     }
 
@@ -117,6 +131,42 @@
         var bytes = BIO_PDF_INVENTARIO.buildKardexInsumoPDF(insumo, movimientos, tenant);
         U.downloadBytes(bytes, "Kardex_" + insumo.nombre.replace(/\s+/g, "_") + ".pdf");
         U.toast("Kardex descargado.", "success");
+      });
+      var btnCartera = document.getElementById("btn-rep-cartera");
+      if (btnCartera) btnCartera.addEventListener("click", function () {
+        if (!tenant.mostrarPrecioOrden) {
+          U.toast('Activa "Mostrar precio en la orden" en Configuración del Laboratorio para poder generar este reporte.', "error");
+          return;
+        }
+        var desde = document.getElementById("rep-cartera-desde").value;
+        var hasta = document.getElementById("rep-cartera-hasta").value;
+        var agrupacion = document.getElementById("rep-cartera-agrupar").value;
+        var orders = S.listOrders(tenantId).filter(function (o) {
+          var fecha = (o.fechaOrden || "").slice(0, 10);
+          return fecha >= desde && fecha <= hasta && o.valorCobrar != null;
+        });
+        // "Abonado" hoy solo refleja el estado binario del Recibo de Pago
+        // (order.pago: pagada la orden completa, o pendiente) — BIOsoft aún
+        // no lleva abonos parciales por orden. Si el laboratorio necesita
+        // registrar pagos parciales en el tiempo, es una funcionalidad
+        // aparte por construir; este reporte usa lo que ya existe hoy.
+        var filas = orders.map(function (o) {
+          var pac = S.getPatient(o.patientId);
+          var valorTotal = o.valorCobrar || 0;
+          var valorAbonado = o.pago ? valorTotal : 0;
+          return {
+            numeroOrden: o.numeroOrden,
+            fecha: o.fechaOrden,
+            paciente: pac ? U.nombreCompleto(pac) : "—",
+            aliado: o.convenioNombre || "Particulares",
+            valorTotal: valorTotal,
+            valorAbonado: valorAbonado,
+            saldoPendiente: valorTotal - valorAbonado
+          };
+        }).sort(function (a, b) { return a.fecha.localeCompare(b.fecha); });
+        var bytes = BIO_PDF_CARTERA.buildCarteraPDF(filas, tenant, desde, hasta, agrupacion);
+        U.downloadBytes(bytes, "Cartera_" + desde + "_a_" + hasta + ".pdf");
+        U.toast("Reporte de cartera descargado.", "success");
       });
     }
 
