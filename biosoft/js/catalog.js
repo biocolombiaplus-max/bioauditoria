@@ -1182,14 +1182,19 @@
   }
   /* Arma el texto de referencia combinando todos los tramos (para mostrarlo
      antes de tener un resultado capturado), ej: "Normal: <5.7 % · Prediabetes:
-     5.7 - 6.4 % · Diabetes: ≥6.5 %". */
+     5.7 - 6.4 % · Diabetes: ≥6.5 %". La etiqueta y el rango numérico SIEMPRE
+     se muestran (antes, si el tramo tenía "Texto de Referencia" propio, este
+     reemplazaba por completo la etiqueta — con varios tramos parecidos entre
+     sí, ej. distintas fases del ciclo menstrual, el reporte terminaba
+     mostrando fragmentos sueltos sin decir a cuál grupo pertenecía cada uno,
+     bug real reportado); el texto de referencia, si lo hay, se agrega entre
+     paréntesis como aclaración adicional, sin tapar nada de lo demás. */
   function textoReferenciaRangos(rangos, unidad) {
     var u = unidad ? " " + unidad : "";
     return rangos.map(function (r) {
-      if (r.refText) return r.refText;
-      if (r.min == null) return r.etiqueta + ": <" + r.max + u;
-      if (r.max == null) return r.etiqueta + ": ≥" + r.min + u;
-      return r.etiqueta + ": " + r.min + " - " + r.max + u;
+      var rango = r.min == null ? "<" + r.max + u : r.max == null ? "≥" + r.min + u : r.min + " - " + r.max + u;
+      var base = (r.etiqueta ? r.etiqueta + ": " : "") + rango;
+      return r.refText ? base + " (" + r.refText + ")" : base;
     }).join(" · ");
   }
 

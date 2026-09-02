@@ -406,7 +406,8 @@
     if (patient.pais === "CO" && campos.eps !== false) left.push(["EPS / Asegurador:", patient.eps || "Particular"]);
     var right = [
       ["N° de Orden:", order.numeroOrden],
-      ["Fecha de Orden:", U.fmtFecha(order.fechaOrden)]
+      ["Fecha de Orden:", U.fmtFecha(order.fechaOrden)],
+      ["Fecha de Impresión:", U.fmtFecha(new Date().toISOString())]
     ];
     if (campos.medico !== false) right.push(["Médico Remitente:", order.medicoRemitente || "—"]);
     if (campos.procedencia !== false) right.push(["Procedencia:", order.procedencia || "—"]);
