@@ -1140,7 +1140,16 @@
       if (isNaN(n)) return { texto: "", clase: "" };
       if (param.rangosInterpretacion && param.rangosInterpretacion.length) {
         var r = rangoParaValor(param.rangosInterpretacion, n);
-        if (r) return { texto: r.etiqueta, clase: r.esNormal ? "normal" : "alto" };
+        // Un tramo marcado "Normal" no tiene nada que alertar — mostrar su
+        // etiqueta en la columna de Interpretación es engañoso cuando esa
+        // etiqueta en realidad nombra un GRUPO de referencia (ej. "Hombre
+        // adulto", "Mujer Adulta") y no un diagnóstico, más aún porque el
+        // tramo se elige solo por el VALOR (no sabe si el paciente es
+        // hombre o mujer) — puede "acertar" el grupo equivocado (bug real
+        // reportado). Solo se muestra la etiqueta cuando el tramo SÍ es
+        // una alerta real (ej. "Prediabetes", "Diabetes"), que es el caso
+        // para el que existe esta columna.
+        if (r) return { texto: r.esNormal ? "" : r.etiqueta, clase: r.esNormal ? "normal" : "alto" };
       }
       if (n < param.min) return { texto: "BAJO", clase: "bajo" };
       if (n > param.max) return { texto: "ALTO", clase: "alto" };
