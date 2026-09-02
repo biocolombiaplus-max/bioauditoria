@@ -413,15 +413,22 @@
     if (campos.procedencia !== false) right.push(["Procedencia:", order.procedencia || "—"]);
     // Los datos del paciente van en negrita (etiqueta y valor) para un
     // informe con más carácter profesional, en vez de valores en fuente
-    // normal más discretos.
+    // normal más discretos. El valor arranca a un ancho fijo desde el
+    // inicio de la etiqueta — con etiquetas cortas ("Edad / Sexo:") se ve
+    // bien alineado, pero una más larga ("EPS / Asegurador:", "Fecha de
+    // Impresión:") no cabía en ese ancho fijo y el valor quedaba montado
+    // encima del final de la etiqueta (bug real reportado). Ahora el valor
+    // arranca justo después del ancho real de CADA etiqueta (medido con la
+    // misma fuente/tamaño ya aplicados), con un margen fijo, así nunca se
+    // solapan sin importar qué tan larga sea.
     doc.setFont(fontFam, "bold");
     left.forEach(function (row, i) {
       doc.text(row[0], col1, y + i * 14);
-      doc.text(String(row[1]), col1 + 90, y + i * 14);
+      doc.text(String(row[1]), col1 + doc.getTextWidth(row[0]) + 6, y + i * 14);
     });
     right.forEach(function (row, i) {
       doc.text(row[0], col2, yInfoStart + i * 14);
-      doc.text(String(row[1]), col2 + 90, yInfoStart + i * 14);
+      doc.text(String(row[1]), col2 + doc.getTextWidth(row[0]) + 6, yInfoStart + i * 14);
     });
     y = Math.max(y + left.length * 14, yInfoStart + right.length * 14) + 16;
 
