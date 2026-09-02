@@ -550,7 +550,8 @@
         '<button type="button" class="btn btn-ghost btn-sm" data-mover-campo="' + p.codigo + '" data-dir="1" ' + (idx === total - 1 ? "disabled" : "") + ' title="Bajar">▼</button>' +
         "</div>";
       var quitarHtml = '<button type="button" class="btn btn-ghost btn-sm" data-quitar-campo="' + p.codigo + '">' + (esDeFabrica ? "Quitar" : "Eliminar") + "</button>";
-      var nombreHtml = U.esc(p.nombre) + (esDeFabrica ? "" : ' <span class="badge badge-preliminar" style="font-size:9px">Personalizado</span>');
+      var codigoHtml = ' <code style="background:var(--surface-2);border:1px solid var(--border);border-radius:4px;padding:1px 5px;font-size:10px;color:var(--text-muted);font-family:monospace" title="Código de este parámetro — úsalo en fórmulas de Valor Calculado">' + U.esc(p.codigo) + "</code>";
+      var nombreHtml = U.esc(p.nombre) + codigoHtml + (esDeFabrica ? "" : ' <span class="badge badge-preliminar" style="font-size:9px">Personalizado</span>');
 
       if (p.tipo === "numerico") {
         var overNum = base && (p.min !== base.min || p.max !== base.max || p.refText !== base.refText);
