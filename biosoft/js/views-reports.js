@@ -270,7 +270,12 @@
         return obtenerPdf().then(function () {
           var msg = wrap.querySelector("#send-msg").value;
           var numero = U.numeroWhatsapp(whatsapp, tenant.pais);
-          var url = "https://wa.me/" + numero + "?text=" + encodeURIComponent(msg + "\n\n(Adjunte el PDF que se acaba de descargar antes de enviar)");
+          // El recordatorio de "adjunta el PDF" es para quien está
+          // enviando (ya va en el texto de ayuda de esta pantalla) — no
+          // debe ir dentro del mensaje que de verdad recibe el paciente
+          // (bug real reportado: se veía textual en el WhatsApp del
+          // paciente).
+          var url = "https://wa.me/" + numero + "?text=" + encodeURIComponent(msg);
           if (pestana) pestana.location.href = url; else window.open(url, "_blank");
           registrarEnvio(whatsapp);
           U.toast("PDF descargado y WhatsApp abierto — adjunta el archivo antes de enviar.", "success");
@@ -293,7 +298,7 @@
         conBotonOcupado(e.currentTarget, function () {
           return obtenerPdf().then(function () {
             var asunto = "Resultados de Laboratorio - Orden " + order.numeroOrden + " - " + tenant.nombre;
-            var cuerpo = wrap.querySelector("#send-msg").value + "\n\n(Adjunte el archivo PDF que se acaba de descargar a su equipo)";
+            var cuerpo = wrap.querySelector("#send-msg").value;
             var url = canal.buildUrl(U.emailLinks(correo, asunto, cuerpo));
             if (pestana) pestana.location.href = url; else window.open(url, "_blank");
             registrarEnvio(correo);
