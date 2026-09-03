@@ -1021,17 +1021,50 @@
     });
   }
 
+  // Una fila de la lista desplegable en construcción: el radio marca cuál
+  // opción es el "valor normal" (el que no se resalta como anormal al
+  // diligenciar, ver C.calcularFlag) — se detecta por posición en el DOM al
+  // guardar, no por un índice fijo, así que agregar/quitar filas nunca
+  // desincroniza cuál quedó marcada.
+  function filaOpcionDesplegable(valor, marcada) {
+    return '<div class="flex gap-2" style="align-items:center;margin-bottom:6px" data-fila-opcion>' +
+      '<input type="radio" name="campo-opcion-normal" ' + (marcada ? "checked" : "") + ' title="Marcar como el valor NORMAL de esta lista" style="width:auto;flex-shrink:0"/>' +
+      '<input type="text" data-opcion-valor value="' + U.esc(valor || "") + '" placeholder="Ej: Positivo" style="flex:1"/>' +
+      '<button type="button" class="btn btn-ghost btn-sm" data-quitar-fila-opcion title="Quitar esta opción">' + U.icon("trash") + "</button>" +
+      "</div>";
+  }
+
   function abrirAgregarCampo(tenant, examId, exCat, onSaved) {
     var wrap = U.openModal(
       '<h3 class="modal-title">Agregar Campo Personalizado — ' + U.esc(exCat.nombre) + '</h3>' +
       '<p class="text-muted" style="margin-top:0">Este campo solo se agrega a tu laboratorio, sin afectar el catálogo general de BIOsoft.</p>' +
       '<form id="campo-form">' +
       F.inp("nombre", "Nombre del Campo", "", true) +
-      F.sel("tipo", "Tipo de Campo", '<option value="numerico">Numérico (con rango de referencia)</option><option value="cualitativo">Cualitativo (opciones, ej: Positivo/Negativo)</option><option value="descriptivo">Descriptivo (texto libre)</option><option value="panel_antibiograma">Panel de selección — Antibiograma (elegir antibióticos y su Sensible/Intermedio/Resistente)</option><option value="panel_alergia">Panel de selección — Alergia (elegir alérgenos e IgE con Clase/Interpretación automática)</option>') +
+      F.sel("tipo", "¿Qué tipo de resultado se digita aquí?",
+        '<option value="numerico">🔢 Número (con rango de referencia — ej. Glucosa, Hemoglobina)</option>' +
+        '<option value="cualitativo">📋 Lista desplegable (elige una opción — ej. Positivo/Negativo, Color)</option>' +
+        '<option value="descriptivo">🔤 Texto libre (una palabra, una frase o un párrafo)</option>' +
+        '<option value="panel_antibiograma">🧫 Panel — Antibiograma (Sensible/Intermedio/Resistente por antibiótico)</option>' +
+        '<option value="panel_alergia">🧪 Panel — Alergia (IgE por alérgeno, Clase/Interpretación automática)</option>') +
       '<div id="campo-extra"></div>' +
       '<div class="flex gap-2 justify-between" style="margin-top:6px"><button type="button" class="btn btn-ghost" data-modal-close>Cancelar</button><button type="submit" class="btn btn-primary">' + U.icon("check") + " Agregar Campo</button></div>" +
       "</form>"
     );
+
+    function wireOpcionesDesplegable() {
+      var lista = wrap.querySelector("#campo-opciones-lista");
+      var btnAgregar = wrap.querySelector("#btn-agregar-opcion");
+      function agregarFila(valor, marcada) {
+        lista.insertAdjacentHTML("beforeend", filaOpcionDesplegable(valor, marcada));
+      }
+      if (!lista.children.length) { agregarFila("Negativo", true); agregarFila("Positivo", false); }
+      btnAgregar.addEventListener("click", function () { agregarFila("", false); });
+      lista.addEventListener("click", function (e) {
+        var btn = e.target.closest("[data-quitar-fila-opcion]");
+        if (!btn) return;
+        btn.closest("[data-fila-opcion]").remove();
+      });
+    }
 
     function renderExtra() {
       var tipo = wrap.querySelector("#f_tipo").value;
@@ -1041,8 +1074,13 @@
           '<div class="form-grid">' + F.inp("min", "Mínimo", "0") + F.inp("max", "Máximo", "0") + "</div>" +
           F.inp("reftext", "Texto de Referencia (opcional)", "");
       } else if (tipo === "cualitativo") {
-        box.innerHTML = F.inp("opciones", "Opciones separadas por coma (ej: Negativo, Positivo)", "Negativo, Positivo", true) +
+        box.innerHTML = '<div class="field"><label>Opciones de la lista</label>' +
+          '<div id="campo-opciones-lista"></div>' +
+          '<button type="button" class="btn btn-outline btn-sm" id="btn-agregar-opcion" style="margin-top:2px">' + U.icon("plus") + " Agregar opción</button>" +
+          '<p class="text-muted" style="margin:6px 0 0;font-size:12px">Marca con el círculo cuál opción es el valor NORMAL — las demás se resaltan como anormales al diligenciar el resultado.</p>' +
+          "</div>" +
           F.inp("reftext", "Texto de Referencia (opcional)", "");
+        wireOpcionesDesplegable();
       } else if (tipo === "panel_antibiograma" || tipo === "panel_alergia") {
         box.innerHTML = '<p class="text-muted" style="font-size:12.5px">' +
           (tipo === "panel_antibiograma"
@@ -1070,10 +1108,18 @@
         nuevo.unidad = g("unidad"); nuevo.min = min; nuevo.max = max;
         nuevo.refText = g("reftext") || (min + " - " + max + " " + (nuevo.unidad || ""));
       } else if (tipo === "cualitativo") {
-        var opciones = g("opciones").split(",").map(function (o) { return o.trim(); }).filter(Boolean);
-        if (opciones.length < 2) { U.toast("Ingresa al menos 2 opciones separadas por coma.", "error"); return; }
-        nuevo.opciones = opciones; nuevo.normal = opciones[0];
-        nuevo.refText = g("reftext") || ("Normal: " + opciones[0]);
+        var normal = "";
+        var opciones = [];
+        wrap.querySelectorAll("[data-fila-opcion]").forEach(function (fila) {
+          var valor = fila.querySelector("[data-opcion-valor]").value.trim();
+          if (!valor) return;
+          opciones.push(valor);
+          if (fila.querySelector('input[type="radio"]').checked) normal = valor;
+        });
+        if (opciones.length < 2) { U.toast("Agrega al menos 2 opciones a la lista.", "error"); return; }
+        if (!normal) normal = opciones[0];
+        nuevo.opciones = opciones; nuevo.normal = normal;
+        nuevo.refText = g("reftext") || ("Normal: " + normal);
       } else if (tipo === "panel_antibiograma" || tipo === "panel_alergia") {
         nuevo.tipo = "panel";
         nuevo.panelTipo = tipo === "panel_alergia" ? "alergia" : "antibiograma";
