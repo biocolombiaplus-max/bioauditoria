@@ -357,6 +357,41 @@
 
     y = await dibujarMembrete(doc, tenant, margin);
 
+    // Encabezado compacto para hojas 2, 3… cuando el laboratorio activa
+    // "Repetir el encabezado en todas las hojas" (Configuración → Diseño
+    // del Reporte de Resultados) — antes toda hoja adicional arrancaba
+    // completamente en blanco arriba. El logo se recorta UNA sola vez aquí
+    // (misma función que usa el membrete grande de la portada) para poder
+    // dibujarlo de nuevo en cada salto de página de forma síncrona, sin
+    // repetir el recorte async en medio de un forEach.
+    var logoRepetido = null;
+    if (tenant.membreteEnTodasLasHojas && tenant.logoDataUrl) {
+      try {
+        var rLogoRep = await recortarEspacioSobrante(tenant.logoDataUrl);
+        logoRepetido = (rLogoRep && rLogoRep.w && rLogoRep.h) ? rLogoRep : { url: tenant.logoDataUrl, w: 1, h: 1 };
+      } catch (e) { logoRepetido = { url: tenant.logoDataUrl, w: 1, h: 1 }; }
+    }
+    function nuevaPagina() {
+      doc.addPage();
+      if (!tenant.membreteEnTodasLasHojas) return margin;
+      var yy = margin;
+      var cajaLogo = 26;
+      if (logoRepetido) {
+        var wLogo = cajaLogo, hLogo = cajaLogo * (logoRepetido.h / logoRepetido.w);
+        if (hLogo > cajaLogo) { hLogo = cajaLogo; wLogo = hLogo * (logoRepetido.w / logoRepetido.h); }
+        try { doc.addImage(logoRepetido.url, "PNG", margin, yy - 4, wLogo, hLogo); } catch (e) {}
+      }
+      var textX = margin + (logoRepetido ? cajaLogo + 10 : 0);
+      doc.setFont(fontFam, "bold"); doc.setFontSize(10.5); doc.setTextColor(rgb[0], rgb[1], rgb[2]);
+      doc.text(tenant.nombre, textX, yy + 7);
+      doc.setFont(fontFam, "normal"); doc.setFontSize(8); doc.setTextColor(90, 90, 90);
+      doc.text(U.nombreCompleto(patient) + " — Orden " + order.numeroOrden, textX, yy + 18);
+      yy += cajaLogo + 4;
+      doc.setDrawColor(rgb[0], rgb[1], rgb[2]); doc.setLineWidth(1);
+      doc.line(margin, yy, pageW - margin, yy);
+      return yy + 14;
+    }
+
     doc.setFont(fontFam, "bold"); doc.setFontSize(13); doc.setTextColor(20, 20, 20);
     doc.text("INFORME DE RESULTADOS DE LABORATORIO CLÍNICO", margin, y);
     y += 10;
@@ -518,7 +553,7 @@
       // negrita con una línea fina debajo — también un poco más compacto.
       var alturaBanner = tenant.bandaSeccionSinColor ? 18 : 20;
       var altoPrimerGrupo = grupos.length ? altoGrupo(grupos[0]) : 0;
-      if (y + alturaBanner + HEAD_H + altoPrimerGrupo > pageBottom) { doc.addPage(); y = margin; }
+      if (y + alturaBanner + HEAD_H + altoPrimerGrupo > pageBottom) { y = nuevaPagina(); }
 
       if (tenant.bandaSeccionSinColor) {
         doc.setTextColor(30, 30, 30); doc.setFont(fontFam, "bold"); doc.setFontSize(9.5);
@@ -572,7 +607,7 @@
         var necesita = (body.length ? 0 : HEAD_H) + altoGrupo(g);
         if (body.length && yEstimado + necesita > pageBottom) {
           volcarTablaSeccion();
-          doc.addPage(); y = margin;
+          y = nuevaPagina();
           doc.setFont(fontFam, "italic"); doc.setFontSize(8); doc.setTextColor(120, 120, 120);
           doc.text(C.seccionNombre(seccionId, tenant).toUpperCase() + " (continuación)", margin, y);
           y += 14;
@@ -594,7 +629,7 @@
       volcarTablaSeccion();
 
       panelesDeSeccion.forEach(function (panelInfo) {
-        if (y > 690) { doc.addPage(); y = margin; }
+        if (y > 690) { y = nuevaPagina(); }
         doc.setFont(fontFam, "bold"); doc.setFontSize(9); doc.setTextColor(rgb[0], rgb[1], rgb[2]);
         doc.text((panelInfo.p.panelTipo === "alergia" ? "PANEL DE ALERGIA" : "ANTIBIOGRAMA") + " — " + panelInfo.exNombre, margin, y);
         y += 12;
@@ -657,7 +692,7 @@
           var exCat = C.examenEfectivo(ex.examId, tenant);
           var texto = (obsExams.length > 1 ? exCat.nombre + " — " : "") + "Observaciones: " + ex.observaciones;
           var lineas = doc.splitTextToSize(texto, pageW - margin * 2);
-          if (y + lineas.length * 10 > 750) { doc.addPage(); y = margin; }
+          if (y + lineas.length * 10 > 750) { y = nuevaPagina(); }
           doc.text(lineas, margin, y);
           y += lineas.length * 10 + 3;
         });
@@ -666,7 +701,7 @@
     });
 
     if (referidos.length) {
-      if (y > 680) { doc.addPage(); y = margin; }
+      if (y > 680) { y = nuevaPagina(); }
       doc.setFillColor(90, 90, 90);
       doc.rect(margin, y, pageW - margin * 2, 16, "F");
       doc.setTextColor(255, 255, 255); doc.setFont(fontFam, "bold"); doc.setFontSize(9.5);
@@ -693,7 +728,7 @@
     y += 24;
     for (var fi = 0; fi < firmantes.length; fi++) {
       var f = firmantes[fi];
-      if (y > 700) { doc.addPage(); y = margin; }
+      if (y > 700) { y = nuevaPagina(); }
       if (f.firmaDataUrl) {
         try {
           var recorte = await recortarEspacioSobrante(f.firmaDataUrl);
@@ -755,7 +790,7 @@
       // inferior, con solo el aire justo antes del pie de página (queja
       // real reportada: "el QR más en la esquina, no tan arriba").
       var qrY = Math.max(signBlockBottom + 14, 748 - espacioReservado);
-      if (qrY + espacioReservado > 760) { doc.addPage(); qrY = margin + 10; }
+      if (qrY + espacioReservado > 760) { qrY = nuevaPagina() + 10; }
       doc.addImage(qrDataUrl, "PNG", qrX, qrY, qrSize, qrSize);
       doc.setDrawColor(210, 210, 210); doc.setLineWidth(0.6); doc.rect(qrX - 2, qrY - 2, qrSize + 4, qrSize + 4);
       doc.setFont(fontFam, "bold"); doc.setFontSize(6.3); doc.setTextColor(120, 120, 120);
@@ -782,6 +817,21 @@
 
     doc.setFontSize(7); doc.setTextColor(140, 140, 140);
     doc.text("Documento generado electrónicamente por BIOsoft — " + new Date().toLocaleString("es-CO") + ". Los resultados deben interpretarse en conjunto con la clínica del paciente.", margin, 770, { maxWidth: pageW - margin * 2 });
+
+    // Numeración "1/2, 2/2…" en el pie de cada hoja — el total de páginas
+    // solo se sabe hasta este punto, con el documento ya completo, así que
+    // se recorre cada página ya dibujada y se le agrega el número encima
+    // (jsPDF sí permite volver a una página anterior con setPage()). Esto
+    // numera únicamente las hojas que arma BIOsoft (esta parte del informe);
+    // si además hay resultados remitidos fusionados de un laboratorio
+    // externo (ver más abajo), esas páginas vienen de otro PDF ya
+    // maquetado por ese laboratorio y no se renumeran.
+    var totalPaginas = doc.internal.getNumberOfPages();
+    for (var numPagina = 1; numPagina <= totalPaginas; numPagina++) {
+      doc.setPage(numPagina);
+      doc.setFont(fontFam, "normal"); doc.setFontSize(7); doc.setTextColor(140, 140, 140);
+      doc.text("Página " + numPagina + "/" + totalPaginas, pageW - margin, 770, { align: "right" });
+    }
 
     var coverBytes = new Uint8Array(doc.output("arraybuffer"));
     if (!referidos.length) return coverBytes;
