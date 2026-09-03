@@ -540,6 +540,7 @@
         '<div class="card">' +
           '<div class="card-header"><h3 class="card-title">Orden ' + order.numeroOrden + " — " + window.BIO_badgeEstado(order.estadoGeneral) + '</h3>' +
           '<div class="flex gap-2 wrap"><a class="btn btn-ghost btn-sm" id="btn-back">Volver</a>' +
+          '<button class="btn btn-primary btn-sm" id="btn-agregar-examenes">' + U.icon("plus") + " Agregar Exámenes</button>" +
           '<button class="btn btn-outline btn-sm" id="btn-stickers">' + U.icon("printer") + " Imprimir Stickers</button>" +
           '<button class="btn btn-ghost btn-sm" id="btn-stickers-preview" title="Ver antes de imprimir o elegir otra impresora">Vista previa de stickers</button>' +
           '<button class="btn btn-outline btn-sm" id="btn-preview">' + U.icon("file") + " Ver / Descargar PDF</button>" +
@@ -582,6 +583,7 @@
           }).join("") + "</tbody></table></div></div>" : "");
 
       document.getElementById("btn-back").addEventListener("click", function () { location.hash = "#/ordenes"; });
+      document.getElementById("btn-agregar-examenes").addEventListener("click", function () { abrirAgregarExamenesOrden(order, pac, tenant, build); });
       document.getElementById("btn-preview").addEventListener("click", function () { window.BIO_PDF.previewOrModal(order, pac, tenant); });
       document.getElementById("btn-stickers").addEventListener("click", function () { window.BIO_PDF.imprimirStickersRapido(order, pac, tenant); });
       document.getElementById("btn-stickers-preview").addEventListener("click", function () { window.BIO_PDF.previewStickers(order, pac, tenant); });
@@ -605,6 +607,96 @@
       });
     }
     build();
+  }
+
+  // -------------------------------------------------------------------
+  // AGREGAR EXÁMENES A UNA ORDEN YA EXISTENTE — para cuando el médico pide
+  // un examen adicional después de creada la orden (incluso ya validada):
+  // se agregan como renglones NUEVOS, pendientes de captura, sin tocar ni
+  // reabrir los exámenes que ya están validados/remitidos. La orden vuelve
+  // a quedar "parcial" hasta que también se capture y valide lo nuevo —
+  // recalcEstadoGeneral() ya maneja esa mezcla de estados sola.
+  // -------------------------------------------------------------------
+  function abrirAgregarExamenesOrden(order, pac, tenant, onDone) {
+    var session = BIO_AUTH.getSession();
+    var examenes = C.examenesDisponibles(tenant);
+    var idsExistentes = {};
+    order.examenes.forEach(function (ex) { idsExistentes[ex.examId] = true; });
+    var precios = {};
+    S.cotizador.listPrecios(tenant.id).forEach(function (p) { precios[p.examId] = p.precio; });
+    var seleccionados = [];
+    var searchTerm = "";
+
+    var wrap = U.openModal(
+      '<h3 class="modal-title">Agregar Exámenes — Orden ' + order.numeroOrden + '</h3>' +
+      '<p class="text-muted" style="margin-top:0">' + (pac ? U.esc(U.nombreCompleto(pac)) + " — " : "") + 'se agregan como exámenes nuevos, pendientes de captura, sin tocar los que ya están validados o remitidos en esta orden.</p>' +
+      '<input id="agex-buscar" placeholder="Buscar examen por nombre o CUPS…" style="margin-bottom:10px"/>' +
+      '<div id="agex-lista" style="max-height:360px;overflow-y:auto;border:1px solid var(--border);border-radius:8px;padding:4px"></div>' +
+      '<div class="flex gap-2 justify-between" style="margin-top:14px;align-items:center">' +
+      '<span id="agex-contador" class="text-muted" style="font-size:12.5px">0 seleccionados</span>' +
+      '<div class="flex gap-2"><button type="button" class="btn btn-ghost" data-modal-close>Cancelar</button>' +
+      '<button type="button" class="btn btn-primary" id="agex-guardar">' + U.icon("check") + " Agregar a la Orden</button></div></div>",
+      { lg: true }
+    );
+
+    function renderLista() {
+      var term = U.normalizar(searchTerm.trim());
+      var disponibles = examenes.filter(function (e) { return !idsExistentes[e.id]; });
+      var pool = term ? disponibles.filter(function (e) { return U.normalizar(e.nombre).indexOf(term) !== -1 || (e.cups || "").indexOf(term) !== -1; }) : disponibles;
+      var porSeccion = {};
+      pool.forEach(function (e) { (porSeccion[e.seccion] = porSeccion[e.seccion] || []).push(e); });
+      var seccionesConExamenes = C.seccionesEfectivas(tenant).filter(function (s) { return porSeccion[s.id] && porSeccion[s.id].length; });
+      var html = seccionesConExamenes.map(function (s) {
+        return '<div style="margin-bottom:2px"><div style="font-weight:700;font-size:11.5px;color:var(--text-muted);text-transform:uppercase;letter-spacing:.02em;padding:8px 8px 2px">' + U.esc(s.nombre) + "</div>" +
+          porSeccion[s.id].map(function (e) {
+            var checked = seleccionados.indexOf(e.id) !== -1;
+            return '<label class="exam-row"><input type="checkbox" data-agex="' + e.id + '" ' + (checked ? "checked" : "") + '/>' +
+              '<div class="grow"><div>' + U.esc(e.nombre) + '</div><div class="meta">CUPS ' + U.esc(e.cups || "—") + "</div></div>" +
+              (tenant.mostrarPrecioOrden && precios[e.id] ? '<div style="font-weight:700;font-size:13px;white-space:nowrap">' + fmtMoneda(precios[e.id]) + "</div>" : "") +
+              "</label>";
+          }).join("") + "</div>";
+      }).join("");
+      wrap.querySelector("#agex-lista").innerHTML = html || '<p class="text-muted" style="padding:14px;margin:0">' + (disponibles.length ? "Sin resultados para esa búsqueda." : "Ya están todos los exámenes del catálogo agregados a esta orden.") + "</p>";
+      wrap.querySelectorAll("[data-agex]").forEach(function (chk) {
+        chk.addEventListener("change", function () {
+          var id = chk.dataset.agex;
+          if (chk.checked) seleccionados.push(id); else seleccionados = seleccionados.filter(function (x) { return x !== id; });
+          actualizarContador();
+        });
+      });
+    }
+    function actualizarContador() {
+      wrap.querySelector("#agex-contador").textContent = seleccionados.length + " seleccionado" + (seleccionados.length === 1 ? "" : "s");
+    }
+    wrap.querySelector("#agex-buscar").addEventListener("input", function (e) { searchTerm = e.target.value; renderLista(); });
+    renderLista();
+
+    wrap.querySelector("#agex-guardar").addEventListener("click", function () {
+      if (!seleccionados.length) { U.toast("Selecciona al menos un examen.", "error"); return; }
+      var totalAgregado = 0;
+      seleccionados.forEach(function (id) {
+        var exCat = C.examenEfectivo(id, tenant);
+        order.examenes.push({
+          examId: id, seccion: exCat.seccion, estado: "pendiente", valores: [], observaciones: "",
+          validadoPor: "", validadoPorUserId: "", fechaValidacion: "", ingresadoPor: "", fechaIngreso: "", version: 1, correcciones: [],
+          remitido: false, laboratorioRemision: "", pdfRemitidoDataUrl: "", pdfRemitidoNombre: ""
+        });
+        totalAgregado += precios[id] || 0;
+      });
+      // El precio de lista se suma directo al valor a cobrar como
+      // sugerencia — si esta orden tiene un descuento de convenio, el
+      // laboratorio puede ajustarlo a mano desde aquí mismo (el campo
+      // sigue siendo editable), igual que ya pasa hoy con "Nueva Orden".
+      if (tenant.mostrarPrecioOrden && totalAgregado) order.valorCobrar = (order.valorCobrar || 0) + totalAgregado;
+      S.recalcEstadoGeneral(order);
+      S.saveOrder(order);
+      var detallePrecio = totalAgregado ? " (+" + fmtMoneda(totalAgregado) + " al valor a cobrar, precio de lista)" : "";
+      S.addAudit(session.tenantId, session.nombre, session.rol, "ADD_EXAMS_TO_ORDER", "orden", order.id,
+        "Agregó " + seleccionados.length + " examen(es) nuevo(s) a la orden " + order.numeroOrden + detallePrecio + ".");
+      U.toast(seleccionados.length + " examen(es) agregado(s) a la orden.", "success");
+      U.closeModal(wrap);
+      onDone();
+    });
   }
 
   // -------------------------------------------------------------------
