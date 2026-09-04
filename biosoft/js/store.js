@@ -1125,16 +1125,27 @@
     return { ok: true, order: order };
   }
   function nextOrderNumber(tenantId) {
+    // Formato tipo "laboratorio grande": AñoMesDía + consecutivo del día
+    // (ej. 2026090301 = 3 de septiembre de 2026, orden #1 de ese día).
+    // El consecutivo se reinicia cada día y crece de 01 en adelante; si un
+    // día llega a superar 99 órdenes, el número simplemente gana un dígito
+    // más (100, 101...) en vez de truncarse.
     var db = loadDB();
-    var orders = db.orders.filter(function (o) { return o.tenantId === tenantId; });
-    var year = new Date().getFullYear();
-    var max = 0;
-    orders.forEach(function (o) {
-      var n = parseInt(o.numeroOrden, 10);
-      if (!isNaN(n) && n > max) max = n;
+    var now = new Date();
+    var prefijo = "" + now.getFullYear() +
+      String(now.getMonth() + 1).padStart(2, "0") +
+      String(now.getDate()).padStart(2, "0");
+    var maxSeq = 0;
+    db.orders.forEach(function (o) {
+      if (o.tenantId !== tenantId) return;
+      var num = String(o.numeroOrden || "");
+      if (num.indexOf(prefijo) !== 0) return;
+      var seq = parseInt(num.slice(prefijo.length), 10);
+      if (!isNaN(seq) && seq > maxSeq) maxSeq = seq;
     });
-    if (max === 0) max = year * 10000;
-    return String(max + 1);
+    var seqStr = String(maxSeq + 1);
+    if (seqStr.length < 2) seqStr = "0" + seqStr;
+    return prefijo + seqStr;
   }
   function createOrder(data) {
     var db = loadDB();
