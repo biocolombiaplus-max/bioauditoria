@@ -54,6 +54,19 @@
     });
     var users = S.listUsers(tenant.id);
     var firmantes = ids.map(function (id) { return users.filter(function (u) { return u.id === id; })[0]; }).filter(Boolean);
+    // Un mismo bacteriólogo(a) no debe salir firmando dos veces el mismo
+    // informe — puede pasar si validó exámenes distintos de la orden bajo
+    // dos cuentas de usuario diferentes (ej. una cuenta duplicada por
+    // error), lo que antes producía dos IDs distintos y, con ellos, dos
+    // bloques de firma repitiendo el mismo nombre. Se deduplica también
+    // por nombre (no solo por ID de usuario) para blindar este caso.
+    var nombresVistos = {};
+    firmantes = firmantes.filter(function (f) {
+      var clave = String(f.nombre || "").trim().toLowerCase();
+      if (nombresVistos[clave]) return false;
+      nombresVistos[clave] = true;
+      return true;
+    });
     if (!firmantes.length) {
       firmantes = [{
         nombre: tenant.bacteriologoResponsable ? tenant.bacteriologoResponsable.nombre : "Bacteriólogo(a) Responsable",
