@@ -738,6 +738,7 @@
 
         card.querySelectorAll("[data-param]").forEach(function (inputEl) {
           inputEl.addEventListener("input", function () {
+            if (inputEl.value !== "") inputEl.style.borderColor = "";
             var p = exCat.parametros.filter(function (pp) { return pp.codigo === inputEl.dataset.param; })[0];
             var flag = C.calcularFlag(p, inputEl.value);
             var cell = card.querySelector('[data-flagfor="' + p.codigo + '"]');
@@ -773,15 +774,39 @@
             return entry;
           });
         }
-        function allFilled(vals) {
-          return vals.every(function (v) {
+        // Antes solo decía "Completa todos los parámetros" sin decir CUÁL
+        // faltaba — con un examen de muchos campos (ej. Parcial de Orina,
+        // 7 listas desplegables que arrancan vacías: el <select> nunca
+        // preselecciona el valor "normal" del catálogo, hay que elegirlo a
+        // mano) era muy fácil dejar UNO sin tocar sin darse cuenta, y el
+        // mensaje genérico no ayudaba a encontrar cuál — se sentía como que
+        // el examen "nunca dejaba validar" (bug real reportado). Ahora se
+        // nombran los campos exactos que faltan y se resaltan en rojo.
+        function camposFaltantes(vals) {
+          return vals.filter(function (v) {
             var p = exCat.parametros.filter(function (pp) { return pp.codigo === v.codigo; })[0];
             if (p && p.tipo === "panel") {
               var items = C.parsePanelValor(v.valor);
-              return !items.length || C.panelCompleto(v.valor, p.panelTipo);
+              return items.length && !C.panelCompleto(v.valor, p.panelTipo);
             }
-            return v.valor !== "";
+            return v.valor === "";
+          }).map(function (v) {
+            var p = exCat.parametros.filter(function (pp) { return pp.codigo === v.codigo; })[0];
+            return { codigo: v.codigo, nombre: p ? p.nombre : v.codigo };
           });
+        }
+        function resaltarFaltantes(faltantes) {
+          card.querySelectorAll("[data-param]").forEach(function (el) { el.style.borderColor = ""; });
+          faltantes.forEach(function (f) {
+            var el = card.querySelector('[data-param="' + f.codigo + '"]');
+            if (el) el.style.borderColor = "var(--danger)";
+          });
+          var primero = faltantes.length && card.querySelector('[data-param="' + faltantes[0].codigo + '"]');
+          if (primero) primero.scrollIntoView({ behavior: "smooth", block: "center" });
+        }
+        function mensajeFaltantes(faltantes) {
+          var nombres = faltantes.map(function (f) { return f.nombre; });
+          return "Falta diligenciar: " + nombres.slice(0, 4).join(", ") + (nombres.length > 4 ? " y " + (nombres.length - 4) + " más" : "") + ".";
         }
 
         var btnBorrador = card.querySelector('[data-action="borrador"]');
@@ -798,7 +823,8 @@
         var btnPrelim = card.querySelector('[data-action="preliminar"]');
         if (btnPrelim) btnPrelim.addEventListener("click", function () {
           var vals = collectValues();
-          if (!allFilled(vals)) { U.toast("Completa todos los parámetros antes de guardar como preliminar.", "error"); return; }
+          var faltantes = camposFaltantes(vals);
+          if (faltantes.length) { resaltarFaltantes(faltantes); U.toast(mensajeFaltantes(faltantes), "error"); return; }
           ex.valores = vals; ex.observaciones = card.querySelector("[data-obs]").value; ex.estado = "preliminar";
           ex.ingresadoPor = session.username; ex.fechaIngreso = S.nowISO();
           S.recalcEstadoGeneral(order); S.saveOrder(order);
@@ -810,7 +836,8 @@
         var btnValidar = card.querySelector('[data-action="validar"]');
         if (btnValidar) btnValidar.addEventListener("click", function () {
           var vals = collectValues();
-          if (!allFilled(vals)) { U.toast("Completa todos los parámetros antes de validar.", "error"); return; }
+          var faltantes = camposFaltantes(vals);
+          if (faltantes.length) { resaltarFaltantes(faltantes); U.toast(mensajeFaltantes(faltantes), "error"); return; }
           confirmValidation(function () {
             ex.valores = vals; ex.observaciones = card.querySelector("[data-obs]").value;
             ex.estado = "validado"; ex.validadoPor = session.nombre; ex.validadoPorUserId = session.userId; ex.fechaValidacion = S.nowISO();
