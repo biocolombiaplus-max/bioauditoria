@@ -1435,6 +1435,8 @@
         '<p class="text-muted" style="margin:4px 0 12px;font-size:12.5px">Por defecto, cada sección del informe (ej. "ENDOCRINOLOGÍA") sale en una barra sólida con tu color de marca. Actívalo si prefieres un estilo más neutro/minimalista, sin ese bloque de color.</p>' +
         '<div class="checkbox-row"><input type="checkbox" id="f_membreteEnTodasLasHojas" ' + (tenant.membreteEnTodasLasHojas ? "checked" : "") + '/><label style="margin:0" for="f_membreteEnTodasLasHojas">Repetir el encabezado en todas las hojas del informe (no solo la primera)</label></div>' +
         '<p class="text-muted" style="margin:4px 0 12px;font-size:12.5px">Cuando un informe ocupa varias hojas, actívalo para que cada hoja adicional salga con un encabezado compacto (tu logo, nombre, y el paciente/orden) en vez de arrancar en blanco. Todas las hojas del informe siempre quedan numeradas "1/2, 2/2…" en el pie de página, con o sin esta opción.</p>' +
+        '<div class="checkbox-row"><input type="checkbox" id="f_datosPacienteEstiloDiscreto" ' + (tenant.datosPacienteEstiloDiscreto ? "checked" : "") + '/><label style="margin:0" for="f_datosPacienteEstiloDiscreto">Estilo discreto para los datos del paciente (sin negrilla, letra más chica, sin el título "Informe de Resultados…")</label></div>' +
+        '<p class="text-muted" style="margin:4px 0 12px;font-size:12.5px">Actívalo para un encabezado más sobrio: quita el título "Informe de Resultados de Laboratorio Clínico", separa Edad y Sexo en su propia línea cada uno ("Edad: 52 años" / "Sexo: Masculino"), y todo el bloque de datos (Edad/Sexo/EPS/N° de Orden/Fecha/Médico/Procedencia) sale más chico y sin negrilla. Además, si el informe queda parcial, el aviso "Hay exámenes en proceso" ya no sale arriba — sale debajo de la firma del bacteriólogo(a), en la última hoja, nombrando cuáles exámenes específicos faltan.</p>' +
         '<div class="field" style="margin:4px 0 6px"><label style="margin-bottom:4px">Datos adicionales que se muestran en el reporte del paciente</label>' +
         '<div class="checkbox-row"><input type="checkbox" id="f_campoEdadSexo" ' + (campos.edadSexo !== false ? "checked" : "") + '/><label style="margin:0" for="f_campoEdadSexo">Edad / Sexo</label></div>' +
         (tenant.pais === "CO" ? '<div class="checkbox-row"><input type="checkbox" id="f_campoEps" ' + (campos.eps !== false ? "checked" : "") + '/><label style="margin:0" for="f_campoEps">EPS / Asegurador</label></div>' : "") +
@@ -1550,6 +1552,7 @@
       tenant.ocultarNombreEncabezado = document.getElementById("f_ocultarNombreEncabezado").checked;
       tenant.bandaSeccionSinColor = document.getElementById("f_bandaSeccionSinColor").checked;
       tenant.membreteEnTodasLasHojas = document.getElementById("f_membreteEnTodasLasHojas").checked;
+      tenant.datosPacienteEstiloDiscreto = document.getElementById("f_datosPacienteEstiloDiscreto").checked;
       var campoEpsEl = document.getElementById("f_campoEps");
       tenant.camposReporte = {
         edadSexo: document.getElementById("f_campoEdadSexo").checked,
@@ -1601,6 +1604,7 @@
           bacteriologoResponsable: tenant.bacteriologoResponsable, mostrarPrecioOrden: tenant.mostrarPrecioOrden, reportarCIM: tenant.reportarCIM,
           logoGrandeReporte: tenant.logoGrandeReporte, logoAnchoCompleto: tenant.logoAnchoCompleto, logoAnchoPorcentaje: tenant.logoAnchoPorcentaje, ocultarNombreEncabezado: tenant.ocultarNombreEncabezado,
           bandaSeccionSinColor: tenant.bandaSeccionSinColor, membreteEnTodasLasHojas: tenant.membreteEnTodasLasHojas,
+          datosPacienteEstiloDiscreto: tenant.datosPacienteEstiloDiscreto,
           camposReporte: tenant.camposReporte, fuenteReporte: tenant.fuenteReporte, tamanoFuenteReporte: tenant.tamanoFuenteReporte,
           piePaginaPersonalizado: tenant.piePaginaPersonalizado,
           colorPrimario: tenant.colorPrimario, colorSecundario: tenant.colorSecundario, colorTextoMenu: tenant.colorTextoMenu,

@@ -392,9 +392,19 @@
       return yy + 14;
     }
 
-    doc.setFont(fontFam, "bold"); doc.setFontSize(13); doc.setTextColor(20, 20, 20);
-    doc.text("INFORME DE RESULTADOS DE LABORATORIO CLÍNICO", margin, y);
-    y += 10;
+    // Estilo "discreto" del encabezado de datos del paciente (opción en
+    // Configuración → Diseño del Reporte de Resultados, pedida puntual por
+    // un cliente): sin el título "Informe de Resultados…", y el aviso de
+    // "Informe Parcial" no sale arriba sino debajo de la firma del
+    // bacteriólogo(a) en la última hoja (ver más abajo, junto al bloque de
+    // firmas), indicando qué examen específico sigue pendiente. El aviso
+    // de "Resultado Preliminar" sí se queda arriba en ambos estilos.
+    var estiloDiscreto = !!tenant.datosPacienteEstiloDiscreto;
+    if (!estiloDiscreto) {
+      doc.setFont(fontFam, "bold"); doc.setFontSize(13); doc.setTextColor(20, 20, 20);
+      doc.text("INFORME DE RESULTADOS DE LABORATORIO CLÍNICO", margin, y);
+      y += 10;
+    }
     // El aviso de preliminar/parcial va en su PROPIA línea debajo del
     // título (antes iba a la derecha, en la misma línea que el título, y
     // con textos largos las dos frases se montaban una sobre la otra).
@@ -402,7 +412,7 @@
       doc.setFont(fontFam, "bold"); doc.setFontSize(9.5); doc.setTextColor(201, 126, 13);
       doc.text("RESULTADO PRELIMINAR — SUJETO A VALIDACIÓN FINAL", margin, y);
       y += 11;
-    } else if (order.estadoGeneral !== "validado") {
+    } else if (order.estadoGeneral !== "validado" && !estiloDiscreto) {
       doc.setFont(fontFam, "bold"); doc.setFontSize(9.5); doc.setTextColor(201, 126, 13);
       doc.text("INFORME PARCIAL — HAY EXÁMENES EN PROCESO", margin, y);
       y += 11;
@@ -428,7 +438,8 @@
     doc.text(patient.tipoDocumento + " " + patient.numeroDocumento, col1, y);
     y += 11;
 
-    doc.setFontSize(9.5); doc.setTextColor(30, 30, 30);
+    doc.setFontSize(estiloDiscreto ? 9 : 9.5);
+    if (estiloDiscreto) doc.setTextColor(0, 0, 0); else doc.setTextColor(30, 30, 30);
     var edad = U.edadTexto(patient);
     // Qué datos adicionales van en el reporte, elegido en Configuración
     // → "Diseño del Reporte de Resultados". Nombre, documento, N° de
@@ -438,7 +449,13 @@
     // para no cambiar nada a quien nunca tocó esta configuración.
     var campos = tenant.camposReporte || {};
     var left = [];
-    if (campos.edadSexo !== false) left.push(["Edad / Sexo:", edad + " / " + patient.sexo]);
+    // Estilo discreto: "Edad:" y "Sexo:" en su propia fila cada uno (en
+    // vez de "Edad / Sexo: 52 años / Masculino" en una sola), pedido
+    // puntual de un cliente.
+    if (campos.edadSexo !== false) {
+      if (estiloDiscreto) { left.push(["Edad:", edad]); left.push(["Sexo:", patient.sexo]); }
+      else left.push(["Edad / Sexo:", edad + " / " + patient.sexo]);
+    }
     if (patient.pais === "CO" && campos.eps !== false) left.push(["EPS / Asegurador:", patient.eps || "Particular"]);
     var right = [
       ["N° de Orden:", order.numeroOrden],
@@ -457,7 +474,7 @@
     // arranca justo después del ancho real de CADA etiqueta (medido con la
     // misma fuente/tamaño ya aplicados), con un margen fijo, así nunca se
     // solapan sin importar qué tan larga sea.
-    doc.setFont(fontFam, "bold");
+    doc.setFont(fontFam, estiloDiscreto ? "normal" : "bold");
     left.forEach(function (row, i) {
       doc.text(row[0], col1, y + i * 11);
       doc.text(String(row[1]), col1 + doc.getTextWidth(row[0]) + 6, y + i * 11);
@@ -748,6 +765,27 @@
       doc.text(f.registroProfesional ? "Registro Profesional: " + f.registroProfesional : "", margin, y + 33);
       doc.text(C.tituloFirmaProfesional(tenant.pais), margin, y + 44);
       y += 62;
+    }
+
+    // Estilo discreto: el aviso de "Informe Parcial" no va arriba del todo
+    // (ver más arriba) sino AQUÍ, debajo de la firma del bacteriólogo(a),
+    // en la última hoja — e indica cuáles exámenes específicos siguen
+    // pendientes, en vez de solo avisar que "hay exámenes en proceso" sin
+    // decir cuáles.
+    if (estiloDiscreto && modo !== "preliminar" && order.estadoGeneral !== "validado") {
+      var pendientes = order.examenes.filter(function (ex) { return examsToShow.indexOf(ex) === -1; });
+      var nombresPendientes = pendientes.map(function (ex) { return C.examenEfectivo(ex.examId, tenant).nombre; });
+      if (y > 720) { y = nuevaPagina(); }
+      y += 6;
+      doc.setFont(fontFam, "bold"); doc.setFontSize(9.5); doc.setTextColor(201, 126, 13);
+      doc.text("INFORME PARCIAL — HAY EXÁMENES EN PROCESO", margin, y);
+      y += 12;
+      if (nombresPendientes.length) {
+        doc.setFont(fontFam, "normal"); doc.setFontSize(8.5); doc.setTextColor(90, 90, 90);
+        var lineasPendientes = doc.splitTextToSize("Pendiente(s): " + nombresPendientes.join(", ") + ".", pageW - margin * 2);
+        doc.text(lineasPendientes, margin, y);
+        y += lineasPendientes.length * 10 + 4;
+      }
     }
     var signBlockBottom = y;
 
