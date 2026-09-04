@@ -765,7 +765,13 @@
         (c.activo ? '<span class="badge badge-validado">Activo</span>' : '<span class="badge badge-pendiente">Inactivo</span>') +
         "</div>" +
         '<p style="margin:10px 0 4px;font-size:13px">' + (esRecargo ? "Recargo" : "Descuento") + " general: <b>" + (c.descuentoGeneral || 0) + "%</b></p>" +
-        '<p style="margin:0 0 12px;font-size:13px">Precios especiales por examen: <b>' + numEspeciales + "</b></p>" +
+        '<p style="margin:0 0 4px;font-size:13px">Precios especiales por examen: <b>' + numEspeciales + "</b></p>" +
+        (c.nit ? '<p class="text-muted" style="margin:0 0 2px;font-size:12px">NIT ' + U.esc(c.nit) + "</p>" : "") +
+        (c.contactoNombre || c.contactoCelular || c.contactoEmail ? '<p class="text-muted" style="margin:0 0 2px;font-size:12px">' + [c.contactoNombre, c.contactoCelular, c.contactoEmail].filter(Boolean).map(U.esc).join(" · ") + "</p>" : "") +
+        (c.granContribuyente || c.autorretenedor ? '<p style="margin:0 0 12px">' +
+          (c.granContribuyente ? '<span class="badge" style="font-size:10.5px;margin-right:4px">Gran Contribuyente</span>' : "") +
+          (c.autorretenedor ? '<span class="badge" style="font-size:10.5px">Autorretenedor</span>' : "") +
+          "</p>" : '<div style="margin-bottom:12px"></div>') +
         '<div class="flex gap-2 wrap">' +
         '<button type="button" class="btn btn-outline btn-sm" data-precios-especiales="' + c.id + '">💲 Precios Especiales</button>' +
         '<label class="btn btn-outline btn-sm" style="cursor:pointer">📥 Excel de Precios<input type="file" data-excel-convenio="' + c.id + '" accept=".xlsx,.xls,.csv" style="display:none"/></label>' +
@@ -933,9 +939,17 @@
       });
     }
 
+    var TIPOS_SOCIEDAD_CONVENIO = ["S.A.S.", "S.A.", "LTDA.", "E.U.", "Cooperativa", "Entidad Sin Ánimo de Lucro (ESAL)", "Entidad Pública", "Persona Natural", "Otra"];
+
     function abrirFormConvenio(convenio) {
       var isEdit = !!convenio;
-      convenio = convenio || { nombre: "", referencia: "", tipo: TIPOS_CONVENIO[0], descuentoGeneral: 0, tipoAjuste: "descuento", activo: true };
+      convenio = convenio || {
+        nombre: "", referencia: "", tipo: TIPOS_CONVENIO[0], descuentoGeneral: 0, tipoAjuste: "descuento", activo: true,
+        nit: "", direccion: "", ciudad: "", contactoNombre: "", contactoEmail: "", contactoCelular: "",
+        tipoPersona: "juridica", tipoSociedad: TIPOS_SOCIEDAD_CONVENIO[0], regimenTributario: "responsable",
+        granContribuyente: false, autorretenedor: false
+      };
+      var esCO = tenant.pais === "CO";
       var wrap = U.openModal(
         '<h3 class="modal-title">' + (isEdit ? "Editar Convenio / Tarifa" : "Nuevo Convenio / Tarifa") + '</h3>' +
         '<form id="convenio-form"><div class="form-grid">' +
@@ -951,11 +965,37 @@
         '<div class="field"><label>Estado</label><select id="f_cnv_activo"><option value="1" ' + (convenio.activo ? "selected" : "") + '>Activo</option><option value="0" ' + (!convenio.activo ? "selected" : "") + ">Inactivo</option></select></div>" +
         "</div>" +
         '<p class="text-muted" style="font-size:12.5px;margin:0 0 6px">El % elegido (descuento o recargo) se aplica a TODOS los exámenes de este convenio/tarifa, salvo que definas un precio especial puntual para alguno — a mano (desde "💲 Precios Especiales") o cargando un Excel completo (desde "📥 Excel de Precios"), ambos disponibles después de guardar.</p>' +
+        '<fieldset><legend>Información Legal y de Contacto (para facturación)</legend><div class="form-grid">' +
+        '<div class="field"><label>NIT (con dígito de verificación)</label><input id="f_cnv_nit" value="' + U.esc(convenio.nit || "") + '" placeholder="Ej. 900123456-7"/></div>' +
+        '<div class="field"><label>Dirección</label><input id="f_cnv_direccion" value="' + U.esc(convenio.direccion || "") + '" placeholder="Ej. Cra 45 # 12 - 34"/></div>' +
+        '<div class="field"><label>Ciudad</label><input id="f_cnv_ciudad" value="' + U.esc(convenio.ciudad || "") + '" placeholder="Ej. Barranquilla"/></div>' +
+        '<div class="field"><label>Tipo de Persona</label><select id="f_cnv_tipopersona"><option value="juridica" ' + (convenio.tipoPersona !== "natural" ? "selected" : "") + '>Persona Jurídica</option><option value="natural" ' + (convenio.tipoPersona === "natural" ? "selected" : "") + ">Persona Natural</option></select></div>" +
+        (esCO ? '<div class="field" id="cnv-tiposociedad-box"><label>Tipo de Sociedad</label><select id="f_cnv_tiposociedad">' +
+          TIPOS_SOCIEDAD_CONVENIO.map(function (t) { return '<option ' + (t === convenio.tipoSociedad ? "selected" : "") + ">" + t + "</option>"; }).join("") +
+          "</select></div>" : "") +
+        '<div class="field"><label>Nombre del Contacto</label><input id="f_cnv_contactonombre" value="' + U.esc(convenio.contactoNombre || "") + '" placeholder="Ej. María Fernanda Ruiz"/></div>' +
+        '<div class="field"><label>Correo Electrónico</label><input type="email" id="f_cnv_contactoemail" value="' + U.esc(convenio.contactoEmail || "") + '" placeholder="Ej. facturacion@empresa.com"/></div>' +
+        '<div class="field"><label>Celular del Contacto</label><input id="f_cnv_contactocelular" value="' + U.esc(convenio.contactoCelular || "") + '" placeholder="Ej. 300 123 4567"/></div>' +
+        (esCO ? '<div class="field"><label>Régimen Tributario</label><select id="f_cnv_regimen"><option value="responsable" ' + (convenio.regimenTributario !== "no_responsable" ? "selected" : "") + '>Responsable de IVA</option><option value="no_responsable" ' + (convenio.regimenTributario === "no_responsable" ? "selected" : "") + ">No Responsable de IVA</option></select></div>" : "") +
+        "</div>" +
+        (esCO ?
+          '<div class="checkbox-row"><input type="checkbox" id="f_cnv_grancontribuyente" ' + (convenio.granContribuyente ? "checked" : "") + '/><label style="margin:0" for="f_cnv_grancontribuyente">Gran Contribuyente</label></div>' +
+          '<div class="checkbox-row"><input type="checkbox" id="f_cnv_autorretenedor" ' + (convenio.autorretenedor ? "checked" : "") + '/><label style="margin:0" for="f_cnv_autorretenedor">Autorretenedor</label></div>'
+          : "") +
+        "</fieldset>" +
         '<div class="flex gap-2 justify-between" style="margin-top:6px">' +
         '<button type="button" class="btn btn-ghost" data-modal-close>Cancelar</button>' +
         '<button type="submit" class="btn btn-primary">' + U.icon("check") + " Guardar Convenio</button>" +
-        "</div></form>"
+        "</div></form>",
+        { lg: true }
       );
+      if (esCO) {
+        var actualizarTipoSociedad = function () {
+          wrap.querySelector("#cnv-tiposociedad-box").classList.toggle("hidden", wrap.querySelector("#f_cnv_tipopersona").value === "natural");
+        };
+        wrap.querySelector("#f_cnv_tipopersona").addEventListener("change", actualizarTipoSociedad);
+        actualizarTipoSociedad();
+      }
       wrap.querySelector("#convenio-form").addEventListener("submit", function (e) {
         e.preventDefault();
         var data = {
@@ -965,9 +1005,23 @@
           tipo: wrap.querySelector("#f_cnv_tipo").value,
           tipoAjuste: wrap.querySelector("#f_cnv_tipoajuste").value,
           descuentoGeneral: parseFloat(wrap.querySelector("#f_cnv_descuento").value) || 0,
-          activo: wrap.querySelector("#f_cnv_activo").value === "1"
+          activo: wrap.querySelector("#f_cnv_activo").value === "1",
+          nit: C.normalizarDocumentoTributario(wrap.querySelector("#f_cnv_nit").value.trim(), tenant.pais),
+          direccion: wrap.querySelector("#f_cnv_direccion").value.trim(),
+          ciudad: wrap.querySelector("#f_cnv_ciudad").value.trim(),
+          tipoPersona: wrap.querySelector("#f_cnv_tipopersona").value,
+          contactoNombre: wrap.querySelector("#f_cnv_contactonombre").value.trim(),
+          contactoEmail: wrap.querySelector("#f_cnv_contactoemail").value.trim(),
+          contactoCelular: wrap.querySelector("#f_cnv_contactocelular").value.trim()
         };
+        if (esCO) {
+          data.tipoSociedad = data.tipoPersona === "natural" ? "" : wrap.querySelector("#f_cnv_tiposociedad").value;
+          data.regimenTributario = wrap.querySelector("#f_cnv_regimen").value;
+          data.granContribuyente = wrap.querySelector("#f_cnv_grancontribuyente").checked;
+          data.autorretenedor = wrap.querySelector("#f_cnv_autorretenedor").checked;
+        }
         if (!data.nombre) { U.toast("Escribe el nombre del convenio.", "error"); return; }
+        if (data.contactoEmail && data.contactoEmail.indexOf("@") === -1) { U.toast("El correo electrónico del contacto no es válido.", "error"); return; }
         if (isEdit) {
           S.cotizador.updateConvenio(convenio.id, data);
           S.addAudit(session.tenantId, session.nombre, session.rol, "UPDATE_CONVENIO", "convenio", convenio.id, "Actualizó el convenio " + data.nombre + ".");
