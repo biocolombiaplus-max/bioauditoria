@@ -59,14 +59,27 @@
     // dos cuentas de usuario diferentes (ej. una cuenta duplicada por
     // error), lo que antes producía dos IDs distintos y, con ellos, dos
     // bloques de firma repitiendo el mismo nombre. Se deduplica también
-    // por nombre (no solo por ID de usuario) para blindar este caso.
-    var nombresVistos = {};
-    firmantes = firmantes.filter(function (f) {
+    // por nombre (no solo por ID de usuario) para blindar este caso — y al
+    // fusionar los duplicados se completan los datos que falten (firma
+    // cargada, registro profesional) tomándolos de CUALQUIERA de las
+    // cuentas repetidas, en vez de quedarse solo con los de la primera que
+    // aparezca (que podía ser justo la cuenta sin firma ni registro
+    // cargados, dejando el informe sin esos datos aunque sí estuvieran
+    // guardados en la otra cuenta).
+    var nombresVistos = {}; // clave normalizada -> índice en 'fusionados'
+    var fusionados = [];
+    firmantes.forEach(function (f) {
       var clave = String(f.nombre || "").trim().toLowerCase();
-      if (nombresVistos[clave]) return false;
-      nombresVistos[clave] = true;
-      return true;
+      if (nombresVistos.hasOwnProperty(clave)) {
+        var existente = fusionados[nombresVistos[clave]];
+        if (!existente.firmaDataUrl && f.firmaDataUrl) existente.firmaDataUrl = f.firmaDataUrl;
+        if (!existente.registroProfesional && f.registroProfesional) existente.registroProfesional = f.registroProfesional;
+        return;
+      }
+      nombresVistos[clave] = fusionados.length;
+      fusionados.push(Object.assign({}, f));
     });
+    firmantes = fusionados;
     if (!firmantes.length) {
       firmantes = [{
         nombre: tenant.bacteriologoResponsable ? tenant.bacteriologoResponsable.nombre : "Bacteriólogo(a) Responsable",
@@ -785,6 +798,14 @@
     // encima de la línea, así que sin este respiro adicional podía llegar a
     // montarse sobre la tabla de resultados justo arriba.
     y += 24;
+    // Se registra en qué página arranca el bloque de firmas: si termina
+    // saltando a una hoja nueva (porque no cabía nada de él al final de la
+    // anterior), esa hoja nueva queda casi vacía — solo con el encabezado y
+    // la firma — y el QR de verificación NO debe forzarse hacia la esquina
+    // inferior como si la hoja estuviera llena (ver más abajo), porque deja
+    // un hueco enorme en el medio (bug real reportado: "hoja en blanco
+    // innecesaria").
+    var paginaAntesDeFirmas = doc.internal.getNumberOfPages();
     for (var fi = 0; fi < firmantes.length; fi++) {
       var f = firmantes[fi];
       if (y > 700) { y = nuevaPagina(); }
@@ -833,6 +854,7 @@
       }
     }
     var signBlockBottom = y;
+    var firmaEnPaginaPropia = doc.internal.getNumberOfPages() > paginaAntesDeFirmas;
 
     try {
       var qrTexto = "BIOsoft | Verificación de Documento\n" +
@@ -871,8 +893,16 @@
       // grande entre la insignia del QR y el pie de página (770) — se sube
       // a 748 para que la insignia quede pegada de verdad a la esquina
       // inferior, con solo el aire justo antes del pie de página (queja
-      // real reportada: "el QR más en la esquina, no tan arriba").
-      var qrY = Math.max(signBlockBottom + 14, 748 - espacioReservado);
+      // real reportada: "el QR más en la esquina, no tan arriba"). Pero
+      // esa ancla solo tiene sentido cuando la hoja ya venía con
+      // contenido (resultados) antes de la firma — si el bloque de firma
+      // tuvo que saltar a una hoja nueva porque no cabía nada de él al
+      // final de la anterior, esa hoja nueva arranca casi vacía (solo
+      // encabezado + firma), y forzar el QR hacia la esquina inferior deja
+      // un hueco enorme en el medio (queja real reportada: "hoja en
+      // blanco innecesaria"). En ese caso el QR va justo debajo de la
+      // firma, sin forzarlo hacia abajo.
+      var qrY = firmaEnPaginaPropia ? (signBlockBottom + 14) : Math.max(signBlockBottom + 14, 748 - espacioReservado);
       if (qrY + espacioReservado > 760) { qrY = nuevaPagina() + 10; }
       doc.addImage(qrDataUrl, "PNG", qrX, qrY, qrSize, qrSize);
       doc.setDrawColor(210, 210, 210); doc.setLineWidth(0.6); doc.rect(qrX - 2, qrY - 2, qrSize + 4, qrSize + 4);
