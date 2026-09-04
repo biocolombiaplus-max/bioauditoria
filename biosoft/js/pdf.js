@@ -281,7 +281,8 @@
       // (en vez de apiladas una debajo de otra) — el membrete queda mucho
       // más bajo. Nada se pierde, solo se separa con " · " en una sola
       // fila, centrada como el resto del membrete.
-      doc.setFont(fontFam, "normal"); doc.setFontSize(8); doc.setTextColor(90, 90, 90);
+      doc.setFont(fontFam, "normal"); doc.setFontSize(8);
+      if (tenant.datosPacienteEstiloDiscreto) doc.setTextColor(0, 0, 0); else doc.setTextColor(90, 90, 90);
       var metaLineUnica = metaLines.join("   ·   ");
       if (metaLineUnica) { doc.text(metaLineUnica, cx, y, { align: "center" }); y += 8.5; }
       y += 2;
@@ -321,7 +322,8 @@
         doc.text(tenant.slogan, textX, y + 23);
         metaStartOffset = 35;
       }
-      doc.setFont(fontFam, "normal"); doc.setFontSize(8.5); doc.setTextColor(90, 90, 90);
+      doc.setFont(fontFam, "normal"); doc.setFontSize(8.5);
+      if (tenant.datosPacienteEstiloDiscreto) doc.setTextColor(0, 0, 0); else doc.setTextColor(90, 90, 90);
       metaLines.forEach(function (line, i) { doc.text(line, textX, y + metaStartOffset + i * 10); });
 
       doc.setDrawColor(rgb[0], rgb[1], rgb[2]); doc.setLineWidth(2);
@@ -384,7 +386,8 @@
       var textX = margin + (logoRepetido ? cajaLogo + 10 : 0);
       doc.setFont(fontFam, "bold"); doc.setFontSize(10.5); doc.setTextColor(rgb[0], rgb[1], rgb[2]);
       doc.text(tenant.nombre, textX, yy + 7);
-      doc.setFont(fontFam, "normal"); doc.setFontSize(8); doc.setTextColor(90, 90, 90);
+      doc.setFont(fontFam, "normal"); doc.setFontSize(8);
+      if (estiloDiscreto) doc.setTextColor(0, 0, 0); else doc.setTextColor(90, 90, 90);
       doc.text(U.nombreCompleto(patient) + " — Orden " + order.numeroOrden, textX, yy + 18);
       yy += cajaLogo + 4;
       doc.setDrawColor(rgb[0], rgb[1], rgb[2]); doc.setLineWidth(1);
@@ -431,13 +434,21 @@
     var yInfoStart = y;
     var col1 = margin, col2 = pageW / 2 + 10;
 
-    doc.setFont(fontFam, "bold"); doc.setFontSize(12.5); doc.setTextColor(20, 20, 20);
-    doc.text(U.nombreCompleto(patient), col1, y);
+    // Estilo discreto: el nombre lleva su propia etiqueta "Nombre:" (antes
+    // salía suelto, sin decir qué dato es) y, junto con el documento, se
+    // imprime en negro puro y peso normal — no negrita — igual que el
+    // resto del bloque de datos del paciente, pedido puntual de un cliente
+    // para que el informe se lea bien incluso con una impresora floja.
+    doc.setFont(fontFam, estiloDiscreto ? "normal" : "bold"); doc.setFontSize(12.5);
+    if (estiloDiscreto) doc.setTextColor(0, 0, 0); else doc.setTextColor(20, 20, 20);
+    doc.text((estiloDiscreto ? "Nombre: " : "") + U.nombreCompleto(patient), col1, y);
     y += 12;
-    doc.setFontSize(10.5); doc.setTextColor(50, 50, 50);
+    doc.setFont(fontFam, estiloDiscreto ? "normal" : "bold"); doc.setFontSize(10.5);
+    if (estiloDiscreto) doc.setTextColor(0, 0, 0); else doc.setTextColor(50, 50, 50);
     doc.text(patient.tipoDocumento + " " + patient.numeroDocumento, col1, y);
     y += 11;
 
+    doc.setFont(fontFam, "normal");
     doc.setFontSize(estiloDiscreto ? 9 : 9.5);
     if (estiloDiscreto) doc.setTextColor(0, 0, 0); else doc.setTextColor(30, 30, 30);
     var edad = U.edadTexto(patient);
@@ -573,7 +584,8 @@
       if (y + alturaBanner + HEAD_H + altoPrimerGrupo > pageBottom) { y = nuevaPagina(); }
 
       if (tenant.bandaSeccionSinColor) {
-        doc.setTextColor(30, 30, 30); doc.setFont(fontFam, "bold"); doc.setFontSize(9.5);
+        if (estiloDiscreto) doc.setTextColor(0, 0, 0); else doc.setTextColor(30, 30, 30);
+        doc.setFont(fontFam, "bold"); doc.setFontSize(9.5);
         doc.text(C.seccionNombre(seccionId, tenant).toUpperCase(), margin, y + 9);
         doc.setDrawColor(180, 180, 180); doc.setLineWidth(0.8);
         doc.line(margin, y + 13, pageW - margin, y + 13);
@@ -598,11 +610,19 @@
       var yEstimado = y;
       function volcarTablaSeccion() {
         if (!body.length) return;
+        // Estilo discreto: toda la tabla (encabezados y celdas) arranca en
+        // negro puro por defecto — antes usaba el gris tenue por defecto
+        // de la librería de tablas, que se ve mal en impresoras de baja
+        // calidad. Los casos con significado especial (Resultado en
+        // negrita, Interpretación anormal en rojo) se siguen resolviendo
+        // aparte, en didParseCell más abajo.
+        var stylesTabla = { font: fontFam, fontSize: tamanoBase, cellPadding: 4 };
+        if (estiloDiscreto) stylesTabla.textColor = [0, 0, 0];
         doc.autoTable({
           startY: y, margin: { left: margin, right: margin },
           head: [["Parámetro", "Resultado", "Valor de Referencia", "Interpretación"]],
-          body: body, theme: "grid", styles: { font: fontFam, fontSize: tamanoBase, cellPadding: 4 },
-          headStyles: { fillColor: [240, 244, 247], textColor: 40, fontStyle: "bold" },
+          body: body, theme: "grid", styles: stylesTabla,
+          headStyles: { fillColor: [240, 244, 247], textColor: estiloDiscreto ? [0, 0, 0] : 40, fontStyle: "bold" },
           didParseCell: function (data) {
             if (data.section !== "body") return;
             var meta = filaMeta[data.row.index];
@@ -631,17 +651,18 @@
         if (body.length && yEstimado + necesita > pageBottom) {
           volcarTablaSeccion();
           y = nuevaPagina();
-          doc.setFont(fontFam, "italic"); doc.setFontSize(8); doc.setTextColor(120, 120, 120);
+          doc.setFont(fontFam, "italic"); doc.setFontSize(8);
+          if (estiloDiscreto) doc.setTextColor(0, 0, 0); else doc.setTextColor(120, 120, 120);
           doc.text(C.seccionNombre(seccionId, tenant).toUpperCase() + " (continuación)", margin, y);
           y += 14;
           yEstimado = y + HEAD_H;
         } else {
           yEstimado += necesita;
         }
-        body.push([{ content: g.nombre, colSpan: 4, styles: { fillColor: [246, 247, 249], textColor: [50, 50, 50], fontStyle: "bold", fontSize: tamanoBase + 0.5 } }]);
+        body.push([{ content: g.nombre, colSpan: 4, styles: { fillColor: [246, 247, 249], textColor: estiloDiscreto ? [0, 0, 0] : [50, 50, 50], fontStyle: "bold", fontSize: tamanoBase + 0.5 } }]);
         filaMeta.push({ tipo: "titulo" });
         if (g.metodo) {
-          body.push([{ content: "Método: " + g.metodo, colSpan: 4, styles: { fontStyle: "italic", textColor: [140, 140, 140], fontSize: tamanoBase - 1.2 } }]);
+          body.push([{ content: "Método: " + g.metodo, colSpan: 4, styles: { fontStyle: "italic", textColor: estiloDiscreto ? [0, 0, 0] : [140, 140, 140], fontSize: tamanoBase - 1.2 } }]);
           filaMeta.push({ tipo: "metodo" });
         }
         g.filas.forEach(function (f) {
@@ -662,7 +683,8 @@
         // salió junto a su nombre en la tabla, no hace falta mostrarlo de nuevo.
         var metodoPanel = !examIdsConGrupo[panelInfo.exId] ? (C.examenEfectivo(panelInfo.exId, tenant).metodo || "") : "";
         if (metodoPanel) {
-          doc.setFont(fontFam, "italic"); doc.setFontSize(7); doc.setTextColor(140, 140, 140);
+          doc.setFont(fontFam, "italic"); doc.setFontSize(7);
+          if (estiloDiscreto) doc.setTextColor(0, 0, 0); else doc.setTextColor(140, 140, 140);
           doc.text("Método: " + metodoPanel, margin, y);
           y += 10;
         }
@@ -677,7 +699,7 @@
               var c = interpPorFila[i];
               return [it.nombre, c ? String(c.clase) : "-", (it.valor || "-") + " kU/L", c ? c.interpretacion : "-"];
             }),
-            theme: "grid", styles: { font: fontFam, fontSize: tamanoBase, cellPadding: 4 }, headStyles: { fillColor: [240, 244, 247], textColor: 40, fontStyle: "bold" },
+            theme: "grid", styles: { font: fontFam, fontSize: tamanoBase, cellPadding: 4, textColor: estiloDiscreto ? [0, 0, 0] : undefined }, headStyles: { fillColor: [240, 244, 247], textColor: estiloDiscreto ? [0, 0, 0] : 40, fontStyle: "bold" },
             didParseCell: function (data) {
               if (data.section === "body" && data.column.index === 3 && interpPorFila[data.row.index] && interpPorFila[data.row.index].interpretacion === "Positivo") {
                 data.cell.styles.textColor = [214, 69, 69]; data.cell.styles.fontStyle = "bold";
@@ -694,7 +716,7 @@
             startY: y, margin: { left: margin, right: margin },
             head: [conCIM ? ["Antibiótico", "Resultado", "CIM (µg/mL)"] : ["Antibiótico", "Resultado"]],
             body: panelInfo.items.map(function (it) { return conCIM ? [it.nombre, it.resultado || "-", it.cim || "-"] : [it.nombre, it.resultado || "-"]; }),
-            theme: "grid", styles: { font: fontFam, fontSize: tamanoBase, cellPadding: 4 }, headStyles: { fillColor: [240, 244, 247], textColor: 40, fontStyle: "bold" },
+            theme: "grid", styles: { font: fontFam, fontSize: tamanoBase, cellPadding: 4, textColor: estiloDiscreto ? [0, 0, 0] : undefined }, headStyles: { fillColor: [240, 244, 247], textColor: estiloDiscreto ? [0, 0, 0] : 40, fontStyle: "bold" },
             didParseCell: function (data) {
               if (data.section === "body" && data.column.index === 1 && panelInfo.items[data.row.index] && panelInfo.items[data.row.index].resultado === "Resistente") {
                 data.cell.styles.textColor = [214, 69, 69]; data.cell.styles.fontStyle = "bold";
@@ -710,7 +732,8 @@
       // salir en el reporte que recibe el paciente, no solo en la pantalla.
       var obsExams = bySeccion[seccionId].filter(function (ex) { return ex.observaciones; });
       if (obsExams.length) {
-        doc.setFont(fontFam, "italic"); doc.setFontSize(8); doc.setTextColor(80, 80, 80);
+        doc.setFont(fontFam, "italic"); doc.setFontSize(8);
+        if (estiloDiscreto) doc.setTextColor(0, 0, 0); else doc.setTextColor(80, 80, 80);
         obsExams.forEach(function (ex) {
           var exCat = C.examenEfectivo(ex.examId, tenant);
           var texto = (obsExams.length > 1 ? exCat.nombre + " — " : "") + "Observaciones: " + ex.observaciones;
@@ -737,7 +760,7 @@
           var exCat = C.examenEfectivo(ex.examId, tenant);
           return [exCat.nombre, ex.laboratorioRemision || "—", "Ver informe original anexo en las páginas siguientes"];
         }),
-        theme: "grid", styles: { font: fontFam, fontSize: tamanoBase, cellPadding: 4 }, headStyles: { fillColor: [240, 244, 247], textColor: 40, fontStyle: "bold" }
+        theme: "grid", styles: { font: fontFam, fontSize: tamanoBase, cellPadding: 4, textColor: estiloDiscreto ? [0, 0, 0] : undefined }, headStyles: { fillColor: [240, 244, 247], textColor: estiloDiscreto ? [0, 0, 0] : 40, fontStyle: "bold" }
       });
       y = doc.lastAutoTable.finalY + 18;
     }
@@ -765,9 +788,11 @@
         } catch (e) {}
       }
       doc.setDrawColor(180, 180, 180); doc.line(margin, y + 10, margin + lineW, y + 10);
-      doc.setFont(fontFam, "bold"); doc.setFontSize(9); doc.setTextColor(20, 20, 20);
+      doc.setFont(fontFam, estiloDiscreto ? "normal" : "bold"); doc.setFontSize(9);
+      if (estiloDiscreto) doc.setTextColor(0, 0, 0); else doc.setTextColor(20, 20, 20);
       doc.text(f.nombre, margin, y + 22);
-      doc.setFont(fontFam, "normal"); doc.setFontSize(8); doc.setTextColor(90, 90, 90);
+      doc.setFont(fontFam, "normal"); doc.setFontSize(8);
+      if (estiloDiscreto) doc.setTextColor(0, 0, 0); else doc.setTextColor(90, 90, 90);
       doc.text(f.registroProfesional ? "Registro Profesional: " + f.registroProfesional : "", margin, y + 33);
       doc.text(C.tituloFirmaProfesional(tenant.pais), margin, y + 44);
       y += 62;
@@ -787,7 +812,8 @@
       doc.text("INFORME PARCIAL — HAY EXÁMENES EN PROCESO", margin, y);
       y += 12;
       if (nombresPendientes.length) {
-        doc.setFont(fontFam, "normal"); doc.setFontSize(8.5); doc.setTextColor(90, 90, 90);
+        doc.setFont(fontFam, "normal"); doc.setFontSize(8.5);
+        if (estiloDiscreto) doc.setTextColor(0, 0, 0); else doc.setTextColor(90, 90, 90);
         var lineasPendientes = doc.splitTextToSize("Pendiente(s): " + nombresPendientes.join(", ") + ".", pageW - margin * 2);
         doc.text(lineasPendientes, margin, y);
         y += lineasPendientes.length * 10 + 4;
@@ -837,7 +863,8 @@
       if (qrY + espacioReservado > 760) { qrY = nuevaPagina() + 10; }
       doc.addImage(qrDataUrl, "PNG", qrX, qrY, qrSize, qrSize);
       doc.setDrawColor(210, 210, 210); doc.setLineWidth(0.6); doc.rect(qrX - 2, qrY - 2, qrSize + 4, qrSize + 4);
-      doc.setFont(fontFam, "bold"); doc.setFontSize(6.3); doc.setTextColor(120, 120, 120);
+      doc.setFont(fontFam, "bold"); doc.setFontSize(6.3);
+      if (estiloDiscreto) doc.setTextColor(0, 0, 0); else doc.setTextColor(120, 120, 120);
       doc.text("DOCUMENTO VALIDADO", qrX + qrSize / 2, qrY + qrSize + 9, { align: "center" });
       doc.text("ELECTRÓNICAMENTE", qrX + qrSize / 2, qrY + qrSize + 16, { align: "center" });
       var yDebajoQr = qrY + qrSize + 16;
@@ -854,12 +881,14 @@
         yDebajoQr += 9 + (lineasSloganQr.length - 1) * 9;
       }
       if (lineasPie.length) {
-        doc.setFont(fontFam, "italic"); doc.setFontSize(8.5); doc.setTextColor(90, 90, 90);
+        doc.setFont(fontFam, "italic"); doc.setFontSize(8.5);
+        if (estiloDiscreto) doc.setTextColor(0, 0, 0); else doc.setTextColor(90, 90, 90);
         doc.text(lineasPie, pageW / 2, yDebajoQr + 16, { align: "center" });
       }
     } catch (e) {}
 
-    doc.setFontSize(7); doc.setTextColor(140, 140, 140);
+    doc.setFontSize(7);
+    if (estiloDiscreto) doc.setTextColor(0, 0, 0); else doc.setTextColor(140, 140, 140);
     doc.text("Documento generado electrónicamente por BIOsoft — " + new Date().toLocaleString("es-CO") + ". Los resultados deben interpretarse en conjunto con la clínica del paciente.", margin, 770, { maxWidth: pageW - margin * 2 });
 
     // Numeración "1/2, 2/2…" en el pie de cada hoja — el total de páginas
@@ -873,7 +902,8 @@
     var totalPaginas = doc.internal.getNumberOfPages();
     for (var numPagina = 1; numPagina <= totalPaginas; numPagina++) {
       doc.setPage(numPagina);
-      doc.setFont(fontFam, "normal"); doc.setFontSize(7); doc.setTextColor(140, 140, 140);
+      doc.setFont(fontFam, "normal"); doc.setFontSize(7);
+      if (estiloDiscreto) doc.setTextColor(0, 0, 0); else doc.setTextColor(140, 140, 140);
       doc.text("Página " + numPagina + "/" + totalPaginas, pageW - margin, 770, { align: "right" });
     }
 
