@@ -614,6 +614,12 @@
             if (data.column.index === 3 && meta.anormal) {
               data.cell.styles.textColor = [214, 69, 69]; data.cell.styles.fontStyle = "bold";
             }
+            // Estilo discreto (Carreño): "Valor de Referencia" en negro
+            // puro y peso normal — sin esta opción, esa columna sale con el
+            // gris grisáceo por defecto de la librería de tablas.
+            if (data.column.index === 2 && estiloDiscreto) {
+              data.cell.styles.textColor = [0, 0, 0]; data.cell.styles.fontStyle = "normal";
+            }
           }
         });
         y = doc.lastAutoTable.finalY + 10;

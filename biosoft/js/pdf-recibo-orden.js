@@ -66,6 +66,11 @@
     y += 26;
 
     // ---- Datos del paciente / del pago, en dos columnas ------------------
+    // "Recibo detallado" (opción por laboratorio): si la orden es de un
+    // convenio, arriba se nombra el convenio y no se pide/muestra método de
+    // pago (todo convenio se maneja a crédito, ver pago.esCredito más
+    // abajo) — un método de pago ahí no tendría sentido.
+    var esCredito = !!pago.esCredito;
     doc.setFontSize(9.5);
     var col1 = margin, col2 = pageW / 2 + 12;
     var left = [
@@ -73,10 +78,11 @@
       ["Documento:", pac ? (pac.tipoDocumento + " " + pac.numeroDocumento) : "—"],
       ["Orden N°:", String(order.numeroOrden)]
     ];
+    if (tenant.reciboConvenioComoCredito && order.convenioNombre) left.unshift(["Convenio:", order.convenioNombre]);
     var right = [
-      ["Fecha de Pago:", new Date(pago.fecha || order.fechaOrden).toLocaleDateString("es-CO")],
-      ["Método de Pago:", METODO_PAGO_LABEL[pago.metodoPago] || pago.metodoPago || "—"]
+      ["Fecha de Pago:", new Date(pago.fecha || order.fechaOrden).toLocaleDateString("es-CO")]
     ];
+    if (!esCredito) right.push(["Método de Pago:", METODO_PAGO_LABEL[pago.metodoPago] || pago.metodoPago || "—"]);
     if (pago.confirmadoPor) right.push(["Confirmado por:", pago.confirmadoPor]);
     var filasInfo = Math.max(left.length, right.length);
     left.forEach(function (row, i) {
@@ -91,10 +97,18 @@
 
     // ---- Tabla de exámenes -------------------------------------------
     var hayAlgunPrecio = order.examenes.some(function (ex) { return preciosPorId[ex.examId] != null; });
+    // "Recibo detallado": la columna "Sección" se reemplaza por "Valor
+    // Unitario" (el precio de cada examen, ej. "Cuadro Hemático $11.200")
+    // — más útil en un recibo que a qué sección pertenece cada examen.
+    var conValorUnitario = tenant.reciboConvenioComoCredito && hayAlgunPrecio;
     var filasExamenes = order.examenes.map(function (ex) {
       var exCat = C.examenEfectivo(ex.examId, tenant);
-      var seccion = C.seccionNombre(exCat.seccion, tenant) || "";
       var nombre = exCat ? exCat.nombre : ex.examId;
+      if (conValorUnitario) {
+        var precioUnit = preciosPorId[ex.examId];
+        return [nombre, precioUnit != null ? fmtMoneda(precioUnit) : "—"];
+      }
+      var seccion = C.seccionNombre(exCat.seccion, tenant) || "";
       if (hayAlgunPrecio) {
         var precio = preciosPorId[ex.examId];
         return [nombre, seccion, precio != null ? fmtMoneda(precio) : "—"];
@@ -103,51 +117,85 @@
     });
     doc.autoTable({
       startY: y, margin: { left: margin, right: margin },
-      head: hayAlgunPrecio ? [["Examen", "Sección", "Precio"]] : [["Examen", "Sección"]],
+      head: conValorUnitario ? [["Examen", "Valor Unitario"]] : (hayAlgunPrecio ? [["Examen", "Sección", "Precio"]] : [["Examen", "Sección"]]),
       body: filasExamenes,
       theme: "grid", styles: { fontSize: 9, cellPadding: 6, lineColor: [226, 228, 233], lineWidth: 0.6 },
       headStyles: { fillColor: [247, 248, 250], textColor: 40, fontStyle: "bold" },
       alternateRowStyles: { fillColor: [252, 252, 253] },
-      columnStyles: hayAlgunPrecio ? { 2: { halign: "right", cellWidth: 90 } } : {}
+      columnStyles: conValorUnitario ? { 1: { halign: "right", cellWidth: 110 } } : (hayAlgunPrecio ? { 2: { halign: "right", cellWidth: 90 } } : {})
     });
     y = doc.lastAutoTable.finalY + 22;
 
-    // ---- Tarjeta de total pagado, resaltada ---------------------------
+    // ---- Tarjeta de total, resaltada -----------------------------------
     var montoPagado = pago.monto != null ? pago.monto : order.valorCobrar;
     var extraMoneda = C.fmtMonedaAdicional(tenant, montoPagado);
-    var cardW = 220, cardH = extraMoneda ? 54 : 40;
-    var cardX = pageW - margin - cardW, cardY = y;
-    doc.setFillColor(250, 250, 251); doc.setDrawColor(rgb[0], rgb[1], rgb[2]); doc.setLineWidth(1.1);
-    doc.roundedRect(cardX, cardY, cardW, cardH, 6, 6, "FD");
-    doc.setFont("helvetica", "bold"); doc.setFontSize(8.5); doc.setTextColor(110, 110, 110);
-    doc.text("TOTAL PAGADO", cardX + 14, cardY + 17);
-    doc.setFont("helvetica", "bold"); doc.setFontSize(15); doc.setTextColor(rgb[0], rgb[1], rgb[2]);
-    doc.text(fmtMoneda(montoPagado), cardX + cardW - 14, cardY + 30, { align: "right" });
-    if (extraMoneda) {
-      doc.setFont("helvetica", "normal"); doc.setFontSize(8.5); doc.setTextColor(120, 120, 120);
-      doc.text(extraMoneda, cardX + cardW - 14, cardY + 44, { align: "right" });
+    // "Recibo detallado" para una orden PARTICULAR: en vez de una sola
+    // tarjeta "Total Pagado", se desglosa Valor Total / Abono / Saldo — con
+    // el modelo de pago actual (aún sin abonos parciales por orden) este
+    // flujo solo llega aquí después de confirmar que ya se pagó todo, así
+    // que Abono = Total y Saldo = 0, pero ya queda listo el desglose para
+    // cuando BIOsoft soporte pagos parciales de verdad.
+    var conDesgloseAbono = tenant.reciboConvenioComoCredito && !esCredito;
+    if (conDesgloseAbono) {
+      var cardW3 = 340, cardH3 = 46;
+      var cardX3 = pageW - margin - cardW3, cardY3 = y;
+      doc.setFillColor(250, 250, 251); doc.setDrawColor(rgb[0], rgb[1], rgb[2]); doc.setLineWidth(1.1);
+      doc.roundedRect(cardX3, cardY3, cardW3, cardH3, 6, 6, "FD");
+      var colW3 = cardW3 / 3;
+      var etiquetas3 = ["VALOR TOTAL", "ABONO", "SALDO"];
+      var valores3 = [montoPagado, montoPagado, 0];
+      var colores3 = [[60, 60, 60], [21, 128, 61], [60, 60, 60]];
+      for (var ci = 0; ci < 3; ci++) {
+        var cx3 = cardX3 + colW3 * ci + colW3 / 2;
+        doc.setFont("helvetica", "bold"); doc.setFontSize(7.5); doc.setTextColor(110, 110, 110);
+        doc.text(etiquetas3[ci], cx3, cardY3 + 16, { align: "center" });
+        doc.setFont("helvetica", "bold"); doc.setFontSize(12); doc.setTextColor(colores3[ci][0], colores3[ci][1], colores3[ci][2]);
+        doc.text(fmtMoneda(valores3[ci]), cx3, cardY3 + 34, { align: "center" });
+        if (ci < 2) { doc.setDrawColor(226, 228, 233); doc.line(cardX3 + colW3 * (ci + 1), cardY3 + 6, cardX3 + colW3 * (ci + 1), cardY3 + cardH3 - 6); }
+      }
+      y = cardY3 + cardH3 + 24;
+    } else {
+      var cardW = 220, cardH = extraMoneda ? 54 : 40;
+      var cardX = pageW - margin - cardW, cardY = y;
+      doc.setFillColor(250, 250, 251); doc.setDrawColor(rgb[0], rgb[1], rgb[2]); doc.setLineWidth(1.1);
+      doc.roundedRect(cardX, cardY, cardW, cardH, 6, 6, "FD");
+      doc.setFont("helvetica", "bold"); doc.setFontSize(8.5); doc.setTextColor(110, 110, 110);
+      doc.text(esCredito ? "SALDO A CARGO DEL CONVENIO" : "TOTAL PAGADO", cardX + 14, cardY + 17);
+      doc.setFont("helvetica", "bold"); doc.setFontSize(15); doc.setTextColor(rgb[0], rgb[1], rgb[2]);
+      doc.text(fmtMoneda(montoPagado), cardX + cardW - 14, cardY + 30, { align: "right" });
+      if (extraMoneda) {
+        doc.setFont("helvetica", "normal"); doc.setFontSize(8.5); doc.setTextColor(120, 120, 120);
+        doc.text(extraMoneda, cardX + cardW - 14, cardY + 44, { align: "right" });
+      }
+      y = cardY + cardH + 24;
     }
-    y = cardY + cardH + 24;
 
-    // ---- Insignia de pago confirmado -----------------------------------
+    // ---- Insignia de estado ---------------------------------------------
     // Nunca uses ✓/★/≈ ni ningún carácter fuera de WinAnsi dentro de
     // doc.text()/autoTable — las fuentes base de jsPDF (Helvetica) no las
     // soportan y el texto sale corrupto (ver el mismo problema ya
     // corregido con "≈" en catalog.js). El círculo relleno de abajo hace
     // el mismo trabajo visual de "insignia" sin depender de ningún glifo.
+    // Un cargo a convenio (crédito) usa tono azul en vez de verde — no fue
+    // un pago recibido, así que la insignia no debe leerse como tal.
     doc.setFont("helvetica", "bold"); doc.setFontSize(9.5);
-    var badgeTxt = "PAGO CONFIRMADO", badgeW = doc.getTextWidth(badgeTxt) + 40, badgeH = 20;
-    doc.setFillColor(224, 246, 234); doc.setDrawColor(11, 138, 74); doc.setLineWidth(0.8);
+    var badgeTxt = esCredito ? "CARGO A CONVENIO — CRÉDITO" : "PAGO CONFIRMADO";
+    var badgeColor = esCredito ? [37, 99, 235] : [11, 138, 74];
+    var badgeFill = esCredito ? [224, 234, 250] : [224, 246, 234];
+    var badgeW = doc.getTextWidth(badgeTxt) + 40, badgeH = 20;
+    doc.setFillColor(badgeFill[0], badgeFill[1], badgeFill[2]); doc.setDrawColor(badgeColor[0], badgeColor[1], badgeColor[2]); doc.setLineWidth(0.8);
     doc.roundedRect(margin, y, badgeW, badgeH, badgeH / 2, badgeH / 2, "FD");
-    doc.setFillColor(11, 138, 74);
+    doc.setFillColor(badgeColor[0], badgeColor[1], badgeColor[2]);
     doc.circle(margin + 16, y + badgeH / 2, 3, "F");
-    doc.setTextColor(11, 138, 74);
+    doc.setTextColor(badgeColor[0], badgeColor[1], badgeColor[2]);
     doc.text(badgeTxt, margin + 26, y + 13.5);
     y += badgeH + 22;
 
     // ---- Nota legal y pie de página -------------------------------------
     doc.setFont("helvetica", "normal"); doc.setFontSize(8.5); doc.setTextColor(100, 100, 100);
-    doc.text("Este recibo certifica la recepción del pago correspondiente a los exámenes de esta orden. Conserva este documento para cualquier reclamación relacionada con tu compra.", margin, y, { maxWidth: pageW - margin * 2 });
+    doc.text(esCredito
+      ? "Este documento certifica el cargo a crédito de los exámenes de esta orden en la cuenta del convenio indicado arriba. Conserva este documento para cualquier reclamación relacionada."
+      : "Este recibo certifica la recepción del pago correspondiente a los exámenes de esta orden. Conserva este documento para cualquier reclamación relacionada con tu compra.", margin, y, { maxWidth: pageW - margin * 2 });
 
     doc.setFontSize(7.5); doc.setTextColor(150, 150, 150);
     doc.text("Documento generado electrónicamente por BIOsoft — " + new Date().toLocaleString("es-CO") + ".", margin, 770);

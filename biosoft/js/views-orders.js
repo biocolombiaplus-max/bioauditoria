@@ -496,24 +496,39 @@
 
     if (order.pago) { await generarYEnviar(order.pago); return; }
 
+    // Con "Recibo de Pago detallado" activo, una orden que pertenece a un
+    // convenio se trata como lo que es — un cargo a crédito, no un pago
+    // recibido en el momento — así que no tiene sentido pedir "¿ya pagó?"
+    // ni un método de pago; se genera directo el cargo a la cuenta del
+    // convenio. Sin esta opción (o para órdenes particulares), el flujo de
+    // siempre sigue igual.
+    var esCargoConvenio = !!(tenant.reciboConvenioComoCredito && order.convenioId);
     var wrapConfirm = U.openModal(
-      '<h3 class="modal-title">Recibo de Pago — Orden ' + order.numeroOrden + '</h3>' +
-      '<p class="text-muted" style="margin-top:0">Antes de generar el recibo, confirma que el cliente ya realizó el pago.</p>' +
-      '<div class="field"><label>Método de Pago</label><select id="rec-ord-metodo">' +
-      Object.keys(BIO_PDF_RECIBO_ORDEN.METODO_PAGO_LABEL).map(function (k) { return '<option value="' + k + '">' + BIO_PDF_RECIBO_ORDEN.METODO_PAGO_LABEL[k] + "</option>"; }).join("") +
-      "</select></div>" +
-      '<label class="checkbox-row" style="margin-top:10px"><input type="checkbox" id="rec-ord-confirmo"/> Confirmo que el cliente ya pagó ' + fmtMoneda(order.valorCobrar) + fmtMonedaEquiv(tenant, order.valorCobrar) + "</label>" +
-      '<div class="flex justify-between" style="margin-top:16px"><button class="btn btn-ghost" data-modal-close>Cancelar</button><button class="btn btn-primary" id="rec-ord-confirmar" disabled>Confirmar Pago y Generar Recibo</button></div>'
+      esCargoConvenio
+        ? '<h3 class="modal-title">Cargo a Convenio — Orden ' + order.numeroOrden + '</h3>' +
+          '<p class="text-muted" style="margin-top:0">Esta orden pertenece al convenio <b>' + U.esc(order.convenioNombre || "—") + "</b> — todo convenio se maneja a crédito, así que este recibo queda como cargo a su cuenta, sin método de pago ni confirmación de pago recibido.</p>" +
+          '<label class="checkbox-row" style="margin-top:10px"><input type="checkbox" id="rec-ord-confirmo"/> Confirmo generar el cargo a crédito de ' + fmtMoneda(order.valorCobrar) + fmtMonedaEquiv(tenant, order.valorCobrar) + " al convenio " + U.esc(order.convenioNombre || "—") + "</label>" +
+          '<div class="flex justify-between" style="margin-top:16px"><button class="btn btn-ghost" data-modal-close>Cancelar</button><button class="btn btn-primary" id="rec-ord-confirmar" disabled>Generar Cargo a Convenio</button></div>'
+        : '<h3 class="modal-title">Recibo de Pago — Orden ' + order.numeroOrden + '</h3>' +
+          '<p class="text-muted" style="margin-top:0">Antes de generar el recibo, confirma que el cliente ya realizó el pago.</p>' +
+          '<div class="field"><label>Método de Pago</label><select id="rec-ord-metodo">' +
+          Object.keys(BIO_PDF_RECIBO_ORDEN.METODO_PAGO_LABEL).map(function (k) { return '<option value="' + k + '">' + BIO_PDF_RECIBO_ORDEN.METODO_PAGO_LABEL[k] + "</option>"; }).join("") +
+          "</select></div>" +
+          '<label class="checkbox-row" style="margin-top:10px"><input type="checkbox" id="rec-ord-confirmo"/> Confirmo que el cliente ya pagó ' + fmtMoneda(order.valorCobrar) + fmtMonedaEquiv(tenant, order.valorCobrar) + "</label>" +
+          '<div class="flex justify-between" style="margin-top:16px"><button class="btn btn-ghost" data-modal-close>Cancelar</button><button class="btn btn-primary" id="rec-ord-confirmar" disabled>Confirmar Pago y Generar Recibo</button></div>'
     );
     var chk = wrapConfirm.querySelector("#rec-ord-confirmo");
     var btnConfirmar = wrapConfirm.querySelector("#rec-ord-confirmar");
     chk.addEventListener("change", function () { btnConfirmar.disabled = !chk.checked; });
     btnConfirmar.addEventListener("click", async function () {
       var session = BIO_AUTH.getSession();
-      var pago = { fecha: new Date().toISOString(), metodoPago: wrapConfirm.querySelector("#rec-ord-metodo").value, monto: order.valorCobrar, confirmadoPor: session.nombre };
+      var pago = esCargoConvenio
+        ? { fecha: new Date().toISOString(), monto: order.valorCobrar, confirmadoPor: session.nombre, esCredito: true }
+        : { fecha: new Date().toISOString(), metodoPago: wrapConfirm.querySelector("#rec-ord-metodo").value, monto: order.valorCobrar, confirmadoPor: session.nombre };
       order.pago = pago;
       S.saveOrder(order);
-      S.addAudit(order.tenantId, session.nombre, session.rol, "CONFIRMAR_PAGO_ORDEN", "orden", order.id, "Confirmó el pago de la orden " + order.numeroOrden + " y generó el recibo.");
+      S.addAudit(order.tenantId, session.nombre, session.rol, "CONFIRMAR_PAGO_ORDEN", "orden", order.id,
+        esCargoConvenio ? "Generó el cargo a crédito del convenio " + (order.convenioNombre || "—") + " para la orden " + order.numeroOrden + "." : "Confirmó el pago de la orden " + order.numeroOrden + " y generó el recibo.");
       U.closeModal(wrapConfirm);
       await generarYEnviar(pago);
     });
