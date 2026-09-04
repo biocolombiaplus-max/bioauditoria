@@ -571,7 +571,9 @@
               '<td><span style="display:inline-block;width:9px;height:9px;border-radius:50%;background:' + tubo.color + ';margin-right:5px;vertical-align:middle"></span>' + U.esc(tubo.nombre) + "</td>" +
               "<td>" + window.BIO_badgeEstado(ex.estado === "en_proceso" ? "pendiente" : ex.estado) + "</td>" +
               "<td>" + (ex.validadoPor || "—") + "</td><td>" + (ex.fechaValidacion ? U.fmtFecha(ex.fechaValidacion) : "—") + "</td>" +
-              '<td><button class="btn btn-outline btn-sm" data-goresult="' + idx + '">Ir a captura</button></td></tr>';
+              '<td><div class="flex gap-1 wrap"><button class="btn btn-outline btn-sm" data-goresult="' + idx + '">Ir a captura</button>' +
+              (order.examenes.length > 1 ? '<button class="btn btn-ghost btn-sm" data-quitar-examen="' + idx + '" title="Quitar este examen de la orden">' + U.icon("trash") + "</button>" : "") +
+              "</div></td></tr>";
           }).join("") +
           "</tbody></table></div></div>" +
 
@@ -597,6 +599,14 @@
       if (btnFirmarConsentimientoAqui) btnFirmarConsentimientoAqui.addEventListener("click", function () { window.BIO_VIEWS_CONSENTIMIENTOS.abrirFirmarAqui(order, pac, tenant, build); });
       root.querySelectorAll("[data-goresult]").forEach(function (b) {
         b.addEventListener("click", function () { location.hash = "#/resultados/" + order.id; });
+      });
+      root.querySelectorAll("[data-quitar-examen]").forEach(function (b) {
+        b.addEventListener("click", function () {
+          var idx = parseInt(b.dataset.quitarExamen, 10);
+          var ex = order.examenes[idx];
+          var exCat = C.examenEfectivo(ex.examId, tenant);
+          abrirQuitarExamen(order, ex, exCat, idx, build);
+        });
       });
       root.querySelectorAll("[data-redescargar-remision]").forEach(function (b) {
         b.addEventListener("click", function () {
@@ -694,6 +704,46 @@
       S.addAudit(session.tenantId, session.nombre, session.rol, "ADD_EXAMS_TO_ORDER", "orden", order.id,
         "Agregó " + seleccionados.length + " examen(es) nuevo(s) a la orden " + order.numeroOrden + detallePrecio + ".");
       U.toast(seleccionados.length + " examen(es) agregado(s) a la orden.", "success");
+      U.closeModal(wrap);
+      onDone();
+    });
+  }
+
+  // -------------------------------------------------------------------
+  // QUITAR UN EXAMEN DE UNA ORDEN — el complemento de "Agregar Exámenes":
+  // corregir una orden con un examen de más (agregado por error, el
+  // paciente no lo pidió, etc.), no solo agregar. Un examen aún sin
+  // resultado se quita con solo confirmar; uno ya validado o remitido
+  // exige la misma clave de administrador + motivo que ya usa la
+  // corrección de resultados, para no borrar un resultado finalizado sin
+  // dejar rastro.
+  // -------------------------------------------------------------------
+  function abrirQuitarExamen(order, ex, exCat, idx, onDone) {
+    var session = BIO_AUTH.getSession();
+    var esFinal = ex.estado === "validado" || ex.estado === "remitido";
+    var wrap = U.openModal(
+      '<h3 class="modal-title">' + U.icon("trash") + " Quitar Examen — " + U.esc(exCat.nombre) + "</h3>" +
+      '<p class="text-muted">' + (esFinal
+        ? "Este examen ya está <b>" + ex.estado + "</b>. Quitar un resultado finalizado es una acción sensible — requiere la clave de administrador del laboratorio y el motivo, dejando trazabilidad completa (usuario, fecha y hora)."
+        : "Se va a quitar <b>" + U.esc(exCat.nombre) + "</b> de la orden " + order.numeroOrden + ". Esta acción no se puede deshacer.") + "</p>" +
+      (ex.reactivosDescontados ? '<p class="text-muted" style="font-size:12px">⚠️ El inventario de reactivos de este examen ya se descontó — al quitarlo, ese descuento NO se revierte automáticamente; ajústalo a mano en Inventario si hace falta.</p>' : "") +
+      (esFinal ? '<div class="field"><label>Clave de administrador *</label><input type="password" id="qe-clave"/></div>' : "") +
+      '<div class="field"><label>Motivo *</label><textarea id="qe-motivo" placeholder="Ej: Examen agregado por error, el paciente no lo solicitó."></textarea></div>' +
+      '<div class="flex gap-2 justify-between" style="margin-top:10px"><button class="btn btn-ghost" data-modal-close>Cancelar</button><button class="btn btn-danger" id="qe-confirmar">' + U.icon("trash") + " Quitar Examen</button></div>"
+    );
+    wrap.querySelector("#qe-confirmar").addEventListener("click", function () {
+      var motivo = wrap.querySelector("#qe-motivo").value.trim();
+      if (!motivo) { U.toast("Describe el motivo.", "error"); return; }
+      if (esFinal) {
+        var clave = wrap.querySelector("#qe-clave").value;
+        if (!BIO_AUTH.verificarClaveAdmin(clave)) { U.toast("Clave de administrador incorrecta.", "error"); return; }
+      }
+      order.examenes.splice(idx, 1);
+      S.recalcEstadoGeneral(order);
+      S.saveOrder(order);
+      S.addAudit(session.tenantId, session.nombre, session.rol, "REMOVE_EXAM_FROM_ORDER", "orden", order.id,
+        'Quitó el examen "' + exCat.nombre + '" (estaba ' + ex.estado + ") de la orden " + order.numeroOrden + ". Motivo: " + motivo);
+      U.toast("Examen quitado de la orden.", "success");
       U.closeModal(wrap);
       onDone();
     });
