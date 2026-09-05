@@ -696,7 +696,7 @@
      navegador lo mande a cualquier impresora ya instalada en el sistema
      operativo (no habla directo con el hardware), así que en la práctica
      funciona con cualquier marca que tenga su driver instalado en Windows. */
-  var IMPRESORAS_ETIQUETA_SUGERIDAS = ["Xprinter (térmica USB)", "Zebra GK420d / ZD220", "TSC TE244 / TTP-244", "Godex G500", "Brother QL-800 / QL-820NWB", "Honeywell PC42t"];
+  var IMPRESORAS_ETIQUETA_SUGERIDAS = ["Xprinter (térmica USB)", "Zebra GK420d / ZD220", "TSC TE244 / TTP-244", "Godex G500", "Brother QL-800 / QL-820NWB", "Honeywell PC42t", "Datamax M-Class Mark II (DMX-M-4206)"];
 
   function seccionNombre(id, tenant) {
     var s = SECCIONES.filter(function (x) { return x.id === id; })[0];
