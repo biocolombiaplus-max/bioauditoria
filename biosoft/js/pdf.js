@@ -590,7 +590,14 @@
           }
           var val = (ex.valores.filter(function (v) { return v.codigo === p.codigo; })[0] || {}).valor || "-";
           var flag = C.calcularFlag(p, val);
-          var refFormateado = formatearValorReferencia(p.refText);
+          // Además de la casilla general que oculta la columna entera (ver
+          // ocultarValorReferencia arriba), un parámetro puntual puede
+          // marcarse para no mostrar SU valor de referencia (ej. un campo
+          // donde el laboratorio no quiere revelar el rango al paciente) —
+          // en ese caso la columna sigue existiendo para los demás
+          // parámetros, solo esta celda queda vacía.
+          var ocultarRefParametro = !!p.ocultarEnInforme;
+          var refFormateado = ocultarRefParametro ? "" : formatearValorReferencia(p.refText);
           var fila = [p.nombre + (p.calculado ? " (calculado)" : ""), val + (p.unidad ? " " + p.unidad : "")];
           if (!ocultarValorReferencia) fila.push(refFormateado);
           if (!ocultarInterpretacion) fila.push(flag.texto || "");
