@@ -152,8 +152,12 @@
       document.getElementById("act-form-block").classList.add("hidden");
       document.getElementById("act-success-block").classList.remove("hidden");
       document.getElementById("act-res-user").textContent = correo;
+      // Este texto lo envía el propio cliente (WhatsApp solo permite
+      // prellenar el mensaje, nunca enviarlo solo) — por eso se deja corto
+      // y neutro, sin instrucciones internas para el equipo (esas viven en
+      // el CRM, no en un mensaje que termina redactando el cliente).
       var mensaje = "✅ Nueva activación instantánea de BIOsoft\n\nLaboratorio: " + labNombre + "\nContacto: " + contNombre + " (" + whatsapp + ")\nPlan: " + (plan ? plan.nombre : planId) +
-        (pedirLogo ? "\n¡Pidió diseño de logo! (+$40.000 COP)" : "") + "\n\nYa quedó creado y funcionando — solo revisa que el pago haya llegado y, si quieres, genérale el contrato desde el CRM.";
+        (pedirLogo ? "\n¡Pidió diseño de logo! (+$40.000 COP)" : "") + "\n\nYa quedó creado y activo.";
       window.open("https://wa.me/" + WA_NUMBER + "?text=" + encodeURIComponent(mensaje), "_blank");
     }).catch(function (err) {
       submitBtn.disabled = false; submitBtn.textContent = "🚀 Activar mi BIOsoft Ahora";
