@@ -1124,27 +1124,31 @@
       "Resultado recibido automáticamente del equipo " + (equipoNombre || "conectado") + " para la orden " + numeroOrden + ". Queda como borrador, pendiente de revisión y validación por un bacteriólogo.");
     return { ok: true, order: order };
   }
+  // Formatos de numeración de orden disponibles — cada laboratorio elige
+  // el suyo en Configuración → Operación ("Formato del N° de Orden").
+  // "diario" es el que ya venía por defecto para todos ("tipo laboratorio
+  // grande"); "anual" y "continuo" son alternativas para el que prefiera
+  // no repetir la fecha en el número.
+  var FORMATOS_NUMERO_ORDEN = {
+    diario: { nombre: "Diario: AñoMesDía + consecutivo del día (ej. 2026090701)", prefijo: function (now) { return "" + now.getFullYear() + String(now.getMonth() + 1).padStart(2, "0") + String(now.getDate()).padStart(2, "0"); }, minDigitos: 2 },
+    anual: { nombre: "Anual: Año + consecutivo del año (ej. 2026-0007)", prefijo: function (now) { return "" + now.getFullYear() + "-"; }, minDigitos: 4 },
+    continuo: { nombre: "Continuo: un solo consecutivo, nunca se reinicia (ej. 000007)", prefijo: function () { return ""; }, minDigitos: 6 }
+  };
   function nextOrderNumber(tenantId) {
-    // Formato tipo "laboratorio grande": AñoMesDía + consecutivo del día
-    // (ej. 2026090301 = 3 de septiembre de 2026, orden #1 de ese día).
-    // El consecutivo se reinicia cada día y crece de 01 en adelante; si un
-    // día llega a superar 99 órdenes, el número simplemente gana un dígito
-    // más (100, 101...) en vez de truncarse.
     var db = loadDB();
-    var now = new Date();
-    var prefijo = "" + now.getFullYear() +
-      String(now.getMonth() + 1).padStart(2, "0") +
-      String(now.getDate()).padStart(2, "0");
+    var tenant = db.tenants[tenantId];
+    var formato = FORMATOS_NUMERO_ORDEN[tenant && tenant.formatoNumeroOrden] || FORMATOS_NUMERO_ORDEN.diario;
+    var prefijo = formato.prefijo(new Date());
     var maxSeq = 0;
     db.orders.forEach(function (o) {
       if (o.tenantId !== tenantId) return;
       var num = String(o.numeroOrden || "");
-      if (num.indexOf(prefijo) !== 0) return;
-      var seq = parseInt(num.slice(prefijo.length), 10);
+      if (prefijo && num.indexOf(prefijo) !== 0) return;
+      var seq = parseInt(prefijo ? num.slice(prefijo.length) : num, 10);
       if (!isNaN(seq) && seq > maxSeq) maxSeq = seq;
     });
     var seqStr = String(maxSeq + 1);
-    if (seqStr.length < 2) seqStr = "0" + seqStr;
+    while (seqStr.length < formato.minDigitos) seqStr = "0" + seqStr;
     return prefijo + seqStr;
   }
   function createOrder(data) {
@@ -1802,6 +1806,7 @@
     listOrders: listOrders,
     getOrder: getOrder,
     nextOrderNumber: nextOrderNumber,
+    FORMATOS_NUMERO_ORDEN: FORMATOS_NUMERO_ORDEN,
     createOrder: createOrder,
     deleteOrder: deleteOrder,
     saveOrder: saveOrder,

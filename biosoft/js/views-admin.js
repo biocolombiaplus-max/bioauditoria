@@ -1418,7 +1418,11 @@
         '<div class="checkbox-row"><input type="checkbox" id="f_reportarCIM" ' + (tenant.reportarCIM ? "checked" : "") + '/><label style="margin:0" for="f_reportarCIM">Reportar Concentración Inhibitoria Mínima (CIM) en antibiogramas</label></div>' +
         '<p class="text-muted" style="margin:4px 0 0;font-size:12.5px">Actívalo solo si tu laboratorio determina la CIM (µg/mL) de cada antibiótico, además de Sensible/Intermedio/Resistente — agrega un campo opcional de CIM en la captura y el informe de todos los antibiogramas (Urocultivo, Hemocultivo, cultivos de secreción, Coprocultivo, etc.). Se queda desactivado por defecto, ya que muchos laboratorios trabajan solo con disco-difusión.</p>' +
         '<div class="checkbox-row"><input type="checkbox" id="f_reciboConvenioComoCredito" ' + (tenant.reciboConvenioComoCredito ? "checked" : "") + '/><label style="margin:0" for="f_reciboConvenioComoCredito">Recibo de Pago detallado (Valor Unitario por examen; convenios como crédito, sin método de pago)</label></div>' +
-        '<p class="text-muted" style="margin:4px 0 0;font-size:12.5px">Actívalo para que el Recibo de Pago muestre el precio de cada examen (columna "Valor Unitario" en vez de "Sección"). Si la orden pertenece a un convenio, el recibo muestra el nombre del convenio arriba, no pide método de pago (todo convenio se maneja a crédito) y dice "Saldo a Cargo del Convenio" en vez de "Pagado". Si es particular, se agrega el desglose de Valor Total / Abono / Saldo junto al método de pago.</p>' +
+        '<p class="text-muted" style="margin:4px 0 12px;font-size:12.5px">Actívalo para que el Recibo de Pago muestre el precio de cada examen (columna "Valor Unitario" en vez de "Sección"). Si la orden pertenece a un convenio, el recibo muestra el nombre del convenio arriba, no pide método de pago (todo convenio se maneja a crédito) y dice "Saldo a Cargo del Convenio" en vez de "Pagado". Si es particular, se agrega el desglose de Valor Total / Abono / Saldo junto al método de pago.</p>' +
+        '<div class="field" style="max-width:420px"><label>Formato del N° de Orden</label><select id="f_formatoNumeroOrden">' +
+        Object.keys(S.FORMATOS_NUMERO_ORDEN).map(function (k) { return '<option value="' + k + '" ' + ((tenant.formatoNumeroOrden || "diario") === k ? "selected" : "") + '>' + U.esc(S.FORMATOS_NUMERO_ORDEN[k].nombre) + "</option>"; }).join("") +
+        "</select></div>" +
+        '<p class="text-muted" style="margin:4px 0 0;font-size:12.5px">Elige cómo se numeran las nuevas órdenes de tu laboratorio. Cambiar el formato no afecta el número de las órdenes ya creadas — solo aplica a las que se creen de aquí en adelante.</p>' +
         "</fieldset>" +
         '<fieldset><legend>Diseño del Reporte de Resultados</legend>' +
         '<div class="checkbox-row"><input type="checkbox" id="f_logoGrandeReporte" ' + (tenant.logoGrandeReporte ? "checked" : "") + '/><label style="margin:0" for="f_logoGrandeReporte">Mostrar tu logo grande y centrado en el encabezado del informe, como un membrete</label></div>' +
@@ -1549,6 +1553,7 @@
       tenant.mostrarPrecioOrden = document.getElementById("f_mostrarPrecioOrden").checked;
       tenant.reportarCIM = document.getElementById("f_reportarCIM").checked;
       tenant.reciboConvenioComoCredito = document.getElementById("f_reciboConvenioComoCredito").checked;
+      tenant.formatoNumeroOrden = document.getElementById("f_formatoNumeroOrden").value;
       tenant.logoGrandeReporte = document.getElementById("f_logoGrandeReporte").checked;
       tenant.logoAnchoCompleto = document.getElementById("f_logoAnchoCompleto").checked;
       tenant.logoAnchoPorcentaje = parseInt(document.getElementById("f_logoAnchoPorcentaje").value, 10);
@@ -1605,7 +1610,7 @@
           telefonos: tenant.telefonos, email: tenant.email, sitioWeb: tenant.sitioWeb,
           resolucionHabilitacion: tenant.resolucionHabilitacion, codigoREPS: tenant.codigoREPS, nivel: tenant.nivel,
           bacteriologoResponsable: tenant.bacteriologoResponsable, mostrarPrecioOrden: tenant.mostrarPrecioOrden, reportarCIM: tenant.reportarCIM,
-          reciboConvenioComoCredito: tenant.reciboConvenioComoCredito,
+          reciboConvenioComoCredito: tenant.reciboConvenioComoCredito, formatoNumeroOrden: tenant.formatoNumeroOrden,
           logoGrandeReporte: tenant.logoGrandeReporte, logoAnchoCompleto: tenant.logoAnchoCompleto, logoAnchoPorcentaje: tenant.logoAnchoPorcentaje, ocultarNombreEncabezado: tenant.ocultarNombreEncabezado,
           bandaSeccionSinColor: tenant.bandaSeccionSinColor, membreteEnTodasLasHojas: tenant.membreteEnTodasLasHojas,
           datosPacienteEstiloDiscreto: tenant.datosPacienteEstiloDiscreto,
