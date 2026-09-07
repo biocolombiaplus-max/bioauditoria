@@ -669,7 +669,17 @@
             // "readonly" y el botón "🧮 Valor Calculado" en Configuración
             // → Catálogo → un examen → Valores de Referencia).
             if (p.calculado && p.formula) formulasCalculadas[p.codigo] = p.formula;
-            inputHtml = '<input type="number" step="any" placeholder="' + (p.calculado ? "Se calcula solo" : "Escribe aquí…") + '" data-param="' + p.codigo + '" value="' + U.esc(val) + '" ' + (!editable ? "disabled" : (p.calculado ? "readonly" : "")) + "/>" +
+            // Texto libre (no type="number"): varios parámetros "numéricos"
+            // en realidad se reportan como un rango (ej. Leucocitos/Hematíes
+            // en sedimento: "2-5 x campo") en vez de un solo número — un
+            // input nativo type="number" rechaza el guion por completo y
+            // deja el campo vacío en silencio, como si nunca se hubiera
+            // digitado nada (bug real reportado, impedía hasta validar la
+            // orden). Con texto libre se acepta un número solo, un rango
+            // con guion, o cualquier otra notación que el bacteriólogo(a)
+            // necesite — calcularFlag() ya sabe leer el primer número de
+            // lo que sea que se escriba aquí.
+            inputHtml = '<input type="text" inputmode="decimal" placeholder="' + (p.calculado ? "Se calcula solo" : "Ej: 14.2 o 2-5") + '" data-param="' + p.codigo + '" value="' + U.esc(val) + '" ' + (!editable ? "disabled" : (p.calculado ? "readonly" : "")) + "/>" +
               // "data-calc-hint" deja que recalcularCalculados() reemplace este
               // texto por el motivo exacto cuando la fórmula no se puede
               // evaluar (ej. el código que usa no coincide con ningún
