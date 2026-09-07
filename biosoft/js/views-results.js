@@ -677,8 +677,9 @@
             // digitado nada (bug real reportado, impedía hasta validar la
             // orden). Con texto libre se acepta un número solo, un rango
             // con guion, o cualquier otra notación que el bacteriólogo(a)
-            // necesite — calcularFlag() ya sabe leer el primer número de
-            // lo que sea que se escriba aquí.
+            // necesite — calcularFlag() ya compara AMBOS extremos de un
+            // rango contra el mínimo/máximo de referencia, no solo el
+            // primer número.
             inputHtml = '<input type="text" inputmode="decimal" placeholder="' + (p.calculado ? "Se calcula solo" : "Ej: 14.2 o 2-5") + '" data-param="' + p.codigo + '" value="' + U.esc(val) + '" ' + (!editable ? "disabled" : (p.calculado ? "readonly" : "")) + "/>" +
               // "data-calc-hint" deja que recalcularCalculados() reemplace este
               // texto por el motivo exacto cuando la fórmula no se puede

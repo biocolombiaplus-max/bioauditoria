@@ -1129,6 +1129,23 @@
     return MONEDA_BASE_SUGERIDA_POR_PAIS[tenant && tenant.pais] || "COP";
   }
 
+  /* Un resultado numérico a veces se reporta como un rango (ej. "6-8 x
+     campo" en un sedimento urinario) en vez de un solo número — se
+     necesitan AMBOS extremos para compararlos contra el rango de
+     referencia (ver calcularFlag), no solo el primero. Devuelve
+     { lo, hi } (iguales si el valor es un solo número) o null si no se
+     pudo leer ningún número. */
+  function extremosNumericos(valor) {
+    var texto = String(valor).trim();
+    var m = texto.match(/^(-?\d+(?:[.,]\d+)?)\s*-\s*(\d+(?:[.,]\d+)?)$/);
+    if (m) {
+      var a = parseFloat(m[1].replace(",", ".")), b = parseFloat(m[2].replace(",", "."));
+      if (!isNaN(a) && !isNaN(b)) return { lo: Math.min(a, b), hi: Math.max(a, b) };
+    }
+    var n = parseFloat(texto.replace(",", "."));
+    return isNaN(n) ? null : { lo: n, hi: n };
+  }
+
   /* Devuelve { texto, clase } — texto es lo que se muestra (NORMAL/ALTO/BAJO,
      o la etiqueta que el laboratorio haya definido en sus propios rangos de
      interpretación, ej. "Prediabetes"), y clase es "normal"/"alto"/"bajo"/
@@ -1136,10 +1153,13 @@
   function calcularFlag(param, valor) {
     if (valor === "" || valor === null || typeof valor === "undefined") return { texto: "", clase: "" };
     if (param.tipo === "numerico") {
-      var n = parseFloat(valor);
-      if (isNaN(n)) return { texto: "", clase: "" };
+      var extremos = extremosNumericos(valor);
+      if (!extremos) return { texto: "", clase: "" };
       if (param.rangosInterpretacion && param.rangosInterpretacion.length) {
-        var r = rangoParaValor(param.rangosInterpretacion, n);
+        // Con un rango reportado (ej. "1-4"), se usa el extremo más alto
+        // para ubicar el tramo — el mismo criterio "no perderse una
+        // alerta" que se usa más abajo contra min/max.
+        var r = rangoParaValor(param.rangosInterpretacion, extremos.hi);
         // Un tramo marcado "Normal" no tiene nada que alertar — mostrar su
         // etiqueta en la columna de Interpretación es engañoso cuando esa
         // etiqueta en realidad nombra un GRUPO de referencia (ej. "Hombre
@@ -1151,8 +1171,13 @@
         // para el que existe esta columna.
         if (r) return { texto: r.esNormal ? "" : r.etiqueta, clase: r.esNormal ? "normal" : "alto" };
       }
-      if (n < param.min) return { texto: "BAJO", clase: "bajo" };
-      if (n > param.max) return { texto: "ALTO", clase: "alto" };
+      // Comparar ambos extremos (no solo el primer número) evita marcar
+      // "NORMAL" un resultado que en realidad se sale de rango en parte de
+      // lo reportado — ej. "1-4" contra una referencia de "0-3" antes daba
+      // NORMAL (solo miraba el "1"), debiendo salir ALTO porque el "4" ya
+      // supera el máximo (bug real reportado).
+      if (extremos.lo < param.min) return { texto: "BAJO", clase: "bajo" };
+      if (extremos.hi > param.max) return { texto: "ALTO", clase: "alto" };
       return { texto: "NORMAL", clase: "normal" };
     }
     if (param.tipo === "cualitativo") {
