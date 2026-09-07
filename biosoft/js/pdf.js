@@ -436,6 +436,18 @@
     // se siguen viendo igual: solo cambia negrita/tamaño en la columna
     // "Resultado", ya no hay una columna aparte que lo repita en palabras.
     var ocultarInterpretacion = !!tenant.ocultarInterpretacion;
+    // Igual que "Interpretación": algunos laboratorios prefieren no
+    // mostrar la columna "Valor de Referencia" en la tabla de resultados.
+    var ocultarValorReferencia = !!tenant.ocultarValorReferencia;
+    // Índices de columna calculados según cuáles de las dos columnas
+    // opcionales queden activas — "Parámetro" y "Resultado" siempre están,
+    // en ese orden; las demás se agregan solo si el laboratorio las dejó
+    // activas, y sus índices se recorren para que didParseCell (más abajo)
+    // sepa siempre a qué columna aplicar cada estilo, sin importar cuáles
+    // de las dos estén presentes.
+    var colValorReferencia = ocultarValorReferencia ? -1 : 2;
+    var colInterpretacion = ocultarInterpretacion ? -1 : (ocultarValorReferencia ? 2 : 3);
+    var numColumnasTabla = 2 + (ocultarValorReferencia ? 0 : 1) + (ocultarInterpretacion ? 0 : 1);
     if (!estiloDiscreto) {
       doc.setFont(fontFam, "bold"); doc.setFontSize(13); doc.setTextColor(20, 20, 20);
       doc.text("INFORME DE RESULTADOS DE LABORATORIO CLÍNICO", margin, y);
@@ -579,15 +591,18 @@
           var val = (ex.valores.filter(function (v) { return v.codigo === p.codigo; })[0] || {}).valor || "-";
           var flag = C.calcularFlag(p, val);
           var refFormateado = formatearValorReferencia(p.refText);
-          var filaCompleta = [p.nombre + (p.calculado ? " (calculado)" : ""), val + (p.unidad ? " " + p.unidad : ""), refFormateado, flag.texto || ""];
+          var fila = [p.nombre + (p.calculado ? " (calculado)" : ""), val + (p.unidad ? " " + p.unidad : "")];
+          if (!ocultarValorReferencia) fila.push(refFormateado);
+          if (!ocultarInterpretacion) fila.push(flag.texto || "");
           filas.push({
-            fila: ocultarInterpretacion ? filaCompleta.slice(0, 3) : filaCompleta,
+            fila: fila,
             anormal: flag.clase !== "" && flag.clase !== "normal",
             // Parámetros con varios rangos de interpretación (ver arriba)
             // ocupan varias líneas en la columna "Valor de Referencia" — se
             // cuentan para que la estimación de espacio de la página no se
-            // quede corta y termine cortando la fila a la mitad.
-            lineas: Math.max(1, refFormateado.split("\n").length)
+            // quede corta y termine cortando la fila a la mitad. Si esa
+            // columna está oculta, no ocupa espacio de más.
+            lineas: ocultarValorReferencia ? 1 : Math.max(1, refFormateado.split("\n").length)
           });
         });
         if (filas.length) { grupos.push({ nombre: exCat.nombre, metodo: metodoTexto, filas: filas }); examIdsConGrupo[ex.examId] = true; }
@@ -652,9 +667,12 @@
         // aparte, en didParseCell más abajo.
         var stylesTabla = { font: fontFam, fontSize: tamanoBase, cellPadding: 4 };
         if (estiloDiscreto) stylesTabla.textColor = [0, 0, 0];
+        var headTabla = ["Parámetro", "Resultado"];
+        if (!ocultarValorReferencia) headTabla.push("Valor de Referencia");
+        if (!ocultarInterpretacion) headTabla.push("Interpretación");
         doc.autoTable({
           startY: y, margin: { left: margin, right: margin },
-          head: [ocultarInterpretacion ? ["Parámetro", "Resultado", "Valor de Referencia"] : ["Parámetro", "Resultado", "Valor de Referencia", "Interpretación"]],
+          head: [headTabla],
           body: body, theme: "grid", styles: stylesTabla,
           headStyles: { fillColor: [240, 244, 247], textColor: estiloDiscreto ? [0, 0, 0] : 40, fontStyle: "bold" },
           didParseCell: function (data) {
@@ -665,19 +683,19 @@
             // leer rápido a un médico remitente en un reporte con muchos
             // parámetros.
             if (data.column.index === 1) data.cell.styles.fontStyle = "bold";
-            if (!ocultarInterpretacion && data.column.index === 3 && meta.anormal) {
+            if (colInterpretacion !== -1 && data.column.index === colInterpretacion && meta.anormal) {
               data.cell.styles.textColor = [214, 69, 69]; data.cell.styles.fontStyle = "bold";
             }
             // Sin columna de Interpretación, el propio "Resultado" se pone
             // en rojo cuando está fuera de rango — para no perder la señal
             // visual de alerta que antes daba esa columna.
-            if (ocultarInterpretacion && data.column.index === 1 && meta.anormal) {
+            if (colInterpretacion === -1 && data.column.index === 1 && meta.anormal) {
               data.cell.styles.textColor = [214, 69, 69];
             }
             // Estilo discreto (Carreño): "Valor de Referencia" en negro
             // puro y peso normal — sin esta opción, esa columna sale con el
             // gris grisáceo por defecto de la librería de tablas.
-            if (data.column.index === 2 && estiloDiscreto) {
+            if (colValorReferencia !== -1 && data.column.index === colValorReferencia && estiloDiscreto) {
               data.cell.styles.textColor = [0, 0, 0]; data.cell.styles.fontStyle = "normal";
             }
           }
@@ -699,10 +717,10 @@
         } else {
           yEstimado += necesita;
         }
-        body.push([{ content: g.nombre, colSpan: 4, styles: { fillColor: [246, 247, 249], textColor: estiloDiscreto ? [0, 0, 0] : [50, 50, 50], fontStyle: "bold", fontSize: tamanoBase + 0.5 } }]);
+        body.push([{ content: g.nombre, colSpan: numColumnasTabla, styles: { fillColor: [246, 247, 249], textColor: estiloDiscreto ? [0, 0, 0] : [50, 50, 50], fontStyle: "bold", fontSize: tamanoBase + 0.5 } }]);
         filaMeta.push({ tipo: "titulo" });
         if (g.metodo) {
-          body.push([{ content: "Método: " + g.metodo, colSpan: 4, styles: { fontStyle: "italic", textColor: estiloDiscreto ? [0, 0, 0] : [140, 140, 140], fontSize: tamanoBase - 1.2 } }]);
+          body.push([{ content: "Método: " + g.metodo, colSpan: numColumnasTabla, styles: { fontStyle: "italic", textColor: estiloDiscreto ? [0, 0, 0] : [140, 140, 140], fontSize: tamanoBase - 1.2 } }]);
           filaMeta.push({ tipo: "metodo" });
         }
         g.filas.forEach(function (f) {
