@@ -179,8 +179,10 @@
           '<p class="text-muted" style="margin-top:0;font-size:12.5px">Esta firma se imprimirá en los informes de resultados que este usuario valide, junto con su registro profesional, según lo exige la normativa de habilitación.</p>' +
           '<div class="form-grid">' +
             F.inp("registroProfesional", "Registro Profesional (Tarjeta Profesional)", user.registroProfesional, false) +
+            F.inp("universidad", "Universidad de Grado (opcional)", user.universidad, false) +
             '<div class="field"><label>Firma Escaneada (imagen)</label><input type="file" id="f_firmaFile" accept="image/*"/></div>' +
           "</div>" +
+          '<p class="text-muted" style="margin:6px 0 0;font-size:12.5px">Si la diligencias, aparece en una línea propia debajo de la firma en el informe de resultados — un detalle "de laboratorio grande" que muchos clientes valoran. Déjala vacía si no quieres que salga.</p>' +
           '<div id="firma-preview" style="margin-top:8px">' + (firmaTemp ? '<img src="' + firmaTemp + '" style="height:60px;background:#fff;border:1px solid var(--border);border-radius:8px;padding:4px"/>' : '<span class="text-muted">Sin firma cargada</span>') + "</div>" +
           "</fieldset>";
         wrap.querySelector("#f_firmaFile").addEventListener("change", function (e) {
@@ -226,6 +228,7 @@
         if (pass) data.password = pass;
         if (data.rol === "bacteriologo" || data.rol === "admin") {
           data.registroProfesional = g("registroProfesional");
+          data.universidad = g("universidad");
           data.firmaDataUrl = firmaTemp;
         }
         if (!data.nombre || !data.username || (!isEdit && !pass)) { U.toast("Completa nombre, usuario y contraseña.", "error"); return; }

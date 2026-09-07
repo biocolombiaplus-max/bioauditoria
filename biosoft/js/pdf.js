@@ -74,6 +74,7 @@
         var existente = fusionados[nombresVistos[clave]];
         if (!existente.firmaDataUrl && f.firmaDataUrl) existente.firmaDataUrl = f.firmaDataUrl;
         if (!existente.registroProfesional && f.registroProfesional) existente.registroProfesional = f.registroProfesional;
+        if (!existente.universidad && f.universidad) existente.universidad = f.universidad;
         return;
       }
       nombresVistos[clave] = fusionados.length;
@@ -850,7 +851,18 @@
       if (estiloDiscreto) doc.setTextColor(0, 0, 0); else doc.setTextColor(90, 90, 90);
       doc.text(f.registroProfesional ? "Registro Profesional: " + f.registroProfesional : "", margin, y + 33);
       doc.text(C.tituloFirmaProfesional(tenant.pais), margin, y + 44);
-      y += 62;
+      // Universidad de grado: opcional, se carga en Usuarios del
+      // Laboratorio — solo ocupa su propia línea (y espacio extra en el
+      // bloque) cuando el usuario sí la diligenció, para no dejar un
+      // renglón vacío en las firmas que no la tienen.
+      if (f.universidad) {
+        doc.setFont(fontFam, "italic"); doc.setFontSize(7.5);
+        if (estiloDiscreto) doc.setTextColor(0, 0, 0); else doc.setTextColor(120, 120, 120);
+        doc.text(f.universidad, margin, y + 54);
+        y += 72;
+      } else {
+        y += 62;
+      }
     }
 
     // Estilo discreto: el aviso de "Informe Parcial" no va arriba del todo
