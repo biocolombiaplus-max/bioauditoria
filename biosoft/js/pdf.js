@@ -429,6 +429,12 @@
     // firmas), indicando qué examen específico sigue pendiente. El aviso
     // de "Resultado Preliminar" sí se queda arriba en ambos estilos.
     var estiloDiscreto = !!tenant.datosPacienteEstiloDiscreto;
+    // Algunos laboratorios prefieren no mostrarle al paciente la columna
+    // "Interpretación" (Normal/Alto/Bajo, etc.) — opción en Configuración
+    // → Diseño del Reporte de Resultados. Los resultados fuera de rango
+    // se siguen viendo igual: solo cambia negrita/tamaño en la columna
+    // "Resultado", ya no hay una columna aparte que lo repita en palabras.
+    var ocultarInterpretacion = !!tenant.ocultarInterpretacion;
     if (!estiloDiscreto) {
       doc.setFont(fontFam, "bold"); doc.setFontSize(13); doc.setTextColor(20, 20, 20);
       doc.text("INFORME DE RESULTADOS DE LABORATORIO CLÍNICO", margin, y);
@@ -572,8 +578,9 @@
           var val = (ex.valores.filter(function (v) { return v.codigo === p.codigo; })[0] || {}).valor || "-";
           var flag = C.calcularFlag(p, val);
           var refFormateado = formatearValorReferencia(p.refText);
+          var filaCompleta = [p.nombre + (p.calculado ? " (calculado)" : ""), val + (p.unidad ? " " + p.unidad : ""), refFormateado, flag.texto || ""];
           filas.push({
-            fila: [p.nombre + (p.calculado ? " (calculado)" : ""), val + (p.unidad ? " " + p.unidad : ""), refFormateado, flag.texto || ""],
+            fila: ocultarInterpretacion ? filaCompleta.slice(0, 3) : filaCompleta,
             anormal: flag.clase !== "" && flag.clase !== "normal",
             // Parámetros con varios rangos de interpretación (ver arriba)
             // ocupan varias líneas en la columna "Valor de Referencia" — se
@@ -646,7 +653,7 @@
         if (estiloDiscreto) stylesTabla.textColor = [0, 0, 0];
         doc.autoTable({
           startY: y, margin: { left: margin, right: margin },
-          head: [["Parámetro", "Resultado", "Valor de Referencia", "Interpretación"]],
+          head: [ocultarInterpretacion ? ["Parámetro", "Resultado", "Valor de Referencia"] : ["Parámetro", "Resultado", "Valor de Referencia", "Interpretación"]],
           body: body, theme: "grid", styles: stylesTabla,
           headStyles: { fillColor: [240, 244, 247], textColor: estiloDiscreto ? [0, 0, 0] : 40, fontStyle: "bold" },
           didParseCell: function (data) {
@@ -657,8 +664,14 @@
             // leer rápido a un médico remitente en un reporte con muchos
             // parámetros.
             if (data.column.index === 1) data.cell.styles.fontStyle = "bold";
-            if (data.column.index === 3 && meta.anormal) {
+            if (!ocultarInterpretacion && data.column.index === 3 && meta.anormal) {
               data.cell.styles.textColor = [214, 69, 69]; data.cell.styles.fontStyle = "bold";
+            }
+            // Sin columna de Interpretación, el propio "Resultado" se pone
+            // en rojo cuando está fuera de rango — para no perder la señal
+            // visual de alerta que antes daba esa columna.
+            if (ocultarInterpretacion && data.column.index === 1 && meta.anormal) {
+              data.cell.styles.textColor = [214, 69, 69];
             }
             // Estilo discreto (Carreño): "Valor de Referencia" en negro
             // puro y peso normal — sin esta opción, esa columna sale con el
@@ -720,14 +733,22 @@
           });
           doc.autoTable({
             startY: y, margin: { left: margin, right: margin },
-            head: [["Alérgeno", "Clase", "Concentración IgE", "Interpretación"]],
+            head: [ocultarInterpretacion ? ["Alérgeno", "Clase", "Concentración IgE"] : ["Alérgeno", "Clase", "Concentración IgE", "Interpretación"]],
             body: panelInfo.items.map(function (it, i) {
               var c = interpPorFila[i];
-              return [it.nombre, c ? String(c.clase) : "-", (it.valor || "-") + " kU/L", c ? c.interpretacion : "-"];
+              var filaCompleta = [it.nombre, c ? String(c.clase) : "-", (it.valor || "-") + " kU/L", c ? c.interpretacion : "-"];
+              return ocultarInterpretacion ? filaCompleta.slice(0, 3) : filaCompleta;
             }),
             theme: "grid", styles: { font: fontFam, fontSize: tamanoBase, cellPadding: 4, textColor: estiloDiscreto ? [0, 0, 0] : undefined }, headStyles: { fillColor: [240, 244, 247], textColor: estiloDiscreto ? [0, 0, 0] : 40, fontStyle: "bold" },
             didParseCell: function (data) {
-              if (data.section === "body" && data.column.index === 3 && interpPorFila[data.row.index] && interpPorFila[data.row.index].interpretacion === "Positivo") {
+              if (data.section !== "body") return;
+              var esPositivo = interpPorFila[data.row.index] && interpPorFila[data.row.index].interpretacion === "Positivo";
+              if (!ocultarInterpretacion && data.column.index === 3 && esPositivo) {
+                data.cell.styles.textColor = [214, 69, 69]; data.cell.styles.fontStyle = "bold";
+              }
+              // Sin columna de Interpretación, la "Clase" se pone en rojo
+              // para un alérgeno positivo, así no se pierde la alerta.
+              if (ocultarInterpretacion && data.column.index === 1 && esPositivo) {
                 data.cell.styles.textColor = [214, 69, 69]; data.cell.styles.fontStyle = "bold";
               }
             }
