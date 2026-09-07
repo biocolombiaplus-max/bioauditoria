@@ -1208,7 +1208,14 @@
     var doc = buildStickersPDF(order, patient, tenant, perfil);
     var blobUrl = doc.output("bloburl");
     var iframe = document.createElement("iframe");
-    iframe.style.cssText = "position:fixed;right:0;bottom:0;width:0;height:0;border:0";
+    // Un iframe de 0x0 puede hacer que el visor de PDF del navegador nunca
+    // termine de inicializarse (algunas versiones de Chrome no renderizan
+    // el visor si el área es cero) y entonces iframe.contentWindow.print()
+    // no hace absolutamente nada — ni error, ni diálogo — que es
+    // exactamente el síntoma reportado ("no hace ningún movimiento").
+    // 1x1px sigue siendo invisible para el usuario pero le da al visor un
+    // área real donde renderizar antes de pedirle que imprima.
+    iframe.style.cssText = "position:fixed;right:0;bottom:0;width:1px;height:1px;border:0;opacity:0";
     iframe.src = blobUrl;
     var yaImprimio = false;
     function lanzarImpresion() {
