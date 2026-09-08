@@ -874,20 +874,24 @@
       doc.text(f.nombre, margin, y + 22);
       doc.setFont(fontFam, "normal"); doc.setFontSize(8);
       if (estiloDiscreto) doc.setTextColor(0, 0, 0); else doc.setTextColor(90, 90, 90);
-      doc.text(f.registroProfesional ? "Registro Profesional: " + f.registroProfesional : "", margin, y + 33);
-      doc.text(C.tituloFirmaProfesional(tenant.pais), margin, y + 44);
-      // Universidad de grado: opcional, se carga en Usuarios del
-      // Laboratorio — solo ocupa su propia línea (y espacio extra en el
-      // bloque) cuando el usuario sí la diligenció, para no dejar un
-      // renglón vacío en las firmas que no la tienen.
-      if (f.universidad) {
+      doc.text(C.tituloFirmaProfesional(tenant.pais), margin, y + 33);
+      // Registro profesional y universidad de grado (ambos opcionales, se
+      // cargan en Usuarios del Laboratorio) van juntos en una sola "línea
+      // de credenciales" debajo del cargo — el mismo estilo compacto que
+      // usan los laboratorios grandes — y solo aparece si el usuario
+      // diligenció al menos uno de los dos; si no diligenció ninguno, la
+      // línea no se dibuja y el bloque de firma queda exactamente igual
+      // que si esta función no existiera (ni deja un renglón vacío ni
+      // cambia la altura del bloque).
+      var credenciales = [];
+      if (f.registroProfesional) credenciales.push("Registro Profesional: " + f.registroProfesional);
+      if (f.universidad) credenciales.push("Universidad: " + f.universidad);
+      if (credenciales.length) {
         doc.setFont(fontFam, "italic"); doc.setFontSize(7.5);
         if (estiloDiscreto) doc.setTextColor(0, 0, 0); else doc.setTextColor(120, 120, 120);
-        doc.text(f.universidad, margin, y + 54);
-        y += 72;
-      } else {
-        y += 62;
+        doc.text(credenciales.join("   ·   "), margin, y + 44);
       }
+      y += 62;
     }
 
     // Estilo discreto: el aviso de "Informe Parcial" no va arriba del todo
