@@ -63,13 +63,22 @@
      Administración a su menú corto de por defecto. Estas dos funciones
      calculan el menú y las rutas permitidas de la sesión actual, en vez de
      leer NAV/ALLOWED_ROUTES directo por rol. */
+  // Facturación (con o sin RIPS según el país) solo tiene sentido para
+  // laboratorios en Colombia o Ecuador — los únicos dos con un módulo de
+  // facturación construido hoy. "soloCO" quedó como nombre de la
+  // propiedad por compatibilidad con datos/comentarios existentes, pero
+  // ahora también deja pasar a Ecuador.
+  var PAISES_CON_FACTURACION = ["CO", "EC"];
+  function paisTieneFacturacion(tenant) {
+    return !!(tenant && PAISES_CON_FACTURACION.indexOf(tenant.pais) !== -1);
+  }
   function permisosExtraDeSesion(session, tenant) {
     var catalogo = session.rol === "bacteriologo" ? BIO_CATALOG.PERMISOS_EXTRA_BACTERIOLOGO
       : session.rol === "recepcion" ? BIO_CATALOG.PERMISOS_EXTRA_RECEPCION
       : null;
     if (!catalogo || !session.permisosExtra || !session.permisosExtra.length) return [];
     return catalogo.filter(function (p) {
-      return session.permisosExtra.indexOf(p.route) !== -1 && (!p.soloCO || (tenant && tenant.pais === "CO"));
+      return session.permisosExtra.indexOf(p.route) !== -1 && (!p.soloCO || paisTieneFacturacion(tenant));
     });
   }
   function navGrupos(session, tenant) {
@@ -131,11 +140,15 @@
     var groups = navGrupos(session, tenant);
     var html = "";
     groups.forEach(function (g) {
-      var items = g.items.filter(function (it) { return !it.soloCO || (tenant && tenant.pais === "CO"); });
+      var items = g.items.filter(function (it) { return !it.soloCO || paisTieneFacturacion(tenant); });
       if (!items.length) return;
       html += '<div class="sidebar-section-title">' + g.sec + '</div>';
       items.forEach(function (it) {
-        html += '<a class="nav-link" data-route="' + it.route + '">' + BIO_UI.icon(it.icon) + '<span>' + it.label + '</span></a>';
+        // RIPS es un requisito exclusivamente colombiano — un laboratorio
+        // ecuatoriano ve la misma pantalla de facturación, pero con un
+        // nombre de menú que no le mencione algo que no le aplica.
+        var label = (it.route === "facturacion" && tenant && tenant.pais === "EC") ? "Facturación" : it.label;
+        html += '<a class="nav-link" data-route="' + it.route + '">' + BIO_UI.icon(it.icon) + '<span>' + label + '</span></a>';
       });
     });
     navHost.innerHTML = html;
@@ -166,8 +179,9 @@
     facturacion: "Facturación y RIPS", "landing-imagenes": "Imágenes de la Landing", "portal-aliado": "Portal de Resultados"
   };
 
-  // Rutas visibles solo para laboratorios de Colombia (ver tenant.pais),
-  // aunque el rol sí tenga acceso administrativo general.
+  // Rutas visibles solo para laboratorios en un país con módulo de
+  // facturación construido (ver PAISES_CON_FACTURACION arriba), aunque el
+  // rol sí tenga acceso administrativo general.
   var RUTAS_SOLO_CO = ["facturacion"];
 
   var ALLOWED_ROUTES = {
@@ -222,12 +236,13 @@
     }
     var r = currentRoute();
     var allowed = rutasPermitidas(session, tenant);
-    if (allowed.indexOf(r.name) === -1 || (RUTAS_SOLO_CO.indexOf(r.name) !== -1 && (!tenant || tenant.pais !== "CO"))) {
+    if (allowed.indexOf(r.name) === -1 || (RUTAS_SOLO_CO.indexOf(r.name) !== -1 && !paisTieneFacturacion(tenant))) {
       r.name = allowed[0]; location.hash = "#/" + r.name;
     }
 
     document.querySelectorAll(".nav-link").forEach(function (a) { a.classList.toggle("active", a.dataset.route === r.name); });
-    document.getElementById("topbar-title").textContent = ROUTE_TITLES[r.name] || "BIOsoft";
+    var tituloRuta = (r.name === "facturacion" && tenant && tenant.pais === "EC") ? "Facturación" : (ROUTE_TITLES[r.name] || "BIOsoft");
+    document.getElementById("topbar-title").textContent = tituloRuta;
 
     var content = document.getElementById("content");
     content.innerHTML = "";

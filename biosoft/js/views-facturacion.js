@@ -26,7 +26,18 @@
     return d.toISOString().slice(0, 10);
   }
 
+  // La misma ruta "facturacion" sirve tanto a Colombia (con RIPS) como a
+  // Ecuador (ver views-facturacion-ec.js) — cada país tiene requisitos y
+  // pantallas propias, así que aquí solo se decide cuál mostrar según el
+  // país del laboratorio (router.js ya bloquea esta ruta para cualquier
+  // otro país).
   window.BIO_VIEWS.facturacion = function (root) {
+    var tenantActual = BIO_AUTH.currentTenant();
+    if (tenantActual && tenantActual.pais === "EC") { window.BIO_VIEWS_FACTURACION_EC(root); return; }
+    renderFacturacionColombia(root);
+  };
+
+  function renderFacturacionColombia(root) {
     var session = BIO_AUTH.getSession();
     var tenant = BIO_AUTH.currentTenant();
 
@@ -240,5 +251,5 @@
         renderHistorialFv();
       });
     }
-  };
+  }
 })();

@@ -637,6 +637,20 @@
     { id: "ninguno", nombre: "Aún no tengo proveedor", url: "" }
   ];
 
+  // Lo mismo que arriba, para laboratorios en Ecuador — proveedores
+  // tecnológicos autorizados por el SRI para emitir comprobantes
+  // electrónicos. Igual de informativa: BIOsoft no está afiliado ni
+  // integra automáticamente con ninguno todavía.
+  var PROVEEDORES_FACTURACION_EC = [
+    { id: "contifico", nombre: "Contífico", url: "https://www.contifico.com" },
+    { id: "nubox_ec", nombre: "Nubox Ecuador", url: "https://www.nubox.com/ec" },
+    { id: "defactura", nombre: "Defactura", url: "https://www.defactura.com" },
+    { id: "facturero", nombre: "Facturero.ec", url: "https://www.facturero.ec" },
+    { id: "sri_gratuito", nombre: "Facturación gratuita del SRI", url: "https://www.sri.gob.ec" },
+    { id: "otro", nombre: "Otro proveedor", url: "" },
+    { id: "ninguno", nombre: "Aún no tengo proveedor", url: "" }
+  ];
+
   /* Un Bacteriólogo(a)/Bioanalista tiene por defecto un menú reducido
      (Panel, Resultados, Hojas de Trabajo, Control de Calidad). Un
      Administrador puede además habilitarle, uno por uno, acceso a otras
@@ -1789,6 +1803,7 @@
     RIPS_ZONA_RESIDENCIAL: RIPS_ZONA_RESIDENCIAL,
     MUNICIPIOS_DANE_COMUNES: MUNICIPIOS_DANE_COMUNES,
     RIPS_FINALIDAD_TECNOLOGIA: RIPS_FINALIDAD_TECNOLOGIA,
-    PROVEEDORES_FACTURACION_CO: PROVEEDORES_FACTURACION_CO
+    PROVEEDORES_FACTURACION_CO: PROVEEDORES_FACTURACION_CO,
+    PROVEEDORES_FACTURACION_EC: PROVEEDORES_FACTURACION_EC
   };
 })(window);
