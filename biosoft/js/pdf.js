@@ -1205,18 +1205,24 @@
       doc.setTextColor(20, 20, 20);
 
       if (compacto) {
-        var bcWc = anchoMm * 0.32, bcHc = altoMm * 0.4;
+        var bcWc = anchoMm * 0.4, bcHc = altoMm * 0.4;
         var anchoTexto = anchoMm - mL - bcWc - rightPad - 2;
         var siglas = byTubo[key].map(function (e) { return siglaExamen(e.nombre); }).join(",");
+        var maxChars = function (fs) { return Math.max(8, Math.floor(anchoTexto / (fs * 0.18))); };
 
-        doc.setFont("helvetica", "bold"); doc.setFontSize(Math.max(6.5, altoMm * 0.26));
+        var fsOrden = Math.max(7, altoMm * 0.26);
+        var fsNombre = Math.max(5.5, altoMm * 0.17);
+        var fsDoc = Math.max(5, altoMm * 0.15);
+        var fsTubo = Math.max(4.5, altoMm * 0.13);
+
+        doc.setFont("helvetica", "bold"); doc.setFontSize(fsOrden);
         doc.text(order.numeroOrden, mL, altoMm * 0.24);
-        doc.setFont("helvetica", "normal"); doc.setFontSize(Math.max(5, altoMm * 0.17));
-        doc.text(U.nombreCompleto(patient).substring(0, Math.round(anchoMm * 0.55)), mL, altoMm * 0.44, { maxWidth: anchoTexto });
-        doc.setFontSize(Math.max(4.5, altoMm * 0.15));
+        doc.setFont("helvetica", "normal"); doc.setFontSize(fsNombre);
+        doc.text(U.nombreCompleto(patient).substring(0, maxChars(fsNombre)), mL, altoMm * 0.44, { maxWidth: anchoTexto });
+        doc.setFontSize(fsDoc);
         doc.text("Doc: " + patient.tipoDocumento + " " + patient.numeroDocumento, mL, altoMm * 0.64, { maxWidth: anchoTexto });
-        doc.setFont("helvetica", "bold"); doc.setFontSize(Math.max(4.2, altoMm * 0.13));
-        doc.text((tubo.nombre + (siglas ? " — " + siglas : "")).substring(0, Math.round(anchoMm * 1.1)), mL, altoMm * 0.88, { maxWidth: anchoTexto });
+        doc.setFont("helvetica", "bold"); doc.setFontSize(fsTubo);
+        doc.text((tubo.nombre + (siglas ? " — " + siglas : "")).substring(0, maxChars(fsTubo)), mL, altoMm * 0.88, { maxWidth: anchoTexto });
         try {
           var canvasC = document.createElement("canvas");
           window.JsBarcode(canvasC, order.numeroOrden, { format: "CODE128", width: 1, height: 30, displayValue: false, margin: 0 });

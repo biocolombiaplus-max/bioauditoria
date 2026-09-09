@@ -697,6 +697,7 @@
      usaba antes de que esto fuera configurable, así nadie pierde su diseño
      actual al actualizar. */
   var TAMANOS_ETIQUETA_SUGERIDOS = [
+    { nombre: "5,5 x 1,9 cm", anchoMm: 55, altoMm: 19 },
     { nombre: "5,7 x 1,9 cm (rollo térmico típico, ej. Xprinter)", anchoMm: 57, altoMm: 19 },
     { nombre: "4 x 2 cm", anchoMm: 40, altoMm: 20 },
     { nombre: "5 x 2,5 cm", anchoMm: 50, altoMm: 25 },
