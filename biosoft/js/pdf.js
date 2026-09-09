@@ -373,6 +373,11 @@
     var pageBottom = pageH - 55;
     var ROW_H = 17, HEAD_H = 22;
     var rgb = hexToRgb(tenant.colorPrimario);
+    // Color de las barras de sección: por defecto es el mismo Color
+    // Primario de la marca, pero el laboratorio puede darle un color propio
+    // e independiente (ej. mantener su marca en azul pero las barras de
+    // sección en un tono más neutro), sin afectar el resto del informe.
+    var rgbBanda = hexToRgb(tenant.colorBandaSeccion || tenant.colorPrimario);
     // Tipografía elegida en Configuración (Helvetica/Times/Courier) —
     // "helvetica" si el laboratorio nunca lo ha tocado.
     var fontFam = tenant.fuenteReporte || "helvetica";
@@ -646,7 +651,7 @@
         doc.setDrawColor(180, 180, 180); doc.setLineWidth(0.8);
         doc.line(margin, y + 13, pageW - margin, y + 13);
       } else {
-        doc.setFillColor(rgb[0], rgb[1], rgb[2]);
+        doc.setFillColor(rgbBanda[0], rgbBanda[1], rgbBanda[2]);
         doc.rect(margin, y, pageW - margin * 2, 16, "F");
         doc.setTextColor(255, 255, 255); doc.setFont(fontFam, "bold"); doc.setFontSize(9.5);
         doc.text(C.seccionNombre(seccionId, tenant).toUpperCase(), margin + 6, y + 11);
@@ -765,7 +770,7 @@
               var filaCompleta = [it.nombre, c ? String(c.clase) : "-", (it.valor || "-") + " kU/L", c ? c.interpretacion : "-"];
               return ocultarInterpretacion ? filaCompleta.slice(0, 3) : filaCompleta;
             }),
-            theme: "grid", styles: { font: fontFam, fontSize: tamanoBase, cellPadding: 4, textColor: estiloDiscreto ? [0, 0, 0] : undefined }, headStyles: { fillColor: [240, 244, 247], textColor: estiloDiscreto ? [0, 0, 0] : 40, fontStyle: "bold" },
+            theme: "grid", styles: { font: fontFam, fontSize: tamanoBase, cellPadding: 4, textColor: estiloDiscreto ? [0, 0, 0] : [20, 20, 20] }, headStyles: { fillColor: [240, 244, 247], textColor: estiloDiscreto ? [0, 0, 0] : 40, fontStyle: "bold" },
             didParseCell: function (data) {
               if (data.section !== "body") return;
               var esPositivo = interpPorFila[data.row.index] && interpPorFila[data.row.index].interpretacion === "Positivo";
@@ -789,7 +794,7 @@
             startY: y, margin: { left: margin, right: margin },
             head: [conCIM ? ["Antibiótico", "Resultado", "CIM (µg/mL)"] : ["Antibiótico", "Resultado"]],
             body: panelInfo.items.map(function (it) { return conCIM ? [it.nombre, it.resultado || "-", it.cim || "-"] : [it.nombre, it.resultado || "-"]; }),
-            theme: "grid", styles: { font: fontFam, fontSize: tamanoBase, cellPadding: 4, textColor: estiloDiscreto ? [0, 0, 0] : undefined }, headStyles: { fillColor: [240, 244, 247], textColor: estiloDiscreto ? [0, 0, 0] : 40, fontStyle: "bold" },
+            theme: "grid", styles: { font: fontFam, fontSize: tamanoBase, cellPadding: 4, textColor: estiloDiscreto ? [0, 0, 0] : [20, 20, 20] }, headStyles: { fillColor: [240, 244, 247], textColor: estiloDiscreto ? [0, 0, 0] : 40, fontStyle: "bold" },
             didParseCell: function (data) {
               if (data.section === "body" && data.column.index === 1 && panelInfo.items[data.row.index] && panelInfo.items[data.row.index].resultado === "Resistente") {
                 data.cell.styles.textColor = [214, 69, 69]; data.cell.styles.fontStyle = "bold";
@@ -833,7 +838,7 @@
           var exCat = C.examenEfectivo(ex.examId, tenant);
           return [exCat.nombre, ex.laboratorioRemision || "—", "Ver informe original anexo en las páginas siguientes"];
         }),
-        theme: "grid", styles: { font: fontFam, fontSize: tamanoBase, cellPadding: 4, textColor: estiloDiscreto ? [0, 0, 0] : undefined }, headStyles: { fillColor: [240, 244, 247], textColor: estiloDiscreto ? [0, 0, 0] : 40, fontStyle: "bold" }
+        theme: "grid", styles: { font: fontFam, fontSize: tamanoBase, cellPadding: 4, textColor: estiloDiscreto ? [0, 0, 0] : [20, 20, 20] }, headStyles: { fillColor: [240, 244, 247], textColor: estiloDiscreto ? [0, 0, 0] : 40, fontStyle: "bold" }
       });
       y = doc.lastAutoTable.finalY + 18;
     }

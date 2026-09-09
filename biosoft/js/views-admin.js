@@ -1450,8 +1450,10 @@
         "</div>" +
         '<div class="checkbox-row"><input type="checkbox" id="f_ocultarNombreEncabezado" ' + (tenant.ocultarNombreEncabezado ? "checked" : "") + '/><label style="margin:0" for="f_ocultarNombreEncabezado">Ocultar el nombre del laboratorio en el encabezado (úsalo solo si tu logo ya trae el nombre escrito, para no repetirlo)</label></div>' +
         "</div>" +
+        '<div class="field" style="max-width:340px"><label>Color de las Barras de Sección</label><input type="color" id="f_colorBandaSeccion" value="' + (tenant.colorBandaSeccion || tenant.colorPrimario || "#f97316") + '"/></div>' +
+        '<p class="text-muted" style="margin:4px 0 12px;font-size:12.5px">Por defecto usa tu Color Primario (arriba, en "Marca e Identidad Visual"), pero puedes darle un color propio e independiente a estas barras (ej. "HEMATOLOGÍA", "QUÍMICA SANGUÍNEA") sin afectar el resto del informe.</p>' +
         '<div class="checkbox-row"><input type="checkbox" id="f_bandaSeccionSinColor" ' + (tenant.bandaSeccionSinColor ? "checked" : "") + '/><label style="margin:0" for="f_bandaSeccionSinColor">Barras de sección del informe sin color (solo texto en negrita con una línea fina)</label></div>' +
-        '<p class="text-muted" style="margin:4px 0 12px;font-size:12.5px">Por defecto, cada sección del informe (ej. "ENDOCRINOLOGÍA") sale en una barra sólida con tu color de marca. Actívalo si prefieres un estilo más neutro/minimalista, sin ese bloque de color.</p>' +
+        '<p class="text-muted" style="margin:4px 0 12px;font-size:12.5px">Por defecto, cada sección del informe (ej. "ENDOCRINOLOGÍA") sale en una barra sólida con el color de arriba. Actívalo si prefieres un estilo más neutro/minimalista, sin ese bloque de color.</p>' +
         '<div class="checkbox-row"><input type="checkbox" id="f_membreteEnTodasLasHojas" ' + (tenant.membreteEnTodasLasHojas ? "checked" : "") + '/><label style="margin:0" for="f_membreteEnTodasLasHojas">Repetir el encabezado en todas las hojas del informe (no solo la primera)</label></div>' +
         '<p class="text-muted" style="margin:4px 0 12px;font-size:12.5px">Cuando un informe ocupa varias hojas, actívalo para que cada hoja adicional salga con un encabezado compacto (tu logo, nombre, y el paciente/orden) en vez de arrancar en blanco. Todas las hojas del informe siempre quedan numeradas "1/2, 2/2…" en el pie de página, con o sin esta opción.</p>' +
         '<div class="checkbox-row"><input type="checkbox" id="f_datosPacienteEstiloDiscreto" ' + (tenant.datosPacienteEstiloDiscreto ? "checked" : "") + '/><label style="margin:0" for="f_datosPacienteEstiloDiscreto">Estilo discreto e informe en negro puro (sin negrilla, letra más chica, sin el título "Informe de Resultados…")</label></div>' +
@@ -1575,6 +1577,7 @@
       tenant.logoAnchoCompleto = document.getElementById("f_logoAnchoCompleto").checked;
       tenant.logoAnchoPorcentaje = parseInt(document.getElementById("f_logoAnchoPorcentaje").value, 10);
       tenant.ocultarNombreEncabezado = document.getElementById("f_ocultarNombreEncabezado").checked;
+      tenant.colorBandaSeccion = document.getElementById("f_colorBandaSeccion").value;
       tenant.bandaSeccionSinColor = document.getElementById("f_bandaSeccionSinColor").checked;
       tenant.membreteEnTodasLasHojas = document.getElementById("f_membreteEnTodasLasHojas").checked;
       tenant.datosPacienteEstiloDiscreto = document.getElementById("f_datosPacienteEstiloDiscreto").checked;
@@ -1631,7 +1634,7 @@
           bacteriologoResponsable: tenant.bacteriologoResponsable, mostrarPrecioOrden: tenant.mostrarPrecioOrden, reportarCIM: tenant.reportarCIM,
           reciboConvenioComoCredito: tenant.reciboConvenioComoCredito, formatoNumeroOrden: tenant.formatoNumeroOrden,
           logoGrandeReporte: tenant.logoGrandeReporte, logoAnchoCompleto: tenant.logoAnchoCompleto, logoAnchoPorcentaje: tenant.logoAnchoPorcentaje, ocultarNombreEncabezado: tenant.ocultarNombreEncabezado,
-          bandaSeccionSinColor: tenant.bandaSeccionSinColor, membreteEnTodasLasHojas: tenant.membreteEnTodasLasHojas,
+          colorBandaSeccion: tenant.colorBandaSeccion, bandaSeccionSinColor: tenant.bandaSeccionSinColor, membreteEnTodasLasHojas: tenant.membreteEnTodasLasHojas,
           datosPacienteEstiloDiscreto: tenant.datosPacienteEstiloDiscreto, ocultarInterpretacion: tenant.ocultarInterpretacion, ocultarValorReferencia: tenant.ocultarValorReferencia,
           camposReporte: tenant.camposReporte, fuenteReporte: tenant.fuenteReporte, tamanoFuenteReporte: tenant.tamanoFuenteReporte,
           piePaginaPersonalizado: tenant.piePaginaPersonalizado,
