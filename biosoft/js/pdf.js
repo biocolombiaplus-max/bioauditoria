@@ -1025,6 +1025,35 @@
         var donor = await PDFDocument.load(donorBytes);
         var recorteMm = refEx.pdfRemitidoRecorteMm || 0;
         if (!recorteMm) {
+          // Sin recorte: se anexa el PDF del laboratorio de referencia
+          // COMPLETO y tal cual, con su propio logo y membrete — así se
+          // ve el documento original, conforme a la Resolución 3100
+          // (transparencia sobre quién procesó realmente el examen). Antes
+          // de sus páginas se agrega una portada corta con el membrete
+          // propio del laboratorio, indicando a qué examen corresponde —
+          // imprescindible cuando hay varios remitidos: sin esta portada,
+          // no había forma de saber dónde termina el anexo de un examen y
+          // empieza el del siguiente.
+          try {
+            var exCatAnexo = C.examenEfectivo(refEx.examId, tenant);
+            var portadaDoc = new jsPDFCtor({ unit: "pt", format: "letter" });
+            var yPortada = await dibujarMembrete(portadaDoc, tenant, margin);
+            portadaDoc.setFont(fontFam, "bold"); portadaDoc.setFontSize(11); portadaDoc.setTextColor(rgb[0], rgb[1], rgb[2]);
+            portadaDoc.text("ANEXO — RESULTADO REMITIDO", margin, yPortada);
+            yPortada += 16;
+            portadaDoc.setFont(fontFam, "bold"); portadaDoc.setFontSize(10); portadaDoc.setTextColor(20, 20, 20);
+            portadaDoc.text(exCatAnexo ? exCatAnexo.nombre : refEx.examId, margin, yPortada);
+            yPortada += 14;
+            portadaDoc.setFont(fontFam, "normal"); portadaDoc.setFontSize(9); portadaDoc.setTextColor(90, 90, 90);
+            portadaDoc.text("Procesado y emitido originalmente por: " + (refEx.laboratorioRemision || "—"), margin, yPortada, { maxWidth: pageW - margin * 2 });
+            yPortada += 14;
+            portadaDoc.setFont(fontFam, "italic"); portadaDoc.setFontSize(8.5); portadaDoc.setTextColor(110, 110, 110);
+            portadaDoc.text("A continuación, el informe original completo de ese laboratorio, con su propio membrete, resultados y firma.", margin, yPortada, { maxWidth: pageW - margin * 2 });
+            var portadaBytes = new Uint8Array(portadaDoc.output("arraybuffer"));
+            var portadaDonor = await PDFDocument.load(portadaBytes);
+            var portadaPages = await finalDoc.copyPages(portadaDonor, [0]);
+            finalDoc.addPage(portadaPages[0]);
+          } catch (ePortada) {}
           var pages = await finalDoc.copyPages(donor, donor.getPageIndices());
           pages.forEach(function (p) { finalDoc.addPage(p); });
           continue;
