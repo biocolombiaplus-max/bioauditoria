@@ -1210,15 +1210,22 @@
       doc.setTextColor(20, 20, 20);
 
       if (compacto) {
-        var bcWc = anchoMm * 0.4, bcHc = altoMm * 0.4;
+        // El código de barras se dibuja bien alto (65% del alto de la
+        // etiqueta) y centrado verticalmente: en una etiqueta tan chica
+        // (ej. 5,5 x 1,9 cm) dejarlo bajito desperdicia el espacio de
+        // arriba y de abajo, se ve pequeño y menos "premium", y además un
+        // código más alto es más fácil de leer con lectores de mano
+        // aunque no queden perfectamente alineados.
+        var bcWc = anchoMm * 0.4, bcHc = altoMm * 0.65;
+        var bcY = (altoMm - bcHc) / 2;
         var anchoTexto = anchoMm - mL - bcWc - rightPad - 2;
         var siglas = byTubo[key].map(function (e) { return siglaExamen(e.nombre); }).join(",");
         var maxChars = function (fs) { return Math.max(8, Math.floor(anchoTexto / (fs * 0.18))); };
 
-        var fsOrden = Math.max(7, altoMm * 0.26);
-        var fsNombre = Math.max(5.5, altoMm * 0.17);
-        var fsDoc = Math.max(5, altoMm * 0.15);
-        var fsTubo = Math.max(4.5, altoMm * 0.13);
+        var fsOrden = Math.max(8, altoMm * 0.3);
+        var fsNombre = Math.max(6.5, altoMm * 0.2);
+        var fsDoc = Math.max(6, altoMm * 0.18);
+        var fsTubo = Math.max(5.5, altoMm * 0.16);
 
         doc.setFont("helvetica", "bold"); doc.setFontSize(fsOrden);
         doc.text(order.numeroOrden, mL, altoMm * 0.24);
@@ -1231,7 +1238,7 @@
         try {
           var canvasC = document.createElement("canvas");
           window.JsBarcode(canvasC, order.numeroOrden, { format: "CODE128", width: 1, height: 30, displayValue: false, margin: 0 });
-          doc.addImage(canvasC.toDataURL("image/png"), "PNG", anchoMm - bcWc - rightPad, altoMm * 0.08, bcWc, bcHc);
+          doc.addImage(canvasC.toDataURL("image/png"), "PNG", anchoMm - bcWc - rightPad, bcY, bcWc, bcHc);
         } catch (e) {}
       } else {
         doc.setFont("helvetica", "bold"); doc.setFontSize(8 * k);

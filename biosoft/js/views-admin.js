@@ -1355,6 +1355,12 @@
     var logo2Temp = tenant.logoSecundarioDataUrl;
     var campos = tenant.camposReporte || {};
 
+    function logoPreviewMarkup(dataUrl, removeAction) {
+      if (!dataUrl) return '<span class="text-muted">Sin logo cargado</span>';
+      return '<img src="' + dataUrl + '" style="height:52px;border-radius:8px;display:block;margin-bottom:4px"/>' +
+        '<button type="button" class="btn btn-ghost btn-sm" data-action="' + removeAction + '" style="padding:2px 8px;font-size:11px">' + U.icon("trash") + " Quitar logo</button>";
+    }
+
     root.innerHTML =
       '<div class="card"><div class="card-header"><h3 class="card-title">📘 Manual de Usuario del Sistema</h3></div>' +
       '<p class="text-muted" style="margin-top:0">Guía paso a paso de cada módulo, con el logo y los colores de ' + U.esc(tenant.nombre || "tu laboratorio") + '. Ideal para capacitar a tu equipo o enviarla a un colaborador nuevo.</p>' +
@@ -1419,9 +1425,9 @@
           "</select></div>" +
         "</div>" +
         '<p class="text-muted" style="margin:6px 0 0;font-size:12.5px">Ajusta aquí el color del texto del menú, de los títulos de cada sección (como "Identidad y Datos del Laboratorio") y de los subtítulos de cada recuadro (como "Marca e Identidad Visual") — todo se actualiza al instante en esta misma pantalla para que veas cómo queda antes de guardar.</p>' +
-        '<div class="flex gap-2 wrap" style="margin-top:8px">' +
-        '<div><div class="text-muted" style="font-size:11px;margin-bottom:2px">Logo</div><div id="logo-preview">' + (logoTemp ? '<img src="' + logoTemp + '" style="height:52px;border-radius:8px"/>' : '<span class="text-muted">Sin logo cargado</span>') + "</div></div>" +
-        '<div><div class="text-muted" style="font-size:11px;margin-bottom:2px">Logo secundario</div><div id="logo2-preview">' + (logo2Temp ? '<img src="' + logo2Temp + '" style="height:52px;border-radius:8px"/>' : '<span class="text-muted">Sin logo secundario</span>') + "</div></div>" +
+        '<div class="flex gap-2 wrap" style="margin-top:8px" id="logos-preview-wrap">' +
+        '<div><div class="text-muted" style="font-size:11px;margin-bottom:2px">Logo</div><div id="logo-preview">' + logoPreviewMarkup(logoTemp, "quitar-logo") + "</div></div>" +
+        '<div><div class="text-muted" style="font-size:11px;margin-bottom:2px">Logo secundario</div><div id="logo2-preview">' + logoPreviewMarkup(logo2Temp, "quitar-logo2") + "</div></div>" +
         "</div>" +
         '<p class="text-muted" style="margin:8px 0 0;font-size:12.5px">El logo secundario es opcional — úsalo si tu laboratorio trabaja con un aliado (ej. otro laboratorio que procesa la muestra) y necesitas que su logo también aparezca en tus reportes, cotizaciones y recibos, junto al tuyo.</p>' +
         "</fieldset>" +
@@ -1545,7 +1551,7 @@
       // llegó a guardar de verdad.
       U.redimensionarImagen(file, 300).then(function (dataUrl) {
         logoTemp = dataUrl;
-        document.getElementById("logo-preview").innerHTML = '<img src="' + logoTemp + '" style="height:52px;border-radius:8px"/>';
+        document.getElementById("logo-preview").innerHTML = logoPreviewMarkup(logoTemp, "quitar-logo");
       }).catch(function () {
         U.toast("No se pudo procesar la imagen. Intenta con otro archivo.", "error");
       });
@@ -1556,10 +1562,24 @@
       if (!file) return;
       U.redimensionarImagen(file, 300).then(function (dataUrl) {
         logo2Temp = dataUrl;
-        document.getElementById("logo2-preview").innerHTML = '<img src="' + logo2Temp + '" style="height:52px;border-radius:8px"/>';
+        document.getElementById("logo2-preview").innerHTML = logoPreviewMarkup(logo2Temp, "quitar-logo2");
       }).catch(function () {
         U.toast("No se pudo procesar la imagen. Intenta con otro archivo.", "error");
       });
+    });
+
+    document.getElementById("logos-preview-wrap").addEventListener("click", function (e) {
+      var btn = e.target.closest("[data-action]");
+      if (!btn) return;
+      if (btn.dataset.action === "quitar-logo") {
+        logoTemp = "";
+        document.getElementById("f_logo").value = "";
+        document.getElementById("logo-preview").innerHTML = logoPreviewMarkup(logoTemp, "quitar-logo");
+      } else if (btn.dataset.action === "quitar-logo2") {
+        logo2Temp = "";
+        document.getElementById("f_logo2").value = "";
+        document.getElementById("logo2-preview").innerHTML = logoPreviewMarkup(logo2Temp, "quitar-logo2");
+      }
     });
 
     document.getElementById("cfg-form").addEventListener("submit", function (e) {
