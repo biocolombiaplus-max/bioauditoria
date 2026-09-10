@@ -1292,18 +1292,48 @@
         }
 
         var fsOrden = Math.max(8, altoMm * 0.3);
-        var fsNombre = Math.max(6.5, altoMm * 0.2);
         var fsDoc = Math.max(6, altoMm * 0.18);
         var fsTubo = Math.max(5.5, altoMm * 0.16);
 
+        // El nombre del paciente NUNCA se trunca: si no cabe completo en
+        // una sola línea a buen tamaño, se reparte en 2 líneas (como en
+        // las etiquetas de tubo reales de cualquier laboratorio grande),
+        // achicando la letra un poco si hace falta hasta que quepa en 2
+        // líneas — solo en el caso extremo de un nombre larguísimo que ni
+        // así entra se recorta la segunda línea, para no desbordar la
+        // etiqueta.
+        var nombreCompleto = U.nombreCompleto(patient);
+        var fsNombreMax = Math.max(6.5, altoMm * 0.2);
+        var fsNombreMin = 5;
+        var fsNombre = fsNombreMax;
+        var lineasNombre;
+        doc.setFont("helvetica", "normal");
+        while (true) {
+          doc.setFontSize(fsNombre);
+          lineasNombre = doc.splitTextToSize(nombreCompleto, anchoTexto);
+          if (lineasNombre.length <= 2 || fsNombre <= fsNombreMin) break;
+          fsNombre -= 0.25;
+        }
+        if (lineasNombre.length > 2) lineasNombre = [lineasNombre[0], ajustarAncho(lineasNombre[1])];
+
+        // Con el nombre en 2 líneas hacen falta 5 renglones en vez de 4
+        // (orden, nombre x2, documento, tubo) en la misma altura fija de
+        // la etiqueta — se usa un espaciado más apretado entre renglones
+        // para que los 5 quepan sin desbordar ni encimarse.
+        var dosLineas = lineasNombre.length > 1;
+        var pitch = altoMm * (dosLineas ? 0.165 : 0.2);
+        var yDoc = pitch * (dosLineas ? 4 : 3);
+        var yTubo = pitch * (dosLineas ? 5 : 4);
+
         doc.setFont("helvetica", "bold"); doc.setFontSize(fsOrden);
-        doc.text(order.numeroOrden, mL, altoMm * 0.24);
+        doc.text(order.numeroOrden, mL, pitch);
         doc.setFont("helvetica", "normal"); doc.setFontSize(fsNombre);
-        doc.text(ajustarAncho(U.nombreCompleto(patient)), mL, altoMm * 0.44);
+        doc.text(lineasNombre[0], mL, pitch * 2);
+        if (dosLineas) doc.text(lineasNombre[1], mL, pitch * 3);
         doc.setFontSize(fsDoc);
-        doc.text(ajustarAncho("Doc: " + patient.tipoDocumento + " " + patient.numeroDocumento), mL, altoMm * 0.64);
+        doc.text(ajustarAncho("Doc: " + patient.tipoDocumento + " " + patient.numeroDocumento), mL, yDoc);
         doc.setFont("helvetica", "bold"); doc.setFontSize(fsTubo);
-        doc.text(ajustarAncho(tubo.nombre + (siglas ? " — " + siglas : "")), mL, altoMm * 0.88);
+        doc.text(ajustarAncho(tubo.nombre + (siglas ? " — " + siglas : "")), mL, yTubo);
         try {
           var canvasC = document.createElement("canvas");
           window.JsBarcode(canvasC, order.numeroOrden, { format: "CODE128", width: 1, height: 30, displayValue: false, margin: 0 });
