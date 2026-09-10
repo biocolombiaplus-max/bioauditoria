@@ -570,18 +570,27 @@
         // Configuración → Diseño del Reporte (que oculta la columna
         // entera para todos los parámetros), esta es por parámetro.
         var ocultarRefHtml = '<label class="checkbox-row" style="margin:4px 0 0;font-size:10.5px;font-weight:400"><input type="checkbox" data-ocultarref ' + (p.ocultarEnInforme ? "checked" : "") + '/> No mostrar en el informe</label>';
+        // Igual que "No mostrar en el informe" para el Valor de
+        // Referencia, pero para la columna "Interpretación": hay pruebas
+        // (ej. una prueba de embarazo cualitativa donde "Negativo" es lo
+        // esperado, pero el sistema la marca ANORMAL por no coincidir con
+        // el valor "normal" configurado) donde el laboratorio prefiere que
+        // el paciente no vea esa palabra en su informe, sin tener que
+        // ocultar la columna completa para todos los demás parámetros.
+        var ocultarInterpHtml = '<label class="checkbox-row" style="margin:2px 0 0;font-size:10.5px;font-weight:400"><input type="checkbox" data-ocultarinterp ' + (p.ocultarInterpretacionEnInforme ? "checked" : "") + '/> No mostrar la interpretación en el informe</label>';
         return '<tr data-prow="' + p.codigo + '">' +
           "<td>" + moverHtml + "</td>" +
           "<td>" + nombreHtml + '<div class="text-muted" style="font-size:11px">' + (p.unidad || "") + (p.calculado ? ' · <span title="' + U.esc(p.formula || "") + '">🧮 Calculado</span>' : "") + "</div></td>" +
           '<td><input type="number" step="any" data-min value="' + p.min + '" style="width:90px" title="' + (conRangos ? "Se usa solo si un resultado no cae en ninguno de los rangos de interpretación" : "") + '"/></td>' +
           '<td><input type="number" step="any" data-max value="' + p.max + '" style="width:90px" title="' + (conRangos ? "Se usa solo si un resultado no cae en ninguno de los rangos de interpretación" : "") + '"/></td>' +
-          '<td><input data-reftext value="' + U.esc(p.refText) + '" ' + (conRangos ? "disabled title='Se genera automáticamente a partir de los rangos de interpretación'" : "") + "/>" + ocultarRefHtml + "</td>" +
+          '<td><input data-reftext value="' + U.esc(p.refText) + '" ' + (conRangos ? "disabled title='Se genera automáticamente a partir de los rangos de interpretación'" : "") + "/>" + ocultarRefHtml + ocultarInterpHtml + "</td>" +
           '<td class="text-muted" style="font-size:11px">' + (esDeFabrica ? "Fábrica: " + base.min + " - " + base.max : "—") + "</td>" +
           "<td><div class='flex gap-1 wrap'>" + (overNum ? '<button type="button" class="btn btn-ghost btn-sm" data-reset="' + p.codigo + '">Restablecer</button>' : "") + bandasHtml + rangosHtml + calculadoHtml + quitarHtml + "</div></td></tr>";
       }
       if (p.tipo === "cualitativo" || p.tipo === "descriptivo") {
         var overCual = base && (p.normal !== base.normal || p.refText !== base.refText);
         var ocultarRefHtmlCual = '<label class="checkbox-row" style="margin:4px 0 0;font-size:10.5px;font-weight:400"><input type="checkbox" data-ocultarref ' + (p.ocultarEnInforme ? "checked" : "") + '/> No mostrar en el informe</label>';
+        var ocultarInterpHtmlCual = p.tipo === "cualitativo" ? '<label class="checkbox-row" style="margin:2px 0 0;font-size:10.5px;font-weight:400"><input type="checkbox" data-ocultarinterp ' + (p.ocultarInterpretacionEnInforme ? "checked" : "") + '/> No mostrar la interpretación en el informe</label>' : "";
         return '<tr data-prow="' + p.codigo + '">' +
           "<td>" + moverHtml + "</td>" +
           "<td>" + nombreHtml + "</td>" +
@@ -590,7 +599,7 @@
             ? '<label class="text-muted" style="font-size:11px">Valor normal</label><select data-normal>' + p.opciones.map(function (o) { return "<option " + (o === p.normal ? "selected" : "") + ">" + o + "</option>"; }).join("") + "</select>"
             : '<span class="text-muted" style="font-size:11px">Campo descriptivo (sin interpretación automática)</span>') +
           "</td>" +
-          '<td><input data-reftext value="' + U.esc(p.refText) + '"/>' + ocultarRefHtmlCual + "</td>" +
+          '<td><input data-reftext value="' + U.esc(p.refText) + '"/>' + ocultarRefHtmlCual + ocultarInterpHtmlCual + "</td>" +
           '<td class="text-muted" style="font-size:11px">' + (esDeFabrica ? "Fábrica: " + U.esc(base.normal || "—") : "—") + "</td>" +
           "<td><div class='flex gap-1 wrap'>" + (overCual ? '<button type="button" class="btn btn-ghost btn-sm" data-reset="' + p.codigo + '">Restablecer</button>' : "") + quitarHtml + "</div></td></tr>";
       }
@@ -769,6 +778,9 @@
         var base = origenDeCampo(exCat, custom, p.codigo);
         var ocultarRef = !!row.querySelector("[data-ocultarref]") && row.querySelector("[data-ocultarref]").checked;
         var ocultarRefBase = !!(base && base.ocultarEnInforme);
+        var ocultarInterpEl = row.querySelector("[data-ocultarinterp]");
+        var ocultarInterp = !!ocultarInterpEl && ocultarInterpEl.checked;
+        var ocultarInterpBase = !!(base && base.ocultarInterpretacionEnInforme);
         if (p.tipo === "numerico") {
           var min = parseFloat(row.querySelector("[data-min]").value);
           var max = parseFloat(row.querySelector("[data-max]").value);
@@ -784,15 +796,15 @@
           // porque setOverride() reemplaza TODO el override del
           // parámetro de una vez, no solo lo que cambió en esta tabla.
           var calcIgualBase = !p.calculado === !(base && base.calculado) && (p.formula || "") === ((base && base.formula) || "");
-          if (base && min === base.min && max === base.max && refText === base.refText && calcIgualBase && ocultarRef === ocultarRefBase) { C.clearOverride(tenant, examId, p.codigo); return; }
-          C.setOverride(tenant, examId, p.codigo, { min: min, max: max, refText: refText || (min + " - " + max + " " + (p.unidad || "")), calculado: !!p.calculado, formula: p.formula || "", ocultarEnInforme: ocultarRef });
+          if (base && min === base.min && max === base.max && refText === base.refText && calcIgualBase && ocultarRef === ocultarRefBase && ocultarInterp === ocultarInterpBase) { C.clearOverride(tenant, examId, p.codigo); return; }
+          C.setOverride(tenant, examId, p.codigo, { min: min, max: max, refText: refText || (min + " - " + max + " " + (p.unidad || "")), calculado: !!p.calculado, formula: p.formula || "", ocultarEnInforme: ocultarRef, ocultarInterpretacionEnInforme: ocultarInterp });
           cambios++;
         } else if (p.tipo === "cualitativo") {
           var normalSel = row.querySelector("[data-normal]");
           var refText2 = row.querySelector("[data-reftext]").value.trim();
           var normal = normalSel ? normalSel.value : p.normal;
-          if (base && normal === base.normal && refText2 === base.refText && ocultarRef === ocultarRefBase) { C.clearOverride(tenant, examId, p.codigo); return; }
-          C.setOverride(tenant, examId, p.codigo, { normal: normal, refText: refText2 || ("Normal: " + normal), ocultarEnInforme: ocultarRef });
+          if (base && normal === base.normal && refText2 === base.refText && ocultarRef === ocultarRefBase && ocultarInterp === ocultarInterpBase) { C.clearOverride(tenant, examId, p.codigo); return; }
+          C.setOverride(tenant, examId, p.codigo, { normal: normal, refText: refText2 || ("Normal: " + normal), ocultarEnInforme: ocultarRef, ocultarInterpretacionEnInforme: ocultarInterp });
           cambios++;
         } else if (p.tipo === "descriptivo") {
           var refText3 = row.querySelector("[data-reftext]").value.trim();

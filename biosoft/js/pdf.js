@@ -603,12 +603,25 @@
           // parámetros, solo esta celda queda vacía.
           var ocultarRefParametro = !!p.ocultarEnInforme;
           var refFormateado = ocultarRefParametro ? "" : formatearValorReferencia(p.refText);
+          // Igual que arriba pero para "Interpretación": un parámetro
+          // puntual puede marcarse para que el paciente no vea esa palabra
+          // (ej. una prueba de embarazo cualitativa que el sistema marca
+          // ANORMAL solo porque "Negativo" no coincide con el valor
+          // "normal" configurado, sin que eso sea clínicamente relevante
+          // para el paciente) — la columna sigue existiendo para los demás
+          // parámetros del informe.
+          var ocultarInterpParametro = !!p.ocultarInterpretacionEnInforme;
           var fila = [p.nombre + (p.calculado ? " (calculado)" : ""), val + (p.unidad ? " " + p.unidad : "")];
           if (!ocultarValorReferencia) fila.push(refFormateado);
-          if (!ocultarInterpretacion) fila.push(flag.texto || "");
+          if (!ocultarInterpretacion) fila.push(ocultarInterpParametro ? "" : (flag.texto || ""));
           filas.push({
             fila: fila,
-            anormal: flag.clase !== "" && flag.clase !== "normal",
+            // Con la interpretación de este parámetro suprimida para el
+            // informe, tampoco debe quedar el "Resultado" resaltado en
+            // rojo por esa alerta — si el laboratorio decidió que esa
+            // señal no le sirve al paciente en esta prueba puntual, debe
+            // desaparecer del todo, no solo la palabra.
+            anormal: !ocultarInterpParametro && flag.clase !== "" && flag.clase !== "normal",
             // Parámetros con varios rangos de interpretación (ver arriba)
             // ocupan varias líneas en la columna "Valor de Referencia" — se
             // cuentan para que la estimación de espacio de la página no se
