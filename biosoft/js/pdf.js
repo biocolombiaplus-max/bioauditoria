@@ -158,6 +158,14 @@
     var pageW = doc.internal.pageSize.getWidth();
     var y = margin;
     var rgb = hexToRgb(tenant.colorPrimario);
+    // La línea divisoria bajo el membrete usa el mismo "Color de las
+    // Barras de Sección" que ya se puede cambiar en Configuración → Diseño
+    // del Reporte — antes quedaba fija en el Color Primario de la marca,
+    // así que si el laboratorio personalizaba solo el color de las barras
+    // de sección (dejando el Color Primario tal cual, para el nombre y
+    // demás textos de marca), esta línea seguía saliendo con el color
+    // viejo y no combinaba con las barras ya cambiadas.
+    var rgbBanda = hexToRgb(tenant.colorBandaSeccion || tenant.colorPrimario);
     // Tipografía elegida en Configuración (Helvetica/Times/Courier — las
     // 3 fuentes base que jsPDF sabe dibujar sin tener que incrustar un
     // archivo de fuente aparte). "helvetica" si el laboratorio nunca lo
@@ -313,7 +321,7 @@
       var metaLineUnica = metaLines.join("   ·   ");
       if (metaLineUnica) { doc.text(metaLineUnica, cx, y, { align: "center" }); y += 8.5; }
       y += 2;
-      doc.setDrawColor(rgb[0], rgb[1], rgb[2]); doc.setLineWidth(2);
+      doc.setDrawColor(rgbBanda[0], rgbBanda[1], rgbBanda[2]); doc.setLineWidth(2);
       doc.line(margin, y, pageW - margin, y); y += 14;
     } else {
       // El logo se ve grande y premium (70pt en una hoja carta completa)
@@ -353,7 +361,7 @@
       if (tenant.datosPacienteEstiloDiscreto) doc.setTextColor(0, 0, 0); else doc.setTextColor(90, 90, 90);
       metaLines.forEach(function (line, i) { doc.text(line, textX, y + metaStartOffset + i * 10); });
 
-      doc.setDrawColor(rgb[0], rgb[1], rgb[2]); doc.setLineWidth(2);
+      doc.setDrawColor(rgbBanda[0], rgbBanda[1], rgbBanda[2]); doc.setLineWidth(2);
       y += tenant.slogan ? 74 : 64; doc.line(margin, y, pageW - margin, y); y += 12;
     }
     return y;
@@ -422,7 +430,7 @@
       if (estiloDiscreto) doc.setTextColor(0, 0, 0); else doc.setTextColor(90, 90, 90);
       doc.text(U.nombreCompleto(patient) + " — Orden " + order.numeroOrden, textX, yy + 18);
       yy += cajaLogo + 4;
-      doc.setDrawColor(rgb[0], rgb[1], rgb[2]); doc.setLineWidth(1);
+      doc.setDrawColor(rgbBanda[0], rgbBanda[1], rgbBanda[2]); doc.setLineWidth(1);
       doc.line(margin, yy, pageW - margin, yy);
       return yy + 14;
     }
