@@ -427,6 +427,50 @@
       return yy + 14;
     }
 
+    // Bloque compacto de firma, dibujado justo debajo de cada sección (o
+    // examen) con los datos de quien lo validó — así el paciente ve, junto
+    // a cada resultado, exactamente quién lo procesó y firmó, en vez de
+    // una sola lista de firmas al final que no dice cuál bacteriólogo(a)
+    // hizo cuál examen. Es el mismo formato de firma que se usaba antes al
+    // cierre del informe, solo que más compacto (se repite varias veces)
+    // y con la etiqueta "Validado por" para dejar clara su relación con lo
+    // que aparece justo arriba. Devuelve el nuevo valor de "y" tras dibujarlo.
+    async function dibujarBloqueFirmaSeccion(f, yInicio) {
+      var lineW = 170;
+      var yy = yInicio;
+      doc.setFont(fontFam, "italic"); doc.setFontSize(7);
+      if (estiloDiscreto) doc.setTextColor(0, 0, 0); else doc.setTextColor(140, 140, 140);
+      doc.text("Validado por:", margin, yy);
+      yy += 7;
+      if (f.firmaDataUrl) {
+        try {
+          var recorte = await recortarEspacioSobrante(f.firmaDataUrl);
+          var maxW = 110, maxH = 28;
+          var escala = Math.min(maxW / recorte.w, maxH / recorte.h, 1);
+          var dw = recorte.w * escala, dh = recorte.h * escala;
+          doc.addImage(recorte.url, "PNG", margin + (lineW - dw) / 2, yy + 6 - dh, dw, dh);
+        } catch (e) {}
+      }
+      doc.setDrawColor(180, 180, 180); doc.line(margin, yy + 8, margin + lineW, yy + 8);
+      doc.setFont(fontFam, estiloDiscreto ? "normal" : "bold"); doc.setFontSize(8.5);
+      if (estiloDiscreto) doc.setTextColor(0, 0, 0); else doc.setTextColor(20, 20, 20);
+      doc.text(f.nombre, margin, yy + 19);
+      doc.setFont(fontFam, "normal"); doc.setFontSize(7.5);
+      if (estiloDiscreto) doc.setTextColor(0, 0, 0); else doc.setTextColor(90, 90, 90);
+      doc.text(C.tituloFirmaProfesional(tenant.pais), margin, yy + 29);
+      var credenciales = [];
+      if (f.registroProfesional) credenciales.push("Registro Profesional: " + f.registroProfesional);
+      if (f.universidad) credenciales.push("Universidad: " + f.universidad);
+      var alto = 42;
+      if (credenciales.length) {
+        doc.setFont(fontFam, "italic"); doc.setFontSize(7);
+        if (estiloDiscreto) doc.setTextColor(0, 0, 0); else doc.setTextColor(120, 120, 120);
+        doc.text(credenciales.join("   ·   "), margin, yy + 39);
+        alto = 52;
+      }
+      return yy + alto;
+    }
+
     // Estilo "discreto" del encabezado de datos del paciente (opción en
     // Configuración → Diseño del Reporte de Resultados, pedida puntual por
     // un cliente): sin el título "Informe de Resultados…", y el aviso de
@@ -563,7 +607,14 @@
       bySeccion[seccionId] = C.ordenarPorExamen(bySeccion[seccionId], tenant, function (ex) { return ex.examId; });
     });
 
-    Object.keys(bySeccion).forEach(function (seccionId) {
+    // Se recorre con un "for" normal (no .forEach) porque, al final de cada
+    // sección, hay que dibujar el bloque de firma de quien la validó, y eso
+    // requiere "await" (recortarEspacioSobrante es async) — .forEach no
+    // espera callbacks async, así que las firmas quedarían fuera de orden.
+    var huboFirmaPorSeccion = false;
+    var seccionIds = Object.keys(bySeccion);
+    for (var seccionIdx = 0; seccionIdx < seccionIds.length; seccionIdx++) {
+      var seccionId = seccionIds[seccionIdx];
       // Los parámetros tipo "panel" (antibiograma/alergia) no encajan en la
       // tabla de un solo valor por fila — se recogen aparte para armarles su
       // propia tabla, justo después de la tabla principal de la sección.
@@ -835,7 +886,26 @@
         });
       }
       y += 8;
-    });
+
+      // Firma de quien validó ESTA sección, justo aquí debajo de sus
+      // resultados — no al final del informe junto con la de todos los
+      // demás exámenes, que confunde cuál bacteriólogo(a) hizo cuál
+      // examen. Si la sección tiene exámenes validados por más de una
+      // persona, salen varios bloques de firma seguidos, uno por cada
+      // quien validó. Las secciones sin ningún examen validado (ej. 100%
+      // preliminares) se quedan sin firma aquí — si el informe completo
+      // termina así, más abajo hay un respaldo con la firma general del
+      // laboratorio.
+      var validadosSeccion = bySeccion[seccionId].filter(function (ex) { return ex.estado === "validado"; });
+      if (validadosSeccion.length) {
+        var firmantesSeccion = firmantesDe(order, tenant, validadosSeccion);
+        for (var vsi = 0; vsi < firmantesSeccion.length; vsi++) {
+          if (y > 690) { y = nuevaPagina(); }
+          y = await dibujarBloqueFirmaSeccion(firmantesSeccion[vsi], y);
+          huboFirmaPorSeccion = true;
+        }
+      }
+    }
 
     if (referidos.length) {
       if (y > 680) { y = nuevaPagina(); }
@@ -856,60 +926,19 @@
       y = doc.lastAutoTable.finalY + 18;
     }
 
-    var firmantes = firmantesDe(order, tenant, examsToShow);
-    var lineW = 190;
-    // Espacio de seguridad antes de la primera firma: la imagen recortada
-    // puede medir hasta maxH=40pt de alto y se dibuja con su base apenas
-    // encima de la línea, así que sin este respiro adicional podía llegar a
-    // montarse sobre la tabla de resultados justo arriba.
-    y += 24;
-    // Se registra en qué página arranca el bloque de firmas: si termina
-    // saltando a una hoja nueva (porque no cabía nada de él al final de la
-    // anterior), esa hoja nueva queda casi vacía — solo con el encabezado y
-    // la firma — y el QR de verificación NO debe forzarse hacia la esquina
-    // inferior como si la hoja estuviera llena (ver más abajo), porque deja
-    // un hueco enorme en el medio (bug real reportado: "hoja en blanco
-    // innecesaria").
-    var paginaAntesDeFirmas = doc.internal.getNumberOfPages();
-    for (var fi = 0; fi < firmantes.length; fi++) {
-      var f = firmantes[fi];
-      if (y > 700) { y = nuevaPagina(); }
-      if (f.firmaDataUrl) {
-        try {
-          var recorte = await recortarEspacioSobrante(f.firmaDataUrl);
-          var maxW = 150, maxH = 40;
-          var escala = Math.min(maxW / recorte.w, maxH / recorte.h, 1);
-          var dw = recorte.w * escala, dh = recorte.h * escala;
-          // Se centra sobre el segmento de la línea y su base queda apenas
-          // encima de ella, para que la firma se vea apoyada sobre la línea
-          // sin importar cuánto margen en blanco traiga la imagen original.
-          doc.addImage(recorte.url, "PNG", margin + (lineW - dw) / 2, y + 8 - dh, dw, dh);
-        } catch (e) {}
+    // Cada sección ya dibujó su propia firma justo debajo de sus
+    // resultados (ver el bloque "Firma de quien validó ESTA sección" más
+    // arriba) — este bloque es solo un RESPALDO para cuando ninguna
+    // sección tuvo firma propia (ej. una orden 100% remitida a laboratorios
+    // externos, o un informe preliminar sin nada validado todavía), para
+    // que el informe nunca salga sin ningún nombre responsable.
+    if (!huboFirmaPorSeccion) {
+      var firmantes = firmantesDe(order, tenant, examsToShow);
+      y += 16;
+      for (var fi = 0; fi < firmantes.length; fi++) {
+        if (y > 690) { y = nuevaPagina(); }
+        y = await dibujarBloqueFirmaSeccion(firmantes[fi], y);
       }
-      doc.setDrawColor(180, 180, 180); doc.line(margin, y + 10, margin + lineW, y + 10);
-      doc.setFont(fontFam, estiloDiscreto ? "normal" : "bold"); doc.setFontSize(9);
-      if (estiloDiscreto) doc.setTextColor(0, 0, 0); else doc.setTextColor(20, 20, 20);
-      doc.text(f.nombre, margin, y + 22);
-      doc.setFont(fontFam, "normal"); doc.setFontSize(8);
-      if (estiloDiscreto) doc.setTextColor(0, 0, 0); else doc.setTextColor(90, 90, 90);
-      doc.text(C.tituloFirmaProfesional(tenant.pais), margin, y + 33);
-      // Registro profesional y universidad de grado (ambos opcionales, se
-      // cargan en Usuarios del Laboratorio) van juntos en una sola "línea
-      // de credenciales" debajo del cargo — el mismo estilo compacto que
-      // usan los laboratorios grandes — y solo aparece si el usuario
-      // diligenció al menos uno de los dos; si no diligenció ninguno, la
-      // línea no se dibuja y el bloque de firma queda exactamente igual
-      // que si esta función no existiera (ni deja un renglón vacío ni
-      // cambia la altura del bloque).
-      var credenciales = [];
-      if (f.registroProfesional) credenciales.push("Registro Profesional: " + f.registroProfesional);
-      if (f.universidad) credenciales.push("Universidad: " + f.universidad);
-      if (credenciales.length) {
-        doc.setFont(fontFam, "italic"); doc.setFontSize(7.5);
-        if (estiloDiscreto) doc.setTextColor(0, 0, 0); else doc.setTextColor(120, 120, 120);
-        doc.text(credenciales.join("   ·   "), margin, y + 44);
-      }
-      y += 62;
     }
 
     // Estilo discreto: el aviso de "Informe Parcial" no va arriba del todo
@@ -934,7 +963,12 @@
       }
     }
     var signBlockBottom = y;
-    var firmaEnPaginaPropia = doc.internal.getNumberOfPages() > paginaAntesDeFirmas;
+    // Antes existía un caso especial para cuando el bloque de firmas único
+    // del final saltaba solo a una hoja nueva casi vacía — ya no aplica:
+    // las firmas ahora van intercaladas con el contenido normal de cada
+    // sección (o, cuando mucho, el respaldo de arriba), así que no hay un
+    // bloque de firmas aislado que pueda quedar solo al tope de una hoja.
+    var firmaEnPaginaPropia = false;
 
     try {
       var qrTexto = "BIOsoft | Verificación de Documento\n" +
