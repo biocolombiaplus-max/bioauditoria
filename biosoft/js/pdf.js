@@ -1220,7 +1220,21 @@
         var bcY = (altoMm - bcHc) / 2;
         var anchoTexto = anchoMm - mL - bcWc - rightPad - 2;
         var siglas = byTubo[key].map(function (e) { return siglaExamen(e.nombre); }).join(",");
-        var maxChars = function (fs) { return Math.max(8, Math.floor(anchoTexto / (fs * 0.18))); };
+        // Se mide el ancho REAL del texto con la fuente/tamaño ya puestos
+        // (doc.getTextWidth), en vez de calcular a ojo cuántos caracteres
+        // caben — un estimado por cantidad de caracteres se queda corto
+        // con nombres en MAYÚSCULA SOSTENIDA (más anchas que el promedio
+        // de texto mixto) y jsPDF, al no caber, pasaba el texto a una
+        // segunda línea que quedaba montada sobre el dato de abajo.
+        function ajustarAncho(texto) {
+          if (doc.getTextWidth(texto) <= anchoTexto) return texto;
+          var lo = 0, hi = texto.length;
+          while (lo < hi) {
+            var mid = Math.ceil((lo + hi) / 2);
+            if (doc.getTextWidth(texto.substring(0, mid)) <= anchoTexto) lo = mid; else hi = mid - 1;
+          }
+          return texto.substring(0, lo);
+        }
 
         var fsOrden = Math.max(8, altoMm * 0.3);
         var fsNombre = Math.max(6.5, altoMm * 0.2);
@@ -1230,11 +1244,11 @@
         doc.setFont("helvetica", "bold"); doc.setFontSize(fsOrden);
         doc.text(order.numeroOrden, mL, altoMm * 0.24);
         doc.setFont("helvetica", "normal"); doc.setFontSize(fsNombre);
-        doc.text(U.nombreCompleto(patient).substring(0, maxChars(fsNombre)), mL, altoMm * 0.44, { maxWidth: anchoTexto });
+        doc.text(ajustarAncho(U.nombreCompleto(patient)), mL, altoMm * 0.44);
         doc.setFontSize(fsDoc);
-        doc.text("Doc: " + patient.tipoDocumento + " " + patient.numeroDocumento, mL, altoMm * 0.64, { maxWidth: anchoTexto });
+        doc.text(ajustarAncho("Doc: " + patient.tipoDocumento + " " + patient.numeroDocumento), mL, altoMm * 0.64);
         doc.setFont("helvetica", "bold"); doc.setFontSize(fsTubo);
-        doc.text((tubo.nombre + (siglas ? " — " + siglas : "")).substring(0, maxChars(fsTubo)), mL, altoMm * 0.88, { maxWidth: anchoTexto });
+        doc.text(ajustarAncho(tubo.nombre + (siglas ? " — " + siglas : "")), mL, altoMm * 0.88);
         try {
           var canvasC = document.createElement("canvas");
           window.JsBarcode(canvasC, order.numeroOrden, { format: "CODE128", width: 1, height: 30, displayValue: false, margin: 0 });
