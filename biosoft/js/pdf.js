@@ -14,6 +14,19 @@
     return (refText || "").split(" · ").join("\n");
   }
 
+  // Nombre del paciente listo para usarse en el nombre de un archivo
+  // descargado (ej. "Resultados_2026090902_GABRIEL_ARIAS_DELGADO_Final.pdf")
+  // — sin tildes/ñ (no todos los sistemas de archivos las manejan bien) ni
+  // caracteres que puedan romper el nombre del archivo, con espacios como
+  // guion bajo para que quede legible de un vistazo en la carpeta de
+  // descargas, sin tener que abrir cada PDF para saber de quién es.
+  function nombreParaArchivo(patient) {
+    return (U.nombreCompleto(patient) || "")
+      .normalize("NFD").replace(/[̀-ͯ]/g, "")
+      .replace(/[^a-zA-Z0-9 ]/g, "")
+      .trim().replace(/\s+/g, "_");
+  }
+
   function hexToRgb(hex) {
     hex = (hex || "#f97316").replace("#", "");
     return [parseInt(hex.substring(0, 2), 16), parseInt(hex.substring(2, 4), 16), parseInt(hex.substring(4, 6), 16)];
@@ -1210,8 +1223,9 @@
       wrap.querySelector("#pv-frame").classList.remove("hidden");
     }
     show(hasFinal ? "final" : "preliminar");
-    var bf = wrap.querySelector("#pv-final"); if (bf) bf.addEventListener("click", async function () { await show("final"); U.downloadBytes(lastBytes, "Resultados_" + order.numeroOrden + "_Final.pdf"); });
-    var bp = wrap.querySelector("#pv-prelim"); if (bp) bp.addEventListener("click", async function () { await show("preliminar"); U.downloadBytes(lastBytes, "Resultados_" + order.numeroOrden + "_Preliminar.pdf"); });
+    var nombreArchivo = nombreParaArchivo(patient);
+    var bf = wrap.querySelector("#pv-final"); if (bf) bf.addEventListener("click", async function () { await show("final"); U.downloadBytes(lastBytes, "Resultados_" + order.numeroOrden + (nombreArchivo ? "_" + nombreArchivo : "") + "_Final.pdf"); });
+    var bp = wrap.querySelector("#pv-prelim"); if (bp) bp.addEventListener("click", async function () { await show("preliminar"); U.downloadBytes(lastBytes, "Resultados_" + order.numeroOrden + (nombreArchivo ? "_" + nombreArchivo : "") + "_Preliminar.pdf"); });
   }
 
   // ---------------------------------------------------------------------
@@ -1441,6 +1455,6 @@
   global.BIO_PDF = {
     buildResultadosPDF: buildResultadosPDF, previewOrModal: previewOrModal, buildStickersPDF: buildStickersPDF,
     previewStickers: previewStickers, imprimirStickersRapido: imprimirStickersRapido,
-    dibujarMembrete: dibujarMembrete
+    dibujarMembrete: dibujarMembrete, nombreParaArchivo: nombreParaArchivo
   };
 })(window);

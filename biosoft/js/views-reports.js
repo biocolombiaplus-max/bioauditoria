@@ -240,7 +240,8 @@
       var tipo = wrap.querySelector("#send-tipo").value;
       return window.BIO_PDF.buildResultadosPDF(order, pac, tenant, tipo).then(function (bytes) {
         pdfCache = bytes;
-        U.downloadBytes(bytes, "Resultados_" + order.numeroOrden + "_" + (tipo === "final" ? "Final" : "Preliminar") + ".pdf");
+        var nombreArchivo = window.BIO_PDF.nombreParaArchivo(pac);
+        U.downloadBytes(bytes, "Resultados_" + order.numeroOrden + (nombreArchivo ? "_" + nombreArchivo : "") + "_" + (tipo === "final" ? "Final" : "Preliminar") + ".pdf");
         order.enviado = true; order.fechaEnvio = S.nowISO();
         S.saveOrder(order);
         return bytes;
