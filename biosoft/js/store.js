@@ -1240,6 +1240,17 @@
     fbWrite("qcLecturas", l.id, l);
     return l;
   }
+  // Elimina una lectura de control de calidad — para cuando se digitó mal
+  // el valor del día y "Corregir" (que solo agrega una lectura nueva
+  // encima, sin borrar la anterior) no basta: la lectura equivocada se
+  // quedaría en el historial afectando las reglas de Westgard y la
+  // gráfica de Levey-Jennings aunque ya no se muestre como "la de hoy".
+  function deleteQCLectura(id) {
+    var db = loadDB();
+    db.qcLecturas = db.qcLecturas.filter(function (l) { return l.id !== id; });
+    saveDB(db);
+    fbDelete("qcLecturas", id);
+  }
 
   // ---------------------------------------------------------------------
   // COTIZADOR DE EXÁMENES — lista de precios por examen y cotizaciones
@@ -1830,7 +1841,7 @@
     landingImagenes: { list: landingImagenesList, set: landingImagenesSet, remove: landingImagenesDelete },
     qc: {
       listControles: listQCControles, getControl: getQCControl, createControl: createQCControl, updateControl: updateQCControl,
-      listLecturas: listQCLecturas, createLectura: createQCLectura
+      listLecturas: listQCLecturas, createLectura: createQCLectura, deleteLectura: deleteQCLectura
     },
     cotizador: {
       listPrecios: listPrecios, setPrecio: setPrecio, bulkSetPrecios: bulkSetPrecios,

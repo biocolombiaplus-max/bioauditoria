@@ -105,7 +105,10 @@
                 "<b>✓ Hoy: " + lecturaHoy.valor + " " + U.esc(info.unidad) + " — " + etiquetaHoy + (typeof lecturaHoy.z === "number" ? " · z = " + lecturaHoy.z.toFixed(2) : "") + "</b>" +
                 (lecturaHoy.reglas && lecturaHoy.reglas.length ? '<ul style="margin:4px 0 0;padding-left:16px;font-size:12px">' + lecturaHoy.reglas.map(function (r) { return "<li>" + U.esc(Q.RECOMENDACIONES && Q.RECOMENDACIONES[r] || r) + "</li>"; }).join("") + "</ul>" : "") +
                 "</div></td>" +
-                "<td><button class='btn btn-ghost btn-sm' data-corregir='" + c.id + "'>Corregir</button></td>";
+                "<td><div class='flex gap-1 wrap'>" +
+                "<button class='btn btn-ghost btn-sm' data-corregir='" + c.id + "'>Corregir</button>" +
+                "<button class='btn btn-ghost btn-sm text-danger' data-eliminar-lectura='" + lecturaHoy.id + "' data-control='" + c.id + "' title='Eliminar esta lectura de hoy (si se digitó mal)'>" + U.icon("trash") + "</button>" +
+                "</div></td>";
             } else {
               celdaCaptura = "<td style='min-width:140px'><input type='number' step='any' data-captura='" + c.id + "' placeholder='Ej: " + c.media + "'/></td>" +
                 "<td><button class='btn btn-primary btn-sm' data-guardar-captura='" + c.id + "'>" + U.icon("check") + " Guardar</button></td>";
@@ -142,6 +145,18 @@
       });
       root.querySelectorAll("[data-corregir]").forEach(function (b) {
         b.addEventListener("click", function () { forzarCaptura[b.dataset.corregir] = true; build(); });
+      });
+      root.querySelectorAll("[data-eliminar-lectura]").forEach(function (b) {
+        b.addEventListener("click", function () {
+          var control = controles.filter(function (c) { return c.id === b.dataset.control; })[0];
+          var info = control ? analitoInfo(control.seccion, control.analitoCodigo) : null;
+          if (!confirm('¿Eliminar la lectura de hoy' + (info ? " de \"" + info.nombre + " (" + control.nivel + ')"' : "") + '? Esta acción no se puede deshacer — úsala solo si el valor se digitó mal.')) return;
+          S.qc.deleteLectura(b.dataset.eliminarLectura);
+          S.addAudit(tenantId, session.nombre, session.rol, "QC_LECTURA_ELIMINADA", "control_calidad", b.dataset.control,
+            "Eliminó una lectura de QC" + (info ? " (" + info.nombre + " " + control.nivel + ")" : "") + " por error de digitación.");
+          U.toast("Lectura eliminada.", "success");
+          cargar();
+        });
       });
     }
 
