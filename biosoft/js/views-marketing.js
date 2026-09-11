@@ -163,6 +163,7 @@
     var CATEGORIAS = [
       { id: "urgente", emoji: "🚨", kicker: "AVISO URGENTE", c1: "#dc2626", c2: "#f97316", titulo: "Atención pacientes", subtitulo: "Información importante que debes conocer hoy." },
       { id: "promocion", emoji: "🎉", kicker: "PROMOCIÓN ESPECIAL", c1: "#7c3aed", c2: "#ec4899", titulo: "Descuento especial", subtitulo: "Válido por tiempo limitado. ¡No te lo pierdas!" },
+      { id: "cumpleanos", emoji: "🎂", kicker: "¡FELIZ CUMPLEAÑOS!", c1: "#db2777", c2: "#f59e0b", titulo: "¡Feliz cumpleaños!", subtitulo: "Celebra tu día regalándote un chequeo de salud. Aprovecha un descuento especial este mes." },
       { id: "info", emoji: "ℹ️", kicker: "INFORMACIÓN DE INTERÉS", c1: "#0369a1", c2: "#06b6d4", titulo: "Sabías que...", subtitulo: "Cuidar tu salud empieza por hacerte tus exámenes a tiempo." },
       { id: "jornada", emoji: "🩺", kicker: "JORNADA DE SALUD", c1: "#059669", c2: "#0d9488", titulo: "Jornada especial de salud", subtitulo: "Exámenes con descuento este fin de semana." },
       { id: "marca", emoji: "✨", kicker: "", c1: (tenant && tenant.colorPrimario) || "#f97316", c2: (tenant && tenant.colorSecundario) || "#7c3aed", titulo: (tenant && tenant.nombre) || "Tu laboratorio", subtitulo: "Resultados confiables, entrega rápida." }
@@ -249,6 +250,7 @@
       var apertura = {
         urgente: "🚨 " + titulo + "\n\n" + subtitulo,
         promocion: "🎉 " + titulo + "\n\n" + subtitulo + "\n\n¡Escríbenos ya y separa tu cupo antes de que se agote!",
+        cumpleanos: "🎂 " + titulo + "\n\n" + subtitulo + "\n\n¡Regálate tiempo para ti! Escríbenos y agenda tu chequeo de cumpleaños.",
         info: "💡 " + titulo + "\n\n" + subtitulo,
         jornada: "🩺 " + titulo + "\n\n" + subtitulo,
         marca: "✨ En " + nombreLab + ": " + subtitulo
