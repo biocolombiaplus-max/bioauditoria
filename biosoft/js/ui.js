@@ -130,10 +130,21 @@
     var root = document.documentElement;
     if (!tenant) return;
     root.style.setProperty("--brand-primary", tenant.colorPrimario || "#f97316");
-    root.style.setProperty("--brand-secondary", tenant.colorSecundario || "#2e1065");
+    var fondoMenu = tenant.colorSecundario || "#2e1065";
+    root.style.setProperty("--brand-secondary", fondoMenu);
     var dark = shadeColor(tenant.colorPrimario || "#f97316", -18);
     root.style.setProperty("--brand-primary-dark", dark);
-    root.style.setProperty("--sidebar-text", tenant.colorTextoMenu || contrastColor(tenant.colorSecundario || "#2e1065"));
+    // Si quedó guardado un color de texto de menú personalizado que no
+    // contrasta bien contra el fondo del menú (por ejemplo, muy parecido a
+    // él), se ignora y se calcula uno legible automáticamente — así el
+    // menú nunca queda ilegible sin importar qué se haya guardado.
+    var textoMenu = tenant.colorTextoMenu;
+    var lFondo = luminanciaDe(fondoMenu);
+    var lTexto = textoMenu ? luminanciaDe(textoMenu) : null;
+    if (!textoMenu || lFondo === null || lTexto === null || Math.abs(lTexto - lFondo) < 0.35) {
+      textoMenu = contrastColor(fondoMenu);
+    }
+    root.style.setProperty("--sidebar-text", textoMenu);
     root.style.setProperty("--heading-color", tenant.colorTitulos || tenant.colorSecundario || "#2e1065");
     root.style.setProperty("--subheading-color", tenant.colorSubtitulos || tenant.colorPrimario || "#f97316");
   }
@@ -157,6 +168,16 @@
     var r = parseInt(hex.substr(0, 2), 16), g = parseInt(hex.substr(2, 2), 16), b = parseInt(hex.substr(4, 2), 16);
     var luminancia = (0.299 * r + 0.587 * g + 0.114 * b) / 255;
     return luminancia > 0.55 ? "#1e293b" : "#e2e8f0";
+  }
+  /* Luminancia relativa (0 a 1) de un color hex, o null si no es un hex de
+     6 dígitos válido — usada para detectar automáticamente cuándo un color
+     de texto guardado no contrasta contra su fondo (ver applyTenantTheme). */
+  function luminanciaDe(hex) {
+    hex = (hex || "").replace("#", "");
+    if (hex.length !== 6) return null;
+    var r = parseInt(hex.substr(0, 2), 16), g = parseInt(hex.substr(2, 2), 16), b = parseInt(hex.substr(4, 2), 16);
+    if (isNaN(r) || isNaN(g) || isNaN(b)) return null;
+    return (0.299 * r + 0.587 * g + 0.114 * b) / 255;
   }
   function shadeColor(hex, percent) {
     try {
