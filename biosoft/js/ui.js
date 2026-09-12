@@ -130,7 +130,14 @@
     var root = document.documentElement;
     if (!tenant) return;
     root.style.setProperty("--brand-primary", tenant.colorPrimario || "#f97316");
+    // El menú lateral solo se diseñó para fondos oscuros (el texto de los
+    // ítems usa transparencias claras sobre ese fondo): si quedó guardado
+    // un color secundario claro, se reemplaza por el morado oscuro por
+    // defecto para que el menú nunca quede ilegible sin importar qué se
+    // haya guardado.
     var fondoMenu = tenant.colorSecundario || "#2e1065";
+    var lFondoInicial = luminanciaDe(fondoMenu);
+    if (lFondoInicial === null || lFondoInicial > 0.5) fondoMenu = "#2e1065";
     root.style.setProperty("--brand-secondary", fondoMenu);
     var dark = shadeColor(tenant.colorPrimario || "#f97316", -18);
     root.style.setProperty("--brand-primary-dark", dark);
