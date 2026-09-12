@@ -42,6 +42,8 @@
     var examenesReferencia = []; // catálogo independiente: exámenes remitidos a un laboratorio de referencia (ver "🔬 Lab. Referencia")
     var refSearchTerm = "";
     var paquetes = []; // paquetes de exámenes con un precio total propio (ver "📦 Paquetes")
+    var carteraDesde = "", carteraHasta = ""; // rango de fechas de "📊 Cartera por Convenio"
+    var carteraExpandido = {}; // convenio (índice del grupo) -> si su detalle de órdenes está desplegado
 
     var TIPOS_CONVENIO = ["Laboratorio de Referencia", "Laboratorio de Contrarreferencia", "Cliente Institucional", "Otro"];
 
@@ -139,14 +141,15 @@
         '<button type="button" class="' + (vista === "recibo" ? "active" : "") + '" data-vista="recibo">💵 Recibo Directo</button>' +
         '<button type="button" class="' + (vista === "precios" ? "active" : "") + '" data-vista="precios">💲 Lista de Precios</button>' +
         '<button type="button" class="' + (vista === "convenios" ? "active" : "") + '" data-vista="convenios">🤝 Convenios</button>' +
+        '<button type="button" class="' + (vista === "cartera" ? "active" : "") + '" data-vista="cartera">📊 Cartera por Convenio</button>' +
         '<button type="button" class="' + (vista === "paquetes" ? "active" : "") + '" data-vista="paquetes">📦 Paquetes</button>' +
         '<button type="button" class="' + (vista === "labref" ? "active" : "") + '" data-vista="labref">🔬 Lab. Referencia</button>' +
         '<button type="button" class="' + (vista === "historial" ? "active" : "") + '" data-vista="historial">🕓 Historial</button>' +
         "</div></div>" +
-        (vista === "nueva" ? buildNuevaHtml() : vista === "recibo" ? buildReciboDirectoHtml() : vista === "precios" ? buildPreciosHtml() : vista === "convenios" ? buildConveniosHtml() : vista === "paquetes" ? buildPaquetesHtml() : vista === "labref" ? buildLabReferenciaHtml() : buildHistorialHtml()) +
+        (vista === "nueva" ? buildNuevaHtml() : vista === "recibo" ? buildReciboDirectoHtml() : vista === "precios" ? buildPreciosHtml() : vista === "convenios" ? buildConveniosHtml() : vista === "cartera" ? buildCarteraHtml() : vista === "paquetes" ? buildPaquetesHtml() : vista === "labref" ? buildLabReferenciaHtml() : buildHistorialHtml()) +
         "</div>";
       root.querySelectorAll("[data-vista]").forEach(function (b) { b.addEventListener("click", function () { vista = b.dataset.vista; build(); }); });
-      if (vista === "nueva") wireNueva(); else if (vista === "recibo") wireReciboDirecto(); else if (vista === "precios") wirePrecios(); else if (vista === "convenios") wireConvenios(); else if (vista === "paquetes") wirePaquetes(); else if (vista === "labref") wireLabReferencia(); else wireHistorial();
+      if (vista === "nueva") wireNueva(); else if (vista === "recibo") wireReciboDirecto(); else if (vista === "precios") wirePrecios(); else if (vista === "convenios") wireConvenios(); else if (vista === "cartera") wireCartera(); else if (vista === "paquetes") wirePaquetes(); else if (vista === "labref") wireLabReferencia(); else wireHistorial();
     }
 
     // ---------------------------------------------------------------------
@@ -834,6 +837,143 @@
           U.toast("Ahora crea el usuario: rol \"Aliado / Convenio\", ya queda con " + c.nombre + " preseleccionado.", "success");
           location.hash = "#/usuarios";
         });
+      });
+    }
+
+    // ---------------------------------------------------------------------
+    // CARTERA POR CONVENIO — cuánto se ha facturado, abonado y cuánto queda
+    // pendiente por cobrar en un periodo, agrupado por convenio (o
+    // Particulares) — la misma información del reporte "Cartera de
+    // Clientes" en PDF (Reportes → Administrativos), pero para VERLA en
+    // pantalla de un vistazo, sin tener que descargar un archivo cada vez
+    // que se quiere revisar. El PDF sigue disponible aquí mismo para
+    // cuando se necesite compartir o imprimir.
+    // ---------------------------------------------------------------------
+    function primerDiaMesCartera() {
+      var d = new Date(); d.setDate(1);
+      return d.toISOString().slice(0, 10);
+    }
+    function hoyISOCartera() { return new Date().toISOString().slice(0, 10); }
+
+    // "Abonado" hoy solo refleja el estado binario del Recibo de Pago
+    // (order.pago: pagada la orden completa, o pendiente) — igual que en
+    // el reporte de Cartera de Clientes en PDF; BIOsoft aún no lleva
+    // abonos parciales por orden.
+    function calcularCartera(desde, hasta) {
+      var orders = S.listOrders(tenantId).filter(function (o) {
+        var fecha = (o.fechaOrden || "").slice(0, 10);
+        return fecha >= desde && fecha <= hasta && o.valorCobrar != null;
+      });
+      var porConvenio = {};
+      orders.forEach(function (o) {
+        var pac = S.getPatient(o.patientId);
+        var valorTotal = o.valorCobrar || 0;
+        var valorAbonado = o.pago ? valorTotal : 0;
+        var key = o.convenioNombre || "Particulares";
+        if (!porConvenio[key]) porConvenio[key] = { nombre: key, ordenes: [], total: 0, abonado: 0, pendiente: 0 };
+        porConvenio[key].ordenes.push({
+          numeroOrden: o.numeroOrden, fecha: o.fechaOrden, paciente: pac ? U.nombreCompleto(pac) : "—",
+          valorTotal: valorTotal, valorAbonado: valorAbonado, saldoPendiente: valorTotal - valorAbonado, pagado: !!o.pago
+        });
+        porConvenio[key].total += valorTotal;
+        porConvenio[key].abonado += valorAbonado;
+        porConvenio[key].pendiente += valorTotal - valorAbonado;
+      });
+      var grupos = Object.keys(porConvenio).map(function (k) { return porConvenio[k]; });
+      // El que más debe primero — es lo que más le interesa ver de un
+      // vistazo a quien está cobrando cartera.
+      grupos.sort(function (a, b) { return b.pendiente - a.pendiente; });
+      grupos.forEach(function (g) { g.ordenes.sort(function (a, b) { return a.fecha.localeCompare(b.fecha); }); });
+      return grupos;
+    }
+
+    function carteraStatCard(label, monto, color) {
+      return '<div class="card" style="flex:1;min-width:180px;text-align:center;padding:16px">' +
+        '<div class="text-muted" style="font-size:12px;margin-bottom:6px">' + label + "</div>" +
+        '<div style="font-size:22px;font-weight:800;color:' + color + '">' + fmtMoneda(monto) + "</div>" +
+        "</div>";
+    }
+
+    function carteraFilaConvenioHtml(g, idx) {
+      var key = String(idx);
+      var abierto = !!carteraExpandido[key];
+      var filaResumen = "<tr data-cart-toggle='" + key + "' style='cursor:pointer'>" +
+        "<td style='width:20px'>" + (abierto ? "▾" : "▸") + "</td>" +
+        "<td><b>" + U.esc(g.nombre) + "</b></td>" +
+        "<td>" + g.ordenes.length + "</td>" +
+        "<td>" + fmtMoneda(g.total) + "</td>" +
+        "<td>" + fmtMoneda(g.abonado) + "</td>" +
+        "<td style='font-weight:700;color:" + (g.pendiente > 0 ? "#d64545" : "#0b8a4a") + "'>" + fmtMoneda(g.pendiente) + "</td>" +
+        "</tr>";
+      if (!abierto) return filaResumen;
+      var detalle = "<tr><td></td><td colspan='5' style='padding:0 0 12px'>" +
+        '<div class="table-wrap"><table><thead><tr><th>Orden</th><th>Fecha</th><th>Paciente</th><th>Total</th><th>Abonado</th><th>Saldo</th><th></th></tr></thead><tbody>' +
+        g.ordenes.map(function (o) {
+          return "<tr><td>" + o.numeroOrden + "</td><td>" + fmtFechaCorta(o.fecha) + "</td><td>" + U.esc(o.paciente) + "</td>" +
+            "<td>" + fmtMoneda(o.valorTotal) + "</td><td>" + fmtMoneda(o.valorAbonado) + "</td>" +
+            "<td style='font-weight:700;color:" + (o.saldoPendiente > 0 ? "#d64545" : "#0b8a4a") + "'>" + fmtMoneda(o.saldoPendiente) + "</td>" +
+            "<td>" + (o.pagado ? '<span class="badge badge-validado">Pagada</span>' : '<span class="badge badge-pendiente">Pendiente</span>') + "</td></tr>";
+        }).join("") +
+        "</tbody></table></div>" +
+        "</td></tr>";
+      return filaResumen + detalle;
+    }
+
+    function buildCarteraHtml() {
+      if (!tenant.mostrarPrecioOrden) {
+        return '<p class="text-muted" style="margin-top:14px">Activa "Permitir indicar el valor a cobrar al crear una orden" en Configuración del Laboratorio para poder ver el estado de cartera.</p>';
+      }
+      if (!carteraDesde) carteraDesde = primerDiaMesCartera();
+      if (!carteraHasta) carteraHasta = hoyISOCartera();
+      var grupos = calcularCartera(carteraDesde, carteraHasta);
+      var totalGeneral = grupos.reduce(function (a, g) { return a + g.total; }, 0);
+      var abonadoGeneral = grupos.reduce(function (a, g) { return a + g.abonado; }, 0);
+      var pendienteGeneral = grupos.reduce(function (a, g) { return a + g.pendiente; }, 0);
+
+      return '<p class="text-muted" style="margin:14px 0">Cuánto se ha facturado, abonado y cuánto queda pendiente por cobrar en el periodo, agrupado por convenio (o Particulares) — para saber de un vistazo quién debe y cuánto. Haz clic en un convenio para ver el detalle de sus órdenes.</p>' +
+        '<div class="form-grid" style="margin-bottom:14px">' +
+        '<div class="field"><label>Desde</label><input type="date" id="cart-desde" value="' + carteraDesde + '"/></div>' +
+        '<div class="field"><label>Hasta</label><input type="date" id="cart-hasta" value="' + carteraHasta + '"/></div>' +
+        "</div>" +
+        '<div class="flex gap-2 wrap" style="margin-bottom:16px">' +
+        carteraStatCard("Total Facturado", totalGeneral, "var(--text)") +
+        carteraStatCard("Total Abonado", abonadoGeneral, "#0b8a4a") +
+        carteraStatCard("Saldo Pendiente", pendienteGeneral, pendienteGeneral > 0 ? "#d64545" : "#0b8a4a") +
+        "</div>" +
+        '<div class="flex gap-2 wrap" style="margin-bottom:14px">' +
+        '<button type="button" class="btn btn-outline btn-sm" id="cart-pdf">' + U.icon("download") + " Descargar PDF</button>" +
+        "</div>" +
+        (grupos.length ?
+          '<div class="table-wrap"><table><thead><tr><th></th><th>Convenio</th><th># Órdenes</th><th>Facturado</th><th>Abonado</th><th>Pendiente</th></tr></thead><tbody>' +
+          grupos.map(carteraFilaConvenioHtml).join("") +
+          "</tbody></table></div>"
+          : '<p class="text-muted">No hay órdenes con valor a cobrar en este periodo.</p>');
+    }
+
+    function wireCartera() {
+      if (!tenant.mostrarPrecioOrden) return;
+      document.getElementById("cart-desde").addEventListener("change", function (e) { carteraDesde = e.target.value; build(); });
+      document.getElementById("cart-hasta").addEventListener("change", function (e) { carteraHasta = e.target.value; build(); });
+      document.querySelectorAll("[data-cart-toggle]").forEach(function (tr) {
+        tr.addEventListener("click", function () {
+          var key = tr.dataset.cartToggle;
+          carteraExpandido[key] = !carteraExpandido[key];
+          build();
+        });
+      });
+      var btnPdf = document.getElementById("cart-pdf");
+      if (btnPdf) btnPdf.addEventListener("click", function () {
+        var grupos = calcularCartera(carteraDesde, carteraHasta);
+        var filas = [];
+        grupos.forEach(function (g) {
+          g.ordenes.forEach(function (o) {
+            filas.push({ numeroOrden: o.numeroOrden, fecha: o.fecha, paciente: o.paciente, aliado: g.nombre, valorTotal: o.valorTotal, valorAbonado: o.valorAbonado, saldoPendiente: o.saldoPendiente });
+          });
+        });
+        filas.sort(function (a, b) { return a.fecha.localeCompare(b.fecha); });
+        var bytes = BIO_PDF_CARTERA.buildCarteraPDF(filas, tenant, carteraDesde, carteraHasta, "aliado");
+        U.downloadBytes(bytes, "Cartera_" + carteraDesde + "_a_" + carteraHasta + ".pdf");
+        U.toast("Reporte de cartera descargado.", "success");
       });
     }
 
