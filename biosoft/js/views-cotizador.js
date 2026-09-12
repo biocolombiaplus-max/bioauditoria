@@ -66,6 +66,20 @@
       }
       return base;
     }
+    // Igual que precioConConvenio(), pero para un PAQUETE: el descuento/
+    // recargo general del convenio NO se aplica solo (un paquete ya trae
+    // su propio precio total curado por el laboratorio, no la suma de sus
+    // exámenes), pero si el laboratorio le fijó a ESTE convenio una tarifa
+    // exclusiva para ESTE paquete puntual (ver "💲 Precios Especiales" en
+    // Convenios), esa sí tiene prioridad.
+    function precioPaqueteConConvenio(paqueteId, convenioId) {
+      var paquete = paquetes.filter(function (p) { return p.id === paqueteId; })[0];
+      var base = paquete ? (paquete.precio || 0) : 0;
+      if (!convenioId) return base;
+      var especial = (convenioPreciosPorConvenio[convenioId] || {})[paqueteId];
+      if (!especial) return base;
+      return especial.modo === "fijo" ? especial.valor : Math.max(0, base * (1 - especial.valor / 100));
+    }
     function fmtMonedaExtra(monto) {
       var extra = C.fmtMonedaAdicional(tenant, monto);
       return extra ? ' <span class="text-muted" style="font-weight:400;font-size:12px">(' + extra + ')</span>' : "";
@@ -204,10 +218,16 @@
           var checked = st.selectedPaquetes.indexOf(p.id) !== -1;
           var cant = p.examenesIds.length;
           var incluidos = p.examenesIds.map(function (id) { var e = resolverExamen(id); return e ? e.nombre : null; }).filter(Boolean).join(", ");
+          var precioRegular = p.precio || 0;
+          var precio = precioPaqueteConConvenio(p.id, st.convenioId);
+          var tieneDescuento = st.convenioId && precio !== precioRegular;
           return '<label class="exam-row"><input type="checkbox" data-picker-prefix="' + prefix + '" data-picker-paquete="' + p.id + '" ' + (checked ? "checked" : "") + '/>' +
             '<div class="grow"><div>' + U.esc(p.nombre) + "</div>" +
             '<div class="meta">' + cant + " examen" + (cant === 1 ? "" : "es") + " incluido" + (cant === 1 ? "" : "s") + (incluidos ? " — " + U.esc(incluidos) : "") + "</div></div>" +
-            '<div style="text-align:right;white-space:nowrap"><div style="font-weight:700;font-size:13px">' + (p.precio ? fmtMoneda(p.precio) : '<span class="text-muted">Sin precio</span>') + "</div></div></label>";
+            '<div style="text-align:right;white-space:nowrap">' +
+            (tieneDescuento ? '<div class="text-muted" style="font-size:11px;text-decoration:line-through">' + fmtMoneda(precioRegular) + "</div>" : "") +
+            '<div style="font-weight:700;font-size:13px;' + (tieneDescuento ? "color:var(--brand-primary)" : "") + '">' + (precio ? fmtMoneda(precio) : '<span class="text-muted">Sin precio</span>') + "</div>" +
+            "</div></label>";
         }).join("") : '<p class="text-muted" style="padding:14px">Aún no has creado ningún paquete. Ve a la pestaña "📦 Paquetes" para crear el primero.</p>';
         document.querySelectorAll('[data-picker-prefix="' + prefix + '"][data-picker-paquete]').forEach(function (chk) {
           chk.addEventListener("change", function () {
@@ -247,10 +267,7 @@
     }
 
     function totalPaquetesSeleccionados(st) {
-      return st.selectedPaquetes.reduce(function (a, id) {
-        var p = paquetes.filter(function (x) { return x.id === id; })[0];
-        return a + (p ? p.precio || 0 : 0);
-      }, 0);
+      return st.selectedPaquetes.reduce(function (a, id) { return a + precioPaqueteConConvenio(id, st.convenioId); }, 0);
     }
 
     function actualizarPickerTotales(prefix, st) {
@@ -263,9 +280,10 @@
     // propio precio total — no se desarma en sus exámenes individuales
     // con precio propio, que es justo lo que se quiere evitar (un
     // "Perfil Lipídico" cotizado con un solo valor, no la suma de sus 5
-    // exámenes por separado). El descuento de un convenio no aplica sobre
-    // el precio del paquete: ya es un precio especial fijado por el
-    // laboratorio de antemano.
+    // exámenes por separado). El descuento/recargo GENERAL de un convenio
+    // no aplica solo sobre el precio del paquete (ya es un precio curado
+    // de antemano), pero una tarifa exclusiva puntual para ESE paquete en
+    // ESE convenio (ver precioPaqueteConConvenio) sí tiene prioridad.
     function examenesSeleccionados(st) {
       var individuales = st.selected.map(function (id) {
         var e = resolverExamen(id);
@@ -277,7 +295,7 @@
         var incluidos = p.examenesIds.map(function (exId) { var e = resolverExamen(exId); return e ? e.nombre : null; }).filter(Boolean);
         return {
           examId: "paq:" + p.id, nombre: p.nombre + (incluidos.length ? " — incluye " + incluidos.join(", ") : ""),
-          seccion: SECCION_PAQUETES.id, seccionNombre: SECCION_PAQUETES.nombre, precio: p.precio || 0
+          seccion: SECCION_PAQUETES.id, seccionNombre: SECCION_PAQUETES.nombre, precio: precioPaqueteConConvenio(p.id, st.convenioId)
         };
       }).filter(Boolean);
       return individuales.concat(dePaquetes);
@@ -747,7 +765,7 @@
     // laboratorios de contrarreferencia o clientes institucionales.
     // ---------------------------------------------------------------------
     function buildConveniosHtml() {
-      return '<p class="text-muted" style="margin-top:14px">Crea un convenio (o "tarifa") para cada laboratorio de referencia, laboratorio de contrarreferencia, cliente institucional o tipo de cliente (ej. "Tarifa Particular", "Tarifa EPS X") con sus propios precios. Puedes definir un descuento o recargo general (aplica a todos los exámenes) y/o precios especiales puntuales por examen — a mano o cargando un Excel completo — el precio puntual siempre tiene prioridad sobre el ajuste general.</p>' +
+      return '<p class="text-muted" style="margin-top:14px">Crea un convenio (o "tarifa") para cada laboratorio de referencia, laboratorio de contrarreferencia, cliente institucional o tipo de cliente (ej. "Tarifa Particular", "Tarifa EPS X") con sus propios precios. Puedes definir un descuento o recargo general (aplica a todos los exámenes) y/o tarifas exclusivas puntuales por examen o por paquete — a mano o cargando un Excel completo — la tarifa puntual siempre tiene prioridad sobre el ajuste general.</p>' +
         '<button type="button" class="btn btn-primary btn-sm" id="btn-nuevo-convenio">' + U.icon("plus") + " Nuevo Convenio</button>" +
         '<div id="convenios-grid" class="flex wrap gap-2" style="margin-top:14px;align-items:stretch">' +
         (convenios.length ? convenios.map(convenioCardHtml).join("") : '<p class="text-muted">Aún no has creado ningún convenio.</p>') +
@@ -765,7 +783,7 @@
         (c.activo ? '<span class="badge badge-validado">Activo</span>' : '<span class="badge badge-pendiente">Inactivo</span>') +
         "</div>" +
         '<p style="margin:10px 0 4px;font-size:13px">' + (esRecargo ? "Recargo" : "Descuento") + " general: <b>" + (c.descuentoGeneral || 0) + "%</b></p>" +
-        '<p style="margin:0 0 4px;font-size:13px">Precios especiales por examen: <b>' + numEspeciales + "</b></p>" +
+        '<p style="margin:0 0 4px;font-size:13px">Tarifas exclusivas (exámenes/paquetes): <b>' + numEspeciales + "</b></p>" +
         (c.nit ? '<p class="text-muted" style="margin:0 0 2px;font-size:12px">NIT ' + U.esc(c.nit) + "</p>" : "") +
         (c.contactoNombre || c.contactoCelular || c.contactoEmail ? '<p class="text-muted" style="margin:0 0 2px;font-size:12px">' + [c.contactoNombre, c.contactoCelular, c.contactoEmail].filter(Boolean).map(U.esc).join(" · ") + "</p>" : "") +
         (c.granContribuyente || c.autorretenedor ? '<p style="margin:0 0 12px">' +
@@ -1037,15 +1055,60 @@
 
     var preciosEspecialesSearchTerm = "";
     function abrirPreciosEspeciales(convenio) {
+      var conPaquetes = paquetesActivos().length > 0;
       var wrap = U.openModal(
         '<h3 class="modal-title">💲 Precios Especiales — ' + U.esc(convenio.nombre) + '</h3>' +
-        '<p class="text-muted" style="margin-top:0">Define un precio fijo o un % de descuento puntual para exámenes específicos de este convenio. Los exámenes sin precio especial usan el descuento general (' + (convenio.descuentoGeneral || 0) + '%) o el precio regular.</p>' +
+        '<p class="text-muted" style="margin-top:0">Define un precio fijo o un % de descuento puntual para exámenes y/o paquetes específicos de este convenio. Lo que no tenga precio especial usa el descuento general (' + (convenio.descuentoGeneral || 0) + '%, solo aplica a exámenes) o el precio regular.</p>' +
+        (conPaquetes ?
+          '<h4 style="margin:14px 0 6px">📦 Paquetes</h4>' +
+          '<div class="table-wrap" style="max-height:220px;overflow-y:auto"><table><thead><tr><th>Paquete</th><th>Precio Base</th><th>Tipo</th><th style="min-width:120px">Valor</th><th></th></tr></thead><tbody id="pe-paq-tbody"></tbody></table></div>'
+          : "") +
+        '<h4 style="margin:14px 0 6px">🧪 Exámenes</h4>' +
         '<div class="field" style="margin-bottom:10px"><input id="pe-search" placeholder="Buscar examen por nombre o código CUPS…"/></div>' +
-        '<div class="table-wrap" style="max-height:440px;overflow-y:auto"><table><thead><tr><th>Examen</th><th>Precio Base</th><th>Tipo</th><th style="min-width:120px">Valor</th><th></th></tr></thead><tbody id="pe-tbody"></tbody></table></div>' +
+        '<div class="table-wrap" style="max-height:340px;overflow-y:auto"><table><thead><tr><th>Examen</th><th>Precio Base</th><th>Tipo</th><th style="min-width:120px">Valor</th><th></th></tr></thead><tbody id="pe-tbody"></tbody></table></div>' +
         '<div class="flex justify-between" style="margin-top:16px"><button type="button" class="btn btn-ghost" data-modal-close>Cerrar</button><span></span></div>',
         { lg: true }
       );
       preciosEspecialesSearchTerm = "";
+
+      function renderTablaPaquetes() {
+        if (!conPaquetes) return;
+        wrap.querySelector("#pe-paq-tbody").innerHTML = paquetesActivos().map(function (p) {
+          var especial = (convenioPreciosPorConvenio[convenio.id] || {})[p.id];
+          return "<tr>" +
+            "<td>" + U.esc(p.nombre) + '<div class="text-muted" style="font-size:11px">' + p.examenesIds.length + " examen(es) incluido(s)</div></td>" +
+            "<td>" + fmtMoneda(p.precio || 0) + "</td>" +
+            '<td><select data-pe-paq-modo="' + p.id + '"><option value="" ' + (!especial ? "selected" : "") + '>— Sin especial —</option><option value="descuento" ' + (especial && especial.modo === "descuento" ? "selected" : "") + '>% Descuento</option><option value="fijo" ' + (especial && especial.modo === "fijo" ? "selected" : "") + ">Precio Fijo</option></select></td>" +
+            '<td><input type="number" step="any" min="0" data-pe-paq-valor="' + p.id + '" value="' + (especial ? especial.valor : "") + '" ' + (!especial ? 'style="display:none"' : "") + '/></td>' +
+            '<td><button type="button" class="btn btn-primary btn-sm" data-pe-paq-guardar="' + p.id + '">' + U.icon("check") + "</button></td>" +
+            "</tr>";
+        }).join("");
+
+        wrap.querySelectorAll("[data-pe-paq-modo]").forEach(function (sel) {
+          sel.addEventListener("change", function () {
+            var input = wrap.querySelector('[data-pe-paq-valor="' + sel.dataset.pePaqModo + '"]');
+            input.style.display = sel.value ? "" : "none";
+          });
+        });
+        wrap.querySelectorAll("[data-pe-paq-guardar]").forEach(function (btn) {
+          btn.addEventListener("click", function () {
+            var paqueteId = btn.dataset.pePaqGuardar;
+            var modo = wrap.querySelector('[data-pe-paq-modo="' + paqueteId + '"]').value;
+            var valor = parseFloat(wrap.querySelector('[data-pe-paq-valor="' + paqueteId + '"]').value) || 0;
+            if (!modo) {
+              S.cotizador.quitarConvenioPrecio(tenantId, convenio.id, paqueteId);
+              delete convenioPreciosPorConvenio[convenio.id][paqueteId];
+              U.toast("Tarifa exclusiva del paquete quitada.", "success");
+            } else {
+              S.cotizador.setConvenioPrecio(tenantId, convenio.id, paqueteId, modo, valor);
+              convenioPreciosPorConvenio[convenio.id] = convenioPreciosPorConvenio[convenio.id] || {};
+              convenioPreciosPorConvenio[convenio.id][paqueteId] = { modo: modo, valor: valor };
+              U.toast("Tarifa exclusiva del paquete guardada.", "success");
+            }
+            renderTablaPaquetes();
+          });
+        });
+      }
 
       function renderTabla() {
         var term = U.normalizar(preciosEspecialesSearchTerm.trim());
@@ -1097,6 +1160,7 @@
       }
 
       wrap.querySelector("#pe-search").addEventListener("input", function (e) { preciosEspecialesSearchTerm = e.target.value; renderTabla(); });
+      renderTablaPaquetes();
       renderTabla();
       wrap.querySelectorAll("[data-modal-close]").forEach(function (b) { b.addEventListener("click", function () { U.closeModal(wrap); cargar(); }); });
     }

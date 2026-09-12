@@ -148,6 +148,19 @@
       if (convenio.descuentoGeneral > 0) return Math.max(0, base * (1 - convenio.descuentoGeneral / 100));
       return base;
     }
+    // Igual que precioConConvenio(), pero para un PAQUETE: el descuento/
+    // recargo general del convenio no se le aplica solo (ya trae su propio
+    // precio total curado por el laboratorio), pero una tarifa exclusiva
+    // puntual definida para ESE paquete en ESE convenio (Cotizador →
+    // Convenios → 💲 Precios Especiales) sí tiene prioridad.
+    function precioPaqueteConConvenio(paqueteId) {
+      var paquete = paquetes.filter(function (p) { return p.id === paqueteId; })[0];
+      var base = paquete ? (paquete.precio || 0) : 0;
+      if (!convenioIdSel) return base;
+      var especial = (convenioPreciosPorConvenio[convenioIdSel] || {})[paqueteId];
+      if (!especial) return base;
+      return especial.modo === "fijo" ? especial.valor : Math.max(0, base * (1 - especial.valor / 100));
+    }
 
     root.innerHTML =
       '<div class="card">' +
@@ -220,10 +233,16 @@
           var checked = selectedPaquetes.indexOf(p.id) !== -1;
           var cant = p.examenesIds.length;
           var incluidos = p.examenesIds.map(function (id) { var e = C.examenPorId(id) || C.examenEfectivo(id, tenant); return e ? e.nombre : null; }).filter(Boolean).join(", ");
+          var precioRegular = p.precio || 0;
+          var precio = precioPaqueteConConvenio(p.id);
+          var tieneDescuento = convenioIdSel && precio !== precioRegular;
           return '<label class="exam-row"><input type="checkbox" data-paquete="' + p.id + '" ' + (checked ? "checked" : "") + '/>' +
             '<div class="grow"><div>' + U.esc(p.nombre) + "</div>" +
             '<div class="meta">' + cant + " examen" + (cant === 1 ? "" : "es") + " incluido" + (cant === 1 ? "" : "s") + (incluidos ? " — " + U.esc(incluidos) : "") + "</div></div>" +
-            (tenant.mostrarPrecioOrden ? '<div style="text-align:right;white-space:nowrap;font-weight:700;font-size:13px">' + (p.precio ? fmtMoneda(p.precio) : '<span class="text-muted">Sin precio</span>') + "</div>" : "") +
+            (tenant.mostrarPrecioOrden ? '<div style="text-align:right;white-space:nowrap">' +
+              (tieneDescuento ? '<div class="text-muted" style="font-size:11px;text-decoration:line-through">' + fmtMoneda(precioRegular) + "</div>" : "") +
+              '<div style="font-weight:700;font-size:13px;' + (tieneDescuento ? "color:var(--brand-primary)" : "") + '">' + (precio ? fmtMoneda(precio) : '<span class="text-muted">Sin precio</span>') + "</div>" +
+              "</div>" : "") +
             "</label>";
         }).join("") : '<p class="text-muted" style="padding:14px">Aún no has creado ningún paquete. Ve a Cotizaciones → "📦 Paquetes" para crear el primero.</p>';
         document.querySelectorAll("[data-paquete]").forEach(function (chk) {
@@ -280,11 +299,10 @@
       if (!input) return;
       // El precio de un paquete es el precio TOTAL que se le fijó al
       // crearlo (con su descuento ya incluido) — no la suma de sus
-      // exámenes individuales, igual que en el Cotizador.
-      var totalPaquetes = selectedPaquetes.reduce(function (sum, id) {
-        var p = paquetes.filter(function (x) { return x.id === id; })[0];
-        return sum + (p ? p.precio || 0 : 0);
-      }, 0);
+      // exámenes individuales, igual que en el Cotizador — salvo que el
+      // convenio seleccionado tenga una tarifa exclusiva puntual para ese
+      // paquete (ver precioPaqueteConConvenio).
+      var totalPaquetes = selectedPaquetes.reduce(function (sum, id) { return sum + precioPaqueteConConvenio(id); }, 0);
       // Un examen ya cubierto por un paquete seleccionado no se vuelve a
       // sumar por separado, aunque también esté marcado a mano — su costo
       // ya está incluido en el precio del paquete.
@@ -327,6 +345,7 @@
       selConvenioEl.addEventListener("change", function (e) {
         convenioIdSel = e.target.value;
         precioEditadoManualmente = false;
+        renderExams();
         sugerirValorCobrar();
       });
     }
