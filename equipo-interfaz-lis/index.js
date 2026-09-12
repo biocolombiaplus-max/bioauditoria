@@ -94,8 +94,8 @@ async function main() {
   await iniciarSesion(auth, config.usuarioEmail, config.usuarioPassword);
   console.log("[BIOsoft-LIS] Sesión iniciada como", config.usuarioEmail);
 
-  console.log(`[BIOsoft-LIS] Abriendo puerto serial ${config.puertoSerial} (${config.baudRate} baudios)...`);
-  const port = new SerialPort({ path: config.puertoSerial, baudRate: config.baudRate || 9600, dataBits: 8, parity: "none", stopBits: 1 });
+  console.log(`[BIOsoft-LIS] Abriendo puerto serial ${config.puertoSerial} (${config.baudRate} baudios${config.rtscts ? ", RTS/CTS activado" : ""})...`);
+  const port = new SerialPort({ path: config.puertoSerial, baudRate: config.baudRate || 9600, dataBits: 8, parity: "none", stopBits: 1, rtscts: !!config.rtscts });
 
   const receiver = astm.createReceiver({
     onControl: (byte) => port.write(Buffer.from([byte])),

@@ -22,6 +22,46 @@ del fabricante, **no verificado contra los equipos físicos**:
   que ya está construido: prueba `capturar-tcp.js` (o `capturar.js` si
   tiene puerto serial).
 
+### Medonic M32 (Boule Diagnostics) — observado directamente en un equipo real en sitio
+
+A diferencia de los 3 anteriores (solo documentación pública), esto sí se
+leyó directamente de la pantalla táctil de un Medonic M32 real (menú
+Setup Menu 1 → Serial Setup → "Serial Output Setup A/B"):
+
+- **"Send with Ack." está marcado [X]:** el equipo espera una confirmación
+  (ACK) después de enviar cada trama — esto es justo el comportamiento del
+  handshake ENQ/ACK/NAK/EOT de ASTM E1394 que `astm.js` ya implementa
+  automáticamente. Buena señal de que `capturar.js`/`index.js` (sin
+  modificar el parser) es el punto de partida correcto para este equipo.
+- **"HW Handshake" está marcado [X]:** el equipo espera control de flujo
+  por hardware (líneas RTS/CTS), que por defecto este middleware NO
+  activaba. Se agregó soporte opcional (`rtscts` en `config.json`, o
+  `rtscts` como tercer argumento de `capturar.js`) — actívalo si el
+  equipo transmite con esta opción encendida y no aparece nada en la
+  captura, ya antes de intentar apagar "HW Handshake" en el equipo (que
+  puede no ser deseable si así lo dejó el técnico del fabricante).
+- **"Baud Rate" muestra un índice numérico (ej. "1"), no los baudios
+  reales** (ej. "9600") — es un menú por posición, no el valor directo.
+  Hay que tocar ese botón para ver qué valores cicla y anotar cuál está
+  seleccionado, o confirmarlo en el manual técnico del M32.
+- **"Manual Send Mode" / "Auto Send Mode":** el equipo puede enviar cada
+  resultado a pedido (manual, con un botón "enviar"/"imprimir" en su
+  pantalla) o automáticamente al terminar cada muestra. Para el primer
+  piloto con `capturar.js` cualquiera de los dos sirve (basta con
+  disparar el envío manualmente después de correr una muestra); para uso
+  diario sin intervención, "Auto Send" es preferible si el equipo lo
+  soporta bien.
+- **"Select USB VID&PID"** sugiere que el M32 se conecta por **USB**
+  (apareciendo como un puerto COM virtual en Windows, típicamente con
+  chipset FTDI/CP210x/CH340/PL2303), no por DB9 serial clásico — puede
+  necesitar el driver USB-a-serial correspondiente instalado en el
+  computador antes de que aparezca en el Administrador de Dispositivos.
+
+**No hay todavía un mapeo de parámetros construido para el Medonic M32**
+(`medonic-m32-map.js` no existe aún) — se construye con el archivo `.log`
+real que genere `capturar.js`, siguiendo el mismo proceso que cualquier
+equipo nuevo (ver la sección "❌ NO validado" más abajo).
+
 **Esto NO reemplaza la prueba real** — es la mejor pista disponible antes
 de llegar al sitio, para saber qué herramienta probar primero en cada
 equipo y ahorrar tiempo en la visita.
@@ -41,6 +81,7 @@ incluyendo los que BIOsoft ya soporta pedir conectar:
 - **Dymind** DF52 (hematología)
 - **Maglumi** 800 (inmunoensayo / quimioluminiscencia)
 - **Rayto** (química y hematología)
+- **Medonic M32** (Boule Diagnostics, hematología — ver hallazgos concretos de este equipo más abajo)
 
 ## ⚠️ Estado del proyecto: piloto, no producción
 

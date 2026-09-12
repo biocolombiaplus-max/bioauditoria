@@ -12,6 +12,17 @@
  *   node capturar.js                    (lista los puertos disponibles)
  *   node capturar.js COM3               (Windows, 9600 baudios por defecto)
  *   node capturar.js /dev/ttyUSB0 9600  (Linux/Mac, con baudios explícitos)
+ *   node capturar.js COM3 9600 rtscts   (agrega "rtscts" al final si el
+ *                                         equipo tiene "HW Handshake"/
+ *                                         "RTS/CTS" activado en su propio
+ *                                         menú de configuración serial —
+ *                                         ej. Medonic M32 "Serial Output
+ *                                         Setup A". Sin esto, un equipo con
+ *                                         ese handshake activado puede
+ *                                         quedarse esperando la señal CTS
+ *                                         para siempre y nunca transmitir
+ *                                         nada, aunque el puerto/baudios
+ *                                         estén bien.)
  */
 "use strict";
 const { SerialPort } = require("serialport");
@@ -21,6 +32,7 @@ const astm = require("./astm");
 
 const puerto = process.argv[2];
 const baudRate = parseInt(process.argv[3], 10) || 9600;
+const rtscts = process.argv[4] === "rtscts";
 
 const nombreArchivoLog = "captura_" + new Date().toISOString().replace(/[:.]/g, "-") + ".log";
 const rutaLog = path.join(__dirname, nombreArchivoLog);
@@ -50,10 +62,10 @@ async function listarPuertos() {
 if (!puerto) {
   listarPuertos();
 } else {
-  log(`[Captura] Abriendo ${puerto} a ${baudRate} baudios...`);
+  log(`[Captura] Abriendo ${puerto} a ${baudRate} baudios${rtscts ? " (con RTS/CTS activado)" : ""}...`);
   log(`[Captura] Todo lo que llegue se guarda también en: ${nombreArchivoLog}`);
 
-  const port = new SerialPort({ path: puerto, baudRate, dataBits: 8, parity: "none", stopBits: 1 });
+  const port = new SerialPort({ path: puerto, baudRate, dataBits: 8, parity: "none", stopBits: 1, rtscts });
 
   let mensajesRecibidos = 0;
 

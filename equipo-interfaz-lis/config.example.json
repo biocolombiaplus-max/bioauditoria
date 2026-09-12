@@ -20,6 +20,9 @@
   "baudRate": 9600,
   "_baudRate_ojo": "9600 8N1 es lo más común en equipos ASTM, pero DEBE confirmarse en el manual del BC-10 (menú de configuración de comunicación del equipo) — si no coincide, no va a recibir datos legibles.",
 
+  "rtscts": false,
+  "_rtscts_ojo": "Ponlo en true SOLO si el propio menú de configuración serial del equipo tiene activado 'HW Handshake' / 'RTS/CTS' (ej. Medonic M32: Setup Menu 1 -> Serial Setup -> Serial Output Setup A -> 'HW Handshake' marcado con [X]). Si el equipo lo tiene activado y aquí queda en false, el equipo puede quedarse esperando la señal CTS para siempre y nunca transmitir nada.",
+
   "verboso": true,
   "_verboso": "Déjalo en true mientras haces el piloto con el equipo real, para ver en consola cada trama que llega y confirmar que el formato coincide con lo que espera mindray-bc10-map.js. Pásalo a false en uso diario."
 }
