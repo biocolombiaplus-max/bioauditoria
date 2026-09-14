@@ -62,6 +62,7 @@
 
     function buildAdminHtml() {
       var insumos = S.inventario.listInsumos(tenantId);
+      var conveniosActivos = S.cotizador.listConvenios(tenantId).filter(function (c) { return c.activo; });
       return '<div class="lp-grid" style="margin-top:14px;grid-template-columns:repeat(auto-fit,minmax(280px,1fr))">' +
         '<div class="lp-feature">' +
         '<div class="lp-ic">💊</div><h3>Gasto de Reactivos</h3>' +
@@ -87,11 +88,15 @@
         "</div>" +
         '<div class="lp-feature">' +
         '<div class="lp-ic">🧾</div><h3>Cartera de Clientes</h3>' +
-        '<p>Valor total, abonado y saldo pendiente de las órdenes del periodo — general, o agrupado por Aliado (Convenio) o por Paciente.</p>' +
+        '<p>Valor total, abonado y saldo pendiente de las órdenes del periodo — general, de un convenio en particular, o agrupado por Aliado (Convenio) o por Paciente.</p>' +
         '<div class="form-grid" style="margin:10px 0">' +
         '<div class="field"><label>Desde</label><input type="date" id="rep-cartera-desde" value="' + primerDiaMes() + '"/></div>' +
         '<div class="field"><label>Hasta</label><input type="date" id="rep-cartera-hasta" value="' + hoyISO() + '"/></div>' +
         '</div>' +
+        (conveniosActivos.length ?
+          '<div class="field" style="margin:0 0 10px"><label>Convenio (opcional)</label><select id="rep-cartera-convenio"><option value="">Todos los convenios y particulares</option>' +
+          conveniosActivos.map(function (c) { return '<option value="' + c.id + '">' + U.esc(c.nombre) + "</option>"; }).join("") +
+          "</select></div>" : "") +
         '<div class="field" style="margin:0 0 10px"><label>Agrupar por</label><select id="rep-cartera-agrupar">' +
         '<option value="aliado">Aliado (Convenio)</option>' +
         '<option value="paciente">Paciente</option>' +
@@ -99,11 +104,21 @@
         "</select></div>" +
         '<button class="btn btn-primary btn-block" id="btn-rep-cartera">' + U.icon("download") + " Generar PDF</button>" +
         "</div>" +
+        '<div class="lp-feature">' +
+        '<div class="lp-ic">📋</div><h3>Relación de Órdenes y Exámenes</h3>' +
+        '<p>Detallado por paciente y por examen entre fechas: N° de orden, documento, paciente, fecha, edad, sexo y cada examen con su valor — con total por orden y total general del listado.</p>' +
+        '<div class="form-grid" style="margin:10px 0">' +
+        '<div class="field"><label>Desde</label><input type="date" id="rep-relacion-desde" value="' + primerDiaMes() + '"/></div>' +
+        '<div class="field"><label>Hasta</label><input type="date" id="rep-relacion-hasta" value="' + hoyISO() + '"/></div>' +
+        "</div>" +
+        '<button class="btn btn-primary btn-block" id="btn-rep-relacion">' + U.icon("download") + " Generar PDF</button>" +
+        "</div>" +
         "</div>";
     }
 
     function wireAdmin() {
       var tenant = BIO_AUTH.currentTenant();
+      var conveniosActivos = S.cotizador.listConvenios(tenantId).filter(function (c) { return c.activo; });
       var btnGasto = document.getElementById("btn-rep-gasto");
       if (btnGasto) btnGasto.addEventListener("click", function () {
         var desde = document.getElementById("rep-gasto-desde").value;
@@ -141,8 +156,11 @@
         var desde = document.getElementById("rep-cartera-desde").value;
         var hasta = document.getElementById("rep-cartera-hasta").value;
         var agrupacion = document.getElementById("rep-cartera-agrupar").value;
+        var elConvenioCartera = document.getElementById("rep-cartera-convenio");
+        var convenioIdCartera = elConvenioCartera ? elConvenioCartera.value : "";
         var orders = S.listOrders(tenantId).filter(function (o) {
           var fecha = (o.fechaOrden || "").slice(0, 10);
+          if (convenioIdCartera && o.convenioId !== convenioIdCartera) return false;
           return fecha >= desde && fecha <= hasta && o.valorCobrar != null;
         });
         // "Abonado" hoy solo refleja el estado binario del Recibo de Pago
@@ -164,9 +182,64 @@
             saldoPendiente: valorTotal - valorAbonado
           };
         }).sort(function (a, b) { return a.fecha.localeCompare(b.fecha); });
-        var bytes = BIO_PDF_CARTERA.buildCarteraPDF(filas, tenant, desde, hasta, agrupacion);
-        U.downloadBytes(bytes, "Cartera_" + desde + "_a_" + hasta + ".pdf");
+        var convenioFiltro = convenioIdCartera ? conveniosActivos.filter(function (c) { return c.id === convenioIdCartera; })[0] : null;
+        var bytes = BIO_PDF_CARTERA.buildCarteraPDF(filas, tenant, desde, hasta, agrupacion, convenioFiltro ? convenioFiltro.nombre : "");
+        var sufijoConvenio = convenioFiltro ? "_" + convenioFiltro.nombre.replace(/\s+/g, "_") : "";
+        U.downloadBytes(bytes, "Cartera_" + desde + "_a_" + hasta + sufijoConvenio + ".pdf");
         U.toast("Reporte de cartera descargado.", "success");
+      });
+      var btnRelacion = document.getElementById("btn-rep-relacion");
+      if (btnRelacion) btnRelacion.addEventListener("click", function () {
+        var desde = document.getElementById("rep-relacion-desde").value;
+        var hasta = document.getElementById("rep-relacion-hasta").value;
+        // Cada examen se valora con la Lista de Precios (o la tarifa
+        // especial del convenio de esa orden, si tiene una) — las órdenes
+        // no guardan un precio por examen individual, así que esto es el
+        // mejor cálculo disponible, igual que la sugerencia automática de
+        // "Valor a Cobrar" al crear la orden.
+        var preciosPorId = {};
+        S.cotizador.listPrecios(tenantId).forEach(function (p) { preciosPorId[p.examId] = p.precio; });
+        var convenios = S.cotizador.listConvenios(tenantId);
+        var convenioPreciosPorConvenio = {};
+        function preciosDeConvenio(convenioId) {
+          if (!convenioPreciosPorConvenio[convenioId]) {
+            var mapa = {};
+            S.cotizador.listConvenioPrecios(tenantId, convenioId).forEach(function (p) { mapa[p.examId] = p; });
+            convenioPreciosPorConvenio[convenioId] = mapa;
+          }
+          return convenioPreciosPorConvenio[convenioId];
+        }
+        function valorExamen(examId, convenioId) {
+          var base = preciosPorId[examId] || 0;
+          if (!convenioId) return base;
+          var convenio = convenios.filter(function (c) { return c.id === convenioId; })[0];
+          if (!convenio) return base;
+          var especial = preciosDeConvenio(convenioId)[examId];
+          if (especial) return especial.modo === "fijo" ? especial.valor : Math.max(0, base * (1 - especial.valor / 100));
+          if (convenio.descuentoGeneral > 0) return Math.max(0, base * (1 - convenio.descuentoGeneral / 100));
+          return base;
+        }
+        var ordenes = S.listOrders(tenantId).filter(function (o) {
+          var fecha = (o.fechaOrden || "").slice(0, 10);
+          return fecha >= desde && fecha <= hasta && o.examenes && o.examenes.length;
+        }).map(function (o) {
+          var pac = S.getPatient(o.patientId);
+          return {
+            numeroOrden: o.numeroOrden,
+            documento: pac ? pac.tipoDocumento + " " + pac.numeroDocumento : "—",
+            paciente: pac ? U.nombreCompleto(pac) : "—",
+            fecha: o.fechaOrden,
+            edad: pac ? U.edadTexto(pac) : "—",
+            sexo: pac ? pac.sexo : "—",
+            examenes: o.examenes.map(function (ex) {
+              var exCat = BIO_CATALOG.examenEfectivo(ex.examId, tenant);
+              return { nombre: exCat ? exCat.nombre : ex.examId, valor: valorExamen(ex.examId, o.convenioId) };
+            })
+          };
+        }).sort(function (a, b) { return a.fecha.localeCompare(b.fecha); });
+        var bytesRelacion = BIO_PDF_RELACION_ORDENES.buildRelacionOrdenesPDF(ordenes, tenant, desde, hasta);
+        U.downloadBytes(bytesRelacion, "Relacion_Ordenes_Examenes_" + desde + "_a_" + hasta + ".pdf");
+        U.toast("Relación de órdenes y exámenes descargada.", "success");
       });
     }
 

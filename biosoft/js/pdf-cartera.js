@@ -114,12 +114,15 @@
   }
 
   /* filas: [{ numeroOrden, fecha (ISO), paciente, aliado, valorTotal,
-     valorAbonado, saldoPendiente }]. agrupacion: "general" | "aliado" | "paciente". */
-  function buildCarteraPDF(filas, tenant, desde, hasta, agrupacion) {
+     valorAbonado, saldoPendiente }]. agrupacion: "general" | "aliado" | "paciente".
+     convenioNombreFiltro (opcional): si el reporte ya viene filtrado a un
+     solo convenio, se muestra en el subtítulo para que quede claro de cuál
+     se trata (en vez de solo decir "Agrupado por Aliado" sin más). */
+  function buildCarteraPDF(filas, tenant, desde, hasta, agrupacion, convenioNombreFiltro) {
     agrupacion = agrupacion || "aliado";
     var jsPDFCtor = window.jspdf ? window.jspdf.jsPDF : window.jsPDF;
     var doc = new jsPDFCtor({ unit: "pt", format: "letter" });
-    var ctx = encabezado(doc, tenant, "ESTADO DE CARTERA");
+    var ctx = encabezado(doc, tenant, "ESTADO DE CARTERA" + (convenioNombreFiltro ? " — " + convenioNombreFiltro.toUpperCase() : ""));
     var margin = ctx.margin, pageW = ctx.pageW, rgb = ctx.rgb, y = ctx.y + 14;
 
     doc.setFont("helvetica", "normal"); doc.setFontSize(9); doc.setTextColor(60, 60, 60);
