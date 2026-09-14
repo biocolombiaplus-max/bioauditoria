@@ -365,6 +365,21 @@
     var epsOptions = function (current) {
       return C.EPS_COLOMBIA.map(function (e) { return '<option ' + (e === current ? "selected" : "") + ">" + e + "</option>"; }).join("");
     };
+    // Lista al personal activo del laboratorio para elegir quién tomó la
+    // muestra — no siempre es la misma persona que digita el registro del
+    // paciente en el sistema. Si el paciente ya tenía guardado un nombre que
+    // ya no está entre el personal activo (por ejemplo, alguien que ya no
+    // trabaja ahí), se conserva esa opción para no perder el dato histórico.
+    var auxOptions = function (current) {
+      var elegido = current || session.nombre;
+      var staff = S.listUsers(session.tenantId).filter(function (u) { return u.activo !== false; })
+        .sort(function (a, b) { return (a.nombre || "").localeCompare(b.nombre || ""); });
+      var opciones = staff.map(function (u) { return '<option ' + (u.nombre === elegido ? "selected" : "") + ">" + U.esc(u.nombre) + "</option>"; }).join("");
+      if (elegido && staff.every(function (u) { return u.nombre !== elegido; })) {
+        opciones = '<option selected>' + U.esc(elegido) + "</option>" + opciones;
+      }
+      return opciones;
+    };
 
     var wrap = U.openModal(
       '<h3 class="modal-title">' + (isEdit ? "Editar Paciente" : "Nuevo Paciente") + '</h3>' +
@@ -401,6 +416,9 @@
           inp("medicoRemitente", "Médico que Remite", patient.medicoRemitente) +
           sel("procedencia", "Procedencia", C.PROCEDENCIAS.map(function (p) { return '<option ' + (p === patient.procedencia ? "selected" : "") + ">" + p + "</option>"; }).join("")) +
           inp("ocupacion", "Ocupación", patient.ocupacion) +
+        "</div></fieldset>" +
+        '<fieldset><legend>Toma de Muestra</legend><div class="form-grid">' +
+          sel("auxiliarTomaMuestra", "Auxiliar que Tomó la Muestra", auxOptions(patient.auxiliarTomaMuestra)) +
         "</div></fieldset>" +
         '<fieldset><legend>Observaciones</legend><textarea id="f_observaciones">' + U.esc(patient.observaciones || "") + "</textarea></fieldset>" +
         '<div class="flex gap-2 justify-between" style="margin-top:6px">' +
@@ -454,6 +472,10 @@
         var el = wrap.querySelector("#f_" + c);
         if (el && encontrado[c] != null) el.value = encontrado[c];
       });
+      // La toma de muestra es un evento nuevo cada vez que el paciente
+      // vuelve, así que aquí NO se precarga el auxiliar de su registro
+      // anterior — se deja en el valor por defecto (quien tiene la sesión
+      // abierta ahora mismo).
       refreshDependentSelects();
       wrap.querySelector("#f_tipoDocumento").value = tipoDoc;
       wrap.querySelector("#f_tipoAfiliacion").value = encontrado.tipoAfiliacion || "";
@@ -472,7 +494,7 @@
         fechaNacimiento: g("fechaNacimiento"), edadAnios: g("edadAnios"), sexo: g("sexo"), direccion: g("direccion"), ciudad: g("ciudad"), telefono: g("telefono"),
         celular: g("celular"), email: g("email"), tipoAfiliacion: g("tipoAfiliacion"), eps: g("eps"), medicoRemitente: g("medicoRemitente"),
         procedencia: g("procedencia"), ocupacion: g("ocupacion"), observaciones: g("observaciones"),
-        zonaResidencial: g("zonaResidencial"), codigoMunicipioDane: g("codigoMunicipioDane")
+        zonaResidencial: g("zonaResidencial"), codigoMunicipioDane: g("codigoMunicipioDane"), auxiliarTomaMuestra: g("auxiliarTomaMuestra")
       };
       if (!data.numeroDocumento || !data.primerNombre || !data.primerApellido) {
         U.toast("Completa los campos obligatorios: documento, primer nombre y primer apellido.", "error");
