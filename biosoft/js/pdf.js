@@ -571,9 +571,22 @@
     // imprime en negro puro y peso normal — no negrita — igual que el
     // resto del bloque de datos del paciente, pedido puntual de un cliente
     // para que el informe se lea bien incluso con una impresora floja.
-    doc.setFont(fontFam, estiloDiscreto ? "normal" : "bold"); doc.setFontSize(12.5);
+    // Un nombre muy largo (varios nombres/apellidos) podía desbordarse
+    // hasta montarse encima de la columna derecha (N° de Orden) — se
+    // reduce el tamaño de letra lo necesario para que siempre quepa en el
+    // ancho disponible antes de esa columna, en vez de dibujarse sin
+    // límite de ancho.
+    var nombreTexto = (estiloDiscreto ? "Nombre: " : "") + U.nombreCompleto(patient);
+    var anchoDisponibleNombre = col2 - col1 - 10;
+    var fsNombre = 12.5;
+    doc.setFont(fontFam, estiloDiscreto ? "normal" : "bold");
+    doc.setFontSize(fsNombre);
+    while (doc.getTextWidth(nombreTexto) > anchoDisponibleNombre && fsNombre > 8) {
+      fsNombre -= 0.5;
+      doc.setFontSize(fsNombre);
+    }
     if (estiloDiscreto) doc.setTextColor(0, 0, 0); else doc.setTextColor(20, 20, 20);
-    doc.text((estiloDiscreto ? "Nombre: " : "") + U.nombreCompleto(patient), col1, y);
+    doc.text(nombreTexto, col1, y);
     y += 12;
     doc.setFont(fontFam, estiloDiscreto ? "normal" : "bold"); doc.setFontSize(10.5);
     if (estiloDiscreto) doc.setTextColor(0, 0, 0); else doc.setTextColor(50, 50, 50);
