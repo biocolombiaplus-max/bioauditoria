@@ -426,6 +426,15 @@
         logoRepetido = (rLogoRep && rLogoRep.w && rLogoRep.h) ? rLogoRep : { url: tenant.logoDataUrl, w: 1, h: 1 };
       } catch (e) { logoRepetido = { url: tenant.logoDataUrl, w: 1, h: 1 }; }
     }
+    // Mismos datos de identificación del laboratorio que ya van en el
+    // membrete grande de la portada (NIT y dirección/teléfono) — antes el
+    // encabezado repetido solo traía el nombre, y se veía como un membrete
+    // "distinto y más pobre" al de la primera hoja en vez del mismo
+    // encabezado en todas las hojas.
+    var metaLinesRepetidas = [
+      C.documentoTributarioLabel(tenant.pais) + " " + tenant.nit,
+      [tenant.direccion, tenant.telefonos].filter(Boolean).join(" · ")
+    ].filter(Boolean);
     function nuevaPagina() {
       doc.addPage();
       if (!tenant.membreteEnTodasLasHojas) return margin;
@@ -438,14 +447,22 @@
       }
       var textX = margin + (logoRepetido ? cajaLogo + 10 : 0);
       doc.setFont(fontFam, "bold"); doc.setFontSize(10.5); doc.setTextColor(rgb[0], rgb[1], rgb[2]);
-      doc.text(tenant.nombre, textX, yy + 7);
+      doc.text(tenant.nombre, textX, yy + 6);
+      var yTexto = yy + 15;
+      var lineaMeta = metaLinesRepetidas.join("   ·   ");
+      if (lineaMeta) {
+        doc.setFont(fontFam, "normal"); doc.setFontSize(7);
+        if (estiloDiscreto) doc.setTextColor(0, 0, 0); else doc.setTextColor(120, 120, 120);
+        doc.text(lineaMeta, textX, yTexto);
+        yTexto += 9;
+      }
       doc.setFont(fontFam, "normal"); doc.setFontSize(8);
       if (estiloDiscreto) doc.setTextColor(0, 0, 0); else doc.setTextColor(90, 90, 90);
-      doc.text(U.nombreCompleto(patient) + " — Orden " + order.numeroOrden, textX, yy + 18);
-      yy += cajaLogo + 4;
+      doc.text(U.nombreCompleto(patient) + " · " + patient.tipoDocumento + " " + patient.numeroDocumento + " · Orden " + order.numeroOrden, textX, yTexto);
+      var yy2 = Math.max(yy + cajaLogo + 4, yTexto + 8);
       doc.setDrawColor(rgbBanda[0], rgbBanda[1], rgbBanda[2]); doc.setLineWidth(1);
-      doc.line(margin, yy, pageW - margin, yy);
-      return yy + 14;
+      doc.line(margin, yy2, pageW - margin, yy2);
+      return yy2 + 14;
     }
 
     // Bloque compacto de firma, dibujado justo debajo de cada sección (o
