@@ -96,33 +96,26 @@
     y += filasInfo * 15 + 20;
 
     // ---- Tabla de exámenes -------------------------------------------
+    // La columna "Sección" (a qué área del laboratorio pertenece cada
+    // examen) no le sirve de nada a quien recibe el recibo — se reemplaza
+    // siempre por el valor de cada examen (cuando se conoce), que sí es lo
+    // que alguien esperaría ver desglosado en un recibo de pago.
     var hayAlgunPrecio = order.examenes.some(function (ex) { return preciosPorId[ex.examId] != null; });
-    // "Recibo detallado": la columna "Sección" se reemplaza por "Valor
-    // Unitario" (el precio de cada examen, ej. "Cuadro Hemático $11.200")
-    // — más útil en un recibo que a qué sección pertenece cada examen.
-    var conValorUnitario = tenant.reciboConvenioComoCredito && hayAlgunPrecio;
     var filasExamenes = order.examenes.map(function (ex) {
       var exCat = C.examenEfectivo(ex.examId, tenant);
       var nombre = exCat ? exCat.nombre : ex.examId;
-      if (conValorUnitario) {
-        var precioUnit = preciosPorId[ex.examId];
-        return [nombre, precioUnit != null ? fmtMoneda(precioUnit) : "—"];
-      }
-      var seccion = C.seccionNombre(exCat.seccion, tenant) || "";
-      if (hayAlgunPrecio) {
-        var precio = preciosPorId[ex.examId];
-        return [nombre, seccion, precio != null ? fmtMoneda(precio) : "—"];
-      }
-      return [nombre, seccion];
+      if (!hayAlgunPrecio) return [nombre];
+      var precio = preciosPorId[ex.examId];
+      return [nombre, precio != null ? fmtMoneda(precio) : "—"];
     });
     doc.autoTable({
       startY: y, margin: { left: margin, right: margin },
-      head: conValorUnitario ? [["Examen", "Valor Unitario"]] : (hayAlgunPrecio ? [["Examen", "Sección", "Precio"]] : [["Examen", "Sección"]]),
+      head: hayAlgunPrecio ? [["Examen", "Valor"]] : [["Examen"]],
       body: filasExamenes,
       theme: "grid", styles: { fontSize: 9, cellPadding: 6, lineColor: [226, 228, 233], lineWidth: 0.6 },
       headStyles: { fillColor: [247, 248, 250], textColor: 40, fontStyle: "bold" },
       alternateRowStyles: { fillColor: [252, 252, 253] },
-      columnStyles: conValorUnitario ? { 1: { halign: "right", cellWidth: 110 } } : (hayAlgunPrecio ? { 2: { halign: "right", cellWidth: 90 } } : {})
+      columnStyles: hayAlgunPrecio ? { 1: { halign: "right", cellWidth: 110 } } : {}
     });
     y = doc.lastAutoTable.finalY + 22;
 
