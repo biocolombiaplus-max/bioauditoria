@@ -113,7 +113,7 @@
     var patients = S.listPatients(session.tenantId);
     var selectedExams = []; // {examId}
     var selectedPaquetes = []; // {paqueteId}
-    var activeSection = seccionesReales[0].id;
+    var activeSection = secciones.length ? secciones[0].id : null;
     var searchTerm = "";
     // Precios ya configurados por el laboratorio (Cotizador → Lista de
     // Precios), para sugerir el "Valor a Cobrar" automáticamente según los
