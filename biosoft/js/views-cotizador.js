@@ -96,10 +96,10 @@
         return { id: ce.id, nombre: ce.nombre, cups: ce.cups, seccion: SECCION_REF_EXT.id };
       }));
     }
-    function seccionesDisponibles() {
+    function seccionesDisponibles(convenioId) {
       var base = C.seccionesEfectivas(tenant);
       var conRef = customExams.length ? base.concat([SECCION_REF_EXT]) : base;
-      return paquetesActivos().length ? [SECCION_PAQUETES].concat(conRef) : conRef;
+      return paquetesActivos(convenioId).length ? [SECCION_PAQUETES].concat(conRef) : conRef;
     }
     function resolverExamen(id) {
       return C.examenEfectivo(id, tenant) || poolExamenes().filter(function (e) { return e.id === id; })[0] || null;
@@ -110,8 +110,13 @@
     // Un paquete inactivo (temporalmente descontinuado) sigue mostrándose
     // en la pestaña de administración "📦 Paquetes" para poder reactivarlo,
     // pero no debe poder seleccionarse en una cotización nueva.
-    function paquetesActivos() {
-      return paquetes.filter(function (p) { return p.activo !== false; });
+    // Un paquete puede quedar "exclusivo" de un convenio en particular (se
+    // define al crearlo/editarlo) — en ese caso solo debe verse cuando ESE
+    // convenio esté seleccionado, nunca en "Precio Regular" ni en otro
+    // convenio. Un paquete sin convenio asignado sigue viéndose siempre
+    // (general, para todos), igual que antes.
+    function paquetesActivos(convenioId) {
+      return paquetes.filter(function (p) { return p.activo !== false && (!p.convenioId || p.convenioId === convenioId); });
     }
 
     function cargar() {
@@ -190,6 +195,14 @@
       if (selConvenio) {
         selConvenio.addEventListener("change", function (e) {
           st.convenioId = e.target.value;
+          // Si la sección "📦 Paquetes" que se estaba viendo desaparece
+          // para este convenio (ningún paquete visible), vuelve a la
+          // primera sección real en vez de dejar la pantalla en una
+          // pestaña que ya no existe.
+          if (st.activeSection === SECCION_PAQUETES.id && !paquetesActivos(st.convenioId).length) {
+            st.activeSection = C.seccionesEfectivas(tenant)[0].id;
+          }
+          renderPickerSecciones(prefix, st);
           renderPickerExams(prefix, st);
           actualizarPickerTotales(prefix, st);
         });
@@ -199,7 +212,7 @@
     }
 
     function renderPickerSecciones(prefix, st) {
-      document.getElementById(prefix + "-sec-list").innerHTML = seccionesDisponibles().map(function (s) {
+      document.getElementById(prefix + "-sec-list").innerHTML = seccionesDisponibles(st.convenioId).map(function (s) {
         var count = s.id === SECCION_PAQUETES.id ? st.selectedPaquetes.length : st.selected.filter(function (id) { return resolverExamen(id).seccion === s.id; }).length;
         return '<div class="sec-item ' + (!st.searchTerm && s.id === st.activeSection ? "active" : "") + '" data-sec="' + s.id + '">' + s.nombre + (count ? ' <span class="badge badge-validado" style="margin-left:4px">' + count + "</span>" : "") + "</div>";
       }).join("");
@@ -217,7 +230,7 @@
       // casillas (una por paquete, no por examen) — no se mezcla con la
       // búsqueda general de exámenes individuales.
       if (!term && st.activeSection === SECCION_PAQUETES.id) {
-        document.getElementById(prefix + "-exam-list").innerHTML = paquetesActivos().length ? paquetesActivos().map(function (p) {
+        document.getElementById(prefix + "-exam-list").innerHTML = paquetesActivos(st.convenioId).length ? paquetesActivos(st.convenioId).map(function (p) {
           var checked = st.selectedPaquetes.indexOf(p.id) !== -1;
           var cant = p.examenesIds.length;
           var incluidos = p.examenesIds.map(function (id) { var e = resolverExamen(id); return e ? e.nombre : null; }).filter(Boolean).join(", ");
@@ -996,10 +1009,12 @@
       var incluidos = p.examenesIds.map(function (id) { var e = resolverExamen(id); return e ? e.nombre : null; }).filter(Boolean);
       var sumaIndividual = p.examenesIds.reduce(function (a, id) { return a + precioDe(id); }, 0);
       var ahorro = sumaIndividual - (p.precio || 0);
+      var convenioExclusivo = p.convenioId ? convenios.filter(function (c) { return c.id === p.convenioId; })[0] : null;
       return '<div class="card" style="width:300px' + (p.activo ? "" : ";opacity:.55") + '">' +
         '<div class="flex justify-between items-start"><h4 style="margin:0">' + U.esc(p.nombre) + "</h4>" +
         (p.activo ? '<span class="badge badge-validado">Activo</span>' : '<span class="badge badge-pendiente">Inactivo</span>') +
         "</div>" +
+        (convenioExclusivo ? '<p class="text-muted" style="margin:2px 0 0;font-size:11.5px">🤝 Exclusivo de ' + U.esc(convenioExclusivo.nombre) + "</p>" : (p.convenioId ? '<p class="text-muted" style="margin:2px 0 0;font-size:11.5px">🤝 Exclusivo de un convenio ya eliminado</p>' : "")) +
         '<p class="text-muted" style="margin:8px 0 4px;font-size:12px">' + U.esc(incluidos.join(", ")) + "</p>" +
         '<p style="margin:10px 0 2px;font-size:20px;font-weight:800;color:var(--brand-primary)">' + fmtMoneda(p.precio) + "</p>" +
         (ahorro > 0 ? '<p class="text-muted" style="margin:0 0 12px;font-size:12px">Suma individual: ' + fmtMoneda(sumaIndividual) + " — ahorro de " + fmtMoneda(ahorro) + "</p>" : '<div style="margin-bottom:12px"></div>') +
@@ -1028,9 +1043,10 @@
 
     function abrirFormPaquete(paquete) {
       var isEdit = !!paquete;
-      paquete = paquete || { nombre: "", precio: 0, examenesIds: [], activo: true };
+      paquete = paquete || { nombre: "", precio: 0, examenesIds: [], activo: true, convenioId: "" };
       var seleccion = paquete.examenesIds.slice();
       var searchTerm = "";
+      var conveniosActivosPaquete = convenios.filter(function (c) { return c.activo; });
       var wrap = U.openModal(
         '<h3 class="modal-title">' + (isEdit ? "Editar Paquete" : "Nuevo Paquete de Exámenes") + '</h3>' +
         '<p class="text-muted" style="margin-top:0">Un paquete agrupa varios exámenes (ej. "Perfil Lipídico": Colesterol Total, HDL, LDL, Triglicéridos) y se vende con UN solo precio total — no la suma de los exámenes individuales.</p>' +
@@ -1039,7 +1055,12 @@
         '<div class="field"><label>Nombre del Paquete</label><input id="f_paq_nombre" value="' + U.esc(paquete.nombre) + '" placeholder="Ej. Perfil Lipídico" required/></div>' +
         '<div class="field"><label>Precio Total del Paquete</label><input type="number" step="any" min="0" id="f_paq_precio" value="' + (paquete.precio || "") + '" placeholder="0" required/></div>' +
         '<div class="field"><label>Estado</label><select id="f_paq_activo"><option value="1" ' + (paquete.activo !== false ? "selected" : "") + '>Activo</option><option value="0" ' + (paquete.activo === false ? "selected" : "") + ">Inactivo</option></select></div>" +
+        (conveniosActivosPaquete.length ?
+          '<div class="field"><label>Convenio Exclusivo (opcional)</label><select id="f_paq_convenio"><option value="">Disponible para todos (general)</option>' +
+          conveniosActivosPaquete.map(function (c) { return '<option value="' + c.id + '" ' + (c.id === paquete.convenioId ? "selected" : "") + '>' + U.esc(c.nombre) + "</option>"; }).join("") +
+          "</select></div>" : "") +
         "</div>" +
+        (conveniosActivosPaquete.length ? '<p class="text-muted" style="margin:0 0 10px;font-size:12.5px">Si eliges un convenio, este paquete solo aparecerá para seleccionar en órdenes/cotizaciones de ese convenio — nunca en precio regular ni en otro convenio.</p>' : "") +
         '<div class="field" style="margin:10px 0 6px"><label>Exámenes incluidos</label><input id="paq-search" placeholder="Buscar examen por nombre o código CUPS…"/></div>' +
         '<div class="table-wrap" style="max-height:320px;overflow-y:auto" id="paq-lista"></div>' +
         '<p class="text-muted" style="margin:6px 0 0;font-size:12.5px" id="paq-contador"></p>' +
@@ -1081,9 +1102,11 @@
         var nombre = wrap.querySelector("#f_paq_nombre").value.trim();
         var precio = parseFloat(wrap.querySelector("#f_paq_precio").value) || 0;
         var activo = wrap.querySelector("#f_paq_activo").value === "1";
+        var elConvenioPaq = wrap.querySelector("#f_paq_convenio");
+        var convenioIdPaq = elConvenioPaq ? elConvenioPaq.value : "";
         if (!nombre) { U.toast("Escribe el nombre del paquete.", "error"); return; }
         if (!seleccion.length) { U.toast("Selecciona al menos un examen para el paquete.", "error"); return; }
-        var data = { tenantId: tenantId, nombre: nombre, precio: precio, examenesIds: seleccion, activo: activo };
+        var data = { tenantId: tenantId, nombre: nombre, precio: precio, examenesIds: seleccion, activo: activo, convenioId: convenioIdPaq };
         if (isEdit) {
           S.cotizador.updatePaquete(paquete.id, data);
           S.addAudit(session.tenantId, session.nombre, session.rol, "UPDATE_PAQUETE", "paquete", paquete.id, "Actualizó el paquete " + nombre + ".");

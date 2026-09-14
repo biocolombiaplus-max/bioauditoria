@@ -109,11 +109,22 @@
     var examenes = C.examenesDisponibles(tenant);
     var paquetes = S.cotizador.listPaquetes(session.tenantId).filter(function (p) { return p.activo !== false && p.examenesIds && p.examenesIds.length; });
     var seccionesReales = C.seccionesEfectivas(tenant);
-    var secciones = paquetes.length ? [SECCION_PAQUETES_ORDEN].concat(seccionesReales) : seccionesReales;
+    // Un paquete puede quedar "exclusivo" de un convenio en particular (se
+    // define en Cotizaciones → 📦 Paquetes) — aquí solo debe verse cuando
+    // ESE convenio esté seleccionado como convenio de la orden, nunca sin
+    // convenio ni con otro. Un paquete sin convenio asignado es general y
+    // siempre se ve, igual que antes.
+    function paquetesVisibles() {
+      return paquetes.filter(function (p) { return !p.convenioId || p.convenioId === convenioIdSel; });
+    }
+    function seccionesActuales() {
+      return paquetesVisibles().length ? [SECCION_PAQUETES_ORDEN].concat(seccionesReales) : seccionesReales;
+    }
     var patients = S.listPatients(session.tenantId);
     var selectedExams = []; // {examId}
     var selectedPaquetes = []; // {paqueteId}
-    var activeSection = secciones.length ? secciones[0].id : null;
+    var seccionesInicio = seccionesActuales();
+    var activeSection = seccionesInicio.length ? seccionesInicio[0].id : null;
     var searchTerm = "";
     // Precios ya configurados por el laboratorio (Cotizador → Lista de
     // Precios), para sugerir el "Valor a Cobrar" automáticamente según los
@@ -210,7 +221,7 @@
     document.getElementById("exam-search").addEventListener("input", function (e) { searchTerm = e.target.value; renderSections(); renderExams(); });
 
     function renderSections() {
-      document.getElementById("sec-list").innerHTML = secciones.map(function (s) {
+      document.getElementById("sec-list").innerHTML = seccionesActuales().map(function (s) {
         var count = s.id === SECCION_PAQUETES_ORDEN.id ? selectedPaquetes.length : selectedExams.filter(function (id) { return C.examenEfectivo(id, tenant).seccion === s.id; }).length;
         return '<div class="sec-item ' + (!searchTerm && s.id === activeSection ? "active" : "") + '" data-sec="' + s.id + '">' + s.nombre + (count ? ' <span class="badge badge-validado" style="margin-left:4px">' + count + "</span>" : "") + "</div>";
       }).join("");
@@ -229,7 +240,8 @@
       // búsqueda general de exámenes individuales, igual que en el
       // Cotizador.
       if (!term && activeSection === SECCION_PAQUETES_ORDEN.id) {
-        document.getElementById("exam-list").innerHTML = paquetes.length ? paquetes.map(function (p) {
+        var visibles = paquetesVisibles();
+        document.getElementById("exam-list").innerHTML = visibles.length ? visibles.map(function (p) {
           var checked = selectedPaquetes.indexOf(p.id) !== -1;
           var cant = p.examenesIds.length;
           var incluidos = p.examenesIds.map(function (id) { var e = C.examenPorId(id) || C.examenEfectivo(id, tenant); return e ? e.nombre : null; }).filter(Boolean).join(", ");
@@ -345,7 +357,18 @@
       selConvenioEl.addEventListener("change", function (e) {
         convenioIdSel = e.target.value;
         precioEditadoManualmente = false;
+        // Un paquete exclusivo de OTRO convenio (o de ninguno, si venía
+        // marcado antes de elegir convenio) deja de ser válido al cambiar
+        // de convenio — se quita de la selección para no dejar en la
+        // orden un paquete que ya no debería verse ni cobrarse así.
+        var idsVisibles = paquetesVisibles().map(function (p) { return p.id; });
+        selectedPaquetes = selectedPaquetes.filter(function (id) { return idsVisibles.indexOf(id) !== -1; });
+        if (activeSection === SECCION_PAQUETES_ORDEN.id && !idsVisibles.length) {
+          activeSection = seccionesReales.length ? seccionesReales[0].id : null;
+        }
+        renderSections();
         renderExams();
+        renderChips();
         sugerirValorCobrar();
       });
     }
