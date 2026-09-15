@@ -403,6 +403,148 @@
     return y;
   }
 
+  // Recorta el espacio en blanco/transparente sobrante de un logo UNA sola
+  // vez (async) para poder reutilizar ese resultado más adelante de forma
+  // síncrona (ver prepararLogoSync/dibujarMembreteSync) — necesario para
+  // poder repetir el membrete completo en cada hoja adicional del informe
+  // sin volver a esperar un recorte async en medio de un bucle.
+  async function precargarLogoCache(url) {
+    if (!url) return null;
+    try {
+      var r = await recortarEspacioSobrante(url);
+      return (r && r.w && r.h) ? r : { url: url, w: 1, h: 1 };
+    } catch (e) { return { url: url, w: 1, h: 1 }; }
+  }
+  // Versión síncrona de prepararLogo() (adentro de dibujarMembrete): la
+  // misma matemática de escalado, pero a partir de un recorte YA resuelto
+  // (ver precargarLogoCache) en vez de esperar recortarEspacioSobrante().
+  function prepararLogoSync(cache, boxW, alturaMaxima) {
+    if (!cache) return { url: null, w: boxW, h: boxW };
+    var w = boxW, h = boxW * (cache.h / cache.w);
+    if (alturaMaxima && h > alturaMaxima) { h = alturaMaxima; w = h * (cache.w / cache.h); }
+    return { url: cache.url, w: w, h: h };
+  }
+  /* Versión síncrona de dibujarMembrete(), que reproduce EXACTAMENTE la
+     misma lógica/medidas — a propósito duplicada en vez de compartida, para
+     poder repetir el membrete completo (tal cual la primera hoja) en cada
+     hoja adicional del informe de resultados sin volver a esperar el
+     recorte async del logo en medio de un bucle (ver nuevaPagina en
+     buildResultadosPDF). logoCache/logoSecCache vienen de
+     precargarLogoCache(), calculados una sola vez antes del bucle. */
+  function dibujarMembreteSync(doc, tenant, margin, logoCache, logoSecCache) {
+    var pageW = doc.internal.pageSize.getWidth();
+    var y = margin;
+    var rgb = hexToRgb(tenant.colorPrimario);
+    var rgbBanda = hexToRgb(tenant.colorBandaSeccion || tenant.colorPrimario);
+    var fontFam = tenant.fuenteReporte || "helvetica";
+
+    var metaLineA = lineaSegura(C.documentoTributarioLabel(tenant.pais) + " " + tenant.nit +
+      (tenant.codigoREPS && tenant.pais === "CO" ? " · Código REPS " + tenant.codigoREPS : "") +
+      (tenant.resolucionHabilitacion ? " · " + tenant.resolucionHabilitacion : ""));
+    var metaLineB = lineaSegura([tenant.direccion, tenant.telefonos, tenant.email, tenant.sitioWeb].filter(Boolean).join(" · "));
+    var metaLines = [metaLineA, metaLineB].filter(Boolean);
+
+    if (tenant.logoGrandeReporte) {
+      var cx = pageW / 2;
+      if (tenant.logoAnchoCompleto) y = 22;
+      if (tenant.logoDataUrl) {
+        if (tenant.logoAnchoCompleto) {
+          var porcentaje = (tenant.logoAnchoPorcentaje || 55) / 100;
+          var anchoDisponible = (pageW - margin * 2) * porcentaje;
+          if (tenant.logoSecundarioDataUrl) {
+            var gapLogos = 14;
+            var mitad = (anchoDisponible - gapLogos) / 2;
+            var logoIzq = prepararLogoSync(logoCache, mitad, 90);
+            var logoDer = prepararLogoSync(logoSecCache, mitad, 90);
+            var altoFila = Math.max(logoIzq.h, logoDer.h);
+            var startX = cx - anchoDisponible / 2;
+            try { doc.addImage(logoIzq.url, "PNG", startX, y + (altoFila - logoIzq.h) / 2, logoIzq.w, logoIzq.h); } catch (e) {}
+            try { doc.addImage(logoDer.url, "PNG", startX + anchoDisponible - logoDer.w, y + (altoFila - logoDer.h) / 2, logoDer.w, logoDer.h); } catch (e) {}
+            y += altoFila + 2;
+          } else {
+            var logoW = anchoDisponible;
+            var logoH = logoW;
+            var logoParaDibujar = tenant.logoDataUrl;
+            if (logoCache && logoCache.w && logoCache.h) {
+              logoParaDibujar = logoCache.url;
+              logoH = logoW * (logoCache.h / logoCache.w);
+              var alturaMaxima = 140;
+              if (logoH > alturaMaxima) { logoH = alturaMaxima; logoW = logoH * (logoCache.w / logoCache.h); }
+            }
+            try { doc.addImage(logoParaDibujar, "PNG", cx - logoW / 2, y, logoW, logoH); } catch (e) {}
+            y += logoH + 2;
+          }
+        } else if (tenant.logoSecundarioDataUrl) {
+          var gapPar = 10, boxPar = 64;
+          var parIzq = prepararLogoSync(logoCache, boxPar, boxPar);
+          var parDer = prepararLogoSync(logoSecCache, boxPar, boxPar);
+          var altoPar = Math.max(parIzq.h, parDer.h);
+          var totalPar = parIzq.w + gapPar + parDer.w;
+          var startPar = cx - totalPar / 2;
+          try { doc.addImage(parIzq.url, "PNG", startPar, y - 4 + (altoPar - parIzq.h) / 2, parIzq.w, parIzq.h); } catch (e) {}
+          try { doc.addImage(parDer.url, "PNG", startPar + parIzq.w + gapPar, y - 4 + (altoPar - parDer.h) / 2, parDer.w, parDer.h); } catch (e) {}
+          y += altoPar + 12;
+        } else {
+          var logoCentradoSize = 76;
+          try { doc.addImage(tenant.logoDataUrl, "PNG", cx - logoCentradoSize / 2, y - 4, logoCentradoSize, logoCentradoSize); } catch (e) {}
+          y += logoCentradoSize + 12;
+        }
+      } else {
+        y += tenant.logoAnchoCompleto ? 40 + 2 : 76 + 12;
+      }
+      if (!tenant.ocultarNombreEncabezado) {
+        doc.setFont(fontFam, "bold"); doc.setFontSize(16); doc.setTextColor(rgb[0], rgb[1], rgb[2]);
+        doc.text(lineaSegura(tenant.nombre), cx, y, { align: "center" });
+        y += 13;
+      }
+      if (tenant.slogan) {
+        doc.setFont(fontFam, "italic"); doc.setFontSize(10.5); doc.setTextColor(rgb[0], rgb[1], rgb[2]);
+        doc.text(lineaSegura(tenant.slogan), cx, y, { align: "center" });
+        y += 11;
+      }
+      doc.setFont(fontFam, "normal"); doc.setFontSize(8);
+      if (tenant.datosPacienteEstiloDiscreto) doc.setTextColor(0, 0, 0); else doc.setTextColor(90, 90, 90);
+      var metaLineUnica = metaLines.join("   ·   ");
+      if (metaLineUnica) { doc.text(metaLineUnica, cx, y, { align: "center" }); y += 8.5; }
+      y += 2;
+      doc.setDrawColor(rgbBanda[0], rgbBanda[1], rgbBanda[2]); doc.setLineWidth(2);
+      doc.line(margin, y, pageW - margin, y); y += 14;
+    } else {
+      var logoSize = Math.min(70, (pageW - margin * 2) * 0.155);
+      if (tenant.logoDataUrl) {
+        try { doc.addImage(tenant.logoDataUrl, "PNG", margin, y - 9, logoSize, logoSize); } catch (e) {}
+      }
+      if (tenant.logoSecundarioDataUrl) {
+        var logoDerDefault = prepararLogoSync(logoSecCache, logoSize, logoSize);
+        try { doc.addImage(logoDerDefault.url, "PNG", pageW - margin - logoDerDefault.w, y - 9, logoDerDefault.w, logoDerDefault.h); } catch (e) {}
+      }
+      var textX = margin + (tenant.logoDataUrl ? logoSize + 14 : 0);
+      var anchoDisponibleNombre = (tenant.logoSecundarioDataUrl ? pageW - margin - logoSize - 14 : pageW - margin) - textX;
+      var nombreLab = lineaSegura(tenant.nombre);
+      var fsNombreLab = 15;
+      doc.setFont(fontFam, "bold"); doc.setFontSize(fsNombreLab);
+      while (doc.getTextWidth(nombreLab) > anchoDisponibleNombre && fsNombreLab > 9) {
+        fsNombreLab -= 0.5;
+        doc.setFontSize(fsNombreLab);
+      }
+      doc.setTextColor(rgb[0], rgb[1], rgb[2]);
+      doc.text(nombreLab, textX, y + 12);
+      var metaStartOffset = 25;
+      if (tenant.slogan) {
+        doc.setFont(fontFam, "italic"); doc.setFontSize(9); doc.setTextColor(rgb[0], rgb[1], rgb[2]);
+        doc.text(lineaSegura(tenant.slogan), textX, y + 23);
+        metaStartOffset = 35;
+      }
+      doc.setFont(fontFam, "normal"); doc.setFontSize(8.5);
+      if (tenant.datosPacienteEstiloDiscreto) doc.setTextColor(0, 0, 0); else doc.setTextColor(90, 90, 90);
+      metaLines.forEach(function (line, i) { doc.text(line, textX, y + metaStartOffset + i * 10); });
+
+      doc.setDrawColor(rgbBanda[0], rgbBanda[1], rgbBanda[2]); doc.setLineWidth(2);
+      y += tenant.slogan ? 74 : 64; doc.line(margin, y, pageW - margin, y); y += 12;
+    }
+    return y;
+  }
+
   async function buildResultadosPDF(order, patient, tenant, modo) {
     var jsPDFCtor = window.jspdf ? window.jspdf.jsPDF : window.jsPDF;
     var doc = new jsPDFCtor({ unit: "pt", format: "letter" });
@@ -435,84 +577,34 @@
 
     y = await dibujarMembrete(doc, tenant, margin);
 
-    // Si la orden pertenece a un convenio/empresa aliada, se destaca en una
-    // insignia junto al encabezado — igual que hacen los grandes
-    // laboratorios de referencia al mostrar de qué institución/convenio
-    // viene la muestra. Se dibuja sin mover "y" (queda flotando arriba a la
-    // derecha), para no descuadrar el resto del encabezado según el
-    // laboratorio tenga o no el título "INFORME DE RESULTADOS..." activado.
-    if (order.convenioNombre) {
-      doc.setFont(fontFam, "bold"); doc.setFontSize(8.5);
-      // Un nombre de convenio muy largo se recorta con "..." para que la
-      // insignia nunca crezca tanto que se monte sobre el título del
-      // informe (que arranca en el margen izquierdo, en la misma zona) —
-      // se le deja como máximo la mitad del ancho de la hoja.
-      var nombreConvenio = order.convenioNombre.toUpperCase();
-      var maxBadgeW = pageW / 2 - margin - 10;
-      var badgeConvenioTxt = "CONVENIO: " + nombreConvenio;
-      while (doc.getTextWidth(badgeConvenioTxt) + 22 > maxBadgeW && nombreConvenio.length > 1) {
-        nombreConvenio = nombreConvenio.slice(0, -1);
-        badgeConvenioTxt = "CONVENIO: " + nombreConvenio + "...";
-      }
-      var badgeConvenioW = doc.getTextWidth(badgeConvenioTxt) + 22, badgeConvenioH = 16;
-      var badgeConvenioX = pageW - margin - badgeConvenioW, badgeConvenioY = y - 12;
-      doc.setFillColor(rgb[0], rgb[1], rgb[2]);
-      doc.roundedRect(badgeConvenioX, badgeConvenioY, badgeConvenioW, badgeConvenioH, badgeConvenioH / 2, badgeConvenioH / 2, "F");
-      doc.setTextColor(255, 255, 255);
-      doc.text(badgeConvenioTxt, badgeConvenioX + badgeConvenioW / 2, badgeConvenioY + badgeConvenioH / 2 + 3, { align: "center" });
+    // Si el laboratorio activó "Repetir el encabezado en todas las hojas"
+    // (Configuración → Diseño del Reporte de Resultados), cada hoja
+    // adicional repite EXACTAMENTE el mismo membrete y el mismo bloque de
+    // datos del paciente que la primera hoja — nunca una versión reducida.
+    // El logo (y el secundario, si tiene) se recorta UNA sola vola aquí,
+    // de forma async, para que dibujarMembreteSync() pueda reproducir el
+    // membrete de forma síncrona en cada salto de página sin repetir ese
+    // recorte async en medio de un bucle.
+    var logoCache = null, logoSecCache = null;
+    if (tenant.membreteEnTodasLasHojas) {
+      logoCache = await precargarLogoCache(tenant.logoDataUrl);
+      logoSecCache = await precargarLogoCache(tenant.logoSecundarioDataUrl);
     }
-
-    // Encabezado compacto para hojas 2, 3… cuando el laboratorio activa
-    // "Repetir el encabezado en todas las hojas" (Configuración → Diseño
-    // del Reporte de Resultados) — antes toda hoja adicional arrancaba
-    // completamente en blanco arriba. El logo se recorta UNA sola vez aquí
-    // (misma función que usa el membrete grande de la portada) para poder
-    // dibujarlo de nuevo en cada salto de página de forma síncrona, sin
-    // repetir el recorte async en medio de un forEach.
-    var logoRepetido = null;
-    if (tenant.membreteEnTodasLasHojas && tenant.logoDataUrl) {
-      try {
-        var rLogoRep = await recortarEspacioSobrante(tenant.logoDataUrl);
-        logoRepetido = (rLogoRep && rLogoRep.w && rLogoRep.h) ? rLogoRep : { url: tenant.logoDataUrl, w: 1, h: 1 };
-      } catch (e) { logoRepetido = { url: tenant.logoDataUrl, w: 1, h: 1 }; }
+    // Dibuja el membrete + bloque de datos del paciente en la página actual
+    // (sin agregar una página nueva) — lo usan tanto nuevaPagina() como el
+    // "seguro" que se le pasa a doc.autoTable() más abajo (willDrawPage),
+    // para el caso en que una tabla larga (ej. una sección con muchísimos
+    // exámenes) decida por su cuenta pasar de página mientras se dibuja,
+    // sin pasar por nuevaPagina(). Sin este seguro, esa página quedaría sin
+    // encabezado — justo lo que el laboratorio pidió evitar siempre.
+    function dibujarEncabezadoRepetido() {
+      var yy = dibujarMembreteSync(doc, tenant, margin, logoCache, logoSecCache);
+      return dibujarBloqueInformePaciente(yy);
     }
-    // Mismos datos de identificación del laboratorio que ya van en el
-    // membrete grande de la portada (NIT y dirección/teléfono) — antes el
-    // encabezado repetido solo traía el nombre, y se veía como un membrete
-    // "distinto y más pobre" al de la primera hoja en vez del mismo
-    // encabezado en todas las hojas.
-    var metaLinesRepetidas = [
-      lineaSegura(C.documentoTributarioLabel(tenant.pais) + " " + tenant.nit),
-      lineaSegura([tenant.direccion, tenant.telefonos].filter(Boolean).join(" · "))
-    ].filter(Boolean);
     function nuevaPagina() {
       doc.addPage();
       if (!tenant.membreteEnTodasLasHojas) return margin;
-      var yy = margin;
-      var cajaLogo = 26;
-      if (logoRepetido) {
-        var wLogo = cajaLogo, hLogo = cajaLogo * (logoRepetido.h / logoRepetido.w);
-        if (hLogo > cajaLogo) { hLogo = cajaLogo; wLogo = hLogo * (logoRepetido.w / logoRepetido.h); }
-        try { doc.addImage(logoRepetido.url, "PNG", margin, yy - 4, wLogo, hLogo); } catch (e) {}
-      }
-      var textX = margin + (logoRepetido ? cajaLogo + 10 : 0);
-      doc.setFont(fontFam, "bold"); doc.setFontSize(10.5); doc.setTextColor(rgb[0], rgb[1], rgb[2]);
-      doc.text(lineaSegura(tenant.nombre), textX, yy + 6);
-      var yTexto = yy + 15;
-      var lineaMeta = metaLinesRepetidas.join("   ·   ");
-      if (lineaMeta) {
-        doc.setFont(fontFam, "normal"); doc.setFontSize(7);
-        if (estiloDiscreto) doc.setTextColor(0, 0, 0); else doc.setTextColor(120, 120, 120);
-        doc.text(lineaMeta, textX, yTexto);
-        yTexto += 9;
-      }
-      doc.setFont(fontFam, "normal"); doc.setFontSize(8);
-      if (estiloDiscreto) doc.setTextColor(0, 0, 0); else doc.setTextColor(90, 90, 90);
-      doc.text(U.nombreCompleto(patient) + " · " + patient.tipoDocumento + " " + patient.numeroDocumento + " · Orden " + order.numeroOrden, textX, yTexto);
-      var yy2 = Math.max(yy + cajaLogo + 4, yTexto + 8);
-      doc.setDrawColor(rgbBanda[0], rgbBanda[1], rgbBanda[2]); doc.setLineWidth(1);
-      doc.line(margin, yy2, pageW - margin, yy2);
-      return yy2 + 14;
+      return dibujarEncabezadoRepetido();
     }
 
     // Bloque compacto de firma, dibujado justo debajo de cada sección (o
@@ -585,111 +677,143 @@
     var colValorReferencia = ocultarValorReferencia ? -1 : 2;
     var colInterpretacion = ocultarInterpretacion ? -1 : (ocultarValorReferencia ? 2 : 3);
     var numColumnasTabla = 2 + (ocultarValorReferencia ? 0 : 1) + (ocultarInterpretacion ? 0 : 1);
-    if (!estiloDiscreto) {
-      doc.setFont(fontFam, "bold"); doc.setFontSize(13); doc.setTextColor(20, 20, 20);
-      doc.text("INFORME DE RESULTADOS DE LABORATORIO CLÍNICO", margin, y);
-      y += 10;
-    }
-    // El aviso de preliminar/parcial va en su PROPIA línea debajo del
-    // título (antes iba a la derecha, en la misma línea que el título, y
-    // con textos largos las dos frases se montaban una sobre la otra).
-    if (modo === "preliminar") {
-      doc.setFont(fontFam, "bold"); doc.setFontSize(9.5); doc.setTextColor(201, 126, 13);
-      doc.text("RESULTADO PRELIMINAR — SUJETO A VALIDACIÓN FINAL", margin, y);
-      y += 11;
-    } else if (order.estadoGeneral !== "validado" && !estiloDiscreto) {
-      doc.setFont(fontFam, "bold"); doc.setFontSize(9.5); doc.setTextColor(201, 126, 13);
-      doc.text("INFORME PARCIAL — HAY EXÁMENES EN PROCESO", margin, y);
-      y += 11;
-    } else {
-      y += 3;
-    }
+    // Título del informe + aviso de preliminar/parcial + bloque de datos
+    // del paciente (nombre, documento, edad/sexo/EPS a la izquierda; N° de
+    // orden, convenio, fechas, médico remitente y procedencia a la
+    // derecha). Se extrae a su propia función para poder repetirlo TAL
+    // CUAL en cada hoja adicional cuando el laboratorio activa "Repetir el
+    // encabezado en todas las hojas" (ver nuevaPagina más arriba) — antes
+    // esa repetición era una versión reducida y distinta a la de la
+    // primera hoja.
+    function dibujarBloqueInformePaciente(yInicial) {
+      var y = yInicial;
+      if (!estiloDiscreto) {
+        doc.setFont(fontFam, "bold"); doc.setFontSize(13); doc.setTextColor(20, 20, 20);
+        doc.text("INFORME DE RESULTADOS DE LABORATORIO CLÍNICO", margin, y);
+        y += 10;
+      }
+      // El aviso de preliminar/parcial va en su PROPIA línea debajo del
+      // título (antes iba a la derecha, en la misma línea que el título, y
+      // con textos largos las dos frases se montaban una sobre la otra).
+      if (modo === "preliminar") {
+        doc.setFont(fontFam, "bold"); doc.setFontSize(9.5); doc.setTextColor(201, 126, 13);
+        doc.text("RESULTADO PRELIMINAR — SUJETO A VALIDACIÓN FINAL", margin, y);
+        y += 11;
+      } else if (order.estadoGeneral !== "validado" && !estiloDiscreto) {
+        doc.setFont(fontFam, "bold"); doc.setFontSize(9.5); doc.setTextColor(201, 126, 13);
+        doc.text("INFORME PARCIAL — HAY EXÁMENES EN PROCESO", margin, y);
+        y += 11;
+      } else {
+        y += 3;
+      }
 
-    // El nombre y el documento del paciente van destacados, cada uno en su
-    // propia línea, más grandes y en negrita — son los dos datos que
-    // primero se buscan al leer el informe — en vez de mezclados en la
-    // misma cuadrícula chica que el resto de los datos. La columna
-    // derecha (N° de orden, fecha, médico, procedencia) arranca desde el
-    // mismo punto de partida que el nombre, no desde abajo del documento
-    // — si no, queda un hueco vacío arriba a la derecha y el bloque se ve
-    // descuadrado.
-    var yInfoStart = y;
-    var col1 = margin, col2 = pageW / 2 + 10;
+      // El nombre y el documento del paciente van destacados, cada uno en
+      // su propia línea, más grandes y en negrita — son los dos datos que
+      // primero se buscan al leer el informe — en vez de mezclados en la
+      // misma cuadrícula chica que el resto de los datos. La columna
+      // derecha (N° de orden, fecha, médico, procedencia) arranca desde el
+      // mismo punto de partida que el nombre, no desde abajo del documento
+      // — si no, queda un hueco vacío arriba a la derecha y el bloque se ve
+      // descuadrado.
+      var yInfoStart = y;
+      var col1 = margin, col2 = pageW / 2 + 10;
 
-    // Estilo discreto: el nombre lleva su propia etiqueta "Nombre:" (antes
-    // salía suelto, sin decir qué dato es) y, junto con el documento, se
-    // imprime en negro puro y peso normal — no negrita — igual que el
-    // resto del bloque de datos del paciente, pedido puntual de un cliente
-    // para que el informe se lea bien incluso con una impresora floja.
-    // Un nombre muy largo (varios nombres/apellidos) podía desbordarse
-    // hasta montarse encima de la columna derecha (N° de Orden) — se
-    // reduce el tamaño de letra lo necesario para que siempre quepa en el
-    // ancho disponible antes de esa columna, en vez de dibujarse sin
-    // límite de ancho.
-    var nombreTexto = (estiloDiscreto ? "Nombre: " : "") + U.nombreCompleto(patient);
-    var anchoDisponibleNombre = col2 - col1 - 10;
-    var fsNombre = 12.5;
-    doc.setFont(fontFam, estiloDiscreto ? "normal" : "bold");
-    doc.setFontSize(fsNombre);
-    while (doc.getTextWidth(nombreTexto) > anchoDisponibleNombre && fsNombre > 8) {
-      fsNombre -= 0.5;
+      // Estilo discreto: el nombre lleva su propia etiqueta "Nombre:" (antes
+      // salía suelto, sin decir qué dato es) y, junto con el documento, se
+      // imprime en negro puro y peso normal — no negrita — igual que el
+      // resto del bloque de datos del paciente, pedido puntual de un cliente
+      // para que el informe se lea bien incluso con una impresora floja.
+      // Un nombre muy largo (varios nombres/apellidos) podía desbordarse
+      // hasta montarse encima de la columna derecha (N° de Orden) — se
+      // reduce el tamaño de letra lo necesario para que siempre quepa en el
+      // ancho disponible antes de esa columna, en vez de dibujarse sin
+      // límite de ancho.
+      var nombreTexto = (estiloDiscreto ? "Nombre: " : "") + U.nombreCompleto(patient);
+      var anchoDisponibleNombre = col2 - col1 - 10;
+      var fsNombre = 12.5;
+      doc.setFont(fontFam, estiloDiscreto ? "normal" : "bold");
       doc.setFontSize(fsNombre);
-    }
-    if (estiloDiscreto) doc.setTextColor(0, 0, 0); else doc.setTextColor(20, 20, 20);
-    doc.text(nombreTexto, col1, y);
-    y += 12;
-    doc.setFont(fontFam, estiloDiscreto ? "normal" : "bold"); doc.setFontSize(10.5);
-    if (estiloDiscreto) doc.setTextColor(0, 0, 0); else doc.setTextColor(50, 50, 50);
-    doc.text(patient.tipoDocumento + " " + patient.numeroDocumento, col1, y);
-    y += 11;
+      while (doc.getTextWidth(nombreTexto) > anchoDisponibleNombre && fsNombre > 8) {
+        fsNombre -= 0.5;
+        doc.setFontSize(fsNombre);
+      }
+      if (estiloDiscreto) doc.setTextColor(0, 0, 0); else doc.setTextColor(20, 20, 20);
+      doc.text(nombreTexto, col1, y);
+      y += 12;
+      doc.setFont(fontFam, estiloDiscreto ? "normal" : "bold"); doc.setFontSize(10.5);
+      if (estiloDiscreto) doc.setTextColor(0, 0, 0); else doc.setTextColor(50, 50, 50);
+      doc.text(patient.tipoDocumento + " " + patient.numeroDocumento, col1, y);
+      y += 11;
 
-    doc.setFont(fontFam, "normal");
-    doc.setFontSize(estiloDiscreto ? 9 : 9.5);
-    if (estiloDiscreto) doc.setTextColor(0, 0, 0); else doc.setTextColor(30, 30, 30);
-    var edad = U.edadTexto(patient);
-    // Qué datos adicionales van en el reporte, elegido en Configuración
-    // → "Diseño del Reporte de Resultados". Nombre, documento, N° de
-    // orden y fecha son siempre obligatorios (son los identificadores
-    // básicos de cualquier informe clínico); estos 4 son opcionales —
-    // "true" salvo que el laboratorio los haya apagado explícitamente,
-    // para no cambiar nada a quien nunca tocó esta configuración.
-    var campos = tenant.camposReporte || {};
-    var left = [];
-    // Estilo discreto: "Edad:" y "Sexo:" en su propia fila cada uno (en
-    // vez de "Edad / Sexo: 52 años / Masculino" en una sola), pedido
-    // puntual de un cliente.
-    if (campos.edadSexo !== false) {
-      if (estiloDiscreto) { left.push(["Edad:", edad]); left.push(["Sexo:", patient.sexo]); }
-      else left.push(["Edad / Sexo:", edad + " / " + patient.sexo]);
+      doc.setFont(fontFam, "normal");
+      doc.setFontSize(estiloDiscreto ? 9 : 9.5);
+      if (estiloDiscreto) doc.setTextColor(0, 0, 0); else doc.setTextColor(30, 30, 30);
+      var edad = U.edadTexto(patient);
+      // Qué datos adicionales van en el reporte, elegido en Configuración
+      // → "Diseño del Reporte de Resultados". Nombre, documento, N° de
+      // orden y fecha son siempre obligatorios (son los identificadores
+      // básicos de cualquier informe clínico); estos 4 son opcionales —
+      // "true" salvo que el laboratorio los haya apagado explícitamente,
+      // para no cambiar nada a quien nunca tocó esta configuración.
+      var campos = tenant.camposReporte || {};
+      var left = [];
+      // Estilo discreto: "Edad:" y "Sexo:" en su propia fila cada uno (en
+      // vez de "Edad / Sexo: 52 años / Masculino" en una sola), pedido
+      // puntual de un cliente.
+      if (campos.edadSexo !== false) {
+        if (estiloDiscreto) { left.push(["Edad:", edad]); left.push(["Sexo:", patient.sexo]); }
+        else left.push(["Edad / Sexo:", edad + " / " + patient.sexo]);
+      }
+      if (patient.pais === "CO" && campos.eps !== false) left.push(["EPS / Asegurador:", patient.eps || "Particular"]);
+      var right = [["N° de Orden:", order.numeroOrden]];
+      // El convenio/empresa aliada va como un dato más de la orden, en la
+      // misma cuadrícula y con el mismo formato que el resto (nunca una
+      // insignia aparte) — así nunca queda flotando por encima de estos
+      // otros campos (bug real reportado: se montaba sobre "N° de Orden" y
+      // las fechas).
+      if (order.convenioNombre) right.push(["Convenio:", order.convenioNombre]);
+      right.push(["Fecha de Orden:", U.fmtFecha(order.fechaOrden)]);
+      right.push(["Fecha de Impresión:", U.fmtFecha(new Date().toISOString())]);
+      if (campos.medico !== false) right.push(["Médico Remitente:", order.medicoRemitente || "—"]);
+      if (campos.procedencia !== false) right.push(["Procedencia:", order.procedencia || "—"]);
+      // Los datos del paciente van en negrita (etiqueta y valor) para un
+      // informe con más carácter profesional, en vez de valores en fuente
+      // normal más discretos. El valor arranca a un ancho fijo desde el
+      // inicio de la etiqueta — con etiquetas cortas ("Edad / Sexo:") se ve
+      // bien alineado, pero una más larga ("EPS / Asegurador:", "Fecha de
+      // Impresión:") no cabía en ese ancho fijo y el valor quedaba montado
+      // encima del final de la etiqueta (bug real reportado). Ahora el valor
+      // arranca justo después del ancho real de CADA etiqueta (medido con la
+      // misma fuente/tamaño ya aplicados), con un margen fijo, así nunca se
+      // solapan sin importar qué tan larga sea.
+      doc.setFont(fontFam, estiloDiscreto ? "normal" : "bold");
+      left.forEach(function (row, i) {
+        doc.text(row[0], col1, y + i * 11);
+        doc.text(String(row[1]), col1 + doc.getTextWidth(row[0]) + 6, y + i * 11);
+      });
+      right.forEach(function (row, i) {
+        doc.text(row[0], col2, yInfoStart + i * 11);
+        doc.text(String(row[1]), col2 + doc.getTextWidth(row[0]) + 6, yInfoStart + i * 11);
+      });
+      return Math.max(y + left.length * 11, yInfoStart + right.length * 11) + 8;
     }
-    if (patient.pais === "CO" && campos.eps !== false) left.push(["EPS / Asegurador:", patient.eps || "Particular"]);
-    var right = [
-      ["N° de Orden:", order.numeroOrden],
-      ["Fecha de Orden:", U.fmtFecha(order.fechaOrden)],
-      ["Fecha de Impresión:", U.fmtFecha(new Date().toISOString())]
-    ];
-    if (campos.medico !== false) right.push(["Médico Remitente:", order.medicoRemitente || "—"]);
-    if (campos.procedencia !== false) right.push(["Procedencia:", order.procedencia || "—"]);
-    // Los datos del paciente van en negrita (etiqueta y valor) para un
-    // informe con más carácter profesional, en vez de valores en fuente
-    // normal más discretos. El valor arranca a un ancho fijo desde el
-    // inicio de la etiqueta — con etiquetas cortas ("Edad / Sexo:") se ve
-    // bien alineado, pero una más larga ("EPS / Asegurador:", "Fecha de
-    // Impresión:") no cabía en ese ancho fijo y el valor quedaba montado
-    // encima del final de la etiqueta (bug real reportado). Ahora el valor
-    // arranca justo después del ancho real de CADA etiqueta (medido con la
-    // misma fuente/tamaño ya aplicados), con un margen fijo, así nunca se
-    // solapan sin importar qué tan larga sea.
-    doc.setFont(fontFam, estiloDiscreto ? "normal" : "bold");
-    left.forEach(function (row, i) {
-      doc.text(row[0], col1, y + i * 11);
-      doc.text(String(row[1]), col1 + doc.getTextWidth(row[0]) + 6, y + i * 11);
-    });
-    right.forEach(function (row, i) {
-      doc.text(row[0], col2, yInfoStart + i * 11);
-      doc.text(String(row[1]), col2 + doc.getTextWidth(row[0]) + 6, yInfoStart + i * 11);
-    });
-    y = Math.max(y + left.length * 11, yInfoStart + right.length * 11) + 8;
+    y = dibujarBloqueInformePaciente(y);
+    // Alto fijo del bloque membrete + datos del paciente, tal como se ve en
+    // esta misma página — es idéntico en cualquier otra hoja (mismo tenant,
+    // mismo paciente, misma orden), así que sirve como margen superior fijo
+    // para las tablas de abajo (ver "margin: { top: ... }" en los
+    // doc.autoTable() de esta función), reservando exactamente ese espacio
+    // cuando una tabla decide, por su cuenta, pasar de página.
+    var alturaEncabezadoPagina = y;
+    // Mismo seguro que nuevaPagina(), pero para cuando es doc.autoTable() —
+    // no el código de esta función — quien decide agregar la página: se le
+    // pasa como margin.top (para que reserve el espacio) y willDrawPage
+    // (para que de verdad se dibuje el encabezado ahí). Sin repetir
+    // encabezado, se deja el margen tal como estaba siempre (sin "top").
+    var autoTableMargin = tenant.membreteEnTodasLasHojas ? { top: alturaEncabezadoPagina, left: margin, right: margin } : { left: margin, right: margin };
+    function willDrawPageSeguro(data) {
+      if (data.pageNumber > 1 && tenant.membreteEnTodasLasHojas) dibujarEncabezadoRepetido();
+    }
 
     var examsToShow = order.examenes.filter(function (ex) {
       var listos = ex.estado === "validado" || ex.estado === "remitido";
@@ -848,7 +972,7 @@
         if (!ocultarValorReferencia) headTabla.push("Valor de Referencia");
         if (!ocultarInterpretacion) headTabla.push("Interpretación");
         doc.autoTable({
-          startY: y, margin: { left: margin, right: margin },
+          startY: y, margin: autoTableMargin, willDrawPage: willDrawPageSeguro,
           head: [headTabla],
           body: body, theme: "grid", styles: stylesTabla,
           headStyles: { fillColor: [240, 244, 247], textColor: estiloDiscreto ? [0, 0, 0] : 40, fontStyle: "bold" },
@@ -928,7 +1052,7 @@
             return it.valor !== "" && it.valor != null ? C.claseIgE(it.valor) : null;
           });
           doc.autoTable({
-            startY: y, margin: { left: margin, right: margin },
+            startY: y, margin: autoTableMargin, willDrawPage: willDrawPageSeguro,
             head: [ocultarInterpretacion ? ["Alérgeno", "Clase", "Concentración IgE"] : ["Alérgeno", "Clase", "Concentración IgE", "Interpretación"]],
             body: panelInfo.items.map(function (it, i) {
               var c = interpPorFila[i];
@@ -963,7 +1087,7 @@
             y += 18;
           } else {
             doc.autoTable({
-              startY: y, margin: { left: margin, right: margin },
+              startY: y, margin: autoTableMargin, willDrawPage: willDrawPageSeguro,
               head: [["Parásito / Elemento Parasitario", "Hallazgo"]],
               body: panelInfo.items.map(function (it) { return [it.nombre, it.resultado || "-"]; }),
               theme: "grid", styles: { font: fontFam, fontSize: tamanoBase, cellPadding: 4, textColor: estiloDiscreto ? [0, 0, 0] : [20, 20, 20] }, headStyles: { fillColor: [240, 244, 247], textColor: estiloDiscreto ? [0, 0, 0] : 40, fontStyle: "bold" },
@@ -986,7 +1110,7 @@
           // Resistente) y no necesita esta columna extra.
           var conCIM = !!tenant.reportarCIM;
           doc.autoTable({
-            startY: y, margin: { left: margin, right: margin },
+            startY: y, margin: autoTableMargin, willDrawPage: willDrawPageSeguro,
             head: [conCIM ? ["Antibiótico", "Resultado", "CIM (µg/mL)"] : ["Antibiótico", "Resultado"]],
             body: panelInfo.items.map(function (it) { return conCIM ? [it.nombre, it.resultado || "-", it.cim || "-"] : [it.nombre, it.resultado || "-"]; }),
             theme: "grid", styles: { font: fontFam, fontSize: tamanoBase, cellPadding: 4, textColor: estiloDiscreto ? [0, 0, 0] : [20, 20, 20] }, headStyles: { fillColor: [240, 244, 247], textColor: estiloDiscreto ? [0, 0, 0] : 40, fontStyle: "bold" },
@@ -1046,7 +1170,7 @@
       doc.text("EXÁMENES PROCESADOS POR LABORATORIO DE REFERENCIA", margin + 6, y + 11);
       y += 24;
       doc.autoTable({
-        startY: y, margin: { left: margin, right: margin },
+        startY: y, margin: autoTableMargin, willDrawPage: willDrawPageSeguro,
         head: [["Examen", "Laboratorio de Referencia", "Nota"]],
         body: referidos.map(function (ex) {
           var exCat = C.examenEfectivo(ex.examId, tenant);
