@@ -338,7 +338,7 @@
     // maneja (CO/VE/EC); cualquier otro país de tenant cae a Colombia, que
     // sigue siendo el valor por defecto de siempre.
     var tenant = BIO_AUTH.currentTenant();
-    var paisPorDefecto = tenant && ["CO", "VE", "EC"].indexOf(tenant.pais) !== -1 ? tenant.pais : "CO";
+    var paisPorDefecto = tenant && ["CO", "VE", "EC", "MX"].indexOf(tenant.pais) !== -1 ? tenant.pais : "CO";
     // El tipo de documento y el tipo de afiliación por defecto también
     // dependen del país: "CC"/"Contributivo" no existen en las listas de
     // Venezuela ni Ecuador, así que se toma el primero de la lista de cada
@@ -362,6 +362,28 @@
     var afilOptions = function (pais, current) {
       return (C.TIPOS_AFILIACION[pais] || []).map(function (a) { return '<option ' + (a === current ? "selected" : "") + ">" + a + "</option>"; }).join("");
     };
+    // Departamento/Estado/Provincia → Municipio/Cantón en cascada, con el
+    // nombre correcto de cada nivel según el país (ver
+    // DIVISION_ADMINISTRATIVA_LABEL/SUBDIVISION_LABEL en catalog.js). Bogotá
+    // es un caso especial: no tiene "municipios" propios (es un único
+    // distrito), así que en vez de municipio se pide la localidad — el
+    // nivel que de verdad sirve para ubicar al paciente dentro de la ciudad.
+    var depsDe = function (pais) { return Object.keys(C.DEPARTAMENTOS_MUNICIPIOS[pais] || {}).sort(); };
+    var esBogota = function (pais, departamento) { return pais === "CO" && departamento === "Bogotá D.C."; };
+    var depOptions = function (pais, current) {
+      var deps = depsDe(pais);
+      return deps.map(function (d) { return '<option ' + (d === current ? "selected" : "") + ">" + U.esc(d) + "</option>"; }).join("");
+    };
+    var OTRO_MUNICIPIO = "__otro__";
+    var munOptions = function (pais, departamento, current) {
+      var municipios = (C.DEPARTAMENTOS_MUNICIPIOS[pais] || {})[departamento] || [];
+      var esOtro = current && municipios.indexOf(current) === -1;
+      return municipios.map(function (m) { return '<option ' + (m === current ? "selected" : "") + ">" + U.esc(m) + "</option>"; }).join("") +
+        '<option value="' + OTRO_MUNICIPIO + '" ' + (esOtro ? "selected" : "") + '>Otro (escribir)</option>';
+    };
+    var localidadOptions = function (current) {
+      return C.LOCALIDADES_BOGOTA.map(function (l) { return '<option ' + (l === current ? "selected" : "") + ">" + U.esc(l) + "</option>"; }).join("");
+    };
     var epsOptions = function (current) {
       return C.EPS_COLOMBIA.map(function (e) { return '<option ' + (e === current ? "selected" : "") + ">" + e + "</option>"; }).join("");
     };
@@ -381,13 +403,20 @@
       return opciones;
     };
 
+    // Departamento efectivo para el render inicial: el guardado en el
+    // paciente, o el primero de la lista de su país si nunca lo tuvo (ej.
+    // un paciente registrado antes de que este campo existiera) — se usa
+    // igual tanto para armar el select de municipio como para decidir si
+    // el valor guardado de "ciudad" va en la lista o en el campo "Otro".
+    var depInicial = patient.departamento || depsDe(patient.pais)[0];
+
     var wrap = U.openModal(
       '<h3 class="modal-title">' + (isEdit ? "Editar Paciente" : "Nuevo Paciente") + '</h3>' +
-      '<p class="text-muted" style="margin-top:0">Registro completo según normativa de habilitación (Colombia / Venezuela / Ecuador).</p>' +
+      '<p class="text-muted" style="margin-top:0">Registro completo según normativa de habilitación (Colombia / Venezuela / Ecuador / México).</p>' +
       '<div id="pac-existente-banner" class="hidden" style="background:var(--surface-2);border:1px solid var(--border);border-radius:8px;padding:10px 12px;margin-bottom:12px;font-size:13px"></div>' +
       '<form id="pac-form">' +
         '<fieldset><legend>País e Identificación</legend><div class="form-grid">' +
-          sel("pais", "País", ["CO", "VE", "EC"].map(function (p) { return '<option value="' + p + '" ' + (p === patient.pais ? "selected" : "") + ">" + (p === "CO" ? "Colombia" : p === "VE" ? "Venezuela" : "Ecuador") + "</option>"; }).join("")) +
+          sel("pais", "País", ["CO", "VE", "EC", "MX"].map(function (p) { return '<option value="' + p + '" ' + (p === patient.pais ? "selected" : "") + ">" + (p === "CO" ? "Colombia" : p === "VE" ? "Venezuela" : p === "EC" ? "Ecuador" : "México") + "</option>"; }).join("")) +
           sel("tipoDocumento", "Tipo de Documento", docOptions(patient.pais, patient.tipoDocumento)) +
           inp("numeroDocumento", "Número de Documento", patient.numeroDocumento, true) +
           inp("fechaNacimiento", "Fecha de Nacimiento", patient.fechaNacimiento, false, "date") +
@@ -400,10 +429,15 @@
           inp("primerApellido", "Primer Apellido", patient.primerApellido, true) + inp("segundoApellido", "Segundo Apellido", patient.segundoApellido) +
         "</div></fieldset>" +
         '<fieldset><legend>Contacto</legend><div class="form-grid">' +
-          inp("direccion", "Dirección de Residencia", patient.direccion) + inp("ciudad", "Ciudad / Municipio", patient.ciudad) +
+          inp("direccion", "Dirección de Residencia", patient.direccion) +
+          '<div class="field"><label id="lbl-departamento">' + C.DIVISION_ADMINISTRATIVA_LABEL[patient.pais] + '</label><select id="f_departamento">' + depOptions(patient.pais, depInicial) + "</select></div>" +
+          '<div class="field" id="municipio-field"><label id="lbl-municipio">' + C.SUBDIVISION_LABEL[patient.pais] + '</label><select id="f_municipio">' + munOptions(patient.pais, depInicial, patient.ciudad) + "</select></div>" +
+          '<div class="field" id="municipio-otro-field" style="display:none"><label>Escribe el ' + C.SUBDIVISION_LABEL[patient.pais].toLowerCase() + '</label><input id="f_municipio_otro" value="' + U.esc((patient.ciudad && (C.DEPARTAMENTOS_MUNICIPIOS[patient.pais][depInicial] || []).indexOf(patient.ciudad) === -1) ? patient.ciudad : "") + '"/></div>' +
+          '<div class="field" id="localidad-field" style="display:none"><label>Localidad (para ubicar mejor al paciente dentro de Bogotá)</label><select id="f_localidad">' + localidadOptions(patient.localidad) + "</select></div>" +
           inp("telefono", "Teléfono Fijo", patient.telefono) + inp("celular", "Celular", patient.celular) +
           inp("email", "Correo Electrónico", patient.email, false, "email") +
         "</div>" +
+        '<p class="text-muted" style="margin:0 0 8px">Elige el ' + C.SUBDIVISION_LABEL[patient.pais].toLowerCase() + ' de la lista, o "Otro (escribir)" si no aparece. En Bogotá, en vez de municipio se pide la localidad, para ubicar mejor al paciente dentro de la ciudad.</p>' +
         '<div class="form-grid" id="co-rips-fields" style="display:' + (patient.pais === "CO" ? "grid" : "none") + '">' +
           sel("zonaResidencial", "Zona de Residencia (RIPS)", C.RIPS_ZONA_RESIDENCIAL.map(function (z) { return '<option value="' + z.v + '" ' + (z.v === patient.zonaResidencial ? "selected" : "") + ">" + z.t + "</option>"; }).join("")) +
           '<div class="field"><label>Código DANE del Municipio (RIPS)</label><input list="dane-list" id="f_codigoMunicipioDane" value="' + U.esc(patient.codigoMunicipioDane || "") + '" placeholder="Ej. 11001 = Bogotá D.C."/><datalist id="dane-list">' +
@@ -429,6 +463,35 @@
       { lg: true }
     );
 
+    // Muestra/oculta el municipio, la localidad (solo Bogotá) y el campo
+    // "otro" de escribir a mano, según el departamento/municipio elegidos
+    // en este momento — se llama tanto al iniciar el formulario como en
+    // cada cambio de país, departamento o municipio.
+    function actualizarVisibilidadUbicacion() {
+      var pais = wrap.querySelector("#f_pais").value;
+      var departamento = wrap.querySelector("#f_departamento").value;
+      var bogota = esBogota(pais, departamento);
+      wrap.querySelector("#municipio-field").style.display = bogota ? "none" : "";
+      wrap.querySelector("#localidad-field").style.display = bogota ? "" : "none";
+      var esOtro = !bogota && wrap.querySelector("#f_municipio").value === OTRO_MUNICIPIO;
+      wrap.querySelector("#municipio-otro-field").style.display = esOtro ? "" : "none";
+    }
+    // Al cambiar el departamento/estado/provincia, la lista de municipios
+    // disponibles cambia por completo — siempre arranca sin ninguno
+    // seleccionado a mano (nunca arrastra el municipio del departamento
+    // anterior, que ya no aplica).
+    function onDepartamentoChange() {
+      var pais = wrap.querySelector("#f_pais").value;
+      var departamento = wrap.querySelector("#f_departamento").value;
+      wrap.querySelector("#f_municipio").innerHTML = munOptions(pais, departamento, null);
+      actualizarVisibilidadUbicacion();
+    }
+    wrap.querySelector("#f_departamento").addEventListener("change", onDepartamentoChange);
+    wrap.querySelector("#f_municipio").addEventListener("change", actualizarVisibilidadUbicacion);
+    // Arranca con la visibilidad correcta según los datos ya guardados del
+    // paciente (ej. al editar uno que ya vivía en Bogotá).
+    actualizarVisibilidadUbicacion();
+
     function refreshDependentSelects() {
       var pais = wrap.querySelector("#f_pais").value;
       wrap.querySelector("#f_tipoDocumento").innerHTML = docOptions(pais, patient.tipoDocumento);
@@ -440,6 +503,13 @@
       var epsField = wrap.querySelector("#eps-field");
       epsField.style.display = pais === "CO" ? "block" : "none";
       if (pais !== "CO") wrap.querySelector("#f_eps").value = "";
+      // El departamento/estado/provincia y su etiqueta también dependen del
+      // país — arranca siempre desde el primero de la lista del país recién
+      // elegido, y de ahí se recalcula el municipio en cascada.
+      wrap.querySelector("#lbl-departamento").textContent = C.DIVISION_ADMINISTRATIVA_LABEL[pais];
+      wrap.querySelector("#lbl-municipio").textContent = C.SUBDIVISION_LABEL[pais];
+      wrap.querySelector("#f_departamento").innerHTML = depOptions(pais, depsDe(pais)[0]);
+      onDepartamentoChange();
       // Si el celular todavía es solo el indicativo (nadie escribió un
       // número encima), lo actualiza al indicativo del país recién elegido
       // — pero nunca toca un número que la persona ya empezó a digitar.
@@ -466,7 +536,7 @@
       if (!encontrado) { pacienteExistenteId = null; banner.classList.add("hidden"); return; }
       pacienteExistenteId = encontrado.id;
       var campos = ["pais", "tipoDocumento", "fechaNacimiento", "edadAnios", "sexo", "primerNombre", "segundoNombre", "primerApellido", "segundoApellido",
-        "direccion", "ciudad", "telefono", "celular", "email", "tipoAfiliacion", "eps", "medicoRemitente", "procedencia", "ocupacion",
+        "direccion", "telefono", "celular", "email", "tipoAfiliacion", "eps", "medicoRemitente", "procedencia", "ocupacion",
         "observaciones", "zonaResidencial", "codigoMunicipioDane"];
       campos.forEach(function (c) {
         var el = wrap.querySelector("#f_" + c);
@@ -479,6 +549,20 @@
       refreshDependentSelects();
       wrap.querySelector("#f_tipoDocumento").value = tipoDoc;
       wrap.querySelector("#f_tipoAfiliacion").value = encontrado.tipoAfiliacion || "";
+      // Departamento/municipio/localidad se recargan en cascada para el
+      // país ya elegido — si el paciente es de antes de que este campo
+      // existiera (solo tiene "ciudad" en texto libre, sin departamento),
+      // se conserva ese texto en "Otro" en vez de perderlo silenciosamente.
+      var paisEncontrado = wrap.querySelector("#f_pais").value;
+      var depEncontrado = encontrado.departamento || wrap.querySelector("#f_departamento").value;
+      wrap.querySelector("#f_departamento").value = depEncontrado;
+      wrap.querySelector("#f_municipio").innerHTML = munOptions(paisEncontrado, depEncontrado, encontrado.ciudad || "");
+      actualizarVisibilidadUbicacion();
+      if (wrap.querySelector("#f_municipio").value === OTRO_MUNICIPIO && encontrado.ciudad) {
+        wrap.querySelector("#f_municipio_otro").value = encontrado.ciudad;
+      }
+      var localidadSel = wrap.querySelector("#f_localidad");
+      if (localidadSel && encontrado.localidad) localidadSel.value = encontrado.localidad;
       banner.classList.remove("hidden");
       banner.innerHTML = "✅ <b>" + U.esc(U.nombreCompleto(encontrado)) + "</b> ya está registrado(a) — se cargaron sus datos. Si guardas, se actualiza este mismo registro (no se crea uno duplicado). Revisa que sea la misma persona antes de guardar.";
     }
@@ -488,10 +572,18 @@
     wrap.querySelector("#pac-form").addEventListener("submit", function (e) {
       e.preventDefault();
       var g = function (id) { return wrap.querySelector("#f_" + id).value.trim(); };
+      // El municipio puede venir de la lista o, si eligieron "Otro
+      // (escribir)", del campo de texto libre de al lado. La localidad solo
+      // aplica (y solo se guarda) para pacientes de Bogotá D.C.
+      var departamento = g("departamento");
+      var esBogotaSel = esBogota(g("pais"), departamento);
+      var municipioSel = wrap.querySelector("#f_municipio").value;
+      var ciudad = municipioSel === OTRO_MUNICIPIO ? g("municipio_otro") : municipioSel;
       var data = {
         tenantId: session.tenantId, pais: g("pais"), tipoDocumento: g("tipoDocumento"), numeroDocumento: g("numeroDocumento"),
         primerNombre: g("primerNombre"), segundoNombre: g("segundoNombre"), primerApellido: g("primerApellido"), segundoApellido: g("segundoApellido"),
-        fechaNacimiento: g("fechaNacimiento"), edadAnios: g("edadAnios"), sexo: g("sexo"), direccion: g("direccion"), ciudad: g("ciudad"), telefono: g("telefono"),
+        fechaNacimiento: g("fechaNacimiento"), edadAnios: g("edadAnios"), sexo: g("sexo"), direccion: g("direccion"),
+        departamento: departamento, ciudad: ciudad, localidad: esBogotaSel ? g("localidad") : "", telefono: g("telefono"),
         celular: g("celular"), email: g("email"), tipoAfiliacion: g("tipoAfiliacion"), eps: g("eps"), medicoRemitente: g("medicoRemitente"),
         procedencia: g("procedencia"), ocupacion: g("ocupacion"), observaciones: g("observaciones"),
         zonaResidencial: g("zonaResidencial"), codigoMunicipioDane: g("codigoMunicipioDane"), auxiliarTomaMuestra: g("auxiliarTomaMuestra")

@@ -242,7 +242,7 @@
   /* Indicativo telefónico según el país del laboratorio — para prellenar el
      campo de celular al registrar un paciente y para armar bien el número al
      enviar por WhatsApp (ver numeroWhatsapp más abajo). */
-  var INDICATIVO_POR_PAIS = { CO: "57", VE: "58", EC: "593" };
+  var INDICATIVO_POR_PAIS = { CO: "57", VE: "58", EC: "593", MX: "52" };
   function indicativoPais(pais) { return INDICATIVO_POR_PAIS[pais] || INDICATIVO_POR_PAIS.CO; }
 
   /* Arma el número completo (con indicativo, solo dígitos) que necesita un

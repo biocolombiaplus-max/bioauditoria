@@ -536,14 +536,171 @@
       { v: "CI", t: "Cédula de Identidad" },
       { v: "PA", t: "Pasaporte" },
       { v: "RUC", t: "RUC" }
+    ],
+    MX: [
+      { v: "CURP", t: "CURP" },
+      { v: "INE", t: "INE / IFE" },
+      { v: "PA", t: "Pasaporte" },
+      { v: "ACTA", t: "Acta de Nacimiento (menores)" }
     ]
   };
 
   var TIPOS_AFILIACION = {
     CO: ["Contributivo", "Subsidiado", "Vinculado", "Particular", "Medicina Prepagada", "Póliza / Seguro Privado", "SOAT", "ARL", "Otro"],
     VE: ["Seguro Privado", "IVSS", "Particular", "Otro"],
-    EC: ["IESS", "ISSFA", "ISSPOL", "Seguro Privado", "Particular", "Otro"]
+    EC: ["IESS", "ISSFA", "ISSPOL", "Seguro Privado", "Particular", "Otro"],
+    MX: ["IMSS", "ISSSTE", "INSABI / Seguro Popular", "Seguro Privado", "Particular", "Otro"]
   };
+
+  // Etiqueta de la división administrativa de primer nivel (departamento/
+  // estado/provincia) y de segundo nivel (municipio/cantón), según el país
+  // del paciente — para que el formulario de registro use el nombre correcto
+  // en cada uno de los 4 países que maneja BIOsoft, en vez de un genérico
+  // "Departamento" que no aplica igual en todos lados.
+  var DIVISION_ADMINISTRATIVA_LABEL = { CO: "Departamento", VE: "Estado", EC: "Provincia", MX: "Estado" };
+  var SUBDIVISION_LABEL = { CO: "Municipio", VE: "Municipio", EC: "Cantón", MX: "Municipio" };
+
+  // Departamentos/estados/provincias con sus principales municipios/
+  // cantones (capital + ciudades más grandes) — NO es el listado completo
+  // de cada país (Colombia sola tiene cerca de 1.100 municipios, México
+  // cerca de 2.500), así que el formulario de registro del paciente
+  // siempre deja una opción "Otro municipio (escribir)" para cualquiera
+  // que no aparezca aquí. El objetivo es agilizar el registro para la
+  // gran mayoría de pacientes con una lista corta y confiable, no
+  // reemplazar una división político-administrativa oficial completa.
+  var DEPARTAMENTOS_MUNICIPIOS = {
+    CO: {
+      "Bogotá D.C.": ["Bogotá D.C."],
+      "Amazonas": ["Leticia", "Puerto Nariño"],
+      "Antioquia": ["Medellín", "Bello", "Itagüí", "Envigado", "Apartadó", "Turbo", "Rionegro", "Sabaneta", "Caucasia"],
+      "Arauca": ["Arauca", "Saravena", "Tame"],
+      "Atlántico": ["Barranquilla", "Soledad", "Malambo", "Sabanalarga", "Puerto Colombia"],
+      "Bolívar": ["Cartagena", "Magangué", "Turbaco", "El Carmen de Bolívar"],
+      "Boyacá": ["Tunja", "Duitama", "Sogamoso", "Chiquinquirá"],
+      "Caldas": ["Manizales", "La Dorada", "Chinchiná", "Villamaría"],
+      "Caquetá": ["Florencia", "San Vicente del Caguán"],
+      "Casanare": ["Yopal", "Aguazul", "Villanueva"],
+      "Cauca": ["Popayán", "Santander de Quilichao", "Puerto Tejada"],
+      "Cesar": ["Valledupar", "Aguachica", "Codazzi"],
+      "Chocó": ["Quibdó", "Istmina"],
+      "Córdoba": ["Montería", "Cereté", "Lorica", "Sahagún"],
+      "Cundinamarca": ["Soacha", "Zipaquirá", "Facatativá", "Chía", "Girardot", "Fusagasugá", "Mosquera", "Madrid"],
+      "Guainía": ["Inírida"],
+      "Guaviare": ["San José del Guaviare"],
+      "Huila": ["Neiva", "Pitalito", "Garzón"],
+      "La Guajira": ["Riohacha", "Maicao", "Uribia"],
+      "Magdalena": ["Santa Marta", "Ciénaga", "Fundación"],
+      "Meta": ["Villavicencio", "Acacías", "Granada"],
+      "Nariño": ["Pasto", "Tumaco", "Ipiales"],
+      "Norte de Santander": ["Cúcuta", "Villa del Rosario", "Ocaña", "Pamplona"],
+      "Putumayo": ["Mocoa", "Puerto Asís"],
+      "Quindío": ["Armenia", "Calarcá", "Montenegro"],
+      "Risaralda": ["Pereira", "Dosquebradas", "Santa Rosa de Cabal"],
+      "San Andrés y Providencia": ["San Andrés", "Providencia"],
+      "Santander": ["Bucaramanga", "Floridablanca", "Girón", "Piedecuesta", "Barrancabermeja"],
+      "Sucre": ["Sincelejo", "Corozal"],
+      "Tolima": ["Ibagué", "Espinal", "Melgar"],
+      "Valle del Cauca": ["Cali", "Palmira", "Buenaventura", "Tuluá", "Cartago", "Buga", "Yumbo"],
+      "Vaupés": ["Mitú"],
+      "Vichada": ["Puerto Carreño"]
+    },
+    VE: {
+      "Distrito Capital": ["Caracas"],
+      "Amazonas": ["Puerto Ayacucho"],
+      "Anzoátegui": ["Barcelona", "Puerto La Cruz", "El Tigre"],
+      "Apure": ["San Fernando de Apure"],
+      "Aragua": ["Maracay", "Turmero", "La Victoria"],
+      "Barinas": ["Barinas"],
+      "Bolívar": ["Ciudad Bolívar", "Ciudad Guayana", "Puerto Ordaz"],
+      "Carabobo": ["Valencia", "Puerto Cabello", "Guacara"],
+      "Cojedes": ["San Carlos"],
+      "Delta Amacuro": ["Tucupita"],
+      "Falcón": ["Coro", "Punto Fijo"],
+      "Guárico": ["San Juan de los Morros", "Calabozo"],
+      "La Guaira": ["La Guaira", "Maiquetía"],
+      "Lara": ["Barquisimeto", "Carora"],
+      "Mérida": ["Mérida", "El Vigía"],
+      "Miranda": ["Los Teques", "Guarenas", "Guatire", "Petare"],
+      "Monagas": ["Maturín"],
+      "Nueva Esparta": ["La Asunción", "Porlamar"],
+      "Portuguesa": ["Guanare", "Acarigua"],
+      "Sucre": ["Cumaná", "Carúpano"],
+      "Táchira": ["San Cristóbal", "Táriba"],
+      "Trujillo": ["Trujillo", "Valera"],
+      "Yaracuy": ["San Felipe"],
+      "Zulia": ["Maracaibo", "Cabimas", "Ciudad Ojeda"]
+    },
+    EC: {
+      "Azuay": ["Cuenca", "Gualaceo"],
+      "Bolívar": ["Guaranda"],
+      "Cañar": ["Azogues"],
+      "Carchi": ["Tulcán"],
+      "Chimborazo": ["Riobamba"],
+      "Cotopaxi": ["Latacunga"],
+      "El Oro": ["Machala", "Pasaje", "Santa Rosa"],
+      "Esmeraldas": ["Esmeraldas"],
+      "Galápagos": ["Puerto Baquerizo Moreno"],
+      "Guayas": ["Guayaquil", "Durán", "Milagro", "Samborondón"],
+      "Imbabura": ["Ibarra", "Otavalo"],
+      "Loja": ["Loja"],
+      "Los Ríos": ["Babahoyo", "Quevedo"],
+      "Manabí": ["Portoviejo", "Manta", "Chone"],
+      "Morona Santiago": ["Macas"],
+      "Napo": ["Tena"],
+      "Orellana": ["Puerto Francisco de Orellana"],
+      "Pastaza": ["Puyo"],
+      "Pichincha": ["Quito", "Sangolquí", "Cayambe"],
+      "Santa Elena": ["Santa Elena", "La Libertad"],
+      "Santo Domingo de los Tsáchilas": ["Santo Domingo"],
+      "Sucumbíos": ["Nueva Loja (Lago Agrio)"],
+      "Tungurahua": ["Ambato"],
+      "Zamora Chinchipe": ["Zamora"]
+    },
+    MX: {
+      "Ciudad de México": ["Ciudad de México"],
+      "Aguascalientes": ["Aguascalientes"],
+      "Baja California": ["Tijuana", "Mexicali", "Ensenada"],
+      "Baja California Sur": ["La Paz", "Los Cabos"],
+      "Campeche": ["Campeche", "Ciudad del Carmen"],
+      "Chiapas": ["Tuxtla Gutiérrez", "Tapachula", "San Cristóbal de las Casas"],
+      "Chihuahua": ["Chihuahua", "Ciudad Juárez"],
+      "Coahuila": ["Saltillo", "Torreón", "Monclova"],
+      "Colima": ["Colima", "Manzanillo"],
+      "Durango": ["Durango", "Gómez Palacio"],
+      "Estado de México": ["Toluca", "Ecatepec", "Naucalpan", "Nezahualcóyotl", "Tlalnepantla"],
+      "Guanajuato": ["León", "Guanajuato", "Irapuato", "Celaya"],
+      "Guerrero": ["Chilpancingo", "Acapulco"],
+      "Hidalgo": ["Pachuca"],
+      "Jalisco": ["Guadalajara", "Zapopan", "Puerto Vallarta"],
+      "Michoacán": ["Morelia", "Uruapan"],
+      "Morelos": ["Cuernavaca"],
+      "Nayarit": ["Tepic"],
+      "Nuevo León": ["Monterrey", "San Nicolás de los Garza", "Guadalupe"],
+      "Oaxaca": ["Oaxaca de Juárez"],
+      "Puebla": ["Puebla", "Tehuacán"],
+      "Querétaro": ["Querétaro"],
+      "Quintana Roo": ["Cancún", "Chetumal", "Playa del Carmen"],
+      "San Luis Potosí": ["San Luis Potosí"],
+      "Sinaloa": ["Culiacán", "Mazatlán"],
+      "Sonora": ["Hermosillo", "Ciudad Obregón"],
+      "Tabasco": ["Villahermosa"],
+      "Tamaulipas": ["Reynosa", "Matamoros", "Tampico", "Nuevo Laredo"],
+      "Tlaxcala": ["Tlaxcala"],
+      "Veracruz": ["Veracruz", "Xalapa", "Coatzacoalcos"],
+      "Yucatán": ["Mérida", "Valladolid"],
+      "Zacatecas": ["Zacatecas"]
+    }
+  };
+
+  // Las 20 localidades oficiales de Bogotá D.C. — cuando el paciente vive en
+  // Bogotá, se pide la localidad en vez (o además) del municipio, porque
+  // Bogotá es un único municipio/distrito y la localidad es el nivel que de
+  // verdad sirve para georreferenciar al paciente dentro de la ciudad.
+  var LOCALIDADES_BOGOTA = [
+    "Usaquén", "Chapinero", "Santa Fe", "San Cristóbal", "Usme", "Tunjuelito", "Bosa", "Kennedy",
+    "Fontibón", "Engativá", "Suba", "Barrios Unidos", "Teusaquillo", "Los Mártires", "Antonio Nariño",
+    "Puente Aranda", "La Candelaria", "Rafael Uribe Uribe", "Ciudad Bolívar", "Sumapaz"
+  ];
 
   var EPS_COLOMBIA = [
     "Nueva EPS", "EPS Sura", "Sanitas", "Compensar", "Famisanar", "Salud Total",
@@ -1724,6 +1881,10 @@
     EXAMENES: EXAMENES,
     TIPOS_DOCUMENTO: TIPOS_DOCUMENTO,
     TIPOS_AFILIACION: TIPOS_AFILIACION,
+    DIVISION_ADMINISTRATIVA_LABEL: DIVISION_ADMINISTRATIVA_LABEL,
+    SUBDIVISION_LABEL: SUBDIVISION_LABEL,
+    DEPARTAMENTOS_MUNICIPIOS: DEPARTAMENTOS_MUNICIPIOS,
+    LOCALIDADES_BOGOTA: LOCALIDADES_BOGOTA,
     EPS_COLOMBIA: EPS_COLOMBIA,
     PROCEDENCIAS: PROCEDENCIAS,
     PRIORIDADES: PRIORIDADES,
