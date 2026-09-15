@@ -260,7 +260,30 @@
     { img: "assets/manual/control-calidad.jpg", titulo: "Control de calidad",
       texto: "Lleva tu control de calidad interno con gráficos de Levey-Jennings e informes profesionales — cumple con la normativa y genera confianza con cada resultado que entregas." },
     { img: "assets/manual/marketing-remarketing.jpg", titulo: "Marketing con inteligencia artificial",
-      texto: "Reglas de remarketing inteligente que identifican solas a qué pacientes recordarles su próximo control — más pacientes que regresan, sin esfuerzo manual." }
+      texto: "Reglas de remarketing inteligente que identifican solas a qué pacientes recordarles su próximo control — más pacientes que regresan, sin esfuerzo manual." },
+    { img: "assets/manual/marketing-creador-imagenes.jpg", titulo: "Creador de imágenes con IA para redes sociales",
+      texto: "Genera en segundos imágenes profesionales para WhatsApp, Instagram y TikTok — plantillas listas de promociones, cumpleaños y campañas, con tu marca — sin contratar diseñador." },
+    { img: "assets/manual/convenios-tarifas.jpg", titulo: "Convenios y tarifas para tus empresas aliadas",
+      texto: "Crea un convenio para cada droguería, colegio, empresa o laboratorio de referencia con su propio descuento o recargo general — todo desde una pantalla, sin fórmulas sueltas en Excel." },
+    { img: "assets/manual/convenios-precios-especiales.jpg", titulo: "Precios especiales, examen por examen",
+      texto: "Define un descuento puntual o un precio fijo para cualquier examen o paquete, por cada convenio — la tarifa exacta que negociaste con cada cliente, sin perder el control de tu lista de precios general." },
+    { img: "assets/manual/paquetes-exclusivos.jpg", titulo: "Paquetes de exámenes exclusivos por convenio",
+      texto: "Arma paquetes como \"Perfil Lipídico\" y, si quieres, hazlos exclusivos de un convenio en particular — solo aparecen para ese cliente, con el precio que tú definas." }
+  ];
+
+  // Comparación honesta contra un "sistema tradicional" genérico (nunca se
+  // nombra a un competidor puntual, para no hacer afirmaciones que no se
+  // puedan sostener) — cada fila es una diferencia real y verificable de lo
+  // que ya construye BIOsoft, no una promesa vacía de marketing.
+  var COMPARATIVA = [
+    ["Interpretación automática de resultados (por edad, sexo o categoría clínica)", "Incluida", "Generalmente manual"],
+    ["Marketing y recordatorio de controles con Inteligencia Artificial", "Incluido", "No disponible"],
+    ["Conexión directa con tus equipos de laboratorio (interfaz LIS)", "Incluida en el plan", "Cobro aparte por cada equipo, o no disponible"],
+    ["Acceso desde cualquier dispositivo, sin instalar nada (100% en la nube)", "Sí", "Muchos requieren instalación local"],
+    ["Actualizaciones y funciones nuevas", "Continuas, sin costo adicional", "Con costo extra o versión aparte"],
+    ["Implementación y capacitación de tu equipo", "7 a 10 días hábiles, incluida", "Semanas o meses, a veces con costo"],
+    ["Informe de resultados personalizado (tu logo, colores y firma digital)", "Incluido", "Con costo adicional o no disponible"],
+    ["Soporte técnico", "Directo por WhatsApp, en español", "Tickets o líneas de espera largas"]
   ];
 
   function cargarImagen(url) {
@@ -370,6 +393,38 @@
       body: filas, theme: "plain",
       styles: { fontSize: 9.3, textColor: [40, 40, 40], cellPadding: { top: 2.5, bottom: 2.5, left: 0, right: 10 } },
       columnStyles: { 0: { cellWidth: maxW / 2 }, 1: { cellWidth: maxW / 2 } }
+    });
+    y = doc.lastAutoTable.finalY + 18;
+
+    tituloSeccion("Tecnología e inteligencia artificial incluidas");
+    parrafo("Esto es lo que hace que BIOsoft no sea solo un programa para digitar resultados, sino un sistema que piensa contigo:", { size: 9, color: [90, 90, 90], gap: 10 });
+    recuadro("Inteligencia Artificial trabajando para tu laboratorio, todos los días", [
+      "Remarketing con IA: revisa sola tu base de pacientes todos los días y te dice a quién contactar para su próximo control, cruzando historial de exámenes con edad y género — más pacientes que regresan, sin esfuerzo manual.",
+      "Marketing con IA: genera en segundos el texto (copy) listo para publicar en redes sociales, e incluye plantillas de imágenes para promociones, cumpleaños y campañas — sin contratar un diseñador ni un redactor.",
+      "Interpretación clínica automática: cada resultado se compara solo contra el rango correcto según edad, sexo o categoría (ej. Hemoglobina Glicosilada: Normal / Prediabetes / Diabetes), reduciendo el margen de error humano.",
+      "Interfaz automática con tus equipos de laboratorio: los resultados llegan solos desde el analizador a BIOsoft — se acabó digitarlos uno por uno."
+    ]);
+
+    tituloSeccion("Por qué BIOsoft frente a un sistema tradicional");
+    parrafo("Una comparación honesta, punto por punto, contra lo que ofrece un software de laboratorio tradicional del mercado:", { size: 9, color: [90, 90, 90], gap: 10 });
+    checkPage(160);
+    doc.autoTable({
+      startY: y, margin: { left: margin, right: margin },
+      head: [["Característica", "BIOsoft", "Software Tradicional"]],
+      body: COMPARATIVA,
+      theme: "grid",
+      styles: { fontSize: 8.7, cellPadding: 7, valign: "middle" },
+      headStyles: { fillColor: [46, 16, 101], textColor: 255, fontStyle: "bold" },
+      columnStyles: { 0: { cellWidth: maxW * 0.46 }, 1: { cellWidth: maxW * 0.27, fontStyle: "bold" }, 2: { cellWidth: maxW * 0.27 } },
+      alternateRowStyles: { fillColor: [250, 250, 251] },
+      didParseCell: function (data) {
+        if (data.section !== "body") return;
+        // Columna BIOsoft en verde (la ventaja), columna del sistema
+        // tradicional en gris itálica (lo que le falta) — sin usar ningún
+        // símbolo (✓/✗) por la limitación de fuentes WinAnsi de jsPDF.
+        if (data.column.index === 1) data.cell.styles.textColor = [21, 128, 61];
+        if (data.column.index === 2) { data.cell.styles.textColor = [130, 130, 130]; data.cell.styles.fontStyle = "italic"; }
+      }
     });
     y = doc.lastAutoTable.finalY + 18;
 
