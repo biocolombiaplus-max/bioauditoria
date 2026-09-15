@@ -286,13 +286,13 @@
         cual("LEUF", "Leucocitos", ["Ausentes", "Escasos (1-3 x campo)", "Moderados (4-10 x campo)", "Abundantes (>10 x campo)"], "Ausentes"),
         cual("HEMF", "Hematíes", ["Ausentes", "Escasos (1-3 x campo)", "Moderados (4-10 x campo)", "Abundantes (>10 x campo)"], "Ausentes"),
         cual("LEVAF", "Levaduras", ["Ausentes", "Escasas", "Abundantes"], "Ausentes"),
-        texto("PARF", "Elementos Parasitarios", "No se observan parásitos, quistes ni huevos")
+        panel("PARASITOS", "Parásitos y Elementos Parasitarios", "parasito", "Se reporta por cruces (+ a ++++) según la cantidad de formas parasitarias observadas por campo, o \"Negativo\" si no se observa ninguna.")
       ]
     },
     { id: "COP-002", seccion: "coprologia", nombre: "Sangre Oculta en Heces", cups: "907211", nivel: 1, muestra: "Materia fecal", metodo: "Inmunocromatografía", tubo: "heces",
       parametros: [cual("SOH", "Resultado", ["Negativo", "Positivo"], "Negativo")] },
     { id: "COP-003", seccion: "coprologia", nombre: "Coproparasitológico Seriado (x3)", cups: "907212", nivel: 1, muestra: "Materia fecal (3 muestras)", metodo: "Concentración + directo", tubo: "heces",
-      parametros: [texto("PARSER", "Hallazgos parasitológicos", "No se observan parásitos ni quistes")] },
+      parametros: [panel("PARASITOS", "Parásitos y Elementos Parasitarios", "parasito", "Se reporta por cruces (+ a ++++) según la cantidad de formas parasitarias observadas por campo, o \"Negativo\" si no se observa ninguna.")] },
     { id: "COP-004", seccion: "coprologia", nombre: "Test de Graham (Escobillado Perianal)", cups: "907214", nivel: 1, muestra: "Escobillado perianal", metodo: "Microscopía directa", tubo: "hisopo",
       parametros: [cual("GRAHAM", "Huevos de Enterobius vermicularis", ["No se observan", "Se observan"], "No se observan")] },
     { id: "COP-005", seccion: "coprologia", nombre: "Grasas en Materia Fecal (Esteatocrito)", cups: "907216", nivel: 2, muestra: "Materia fecal", metodo: "Esteatocrito ácido", tubo: "heces",
@@ -953,16 +953,60 @@
     return { clase: tramo.clase, texto: tramo.texto, interpretacion: tramo.clase === 0 ? "Negativo" : "Positivo" };
   }
 
+  // Parásitos y elementos parasitarios más reportados en coproparasitológico
+  // en Colombia, Venezuela, Ecuador y México (protozoarios y helmintos
+  // intestinales de distribución regional común) — igual patrón que
+  // antibióticos/alérgenos: catálogo base + los que cada laboratorio agregue
+  // quedan disponibles para la próxima vez.
+  var PARASITOS_BASE = [
+    { codigo: "PAR001", nombre: "Entamoeba histolytica/dispar (quistes)" },
+    { codigo: "PAR002", nombre: "Entamoeba histolytica/dispar (trofozoítos)" },
+    { codigo: "PAR003", nombre: "Entamoeba coli (quistes)" },
+    { codigo: "PAR004", nombre: "Giardia lamblia (quistes)" },
+    { codigo: "PAR005", nombre: "Giardia lamblia (trofozoítos)" },
+    { codigo: "PAR006", nombre: "Blastocystis hominis" },
+    { codigo: "PAR007", nombre: "Endolimax nana (quistes)" },
+    { codigo: "PAR008", nombre: "Iodamoeba bütschlii (quistes)" },
+    { codigo: "PAR009", nombre: "Chilomastix mesnili" },
+    { codigo: "PAR010", nombre: "Cryptosporidium spp." },
+    { codigo: "PAR011", nombre: "Cyclospora cayetanensis" },
+    { codigo: "PAR012", nombre: "Áscaris lumbricoides (huevos)" },
+    { codigo: "PAR013", nombre: "Trichuris trichiura (huevos)" },
+    { codigo: "PAR014", nombre: "Uncinarias — Ancylostoma/Necator (huevos)" },
+    { codigo: "PAR015", nombre: "Strongyloides stercoralis (larvas)" },
+    { codigo: "PAR016", nombre: "Hymenolepis nana (huevos)" },
+    { codigo: "PAR017", nombre: "Hymenolepis diminuta (huevos)" },
+    { codigo: "PAR018", nombre: "Taenia spp. (huevos/proglótides)" },
+    { codigo: "PAR019", nombre: "Enterobius vermicularis (huevos)" }
+  ];
+  var PARASITOS_FRECUENTES = ["PAR001", "PAR004", "PAR006", "PAR012", "PAR013", "PAR014", "PAR003", "PAR016"];
+  // Escala de cruces con la que se reporta la cantidad de formas parasitarias
+  // observadas por campo — estándar en los informes de coproparasitológico.
+  var CRUCES_PARASITO = ["+", "++", "+++", "++++"];
+  // Código fijo del ítem especial "Negativo" (ver panelBoxHtml/panelTablaHtml
+  // en views-results.js): en vez de dejar el panel vacío (que se vería como
+  // "sin diligenciar"), agregar este ítem dice explícitamente que sí se
+  // revisó la muestra y no se encontró ningún parásito.
+  var PARASITO_NEGATIVO_CODIGO = "NEGATIVO";
+  var PARASITO_NEGATIVO_NOMBRE = "Negativo para parásitos y elementos parasitarios";
+
   /* Helpers genéricos para trabajar con un parámetro tipo "panel" sin que
-     views-results.js/pdf.js necesiten saber si es antibiograma o alergia. */
+     views-results.js/pdf.js necesiten saber si es antibiograma, alergia o
+     parasitología. */
   function panelCatalogo(tenant, panelTipo) {
-    return panelTipo === "alergia" ? alergenosEfectivos(tenant) : antibioticosEfectivos(tenant);
+    if (panelTipo === "alergia") return alergenosEfectivos(tenant);
+    if (panelTipo === "parasito") return parasitosEfectivos(tenant);
+    return antibioticosEfectivos(tenant);
   }
   function panelFrecuentes(panelTipo) {
-    return panelTipo === "alergia" ? ALERGENOS_FRECUENTES : ANTIBIOTICOS_FRECUENTES;
+    if (panelTipo === "alergia") return ALERGENOS_FRECUENTES;
+    if (panelTipo === "parasito") return PARASITOS_FRECUENTES;
+    return ANTIBIOTICOS_FRECUENTES;
   }
   function panelAgregarPersonalizado(tenant, panelTipo, nombre) {
-    return panelTipo === "alergia" ? crearAlergenoPersonalizado(tenant, nombre) : crearAntibioticoPersonalizado(tenant, nombre);
+    if (panelTipo === "alergia") return crearAlergenoPersonalizado(tenant, nombre);
+    if (panelTipo === "parasito") return crearParasitoPersonalizado(tenant, nombre);
+    return crearAntibioticoPersonalizado(tenant, nombre);
   }
   /* El valor de un parámetro "panel" se guarda como el JSON de un arreglo de
      ítems, dentro del mismo "valor" string de siempre — así no hay que tocar
@@ -1006,6 +1050,20 @@
     var codigo = "ALG_" + Date.now().toString(36).toUpperCase().slice(-6);
     var nuevo = { codigo: codigo, nombre: base };
     tenant.alergenosPersonalizados.push(nuevo);
+    return nuevo;
+  }
+
+  function parasitosEfectivos(tenant) {
+    return tenant && tenant.parasitosPersonalizados && tenant.parasitosPersonalizados.length ? PARASITOS_BASE.concat(tenant.parasitosPersonalizados) : PARASITOS_BASE;
+  }
+  function crearParasitoPersonalizado(tenant, nombre) {
+    tenant.parasitosPersonalizados = tenant.parasitosPersonalizados || [];
+    var base = (nombre || "").trim();
+    var existente = parasitosEfectivos(tenant).filter(function (a) { return a.nombre.toLowerCase() === base.toLowerCase(); })[0];
+    if (existente) return existente;
+    var codigo = "PAR_" + Date.now().toString(36).toUpperCase().slice(-6);
+    var nuevo = { codigo: codigo, nombre: base };
+    tenant.parasitosPersonalizados.push(nuevo);
     return nuevo;
   }
 
@@ -1945,6 +2003,11 @@
     crearAntibioticoPersonalizado: crearAntibioticoPersonalizado,
     alergenosEfectivos: alergenosEfectivos,
     crearAlergenoPersonalizado: crearAlergenoPersonalizado,
+    parasitosEfectivos: parasitosEfectivos,
+    crearParasitoPersonalizado: crearParasitoPersonalizado,
+    CRUCES_PARASITO: CRUCES_PARASITO,
+    PARASITO_NEGATIVO_CODIGO: PARASITO_NEGATIVO_CODIGO,
+    PARASITO_NEGATIVO_NOMBRE: PARASITO_NEGATIVO_NOMBRE,
     GERMENES_URINARIOS_FRECUENTES: GERMENES_URINARIOS_FRECUENTES,
     GERMENES_URINARIOS_GRUPOS_ORDEN: GERMENES_URINARIOS_GRUPOS_ORDEN,
     germenesUrinariosEfectivos: germenesUrinariosEfectivos,

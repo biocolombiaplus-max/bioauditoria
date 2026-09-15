@@ -430,12 +430,19 @@
         var frecuentes = C.panelFrecuentes(p.panelTipo).map(function (cod) { return catalogo.filter(function (c) { return c.codigo === cod; })[0]; }).filter(function (c) { return c && !agregados[c.codigo]; });
         var disponibles = catalogo.filter(function (c) { return !agregados[c.codigo]; });
 
+        var nombreItem = p.panelTipo === "alergia" ? "alérgeno" : p.panelTipo === "parasito" ? "parásito" : "antibiótico";
+        // Parasitología: un botón aparte, bien visible, para decir
+        // explícitamente "sí se revisó y no se encontró nada" — en vez de
+        // dejar el panel vacío, que se vería como una captura sin terminar.
+        var negativoHtml = (p.panelTipo === "parasito" && editable) ?
+          '<button type="button" class="btn btn-outline btn-sm" data-panel-negativo="' + p.codigo + '" style="border-color:#15803d;color:#15803d;margin-bottom:8px">' + U.icon("check") + " Marcar como Negativo (no se observan parásitos)</button>" : "";
         var controlesHtml = !editable ? "" :
+          negativoHtml +
           (frecuentes.length ? '<div class="flex gap-2 wrap" style="margin-bottom:8px">' +
             frecuentes.map(function (c) { return '<button type="button" class="btn btn-outline btn-sm" data-panel-quick="' + p.codigo + ':' + c.codigo + '">+ ' + U.esc(c.nombre) + "</button>"; }).join("") +
             "</div>" : "") +
           '<div class="flex gap-2 wrap" style="margin-bottom:8px">' +
-          '<select data-panel-sel="' + p.codigo + '" style="flex:1;min-width:200px"><option value="">' + (p.panelTipo === "alergia" ? "Buscar y agregar alérgeno…" : "Buscar y agregar antibiótico…") + "</option>" +
+          '<select data-panel-sel="' + p.codigo + '" style="flex:1;min-width:200px"><option value="">Buscar y agregar ' + nombreItem + "…</option>" +
           disponibles.map(function (c) { return '<option value="' + U.esc(c.codigo) + '">' + U.esc(c.nombre) + "</option>"; }).join("") +
           "</select>" +
           '<button type="button" class="btn btn-outline btn-sm" data-panel-addsel="' + p.codigo + '">Agregar</button>' +
@@ -456,7 +463,18 @@
       function panelTablaHtml(p, soloLectura) {
         var interactivo = editable && !soloLectura;
         var items = panelState[p.codigo] || [];
-        if (!items.length) return '<p class="text-muted" style="font-size:12.5px;margin:0">Aún no se ha agregado ningún ' + (p.panelTipo === "alergia" ? "alérgeno" : "antibiótico") + ".</p>";
+        if (!items.length) return '<p class="text-muted" style="font-size:12.5px;margin:0">Aún no se ha agregado ningún ' + (p.panelTipo === "alergia" ? "alérgeno" : p.panelTipo === "parasito" ? "parásito" : "antibiótico") + ".</p>";
+        if (p.panelTipo === "parasito") {
+          return '<div class="table-wrap"><table><thead><tr><th>Parásito / Elemento Parasitario</th><th>Hallazgo</th>' + (interactivo ? "<th></th>" : "") + "</tr></thead><tbody>" +
+            items.map(function (it) {
+              var esNegativo = it.codigo === C.PARASITO_NEGATIVO_CODIGO;
+              var celda = esNegativo ? "<td><b>Negativo</b></td>" :
+                "<td style='min-width:100px'><select data-panel-res='" + p.codigo + ":" + it.codigo + "' " + (!interactivo ? "disabled" : "") + ">" +
+                C.CRUCES_PARASITO.map(function (o) { return "<option " + (o === it.resultado ? "selected" : "") + ">" + o + "</option>"; }).join("") + "</select></td>";
+              return "<tr><td>" + (esNegativo ? "<i>" + U.esc(it.nombre) + "</i>" : U.esc(it.nombre)) + "</td>" + celda +
+                (interactivo ? "<td><button type='button' class='btn btn-ghost btn-sm' data-panel-quitar='" + p.codigo + ":" + it.codigo + "'>✕</button></td>" : "") + "</tr>";
+            }).join("") + "</tbody></table></div>";
+        }
         if (p.panelTipo === "alergia") {
           return '<div class="table-wrap"><table><thead><tr><th>Alérgeno</th><th>Conc. IgE (kU/L)</th><th>Clase</th><th>Interpretación</th>' + (interactivo ? "<th></th>" : "") + "</tr></thead><tbody>" +
             items.map(function (it) {
@@ -487,10 +505,23 @@
         function reRenderCaja() { cajaWrap.outerHTML = panelBoxHtml(p); wirePanelBox(p); }
 
         function agregarItem(item) {
-          if ((panelState[p.codigo] || []).some(function (it) { return it.codigo === item.codigo; })) return;
-          panelState[p.codigo] = (panelState[p.codigo] || []).concat([p.panelTipo === "alergia" ? { codigo: item.codigo, nombre: item.nombre, valor: "" } : { codigo: item.codigo, nombre: item.nombre, resultado: "", cim: "" }]);
+          var actuales = panelState[p.codigo] || [];
+          if (actuales.some(function (it) { return it.codigo === item.codigo; })) return;
+          // Encontrar un parásito real ya no es compatible con el ítem
+          // especial "Negativo" agregado antes — se quita solo, en vez de
+          // dejar el reporte contradictorio (Negativo + un hallazgo).
+          if (p.panelTipo === "parasito") actuales = actuales.filter(function (it) { return it.codigo !== C.PARASITO_NEGATIVO_CODIGO; });
+          var nuevoItem = p.panelTipo === "alergia" ? { codigo: item.codigo, nombre: item.nombre, valor: "" }
+            : p.panelTipo === "parasito" ? { codigo: item.codigo, nombre: item.nombre, resultado: C.CRUCES_PARASITO[0] }
+            : { codigo: item.codigo, nombre: item.nombre, resultado: "", cim: "" };
+          panelState[p.codigo] = actuales.concat([nuevoItem]);
           reRenderCaja();
         }
+        var btnNegativo = cajaWrap.querySelector('[data-panel-negativo="' + p.codigo + '"]');
+        if (btnNegativo) btnNegativo.addEventListener("click", function () {
+          panelState[p.codigo] = [{ codigo: C.PARASITO_NEGATIVO_CODIGO, nombre: C.PARASITO_NEGATIVO_NOMBRE, resultado: "Negativo" }];
+          reRenderCaja();
+        });
 
         cajaWrap.querySelectorAll("[data-panel-quick]").forEach(function (b) {
           b.addEventListener("click", function () {
@@ -512,9 +543,11 @@
           var nombre = inpNuevo.value.trim();
           if (!nombre) { U.toast("Escribe el nombre antes de agregarlo.", "error"); return; }
           var nuevo = C.panelAgregarPersonalizado(tenant, p.panelTipo, nombre);
-          S.updateTenant(tenant.id, p.panelTipo === "alergia" ? { alergenosPersonalizados: tenant.alergenosPersonalizados } : { antibioticosPersonalizados: tenant.antibioticosPersonalizados });
+          var campoPersonalizado = p.panelTipo === "alergia" ? "alergenosPersonalizados" : p.panelTipo === "parasito" ? "parasitosPersonalizados" : "antibioticosPersonalizados";
+          var patchPersonalizado = {}; patchPersonalizado[campoPersonalizado] = tenant[campoPersonalizado];
+          S.updateTenant(tenant.id, patchPersonalizado);
           agregarItem(nuevo);
-          U.toast((p.panelTipo === "alergia" ? "Alérgeno" : "Antibiótico") + ' "' + nombre + '" agregado al catálogo del laboratorio.', "success");
+          U.toast((p.panelTipo === "alergia" ? "Alérgeno" : p.panelTipo === "parasito" ? "Parásito" : "Antibiótico") + ' "' + nombre + '" agregado al catálogo del laboratorio.', "success");
         });
         cajaWrap.querySelectorAll("[data-panel-quitar]").forEach(function (b) {
           b.addEventListener("click", function () {

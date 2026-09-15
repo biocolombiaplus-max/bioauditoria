@@ -887,7 +887,7 @@
       panelesDeSeccion.forEach(function (panelInfo) {
         if (y > 690) { y = nuevaPagina(); }
         doc.setFont(fontFam, "bold"); doc.setFontSize(9); doc.setTextColor(rgb[0], rgb[1], rgb[2]);
-        doc.text((panelInfo.p.panelTipo === "alergia" ? "PANEL DE ALERGIA" : "ANTIBIOGRAMA") + " — " + panelInfo.exNombre, margin, y);
+        doc.text((panelInfo.p.panelTipo === "alergia" ? "PANEL DE ALERGIA" : panelInfo.p.panelTipo === "parasito" ? "PARÁSITOS Y ELEMENTOS PARASITARIOS" : "ANTIBIOGRAMA") + " — " + panelInfo.exNombre, margin, y);
         y += 12;
         // El método solo se repite aquí si ese examen no tiene su propia
         // fila-título en la tabla principal de arriba (ej. un panel de
@@ -926,6 +926,36 @@
               }
             }
           });
+        } else if (panelInfo.p.panelTipo === "parasito") {
+          // Igual que en un reporte de referencia: si el único ítem es el
+          // especial "Negativo", se imprime como una sola línea destacada
+          // en vez de una tabla de un solo renglón — así se lee de un
+          // vistazo, sin tener que abrir una tabla para saber que no se
+          // encontró nada.
+          var esSoloNegativo = panelInfo.items.length === 1 && panelInfo.items[0].codigo === C.PARASITO_NEGATIVO_CODIGO;
+          if (esSoloNegativo) {
+            doc.setFont(fontFam, "bold"); doc.setFontSize(tamanoBase + 0.5);
+            if (estiloDiscreto) doc.setTextColor(0, 0, 0); else doc.setTextColor(20, 20, 20);
+            doc.text("NEGATIVO PARA PARÁSITOS Y ELEMENTOS PARASITARIOS", margin, y + 6);
+            y += 18;
+          } else {
+            doc.autoTable({
+              startY: y, margin: { left: margin, right: margin },
+              head: [["Parásito / Elemento Parasitario", "Hallazgo"]],
+              body: panelInfo.items.map(function (it) { return [it.nombre, it.resultado || "-"]; }),
+              theme: "grid", styles: { font: fontFam, fontSize: tamanoBase, cellPadding: 4, textColor: estiloDiscreto ? [0, 0, 0] : [20, 20, 20] }, headStyles: { fillColor: [240, 244, 247], textColor: estiloDiscreto ? [0, 0, 0] : 40, fontStyle: "bold" },
+              columnStyles: { 1: { halign: "center", cellWidth: 90 } },
+              // Cualquier parásito reportado (a diferencia de "Negativo",
+              // que ya se maneja aparte arriba) es en sí mismo un hallazgo
+              // positivo — se resalta en rojo y negrita, sin importar
+              // cuántas cruces tenga, igual que una interpretación anormal.
+              didParseCell: function (data) {
+                if (data.section === "body" && data.column.index === 1 && !estiloDiscreto) {
+                  data.cell.styles.textColor = [214, 69, 69]; data.cell.styles.fontStyle = "bold";
+                }
+              }
+            });
+          }
         } else {
           // La columna de CIM (Concentración Inhibitoria Mínima) solo se
           // imprime si el laboratorio la activó en Configuración — la
@@ -944,7 +974,7 @@
             }
           });
         }
-        y = doc.lastAutoTable.finalY + 10;
+        if (!esSoloNegativo) y = doc.lastAutoTable.finalY + 10;
       });
 
       // Las observaciones que el bacteriólogo(a) escribió en cada examen al
