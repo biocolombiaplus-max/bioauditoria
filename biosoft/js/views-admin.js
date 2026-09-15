@@ -604,7 +604,9 @@
           "<td><div class='flex gap-1 wrap'>" + (overCual ? '<button type="button" class="btn btn-ghost btn-sm" data-reset="' + p.codigo + '">Restablecer</button>' : "") + quitarHtml + "</div></td></tr>";
       }
       if (p.tipo === "panel") {
-        var etiquetaPanel = p.panelTipo === "alergia" ? "Panel de selección — Alergia (IgE por alérgeno, Clase/Interpretación automática)" : "Panel de selección — Antibiograma (Sensible/Intermedio/Resistente)";
+        var etiquetaPanel = p.panelTipo === "alergia" ? "Panel de selección — Alergia (IgE por alérgeno, Clase/Interpretación automática)" :
+          p.panelTipo === "parasito" ? "Panel de selección — Parasitología (cruces + / ++ / +++ / ++++, o Negativo)" :
+          "Panel de selección — Antibiograma (Sensible/Intermedio/Resistente)";
         return '<tr data-prow="' + p.codigo + '">' +
           "<td>" + moverHtml + "</td>" +
           "<td>" + nombreHtml + '</td><td colspan="3" class="text-muted">' + etiquetaPanel + "</td>" +
