@@ -32,6 +32,17 @@
     return [parseInt(hex.substring(0, 2), 16), parseInt(hex.substring(2, 4), 16), parseInt(hex.substring(4, 6), 16)];
   }
 
+  // Un salto de línea (o varios espacios seguidos) colado en un dato del
+  // laboratorio (nombre, dirección, etc. — ej. pegado desde un Word o PDF)
+  // hace que doc.text() lo dibuje como VARIAS líneas en vez de una sola,
+  // montándose sobre el texto que sigue debajo a una posición Y fija (bug
+  // real reportado: el membrete salía con los datos superpuestos). Se
+  // limpia aquí, en un solo lugar, antes de dibujar cualquier línea del
+  // membrete.
+  function lineaSegura(s) {
+    return String(s || "").replace(/[\r\n]+/g, " ").replace(/\s{2,}/g, " ").trim();
+  }
+
   function dataUrlToUint8Array(dataUrl) {
     var base64 = dataUrl.split(",")[1];
     var binary = atob(base64);
@@ -216,10 +227,10 @@
     // Especial de Prestadores de Servicios de Salud) — no aplica a
     // laboratorios de otros países aunque el campo tenga un valor guardado
     // (ej. de una migración de datos), así que solo se imprime para CO.
-    var metaLineA = C.documentoTributarioLabel(tenant.pais) + " " + tenant.nit +
+    var metaLineA = lineaSegura(C.documentoTributarioLabel(tenant.pais) + " " + tenant.nit +
       (tenant.codigoREPS && tenant.pais === "CO" ? " · Código REPS " + tenant.codigoREPS : "") +
-      (tenant.resolucionHabilitacion ? " · " + tenant.resolucionHabilitacion : "");
-    var metaLineB = [tenant.direccion, tenant.telefonos, tenant.email, tenant.sitioWeb].filter(Boolean).join(" · ");
+      (tenant.resolucionHabilitacion ? " · " + tenant.resolucionHabilitacion : ""));
+    var metaLineB = lineaSegura([tenant.direccion, tenant.telefonos, tenant.email, tenant.sitioWeb].filter(Boolean).join(" · "));
     var metaLines = [metaLineA, metaLineB].filter(Boolean);
 
     if (tenant.logoGrandeReporte) {
@@ -317,12 +328,12 @@
       // se puede ocultar desde Configuración.
       if (!tenant.ocultarNombreEncabezado) {
         doc.setFont(fontFam, "bold"); doc.setFontSize(16); doc.setTextColor(rgb[0], rgb[1], rgb[2]);
-        doc.text(tenant.nombre, cx, y, { align: "center" });
+        doc.text(lineaSegura(tenant.nombre), cx, y, { align: "center" });
         y += 13;
       }
       if (tenant.slogan) {
         doc.setFont(fontFam, "italic"); doc.setFontSize(10.5); doc.setTextColor(rgb[0], rgb[1], rgb[2]);
-        doc.text(tenant.slogan, cx, y, { align: "center" });
+        doc.text(lineaSegura(tenant.slogan), cx, y, { align: "center" });
         y += 11;
       }
       // "A lo largo": los datos de contacto van en UNA sola línea horizontal
@@ -362,12 +373,24 @@
         try { doc.addImage(logoDerDefault.url, "PNG", pageW - margin - logoDerDefault.w, y - 9, logoDerDefault.w, logoDerDefault.h); } catch (e) {}
       }
       var textX = margin + (tenant.logoDataUrl ? logoSize + 14 : 0);
-      doc.setFont(fontFam, "bold"); doc.setFontSize(15); doc.setTextColor(rgb[0], rgb[1], rgb[2]);
-      doc.text(tenant.nombre, textX, y + 12);
+      // El nombre del laboratorio se dibuja en una sola línea (nunca varias
+      // — ver lineaSegura) y, si es muy largo, se reduce el tamaño de letra
+      // lo necesario para que quepa antes del logo secundario o del borde
+      // de la hoja, en vez de desbordarse sin control.
+      var anchoDisponibleNombre = (tenant.logoSecundarioDataUrl ? pageW - margin - logoSize - 14 : pageW - margin) - textX;
+      var nombreLab = lineaSegura(tenant.nombre);
+      var fsNombreLab = 15;
+      doc.setFont(fontFam, "bold"); doc.setFontSize(fsNombreLab);
+      while (doc.getTextWidth(nombreLab) > anchoDisponibleNombre && fsNombreLab > 9) {
+        fsNombreLab -= 0.5;
+        doc.setFontSize(fsNombreLab);
+      }
+      doc.setTextColor(rgb[0], rgb[1], rgb[2]);
+      doc.text(nombreLab, textX, y + 12);
       var metaStartOffset = 25;
       if (tenant.slogan) {
         doc.setFont(fontFam, "italic"); doc.setFontSize(9); doc.setTextColor(rgb[0], rgb[1], rgb[2]);
-        doc.text(tenant.slogan, textX, y + 23);
+        doc.text(lineaSegura(tenant.slogan), textX, y + 23);
         metaStartOffset = 35;
       }
       doc.setFont(fontFam, "normal"); doc.setFontSize(8.5);
@@ -459,8 +482,8 @@
     // "distinto y más pobre" al de la primera hoja en vez del mismo
     // encabezado en todas las hojas.
     var metaLinesRepetidas = [
-      C.documentoTributarioLabel(tenant.pais) + " " + tenant.nit,
-      [tenant.direccion, tenant.telefonos].filter(Boolean).join(" · ")
+      lineaSegura(C.documentoTributarioLabel(tenant.pais) + " " + tenant.nit),
+      lineaSegura([tenant.direccion, tenant.telefonos].filter(Boolean).join(" · "))
     ].filter(Boolean);
     function nuevaPagina() {
       doc.addPage();
@@ -474,7 +497,7 @@
       }
       var textX = margin + (logoRepetido ? cajaLogo + 10 : 0);
       doc.setFont(fontFam, "bold"); doc.setFontSize(10.5); doc.setTextColor(rgb[0], rgb[1], rgb[2]);
-      doc.text(tenant.nombre, textX, yy + 6);
+      doc.text(lineaSegura(tenant.nombre), textX, yy + 6);
       var yTexto = yy + 15;
       var lineaMeta = metaLinesRepetidas.join("   ·   ");
       if (lineaMeta) {
