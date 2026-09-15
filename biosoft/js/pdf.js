@@ -412,6 +412,33 @@
 
     y = await dibujarMembrete(doc, tenant, margin);
 
+    // Si la orden pertenece a un convenio/empresa aliada, se destaca en una
+    // insignia junto al encabezado — igual que hacen los grandes
+    // laboratorios de referencia al mostrar de qué institución/convenio
+    // viene la muestra. Se dibuja sin mover "y" (queda flotando arriba a la
+    // derecha), para no descuadrar el resto del encabezado según el
+    // laboratorio tenga o no el título "INFORME DE RESULTADOS..." activado.
+    if (order.convenioNombre) {
+      doc.setFont(fontFam, "bold"); doc.setFontSize(8.5);
+      // Un nombre de convenio muy largo se recorta con "..." para que la
+      // insignia nunca crezca tanto que se monte sobre el título del
+      // informe (que arranca en el margen izquierdo, en la misma zona) —
+      // se le deja como máximo la mitad del ancho de la hoja.
+      var nombreConvenio = order.convenioNombre.toUpperCase();
+      var maxBadgeW = pageW / 2 - margin - 10;
+      var badgeConvenioTxt = "CONVENIO: " + nombreConvenio;
+      while (doc.getTextWidth(badgeConvenioTxt) + 22 > maxBadgeW && nombreConvenio.length > 1) {
+        nombreConvenio = nombreConvenio.slice(0, -1);
+        badgeConvenioTxt = "CONVENIO: " + nombreConvenio + "...";
+      }
+      var badgeConvenioW = doc.getTextWidth(badgeConvenioTxt) + 22, badgeConvenioH = 16;
+      var badgeConvenioX = pageW - margin - badgeConvenioW, badgeConvenioY = y - 12;
+      doc.setFillColor(rgb[0], rgb[1], rgb[2]);
+      doc.roundedRect(badgeConvenioX, badgeConvenioY, badgeConvenioW, badgeConvenioH, badgeConvenioH / 2, badgeConvenioH / 2, "F");
+      doc.setTextColor(255, 255, 255);
+      doc.text(badgeConvenioTxt, badgeConvenioX + badgeConvenioW / 2, badgeConvenioY + badgeConvenioH / 2 + 3, { align: "center" });
+    }
+
     // Encabezado compacto para hojas 2, 3… cuando el laboratorio activa
     // "Repetir el encabezado en todas las hojas" (Configuración → Diseño
     // del Reporte de Resultados) — antes toda hoja adicional arrancaba
