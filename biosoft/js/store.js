@@ -514,18 +514,16 @@
 
   /* Reparación remota (superadmin) de los permisos operativos de TODO el
      personal de un laboratorio, de un solo clic — para cuando un laboratorio
-     reporta que "a los auxiliares no les aparece el paciente para ingresar
-     resultados" o similar, y no tiene sentido pedirle que edite usuario por
-     usuario. Dos reglas fijas, iguales para cualquier laboratorio (no es
-     nada específico de un tenant en particular):
-       - Todo usuario de Recepción/Auxiliar/Asistente recibe el permiso
-         adicional "resultados" (ingresar resultados en borrador o
-         preliminar — ver views-results.js -> puedeEditar/puedeValidar, que
-         ya nunca le permite validar/firmar, sin importar este permiso).
-       - Todo usuario Bacteriólogo(a)/Bioanalista recibe TODOS los permisos
-         adicionales disponibles para su rol y TODAS las secciones del
-         laboratorio marcadas (para que pueda capturar y validar cualquier
-         examen, además de crear pacientes/órdenes).
+     reporta fallas de acceso de su personal y no tiene sentido pedirle que
+     edite usuario por usuario. Pacientes/Órdenes/Resultados (borrador o
+     preliminar) de Recepción/Auxiliar/Asistente ya NO dependen de ningún
+     permiso guardado en el usuario (ver router.js -> ALLOWED_ROUTES): son
+     parte de su acceso base para cualquier laboratorio, así que esta
+     reparación ya no tiene nada que tocarles. Lo único que sigue siendo
+     configurable por usuario es el Bacteriólogo(a)/Bioanalista, que aquí
+     recibe TODOS los permisos adicionales disponibles para su rol y TODAS
+     las secciones del laboratorio marcadas (para que pueda capturar y
+     validar cualquier examen, además de crear pacientes/órdenes).
      firestore.rules solo deja al superadmin tocar exactamente estos dos
      campos (rol, permisosExtra, secciones) de un usuario ajeno — nunca su
      contraseña, firma ni el resto de sus datos. */
@@ -543,10 +541,7 @@
         .map(function (p) { return p.route; });
       var actualizados = [];
       usuarios.forEach(function (u) {
-        if (u.rol === "recepcion") {
-          var yaLoTiene = u.permisosExtra && u.permisosExtra.indexOf("resultados") !== -1;
-          if (!yaLoTiene) actualizados.push({ u: u, patch: { permisosExtra: (u.permisosExtra || []).concat(["resultados"]) } });
-        } else if (u.rol === "bacteriologo") {
+        if (u.rol === "bacteriologo") {
           var faltanSecciones = todasLasSecciones.some(function (s) { return !u.secciones || u.secciones.indexOf(s) === -1; });
           var faltanPermisos = todosLosPermisosBact.some(function (p) { return !u.permisosExtra || u.permisosExtra.indexOf(p) === -1; });
           if (faltanSecciones || faltanPermisos) actualizados.push({ u: u, patch: { secciones: todasLasSecciones, permisosExtra: todosLosPermisosBact } });
@@ -559,7 +554,7 @@
         var entry = {
           id: uid("log"), tenantId: tenantId, fecha: nowISO(), usuario: "Soporte BIOsoft", rol: "superadmin",
           accion: "REPAIR_OPERATIONAL_PERMISSIONS", entidad: "usuario", entidadId: tenantId,
-          detalle: "Reparó los permisos operativos de " + actualizados.length + " usuario(s): auxiliares con permiso de Resultados, bacteriólogos/bioanalistas con todas las secciones y permisos adicionales."
+          detalle: "Reparó los permisos operativos de " + actualizados.length + " usuario(s): bacteriólogos/bioanalistas con todas las secciones y permisos adicionales."
         };
         return db.collection("tenants").doc(tenantId).collection("auditLog").doc(entry.id).set(entry);
       }).then(function () {

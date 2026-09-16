@@ -41,11 +41,23 @@
         { route: "calidad", label: "Control de Calidad", icon: "shield" }
       ]}
     ],
+    // Un usuario de Recepción/Auxiliar/Asistente de Laboratorio SIEMPRE
+    // puede crear/ver pacientes, crear/ver órdenes y capturar resultados
+    // (borrador o preliminar) — esto ya no depende de que el Administrador
+    // marque un permiso adicional (ver catalog.js -> PERMISOS_EXTRA_RECEPCION,
+    // y el comentario en views-results.js -> puedeEditar): ese "opt-in" era
+    // la causa más común de que un laboratorio reportara "no me deja crear
+    // ni ver pacientes/órdenes/resultados" — la mayoría de administradores
+    // nunca encontraba ese checkbox al crear al auxiliar. Validar/firmar un
+    // resultado se queda SIEMPRE exclusivo de Administrador y
+    // Bacteriólogo(a)/Bioanalista, sin excepción (ver views-results.js ->
+    // puedeValidar y firestore.rules -> esRecepcion()).
     recepcion: [
       { sec: "GENERAL", items: [{ route: "dashboard", label: "Panel Principal", icon: "home" }] },
       { sec: "OPERACIÓN", items: [
         { route: "pacientes", label: "Pacientes", icon: "users" },
         { route: "ordenes", label: "Órdenes de Laboratorio", icon: "clipboard" },
+        { route: "resultados", label: "Resultados", icon: "flask" },
         { route: "hojas-trabajo", label: "Hojas de Trabajo", icon: "printer" },
         { route: "reportes", label: "Reportes y Envíos", icon: "send" },
         { route: "cotizador", label: "Cotizaciones", icon: "file" },
@@ -188,7 +200,7 @@
     superadmin: ["crm", "tenants", "dashboard", "landing-imagenes"],
     admin: ["dashboard", "pacientes", "ordenes", "resultados", "hojas-trabajo", "reportes", "productividad", "calidad", "cotizador", "marketing", "inventario", "usuarios", "config", "auditoria", "catalogo", "facturacion"],
     bacteriologo: ["dashboard", "resultados", "hojas-trabajo", "calidad"],
-    recepcion: ["dashboard", "pacientes", "ordenes", "hojas-trabajo", "reportes", "cotizador", "marketing"],
+    recepcion: ["dashboard", "pacientes", "ordenes", "resultados", "hojas-trabajo", "reportes", "cotizador", "marketing"],
     aliado: ["portal-aliado"]
   };
 

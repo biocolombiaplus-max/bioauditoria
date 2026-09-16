@@ -135,11 +135,13 @@
       // laboratorios pequeños donde la misma persona hace de todo. Se puede
       // agregar o quitar en cualquier momento editando al usuario; "usuarios",
       // "config" y "auditoría" nunca aparecen aquí, se quedan solo para
-      // Administrador.
+      // Administrador. Un Auxiliar/Asistente de Recepción no tiene ningún
+      // permiso opcional que marcar aquí: pacientes, órdenes y resultados
+      // (borrador/preliminar) ya son parte de su acceso base (ver router.js).
       function renderPermisosExtra() {
         var rol = wrap.querySelector("#f_rol").value;
         var box = wrap.querySelector("#permisos-extra-box");
-        var catalogo = rol === "bacteriologo" ? C.PERMISOS_EXTRA_BACTERIOLOGO : rol === "recepcion" ? C.PERMISOS_EXTRA_RECEPCION : null;
+        var catalogo = rol === "bacteriologo" ? C.PERMISOS_EXTRA_BACTERIOLOGO : null;
         if (!catalogo) { box.innerHTML = ""; return; }
         var disponibles = catalogo.filter(function (p) { return !p.soloCO || (tenant && tenant.pais === "CO"); });
         box.innerHTML = "<label>Permisos adicionales (además de sus secciones)</label><div class='form-grid'>" +
@@ -213,7 +215,7 @@
           puedeGestionarRemisiones: false
         };
         if (data.rol === "bacteriologo" && chkRemisiones) data.puedeGestionarRemisiones = chkRemisiones.checked;
-        if (data.rol === "bacteriologo" || data.rol === "recepcion") {
+        if (data.rol === "bacteriologo") {
           data.permisosExtra = Array.prototype.slice.call(wrap.querySelectorAll("[data-permextra]:checked")).map(function (c) { return c.dataset.permextra; });
         } else {
           data.permisosExtra = [];
@@ -2424,20 +2426,24 @@
       cargarYMostrar();
     }
 
-    // Cuando un laboratorio reporta que su personal tiene fallas de acceso
-    // (típicamente: "a los auxiliares no les aparece el paciente para
-    // ingresar resultados"), en vez de pedirle que edite usuario por
-    // usuario, este botón corrige de un clic los permisos operativos de
-    // TODO su personal — ver store.js -> repararPermisosOperativos.
+    // Cuando un laboratorio reporta que su personal tiene fallas de acceso,
+    // en vez de pedirle que edite usuario por usuario, este botón corrige
+    // de un clic los permisos operativos de TODO su personal — ver store.js
+    // -> repararPermisosOperativos. Todo Auxiliar/Asistente (Recepción) ya
+    // tiene siempre acceso a Pacientes, Órdenes y Resultados (borrador o
+    // preliminar) sin que dependa de ningún permiso guardado — si un
+    // laboratorio reporta que a su auxiliar no le aparece nada de eso, lo
+    // más probable es que su perfil de acceso esté roto (ver el diagnóstico
+    // "sin_perfil"/"otro_tenant" más arriba en esta pantalla), no que le
+    // falte un permiso que reparar aquí.
     function abrirRepararPermisos(tenant) {
       var wrap = U.openModal(
         '<h3 class="modal-title">🔧 Reparar Permisos Operativos — ' + U.esc(tenant.nombre) + '</h3>' +
         '<p class="text-muted" style="margin-top:0">Esto va a dejar así, de una vez, a TODO el personal de este laboratorio:</p>' +
         '<ul style="margin:0 0 12px;padding-left:20px;font-size:13.5px;color:var(--text-muted)">' +
-        '<li>Todo <b>Auxiliar/Asistente</b> (Recepción) queda con el permiso de <b>Resultados</b> (puede crear pacientes, crear órdenes e ingresar resultados en borrador o preliminar — nunca validar/firmar).</li>' +
         '<li>Todo <b>Bacteriólogo(a)/Bioanalista</b> queda con <b>todas las secciones</b> y <b>todos los permisos adicionales</b> (puede crear pacientes, crear órdenes, ingresar resultados y validar/firmar).</li>' +
         "</ul>" +
-        '<p class="text-muted" style="font-size:13.5px">No toca contraseñas, firmas ni ningún otro dato de los usuarios — solo estos permisos.</p>' +
+        '<p class="text-muted" style="font-size:13.5px">Todo Auxiliar/Asistente (Recepción) ya tiene de por sí acceso a Pacientes, Órdenes y Resultados (borrador o preliminar — nunca validar/firmar), así que no hay nada que reparar en ellos aquí. No toca contraseñas, firmas ni ningún otro dato de los usuarios.</p>' +
         '<div class="flex gap-2 justify-between" style="margin-top:6px"><button class="btn btn-ghost" data-modal-close>Cancelar</button>' +
         '<button class="btn btn-primary" id="btn-confirmar-reparar">' + U.icon("check") + " Reparar Ahora</button></div>"
       );

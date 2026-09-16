@@ -830,21 +830,19 @@
     { route: "facturacion", label: "Facturación y RIPS", icon: "file", soloCO: true }
   ];
 
-  /* Igual que con el Bacteriólogo(a), una Recepción/Auxiliar/Asistente puede
-     recibir el permiso extra de ingresar resultados — común en laboratorios
-     donde el auxiliar digita lo que arroja el equipo y el Bacteriólogo(a)
-     solo revisa y firma. IMPORTANTE: este permiso NUNCA incluye poder
-     validar/firmar — esa acción se queda exclusiva de Administrador y
-     Bacteriólogo(a) sin importar qué se marque aquí (ver views-results.js
-     -> puedeValidar). A diferencia del Bacteriólogo(a), aquí NO se limita
-     además por sección: con este único permiso marcado, el auxiliar ya
-     puede capturar cualquier examen de cualquier sección (ver
-     views-results.js -> puedeEditar) — así se evita el error más común de
-     este rol, "no me aparece el paciente", que pasaba cuando quedaba una
-     sección sin marcar. */
-  var PERMISOS_EXTRA_RECEPCION = [
-    { route: "resultados", navLabel: "Resultados", label: "Resultados (solo borrador o preliminar — nunca puede validar/firmar)", icon: "flask" }
-  ];
+  /* Ingresar resultados (borrador o preliminar) ya NO es un permiso
+     adicional opcional para Recepción/Auxiliar/Asistente — es parte de su
+     acceso base, igual que Pacientes y Órdenes (ver router.js -> NAV y
+     ALLOWED_ROUTES). Antes había que marcarlo aquí uno por uno, y ese
+     "opt-in" era la causa más común de que un laboratorio reportara "no me
+     deja crear ni ver pacientes/órdenes/resultados": casi ningún
+     administrador encontraba este checkbox al crear al auxiliar. Este
+     arreglo queda vacío (reservado por si en el futuro surge algún permiso
+     de verdad opcional para este rol) — validar/firmar sigue siendo
+     SIEMPRE exclusivo de Administrador y Bacteriólogo(a)/Bioanalista, sin
+     importar nada de esto (ver views-results.js -> puedeValidar y
+     firestore.rules -> esRecepcion()). */
+  var PERMISOS_EXTRA_RECEPCION = [];
 
   /* Tamaños de etiqueta térmica más comunes en laboratorios de la región,
      para el selector rápido al agregar un "Perfil de Impresora" (ver
