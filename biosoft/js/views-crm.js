@@ -189,9 +189,6 @@
         "<td>" + (ESTADO_LABEL[c.estado] || c.estado) + "</td>" +
         "<td>" + badgeCobro(c) + "</td>" +
         "<td><div class='flex gap-2 wrap'>" +
-        "<button class='btn btn-outline btn-sm' data-contrato='" + c.id + "'>" + U.icon("file") + " Contrato</button>" +
-        "<button class='btn btn-outline btn-sm' data-recibo='" + c.id + "'>" + U.icon("file") + " Recibo</button>" +
-        "<button class='btn btn-outline btn-sm' data-propuesta-cliente='" + c.id + "'>📄 Propuesta</button>" +
         (c.estado !== "activo" ? "<button class='btn btn-primary btn-sm' data-pagado='" + c.id + "'>" + U.icon("check") + " Marcar Pagado</button>" : "") +
         (c.estado === "pagado" ? "<button class='btn btn-primary btn-sm' data-activar='" + c.id + "' title='La implementación ya quedó lista, empieza a cobrar la mensualidad'>" + U.icon("check") + " Activar Cobro Mensual</button>" : "") +
         (!c.tenantId
@@ -199,10 +196,7 @@
             "<button class='btn btn-whatsapp btn-sm' data-enviar-registro='" + c.id + "' title='Para que el cliente llene sus propios datos y active su BIOsoft solo, sin que el equipo de BIOsoft los digite'>" + U.icon("send") + " Enviar Enlace de Registro</button>"
           : "<button class='btn btn-outline btn-sm' data-enviar-acceso='" + c.id + "' title='Reenviar las credenciales de ingreso'>" + U.icon("send") + " Enviar Acceso</button>") +
         "<button class='btn btn-whatsapp btn-sm' data-mensaje='" + c.id + "'>" + U.icon("send") + " Mensaje</button>" +
-        "<button class='btn btn-outline btn-sm' data-correo='" + c.id + "'>📧 Correo</button>" +
-        "<button class='btn btn-ghost btn-sm' data-actividad='" + c.id + "'>🕓</button>" +
-        "<button class='btn btn-ghost btn-sm' data-editar='" + c.id + "'>" + U.icon("edit") + "</button>" +
-        "<button class='btn btn-ghost btn-sm' data-eliminar-crm='" + c.id + "' title='Eliminar este cliente/lead del CRM (ej. un duplicado). No borra el laboratorio ni sus datos si ya tiene acceso creado.'>" + U.icon("trash") + "</button>" +
+        "<button class='btn btn-outline btn-sm' data-mas-acciones-crm='" + c.id + "'>" + U.icon("more") + " Más</button>" +
         "</div></td></tr>";
     }
 
@@ -389,37 +383,93 @@
       });
     }
 
+    function accionContrato(c) {
+      var plan = BIO_PLANES.porId(c.planId);
+      if (!plan) { U.toast("Este cliente no tiene un plan asignado.", "error"); return; }
+      var bytes = BIO_PDF_CRM.buildContratoPDF(clienteParaDocs(c), plan, c.modalidadPago);
+      var mensaje = "Hola " + (c.contacto && c.contacto.nombre ? c.contacto.nombre.split(" ")[0] : "") + " 👋 Te comparto el contrato de prestación de servicios de BIOsoft para " + (c.laboratorio && c.laboratorio.nombre || "tu laboratorio") + ". Cualquier duda, quedo atento.";
+      abrirEnviarDocumento({
+        titulo: "Enviar Contrato", bytes: bytes, nombreArchivo: "Contrato_BIOsoft_" + (c.laboratorio.nombre || "Cliente").replace(/\s+/g, "_") + ".pdf",
+        contacto: c.contacto, mensaje: mensaje, asuntoCorreo: "Contrato de Prestación de Servicios — BIOsoft"
+      });
+      var p = (c.estado === "nuevo" ? S.crm.update(c.id, { estado: "contrato_enviado" }) : Promise.resolve());
+      p.then(function () { return agregarActividad(c, "contrato", "Contrato generado para enviar."); }).then(cargar);
+    }
+
+    function accionRecibo(c) {
+      var plan = BIO_PLANES.porId(c.planId);
+      if (!plan) { U.toast("Este cliente no tiene un plan asignado.", "error"); return; }
+      var pago = { fecha: c.fechaPagoInicial || new Date(), totalFmt: c.totalPrimerPagoFmt, totalUSD: c.totalPrimerPagoUSD, proximaFecha: c.proximaFechaCobro };
+      var bytes = BIO_PDF_CRM.buildReciboPDF(clienteParaDocs(c), plan, pago);
+      var mensaje = "Hola " + (c.contacto && c.contacto.nombre ? c.contacto.nombre.split(" ")[0] : "") + " 👋 Aquí tienes el recibo de tu pago a BIOsoft. ¡Gracias por confiar en nosotros!";
+      abrirEnviarDocumento({
+        titulo: "Enviar Recibo", bytes: bytes, nombreArchivo: "Recibo_BIOsoft_" + (c.laboratorio.nombre || "Cliente").replace(/\s+/g, "_") + ".pdf",
+        contacto: c.contacto, mensaje: mensaje, asuntoCorreo: "Recibo de Pago — BIOsoft"
+      });
+      agregarActividad(c, "recibo", "Recibo de pago generado para enviar.");
+    }
+
+    function accionEliminarCrm(c) {
+      var nombre = (c.laboratorio && c.laboratorio.nombre) || (c.contacto && c.contacto.nombre) || "este registro";
+      var msg = c.tenantId
+        ? 'Este cliente ya tiene un laboratorio activo en BIOsoft. ¿Eliminar de todas formas su registro de seguimiento en el CRM ("' + nombre + '")? El laboratorio y sus datos NO se borran.'
+        : '¿Eliminar el lead "' + nombre + '" del CRM? Esta acción no se puede deshacer.';
+      if (!confirm(msg)) return;
+      S.crm.delete(c.id).then(function () {
+        U.toast("Eliminado del CRM.", "success");
+        cargar();
+      }).catch(function (err) { U.toast("No se pudo eliminar: " + err.message, "error"); });
+    }
+
+    // Menú compacto de "Más acciones" por cliente — reemplaza los botones de
+    // Contrato/Recibo/Propuesta/Correo/Actividad/Editar/Eliminar que antes
+    // iban sueltos en la fila (junto con los 2-4 botones de estado, que se
+    // quedan visibles por ser la acción más frecuente en este tablero).
+    function abrirMenuAccionesCrm(titulo, grupos) {
+      var acciones = [];
+      var bodyHtml = grupos.map(function (g) {
+        var itemsHtml = g.acciones.map(function (a) {
+          var idx = acciones.length;
+          acciones.push(a);
+          return '<button type="button" class="action-menu-row' + (a.danger ? " danger" : "") + '" data-accion-idx="' + idx + '">' +
+            '<span class="action-menu-icon">' + U.icon(a.icon || "file") + '</span><span>' + U.esc(a.label) + '</span></button>';
+        }).join("");
+        return (g.titulo ? '<div class="action-menu-group-title">' + U.esc(g.titulo) + '</div>' : "") + itemsHtml;
+      }).join("");
+      var wrap = U.openModal(
+        '<h3 class="modal-title">' + U.esc(titulo) + '</h3>' + bodyHtml +
+        '<div class="flex justify-between" style="margin-top:14px"><button class="btn btn-ghost" data-modal-close>Cerrar</button><span></span></div>'
+      );
+      wrap.querySelectorAll("[data-accion-idx]").forEach(function (btn) {
+        btn.addEventListener("click", function () {
+          var accion = acciones[parseInt(btn.dataset.accionIdx, 10)];
+          U.closeModal(wrap);
+          accion.onClick();
+        });
+      });
+    }
+
+    function abrirMasAccionesCliente(c) {
+      abrirMenuAccionesCrm("Más acciones — " + ((c.laboratorio && c.laboratorio.nombre) || (c.contacto && c.contacto.nombre) || "cliente"), [
+        { titulo: "Documentos", acciones: [
+          { label: "Enviar Contrato", icon: "file", onClick: function () { accionContrato(c); } },
+          { label: "Enviar Recibo de Pago", icon: "file", onClick: function () { accionRecibo(c); } },
+          { label: "Generar Propuesta Comercial", icon: "file", onClick: function () { abrirGenerarPropuesta(c); } }
+        ]},
+        { titulo: "Comunicación", acciones: [
+          { label: "Enviar Correo", icon: "send", onClick: function () { abrirCorreo(c); } },
+          { label: "Ver Actividad", icon: "history", onClick: function () { abrirActividad(c); } }
+        ]},
+        { titulo: "Registro", acciones: [
+          { label: "Editar Cliente", icon: "edit", onClick: function () { openForm(c); } },
+          { label: "Eliminar del CRM", icon: "trash", danger: true, onClick: function () { accionEliminarCrm(c); } }
+        ]}
+      ]);
+    }
+
     function wireRowActions() {
-      root.querySelectorAll("[data-contrato]").forEach(function (b) { b.addEventListener("click", function () {
-        var c = clientes.filter(function (x) { return x.id === b.dataset.contrato; })[0];
-        var plan = BIO_PLANES.porId(c.planId);
-        if (!plan) { U.toast("Este cliente no tiene un plan asignado.", "error"); return; }
-        var bytes = BIO_PDF_CRM.buildContratoPDF(clienteParaDocs(c), plan, c.modalidadPago);
-        var mensaje = "Hola " + (c.contacto && c.contacto.nombre ? c.contacto.nombre.split(" ")[0] : "") + " 👋 Te comparto el contrato de prestación de servicios de BIOsoft para " + (c.laboratorio && c.laboratorio.nombre || "tu laboratorio") + ". Cualquier duda, quedo atento.";
-        abrirEnviarDocumento({
-          titulo: "Enviar Contrato", bytes: bytes, nombreArchivo: "Contrato_BIOsoft_" + (c.laboratorio.nombre || "Cliente").replace(/\s+/g, "_") + ".pdf",
-          contacto: c.contacto, mensaje: mensaje, asuntoCorreo: "Contrato de Prestación de Servicios — BIOsoft"
-        });
-        var p = (c.estado === "nuevo" ? S.crm.update(c.id, { estado: "contrato_enviado" }) : Promise.resolve());
-        p.then(function () { return agregarActividad(c, "contrato", "Contrato generado para enviar."); }).then(cargar);
-      }); });
-
-      root.querySelectorAll("[data-propuesta-cliente]").forEach(function (b) { b.addEventListener("click", function () {
-        abrirGenerarPropuesta(clientes.filter(function (x) { return x.id === b.dataset.propuestaCliente; })[0]);
-      }); });
-
-      root.querySelectorAll("[data-recibo]").forEach(function (b) { b.addEventListener("click", function () {
-        var c = clientes.filter(function (x) { return x.id === b.dataset.recibo; })[0];
-        var plan = BIO_PLANES.porId(c.planId);
-        if (!plan) { U.toast("Este cliente no tiene un plan asignado.", "error"); return; }
-        var pago = { fecha: c.fechaPagoInicial || new Date(), totalFmt: c.totalPrimerPagoFmt, totalUSD: c.totalPrimerPagoUSD, proximaFecha: c.proximaFechaCobro };
-        var bytes = BIO_PDF_CRM.buildReciboPDF(clienteParaDocs(c), plan, pago);
-        var mensaje = "Hola " + (c.contacto && c.contacto.nombre ? c.contacto.nombre.split(" ")[0] : "") + " 👋 Aquí tienes el recibo de tu pago a BIOsoft. ¡Gracias por confiar en nosotros!";
-        abrirEnviarDocumento({
-          titulo: "Enviar Recibo", bytes: bytes, nombreArchivo: "Recibo_BIOsoft_" + (c.laboratorio.nombre || "Cliente").replace(/\s+/g, "_") + ".pdf",
-          contacto: c.contacto, mensaje: mensaje, asuntoCorreo: "Recibo de Pago — BIOsoft"
-        });
-        agregarActividad(c, "recibo", "Recibo de pago generado para enviar.");
+      root.querySelectorAll("[data-mas-acciones-crm]").forEach(function (b) { b.addEventListener("click", function () {
+        abrirMasAccionesCliente(clientes.filter(function (x) { return x.id === b.dataset.masAccionesCrm; })[0]);
       }); });
 
       root.querySelectorAll("[data-pagado]").forEach(function (b) { b.addEventListener("click", function () {
@@ -448,37 +498,6 @@
         abrirMensajeConPlantilla(clientes.filter(function (x) { return x.id === b.dataset.mensaje; })[0]);
       }); });
 
-      root.querySelectorAll("[data-correo]").forEach(function (b) { b.addEventListener("click", function () {
-        abrirCorreo(clientes.filter(function (x) { return x.id === b.dataset.correo; })[0]);
-      }); });
-
-      root.querySelectorAll("[data-actividad]").forEach(function (b) { b.addEventListener("click", function () {
-        abrirActividad(clientes.filter(function (x) { return x.id === b.dataset.actividad; })[0]);
-      }); });
-
-      root.querySelectorAll("[data-editar]").forEach(function (b) { b.addEventListener("click", function () {
-        openForm(clientes.filter(function (x) { return x.id === b.dataset.editar; })[0]);
-      }); });
-
-      // Borra solo el registro de CRM (seguimiento comercial) — nunca el
-      // laboratorio ni sus datos, aunque ya tenga acceso creado (tenantId).
-      // Para el caso real que motivó esto (un lead duplicado 2-3 veces por
-      // reenvíos del formulario público) se advierte de forma distinta si
-      // el registro que se va a borrar ya tiene un laboratorio asociado,
-      // para no borrar por error el que sí está en uso.
-      root.querySelectorAll("[data-eliminar-crm]").forEach(function (b) { b.addEventListener("click", function () {
-        var c = clientes.filter(function (x) { return x.id === b.dataset.eliminarCrm; })[0];
-        if (!c) return;
-        var nombre = (c.laboratorio && c.laboratorio.nombre) || (c.contacto && c.contacto.nombre) || "este registro";
-        var msg = c.tenantId
-          ? 'Este cliente ya tiene un laboratorio activo en BIOsoft. ¿Eliminar de todas formas su registro de seguimiento en el CRM ("' + nombre + '")? El laboratorio y sus datos NO se borran.'
-          : '¿Eliminar el lead "' + nombre + '" del CRM? Esta acción no se puede deshacer.';
-        if (!confirm(msg)) return;
-        S.crm.delete(c.id).then(function () {
-          U.toast("Eliminado del CRM.", "success");
-          cargar();
-        }).catch(function (err) { U.toast("No se pudo eliminar: " + err.message, "error"); });
-      }); });
     }
 
     // El valor de implementación varía según lo acordado con cada cliente

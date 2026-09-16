@@ -125,6 +125,19 @@ fieldset legend { font-family: 'Poppins', sans-serif; font-weight: 700; font-siz
 .card-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 14px; gap: 10px; flex-wrap: wrap; }
 .card-title { font-size: 16px; font-weight: 700; margin: 0; color: var(--heading-color, var(--text)); }
 
+/* Menú de "Más acciones": una lista de filas dentro de un modal, en vez de
+   una fila de tabla con 8-10 botones sueltos uno junto al otro — usado en
+   paneles de superadministrador con muchas acciones por registro (CRM,
+   Laboratorios Cliente) para que la fila principal se vea limpia y las
+   acciones secundarias queden organizadas y fáciles de encontrar. */
+.action-menu-group-title { font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: .04em; color: var(--text-muted); margin: 16px 0 6px; }
+.action-menu-group-title:first-child { margin-top: 0; }
+.action-menu-row { display: flex; align-items: center; gap: 10px; width: 100%; text-align: left; padding: 10px 12px; border-radius: var(--radius-sm); border: 1px solid transparent; background: transparent; color: var(--text); font-size: 13.5px; font-weight: 500; cursor: pointer; transition: background .12s ease, border-color .12s ease; }
+.action-menu-row:hover { background: var(--surface-2); border-color: var(--border); }
+.action-menu-row .action-menu-icon { flex-shrink: 0; width: 18px; height: 18px; display: flex; align-items: center; justify-content: center; color: var(--brand-primary); }
+.action-menu-row.danger { color: var(--danger); }
+.action-menu-row.danger .action-menu-icon { color: var(--danger); }
+
 .kpi-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(190px, 1fr)); gap: 16px; margin-bottom: 20px; }
 .kpi { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 18px 20px; box-shadow: var(--shadow-sm); position: relative; overflow: hidden; }
 .kpi::before { content: ""; position: absolute; inset: 0; background: linear-gradient(135deg, color-mix(in srgb, var(--brand-primary) 8%, transparent), transparent 60%); }

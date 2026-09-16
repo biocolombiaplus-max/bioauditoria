@@ -1854,14 +1854,8 @@
             "<td>" + (t.esPruebaGratis ? (t.fechaFinPrueba ? U.fmtFechaCorta(t.fechaFinPrueba) : "—") : (t.fechaProximoPago ? U.fmtFechaCorta(t.fechaProximoPago) : "—")) + "</td>" +
             "<td>" + (sobreLimite ? '<span class="badge badge-urgente">' + usuariosTxt + '</span>' : usuariosTxt) + "</td>" +
             '<td><div class="flex gap-2 wrap">' +
-            '<button class="btn btn-ghost btn-sm" data-editar-plan="' + t.id + '">' + U.icon("edit") + " Plan</button>" +
-            '<button class="btn btn-ghost btn-sm" data-editar-datos="' + t.id + '">' + U.icon("edit") + " Datos</button>" +
-            '<button class="btn btn-outline btn-sm" data-enviar-contrato="' + t.id + '">' + U.icon("file") + " Contrato</button>" +
-            '<button class="btn btn-outline btn-sm" data-enviar-manual="' + t.id + '">' + U.icon("send") + " Manual</button>" +
-            '<button class="btn btn-outline btn-sm" data-reenviar-acceso="' + t.id + '" title="Recordar el link de ingreso y el usuario al administrador">' + U.icon("send") + " Reenviar Acceso</button>" +
-            '<button class="btn btn-ghost btn-sm" data-diagnostico-acceso="' + t.id + '" title="Revisar si algún usuario quedó con el enlace de acceso roto (puede entrar con la contraseña correcta y aun así el sistema no lo reconoce)">🔍 Diagnóstico</button>' +
-            '<button class="btn btn-ghost btn-sm" data-reparar-permisos="' + t.id + '" title="Dar de un clic a todos los auxiliares el permiso de Resultados, y a todos los bacteriólogos/bioanalistas todas las secciones y permisos adicionales — para laboratorios que reportan fallas de acceso de su personal">🔧 Permisos</button>' +
-            '<button class="btn btn-ghost btn-sm" data-sync-crm="' + t.id + '" title="Crear/vincular este laboratorio en el CRM">' + U.icon("send") + " CRM</button>" +
+            '<button class="btn btn-outline btn-sm" data-editar-plan="' + t.id + '">' + U.icon("edit") + " Plan</button>" +
+            '<button class="btn btn-primary btn-sm" data-mas-acciones="' + t.id + '">' + U.icon("more") + " Más acciones</button>" +
             "</div></td></tr>";
         }).join("") : '<tr><td colspan="7" class="text-muted">Aún no hay laboratorios cliente creados.</td></tr>') + "</tbody></table></div></div>";
       document.getElementById("btn-new-tenant").addEventListener("click", openNewTenant);
@@ -1883,34 +1877,9 @@
           abrirEditarPlan(tenants.filter(function (t) { return t.id === b.dataset.editarPlan; })[0]);
         });
       });
-      root.querySelectorAll("[data-editar-datos]").forEach(function (b) {
+      root.querySelectorAll("[data-mas-acciones]").forEach(function (b) {
         b.addEventListener("click", function () {
-          abrirEditarDatos(tenants.filter(function (t) { return t.id === b.dataset.editarDatos; })[0]);
-        });
-      });
-      root.querySelectorAll("[data-reenviar-acceso]").forEach(function (b) {
-        b.addEventListener("click", function () {
-          abrirReenviarAcceso(tenants.filter(function (t) { return t.id === b.dataset.reenviarAcceso; })[0]);
-        });
-      });
-      root.querySelectorAll("[data-diagnostico-acceso]").forEach(function (b) {
-        b.addEventListener("click", function () {
-          abrirDiagnosticoAcceso(tenants.filter(function (t) { return t.id === b.dataset.diagnosticoAcceso; })[0]);
-        });
-      });
-      root.querySelectorAll("[data-reparar-permisos]").forEach(function (b) {
-        b.addEventListener("click", function () {
-          abrirRepararPermisos(tenants.filter(function (t) { return t.id === b.dataset.repararPermisos; })[0]);
-        });
-      });
-      root.querySelectorAll("[data-enviar-contrato]").forEach(function (b) {
-        b.addEventListener("click", function () {
-          abrirEnviarContrato(tenants.filter(function (t) { return t.id === b.dataset.enviarContrato; })[0]);
-        });
-      });
-      root.querySelectorAll("[data-enviar-manual]").forEach(function (b) {
-        b.addEventListener("click", function () {
-          abrirEnviarManual(tenants.filter(function (t) { return t.id === b.dataset.enviarManual; })[0]);
+          abrirMasAccionesTenant(tenants.filter(function (t) { return t.id === b.dataset.masAcciones; })[0]);
         });
       });
       root.querySelectorAll("[data-recordar-pago]").forEach(function (b) {
@@ -1923,17 +1892,60 @@
           abrirRecordarPrueba(tenants.filter(function (t) { return t.id === b.dataset.recordarPrueba; })[0]);
         });
       });
-      root.querySelectorAll("[data-sync-crm]").forEach(function (b) {
-        b.addEventListener("click", function () {
-          var tenant = tenants.filter(function (t) { return t.id === b.dataset.syncCrm; })[0];
-          b.disabled = true;
-          sincronizarConCRM(tenant).then(function (r) {
-            U.toast(r.creado ? "Cliente creado en el CRM." : "Este laboratorio ya está en el CRM.", "success");
-          }).catch(function (err) {
-            U.toast("No se pudo sincronizar con el CRM: " + err.message, "error");
-          }).finally(function () { b.disabled = false; });
+    }
+
+    // Menú compacto de "Más acciones" — reemplaza la fila de 8-10 botones
+    // sueltos que antes tenía cada laboratorio en esta tabla (Plan, Datos,
+    // Contrato, Licencia, Manual, Reenviar Acceso, Diagnóstico, Permisos,
+    // CRM), agrupados aquí por tipo para que se vean organizados y fáciles
+    // de encontrar en vez de amontonados. "Plan" se queda como botón visible
+    // aparte por ser la acción más frecuente (cambiar el plan/estado de pago).
+    function abrirMenuAcciones(titulo, grupos) {
+      var acciones = [];
+      var bodyHtml = grupos.map(function (g) {
+        var itemsHtml = g.acciones.map(function (a) {
+          var idx = acciones.length;
+          acciones.push(a);
+          return '<button type="button" class="action-menu-row' + (a.danger ? " danger" : "") + '" data-accion-idx="' + idx + '">' +
+            '<span class="action-menu-icon">' + U.icon(a.icon || "file") + '</span><span>' + U.esc(a.label) + '</span></button>';
+        }).join("");
+        return (g.titulo ? '<div class="action-menu-group-title">' + U.esc(g.titulo) + '</div>' : "") + itemsHtml;
+      }).join("");
+      var wrap = U.openModal(
+        '<h3 class="modal-title">' + U.esc(titulo) + '</h3>' + bodyHtml +
+        '<div class="flex justify-between" style="margin-top:14px"><button class="btn btn-ghost" data-modal-close>Cerrar</button><span></span></div>'
+      );
+      wrap.querySelectorAll("[data-accion-idx]").forEach(function (btn) {
+        btn.addEventListener("click", function () {
+          var accion = acciones[parseInt(btn.dataset.accionIdx, 10)];
+          U.closeModal(wrap);
+          accion.onClick();
         });
       });
+      return wrap;
+    }
+
+    function abrirMasAccionesTenant(tenant) {
+      abrirMenuAcciones("Más acciones — " + tenant.nombre, [
+        { titulo: "Documentos", acciones: [
+          { label: "Enviar Contrato de Prestación de Servicios", icon: "file", onClick: function () { abrirEnviarContrato(tenant); } },
+          { label: "Enviar Licencia de Funcionamiento de Software", icon: "award", onClick: function () { abrirEnviarLicencia(tenant); } },
+          { label: "Enviar Manual de Usuario", icon: "send", onClick: function () { abrirEnviarManual(tenant); } }
+        ]},
+        { titulo: "Acceso y Soporte", acciones: [
+          { label: "Editar Datos del Laboratorio", icon: "edit", onClick: function () { abrirEditarDatos(tenant); } },
+          { label: "Reenviar Acceso al Administrador", icon: "send", onClick: function () { abrirReenviarAcceso(tenant); } },
+          { label: "Diagnóstico de Acceso", icon: "search", onClick: function () { abrirDiagnosticoAcceso(tenant); } },
+          { label: "Reparar Permisos Operativos", icon: "settings", onClick: function () { abrirRepararPermisos(tenant); } }
+        ]},
+        { titulo: "CRM", acciones: [
+          { label: "Crear / Vincular en el CRM", icon: "send", onClick: function () {
+            sincronizarConCRM(tenant).then(function (r) {
+              U.toast(r.creado ? "Cliente creado en el CRM." : "Este laboratorio ya está en el CRM.", "success");
+            }).catch(function (err) { U.toast("No se pudo sincronizar con el CRM: " + err.message, "error"); });
+          } }
+        ]}
+      ]);
     }
 
     function recordarPagoPorWhatsapp(tenant) {
@@ -2120,6 +2132,20 @@
       };
     }
 
+    // El N.° de Licencia debe ser el MISMO siempre para un laboratorio, sin
+    // importar cuántas veces se reimprima el Contrato o la Licencia por
+    // separado — se genera una única vez (ver pdf-contrato.js ->
+    // generarNumeroLicencia) y de ahí en adelante se lee siempre del propio
+    // tenant, nunca se recalcula.
+    function numeroLicenciaDe(tenant) {
+      if (!tenant.licenciaNumero) {
+        tenant.licenciaNumero = BIO_PDF_CRM.generarNumeroLicencia(tenant);
+        tenant.licenciaFechaExpedicion = tenant.licenciaFechaExpedicion || new Date().toISOString();
+        S.updateTenant(tenant.id, { licenciaNumero: tenant.licenciaNumero, licenciaFechaExpedicion: tenant.licenciaFechaExpedicion });
+      }
+      return tenant.licenciaNumero;
+    }
+
     function abrirEnviarContrato(tenant) {
       var plan = BIO_PLANES.porId(tenant.planId);
       if (!plan) { U.toast('Asigna primero un plan a este laboratorio (botón "Plan").', "error"); return; }
@@ -2207,7 +2233,7 @@
         var htmlOriginal = btn.innerHTML;
         btn.disabled = true; btn.innerHTML = "Generando…";
         try {
-          var opts = { cicloCobroDias: cicloElegido, mesesMembresia: mesesElegidos, mesesCortesia: mesesCortesiaElegidos };
+          var opts = { cicloCobroDias: cicloElegido, mesesMembresia: mesesElegidos, mesesCortesia: mesesCortesiaElegidos, numeroLicencia: numeroLicenciaDe(tenant) };
           var bytes = BIO_PDF_CRM.buildContratoPDF(tenantParaDocs(tenant), plan, modalidadElegida, opts);
           U.downloadBytes(bytes, "Contrato_BIOsoft_" + (tenant.nombre || "Cliente").replace(/\s+/g, "_") + ".pdf");
           var inicio = new Date(fechaInicioElegida + "T12:00:00");
@@ -2240,6 +2266,65 @@
         } finally {
           btn.disabled = false; btn.innerHTML = htmlOriginal;
         }
+      });
+    }
+
+    // Certificado "Licencia de Funcionamiento de Software" — un documento
+    // aparte del Contrato (que ya trae su propia cláusula de Licencia de
+    // Uso citando el mismo N.° de licencia), pensado para que el laboratorio
+    // lo pueda enmarcar o mostrar como comprobante formal de que su
+    // software está debidamente licenciado. Mismo flujo de "generar,
+    // descargar y elegir por dónde enviarlo" que ya usa el Contrato.
+    function abrirEnviarLicencia(tenant) {
+      var plan = BIO_PLANES.porId(tenant.planId);
+      if (!plan) { U.toast('Asigna primero un plan a este laboratorio (botón "Plan").', "error"); return; }
+      var mensajeDefault = "Hola 👋 Te compartimos la Licencia de Funcionamiento de Software N.° " + numeroLicenciaDe(tenant) +
+        " de BIOsoft para " + (tenant.nombre || "tu laboratorio") + " — el certificado oficial de tu licencia, Plan " + plan.nombre + ".";
+      var wrap = U.openModal(
+        '<h3 class="modal-title">Enviar Licencia de Funcionamiento — ' + U.esc(tenant.nombre) + '</h3>' +
+        '<p class="text-muted" style="margin-top:0">N.° de Licencia: <b>' + U.esc(numeroLicenciaDe(tenant)) + '</b> · Plan: <b>' + U.esc(plan.nombre) + '</b> (' + U.esc(plan.usuarios) + ').</p>' +
+        '<div class="form-grid">' +
+        '<div class="field"><label>Correo del destinatario</label><input id="lic-email" type="email" value="' + U.esc(tenant.email || "") + '"/></div>' +
+        '<div class="field"><label>WhatsApp del destinatario</label><input id="lic-whatsapp" value="' + U.esc(tenant.telefonos || "") + '"/></div>' +
+        "</div>" +
+        '<div class="field"><label>Mensaje</label><textarea id="lic-msg">' + U.esc(mensajeDefault) + "</textarea></div>" +
+        '<div class="flex gap-2 justify-between"><button class="btn btn-ghost" data-modal-close>Cancelar</button><button class="btn btn-primary" id="lic-go">' + U.icon("download") + " 1. Generar y Descargar</button></div>" +
+        '<div id="lic-step2" class="hidden" style="margin-top:16px;border-top:1px solid var(--border);padding-top:14px">' +
+        '<p style="margin:0 0 4px"><b>2. Elige dónde enviarla</b></p>' +
+        '<p class="text-muted" style="margin:0 0 4px;font-size:12.5px">Se abrirá el correo o WhatsApp ya redactado — solo adjunta el PDF que acabas de descargar antes de darle enviar.</p>' +
+        U.emailProviderButtonsHtml("lic") +
+        '<a class="btn btn-whatsapp btn-block" id="lic-wa" target="_blank" rel="noopener" style="margin-top:8px">' + U.icon("send") + " Enviar por WhatsApp</a>" +
+        "</div>",
+        { lg: true }
+      );
+      wrap.querySelector("#lic-go").addEventListener("click", function (e) {
+        var email = wrap.querySelector("#lic-email").value.trim();
+        var whatsapp = wrap.querySelector("#lic-whatsapp").value.trim();
+        var msg = wrap.querySelector("#lic-msg").value;
+        if (!email && !whatsapp) { U.toast("Ingresa un correo o un número de WhatsApp.", "error"); return; }
+        var btn = e.currentTarget;
+        var htmlOriginal = btn.innerHTML;
+        btn.disabled = true; btn.innerHTML = "Generando…";
+        BIO_PDF_CRM.buildLicenciaPDF(tenantParaDocs(tenant), plan, {
+          numero: numeroLicenciaDe(tenant), fechaExpedicion: tenant.licenciaFechaExpedicion, tenantId: tenant.id
+        }).then(function (bytes) {
+          U.downloadBytes(bytes, "Licencia_BIOsoft_" + (tenant.nombre || "Cliente").replace(/\s+/g, "_") + ".pdf");
+          var asunto = "Licencia de Funcionamiento de Software — BIOsoft (" + numeroLicenciaDe(tenant) + ")";
+          var cuerpo = msg + "\n\n(Adjunte el archivo PDF que se acaba de descargar a su equipo)";
+          wrap.querySelector("#lic-step2").classList.remove("hidden");
+          U.wireEmailProviderButtons(wrap, "lic", email, asunto, cuerpo);
+          var waBtn = wrap.querySelector("#lic-wa");
+          if (whatsapp) {
+            var numero = whatsapp.replace(/\D/g, "");
+            if (numero.length === 10 && numero.charAt(0) === "3") numero = "57" + numero;
+            waBtn.href = "https://wa.me/" + numero + "?text=" + encodeURIComponent(msg + "\n\n(Adjunte el PDF que se acaba de descargar antes de enviar)");
+          } else {
+            waBtn.classList.add("hidden");
+          }
+          U.toast("Licencia generada. Elige por dónde enviarla.", "success");
+        }).finally(function () {
+          btn.disabled = false; btn.innerHTML = htmlOriginal;
+        });
       });
     }
 
