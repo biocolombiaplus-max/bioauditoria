@@ -4,8 +4,8 @@
   var C = BIO_CATALOG;
 
   var PROVEEDOR = {
-    nombre: "BioColombia Plus",
-    representanteLegal: "Juan Carlos Cáceres",
+    nombre: "BIO Colombia Plus",
+    representanteLegal: "Juan Carlos Cáceres Medina",
     nit: "88262856-1",
     producto: "BIOsoft — Software de Gestión de Laboratorio Clínico",
     correo: "biomarketing.salud@gmail.com",

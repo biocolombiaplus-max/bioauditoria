@@ -1,6 +1,6 @@
 /* BIOsoft — Recibo de pago para clientes de una cotización de exámenes, con
    la marca del laboratorio (distinto del recibo de pago de la suscripción
-   de BIOsoft en pdf-contrato.js, que es de BioColombia Plus hacia el
+   de BIOsoft en pdf-contrato.js, que es de BIO Colombia Plus hacia el
    laboratorio). */
 (function (global) {
   "use strict";
