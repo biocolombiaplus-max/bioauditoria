@@ -437,7 +437,7 @@
         return (g.titulo ? '<div class="action-menu-group-title">' + U.esc(g.titulo) + '</div>' : "") + itemsHtml;
       }).join("");
       var wrap = U.openModal(
-        '<h3 class="modal-title">' + U.esc(titulo) + '</h3>' + bodyHtml +
+        '<h3 class="modal-title">' + U.esc(titulo) + '</h3><div class="action-menu-list">' + bodyHtml + "</div>" +
         '<div class="flex justify-between" style="margin-top:14px"><button class="btn btn-ghost" data-modal-close>Cerrar</button><span></span></div>'
       );
       wrap.querySelectorAll("[data-accion-idx]").forEach(function (btn) {

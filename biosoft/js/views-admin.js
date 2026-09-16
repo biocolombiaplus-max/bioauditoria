@@ -1912,7 +1912,7 @@
         return (g.titulo ? '<div class="action-menu-group-title">' + U.esc(g.titulo) + '</div>' : "") + itemsHtml;
       }).join("");
       var wrap = U.openModal(
-        '<h3 class="modal-title">' + U.esc(titulo) + '</h3>' + bodyHtml +
+        '<h3 class="modal-title">' + U.esc(titulo) + '</h3><div class="action-menu-list">' + bodyHtml + "</div>" +
         '<div class="flex justify-between" style="margin-top:14px"><button class="btn btn-ghost" data-modal-close>Cerrar</button><span></span></div>'
       );
       wrap.querySelectorAll("[data-accion-idx]").forEach(function (btn) {
@@ -2263,6 +2263,14 @@
             waBtn.classList.add("hidden");
           }
           U.toast("Contrato generado. Elige por dónde enviarlo.", "success");
+        } catch (err) {
+          // Antes, cualquier error aquí (ej. un caché viejo del navegador que
+          // todavía no tiene alguna función nueva) quedaba en silencio: el
+          // botón volvía a la normalidad sin ningún aviso y parecía que "no
+          // pasó nada" al hacer clic — ahora se avisa explícitamente para
+          // poder diagnosticarlo, en vez de que se vea como que no funciona.
+          console.error("BIOsoft: no se pudo generar el contrato ->", err);
+          U.toast("No se pudo generar el contrato: " + (err && err.message ? err.message : err) + ". Si el problema sigue, recarga la página (Ctrl+Shift+R) e inténtalo de nuevo.", "error");
         } finally {
           btn.disabled = false; btn.innerHTML = htmlOriginal;
         }
@@ -2322,6 +2330,9 @@
             waBtn.classList.add("hidden");
           }
           U.toast("Licencia generada. Elige por dónde enviarla.", "success");
+        }).catch(function (err) {
+          console.error("BIOsoft: no se pudo generar la licencia ->", err);
+          U.toast("No se pudo generar la licencia: " + (err && err.message ? err.message : err) + ". Si el problema sigue, recarga la página (Ctrl+Shift+R) e inténtalo de nuevo.", "error");
         }).finally(function () {
           btn.disabled = false; btn.innerHTML = htmlOriginal;
         });

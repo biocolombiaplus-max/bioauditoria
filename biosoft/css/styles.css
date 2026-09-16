@@ -129,14 +129,33 @@ fieldset legend { font-family: 'Poppins', sans-serif; font-weight: 700; font-siz
    una fila de tabla con 8-10 botones sueltos uno junto al otro — usado en
    paneles de superadministrador con muchas acciones por registro (CRM,
    Laboratorios Cliente) para que la fila principal se vea limpia y las
-   acciones secundarias queden organizadas y fáciles de encontrar. */
-.action-menu-group-title { font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: .04em; color: var(--text-muted); margin: 16px 0 6px; }
-.action-menu-group-title:first-child { margin-top: 0; }
-.action-menu-row { display: flex; align-items: center; gap: 10px; width: 100%; text-align: left; padding: 10px 12px; border-radius: var(--radius-sm); border: 1px solid transparent; background: transparent; color: var(--text); font-size: 13.5px; font-weight: 500; cursor: pointer; transition: background .12s ease, border-color .12s ease; }
-.action-menu-row:hover { background: var(--surface-2); border-color: var(--border); }
-.action-menu-row .action-menu-icon { flex-shrink: 0; width: 18px; height: 18px; display: flex; align-items: center; justify-content: center; color: var(--brand-primary); }
-.action-menu-row.danger { color: var(--danger); }
-.action-menu-row.danger .action-menu-icon { color: var(--danger); }
+   acciones secundarias queden organizadas y fáciles de encontrar. Los
+   selectores van sobre ".action-menu-list button" (no solo la clase) y con
+   varias propiedades explícitas (appearance, font, text-align, display)
+   para ganarle siempre al estilo nativo del navegador para <button>, sin
+   importar el orden de carga de las hojas de estilo.
+*/
+.action-menu-list { display: flex; flex-direction: column; }
+.action-menu-group-title { font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: .06em; color: var(--text-muted); margin: 18px 0 8px; padding-top: 14px; border-top: 1px solid var(--border); }
+.action-menu-group-title:first-child { margin-top: 0; padding-top: 0; border-top: none; }
+.action-menu-list button.action-menu-row {
+  appearance: none; -webkit-appearance: none; font: inherit;
+  display: flex !important; align-items: center; gap: 12px; width: 100%; text-align: left;
+  margin: 0 0 4px; padding: 11px 12px; border-radius: var(--radius-sm);
+  border: 1px solid transparent; background: transparent; color: var(--text);
+  font-size: 13.5px; font-weight: 600; line-height: 1.3; cursor: pointer; outline: none;
+  transition: background .12s ease, border-color .12s ease, transform .08s ease;
+}
+.action-menu-list button.action-menu-row:hover { background: var(--surface-2); border-color: var(--border); }
+.action-menu-list button.action-menu-row:active { transform: translateY(1px); }
+.action-menu-list button.action-menu-row .action-menu-icon {
+  flex-shrink: 0; width: 30px; height: 30px; border-radius: 9px;
+  display: flex; align-items: center; justify-content: center;
+  background: color-mix(in srgb, var(--brand-primary) 12%, transparent); color: var(--brand-primary);
+}
+.action-menu-list button.action-menu-row .action-menu-icon .ic { width: 15px; height: 15px; vertical-align: 0; }
+.action-menu-list button.action-menu-row.danger { color: var(--danger); }
+.action-menu-list button.action-menu-row.danger .action-menu-icon { background: color-mix(in srgb, var(--danger) 12%, transparent); color: var(--danger); }
 
 .kpi-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(190px, 1fr)); gap: 16px; margin-bottom: 20px; }
 .kpi { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 18px 20px; box-shadow: var(--shadow-sm); position: relative; overflow: hidden; }
