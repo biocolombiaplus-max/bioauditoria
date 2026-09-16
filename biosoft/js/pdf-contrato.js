@@ -161,46 +161,69 @@
       doc.setDrawColor(249, 115, 22); doc.setLineWidth(1);
       doc.rect(margin + 8, margin + 8, pageW - (margin + 8) * 2, pageH - (margin + 8) * 2);
 
-      var innerMargin = margin + 30;
+      var innerMargin = margin + 26;
       var innerW = pageW - innerMargin * 2;
-      var y = margin + 46;
+      // Zona inferior FIJA (firma, sello, código QR y pie de página), medida
+      // desde el fondo de la hoja — nunca depende de cuánto mida el
+      // contenido de arriba. Antes, la firma y el pie se dibujaban a partir
+      // de un "y" que iba creciendo con el contenido (incluido el párrafo de
+      // cumplimiento normativo, que es más largo para laboratorios en
+      // Colombia por la mención a la Resolución 3100), y en un certificado
+      // apaisado de una sola hoja ese acumulado se salía por debajo del
+      // marco decorativo — bug real reportado ("las firmas quedan por fuera
+      // del documento"). Con la firma anclada aquí, SIEMPRE queda dentro del
+      // marco sin importar el país ni el largo del nombre del laboratorio.
+      var yFirma = pageH - margin - 66;
+      var yPie = pageH - margin - 15;
+      var y = margin + 40;
 
-      if (logoImg) { try { doc.addImage(logoImg, "PNG", innerMargin, y - 24, 44, 44); } catch (e) {} }
-      doc.setFont("helvetica", "bold"); doc.setFontSize(20); doc.setTextColor(46, 16, 101);
-      doc.text("BIOsoft", innerMargin + (logoImg ? 54 : 0), y + 4);
-      doc.setFont("helvetica", "normal"); doc.setFontSize(9); doc.setTextColor(120, 120, 120);
-      doc.text(PROVEEDOR.nombre + " · NIT " + PROVEEDOR.nit, innerMargin + (logoImg ? 54 : 0), y + 17);
+      if (logoImg) { try { doc.addImage(logoImg, "PNG", innerMargin, y - 22, 40, 40); } catch (e) {} }
+      doc.setFont("helvetica", "bold"); doc.setFontSize(18); doc.setTextColor(46, 16, 101);
+      doc.text("BIOsoft", innerMargin + (logoImg ? 50 : 0), y + 2);
+      doc.setFont("helvetica", "normal"); doc.setFontSize(8.5); doc.setTextColor(120, 120, 120);
+      doc.text(PROVEEDOR.nombre + " · NIT " + PROVEEDOR.nit, innerMargin + (logoImg ? 50 : 0), y + 14);
 
-      doc.setFont("helvetica", "bold"); doc.setFontSize(9.5); doc.setTextColor(249, 115, 22);
-      doc.text("N.° DE LICENCIA", pageW - innerMargin, y - 10, { align: "right" });
-      doc.setFont("helvetica", "bold"); doc.setFontSize(13); doc.setTextColor(20, 20, 20);
+      doc.setFont("helvetica", "bold"); doc.setFontSize(9); doc.setTextColor(249, 115, 22);
+      doc.text("N.° DE LICENCIA", pageW - innerMargin, y - 9, { align: "right" });
+      doc.setFont("helvetica", "bold"); doc.setFontSize(12); doc.setTextColor(20, 20, 20);
       doc.text(numero, pageW - innerMargin, y + 7, { align: "right" });
 
-      y += 40;
+      y += 32;
       doc.setDrawColor(230, 225, 240); doc.setLineWidth(1);
       doc.line(innerMargin, y, pageW - innerMargin, y);
-      y += 34;
+      y += 26;
 
-      doc.setFont("helvetica", "bold"); doc.setFontSize(22); doc.setTextColor(46, 16, 101);
+      doc.setFont("helvetica", "bold"); doc.setFontSize(19); doc.setTextColor(46, 16, 101);
       doc.text("LICENCIA DE FUNCIONAMIENTO DE SOFTWARE", pageW / 2, y, { align: "center" });
-      y += 18;
-      doc.setFont("helvetica", "normal"); doc.setFontSize(10.5); doc.setTextColor(120, 120, 120);
-      doc.text("Software como Servicio (SaaS) para la Gestión Integral de Laboratorio Clínico", pageW / 2, y, { align: "center" });
-      y += 32;
-
-      doc.setFont("helvetica", "normal"); doc.setFontSize(10); doc.setTextColor(80, 80, 80);
-      doc.text("Se certifica que", pageW / 2, y, { align: "center" });
-      y += 22;
-      doc.setFont("helvetica", "bold"); doc.setFontSize(19); doc.setTextColor(20, 20, 20);
-      doc.text(lab.nombre || "—", pageW / 2, y, { align: "center" });
-      y += 17;
-      doc.setFont("helvetica", "normal"); doc.setFontSize(10); doc.setTextColor(90, 90, 90);
-      doc.text((lab.nit ? C.documentoTributarioLabel(lab.pais) + " " + lab.nit : "") + (contacto.nombre ? "  ·  Representante: " + contacto.nombre : ""), pageW / 2, y, { align: "center" });
       y += 15;
       doc.setFont("helvetica", "normal"); doc.setFontSize(9.5); doc.setTextColor(120, 120, 120);
+      doc.text("Software como Servicio (SaaS) para la Gestión Integral de Laboratorio Clínico", pageW / 2, y, { align: "center" });
+      y += 24;
+
+      doc.setFont("helvetica", "normal"); doc.setFontSize(9.5); doc.setTextColor(80, 80, 80);
+      doc.text("Se certifica que", pageW / 2, y, { align: "center" });
+      y += 19;
+      // Un nombre de laboratorio muy largo se reduce hasta que quepa en el
+      // ancho disponible, en vez de desbordarse fuera del marco decorativo
+      // (mismo patrón de achicar la letra que ya usa el nombre del paciente
+      // en pdf.js).
+      var nombreLabTxt = lab.nombre || "—";
+      var fsNombreLab = 17;
+      doc.setFont("helvetica", "bold"); doc.setFontSize(fsNombreLab);
+      while (doc.getTextWidth(nombreLabTxt) > innerW - 40 && fsNombreLab > 11) {
+        fsNombreLab -= 0.5;
+        doc.setFontSize(fsNombreLab);
+      }
+      doc.setTextColor(20, 20, 20);
+      doc.text(nombreLabTxt, pageW / 2, y, { align: "center" });
+      y += 15;
+      doc.setFont("helvetica", "normal"); doc.setFontSize(9.5); doc.setTextColor(90, 90, 90);
+      doc.text((lab.nit ? C.documentoTributarioLabel(lab.pais) + " " + lab.nit : "") + (contacto.nombre ? "  ·  Representante: " + contacto.nombre : ""), pageW / 2, y, { align: "center" });
+      y += 13;
+      doc.setFont("helvetica", "normal"); doc.setFontSize(9); doc.setTextColor(120, 120, 120);
       doc.text("es Licenciatario autorizado, bajo modalidad de suscripción, para el uso de " + PROVEEDOR.producto, pageW / 2, y, { align: "center", maxWidth: innerW - 200 });
 
-      y += 30;
+      y += 24;
       var colW = innerW / 2 - 14;
       var col1x = innerMargin, col2x = innerMargin + innerW / 2 + 14;
       var filasIzq = [
@@ -211,76 +234,88 @@
       ];
       var filasDer = [
         ["Fecha de expedición", fechaLarga(fechaExpedicion)],
-        ["Vigencia", "Indefinida, sujeta al pago vigente de la suscripción (ver Contrato de Prestación de Servicios)"],
+        ["Vigencia", "Indefinida, sujeta al pago vigente de la suscripción"],
         ["País de operación autorizado", lab.pais || "—"],
-        ["Alojamiento de la información", "Infraestructura en la nube Google Cloud / Firebase, con cifrado en tránsito y en reposo"]
+        ["Alojamiento de la información", "Google Cloud / Firebase, con cifrado en tránsito y en reposo"]
       ];
       function tablaLicencia(x, filas) {
         var yy = y;
         filas.forEach(function (f) {
-          doc.setFont("helvetica", "bold"); doc.setFontSize(8); doc.setTextColor(249, 115, 22);
+          doc.setFont("helvetica", "bold"); doc.setFontSize(7.6); doc.setTextColor(249, 115, 22);
           doc.text(f[0].toUpperCase(), x, yy);
-          yy += 11;
-          doc.setFont("helvetica", "normal"); doc.setFontSize(9.3); doc.setTextColor(30, 30, 30);
+          yy += 10;
+          doc.setFont("helvetica", "normal"); doc.setFontSize(9); doc.setTextColor(30, 30, 30);
           var lines = doc.splitTextToSize(f[1], colW);
           doc.text(lines, x, yy);
-          yy += lines.length * 11.5 + 10;
+          yy += lines.length * 10.5 + 7;
         });
         return yy;
       }
       var y1 = tablaLicencia(col1x, filasIzq);
       var y2 = tablaLicencia(col2x, filasDer);
-      y = Math.max(y1, y2) + 6;
+      y = Math.max(y1, y2) + 4;
 
       doc.setDrawColor(230, 225, 240); doc.line(innerMargin, y, pageW - innerMargin, y);
-      y += 16;
-      doc.setFont("helvetica", "bold"); doc.setFontSize(8.5); doc.setTextColor(46, 16, 101);
+      y += 13;
+      doc.setFont("helvetica", "bold"); doc.setFontSize(8); doc.setTextColor(46, 16, 101);
       doc.text("CUMPLIMIENTO NORMATIVO", innerMargin, y);
-      y += 12;
-      doc.setFont("helvetica", "normal"); doc.setFontSize(8.3); doc.setTextColor(70, 70, 70);
+      y += 10;
+      doc.setFont("helvetica", "normal"); doc.setFontSize(7.8); doc.setTextColor(70, 70, 70);
       var textoCumplimiento = "El tratamiento de la información alojada en esta licencia se sujeta a " + normativaDatosDe(lab.pais) +
         (lab.pais === "CO" ? ", y el sistema incorpora las funcionalidades técnicas de trazabilidad, respaldo, disponibilidad y confidencialidad de la información orientadas a apoyar el cumplimiento de la Resolución 3100 de 2019 del Ministerio de Salud y Protección Social" : "") +
-        ". El detalle completo de estas obligaciones consta en el Contrato de Prestación de Servicios suscrito entre las partes.";
-      var lineasCumplimiento = doc.splitTextToSize(textoCumplimiento, innerW - 190);
-      doc.text(lineasCumplimiento, innerMargin, y);
+        ". El detalle completo consta en el Contrato de Prestación de Servicios suscrito entre las partes.";
+      // Ancho reducido (deja libre la franja derecha para el sello y el QR,
+      // alineados a esta misma altura, ver yIconos abajo) y máximo de
+      // líneas acotado al espacio real disponible antes de la zona FIJA de
+      // firma (yFirma) — si el texto no cupiera completo (nunca debería, ya
+      // está medido para el peor caso: país CO con la mención a la
+      // Resolución 3100), se recorta con "…" en vez de invadir la firma.
+      var maxLineasCumplimiento = Math.max(3, Math.floor((yFirma - 12 - y) / 9.2));
+      var lineasCumplimiento = doc.splitTextToSize(textoCumplimiento, innerW - 175);
+      if (lineasCumplimiento.length > maxLineasCumplimiento) {
+        lineasCumplimiento = lineasCumplimiento.slice(0, maxLineasCumplimiento);
+        lineasCumplimiento[maxLineasCumplimiento - 1] = lineasCumplimiento[maxLineasCumplimiento - 1].replace(/\s*$/, "") + "…";
+      }
+      doc.text(lineasCumplimiento, innerMargin, y, { lineHeightFactor: 9.2 / 7.8 });
 
-      // Sello circular "oficial" + QR de verificación, del lado derecho —
-      // dibujado con formas nativas de jsPDF (círculos/líneas), sin
-      // depender de ninguna imagen externa para el sello.
-      var selloX = pageW - innerMargin - 60, selloY = y + lineasCumplimiento.length * 10.5 - 14;
-      doc.setDrawColor(249, 115, 22); doc.setLineWidth(1.6);
-      doc.circle(selloX, selloY, 34);
+      // Sello circular "oficial" + QR de verificación, en la franja derecha
+      // — alineados con el inicio del párrafo de la izquierda (mismo "y"),
+      // en su propia columna, así que nunca chocan con el texto sin
+      // importar cuántas líneas use (el texto tiene su propio límite y
+      // nunca pasa de yFirma, ver maxLineasCumplimiento arriba).
+      var yIconos = y - 2;
+      var selloX = pageW - innerMargin - 58, selloY = yIconos + 32;
+      doc.setDrawColor(249, 115, 22); doc.setLineWidth(1.5);
+      doc.circle(selloX, selloY, 32);
       doc.setDrawColor(46, 16, 101); doc.setLineWidth(0.8);
-      doc.circle(selloX, selloY, 28);
-      doc.setFont("helvetica", "bold"); doc.setFontSize(7.2); doc.setTextColor(46, 16, 101);
+      doc.circle(selloX, selloY, 26);
+      doc.setFont("helvetica", "bold"); doc.setFontSize(6.8); doc.setTextColor(46, 16, 101);
       doc.text("BIOSOFT", selloX, selloY - 4, { align: "center" });
-      doc.setFontSize(6); doc.setTextColor(120, 120, 120);
-      doc.text("LICENCIA", selloX, selloY + 5, { align: "center" });
-      doc.text("OFICIAL", selloX, selloY + 12, { align: "center" });
+      doc.setFontSize(5.6); doc.setTextColor(120, 120, 120);
+      doc.text("LICENCIA", selloX, selloY + 4, { align: "center" });
+      doc.text("OFICIAL", selloX, selloY + 11, { align: "center" });
 
       if (qrDataUrl) {
-        var qrSize = 66;
-        try { doc.addImage(qrDataUrl, "PNG", pageW - innerMargin - 66 - 108, y + lineasCumplimiento.length * 10.5 - 66, qrSize, qrSize); } catch (e) {}
-        doc.setFont("helvetica", "normal"); doc.setFontSize(6.6); doc.setTextColor(140, 140, 140);
-        doc.text("Escanea para verificar", pageW - innerMargin - 33 - 108, y + lineasCumplimiento.length * 10.5 + 6, { align: "center" });
+        var qrSize = 60;
+        var qrX = pageW - innerMargin - 60 - 100;
+        try { doc.addImage(qrDataUrl, "PNG", qrX, yIconos, qrSize, qrSize); } catch (e) {}
+        doc.setFont("helvetica", "normal"); doc.setFontSize(6.4); doc.setTextColor(140, 140, 140);
+        doc.text("Escanea para verificar", qrX + qrSize / 2, yIconos + qrSize + 9, { align: "center" });
       }
 
-      y += lineasCumplimiento.length * 10.5 + 34;
       var col2f = innerMargin + innerW / 2 + 10;
-      var firmaW = 92, firmaH = firmaW * (140 / 548);
-      try { doc.addImage("assets/firma-proveedor.png", "PNG", innerMargin - 4, y - firmaH - 4, firmaW, firmaH); } catch (e) {}
-      doc.setDrawColor(180, 180, 180); doc.line(innerMargin, y, innerMargin + 180, y); doc.line(col2f, y, col2f + 180, y);
-      y += 13;
-      doc.setFont("helvetica", "bold"); doc.setFontSize(8.5); doc.setTextColor(20, 20, 20);
-      doc.text(PROVEEDOR.representanteLegal, innerMargin, y);
-      doc.text(numero, col2f, y);
-      y += 11;
-      doc.setFont("helvetica", "normal"); doc.setFontSize(7.5); doc.setTextColor(90, 90, 90);
-      doc.text("Representante Legal — " + PROVEEDOR.nombre, innerMargin, y);
-      doc.text("Código de verificación de esta licencia", col2f, y);
+      var firmaW = 84, firmaH = firmaW * (140 / 548);
+      try { doc.addImage("assets/firma-proveedor.png", "PNG", innerMargin - 4, yFirma - firmaH - 4, firmaW, firmaH); } catch (e) {}
+      doc.setDrawColor(180, 180, 180); doc.line(innerMargin, yFirma, innerMargin + 170, yFirma); doc.line(col2f, yFirma, col2f + 170, yFirma);
+      doc.setFont("helvetica", "bold"); doc.setFontSize(8.2); doc.setTextColor(20, 20, 20);
+      doc.text(PROVEEDOR.representanteLegal, innerMargin, yFirma + 12);
+      doc.text(numero, col2f, yFirma + 12);
+      doc.setFont("helvetica", "normal"); doc.setFontSize(7.2); doc.setTextColor(90, 90, 90);
+      doc.text("Representante Legal — " + PROVEEDOR.nombre, innerMargin, yFirma + 22);
+      doc.text("Código de verificación de esta licencia", col2f, yFirma + 22);
 
-      doc.setFont("helvetica", "normal"); doc.setFontSize(6.8); doc.setTextColor(150, 150, 150);
-      doc.text("Documento generado electrónicamente por BIOsoft — " + new Date().toLocaleString("es-CO") + ".", pageW / 2, pageH - margin - 14, { align: "center" });
+      doc.setFont("helvetica", "normal"); doc.setFontSize(6.6); doc.setTextColor(150, 150, 150);
+      doc.text("Documento generado electrónicamente por BIOsoft — " + new Date().toLocaleString("es-CO") + ".", pageW / 2, yPie, { align: "center" });
 
       return new Uint8Array(doc.output("arraybuffer"));
     });
@@ -299,6 +334,20 @@
     var esSemestral = modalidadPago === "semestral";
     var esSinImplementacion = modalidadPago === "sin_implementacion";
     var esContado = modalidadPago === "contado";
+    // Un laboratorio puede tener un descuento adicional negociado sobre el
+    // precio de lista del Plan (ver "Editar Plan" en Laboratorios Cliente ->
+    // tenant.descuentoPlan, un % guardado por laboratorio) — cuando existe,
+    // la mensualidad que se cita en TODO el contrato es la YA descontada,
+    // nunca el precio de lista, y se deja constancia expresa del descuento
+    // y del precio de lista original para que quede claro cuánto se
+    // descontó.
+    var descuentoPlan = opts.descuentoPlan > 0 ? Math.min(opts.descuentoPlan, 100) : 0;
+    var precioEfectivoCop = descuentoPlan ? Math.round(plan.precio * (1 - descuentoPlan / 100)) : plan.precio;
+    var precioEfectivoUsd = descuentoPlan ? Math.round(plan.usd * (1 - descuentoPlan / 100)) : plan.usd;
+    var precioEfectivoFmt = precioEfectivoCop.toLocaleString("es-CO");
+    var notaDescuentoPlan = descuentoPlan
+      ? (" Este valor ya incluye un descuento adicional del " + descuentoPlan + "% acordado con EL CLIENTE sobre el precio de lista del Plan " + plan.nombre + " ($" + plan.precioFmt + " COP / aprox. $" + plan.usd + " USD).")
+      : "";
     var jsPDFCtor = window.jspdf ? window.jspdf.jsPDF : window.jsPDF;
     var doc = new jsPDFCtor({ unit: "pt", format: "letter" });
     var pageW = doc.internal.pageSize.getWidth();
@@ -367,7 +416,11 @@
     );
 
     titulo("CUARTA — PLAN CONTRATADO");
-    parrafo("EL CLIENTE contrata el Plan " + plan.nombre + " (" + plan.usuarios + "), que incluye:");
+    parrafo(
+      "EL CLIENTE contrata el Plan " + plan.nombre + " (" + plan.usuarios + "), por un valor mensual de $" + precioEfectivoFmt + " COP (aprox. $" + precioEfectivoUsd + " USD)" +
+      (descuentoPlan ? (", que ya incluye un descuento adicional del " + descuentoPlan + "% sobre el precio de lista de dicho Plan ($" + plan.precioFmt + " COP / aprox. $" + plan.usd + " USD)") : "") +
+      " — ver el detalle de la forma de pago en la cláusula SEXTA. El Plan incluye:"
+    );
     bullets(plan.items || []);
 
     titulo("QUINTA — PERSONALIZACIÓN Y PLAZO DE ENTREGA");
@@ -382,15 +435,15 @@
     titulo("SEXTA — VALOR DEL SERVICIO");
     parrafo(
       esSemestral
-        ? ("EL CLIENTE ha optado por la modalidad de membresía prepagada: cancela por adelantado el valor correspondiente a sus primeros " + numeroConDigito(mesesMembresia) + " meses de mensualidad del Plan " + plan.nombre + " ($" + plan.precioFmt + " COP c/u, aprox. $" + plan.usd + " USD), quedando exento del pago de la cuota de implementación (valor $" + IMPL.copFmt + " COP / aprox. $" + IMPL.usd + " USD), la cual EL PROVEEDOR condona en su totalidad bajo esta modalidad. Vencidos los primeros " + numeroConDigito(mesesMembresia) + " meses, EL CLIENTE continuará pagando la mensualidad ordinaria del Plan " + plan.nombre + ".")
+        ? ("EL CLIENTE ha optado por la modalidad de membresía prepagada: cancela por adelantado el valor correspondiente a sus primeros " + numeroConDigito(mesesMembresia) + " meses de mensualidad del Plan " + plan.nombre + " ($" + precioEfectivoFmt + " COP c/u, aprox. $" + precioEfectivoUsd + " USD), quedando exento del pago de la cuota de implementación (valor $" + IMPL.copFmt + " COP / aprox. $" + IMPL.usd + " USD), la cual EL PROVEEDOR condona en su totalidad bajo esta modalidad. Vencidos los primeros " + numeroConDigito(mesesMembresia) + " meses, EL CLIENTE continuará pagando la mensualidad ordinaria del Plan " + plan.nombre + "." + notaDescuentoPlan)
         : esSinImplementacion
-        ? ("EL PROVEEDOR condona en su totalidad la cuota de implementación (valor $" + IMPL.copFmt + " COP / aprox. $" + IMPL.usd + " USD) para EL CLIENTE. EL CLIENTE pagará únicamente la mensualidad ordinaria de $" + plan.precioFmt + " COP (aprox. $" + plan.usd + " USD) correspondiente al Plan " + plan.nombre + ", desde la fecha de activación del servicio." +
-            (mesesCortesia > 0 ? (" Como cortesía adicional, EL PROVEEDOR no cobrará mensualidad durante los primeros " + numeroConDigito(mesesCortesia) + " meses; transcurrido ese plazo, EL CLIENTE pagará la mensualidad ordinaria del Plan " + plan.nombre + ".") : ""))
+        ? ("EL PROVEEDOR condona en su totalidad la cuota de implementación (valor $" + IMPL.copFmt + " COP / aprox. $" + IMPL.usd + " USD) para EL CLIENTE. EL CLIENTE pagará únicamente la mensualidad ordinaria de $" + precioEfectivoFmt + " COP (aprox. $" + precioEfectivoUsd + " USD) correspondiente al Plan " + plan.nombre + ", desde la fecha de activación del servicio." +
+            (mesesCortesia > 0 ? (" Como cortesía adicional, EL PROVEEDOR no cobrará mensualidad durante los primeros " + numeroConDigito(mesesCortesia) + " meses; transcurrido ese plazo, EL CLIENTE pagará la mensualidad ordinaria del Plan " + plan.nombre + ".") : "") + notaDescuentoPlan)
         : esContado
-        ? ("EL CLIENTE pagará la cuota de implementación por valor de $" + IMPL.copFmt + " COP (aprox. $" + IMPL.usd + " USD) EN UN SOLO PAGO, junto con la mensualidad del primer mes. A partir del mes dos (2), EL CLIENTE solo pagará la mensualidad ordinaria de $" + plan.precioFmt + " COP (aprox. $" + plan.usd + " USD) correspondiente al Plan " + plan.nombre + ". La cuota de implementación no se cobra nuevamente bajo ninguna circunstancia una vez cancelada en su totalidad, sin importar el tiempo que EL CLIENTE continúe usando el software." +
-            (mesesCortesia > 0 ? (" Como cortesía adicional, EL PROVEEDOR no cobrará mensualidad durante los primeros " + numeroConDigito(mesesCortesia) + " meses; transcurrido ese plazo, EL CLIENTE pagará la mensualidad ordinaria del Plan " + plan.nombre + ".") : ""))
-        : ("EL CLIENTE pagará una cuota de implementación por valor de $" + IMPL.copFmt + " COP (aprox. $" + IMPL.usd + " USD), fraccionada en DOS (2) cuotas iguales de $" + IMPL.cuotaCopFmt + " COP (aprox. $" + IMPL.cuotaUsd + " USD) cada una, cobradas junto con la mensualidad de los meses uno (1) y dos (2). A partir del mes tres (3), EL CLIENTE solo pagará la mensualidad ordinaria de $" + plan.precioFmt + " COP (aprox. $" + plan.usd + " USD) correspondiente al Plan " + plan.nombre + ". La cuota de implementación no se cobra nuevamente bajo ninguna circunstancia una vez cancelada en su totalidad, sin importar el tiempo que EL CLIENTE continúe usando el software." +
-            (mesesCortesia > 0 ? (" Como cortesía adicional, EL PROVEEDOR no cobrará mensualidad durante los primeros " + numeroConDigito(mesesCortesia) + " meses; transcurrido ese plazo, EL CLIENTE pagará la mensualidad ordinaria del Plan " + plan.nombre + ".") : ""))
+        ? ("EL CLIENTE pagará la cuota de implementación por valor de $" + IMPL.copFmt + " COP (aprox. $" + IMPL.usd + " USD) EN UN SOLO PAGO, junto con la mensualidad del primer mes. A partir del mes dos (2), EL CLIENTE solo pagará la mensualidad ordinaria de $" + precioEfectivoFmt + " COP (aprox. $" + precioEfectivoUsd + " USD) correspondiente al Plan " + plan.nombre + ". La cuota de implementación no se cobra nuevamente bajo ninguna circunstancia una vez cancelada en su totalidad, sin importar el tiempo que EL CLIENTE continúe usando el software." +
+            (mesesCortesia > 0 ? (" Como cortesía adicional, EL PROVEEDOR no cobrará mensualidad durante los primeros " + numeroConDigito(mesesCortesia) + " meses; transcurrido ese plazo, EL CLIENTE pagará la mensualidad ordinaria del Plan " + plan.nombre + ".") : "") + notaDescuentoPlan)
+        : ("EL CLIENTE pagará una cuota de implementación por valor de $" + IMPL.copFmt + " COP (aprox. $" + IMPL.usd + " USD), fraccionada en DOS (2) cuotas iguales de $" + IMPL.cuotaCopFmt + " COP (aprox. $" + IMPL.cuotaUsd + " USD) cada una, cobradas junto con la mensualidad de los meses uno (1) y dos (2). A partir del mes tres (3), EL CLIENTE solo pagará la mensualidad ordinaria de $" + precioEfectivoFmt + " COP (aprox. $" + precioEfectivoUsd + " USD) correspondiente al Plan " + plan.nombre + ". La cuota de implementación no se cobra nuevamente bajo ninguna circunstancia una vez cancelada en su totalidad, sin importar el tiempo que EL CLIENTE continúe usando el software." +
+            (mesesCortesia > 0 ? (" Como cortesía adicional, EL PROVEEDOR no cobrará mensualidad durante los primeros " + numeroConDigito(mesesCortesia) + " meses; transcurrido ese plazo, EL CLIENTE pagará la mensualidad ordinaria del Plan " + plan.nombre + ".") : "") + notaDescuentoPlan)
     );
 
     titulo("SÉPTIMA — FORMA DE PAGO Y PERIODICIDAD");

@@ -2004,6 +2004,7 @@
           var p = BIO_PLANES.porId(id);
           return "<option value='" + id + "' " + (id === (tenant.planId || "") ? "selected" : "") + ">" + (p ? p.nombre + " (" + p.usuarios + ")" : "— Sin asignar —") + "</option>";
         }).join("")) +
+        '<div id="precio-plan-box" class="form-grid"></div>' +
         '<div class="field"><label>Límite de usuarios (se ajusta solo según el plan, o edítalo manual)</label><input type="number" id="f_maxUsuarios" min="1" value="' + (tenant.maxUsuarios || "") + '"/></div>' +
         '<fieldset><legend>Facturación y Fechas de Pago</legend><div class="form-grid">' +
         '<div class="field"><label>Fecha de inicio del plan</label><input type="date" id="f_fechaInicioPlan" value="' + (tenant.fechaInicioPlan || "") + '"/></div>' +
@@ -2018,9 +2019,43 @@
         '<div class="flex gap-2 justify-between" style="margin-top:6px"><button type="button" class="btn btn-ghost" data-modal-close>Cancelar</button><button type="submit" class="btn btn-primary">' + U.icon("check") + " Guardar</button></div>" +
         "</form>"
       );
+      // Valor del plan + descuento adicional negociado por laboratorio (ej.
+      // un cliente antiguo, una cortesía puntual): se guarda como % en
+      // tenant.descuentoPlan y de ahí en adelante el Contrato SIEMPRE cita
+      // el valor YA descontado (ver pdf-contrato.js -> buildContratoPDF),
+      // nunca el precio de lista, dejando constancia del descuento
+      // aplicado. Solo el texto del "valor final" se reconstruye en cada
+      // tecla (actualizarValorFinal) — el campo de descuento en sí NUNCA se
+      // vuelve a crear mientras se escribe, para no perder el foco a mitad
+      // de tecleo (bug real ya visto antes en otros formularios de esta
+      // pantalla con el mismo patrón de "reconstruir todo en cada evento").
+      var descuentoActual = tenant.descuentoPlan || 0;
+      function actualizarValorFinal() {
+        var p = BIO_PLANES.porId(wrap.querySelector("#f_planId").value);
+        var txt = wrap.querySelector("#precio-final-txt");
+        var inputDescuento = wrap.querySelector("#f_descuentoPlan");
+        if (!p || !txt || !inputDescuento) return;
+        descuentoActual = Math.max(0, Math.min(100, parseFloat(inputDescuento.value) || 0));
+        var precioFinalCop = Math.round(p.precio * (1 - descuentoActual / 100));
+        var precioFinalUsd = Math.round(p.usd * (1 - descuentoActual / 100));
+        txt.innerHTML = "$" + precioFinalCop.toLocaleString("es-CO") + ' COP <span class="text-muted" style="font-weight:400">(aprox. $' + precioFinalUsd + " USD)</span>";
+      }
+      function renderInfoPlan() {
+        var p = BIO_PLANES.porId(wrap.querySelector("#f_planId").value);
+        var box = wrap.querySelector("#precio-plan-box");
+        if (!p) { box.innerHTML = ""; return; }
+        box.innerHTML =
+          '<div class="field"><label>Valor mensual de lista del Plan</label><p style="margin:4px 0 0;font-weight:700">$' + p.precioFmt + ' COP <span class="text-muted" style="font-weight:400">(aprox. $' + p.usd + ' USD)</span></p></div>' +
+          '<div class="field"><label>Descuento adicional para este laboratorio (%)</label><input type="number" id="f_descuentoPlan" min="0" max="100" step="0.5" value="' + descuentoActual + '"/></div>' +
+          '<div class="field"><label>Valor mensual final a cobrar</label><p id="precio-final-txt" style="margin:4px 0 0;font-weight:700;color:var(--brand-primary)"></p></div>';
+        wrap.querySelector("#f_descuentoPlan").addEventListener("input", actualizarValorFinal);
+        actualizarValorFinal();
+      }
+      renderInfoPlan();
       wrap.querySelector("#f_planId").addEventListener("change", function () {
         var p = BIO_PLANES.porId(this.value);
         wrap.querySelector("#f_maxUsuarios").value = p ? p.limiteUsuarios : "";
+        renderInfoPlan();
       });
       wrap.querySelector("#plan-form").addEventListener("submit", function (e) {
         e.preventDefault();
@@ -2035,6 +2070,7 @@
         tenant.cicloCobroDias = parseInt(wrap.querySelector("#f_cicloCobroDias").value, 10) || 30;
         tenant.mesesMembresiaGratis = parseInt(wrap.querySelector("#f_mesesMembresiaGratis").value, 10) || null;
         tenant.mesesCortesia = parseInt(wrap.querySelector("#f_mesesCortesia").value, 10) || null;
+        tenant.descuentoPlan = descuentoActual || null;
         tenant.suspendido = quedaSuspendido;
         if (quedaSuspendido && !estabaSuspendido) tenant.fechaSuspension = new Date().toISOString().slice(0, 10);
         if (!quedaSuspendido) tenant.fechaSuspension = null;
@@ -2053,6 +2089,7 @@
           planId: tenant.planId, maxUsuarios: tenant.maxUsuarios, fechaInicioPlan: tenant.fechaInicioPlan,
           fechaProximoPago: tenant.fechaProximoPago, cicloCobroDias: tenant.cicloCobroDias,
           mesesMembresiaGratis: tenant.mesesMembresiaGratis, mesesCortesia: tenant.mesesCortesia,
+          descuentoPlan: tenant.descuentoPlan,
           suspendido: tenant.suspendido, fechaSuspension: tenant.fechaSuspension, esPruebaGratis: tenant.esPruebaGratis
         });
         U.toast("Plan actualizado.", "success");
@@ -2154,9 +2191,18 @@
       var mesesMembresiaActual = tenant.mesesMembresiaGratis || 6;
       var mesesCortesiaActual = tenant.mesesCortesia || 0;
       var fechaInicioActual = tenant.fechaInicioPlan || new Date().toISOString().slice(0, 10);
+      // El valor mensual que se muestra aquí y se cita en el mensaje
+      // predeterminado es siempre el YA descontado (ver "Editar Plan" ->
+      // tenant.descuentoPlan) — el mismo valor que pdf-contrato.js va a
+      // imprimir en el Contrato, para que lo que ve el superadmin aquí
+      // coincida exactamente con lo que recibe el cliente.
+      var descuentoPlanActual = tenant.descuentoPlan || 0;
+      var precioEfectivoCop = descuentoPlanActual ? Math.round(plan.precio * (1 - descuentoPlanActual / 100)) : plan.precio;
+      var precioEfectivoUsd = descuentoPlanActual ? Math.round(plan.usd * (1 - descuentoPlanActual / 100)) : plan.usd;
+      var precioEfectivoFmt = precioEfectivoCop.toLocaleString("es-CO");
       function construirMensaje(modalidad, ciclo, mesesMembresia, mesesCortesia) {
         return "Hola 👋 Te comparto el contrato de prestación de servicios de BIOsoft para " + (tenant.nombre || "tu laboratorio") +
-          ", Plan " + plan.nombre + ". " + (modalidad === "semestral"
+          ", Plan " + plan.nombre + " ($" + precioEfectivoFmt + " COP/mes, aprox. $" + precioEfectivoUsd + " USD). " + (modalidad === "semestral"
             ? "Tienes membresía gratis por " + mesesMembresia + " meses de una vez."
             : modalidad === "sin_implementacion"
             ? "No pagas cuota de implementación, solo tu mensualidad."
@@ -2167,7 +2213,9 @@
       var mensajeDefault = construirMensaje(modalidadActual, cicloDiasActual, mesesMembresiaActual, mesesCortesiaActual);
       var wrap = U.openModal(
         '<h3 class="modal-title">Enviar Contrato — ' + U.esc(tenant.nombre) + '</h3>' +
-        '<p class="text-muted" style="margin-top:0">Plan: <b>' + U.esc(plan.nombre) + '</b> (' + U.esc(plan.usuarios) + ').</p>' +
+        '<p class="text-muted" style="margin-top:0">Plan: <b>' + U.esc(plan.nombre) + '</b> (' + U.esc(plan.usuarios) + ') · Valor mensual: <b>$' + precioEfectivoFmt + ' COP</b> (aprox. $' + precioEfectivoUsd + ' USD)' +
+        (descuentoPlanActual ? ' · incluye descuento adicional del <b>' + descuentoPlanActual + '%</b>' : '') +
+        ' — <a href="#" id="con-editar-descuento">editar descuento</a>.</p>' +
         '<div class="form-grid">' +
         '<div class="field"><label>Modalidad de pago</label><select id="con-modalidad">' +
         '<option value="mensual" ' + (modalidadActual === "mensual" ? "selected" : "") + '>Mes a mes (implementación fraccionada)</option>' +
@@ -2192,6 +2240,11 @@
         "</div>",
         { lg: true }
       );
+      wrap.querySelector("#con-editar-descuento").addEventListener("click", function (e) {
+        e.preventDefault();
+        U.closeModal(wrap);
+        abrirEditarPlan(tenant);
+      });
       var msgEditadoManualmente = false;
       wrap.querySelector("#con-msg").addEventListener("input", function () {
         msgEditadoManualmente = this.value !== construirMensaje(
@@ -2233,7 +2286,7 @@
         var htmlOriginal = btn.innerHTML;
         btn.disabled = true; btn.innerHTML = "Generando…";
         try {
-          var opts = { cicloCobroDias: cicloElegido, mesesMembresia: mesesElegidos, mesesCortesia: mesesCortesiaElegidos, numeroLicencia: numeroLicenciaDe(tenant) };
+          var opts = { cicloCobroDias: cicloElegido, mesesMembresia: mesesElegidos, mesesCortesia: mesesCortesiaElegidos, numeroLicencia: numeroLicenciaDe(tenant), descuentoPlan: descuentoPlanActual };
           var bytes = BIO_PDF_CRM.buildContratoPDF(tenantParaDocs(tenant), plan, modalidadElegida, opts);
           U.downloadBytes(bytes, "Contrato_BIOsoft_" + (tenant.nombre || "Cliente").replace(/\s+/g, "_") + ".pdf");
           var inicio = new Date(fechaInicioElegida + "T12:00:00");
