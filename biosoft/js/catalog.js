@@ -1343,6 +1343,22 @@
     return "~ " + valor.toLocaleString("es-CO", { maximumFractionDigits: 2 }) + " " + m.codigo;
   }
 
+  /* Copago: la parte del valor de una orden que, aunque pertenezca a un
+     convenio (empresa aliada, EPS, etc.), el PACIENTE paga directamente de
+     su bolsillo — el resto queda a cargo del convenio (a crédito, ver
+     tenant.reciboConvenioComoCredito en views-orders.js). No todos los
+     convenios tienen copago: se activa puntualmente por convenio
+     (convenio.tieneCopago) con un valor fijo o un % sobre el total (ver
+     "Nuevo Convenio / Tarifa" -> abrirFormConvenio en views-cotizador.js).
+     Nunca puede superar el valor total de la orden (ej. un copago fijo
+     configurado en $50.000 sobre una orden de $30.000 se topa en $30.000,
+     no tendría sentido "copagar" más de lo que cuesta la orden). */
+  function calcularCopago(convenio, valorTotal) {
+    if (!convenio || !convenio.tieneCopago || !convenio.copagoValor || !valorTotal) return 0;
+    var valor = convenio.copagoTipo === "porcentaje" ? valorTotal * (convenio.copagoValor / 100) : convenio.copagoValor;
+    return Math.max(0, Math.min(Math.round(valor), valorTotal));
+  }
+
   /* En qué moneda tiene el laboratorio cargados TODOS sus precios (la moneda
      "base") — no siempre es la moneda oficial de su país: un laboratorio
      venezolano puede manejar sus precios en Bs. o directo en USD (muy común
@@ -1964,7 +1980,7 @@
     cambiarSeccionExamen: cambiarSeccionExamen,
     cambiarTuboExamen: cambiarTuboExamen,
     tuboInfo: tuboInfo,
-    fmtMonedaAdicional: fmtMonedaAdicional, monedaBaseLabel: monedaBaseLabel,
+    fmtMonedaAdicional: fmtMonedaAdicional, monedaBaseLabel: monedaBaseLabel, calcularCopago: calcularCopago,
     calcularFlag: calcularFlag,
     examenEfectivo: examenEfectivo,
     parametroEfectivo: parametroEfectivo,

@@ -1358,7 +1358,7 @@
   function createConvenio(data) {
     var db = loadDB();
     db.convenios = db.convenios || [];
-    var c = Object.assign({ id: uid("cnv"), activo: true, descuentoGeneral: 0, tipoAjuste: "descuento", referencia: "", creadoEn: nowISO() }, data);
+    var c = Object.assign({ id: uid("cnv"), activo: true, descuentoGeneral: 0, tipoAjuste: "descuento", referencia: "", tieneCopago: false, copagoTipo: "fijo", copagoValor: 0, creadoEn: nowISO() }, data);
     db.convenios.push(c);
     saveDB(db);
     fbWrite("convenios", c.id, c);

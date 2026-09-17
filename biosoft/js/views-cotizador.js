@@ -800,6 +800,7 @@
         "</div>" +
         '<p style="margin:10px 0 4px;font-size:13px">' + (esRecargo ? "Recargo" : "Descuento") + " general: <b>" + (c.descuentoGeneral || 0) + "%</b></p>" +
         '<p style="margin:0 0 4px;font-size:13px">Tarifas exclusivas (exámenes/paquetes): <b>' + numEspeciales + "</b></p>" +
+        (c.tieneCopago ? '<p style="margin:0 0 4px;font-size:13px">Copago del paciente: <b>' + (c.copagoTipo === "porcentaje" ? (c.copagoValor || 0) + "%" : fmtMoneda(c.copagoValor || 0)) + "</b></p>" : "") +
         (c.nit ? '<p class="text-muted" style="margin:0 0 2px;font-size:12px">NIT ' + U.esc(c.nit) + "</p>" : "") +
         (c.contactoNombre || c.contactoCelular || c.contactoEmail ? '<p class="text-muted" style="margin:0 0 2px;font-size:12px">' + [c.contactoNombre, c.contactoCelular, c.contactoEmail].filter(Boolean).map(U.esc).join(" · ") + "</p>" : "") +
         (c.granContribuyente || c.autorretenedor ? '<p style="margin:0 0 12px">' +
@@ -1128,7 +1129,8 @@
         nombre: "", referencia: "", tipo: TIPOS_CONVENIO[0], descuentoGeneral: 0, tipoAjuste: "descuento", activo: true,
         nit: "", direccion: "", ciudad: "", contactoNombre: "", contactoEmail: "", contactoCelular: "",
         tipoPersona: "juridica", tipoSociedad: TIPOS_SOCIEDAD_CONVENIO[0], regimenTributario: "responsable",
-        granContribuyente: false, autorretenedor: false
+        granContribuyente: false, autorretenedor: false,
+        tieneCopago: false, copagoTipo: "fijo", copagoValor: 0
       };
       var esCO = tenant.pais === "CO";
       var wrap = U.openModal(
@@ -1146,6 +1148,8 @@
         '<div class="field"><label>Estado</label><select id="f_cnv_activo"><option value="1" ' + (convenio.activo ? "selected" : "") + '>Activo</option><option value="0" ' + (!convenio.activo ? "selected" : "") + ">Inactivo</option></select></div>" +
         "</div>" +
         '<p class="text-muted" style="font-size:12.5px;margin:0 0 6px">El % elegido (descuento o recargo) se aplica a TODOS los exámenes de este convenio/tarifa, salvo que definas un precio especial puntual para alguno — a mano (desde "💲 Precios Especiales") o cargando un Excel completo (desde "📥 Excel de Precios"), ambos disponibles después de guardar.</p>' +
+        '<div class="checkbox-row"><input type="checkbox" id="f_cnv_tienecopago" ' + (convenio.tieneCopago ? "checked" : "") + '/><label style="margin:0" for="f_cnv_tienecopago">Este convenio maneja copago (parte la paga el paciente, el resto queda a cargo del convenio)</label></div>' +
+        '<div id="cnv-copago-box" class="form-grid" style="margin-top:8px"></div>' +
         '<fieldset><legend>Información Legal y de Contacto (para facturación)</legend><div class="form-grid">' +
         '<div class="field"><label>NIT (con dígito de verificación)</label><input id="f_cnv_nit" value="' + U.esc(convenio.nit || "") + '" placeholder="Ej. 900123456-7"/></div>' +
         '<div class="field"><label>Dirección</label><input id="f_cnv_direccion" value="' + U.esc(convenio.direccion || "") + '" placeholder="Ej. Cra 45 # 12 - 34"/></div>' +
@@ -1177,6 +1181,23 @@
         wrap.querySelector("#f_cnv_tipopersona").addEventListener("change", actualizarTipoSociedad);
         actualizarTipoSociedad();
       }
+      // Copago: solo se le pide tipo (fijo/%) y valor cuando el checkbox
+      // está marcado — se reconstruye únicamente al marcar/desmarcar (no en
+      // cada tecla, así el campo de valor nunca pierde el foco mientras se
+      // escribe).
+      function renderCopagoBox() {
+        var activo = wrap.querySelector("#f_cnv_tienecopago").checked;
+        var box = wrap.querySelector("#cnv-copago-box");
+        if (!activo) { box.innerHTML = ""; return; }
+        box.innerHTML =
+          '<div class="field"><label>Tipo de Copago</label><select id="f_cnv_copagotipo">' +
+          '<option value="fijo" ' + (convenio.copagoTipo !== "porcentaje" ? "selected" : "") + '>Valor fijo</option>' +
+          '<option value="porcentaje" ' + (convenio.copagoTipo === "porcentaje" ? "selected" : "") + ">Porcentaje del total</option>" +
+          "</select></div>" +
+          '<div class="field"><label>Valor del Copago</label><input type="number" step="any" min="0" id="f_cnv_copagovalor" value="' + (convenio.copagoValor || 0) + '"/></div>';
+      }
+      wrap.querySelector("#f_cnv_tienecopago").addEventListener("change", renderCopagoBox);
+      renderCopagoBox();
       wrap.querySelector("#convenio-form").addEventListener("submit", function (e) {
         e.preventDefault();
         var data = {
@@ -1193,7 +1214,10 @@
           tipoPersona: wrap.querySelector("#f_cnv_tipopersona").value,
           contactoNombre: wrap.querySelector("#f_cnv_contactonombre").value.trim(),
           contactoEmail: wrap.querySelector("#f_cnv_contactoemail").value.trim(),
-          contactoCelular: wrap.querySelector("#f_cnv_contactocelular").value.trim()
+          contactoCelular: wrap.querySelector("#f_cnv_contactocelular").value.trim(),
+          tieneCopago: wrap.querySelector("#f_cnv_tienecopago").checked,
+          copagoTipo: wrap.querySelector("#f_cnv_copagotipo") ? wrap.querySelector("#f_cnv_copagotipo").value : "fijo",
+          copagoValor: wrap.querySelector("#f_cnv_copagovalor") ? (parseFloat(wrap.querySelector("#f_cnv_copagovalor").value) || 0) : 0
         };
         if (esCO) {
           data.tipoSociedad = data.tipoPersona === "natural" ? "" : wrap.querySelector("#f_cnv_tiposociedad").value;

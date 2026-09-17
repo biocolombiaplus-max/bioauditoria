@@ -545,8 +545,25 @@
     // convenio. Sin esta opción (o para órdenes particulares), el flujo de
     // siempre sigue igual.
     var esCargoConvenio = !!(tenant.reciboConvenioComoCredito && order.convenioId);
+    // Si el convenio de esta orden tiene copago activado (ver "Nuevo
+    // Convenio / Tarifa" -> "Este convenio maneja copago"), el paciente sí
+    // paga una parte de su bolsillo — solo esa parte necesita método de
+    // pago y confirmación; el resto sigue yendo a crédito del convenio
+    // exactamente igual que antes.
+    var convenio = order.convenioId ? S.cotizador.listConvenios(order.tenantId).filter(function (c) { return c.id === order.convenioId; })[0] : null;
+    var valorCopago = esCargoConvenio ? C.calcularCopago(convenio, order.valorCobrar) : 0;
+    var tieneCopago = valorCopago > 0;
+    var valorConvenio = order.valorCobrar - valorCopago;
     var wrapConfirm = U.openModal(
-      esCargoConvenio
+      tieneCopago
+        ? '<h3 class="modal-title">Copago — Orden ' + order.numeroOrden + '</h3>' +
+          '<p class="text-muted" style="margin-top:0">El convenio <b>' + U.esc(order.convenioNombre || "—") + "</b> maneja copago: el paciente paga <b>" + fmtMoneda(valorCopago) + fmtMonedaEquiv(tenant, valorCopago) + "</b> y el resto (<b>" + fmtMoneda(valorConvenio) + fmtMonedaEquiv(tenant, valorConvenio) + "</b>) queda a crédito del convenio.</p>" +
+          '<div class="field"><label>Método de Pago del Copago</label><select id="rec-ord-metodo">' +
+          Object.keys(BIO_PDF_RECIBO_ORDEN.METODO_PAGO_LABEL).map(function (k) { return '<option value="' + k + '">' + BIO_PDF_RECIBO_ORDEN.METODO_PAGO_LABEL[k] + "</option>"; }).join("") +
+          "</select></div>" +
+          '<label class="checkbox-row" style="margin-top:10px"><input type="checkbox" id="rec-ord-confirmo"/> Confirmo que el paciente ya pagó el copago de ' + fmtMoneda(valorCopago) + fmtMonedaEquiv(tenant, valorCopago) + " y se genera el cargo a crédito del resto al convenio " + U.esc(order.convenioNombre || "—") + "</label>" +
+          '<div class="flex justify-between" style="margin-top:16px"><button class="btn btn-ghost" data-modal-close>Cancelar</button><button class="btn btn-primary" id="rec-ord-confirmar" disabled>Confirmar Copago y Generar Recibo</button></div>'
+        : esCargoConvenio
         ? '<h3 class="modal-title">Cargo a Convenio — Orden ' + order.numeroOrden + '</h3>' +
           '<p class="text-muted" style="margin-top:0">Esta orden pertenece al convenio <b>' + U.esc(order.convenioNombre || "—") + "</b> — todo convenio se maneja a crédito, así que este recibo queda como cargo a su cuenta, sin método de pago ni confirmación de pago recibido.</p>" +
           '<label class="checkbox-row" style="margin-top:10px"><input type="checkbox" id="rec-ord-confirmo"/> Confirmo generar el cargo a crédito de ' + fmtMoneda(order.valorCobrar) + fmtMonedaEquiv(tenant, order.valorCobrar) + " al convenio " + U.esc(order.convenioNombre || "—") + "</label>" +
@@ -564,13 +581,16 @@
     chk.addEventListener("change", function () { btnConfirmar.disabled = !chk.checked; });
     btnConfirmar.addEventListener("click", async function () {
       var session = BIO_AUTH.getSession();
-      var pago = esCargoConvenio
+      var pago = tieneCopago
+        ? { fecha: new Date().toISOString(), metodoPago: wrapConfirm.querySelector("#rec-ord-metodo").value, monto: order.valorCobrar, valorCopago: valorCopago, valorConvenio: valorConvenio, tieneCopago: true, esCredito: true, confirmadoPor: session.nombre }
+        : esCargoConvenio
         ? { fecha: new Date().toISOString(), monto: order.valorCobrar, confirmadoPor: session.nombre, esCredito: true }
         : { fecha: new Date().toISOString(), metodoPago: wrapConfirm.querySelector("#rec-ord-metodo").value, monto: order.valorCobrar, confirmadoPor: session.nombre };
       order.pago = pago;
       S.saveOrder(order);
       S.addAudit(order.tenantId, session.nombre, session.rol, "CONFIRMAR_PAGO_ORDEN", "orden", order.id,
-        esCargoConvenio ? "Generó el cargo a crédito del convenio " + (order.convenioNombre || "—") + " para la orden " + order.numeroOrden + "." : "Confirmó el pago de la orden " + order.numeroOrden + " y generó el recibo.");
+        tieneCopago ? "Confirmó el copago de " + fmtMoneda(valorCopago) + " y generó el cargo a crédito de " + fmtMoneda(valorConvenio) + " al convenio " + (order.convenioNombre || "—") + " para la orden " + order.numeroOrden + "."
+        : esCargoConvenio ? "Generó el cargo a crédito del convenio " + (order.convenioNombre || "—") + " para la orden " + order.numeroOrden + "." : "Confirmó el pago de la orden " + order.numeroOrden + " y generó el recibo.");
       U.closeModal(wrapConfirm);
       await generarYEnviar(pago);
     });

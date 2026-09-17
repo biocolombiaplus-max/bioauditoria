@@ -71,6 +71,13 @@
     // pago (todo convenio se maneja a crédito, ver pago.esCredito más
     // abajo) — un método de pago ahí no tendría sentido.
     var esCredito = !!pago.esCredito;
+    // Copago: la orden es de un convenio, pero ese convenio en particular
+    // tiene copago activado (ver catalog.js -> calcularCopago) — el
+    // paciente sí pagó una parte con un método normal, y el resto queda a
+    // crédito del convenio. No es lo mismo que "esCredito" a secas (100%
+    // crédito, sin ningún pago del paciente): aquí el recibo debe mostrar
+    // AMBAS partes, no una sola tarjeta de "saldo a cargo del convenio".
+    var tieneCopago = !!pago.tieneCopago;
     doc.setFontSize(9.5);
     var col1 = margin, col2 = pageW / 2 + 12;
     var left = [
@@ -82,16 +89,27 @@
     var right = [
       ["Fecha de Pago:", new Date(pago.fecha || order.fechaOrden).toLocaleDateString("es-CO")]
     ];
-    if (!esCredito) right.push(["Método de Pago:", METODO_PAGO_LABEL[pago.metodoPago] || pago.metodoPago || "—"]);
+    if (!esCredito || tieneCopago) right.push([tieneCopago ? "Método de Pago del Copago:" : "Método de Pago:", METODO_PAGO_LABEL[pago.metodoPago] || pago.metodoPago || "—"]);
     if (pago.confirmadoPor) right.push(["Confirmado por:", pago.confirmadoPor]);
     var filasInfo = Math.max(left.length, right.length);
+    // El valor de cada fila arranca justo después del ancho REAL de su
+    // etiqueta (medido con la misma fuente/tamaño ya aplicados), no a un
+    // ancho fijo — con "Método de Pago:" cabía bien en 92pt, pero la
+    // etiqueta más larga "Método de Pago del Copago:" (copago) se montaba
+    // encima del valor con ese ancho fijo (bug real: mismo patrón ya
+    // corregido antes en pdf.js -> dibujarBloqueInformePaciente).
+    doc.setFont("helvetica", "bold");
     left.forEach(function (row, i) {
-      doc.setFont("helvetica", "bold"); doc.setTextColor(30, 30, 30); doc.text(row[0], col1, y + i * 15);
-      doc.setFont("helvetica", "normal"); doc.text(String(row[1]), col1 + 68, y + i * 15, { maxWidth: col2 - col1 - 80 });
+      doc.setTextColor(30, 30, 30); doc.text(row[0], col1, y + i * 15);
+      var offset = Math.max(68, doc.getTextWidth(row[0]) + 8);
+      doc.setFont("helvetica", "normal"); doc.text(String(row[1]), col1 + offset, y + i * 15, { maxWidth: col2 - col1 - offset - 12 });
+      doc.setFont("helvetica", "bold");
     });
     right.forEach(function (row, i) {
-      doc.setFont("helvetica", "bold"); doc.setTextColor(30, 30, 30); doc.text(row[0], col2, y + i * 15);
-      doc.setFont("helvetica", "normal"); doc.text(String(row[1]), col2 + 92, y + i * 15, { maxWidth: pageW - margin - col2 - 92 });
+      doc.setTextColor(30, 30, 30); doc.text(row[0], col2, y + i * 15);
+      var offsetR = doc.getTextWidth(row[0]) + 8;
+      doc.setFont("helvetica", "normal"); doc.text(String(row[1]), col2 + offsetR, y + i * 15, { maxWidth: pageW - margin - col2 - offsetR });
+      doc.setFont("helvetica", "bold");
     });
     y += filasInfo * 15 + 20;
 
@@ -128,16 +146,16 @@
     // flujo solo llega aquí después de confirmar que ya se pagó todo, así
     // que Abono = Total y Saldo = 0, pero ya queda listo el desglose para
     // cuando BIOsoft soporte pagos parciales de verdad.
-    var conDesgloseAbono = tenant.reciboConvenioComoCredito && !esCredito;
-    if (conDesgloseAbono) {
+    var conDesgloseAbono = tenant.reciboConvenioComoCredito && !esCredito && !tieneCopago;
+    if (tieneCopago || conDesgloseAbono) {
       var cardW3 = 340, cardH3 = 46;
       var cardX3 = pageW - margin - cardW3, cardY3 = y;
       doc.setFillColor(250, 250, 251); doc.setDrawColor(rgb[0], rgb[1], rgb[2]); doc.setLineWidth(1.1);
       doc.roundedRect(cardX3, cardY3, cardW3, cardH3, 6, 6, "FD");
       var colW3 = cardW3 / 3;
-      var etiquetas3 = ["VALOR TOTAL", "ABONO", "SALDO"];
-      var valores3 = [montoPagado, montoPagado, 0];
-      var colores3 = [[60, 60, 60], [21, 128, 61], [60, 60, 60]];
+      var etiquetas3 = tieneCopago ? ["VALOR TOTAL", "COPAGO PACIENTE", "A CARGO DEL CONVENIO"] : ["VALOR TOTAL", "ABONO", "SALDO"];
+      var valores3 = tieneCopago ? [montoPagado, pago.valorCopago || 0, pago.valorConvenio || 0] : [montoPagado, montoPagado, 0];
+      var colores3 = [[60, 60, 60], [21, 128, 61], tieneCopago ? [37, 99, 235] : [60, 60, 60]];
       for (var ci = 0; ci < 3; ci++) {
         var cx3 = cardX3 + colW3 * ci + colW3 / 2;
         doc.setFont("helvetica", "bold"); doc.setFontSize(7.5); doc.setTextColor(110, 110, 110);
@@ -172,7 +190,7 @@
     // Un cargo a convenio (crédito) usa tono azul en vez de verde — no fue
     // un pago recibido, así que la insignia no debe leerse como tal.
     doc.setFont("helvetica", "bold"); doc.setFontSize(9.5);
-    var badgeTxt = esCredito ? "CARGO A CONVENIO — CRÉDITO" : "PAGO CONFIRMADO";
+    var badgeTxt = tieneCopago ? "COPAGO CONFIRMADO — RESTO A CRÉDITO DEL CONVENIO" : esCredito ? "CARGO A CONVENIO — CRÉDITO" : "PAGO CONFIRMADO";
     var badgeColor = esCredito ? [37, 99, 235] : [11, 138, 74];
     var badgeFill = esCredito ? [224, 234, 250] : [224, 246, 234];
     var badgeW = doc.getTextWidth(badgeTxt) + 40, badgeH = 20;
@@ -186,7 +204,9 @@
 
     // ---- Nota legal y pie de página -------------------------------------
     doc.setFont("helvetica", "normal"); doc.setFontSize(8.5); doc.setTextColor(100, 100, 100);
-    doc.text(esCredito
+    doc.text(tieneCopago
+      ? "Este recibo certifica la recepción del copago del paciente; el saldo restante queda a cargo del convenio indicado arriba, a crédito. Conserva este documento para cualquier reclamación relacionada."
+      : esCredito
       ? "Este documento certifica el cargo a crédito de los exámenes de esta orden en la cuenta del convenio indicado arriba. Conserva este documento para cualquier reclamación relacionada."
       : "Este recibo certifica la recepción del pago correspondiente a los exámenes de esta orden. Conserva este documento para cualquier reclamación relacionada con tu compra.", margin, y, { maxWidth: pageW - margin * 2 });
 
