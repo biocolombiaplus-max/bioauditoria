@@ -40,17 +40,44 @@
   function fbColl(coll) {
     return global.BIO_FB.db.collection("tenants").doc(FB_TENANT_ID).collection(coll);
   }
+  /* fbWrite/fbDelete/fbWriteTenant son "fire-and-forget" a propósito: ningún
+     llamador (createOrder, createPatient, saveOrder, etc.) espera esta
+     promesa, para que la pantalla responda al instante usando la copia
+     local (realCache) sin depender de la latencia de red. El problema real
+     que esto traía: si la escritura a Firestore fallaba de verdad (permiso
+     denegado, dato inválido, etc.), antes solo quedaba un console.error que
+     NADIE veía — el usuario seguía viendo el "creado" local como si nada,
+     y el dato jamás llegaba al servidor. Se descubría muchísimo después,
+     de la forma más confusa posible: recargando la página (o en otra
+     sesión) el registro simplemente "no existía" — bug real reportado como
+     una orden que un auxiliar acababa de crear y ya no encontraba. Ahora
+     cualquier falla real de guardado avisa de inmediato con un toast, para
+     poder reintentar ahí mismo en vez de descubrirlo horas después. */
+  function avisarErrorGuardado(detalle) {
+    if (global.BIO_UI && typeof global.BIO_UI.toast === "function") {
+      global.BIO_UI.toast("No se pudo guardar en el servidor" + (detalle ? " (" + detalle + ")" : "") + ". Revisa tu conexión e inténtalo de nuevo — si el problema sigue, contacta a soporte.", "error");
+    }
+  }
   function fbWrite(coll, id, data) {
     if (MODE !== "real") return;
-    fbColl(coll).doc(id).set(limpiarUndefined(data)).catch(function (e) { console.error("BIOsoft Firestore write error (" + coll + "/" + id + "):", e); });
+    fbColl(coll).doc(id).set(limpiarUndefined(data)).catch(function (e) {
+      console.error("BIOsoft Firestore write error (" + coll + "/" + id + "):", e);
+      avisarErrorGuardado(coll);
+    });
   }
   function fbDelete(coll, id) {
     if (MODE !== "real") return;
-    fbColl(coll).doc(id).delete().catch(function (e) { console.error("BIOsoft Firestore delete error (" + coll + "/" + id + "):", e); });
+    fbColl(coll).doc(id).delete().catch(function (e) {
+      console.error("BIOsoft Firestore delete error (" + coll + "/" + id + "):", e);
+      avisarErrorGuardado(coll);
+    });
   }
   function fbWriteTenant(tenant) {
     if (MODE !== "real") return;
-    global.BIO_FB.db.collection("tenants").doc(tenant.id).set(limpiarUndefined(tenant)).catch(function (e) { console.error("BIOsoft Firestore write error (tenant):", e); });
+    global.BIO_FB.db.collection("tenants").doc(tenant.id).set(limpiarUndefined(tenant)).catch(function (e) {
+      console.error("BIOsoft Firestore write error (tenant):", e);
+      avisarErrorGuardado("laboratorio");
+    });
   }
   /* Escribe SOLO los campos de patch (merge), en vez de reemplazar el
      documento completo. Evita que una foto en memoria desactualizada del

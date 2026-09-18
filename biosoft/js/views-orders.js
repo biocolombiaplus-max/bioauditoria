@@ -604,10 +604,32 @@
     return session.rol === "admin" || session.rol === "superadmin" || !!session.puedeGestionarRemisiones;
   }
 
-  function renderOrderDetail(root, orderId) {
+  function renderOrderDetail(root, orderId, intento) {
+    intento = intento || 0;
     var session = BIO_AUTH.getSession();
     var order = S.getOrder(orderId);
-    if (!order) { root.innerHTML = '<div class="card">Orden no encontrada.</div>'; return; }
+    if (!order) {
+      // Reintenta un rato antes de declarar "no encontrada": justo después
+      // de crear una orden (ej. al elegir "Continuar sin imprimir" en el
+      // modal de stickers, que navega directo a #/ordenes/:id), la copia
+      // local (realCache) en modo real puede tardar un instante en reflejar
+      // el dato recién escrito a Firestore — sin este reintento, ese
+      // instante se veía como un error permanente ("Orden no encontrada",
+      // bug real reportado por un auxiliar justo al terminar de crear una
+      // orden) aunque la orden sí existiera, obligando a recargar la
+      // página a mano para verla.
+      if (intento < 10) {
+        setTimeout(function () {
+          if (document.getElementById("content") !== root) return; // se navegó a otra pantalla mientras tanto
+          if (location.hash !== "#/ordenes/" + orderId) return;
+          renderOrderDetail(root, orderId, intento + 1);
+        }, 300);
+        root.innerHTML = '<div class="card"><p class="text-muted">Cargando la orden…</p></div>';
+        return;
+      }
+      root.innerHTML = '<div class="card">Orden no encontrada.</div>';
+      return;
+    }
     var pac = S.getPatient(order.patientId);
     var tenant = BIO_STORE.getTenant(order.tenantId);
 
