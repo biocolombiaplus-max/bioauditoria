@@ -7,6 +7,23 @@
 
   var PAISES = [{ id: "CO", nombre: "Colombia" }, { id: "VE", nombre: "Venezuela" }, { id: "EC", nombre: "Ecuador" }];
 
+  /* En qué moneda pagó el paciente ESTA orden en concreto — no es lo mismo
+     que tenant.monedaBase (en qué moneda el laboratorio tiene cargados sus
+     precios) ni que tenant.monedaAdicional (el equivalente que se muestra
+     solo como referencia informativa). En Venezuela es normal que un mismo
+     laboratorio reciba pagos en bolívares, dólares o incluso pesos
+     colombianos (zona de frontera) según lo que traiga cada paciente, así
+     que se registra por orden para poder cuadrar caja al final del día. */
+  var MONEDAS_PAGO = [
+    { id: "VES", nombre: "Bolívares (VES)" },
+    { id: "USD", nombre: "Dólares (USD)" },
+    { id: "COP", nombre: "Pesos Colombianos (COP)" }
+  ];
+  function monedaPagoLabel(codigo) {
+    var m = MONEDAS_PAGO.filter(function (x) { return x.id === codigo; })[0];
+    return m ? m.nombre : (codigo || "—");
+  }
+
   /* El título del profesional que valida resultados y el del auxiliar de
      laboratorio varían según el país — se llaman distinto aunque cumplan el
      mismo rol dentro de BIOsoft (que internamente sigue usando "bacteriologo"
@@ -1939,6 +1956,7 @@
 
   global.BIO_CATALOG = {
     PAISES: PAISES,
+    MONEDAS_PAGO: MONEDAS_PAGO, monedaPagoLabel: monedaPagoLabel,
     evaluarFormula: evaluarFormula, variablesDeFormula: variablesDeFormula,
     rolLabel: rolLabel,
     tituloFirmaProfesional: tituloFirmaProfesional,

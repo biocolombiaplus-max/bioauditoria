@@ -90,6 +90,11 @@
       ["Fecha de Pago:", new Date(pago.fecha || order.fechaOrden).toLocaleDateString("es-CO")]
     ];
     if (!esCredito || tieneCopago) right.push([tieneCopago ? "Método de Pago del Copago:" : "Método de Pago:", METODO_PAGO_LABEL[pago.metodoPago] || pago.metodoPago || "—"]);
+    // Solo aplica a laboratorios de Venezuela con la moneda de pago
+    // habilitada por orden (ver "Moneda de Pago" en Nueva Orden) — deja
+    // registrado en el recibo en qué moneda entregó el dinero el paciente
+    // (bolívares/dólares/pesos colombianos), para poder cuadrar caja.
+    if (order.monedaPago) right.push(["Moneda de Pago:", C.monedaPagoLabel(order.monedaPago)]);
     if (pago.confirmadoPor) right.push(["Confirmado por:", pago.confirmadoPor]);
     var filasInfo = Math.max(left.length, right.length);
     // El valor de cada fila arranca justo después del ancho REAL de su

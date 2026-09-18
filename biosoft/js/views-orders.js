@@ -89,7 +89,7 @@
     }
     return "<tr><td><b>" + o.numeroOrden + "</b>" + (o.convenioNombre ? '<div class="text-muted" style="font-size:11px">🤝 ' + U.esc(o.convenioNombre) + "</div>" : "") + "</td><td>" + (pac ? U.esc(U.nombreCompleto(pac)) : "—") + "</td><td>" + U.fmtFecha(o.fechaOrden) + "</td>" +
       '<td><span class="badge badge-' + (o.prioridad === "Urgente" ? "urgente" : "rutina") + '">' + o.prioridad + "</span></td>" +
-      "<td>" + o.examenes.length + "</td>" + (conPrecio ? "<td>" + (o.valorCobrar ? fmtMoneda(o.valorCobrar) + fmtMonedaEquiv(tenant, o.valorCobrar) : "—") + "</td>" : "") + celdaPago +
+      "<td>" + o.examenes.length + "</td>" + (conPrecio ? "<td>" + (o.valorCobrar ? fmtMoneda(o.valorCobrar) + fmtMonedaEquiv(tenant, o.valorCobrar) + (o.monedaPago ? ' <span class="text-muted" style="font-size:11px">· ' + o.monedaPago + "</span>" : "") : "—") + "</td>" : "") + celdaPago +
       "<td>" + window.BIO_badgeEstado(o.estadoGeneral) + '</td><td class="flex gap-2 wrap"><button class="btn btn-outline btn-sm" data-view="' + o.id + '">Ver</button>' +
       '<button class="btn btn-ghost btn-sm" data-eliminar-orden="' + o.id + '" title="Eliminar esta orden (ej. se creó de más por error)">' + U.icon("trash") + "</button></td></tr>";
   }
@@ -192,6 +192,20 @@
           (tenant.mostrarPrecioOrden ? '<div class="field"><label>Valor a Cobrar</label><input id="f_valorCobrar" type="number" step="any" value=""/>' +
             '<span class="text-muted" style="font-size:11px" id="valorCobrar-hint">Se calcula solo según los exámenes que selecciones — puedes ajustarlo a mano.</span>' +
             '<span class="text-muted" style="font-size:11px;display:block" id="valorCobrar-equiv"></span></div>' : "") +
+          // Solo Venezuela: ahí es normal que, según el paciente, el cobro
+          // termine en bolívares, dólares o pesos colombianos (frontera) —
+          // se deja elegir por orden para poder cuadrar caja al final del
+          // día, sin depender de la moneda base con la que el laboratorio
+          // tiene cargados sus precios (tenant.monedaBase). Por defecto se
+          // preselecciona según esa moneda base cuando coincide con USD o
+          // COP; cualquier otro caso (Bs/VES/EUR/sin configurar) cae en
+          // bolívares, la moneda oficial del país.
+          (tenant.pais === "VE" && tenant.mostrarPrecioOrden ? F.sel("monedaPago", "Moneda de Pago",
+            C.MONEDAS_PAGO.map(function (m) {
+              var base = C.monedaBaseLabel(tenant);
+              var sugerida = (base === "USD" || base === "COP") ? base : "VES";
+              return '<option value="' + m.id + '" ' + (m.id === sugerida ? "selected" : "") + ">" + m.nombre + "</option>";
+            }).join("")) : "") +
         "</div>" +
         '<div style="margin:6px 0 10px"><a class="btn btn-outline btn-sm" id="btn-new-patient-inline">' + U.icon("plus") + ' Registrar paciente nuevo</a></div>' +
       "</div>" +
@@ -425,6 +439,7 @@
         numAutorizacion: tenant.pais === "CO" ? document.getElementById("f_numAutorizacion").value : "",
         diagnosticoCIE10: tenant.pais === "CO" ? document.getElementById("f_diagnosticoCIE10").value : "",
         valorCobrar: tenant.mostrarPrecioOrden ? (parseFloat(document.getElementById("f_valorCobrar").value) || 0) : null,
+        monedaPago: (tenant.pais === "VE" && tenant.mostrarPrecioOrden) ? document.getElementById("f_monedaPago").value : "",
         examenes: idsExamenesFinal.map(function (id) {
           var exCat = C.examenEfectivo(id, tenant);
           return {
@@ -658,6 +673,7 @@
             field("Fecha de Orden", U.fmtFecha(order.fechaOrden)) +
             field("Diagnóstico", order.diagnostico || "—") +
             (tenant.mostrarPrecioOrden ? fieldHtml("Valor a Cobrar", order.valorCobrar ? U.esc(fmtMoneda(order.valorCobrar)) + fmtMonedaEquiv(tenant, order.valorCobrar) : "—") : "") +
+            (order.monedaPago ? field("Moneda de Pago", C.monedaPagoLabel(order.monedaPago)) : "") +
             (puedeReciboOrden(tenant) ? field("Estado de Pago", order.pago ? "✓ Pagado (" + (BIO_PDF_RECIBO_ORDEN.METODO_PAGO_LABEL[order.pago.metodoPago] || order.pago.metodoPago) + ") — " + U.fmtFecha(order.pago.fecha) : "Pendiente de confirmar") : "") +
           "</div></div>" +
 
