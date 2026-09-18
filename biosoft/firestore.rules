@@ -128,23 +128,38 @@ service cloud.firestore {
       function esRecepcion() {
         return perfil().rol == "recepcion";
       }
-      function examenesSinNuevasValidaciones(examenesNuevos, examenesViejos) {
-        return examenesNuevos.all(e,
-          !(e.estado in ["validado", "remitido"]) ||
-          examenesViejos.exists(v, v.examId == e.examId && v.estado == e.estado)
-        );
-      }
       match /orders/{orderId} {
         // Un aliado solo puede leer las órdenes de SU convenio (comparando
         // resource.data.convenioId, el campo que views-orders.js graba en
         // cada orden) — nunca las de otro convenio ni las de un paciente
         // particular. Nunca puede escribir (no aparece en create/update).
         allow read: if esDeEsteLab(tenantId) || esSuperadmin() || (esAliado(tenantId) && perfil().convenioId == resource.data.convenioId);
+        // NOTA: antes esto revisaba examen por examen con
+        // request.resource.data.examenes.exists(...)/.all(...), pero esas
+        // NO son funciones válidas del lenguaje de Firestore Rules (no hay
+        // iteración con predicado sobre listas) — el motor de reglas
+        // rechazaba la expresión con un error de evaluación, y Firestore
+        // trata cualquier error de evaluación como PERMISSION_DENIED. En
+        // producción esto bloqueaba TODA creación/edición de órdenes de
+        // cualquier usuario con rol "recepcion" (auxiliar/asistente),
+        // incluso una orden nueva con exámenes en "pendiente".
+        // En su lugar se usa "estadoGeneral" (campo agregado que
+        // recalcEstadoGeneral() en store.js recalcula siempre antes de
+        // cualquier guardado que toque el estado de los exámenes; los
+        // guardados que no tocan exámenes lo dejan igual): al crear, exige
+        // que la orden nazca "pendiente"; al actualizar, bloquea que una
+        // orden que seguía 100% "pendiente" deje de estarlo por una
+        // escritura de recepción. La barrera principal contra que un
+        // auxiliar valide/firme un examen sigue siendo la de la interfaz
+        // (puedeValidar() en views-results.js), que nunca le muestra esa
+        // acción.
         allow create: if esDeEsteLab(tenantId) && (
-          !esRecepcion() || !request.resource.data.examenes.exists(e, e.estado in ["validado", "remitido"])
+          !esRecepcion() || request.resource.data.estadoGeneral == "pendiente"
         );
         allow update: if esDeEsteLab(tenantId) && (
-          !esRecepcion() || examenesSinNuevasValidaciones(request.resource.data.examenes, resource.data.examenes)
+          !esRecepcion() ||
+          resource.data.get("estadoGeneral", "pendiente") != "pendiente" ||
+          request.resource.data.estadoGeneral == "pendiente"
         );
         allow delete: if esDeEsteLab(tenantId);
       }
