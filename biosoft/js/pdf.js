@@ -552,11 +552,20 @@
     var pageH = doc.internal.pageSize.getHeight();
     var margin = 40;
     var y = margin;
+    // Espacio reservado en la parte de abajo de CADA hoja para el pie de
+    // página fijo (insignia de QR de verificación, pie de página
+    // personalizado/eslogan del laboratorio, aviso legal y "Página X/Y" —
+    // ver dibujarPiePagina() más abajo). Antes ese cierre solo se dibujaba
+    // una vez, al final de la última hoja; ahora se repite igual en TODAS,
+    // como en los informes de los laboratorios de referencia grandes —
+    // así que el límite inferior del contenido normal (tablas de
+    // resultados, firmas) tiene que subir para nunca invadir esa franja.
+    var footerReserva = 100;
     // Límite inferior para el contenido de las tablas de resultados, y
     // estimación (deliberadamente generosa) de cuánto ocupa cada fila —
     // se usan para decidir CON ANTICIPACIÓN si un examen completo cabe en
     // lo que queda de página, en vez de dejar que se corte a la mitad.
-    var pageBottom = pageH - 55;
+    var pageBottom = pageH - footerReserva;
     var ROW_H = 17, HEAD_H = 22;
     var rgb = hexToRgb(tenant.colorPrimario);
     // Color de las barras de sección: por defecto es el mismo Color
@@ -810,7 +819,7 @@
     // pasa como margin.top (para que reserve el espacio) y willDrawPage
     // (para que de verdad se dibuje el encabezado ahí). Sin repetir
     // encabezado, se deja el margen tal como estaba siempre (sin "top").
-    var autoTableMargin = tenant.membreteEnTodasLasHojas ? { top: alturaEncabezadoPagina, left: margin, right: margin } : { left: margin, right: margin };
+    var autoTableMargin = tenant.membreteEnTodasLasHojas ? { top: alturaEncabezadoPagina, left: margin, right: margin, bottom: footerReserva } : { left: margin, right: margin, bottom: footerReserva };
     function willDrawPageSeguro(data) {
       if (data.pageNumber > 1 && tenant.membreteEnTodasLasHojas) dibujarEncabezadoRepetido();
     }
@@ -1032,7 +1041,7 @@
       volcarTablaSeccion();
 
       panelesDeSeccion.forEach(function (panelInfo) {
-        if (y > 690) { y = nuevaPagina(); }
+        if (y > pageBottom - 47) { y = nuevaPagina(); }
         doc.setFont(fontFam, "bold"); doc.setFontSize(9); doc.setTextColor(rgb[0], rgb[1], rgb[2]);
         doc.text((panelInfo.p.panelTipo === "alergia" ? "PANEL DE ALERGIA" : panelInfo.p.panelTipo === "parasito" ? "PARÁSITOS Y ELEMENTOS PARASITARIOS" : "ANTIBIOGRAMA") + " — " + panelInfo.exNombre, margin, y);
         y += 12;
@@ -1155,7 +1164,7 @@
       if (validadosSeccion.length) {
         var firmantesSeccion = firmantesDe(order, tenant, validadosSeccion);
         for (var vsi = 0; vsi < firmantesSeccion.length; vsi++) {
-          if (y > 690) { y = nuevaPagina(); }
+          if (y > pageBottom - 47) { y = nuevaPagina(); }
           y = await dibujarBloqueFirmaSeccion(firmantesSeccion[vsi], y);
           huboFirmaPorSeccion = true;
         }
@@ -1163,7 +1172,7 @@
     }
 
     if (referidos.length) {
-      if (y > 680) { y = nuevaPagina(); }
+      if (y > pageBottom - 57) { y = nuevaPagina(); }
       doc.setFillColor(90, 90, 90);
       doc.rect(margin, y, pageW - margin * 2, 16, "F");
       doc.setTextColor(255, 255, 255); doc.setFont(fontFam, "bold"); doc.setFontSize(9.5);
@@ -1191,7 +1200,7 @@
       var firmantes = firmantesDe(order, tenant, examsToShow);
       y += 16;
       for (var fi = 0; fi < firmantes.length; fi++) {
-        if (y > 690) { y = nuevaPagina(); }
+        if (y > pageBottom - 47) { y = nuevaPagina(); }
         y = await dibujarBloqueFirmaSeccion(firmantes[fi], y);
       }
     }
@@ -1204,7 +1213,7 @@
     if (estiloDiscreto && modo !== "preliminar" && order.estadoGeneral !== "validado") {
       var pendientes = order.examenes.filter(function (ex) { return examsToShow.indexOf(ex) === -1; });
       var nombresPendientes = pendientes.map(function (ex) { return C.examenEfectivo(ex.examId, tenant).nombre; });
-      if (y > 720) { y = nuevaPagina(); }
+      if (y > pageBottom - 17) { y = nuevaPagina(); }
       y += 6;
       doc.setFont(fontFam, "bold"); doc.setFontSize(9.5); doc.setTextColor(201, 126, 13);
       doc.text("INFORME PARCIAL — HAY EXÁMENES EN PROCESO", margin, y);
@@ -1217,14 +1226,18 @@
         y += lineasPendientes.length * 10 + 4;
       }
     }
-    var signBlockBottom = y;
-    // Antes existía un caso especial para cuando el bloque de firmas único
-    // del final saltaba solo a una hoja nueva casi vacía — ya no aplica:
-    // las firmas ahora van intercaladas con el contenido normal de cada
-    // sección (o, cuando mucho, el respaldo de arriba), así que no hay un
-    // bloque de firmas aislado que pueda quedar solo al tope de una hoja.
-    var firmaEnPaginaPropia = false;
-
+    // ---- Pie de página fijo, IGUAL en todas las hojas -------------------
+    // Antes esto (insignia de QR de verificación, eslogan, pie de página
+    // personalizado, aviso legal y numeración) solo se dibujaba una vez, al
+    // final de la última hoja, siguiendo el flujo del contenido (justo
+    // debajo del bloque de firmas). Ahora se repite IDÉNTICO en todas las
+    // hojas del informe, en una posición fija (no depende de dónde haya
+    // terminado el contenido de esa hoja) — así el paciente puede verificar
+    // cualquier hoja por separado con el mismo QR, y el informe se ve
+    // ordenado y consistente de principio a fin, como en los laboratorios
+    // de referencia grandes. El límite inferior del contenido normal
+    // (pageBottom, más arriba) ya deja siempre esta franja libre.
+    var qrDataUrl = null;
     try {
       var qrTexto = "BIOsoft | Verificación de Documento\n" +
         "Laboratorio: " + tenant.nombre +
@@ -1233,90 +1246,73 @@
         "\nOrden: " + order.numeroOrden + " · " + U.fmtFecha(order.fechaOrden) +
         "\nValidado: " + new Date().toLocaleString("es-CO") +
         "\nVálido si coincide con el paciente y la fecha del informe.";
-      var qrDataUrl = buildQrDataUrl(qrTexto, 220);
-      var qrSize = 58;
-      var qrX = pageW - margin - qrSize;
-      // Pie de página personalizado (opcional, definido en Configuración →
-      // "Diseño del Reporte de Resultados") — una frase propia del
-      // laboratorio (ej. su promesa de calidad, sus controles internos),
-      // pedida para salir CENTRADA en la hoja y debajo de la insignia del
-      // QR de verificación, en vez de arriba del bloque de firmas como
-      // antes — así el cierre del informe queda con el QR, el eslogan y el
-      // pie de página juntos, como lo manejan otros laboratorios de
-      // referencia.
-      var lineasPie = tenant.piePaginaPersonalizado ? doc.splitTextToSize(tenant.piePaginaPersonalizado, pageW - margin * 2 - 60) : [];
-      var altoPie = lineasPie.length ? lineasPie.length * 10 + 12 : 0;
-      // El QR se ubica como una insignia de verificación en la esquina
-      // inferior derecha, siempre POR DEBAJO de las firmas (nunca antes),
-      // para que no tape ninguna información previa; si el bloque de firmas
-      // llega muy abajo, se corre aún más abajo o pasa a una página nueva.
-      // Si el laboratorio tiene un eslogan, se reserva espacio de sobra
-      // debajo de la insignia del QR para imprimirlo ahí también (con
-      // estilo, en cursiva y en su color de marca) — un toque de cierre
-      // más premium que dejar la insignia sola con el texto técnico de
-      // "documento validado electrónicamente" — y lo mismo para el pie de
-      // página personalizado, que va debajo de todo lo anterior.
-      var espacioSlogan = tenant.slogan ? 20 : 0;
-      var espacioReservado = qrSize + 20 + espacioSlogan + altoPie;
-      // El ancla (antes 690) dejaba un tramo de hoja en blanco bastante
-      // grande entre la insignia del QR y el pie de página (770) — se sube
-      // a 748 para que la insignia quede pegada de verdad a la esquina
-      // inferior, con solo el aire justo antes del pie de página (queja
-      // real reportada: "el QR más en la esquina, no tan arriba"). Pero
-      // esa ancla solo tiene sentido cuando la hoja ya venía con
-      // contenido (resultados) antes de la firma — si el bloque de firma
-      // tuvo que saltar a una hoja nueva porque no cabía nada de él al
-      // final de la anterior, esa hoja nueva arranca casi vacía (solo
-      // encabezado + firma), y forzar el QR hacia la esquina inferior deja
-      // un hueco enorme en el medio (queja real reportada: "hoja en
-      // blanco innecesaria"). En ese caso el QR va justo debajo de la
-      // firma, sin forzarlo hacia abajo.
-      var qrY = firmaEnPaginaPropia ? (signBlockBottom + 14) : Math.max(signBlockBottom + 14, 748 - espacioReservado);
-      if (qrY + espacioReservado > 760) { qrY = nuevaPagina() + 10; }
-      doc.addImage(qrDataUrl, "PNG", qrX, qrY, qrSize, qrSize);
-      doc.setDrawColor(210, 210, 210); doc.setLineWidth(0.6); doc.rect(qrX - 2, qrY - 2, qrSize + 4, qrSize + 4);
-      doc.setFont(fontFam, "bold"); doc.setFontSize(6.3);
-      if (estiloDiscreto) doc.setTextColor(0, 0, 0); else doc.setTextColor(120, 120, 120);
-      doc.text("DOCUMENTO VALIDADO", qrX + qrSize / 2, qrY + qrSize + 9, { align: "center" });
-      doc.text("ELECTRÓNICAMENTE", qrX + qrSize / 2, qrY + qrSize + 16, { align: "center" });
-      var yDebajoQr = qrY + qrSize + 16;
-      if (tenant.slogan) {
-        doc.setFont(fontFam, "italic"); doc.setFontSize(7.5); doc.setTextColor(rgb[0], rgb[1], rgb[2]);
-        // Alineado a la derecha con el propio borde derecho del QR (que ya
-        // coincide con el margen derecho de la hoja) — así el texto se
-        // extiende hacia la izquierda tanto como haga falta, sin arriesgarse
-        // nunca a salirse por ningún lado de la página, ni depender de un
-        // cálculo de centrado más frágil.
-        var anchoSlogan = Math.min(160, qrX + qrSize - margin);
-        var lineasSloganQr = doc.splitTextToSize(tenant.slogan, anchoSlogan);
-        doc.text(lineasSloganQr, qrX + qrSize, yDebajoQr + 9, { align: "right" });
-        yDebajoQr += 9 + (lineasSloganQr.length - 1) * 9;
-      }
-      if (lineasPie.length) {
-        doc.setFont(fontFam, "italic"); doc.setFontSize(8.5);
-        if (estiloDiscreto) doc.setTextColor(0, 0, 0); else doc.setTextColor(90, 90, 90);
-        doc.text(lineasPie, pageW / 2, yDebajoQr + 16, { align: "center" });
-      }
+      qrDataUrl = buildQrDataUrl(qrTexto, 220);
     } catch (e) {}
 
-    doc.setFontSize(7);
-    if (estiloDiscreto) doc.setTextColor(0, 0, 0); else doc.setTextColor(140, 140, 140);
-    doc.text("Documento generado electrónicamente por BIOsoft — " + new Date().toLocaleString("es-CO") + ". Los resultados deben interpretarse en conjunto con la clínica del paciente.", margin, 770, { maxWidth: pageW - margin * 2 });
+    function dibujarPiePagina(numPagina, totalPaginas) {
+      var footerTop = pageH - footerReserva;
+      // Línea divisoria sutil, para separar visualmente el pie de página
+      // del contenido — el mismo detalle que ya usan otros documentos de
+      // BIOsoft (contrato, licencia, cotización) para marcar secciones.
+      doc.setDrawColor(226, 228, 233); doc.setLineWidth(0.7);
+      doc.line(margin, footerTop, pageW - margin, footerTop);
 
-    // Numeración "1/2, 2/2…" en el pie de cada hoja — el total de páginas
-    // solo se sabe hasta este punto, con el documento ya completo, así que
-    // se recorre cada página ya dibujada y se le agrega el número encima
-    // (jsPDF sí permite volver a una página anterior con setPage()). Esto
-    // numera únicamente las hojas que arma BIOsoft (esta parte del informe);
-    // si además hay resultados remitidos fusionados de un laboratorio
-    // externo (ver más abajo), esas páginas vienen de otro PDF ya
-    // maquetado por ese laboratorio y no se renumeran.
+      var qrSize = 42;
+      var qrX = pageW - margin - qrSize;
+      var qrY = footerTop + 8;
+      var yDebajoQr = qrY + qrSize;
+      if (qrDataUrl) {
+        doc.addImage(qrDataUrl, "PNG", qrX, qrY, qrSize, qrSize);
+        doc.setDrawColor(210, 210, 210); doc.setLineWidth(0.6); doc.rect(qrX - 2, qrY - 2, qrSize + 4, qrSize + 4);
+        doc.setFont(fontFam, "bold"); doc.setFontSize(5.8);
+        if (estiloDiscreto) doc.setTextColor(0, 0, 0); else doc.setTextColor(120, 120, 120);
+        doc.text("DOCUMENTO VALIDADO", qrX + qrSize / 2, yDebajoQr + 8, { align: "center" });
+        doc.text("ELECTRÓNICAMENTE", qrX + qrSize / 2, yDebajoQr + 14, { align: "center" });
+      }
+
+      // Eslogan y pie de página personalizado del laboratorio (opcionales,
+      // definidos en Configuración → Diseño del Reporte de Resultados):
+      // van en la columna izquierda del pie de página, SIN invadir la
+      // columna del QR — antes se centraban en todo el ancho de la hoja,
+      // lo cual solo tenía sentido cuando este bloque aparecía una sola
+      // vez, junto a la firma; repetido en cada hoja, montarse encima del
+      // QR se habría visto desordenado.
+      var colTextoW = qrX - margin - 14;
+      var yTexto = footerTop + 10;
+      if (tenant.slogan && colTextoW > 40) {
+        doc.setFont(fontFam, "italic"); doc.setFontSize(7.5); doc.setTextColor(rgb[0], rgb[1], rgb[2]);
+        var lineasSlogan = doc.splitTextToSize(tenant.slogan, colTextoW);
+        doc.text(lineasSlogan, margin, yTexto);
+        yTexto += lineasSlogan.length * 9 + 4;
+      }
+      if (tenant.piePaginaPersonalizado && colTextoW > 40) {
+        doc.setFont(fontFam, "italic"); doc.setFontSize(7.5);
+        if (estiloDiscreto) doc.setTextColor(0, 0, 0); else doc.setTextColor(90, 90, 90);
+        var lineasPie = doc.splitTextToSize(tenant.piePaginaPersonalizado, colTextoW);
+        doc.text(lineasPie, margin, yTexto);
+      }
+
+      // Aviso legal (izquierda) + numeración "Página X/Y" (derecha), en la
+      // línea más baja del pie de página — igual en todas las hojas.
+      var yAvisoLegal = pageH - 22;
+      doc.setFont(fontFam, "normal"); doc.setFontSize(7);
+      if (estiloDiscreto) doc.setTextColor(0, 0, 0); else doc.setTextColor(140, 140, 140);
+      doc.text("Documento generado electrónicamente por BIOsoft — " + new Date().toLocaleString("es-CO") + ". Los resultados deben interpretarse en conjunto con la clínica del paciente.",
+        margin, yAvisoLegal, { maxWidth: pageW - margin * 2 - 70 });
+      doc.text("Página " + numPagina + "/" + totalPaginas, pageW - margin, yAvisoLegal, { align: "right" });
+    }
+
+    // El total de páginas solo se sabe hasta este punto, con el documento
+    // ya completo, así que se recorre cada hoja ya dibujada para agregarle
+    // el pie de página encima (jsPDF sí permite volver a una hoja anterior
+    // con setPage()). Esto dibuja el pie únicamente en las hojas que arma
+    // BIOsoft (esta parte del informe); si además hay resultados remitidos
+    // fusionados de un laboratorio externo (ver más abajo), esas páginas
+    // vienen de otro PDF ya maquetado por ese laboratorio y no se tocan.
     var totalPaginas = doc.internal.getNumberOfPages();
     for (var numPagina = 1; numPagina <= totalPaginas; numPagina++) {
       doc.setPage(numPagina);
-      doc.setFont(fontFam, "normal"); doc.setFontSize(7);
-      if (estiloDiscreto) doc.setTextColor(0, 0, 0); else doc.setTextColor(140, 140, 140);
-      doc.text("Página " + numPagina + "/" + totalPaginas, pageW - margin, 770, { align: "right" });
+      dibujarPiePagina(numPagina, totalPaginas);
     }
 
     var coverBytes = new Uint8Array(doc.output("arraybuffer"));
