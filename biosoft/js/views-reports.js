@@ -61,6 +61,7 @@
     function hoyISO() { return new Date().toISOString().slice(0, 10); }
 
     function buildAdminHtml() {
+      var tenant = BIO_AUTH.currentTenant();
       var insumos = S.inventario.listInsumos(tenantId);
       var conveniosActivos = S.cotizador.listConvenios(tenantId).filter(function (c) { return c.activo; });
       return '<div class="lp-grid" style="margin-top:14px;grid-template-columns:repeat(auto-fit,minmax(280px,1fr))">' +
@@ -112,6 +113,19 @@
         '<div class="field"><label>Hasta</label><input type="date" id="rep-relacion-hasta" value="' + hoyISO() + '"/></div>' +
         "</div>" +
         '<button class="btn btn-primary btn-block" id="btn-rep-relacion">' + U.icon("download") + " Generar PDF</button>" +
+        "</div>" +
+        '<div class="lp-feature">' +
+        '<div class="lp-ic">💵</div><h3>Cierre de Caja</h3>' +
+        '<p>Cuánto dinero entró realmente en el periodo (pagos confirmados, no cargos a crédito de convenio), separado por moneda de pago y, dentro de cada una, por método de pago — para cuadrar caja.</p>' +
+        '<div class="form-grid" style="margin:10px 0">' +
+        '<div class="field"><label>Desde</label><input type="date" id="rep-caja-desde" value="' + hoyISO() + '"/></div>' +
+        '<div class="field"><label>Hasta</label><input type="date" id="rep-caja-hasta" value="' + hoyISO() + '"/></div>' +
+        "</div>" +
+        (tenant.pais === "VE" ?
+          '<div class="field" style="margin:0 0 10px"><label>Moneda (opcional)</label><select id="rep-caja-moneda"><option value="">Todas las monedas</option>' +
+          BIO_CATALOG.MONEDAS_PAGO.map(function (m) { return '<option value="' + m.id + '">' + U.esc(m.nombre) + "</option>"; }).join("") +
+          "</select></div>" : "") +
+        '<button class="btn btn-primary btn-block" id="btn-rep-caja">' + U.icon("download") + " Generar PDF</button>" +
         "</div>" +
         "</div>";
     }
@@ -240,6 +254,46 @@
         var bytesRelacion = BIO_PDF_RELACION_ORDENES.buildRelacionOrdenesPDF(ordenes, tenant, desde, hasta);
         U.downloadBytes(bytesRelacion, "Relacion_Ordenes_Examenes_" + desde + "_a_" + hasta + ".pdf");
         U.toast("Relación de órdenes y exámenes descargada.", "success");
+      });
+      var btnCaja = document.getElementById("btn-rep-caja");
+      if (btnCaja) btnCaja.addEventListener("click", function () {
+        var desde = document.getElementById("rep-caja-desde").value;
+        var hasta = document.getElementById("rep-caja-hasta").value;
+        var elMoneda = document.getElementById("rep-caja-moneda");
+        var monedaFiltroId = elMoneda ? elMoneda.value : "";
+        // "Dinero realmente recibido": un cargo 100% a crédito de un
+        // convenio (order.pago.esCredito, sin copago) no mete nada a la
+        // caja ese día — el convenio lo paga después, aparte (ver Cartera
+        // de Clientes para eso). Con copago, solo la parte que el paciente
+        // sí puso de su bolsillo cuenta para el cierre de caja.
+        var filas = [];
+        S.listOrders(tenantId).filter(function (o) {
+          if (!o.pago || !o.pago.fecha) return false;
+          var fechaPago = o.pago.fecha.slice(0, 10);
+          return fechaPago >= desde && fechaPago <= hasta;
+        }).forEach(function (o) {
+          var pago = o.pago;
+          var montoIngreso = pago.tieneCopago ? (pago.valorCopago || 0) : (pago.esCredito ? 0 : (pago.monto != null ? pago.monto : o.valorCobrar || 0));
+          if (!montoIngreso) return;
+          var moneda = o.monedaPago ? BIO_CATALOG.monedaPagoLabel(o.monedaPago) : BIO_CATALOG.monedaBaseLabel(tenant);
+          if (monedaFiltroId && o.monedaPago !== monedaFiltroId) return;
+          if (monedaFiltroId && !o.monedaPago) return;
+          var pac = S.getPatient(o.patientId);
+          filas.push({
+            numeroOrden: o.numeroOrden,
+            fecha: pago.fecha,
+            paciente: pac ? U.nombreCompleto(pac) : "—",
+            metodoPago: pago.tieneCopago ? "Copago (" + (BIO_PDF_RECIBO_ORDEN.METODO_PAGO_LABEL[pago.metodoPago] || pago.metodoPago) + ")" : (BIO_PDF_RECIBO_ORDEN.METODO_PAGO_LABEL[pago.metodoPago] || pago.metodoPago || "—"),
+            moneda: moneda,
+            monto: montoIngreso
+          });
+        });
+        filas.sort(function (a, b) { return a.fecha.localeCompare(b.fecha); });
+        var monedaFiltroLabel = monedaFiltroId ? BIO_CATALOG.monedaPagoLabel(monedaFiltroId) : "";
+        var bytesCaja = BIO_PDF_CIERRE_CAJA.buildCierreCajaPDF(filas, tenant, desde, hasta, monedaFiltroLabel);
+        var sufijoMoneda = monedaFiltroLabel ? "_" + monedaFiltroId : "";
+        U.downloadBytes(bytesCaja, "Cierre_Caja_" + desde + "_a_" + hasta + sufijoMoneda + ".pdf");
+        U.toast("Cierre de caja descargado.", "success");
       });
     }
 
