@@ -89,7 +89,7 @@
         "</div>" +
         '<div class="lp-feature">' +
         '<div class="lp-ic">🧾</div><h3>Cartera de Clientes</h3>' +
-        '<p>Valor total, abonado y saldo pendiente de las órdenes del periodo — general, de un convenio en particular, o agrupado por Aliado (Convenio) o por Paciente.</p>' +
+        '<p>Valor total, abonado y saldo pendiente de las órdenes del periodo — general, de un convenio en particular, o agrupado por Aliado (Convenio) o por Paciente. Si hay más de una moneda de pago en el resultado, se separa un bloque por cada una.</p>' +
         '<div class="form-grid" style="margin:10px 0">' +
         '<div class="field"><label>Desde</label><input type="date" id="rep-cartera-desde" value="' + primerDiaMes() + '"/></div>' +
         '<div class="field"><label>Hasta</label><input type="date" id="rep-cartera-hasta" value="' + hoyISO() + '"/></div>' +
@@ -97,6 +97,10 @@
         (conveniosActivos.length ?
           '<div class="field" style="margin:0 0 10px"><label>Convenio (opcional)</label><select id="rep-cartera-convenio"><option value="">Todos los convenios y particulares</option>' +
           conveniosActivos.map(function (c) { return '<option value="' + c.id + '">' + U.esc(c.nombre) + "</option>"; }).join("") +
+          "</select></div>" : "") +
+        (tenant.pais === "VE" ?
+          '<div class="field" style="margin:0 0 10px"><label>Moneda (opcional)</label><select id="rep-cartera-moneda"><option value="">Todas las monedas</option>' +
+          BIO_CATALOG.MONEDAS_PAGO.map(function (m) { return '<option value="' + m.id + '">' + U.esc(m.nombre) + "</option>"; }).join("") +
           "</select></div>" : "") +
         '<div class="field" style="margin:0 0 10px"><label>Agrupar por</label><select id="rep-cartera-agrupar">' +
         '<option value="aliado">Aliado (Convenio)</option>' +
@@ -172,9 +176,12 @@
         var agrupacion = document.getElementById("rep-cartera-agrupar").value;
         var elConvenioCartera = document.getElementById("rep-cartera-convenio");
         var convenioIdCartera = elConvenioCartera ? elConvenioCartera.value : "";
+        var elMonedaCartera = document.getElementById("rep-cartera-moneda");
+        var monedaIdCartera = elMonedaCartera ? elMonedaCartera.value : "";
         var orders = S.listOrders(tenantId).filter(function (o) {
           var fecha = (o.fechaOrden || "").slice(0, 10);
           if (convenioIdCartera && o.convenioId !== convenioIdCartera) return false;
+          if (monedaIdCartera && o.monedaPago !== monedaIdCartera) return false;
           return fecha >= desde && fecha <= hasta && o.valorCobrar != null;
         });
         // "Abonado" hoy solo refleja el estado binario del Recibo de Pago
@@ -182,6 +189,11 @@
         // no lleva abonos parciales por orden. Si el laboratorio necesita
         // registrar pagos parciales en el tiempo, es una funcionalidad
         // aparte por construir; este reporte usa lo que ya existe hoy.
+        // "moneda" se toma de cómo se creó la orden (order.monedaPago, el
+        // selector de "Moneda de Pago" en Nueva Orden — ver catalog.js);
+        // si la orden no tiene una moneda propia (laboratorios fuera de
+        // Venezuela, o VE sin especificarla) se asume la moneda base del
+        // laboratorio, igual que en Cierre de Caja.
         var filas = orders.map(function (o) {
           var pac = S.getPatient(o.patientId);
           var valorTotal = o.valorCobrar || 0;
@@ -191,15 +203,18 @@
             fecha: o.fechaOrden,
             paciente: pac ? U.nombreCompleto(pac) : "—",
             aliado: o.convenioNombre || "Particulares",
+            moneda: o.monedaPago ? BIO_CATALOG.monedaPagoLabel(o.monedaPago) : BIO_CATALOG.monedaBaseLabel(tenant),
             valorTotal: valorTotal,
             valorAbonado: valorAbonado,
             saldoPendiente: valorTotal - valorAbonado
           };
         }).sort(function (a, b) { return a.fecha.localeCompare(b.fecha); });
         var convenioFiltro = convenioIdCartera ? conveniosActivos.filter(function (c) { return c.id === convenioIdCartera; })[0] : null;
-        var bytes = BIO_PDF_CARTERA.buildCarteraPDF(filas, tenant, desde, hasta, agrupacion, convenioFiltro ? convenioFiltro.nombre : "");
+        var monedaFiltroLabel = monedaIdCartera ? BIO_CATALOG.monedaPagoLabel(monedaIdCartera) : "";
+        var bytes = BIO_PDF_CARTERA.buildCarteraPDF(filas, tenant, desde, hasta, agrupacion, convenioFiltro ? convenioFiltro.nombre : "", monedaFiltroLabel);
         var sufijoConvenio = convenioFiltro ? "_" + convenioFiltro.nombre.replace(/\s+/g, "_") : "";
-        U.downloadBytes(bytes, "Cartera_" + desde + "_a_" + hasta + sufijoConvenio + ".pdf");
+        var sufijoMoneda = monedaIdCartera ? "_" + monedaIdCartera : "";
+        U.downloadBytes(bytes, "Cartera_" + desde + "_a_" + hasta + sufijoConvenio + sufijoMoneda + ".pdf");
         U.toast("Reporte de cartera descargado.", "success");
       });
       var btnRelacion = document.getElementById("btn-rep-relacion");

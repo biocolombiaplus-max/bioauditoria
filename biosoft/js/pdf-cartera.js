@@ -113,25 +113,69 @@
     return doc.lastAutoTable.finalY + 18;
   }
 
-  /* filas: [{ numeroOrden, fecha (ISO), paciente, aliado, valorTotal,
-     valorAbonado, saldoPendiente }]. agrupacion: "general" | "aliado" | "paciente".
-     convenioNombreFiltro (opcional): si el reporte ya viene filtrado a un
-     solo convenio, se muestra en el subtítulo para que quede claro de cuál
-     se trata (en vez de solo decir "Agrupado por Aliado" sin más). */
-  function buildCarteraPDF(filas, tenant, desde, hasta, agrupacion, convenioNombreFiltro) {
+  /* Dibuja el cuerpo de UNA moneda (la tarjeta de totales + el detalle,
+     agrupado o no) — es exactamente lo que antes hacía buildCarteraPDF
+     entero, ahora reutilizable una vez por cada moneda distinta que
+     aparezca en el resultado. */
+  function cuerpoDeGrupoMoneda(doc, y, margin, pageW, rgb, filasMoneda, agrupacion) {
+    var totalMoneda = sumar(filasMoneda);
+    y = tarjetaTotales(doc, margin, y, pageW - margin * 2, rgb, totalMoneda, null, false) + 20;
+
+    if (agrupacion === "general") {
+      return tablaFilas(doc, y, margin, pageW, filasMoneda, true);
+    }
+    var clave = agrupacion === "aliado" ? "aliado" : "paciente";
+    var grupos = {};
+    var orden = [];
+    filasMoneda.forEach(function (f) {
+      var k = f[clave];
+      if (!grupos[k]) { grupos[k] = []; orden.push(k); }
+      grupos[k].push(f);
+    });
+    // Los "Particulares" (sin aliado/convenio) siempre al final del
+    // listado por aliado, para que las cuentas de los convenios (lo que
+    // más le interesa cobrar en bloque a un laboratorio) queden primero.
+    orden.sort(function (a, b) {
+      if (agrupacion === "aliado") {
+        if (a === "Particulares") return 1;
+        if (b === "Particulares") return -1;
+      }
+      return a.localeCompare(b);
+    });
+    orden.forEach(function (nombreGrupo) {
+      var filasGrupo = grupos[nombreGrupo];
+      var subtotal = sumar(filasGrupo);
+      var altoEstimado = 46 + 20 + (filasGrupo.length + 1) * 16;
+      if (y + altoEstimado > PAGE_BOTTOM) { doc.addPage(); y = margin; }
+      y = tarjetaTotales(doc, margin, y, pageW - margin * 2, rgb, subtotal, nombreGrupo + " (" + filasGrupo.length + " orden" + (filasGrupo.length === 1 ? "" : "es") + ")", true) + 14;
+      y = tablaFilas(doc, y, margin, pageW, filasGrupo, false);
+    });
+    return y;
+  }
+
+  /* filas: [{ numeroOrden, fecha (ISO), paciente, aliado, moneda,
+     valorTotal, valorAbonado, saldoPendiente }]. agrupacion: "general" |
+     "aliado" | "paciente". convenioNombreFiltro/monedaNombreFiltro
+     (opcionales): si el reporte ya viene filtrado a un solo convenio y/o
+     una sola moneda, se muestran en el título para que quede claro de
+     cuál se trata. Si en el resultado aparece más de una moneda de pago
+     (típico de un laboratorio en Venezuela que recibe bolívares, dólares
+     y pesos colombianos), NUNCA se suman entre sí: se separa un bloque
+     completo — con su propia tarjeta de totales y su propio detalle —
+     por cada moneda. Con una sola moneda (el caso más común) se ve
+     exactamente igual que antes, sin ningún encabezado de moneda de más. */
+  function buildCarteraPDF(filas, tenant, desde, hasta, agrupacion, convenioNombreFiltro, monedaNombreFiltro) {
     agrupacion = agrupacion || "aliado";
     var jsPDFCtor = window.jspdf ? window.jspdf.jsPDF : window.jsPDF;
     var doc = new jsPDFCtor({ unit: "pt", format: "letter" });
-    var ctx = encabezado(doc, tenant, "ESTADO DE CARTERA" + (convenioNombreFiltro ? " — " + convenioNombreFiltro.toUpperCase() : ""));
+    var tituloExtra = (convenioNombreFiltro ? " — " + convenioNombreFiltro.toUpperCase() : "") + (monedaNombreFiltro ? " — " + monedaNombreFiltro.toUpperCase() : "");
+    var ctx = encabezado(doc, tenant, "ESTADO DE CARTERA" + tituloExtra);
     var margin = ctx.margin, pageW = ctx.pageW, rgb = ctx.rgb, y = ctx.y + 14;
 
     doc.setFont("helvetica", "normal"); doc.setFontSize(9); doc.setTextColor(60, 60, 60);
     var etiquetaAgrup = agrupacion === "aliado" ? "Agrupado por Aliado (Convenio)" : agrupacion === "paciente" ? "Agrupado por Paciente" : "Detalle general";
     doc.text("Periodo: " + fmtFecha(desde) + " — " + fmtFecha(hasta) + "   ·   " + etiquetaAgrup, margin, y);
     y += 20;
-
-    var totalGeneral = sumar(filas);
-    y = tarjetaTotales(doc, margin, y, pageW - margin * 2, rgb, totalGeneral, null, false) + 20;
 
     if (!filas.length) {
       doc.setFont("helvetica", "normal"); doc.setFontSize(10); doc.setTextColor(120, 120, 120);
@@ -140,36 +184,26 @@
       return new Uint8Array(doc.output("arraybuffer"));
     }
 
-    if (agrupacion === "general") {
-      y = tablaFilas(doc, y, margin, pageW, filas, true);
-    } else {
-      var clave = agrupacion === "aliado" ? "aliado" : "paciente";
-      var grupos = {};
-      var orden = [];
-      filas.forEach(function (f) {
-        var k = f[clave];
-        if (!grupos[k]) { grupos[k] = []; orden.push(k); }
-        grupos[k].push(f);
-      });
-      // Los "Particulares" (sin aliado/convenio) siempre al final del
-      // listado por aliado, para que las cuentas de los convenios (lo que
-      // más le interesa cobrar en bloque a un laboratorio) queden primero.
-      orden.sort(function (a, b) {
-        if (agrupacion === "aliado") {
-          if (a === "Particulares") return 1;
-          if (b === "Particulares") return -1;
-        }
-        return a.localeCompare(b);
-      });
-      orden.forEach(function (nombreGrupo) {
-        var filasGrupo = grupos[nombreGrupo];
-        var subtotal = sumar(filasGrupo);
-        var altoEstimado = 46 + 20 + (filasGrupo.length + 1) * 16;
-        if (y + altoEstimado > PAGE_BOTTOM) { doc.addPage(); y = margin; }
-        y = tarjetaTotales(doc, margin, y, pageW - margin * 2, rgb, subtotal, nombreGrupo + " (" + filasGrupo.length + " orden" + (filasGrupo.length === 1 ? "" : "es") + ")", true) + 14;
-        y = tablaFilas(doc, y, margin, pageW, filasGrupo, false);
-      });
-    }
+    var gruposMoneda = {};
+    var ordenMonedas = [];
+    filas.forEach(function (f) {
+      var m = f.moneda || "—";
+      if (!gruposMoneda[m]) { gruposMoneda[m] = []; ordenMonedas.push(m); }
+      gruposMoneda[m].push(f);
+    });
+    ordenMonedas.sort();
+    var multiMoneda = ordenMonedas.length > 1;
+
+    ordenMonedas.forEach(function (moneda) {
+      var filasMoneda = gruposMoneda[moneda];
+      if (multiMoneda) {
+        if (y + 90 > PAGE_BOTTOM) { doc.addPage(); y = margin; }
+        doc.setFont("helvetica", "bold"); doc.setFontSize(12); doc.setTextColor(30, 30, 30);
+        doc.text(moneda.toUpperCase(), margin, y);
+        y += 16;
+      }
+      y = cuerpoDeGrupoMoneda(doc, y, margin, pageW, rgb, filasMoneda, agrupacion) + (multiMoneda ? 14 : 0);
+    });
 
     piePagina(doc, margin);
     return new Uint8Array(doc.output("arraybuffer"));
