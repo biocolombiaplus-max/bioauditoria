@@ -201,7 +201,14 @@
         var filas = orders.map(function (o) {
           var pac = S.getPatient(o.patientId);
           var valorTotal = o.valorCobrar || 0;
-          var valorAbonado = o.pago ? valorTotal : 0;
+          // Un cargo 100% a crédito de convenio (sin copago) se sigue
+          // contando como "abonado" aquí en cuanto se gestiona — a ese
+          // convenio se le cobra aparte, fuera de BIOsoft — pero una orden
+          // particular o con copago ahora refleja el abono REAL recibido
+          // (puede ser parcial, ver "Agregar Abono" en la orden), en vez
+          // de asumir siempre que "tiene pago" es igual a "pagó todo".
+          var esSoloCredito = !!(o.pago && o.pago.esCredito && !o.pago.tieneCopago);
+          var valorAbonado = !o.pago ? 0 : (esSoloCredito ? valorTotal : BIO_CATALOG.totalAbonado(o));
           return {
             numeroOrden: o.numeroOrden,
             fecha: o.fechaOrden,
@@ -286,31 +293,30 @@
         var hasta = document.getElementById("rep-caja-hasta").value;
         var elMoneda = document.getElementById("rep-caja-moneda");
         var monedaFiltroId = elMoneda ? elMoneda.value : "";
-        // "Dinero realmente recibido": un cargo 100% a crédito de un
-        // convenio (order.pago.esCredito, sin copago) no mete nada a la
-        // caja ese día — el convenio lo paga después, aparte (ver Cartera
-        // de Clientes para eso). Con copago, solo la parte que el paciente
-        // sí puso de su bolsillo cuenta para el cierre de caja.
+        // "Dinero realmente recibido": order.abonos SOLO contiene efectivo
+        // que de verdad entró a caja (nunca la parte de un cargo 100% a
+        // crédito de convenio — ver views-orders.js) — cada abono es un
+        // ingreso independiente, en SU PROPIA fecha, así que un pago hecho
+        // en varias partes (ver "Agregar Abono") aparece cada vez en el
+        // cierre del día en que realmente se recibió, no todo amontonado
+        // en la fecha del primer pago.
         var filas = [];
-        S.listOrders(tenantId).filter(function (o) {
-          if (!o.pago || !o.pago.fecha) return false;
-          var fechaPago = o.pago.fecha.slice(0, 10);
-          return fechaPago >= desde && fechaPago <= hasta;
-        }).forEach(function (o) {
-          var pago = o.pago;
-          var montoIngreso = pago.tieneCopago ? (pago.valorCopago || 0) : (pago.esCredito ? 0 : (pago.monto != null ? pago.monto : o.valorCobrar || 0));
-          if (!montoIngreso) return;
-          var moneda = o.monedaPago ? BIO_CATALOG.monedaPagoLabel(o.monedaPago) : BIO_CATALOG.monedaBaseLabel(tenant);
-          if (monedaFiltroId && o.monedaPago !== monedaFiltroId) return;
-          if (monedaFiltroId && !o.monedaPago) return;
-          var pac = S.getPatient(o.patientId);
-          filas.push({
-            numeroOrden: o.numeroOrden,
-            fecha: pago.fecha,
-            paciente: pac ? U.nombreCompleto(pac) : "—",
-            metodoPago: pago.tieneCopago ? "Copago (" + (BIO_PDF_RECIBO_ORDEN.METODO_PAGO_LABEL[pago.metodoPago] || pago.metodoPago) + ")" : (BIO_PDF_RECIBO_ORDEN.METODO_PAGO_LABEL[pago.metodoPago] || pago.metodoPago || "—"),
-            moneda: moneda,
-            monto: montoIngreso
+        S.listOrders(tenantId).forEach(function (o) {
+          var esCopago = !!(o.pago && o.pago.tieneCopago);
+          (o.abonos || []).forEach(function (abono) {
+            var fechaAbono = (abono.fecha || "").slice(0, 10);
+            if (fechaAbono < desde || fechaAbono > hasta) return;
+            var moneda = o.monedaPago ? BIO_CATALOG.monedaPagoLabel(o.monedaPago) : BIO_CATALOG.monedaBaseLabel(tenant);
+            if (monedaFiltroId && o.monedaPago !== monedaFiltroId) return;
+            var pac = S.getPatient(o.patientId);
+            filas.push({
+              numeroOrden: o.numeroOrden,
+              fecha: abono.fecha,
+              paciente: pac ? U.nombreCompleto(pac) : "—",
+              metodoPago: esCopago ? "Copago (" + (BIO_PDF_RECIBO_ORDEN.METODO_PAGO_LABEL[abono.metodoPago] || abono.metodoPago) + ")" : (BIO_PDF_RECIBO_ORDEN.METODO_PAGO_LABEL[abono.metodoPago] || abono.metodoPago || "—"),
+              moneda: moneda,
+              monto: abono.monto
+            });
           });
         });
         filas.sort(function (a, b) { return a.fecha.localeCompare(b.fecha); });

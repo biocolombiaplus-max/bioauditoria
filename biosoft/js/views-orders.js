@@ -56,6 +56,12 @@
         if (o) abrirReciboOrden(o, tenant, function () { renderList(root); });
       });
     });
+    root.querySelectorAll("[data-agregar-abono-orden]").forEach(function (b) {
+      b.addEventListener("click", function () {
+        var o = orders.filter(function (x) { return x.id === b.dataset.agregarAbonoOrden; })[0];
+        if (o) abrirAgregarAbono(o, tenant, function () { renderList(root); });
+      });
+    });
     // Para cuando una orden se creó de más por error (ej. dos veces
     // seguidas para el mismo paciente) — borra la orden completa, sin
     // dejar ningún rastro "cancelado" a la vista. No toca al paciente ni
@@ -82,7 +88,10 @@
       if (!o.valorCobrar) {
         celdaPago = "<td>—</td>";
       } else if (o.pago) {
-        celdaPago = '<td><span class="badge badge-validado">Pagado</span> <button class="btn btn-ghost btn-sm" style="margin-top:4px" data-reenviar-recibo-orden="' + o.id + '" title="Reenviar el recibo de pago">' + U.icon("send") + " Recibo</button></td>";
+        var saldoFila = C.saldoPendienteOrden(o);
+        celdaPago = saldoFila > 0
+          ? '<td><span class="badge badge-parcial">Parcial — Saldo ' + fmtMoneda(saldoFila) + '</span> <button class="btn btn-ghost btn-sm" style="margin-top:4px" data-agregar-abono-orden="' + o.id + '">' + U.icon("plus") + " Agregar Abono</button></td>"
+          : '<td><span class="badge badge-validado">Pagado</span> <button class="btn btn-ghost btn-sm" style="margin-top:4px" data-reenviar-recibo-orden="' + o.id + '" title="Reenviar el recibo de pago">' + U.icon("send") + " Recibo</button></td>";
       } else {
         celdaPago = '<td><span class="badge badge-pendiente">Pago pendiente</span> <button class="btn btn-outline btn-sm" style="margin-top:4px" data-registrar-pago-orden="' + o.id + '">' + U.icon("check") + " Registrar Pago</button></td>";
       }
@@ -682,6 +691,14 @@
     var valorCopago = esCargoConvenio ? C.calcularCopago(convenio, order.valorCobrar) : 0;
     var tieneCopago = valorCopago > 0;
     var valorConvenio = order.valorCobrar - valorCopago;
+    // El paciente puede pagar menos de lo que debe (abono parcial) — el
+    // monto a pagar (valorCopago o el valor completo) sale prellenado,
+    // pero es editable. Si lo que se recibe es menor, la orden queda
+    // "Parcial" con un saldo pendiente que se puede ir completando
+    // después con "Agregar Abono" (ver el botón en el detalle de la
+    // orden), en vez de forzar a elegir entre "pagó todo" o "no pagó
+    // nada" — así funciona un sistema financiero de verdad.
+    var montoDebido = tieneCopago ? valorCopago : order.valorCobrar;
     var wrapConfirm = U.openModal(
       tieneCopago
         ? '<h3 class="modal-title">Copago — Orden ' + order.numeroOrden + '</h3>' +
@@ -689,38 +706,143 @@
           '<div class="field"><label>Método de Pago del Copago</label><select id="rec-ord-metodo">' +
           Object.keys(BIO_PDF_RECIBO_ORDEN.METODO_PAGO_LABEL).map(function (k) { return '<option value="' + k + '">' + BIO_PDF_RECIBO_ORDEN.METODO_PAGO_LABEL[k] + "</option>"; }).join("") +
           "</select></div>" +
-          '<label class="checkbox-row" style="margin-top:10px"><input type="checkbox" id="rec-ord-confirmo"/> Confirmo que el paciente ya pagó el copago de ' + fmtMoneda(valorCopago) + fmtMonedaEquiv(tenant, valorCopago) + " y se genera el cargo a crédito del resto al convenio " + U.esc(order.convenioNombre || "—") + "</label>" +
-          '<div class="flex justify-between" style="margin-top:16px"><button class="btn btn-ghost" data-modal-close>Cancelar</button><button class="btn btn-primary" id="rec-ord-confirmar" disabled>Confirmar Copago y Generar Recibo</button></div>'
+          '<div class="field"><label>Monto Recibido del Copago</label><input type="number" step="any" min="0" id="rec-ord-monto" value="' + valorCopago + '"/>' +
+          '<span class="text-muted" style="font-size:11px" id="rec-ord-monto-hint"></span></div>' +
+          '<label class="checkbox-row" style="margin-top:10px"><input type="checkbox" id="rec-ord-confirmo"/> Confirmo que el paciente pagó lo indicado arriba y se genera el cargo a crédito del resto al convenio ' + U.esc(order.convenioNombre || "—") + "</label>" +
+          '<div class="flex justify-between" style="margin-top:16px"><button class="btn btn-ghost" data-modal-close>Cancelar</button><button class="btn btn-primary" id="rec-ord-confirmar" disabled>Confirmar y Generar Recibo</button></div>'
         : esCargoConvenio
         ? '<h3 class="modal-title">Cargo a Convenio — Orden ' + order.numeroOrden + '</h3>' +
           '<p class="text-muted" style="margin-top:0">Esta orden pertenece al convenio <b>' + U.esc(order.convenioNombre || "—") + "</b> — todo convenio se maneja a crédito, así que este recibo queda como cargo a su cuenta, sin método de pago ni confirmación de pago recibido.</p>" +
           '<label class="checkbox-row" style="margin-top:10px"><input type="checkbox" id="rec-ord-confirmo"/> Confirmo generar el cargo a crédito de ' + fmtMoneda(order.valorCobrar) + fmtMonedaEquiv(tenant, order.valorCobrar) + " al convenio " + U.esc(order.convenioNombre || "—") + "</label>" +
           '<div class="flex justify-between" style="margin-top:16px"><button class="btn btn-ghost" data-modal-close>Cancelar</button><button class="btn btn-primary" id="rec-ord-confirmar" disabled>Generar Cargo a Convenio</button></div>'
         : '<h3 class="modal-title">Recibo de Pago — Orden ' + order.numeroOrden + '</h3>' +
-          '<p class="text-muted" style="margin-top:0">Antes de generar el recibo, confirma que el cliente ya realizó el pago.</p>' +
+          '<p class="text-muted" style="margin-top:0">Antes de generar el recibo, confirma cuánto pagó el cliente. Si paga menos del valor total, la orden queda con saldo pendiente y podrás agregar el resto más adelante desde "Agregar Abono".</p>' +
           '<div class="field"><label>Método de Pago</label><select id="rec-ord-metodo">' +
           Object.keys(BIO_PDF_RECIBO_ORDEN.METODO_PAGO_LABEL).map(function (k) { return '<option value="' + k + '">' + BIO_PDF_RECIBO_ORDEN.METODO_PAGO_LABEL[k] + "</option>"; }).join("") +
           "</select></div>" +
-          '<label class="checkbox-row" style="margin-top:10px"><input type="checkbox" id="rec-ord-confirmo"/> Confirmo que el cliente ya pagó ' + fmtMoneda(order.valorCobrar) + fmtMonedaEquiv(tenant, order.valorCobrar) + "</label>" +
+          '<div class="field"><label>Monto Recibido (Valor Total: ' + fmtMoneda(order.valorCobrar) + fmtMonedaEquiv(tenant, order.valorCobrar) + ')</label><input type="number" step="any" min="0" id="rec-ord-monto" value="' + order.valorCobrar + '"/>' +
+          '<span class="text-muted" style="font-size:11px" id="rec-ord-monto-hint"></span></div>' +
+          '<label class="checkbox-row" style="margin-top:10px"><input type="checkbox" id="rec-ord-confirmo"/> Confirmo que el cliente pagó el monto indicado arriba</label>' +
           '<div class="flex justify-between" style="margin-top:16px"><button class="btn btn-ghost" data-modal-close>Cancelar</button><button class="btn btn-primary" id="rec-ord-confirmar" disabled>Confirmar Pago y Generar Recibo</button></div>'
     );
     var chk = wrapConfirm.querySelector("#rec-ord-confirmo");
     var btnConfirmar = wrapConfirm.querySelector("#rec-ord-confirmar");
     chk.addEventListener("change", function () { btnConfirmar.disabled = !chk.checked; });
+    var inpMonto = wrapConfirm.querySelector("#rec-ord-monto");
+    var hintMonto = wrapConfirm.querySelector("#rec-ord-monto-hint");
+    if (inpMonto) {
+      var actualizarHintMonto = function () {
+        var v = parseFloat(inpMonto.value) || 0;
+        if (v <= 0) { hintMonto.textContent = "Escribe cuánto pagó realmente."; hintMonto.style.color = "var(--danger, #b91c1c)"; }
+        else if (v < montoDebido) { hintMonto.textContent = "Abono parcial — queda un saldo pendiente de " + fmtMoneda(montoDebido - v) + fmtMonedaEquiv(tenant, montoDebido - v) + "."; hintMonto.style.color = "var(--warning, #c97d0d)"; }
+        else { hintMonto.textContent = "Pago completo."; hintMonto.style.color = ""; }
+      };
+      inpMonto.addEventListener("input", actualizarHintMonto);
+      actualizarHintMonto();
+    }
     btnConfirmar.addEventListener("click", async function () {
       var session = BIO_AUTH.getSession();
+      var montoRecibido = inpMonto ? (parseFloat(inpMonto.value) || 0) : order.valorCobrar;
       var pago = tieneCopago
-        ? { fecha: new Date().toISOString(), metodoPago: wrapConfirm.querySelector("#rec-ord-metodo").value, monto: order.valorCobrar, valorCopago: valorCopago, valorConvenio: valorConvenio, tieneCopago: true, esCredito: true, confirmadoPor: session.nombre }
+        ? { fecha: new Date().toISOString(), metodoPago: wrapConfirm.querySelector("#rec-ord-metodo").value, monto: montoRecibido, valorCopago: valorCopago, valorConvenio: valorConvenio, tieneCopago: true, esCredito: true, confirmadoPor: session.nombre }
         : esCargoConvenio
         ? { fecha: new Date().toISOString(), monto: order.valorCobrar, confirmadoPor: session.nombre, esCredito: true }
-        : { fecha: new Date().toISOString(), metodoPago: wrapConfirm.querySelector("#rec-ord-metodo").value, monto: order.valorCobrar, confirmadoPor: session.nombre };
+        : { fecha: new Date().toISOString(), metodoPago: wrapConfirm.querySelector("#rec-ord-metodo").value, monto: montoRecibido, confirmadoPor: session.nombre };
       order.pago = pago;
+      // El primer abono es este mismo pago recién confirmado — de aquí en
+      // adelante order.abonos es la fuente de verdad de cuánto se ha
+      // recibido en total (ver C.totalAbonado), sin importar si se pagó
+      // de una sola vez o en varias partes. Un cargo 100% a crédito de
+      // convenio (sin copago) no genera ningún abono: ese día no entró
+      // nada de efectivo, todo queda pendiente de cobrarle al convenio.
+      if (!esCargoConvenio || tieneCopago) {
+        order.abonos = [{ id: S.uid("abono"), fecha: pago.fecha, monto: montoRecibido, metodoPago: pago.metodoPago, confirmadoPor: session.nombre }];
+      }
       S.saveOrder(order);
       S.addAudit(order.tenantId, session.nombre, session.rol, "CONFIRMAR_PAGO_ORDEN", "orden", order.id,
-        tieneCopago ? "Confirmó el copago de " + fmtMoneda(valorCopago) + " y generó el cargo a crédito de " + fmtMoneda(valorConvenio) + " al convenio " + (order.convenioNombre || "—") + " para la orden " + order.numeroOrden + "."
-        : esCargoConvenio ? "Generó el cargo a crédito del convenio " + (order.convenioNombre || "—") + " para la orden " + order.numeroOrden + "." : "Confirmó el pago de la orden " + order.numeroOrden + " y generó el recibo.");
+        tieneCopago ? "Confirmó un pago de " + fmtMoneda(montoRecibido) + " del copago (" + fmtMoneda(valorCopago) + " en total) y generó el cargo a crédito de " + fmtMoneda(valorConvenio) + " al convenio " + (order.convenioNombre || "—") + " para la orden " + order.numeroOrden + "."
+        : esCargoConvenio ? "Generó el cargo a crédito del convenio " + (order.convenioNombre || "—") + " para la orden " + order.numeroOrden + "."
+        : "Confirmó un pago de " + fmtMoneda(montoRecibido) + " de la orden " + order.numeroOrden + (montoRecibido < order.valorCobrar ? " (abono parcial)" : "") + " y generó el recibo.");
       U.closeModal(wrapConfirm);
       continuarConPago(pago);
+    });
+  }
+
+  /* Agregar un abono adicional a una orden que ya quedó con saldo
+     pendiente (ver "Monto Recibido" en abrirReciboOrden, más arriba) —
+     así es como un sistema financiero de verdad maneja pagos en cuotas:
+     cada abono queda registrado con su propia fecha, monto y método, se
+     suma al historial (order.abonos) y se entrega un recibo actualizado
+     mostrando cuánto se ha pagado en total y cuánto sigue faltando, para
+     que el cliente lo entienda de un vistazo. */
+  function abrirAgregarAbono(order, tenant, onDone) {
+    var pac = S.getPatient(order.patientId);
+    var saldo = C.saldoPendienteOrden(order);
+    var wrap = U.openModal(
+      '<h3 class="modal-title">Agregar Abono — Orden ' + order.numeroOrden + '</h3>' +
+      '<p class="text-muted" style="margin-top:0">Saldo pendiente actual: <b>' + fmtMoneda(saldo) + fmtMonedaEquiv(tenant, saldo) + '</b>.</p>' +
+      '<div class="field"><label>Método de Pago</label><select id="ab-metodo">' +
+      Object.keys(BIO_PDF_RECIBO_ORDEN.METODO_PAGO_LABEL).map(function (k) { return '<option value="' + k + '">' + BIO_PDF_RECIBO_ORDEN.METODO_PAGO_LABEL[k] + "</option>"; }).join("") +
+      "</select></div>" +
+      '<div class="field"><label>Monto del Abono</label><input type="number" step="any" min="0.01" max="' + saldo + '" id="ab-monto" value="' + saldo + '"/>' +
+      '<span class="text-muted" style="font-size:11px" id="ab-monto-hint"></span></div>' +
+      '<div class="flex justify-between" style="margin-top:16px"><button class="btn btn-ghost" data-modal-close>Cancelar</button><button class="btn btn-primary" id="ab-confirmar">Registrar Abono y Generar Recibo</button></div>'
+    );
+    var inpMonto = wrap.querySelector("#ab-monto");
+    var hint = wrap.querySelector("#ab-monto-hint");
+    var btnConfirmar = wrap.querySelector("#ab-confirmar");
+    function actualizarHint() {
+      var v = parseFloat(inpMonto.value) || 0;
+      if (v <= 0) { hint.textContent = "Escribe cuánto abonó el cliente."; hint.style.color = "var(--danger, #b91c1c)"; btnConfirmar.disabled = true; }
+      else if (v > saldo + 0.009) { hint.textContent = "No puede ser mayor al saldo pendiente (" + fmtMoneda(saldo) + ")."; hint.style.color = "var(--danger, #b91c1c)"; btnConfirmar.disabled = true; }
+      else if (v < saldo) { hint.textContent = "Quedará un nuevo saldo pendiente de " + fmtMoneda(saldo - v) + "."; hint.style.color = "var(--warning, #c97d0d)"; btnConfirmar.disabled = false; }
+      else { hint.textContent = "Con este abono la orden queda totalmente pagada."; hint.style.color = ""; btnConfirmar.disabled = false; }
+    }
+    inpMonto.addEventListener("input", actualizarHint);
+    actualizarHint();
+    btnConfirmar.addEventListener("click", async function () {
+      var session = BIO_AUTH.getSession();
+      var monto = parseFloat(inpMonto.value) || 0;
+      if (monto <= 0 || monto > saldo + 0.009) return;
+      var metodoPago = wrap.querySelector("#ab-metodo").value;
+      var fecha = new Date().toISOString();
+      order.abonos = order.abonos || [];
+      order.abonos.push({ id: S.uid("abono"), fecha: fecha, monto: monto, metodoPago: metodoPago, confirmadoPor: session.nombre });
+      S.saveOrder(order);
+      var nuevoSaldo = C.saldoPendienteOrden(order);
+      S.addAudit(order.tenantId, session.nombre, session.rol, "AGREGAR_ABONO_ORDEN", "orden", order.id,
+        "Registró un abono de " + fmtMoneda(monto) + " para la orden " + order.numeroOrden + " (" + (nuevoSaldo > 0 ? "saldo pendiente: " + fmtMoneda(nuevoSaldo) : "queda totalmente pagada") + ").");
+      U.closeModal(wrap);
+      var precios = {};
+      S.cotizador.listPrecios(order.tenantId).forEach(function (p) { precios[p.examId] = p.precio; });
+      var bytes = await BIO_PDF_RECIBO_ORDEN.buildReciboOrdenPDF(order, pac, tenant, order.pago, precios);
+      U.downloadBytes(bytes, "Recibo_Abono_Orden_" + order.numeroOrden + ".pdf");
+      U.toast("Abono registrado" + (nuevoSaldo > 0 ? " — saldo pendiente: " + fmtMoneda(nuevoSaldo) : " — orden totalmente pagada") + ".", "success");
+      var extra = C.fmtMonedaAdicional(tenant, monto);
+      var mensaje = "Hola " + (pac ? U.nombreCompleto(pac).split(" ")[0] : "") + " 👋 Adjunto el recibo de tu abono de " + fmtMoneda(monto) + (extra ? " (" + extra + ")" : "") + " a la orden " + order.numeroOrden + " en " + tenant.nombre + "." + (nuevoSaldo > 0 ? " Saldo pendiente: " + fmtMoneda(nuevoSaldo) + fmtMonedaEquiv(tenant, nuevoSaldo) + "." : " ¡Con esto tu orden queda totalmente pagada!");
+      var wrapEnvio = U.openModal(
+        '<h3 class="modal-title">Recibo de abono listo</h3>' +
+        '<p class="text-muted" style="margin-top:0">Ya se descargó el PDF. Adjúntalo antes de enviar por el canal que elijas, o imprímelo directamente.</p>' +
+        '<div class="flex gap-2 wrap">' +
+        '<button class="btn btn-outline btn-sm" id="ab-print">' + U.icon("printer") + " Imprimir</button>" +
+        (pac && pac.celular ? '<button class="btn btn-whatsapp btn-sm" id="ab-wa">' + U.icon("send") + " Enviar por WhatsApp</button>" : "") +
+        "</div>" +
+        (pac && pac.email ? U.emailProviderButtonsHtml("ab-mail") : '<p class="text-muted" style="font-size:12px;margin-top:10px">Este paciente no tiene correo ni WhatsApp guardados para enviarlo directo — descarga e imprime, o agrégalos a su ficha.</p>') +
+        '<div class="flex justify-between" style="margin-top:16px"><button class="btn btn-ghost" data-modal-close>Cerrar</button></div>'
+      );
+      wrapEnvio.querySelector("#ab-print").addEventListener("click", function () {
+        var blob = new Blob([bytes], { type: "application/pdf" });
+        var url = URL.createObjectURL(blob);
+        var w = window.open(url, "_blank");
+        if (w) w.addEventListener("load", function () { w.print(); });
+      });
+      var btnWa = wrapEnvio.querySelector("#ab-wa");
+      if (btnWa) btnWa.addEventListener("click", function () {
+        var numero = U.numeroWhatsapp(pac.celular, tenant.pais);
+        window.open("https://wa.me/" + numero + "?text=" + encodeURIComponent(mensaje), "_blank");
+      });
+      if (pac && pac.email) U.wireEmailProviderButtons(wrapEnvio, "ab-mail", pac.email, "Recibo de abono — " + tenant.nombre, mensaje);
+      if (onDone) onDone();
     });
   }
 
@@ -763,6 +885,7 @@
 
     function build() {
       var remisiones = order.remisiones || [];
+      var saldoOrden = C.saldoPendienteOrden(order);
       root.innerHTML =
         '<div class="card">' +
           '<div class="card-header"><h3 class="card-title">Orden ' + order.numeroOrden + " — " + window.BIO_badgeEstado(order.estadoGeneral) + '</h3>' +
@@ -773,6 +896,7 @@
           '<button class="btn btn-outline btn-sm" id="btn-preview">' + U.icon("file") + " Ver / Descargar PDF</button>" +
           (puedeGestionarRemision(session) ? '<button class="btn btn-outline btn-sm" id="btn-remision">' + U.icon("send") + " Hoja de Remisión</button>" : "") +
           (puedeReciboOrden(tenant) ? '<button class="btn btn-outline btn-sm" id="btn-recibo-orden">' + U.icon("send") + (order.pago ? " Reenviar Recibo de Pago" : " Recibo de Pago") + "</button>" : "") +
+          (puedeReciboOrden(tenant) && order.pago && saldoOrden > 0 ? '<button class="btn btn-primary btn-sm" id="btn-agregar-abono">' + U.icon("plus") + " Agregar Abono</button>" : "") +
           (tenant.pais === "CO" ? '<button class="btn btn-outline btn-sm" id="btn-consentimiento">' + U.icon("file") + " Consentimiento Informado</button>" : "") +
           (tenant.pais === "CO" ? '<button class="btn btn-primary btn-sm" id="btn-firmar-consentimiento-aqui">' + U.icon("check") + " Firmar Consentimiento Aquí</button>" : "") +
           "</div></div>" +
@@ -787,7 +911,9 @@
             field("Diagnóstico", order.diagnostico || "—") +
             (tenant.mostrarPrecioOrden ? fieldHtml("Valor a Cobrar", order.valorCobrar ? U.esc(fmtMoneda(order.valorCobrar)) + fmtMonedaEquiv(tenant, order.valorCobrar) : "—") : "") +
             (order.monedaPago ? field("Moneda de Pago", C.monedaPagoLabel(order.monedaPago)) : "") +
-            (puedeReciboOrden(tenant) ? field("Estado de Pago", order.pago ? "✓ Pagado (" + (BIO_PDF_RECIBO_ORDEN.METODO_PAGO_LABEL[order.pago.metodoPago] || order.pago.metodoPago) + ") — " + U.fmtFecha(order.pago.fecha) : "Pendiente de confirmar") : "") +
+            (puedeReciboOrden(tenant) ? field("Estado de Pago", !order.pago ? "Pendiente de confirmar"
+              : saldoOrden > 0 ? "Parcial — Abonado " + fmtMoneda(C.totalAbonado(order)) + " de " + fmtMoneda(C.montoAdeudarPaciente(order)) + " — Saldo " + fmtMoneda(saldoOrden)
+              : "✓ Pagado (" + (BIO_PDF_RECIBO_ORDEN.METODO_PAGO_LABEL[order.pago.metodoPago] || order.pago.metodoPago) + ") — " + U.fmtFecha(order.pago.fecha)) : "") +
           "</div></div>" +
 
         '<div class="card" style="margin-top:16px"><div class="card-header"><h3 class="card-title">Exámenes de la Orden</h3></div>' +
@@ -821,6 +947,8 @@
       if (btnRemision) btnRemision.addEventListener("click", function () { abrirGenerarRemision(order, pac, tenant, build); });
       var btnReciboOrden = document.getElementById("btn-recibo-orden");
       if (btnReciboOrden) btnReciboOrden.addEventListener("click", function () { abrirReciboOrden(order, tenant, build); });
+      var btnAgregarAbono = document.getElementById("btn-agregar-abono");
+      if (btnAgregarAbono) btnAgregarAbono.addEventListener("click", function () { abrirAgregarAbono(order, tenant, build); });
       var btnConsentimiento = document.getElementById("btn-consentimiento");
       if (btnConsentimiento) btnConsentimiento.addEventListener("click", function () { window.BIO_VIEWS_CONSENTIMIENTOS.abrir(order, pac, tenant, build); });
       var btnFirmarConsentimientoAqui = document.getElementById("btn-firmar-consentimiento-aqui");

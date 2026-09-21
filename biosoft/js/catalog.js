@@ -1376,6 +1376,37 @@
     return Math.max(0, Math.min(Math.round(valor), valorTotal));
   }
 
+  /* Pagos parciales (abonos): cuánto debe pagar en EFECTIVO el paciente
+     por esta orden — nunca la parte que ya quedó a crédito de un convenio
+     (esa se cobra aparte, ver "Cartera de Clientes"). Se basa en cómo
+     quedó ARREGLADO el pago la primera vez que se confirmó (order.pago:
+     tieneCopago/esCredito/valorCopago, ver abrirReciboOrden en
+     views-orders.js) — no se recalcula contra el convenio actual, para
+     que un cambio posterior en su configuración de copago no altere lo
+     que ya se le cobró a un paciente en el pasado. Si la orden todavía no
+     tiene ningún pago confirmado, se asume que se debe el valor completo
+     (aún no se sabe si tendrá copago o será 100% crédito). */
+  function montoAdeudarPaciente(order) {
+    if (!order || !order.pago) return (order && order.valorCobrar) || 0;
+    if (order.pago.tieneCopago) return order.pago.valorCopago || 0;
+    if (order.pago.esCredito) return 0;
+    return order.valorCobrar || 0;
+  }
+  /* Suma de todos los abonos (pagos parciales) registrados para la orden
+     — ver "Agregar Abono" en views-orders.js. order.abonos siempre
+     incluye el primer pago confirmado (completo o parcial) como su
+     primer elemento, así que esto SIEMPRE refleja el total realmente
+     recibido hasta ahora, sin importar en cuántas partes se haya pagado. */
+  function totalAbonado(order) {
+    return ((order && order.abonos) || []).reduce(function (a, x) { return a + (x.monto || 0); }, 0);
+  }
+  /* Cuánto le sigue debiendo el paciente en efectivo a esta orden —
+     nunca negativo (un abono de más se topa aquí en $0, no en saldo a
+     favor; BIOsoft todavía no maneja saldos a favor). */
+  function saldoPendienteOrden(order) {
+    return Math.max(0, montoAdeudarPaciente(order) - totalAbonado(order));
+  }
+
   /* En qué moneda tiene el laboratorio cargados TODOS sus precios (la moneda
      "base") — no siempre es la moneda oficial de su país: un laboratorio
      venezolano puede manejar sus precios en Bs. o directo en USD (muy común
@@ -1999,6 +2030,7 @@
     cambiarTuboExamen: cambiarTuboExamen,
     tuboInfo: tuboInfo,
     fmtMonedaAdicional: fmtMonedaAdicional, monedaBaseLabel: monedaBaseLabel, calcularCopago: calcularCopago,
+    montoAdeudarPaciente: montoAdeudarPaciente, totalAbonado: totalAbonado, saldoPendienteOrden: saldoPendienteOrden,
     calcularFlag: calcularFlag,
     examenEfectivo: examenEfectivo,
     parametroEfectivo: parametroEfectivo,

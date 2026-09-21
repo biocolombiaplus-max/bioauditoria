@@ -869,10 +869,11 @@
     }
     function hoyISOCartera() { return new Date().toISOString().slice(0, 10); }
 
-    // "Abonado" hoy solo refleja el estado binario del Recibo de Pago
-    // (order.pago: pagada la orden completa, o pendiente) — igual que en
-    // el reporte de Cartera de Clientes en PDF; BIOsoft aún no lleva
-    // abonos parciales por orden.
+    // "Abonado" refleja el abono REAL recibido hasta ahora (ver
+    // C.totalAbonado / "Agregar Abono" en la orden) — puede ser parcial.
+    // Un cargo 100% a crédito de convenio (sin copago) se sigue contando
+    // como "abonado" en cuanto se gestiona, igual que siempre — a ese
+    // convenio se le cobra aparte, fuera de BIOsoft.
     function calcularCartera(desde, hasta) {
       var orders = S.listOrders(tenantId).filter(function (o) {
         var fecha = (o.fechaOrden || "").slice(0, 10);
@@ -882,7 +883,8 @@
       orders.forEach(function (o) {
         var pac = S.getPatient(o.patientId);
         var valorTotal = o.valorCobrar || 0;
-        var valorAbonado = o.pago ? valorTotal : 0;
+        var esSoloCredito = !!(o.pago && o.pago.esCredito && !o.pago.tieneCopago);
+        var valorAbonado = !o.pago ? 0 : (esSoloCredito ? valorTotal : C.totalAbonado(o));
         var key = o.convenioNombre || "Particulares";
         if (!porConvenio[key]) porConvenio[key] = { nombre: key, ordenes: [], total: 0, abonado: 0, pendiente: 0 };
         porConvenio[key].ordenes.push({
