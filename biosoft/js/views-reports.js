@@ -59,6 +59,8 @@
       return d.toISOString().slice(0, 10);
     }
     function hoyISO() { return new Date().toISOString().slice(0, 10); }
+    function haceNDias(n) { var d = new Date(); d.setDate(d.getDate() - n); return d.toISOString().slice(0, 10); }
+    function enNDias(n) { var d = new Date(); d.setDate(d.getDate() + n); return d.toISOString().slice(0, 10); }
 
     function buildAdminHtml() {
       var tenant = BIO_AUTH.currentTenant();
@@ -86,6 +88,15 @@
         (insumos.length ? insumos.map(function (i) { return "<option value='" + i.id + "'>" + U.esc(i.nombre) + "</option>"; }).join("") : "<option value=''>No hay insumos registrados</option>") +
         "</select></div>" +
         '<button class="btn btn-primary btn-block" id="btn-rep-kardex" ' + (insumos.length ? "" : "disabled") + ">" + U.icon("download") + " Generar PDF</button>" +
+        "</div>" +
+        '<div class="lp-feature">' +
+        '<div class="lp-ic">⏳</div><h3>Vencimientos de Inventario</h3>' +
+        '<p>Insumos con fecha de vencimiento entre un rango de fechas — ya vencidos y por vencer, con lote, stock y valor en riesgo, ordenados del más próximo a vencer (FEFO).</p>' +
+        '<div class="form-grid" style="margin:10px 0">' +
+        '<div class="field"><label>Desde</label><input type="date" id="rep-venc-desde" value="' + haceNDias(30) + '"/></div>' +
+        '<div class="field"><label>Hasta</label><input type="date" id="rep-venc-hasta" value="' + enNDias(90) + '"/></div>' +
+        "</div>" +
+        '<button class="btn btn-primary btn-block" id="btn-rep-venc">' + U.icon("download") + " Generar PDF</button>" +
         "</div>" +
         '<div class="lp-feature">' +
         '<div class="lp-ic">🧾</div><h3>Cartera de Clientes</h3>' +
@@ -168,6 +179,17 @@
         var bytes = BIO_PDF_INVENTARIO.buildKardexInsumoPDF(insumo, movimientos, tenant);
         U.downloadBytes(bytes, "Kardex_" + insumo.nombre.replace(/\s+/g, "_") + ".pdf");
         U.toast("Kardex descargado.", "success");
+      });
+      var btnVenc = document.getElementById("btn-rep-venc");
+      if (btnVenc) btnVenc.addEventListener("click", function () {
+        var desde = document.getElementById("rep-venc-desde").value;
+        var hasta = document.getElementById("rep-venc-hasta").value;
+        var insumosVenc = S.inventario.listInsumos(tenantId).filter(function (i) {
+          return i.fechaVencimiento && i.fechaVencimiento >= desde && i.fechaVencimiento <= hasta;
+        });
+        var bytesVenc = BIO_PDF_INVENTARIO.buildVencimientosPDF(insumosVenc, tenant, desde, hasta);
+        U.downloadBytes(bytesVenc, "Vencimientos_Inventario_" + desde + "_a_" + hasta + ".pdf");
+        U.toast("Reporte de vencimientos descargado.", "success");
       });
       var btnCartera = document.getElementById("btn-rep-cartera");
       if (btnCartera) btnCartera.addEventListener("click", function () {

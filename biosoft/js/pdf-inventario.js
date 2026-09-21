@@ -195,10 +195,103 @@
     return new Uint8Array(doc.output("arraybuffer"));
   }
 
+  // -----------------------------------------------------------------------
+  // 4. REPORTE DE VENCIMIENTOS DE INVENTARIO (entre fechas)
+  // -----------------------------------------------------------------------
+  /* insumos: solo los que tienen fechaVencimiento configurada y esta cae
+     entre "desde" y "hasta" (el filtro ya se aplica en views-reports.js).
+     Cada uno se clasifica como VENCIDO (ya pasó la fecha) o POR VENCER
+     (vence entre hoy y el fin del periodo) — en vez de franjas fijas de
+     30/60/90 días, porque el propio rango de fechas que eligió el
+     laboratorio ya define qué tan lejos quiere mirar. Ordenado por fecha
+     de vencimiento ascendente (FEFO — First Expired, First Out), la
+     misma lógica que usan los sistemas de inventario de laboratorios y
+     farmacéuticas grandes para decidir qué salir a consumir primero. */
+  function buildVencimientosPDF(insumos, tenant, desde, hasta) {
+    var jsPDFCtor = window.jspdf ? window.jspdf.jsPDF : window.jsPDF;
+    var doc = new jsPDFCtor({ unit: "pt", format: "letter" });
+    var ctx = encabezado(doc, tenant, "REPORTE DE VENCIMIENTOS DE INVENTARIO");
+    var margin = ctx.margin, pageW = ctx.pageW, rgb = ctx.rgb, y = ctx.y + 14;
+
+    doc.setFont("helvetica", "normal"); doc.setFontSize(9); doc.setTextColor(60, 60, 60);
+    doc.text("Periodo de vencimiento: " + fmtFecha(desde) + " — " + fmtFecha(hasta) + "   ·   Orden: fecha de vencimiento más próxima primero (FEFO)", margin, y, { maxWidth: pageW - margin * 2 });
+    y += 22;
+
+    var hoyStr = new Date().toISOString().slice(0, 10);
+    var filas = insumos.map(function (i) {
+      var vencido = i.fechaVencimiento < hoyStr;
+      return {
+        nombre: i.nombre, categoria: i.categoria, lote: i.lote || "—",
+        stock: i.stockActual, unidad: i.unidadMedida,
+        valorRiesgo: (i.stockActual || 0) * (i.costoUnitario || 0),
+        fechaVencimiento: i.fechaVencimiento, vencido: vencido
+      };
+    }).sort(function (a, b) { return a.fechaVencimiento.localeCompare(b.fechaVencimiento); });
+
+    var vencidos = filas.filter(function (f) { return f.vencido; });
+    var porVencer = filas.filter(function (f) { return !f.vencido; });
+    var valorVencido = vencidos.reduce(function (a, f) { return a + f.valorRiesgo; }, 0);
+    var valorPorVencer = porVencer.reduce(function (a, f) { return a + f.valorRiesgo; }, 0);
+
+    // ---- Tarjetas resumen: cuántos insumos y cuánto valor hay en riesgo,
+    // separado entre lo que ya venció y lo que está por vencer en el
+    // periodo — el primer vistazo que necesita quien gestiona compras.
+    var chips = [
+      { titulo: "YA VENCIDOS", n: vencidos.length, valor: valorVencido, color: [185, 28, 28], fondo: [254, 226, 226] },
+      { titulo: "POR VENCER EN EL PERIODO", n: porVencer.length, valor: valorPorVencer, color: [180, 83, 9], fondo: [254, 243, 199] }
+    ];
+    var chipW = (pageW - margin * 2 - 14) / 2, chipH = 46;
+    chips.forEach(function (c, i) {
+      var cx = margin + i * (chipW + 14);
+      doc.setFillColor(c.fondo[0], c.fondo[1], c.fondo[2]); doc.setDrawColor(c.color[0], c.color[1], c.color[2]); doc.setLineWidth(1);
+      doc.roundedRect(cx, y, chipW, chipH, 5, 5, "FD");
+      doc.setFont("helvetica", "bold"); doc.setFontSize(8); doc.setTextColor(c.color[0], c.color[1], c.color[2]);
+      doc.text(c.titulo + " (" + c.n + ")", cx + 12, y + 17);
+      doc.setFontSize(13);
+      doc.text(fmtMoneda(c.valor), cx + chipW - 12, y + 34, { align: "right" });
+    });
+    y += chipH + 22;
+
+    if (!filas.length) {
+      doc.setFont("helvetica", "normal"); doc.setFontSize(10); doc.setTextColor(120, 120, 120);
+      doc.text("No hay insumos con fecha de vencimiento en este periodo.", margin, y);
+      piePagina(doc, margin);
+      return new Uint8Array(doc.output("arraybuffer"));
+    }
+
+    doc.autoTable({
+      startY: y, margin: { left: margin, right: margin },
+      head: [["Insumo", "Categoría", "Lote", "Stock", "Vence", "Estado", "Valor en Riesgo"]],
+      body: filas.map(function (f) {
+        return [f.nombre, f.categoria, f.lote, f.stock + " " + f.unidad, fmtFecha(f.fechaVencimiento), f.vencido ? "VENCIDO" : "Por vencer", fmtMoneda(f.valorRiesgo)];
+      }),
+      theme: "grid", styles: { fontSize: 8.5, cellPadding: 5 },
+      headStyles: { fillColor: [240, 244, 247], textColor: 40, fontStyle: "bold" },
+      columnStyles: { 3: { halign: "right" }, 6: { halign: "right" } },
+      didParseCell: function (data) {
+        if (data.section !== "body") return;
+        var f = filas[data.row.index];
+        if (!f) return;
+        if (data.column.index === 5) {
+          data.cell.styles.fontStyle = "bold";
+          data.cell.styles.textColor = f.vencido ? [185, 28, 28] : [180, 83, 9];
+        }
+      }
+    });
+    y = doc.lastAutoTable.finalY + 20;
+
+    doc.setFont("helvetica", "bold"); doc.setFontSize(11.5); doc.setTextColor(rgb[0], rgb[1], rgb[2]);
+    doc.text("VALOR TOTAL EN RIESGO: " + fmtMoneda(valorVencido + valorPorVencer), pageW - margin, y, { align: "right" });
+
+    piePagina(doc, margin);
+    return new Uint8Array(doc.output("arraybuffer"));
+  }
+
   global.BIO_PDF_INVENTARIO = {
     buildGastoReactivosPDF: buildGastoReactivosPDF,
     buildInventarioValorizadoPDF: buildInventarioValorizadoPDF,
     buildKardexInsumoPDF: buildKardexInsumoPDF,
+    buildVencimientosPDF: buildVencimientosPDF,
     fmtMoneda: fmtMoneda
   };
 })(window);
