@@ -111,11 +111,15 @@
         "</div>" +
         '<div class="lp-feature">' +
         '<div class="lp-ic">📋</div><h3>Relación de Órdenes y Exámenes</h3>' +
-        '<p>Detallado por paciente y por examen entre fechas: N° de orden, documento, paciente, fecha, edad, sexo y cada examen con su valor — con total por orden y total general del listado.</p>' +
+        '<p>Detallado por paciente y por examen entre fechas: N° de orden, documento, paciente, fecha, edad, sexo y cada examen con su valor — con total por orden y total general del listado. Se puede filtrar a un solo convenio, o ver todos con una columna de Convenio/Aliado.</p>' +
         '<div class="form-grid" style="margin:10px 0">' +
         '<div class="field"><label>Desde</label><input type="date" id="rep-relacion-desde" value="' + primerDiaMes() + '"/></div>' +
         '<div class="field"><label>Hasta</label><input type="date" id="rep-relacion-hasta" value="' + hoyISO() + '"/></div>' +
         "</div>" +
+        (conveniosActivos.length ?
+          '<div class="field" style="margin:0 0 10px"><label>Convenio (opcional)</label><select id="rep-relacion-convenio"><option value="">Todos los convenios y particulares</option>' +
+          conveniosActivos.map(function (c) { return '<option value="' + c.id + '">' + U.esc(c.nombre) + "</option>"; }).join("") +
+          "</select></div>" : "") +
         '<button class="btn btn-primary btn-block" id="btn-rep-relacion">' + U.icon("download") + " Generar PDF</button>" +
         "</div>" +
         '<div class="lp-feature">' +
@@ -248,8 +252,11 @@
           if (convenio.descuentoGeneral > 0) return Math.max(0, base * (1 - convenio.descuentoGeneral / 100));
           return base;
         }
+        var elConvenioRelacion = document.getElementById("rep-relacion-convenio");
+        var convenioIdRelacion = elConvenioRelacion ? elConvenioRelacion.value : "";
         var ordenes = S.listOrders(tenantId).filter(function (o) {
           var fecha = (o.fechaOrden || "").slice(0, 10);
+          if (convenioIdRelacion && o.convenioId !== convenioIdRelacion) return false;
           return fecha >= desde && fecha <= hasta && o.examenes && o.examenes.length;
         }).map(function (o) {
           var pac = S.getPatient(o.patientId);
@@ -260,14 +267,17 @@
             fecha: o.fechaOrden,
             edad: pac ? U.edadTexto(pac) : "—",
             sexo: pac ? pac.sexo : "—",
+            aliado: o.convenioNombre || "Particulares",
             examenes: o.examenes.map(function (ex) {
               var exCat = BIO_CATALOG.examenEfectivo(ex.examId, tenant);
               return { nombre: exCat ? exCat.nombre : ex.examId, valor: valorExamen(ex.examId, o.convenioId) };
             })
           };
         }).sort(function (a, b) { return a.fecha.localeCompare(b.fecha); });
-        var bytesRelacion = BIO_PDF_RELACION_ORDENES.buildRelacionOrdenesPDF(ordenes, tenant, desde, hasta);
-        U.downloadBytes(bytesRelacion, "Relacion_Ordenes_Examenes_" + desde + "_a_" + hasta + ".pdf");
+        var convenioFiltroRelacion = convenioIdRelacion ? convenios.filter(function (c) { return c.id === convenioIdRelacion; })[0] : null;
+        var bytesRelacion = BIO_PDF_RELACION_ORDENES.buildRelacionOrdenesPDF(ordenes, tenant, desde, hasta, convenioFiltroRelacion ? convenioFiltroRelacion.nombre : "");
+        var sufijoConvenioRelacion = convenioFiltroRelacion ? "_" + convenioFiltroRelacion.nombre.replace(/\s+/g, "_") : "";
+        U.downloadBytes(bytesRelacion, "Relacion_Ordenes_Examenes_" + desde + "_a_" + hasta + sufijoConvenioRelacion + ".pdf");
         U.toast("Relación de órdenes y exámenes descargada.", "success");
       });
       var btnCaja = document.getElementById("btn-rep-caja");

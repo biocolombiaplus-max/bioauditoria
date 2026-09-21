@@ -52,11 +52,16 @@
   }
 
   /* ordenes: [{ numeroOrden, documento, paciente, fecha (ISO), edad,
-     sexo, examenes: [{ nombre, valor }] }]. El valor de cada examen es el
-     de la Lista de Precios (o la tarifa del convenio de esa orden, si
-     tiene una especial) — las órdenes no guardan un precio por examen
-     individual, así que este es el mejor cálculo disponible, igual que la
-     sugerencia automática de "Valor a Cobrar" al crear la orden. */
+     sexo, aliado, examenes: [{ nombre, valor }] }]. El valor de cada
+     examen es el de la Lista de Precios (o la tarifa del convenio de esa
+     orden, si tiene una especial) — las órdenes no guardan un precio por
+     examen individual, así que este es el mejor cálculo disponible, igual
+     que la sugerencia automática de "Valor a Cobrar" al crear la orden.
+     convenioNombreFiltro (opcional): si el reporte ya viene filtrado a un
+     solo convenio, se muestra en el título — y, como ya queda claro de
+     cuál se trata, la tabla no repite la columna "Aliado" en cada fila
+     (si no hay filtro, sí se agrega, para poder ver de un vistazo a qué
+     convenio o si es particular pertenece cada orden). */
   function buildRelacionOrdenesPDF(ordenes, tenant, desde, hasta, convenioNombreFiltro) {
     var jsPDFCtor = window.jspdf ? window.jspdf.jsPDF : window.jsPDF;
     var doc = new jsPDFCtor({ unit: "pt", format: "letter" });
@@ -75,32 +80,36 @@
       return new Uint8Array(doc.output("arraybuffer"));
     }
 
-    var head = [["N° Orden", "Documento", "Paciente", "Fecha", "Edad", "Sexo", "Examen", "Valor"]];
+    var conAliado = !convenioNombreFiltro;
+    var numColsFijas = conAliado ? 7 : 6;
+    var head = conAliado
+      ? [["N° Orden", "Documento", "Paciente", "Aliado", "Fecha", "Edad", "Sexo", "Examen", "Valor"]]
+      : [["N° Orden", "Documento", "Paciente", "Fecha", "Edad", "Sexo", "Examen", "Valor"]];
     var body = [];
     var filaMeta = []; // "dato" | "subtotal" | "total"
     var totalGeneral = 0;
     ordenes.forEach(function (o) {
       o.examenes.forEach(function (ex, i) {
-        body.push([
-          i === 0 ? o.numeroOrden : "", i === 0 ? o.documento : "", i === 0 ? o.paciente : "",
-          i === 0 ? fmtFecha(o.fecha) : "", i === 0 ? (o.edad || "—") : "", i === 0 ? (o.sexo || "—") : "",
-          ex.nombre, fmtMoneda(ex.valor)
-        ]);
+        var filaBase = i === 0
+          ? (conAliado ? [o.numeroOrden, o.documento, o.paciente, o.aliado, fmtFecha(o.fecha), o.edad || "—", o.sexo || "—"] : [o.numeroOrden, o.documento, o.paciente, fmtFecha(o.fecha), o.edad || "—", o.sexo || "—"])
+          : (conAliado ? ["", "", "", "", "", "", ""] : ["", "", "", "", "", ""]);
+        body.push(filaBase.concat([ex.nombre, fmtMoneda(ex.valor)]));
         filaMeta.push({ tipo: "dato" });
         totalGeneral += ex.valor;
       });
       var totalOrden = o.examenes.reduce(function (a, ex) { return a + ex.valor; }, 0);
-      body.push([{ content: "Total Orden " + o.numeroOrden + " (" + o.examenes.length + " examen" + (o.examenes.length === 1 ? "" : "es") + ")", colSpan: 7, styles: { halign: "right", fontStyle: "bold", fillColor: [246, 247, 249] } }, { content: fmtMoneda(totalOrden), styles: { fontStyle: "bold", fillColor: [246, 247, 249] } }]);
+      body.push([{ content: "Total Orden " + o.numeroOrden + " (" + o.examenes.length + " examen" + (o.examenes.length === 1 ? "" : "es") + ")", colSpan: numColsFijas + 1, styles: { halign: "right", fontStyle: "bold", fillColor: [246, 247, 249] } }, { content: fmtMoneda(totalOrden), styles: { fontStyle: "bold", fillColor: [246, 247, 249] } }]);
       filaMeta.push({ tipo: "subtotal" });
     });
-    body.push([{ content: "TOTAL GENERAL DEL LISTADO", colSpan: 7, styles: { halign: "right", fontStyle: "bold", fillColor: rgb, textColor: [255, 255, 255], fontSize: 9.5 } }, { content: fmtMoneda(totalGeneral), styles: { fontStyle: "bold", fillColor: rgb, textColor: [255, 255, 255], fontSize: 9.5 } }]);
+    body.push([{ content: "TOTAL GENERAL DEL LISTADO", colSpan: numColsFijas + 1, styles: { halign: "right", fontStyle: "bold", fillColor: rgb, textColor: [255, 255, 255], fontSize: 9.5 } }, { content: fmtMoneda(totalGeneral), styles: { fontStyle: "bold", fillColor: rgb, textColor: [255, 255, 255], fontSize: 9.5 } }]);
     filaMeta.push({ tipo: "total" });
 
+    var idxValor = numColsFijas + 1;
     doc.autoTable({
       startY: y, margin: { left: margin, right: margin },
       head: head, body: body, theme: "grid", styles: { fontSize: 7.5, cellPadding: 3.5 },
       headStyles: { fillColor: [240, 244, 247], textColor: 40, fontStyle: "bold" },
-      columnStyles: { 7: { halign: "right" } },
+      columnStyles: (function () { var cs = {}; cs[idxValor] = { halign: "right" }; return cs; })(),
       didParseCell: function (data) {
         if (data.section !== "body") return;
         var meta = filaMeta[data.row.index];
