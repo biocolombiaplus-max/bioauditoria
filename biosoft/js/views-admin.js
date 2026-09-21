@@ -1454,6 +1454,11 @@
         '<p class="text-muted" style="margin:4px 0 0;font-size:12.5px">Actívalo solo si tu laboratorio determina la CIM (µg/mL) de cada antibiótico, además de Sensible/Intermedio/Resistente — agrega un campo opcional de CIM en la captura y el informe de todos los antibiogramas (Urocultivo, Hemocultivo, cultivos de secreción, Coprocultivo, etc.). Se queda desactivado por defecto, ya que muchos laboratorios trabajan solo con disco-difusión.</p>' +
         '<div class="checkbox-row"><input type="checkbox" id="f_reciboConvenioComoCredito" ' + (tenant.reciboConvenioComoCredito ? "checked" : "") + '/><label style="margin:0" for="f_reciboConvenioComoCredito">Recibo de Pago detallado (Valor Unitario por examen; convenios como crédito, sin método de pago)</label></div>' +
         '<p class="text-muted" style="margin:4px 0 12px;font-size:12.5px">Actívalo para que el Recibo de Pago muestre el precio de cada examen (columna "Valor Unitario" en vez de "Sección"). Si la orden pertenece a un convenio, el recibo muestra el nombre del convenio arriba, no pide método de pago (todo convenio se maneja a crédito) y dice "Saldo a Cargo del Convenio" en vez de "Pagado". Si es particular, se agrega el desglose de Valor Total / Abono / Saldo junto al método de pago.</p>' +
+        '<div class="field" style="max-width:420px"><label>Formato de Factura / Recibo</label><select id="f_formatoFactura">' +
+        '<option value="biosoft"' + (!tenant.formatoFactura || tenant.formatoFactura === "biosoft" ? " selected" : "") + '>Recibo de Pago BIOsoft (el de siempre)</option>' +
+        '<option value="clasica"' + (tenant.formatoFactura === "clasica" ? " selected" : "") + '>Factura Estilo Clásico (código / descripción / precio / cant. / importe, con N° de Factura)</option>' +
+        "</select></div>" +
+        '<p class="text-muted" style="margin:4px 0 12px;font-size:12.5px">Con "Factura Estilo Clásico", al generar el Recibo de Pago de una orden por primera vez se abre un formulario para revisar el código, precio y cantidad de cada examen (por si necesitas facturar más de una unidad de un mismo examen) y agregar descuento, impuesto y observaciones — igual que una factura de venta tradicional. Solo se pide una vez por orden: al reenviarla, se reutiliza lo que ya se armó.</p>' +
         '<div class="field" style="max-width:420px"><label>Formato del N° de Orden</label><select id="f_formatoNumeroOrden">' +
         Object.keys(S.FORMATOS_NUMERO_ORDEN).map(function (k) { return '<option value="' + k + '" ' + ((tenant.formatoNumeroOrden || "diario") === k ? "selected" : "") + '>' + U.esc(S.FORMATOS_NUMERO_ORDEN[k].nombre) + "</option>"; }).join("") +
         "</select></div>" +
@@ -1608,6 +1613,7 @@
       tenant.mostrarPrecioOrden = document.getElementById("f_mostrarPrecioOrden").checked;
       tenant.reportarCIM = document.getElementById("f_reportarCIM").checked;
       tenant.reciboConvenioComoCredito = document.getElementById("f_reciboConvenioComoCredito").checked;
+      tenant.formatoFactura = document.getElementById("f_formatoFactura").value;
       tenant.formatoNumeroOrden = document.getElementById("f_formatoNumeroOrden").value;
       tenant.logoGrandeReporte = document.getElementById("f_logoGrandeReporte").checked;
       tenant.logoAnchoCompleto = document.getElementById("f_logoAnchoCompleto").checked;
@@ -1668,7 +1674,7 @@
           telefonos: tenant.telefonos, email: tenant.email, sitioWeb: tenant.sitioWeb,
           resolucionHabilitacion: tenant.resolucionHabilitacion, codigoREPS: tenant.codigoREPS, nivel: tenant.nivel,
           bacteriologoResponsable: tenant.bacteriologoResponsable, mostrarPrecioOrden: tenant.mostrarPrecioOrden, reportarCIM: tenant.reportarCIM,
-          reciboConvenioComoCredito: tenant.reciboConvenioComoCredito, formatoNumeroOrden: tenant.formatoNumeroOrden,
+          reciboConvenioComoCredito: tenant.reciboConvenioComoCredito, formatoFactura: tenant.formatoFactura, formatoNumeroOrden: tenant.formatoNumeroOrden,
           logoGrandeReporte: tenant.logoGrandeReporte, logoAnchoCompleto: tenant.logoAnchoCompleto, logoAnchoPorcentaje: tenant.logoAnchoPorcentaje, ocultarNombreEncabezado: tenant.ocultarNombreEncabezado,
           colorBandaSeccion: tenant.colorBandaSeccion, bandaSeccionSinColor: tenant.bandaSeccionSinColor, membreteEnTodasLasHojas: tenant.membreteEnTodasLasHojas,
           datosPacienteEstiloDiscreto: tenant.datosPacienteEstiloDiscreto, ocultarInterpretacion: tenant.ocultarInterpretacion, ocultarValorReferencia: tenant.ocultarValorReferencia,

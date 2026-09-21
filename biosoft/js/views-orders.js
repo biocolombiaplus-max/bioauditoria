@@ -514,20 +514,116 @@
     return !!tenant && !!tenant.mostrarPrecioOrden;
   }
 
+  /* "Factura Estilo Clásico" (Configuración → Operación → Formato de
+     Factura / Recibo): antes de generarla la PRIMERA vez para una orden,
+     se abre este formulario para revisar/ajustar el código, precio y
+     cantidad de cada examen (por si hay que facturar más de una unidad
+     de un mismo examen — ej. dos pacientes atendidos con el mismo
+     paquete, como pasa en la práctica en algunos laboratorios), y agregar
+     descuento, impuesto y observaciones libres — igual que armar una
+     factura de venta tradicional. Lo que quede aquí se guarda en
+     order.facturaClasica para que reenviar la factura más adelante no
+     vuelva a pedir todo esto (ver abrirReciboOrden). */
+  function abrirEditorFacturaClasica(order, pac, tenant, precios, onListo) {
+    var numeroSugerido = S.facturacion.nextNumeroFactura(order.tenantId);
+    var filas = order.examenes.map(function (ex) {
+      var exCat = C.examenEfectivo(ex.examId, tenant);
+      return { examId: ex.examId, codigo: exCat ? exCat.cups : "", descripcion: exCat ? exCat.nombre : ex.examId, precio: precios[ex.examId] || 0, cantidad: 1 };
+    });
+
+    function filaHtml(f, i) {
+      return "<tr><td>" + U.esc(f.codigo || "—") + "</td><td>" + U.esc(f.descripcion) + "</td>" +
+        '<td><input type="number" step="any" min="0" class="fc-precio" data-i="' + i + '" value="' + f.precio + '" style="width:95px"/></td>' +
+        '<td><input type="number" step="1" min="0" class="fc-cant" data-i="' + i + '" value="' + f.cantidad + '" style="width:60px"/></td>' +
+        '<td class="fc-importe" data-i="' + i + '" style="text-align:right">' + fmtMoneda(f.precio * f.cantidad) + "</td></tr>";
+    }
+
+    var wrap = U.openModal(
+      '<h3 class="modal-title">Factura — Orden ' + order.numeroOrden + '</h3>' +
+      '<p class="text-muted" style="margin-top:0">Revisa el código, precio y cantidad de cada examen antes de generar la factura. Esto solo se pide una vez por orden — al reenviarla se reutiliza lo que armes aquí.</p>' +
+      '<div class="field" style="max-width:180px"><label>N° de Factura</label><input id="fc-numero" type="number" min="1" value="' + numeroSugerido + '"/></div>' +
+      '<div class="table-wrap"><table><thead><tr><th>Código</th><th>Descripción</th><th>Precio</th><th>Cant.</th><th>Importe</th></tr></thead><tbody id="fc-tbody">' +
+      filas.map(filaHtml).join("") + "</tbody></table></div>" +
+      '<div class="form-grid" style="margin-top:12px">' +
+      '<div class="field"><label>Descuento</label><input id="fc-descuento" type="number" step="any" min="0" value="0"/></div>' +
+      '<div class="field"><label>Impuesto</label><input id="fc-impuesto" type="number" step="any" min="0" value="0"/></div>' +
+      '<div class="field"><label>Abono</label><input id="fc-abono" type="number" step="any" min="0" value="' + (order.valorCobrar || 0) + '"/></div>' +
+      "</div>" +
+      '<div class="field"><label>Observaciones</label><textarea id="fc-observaciones" rows="2" placeholder="Ej. 2do paciente atendido: Nombre — Documento"></textarea></div>' +
+      '<p id="fc-totales" class="text-muted" style="text-align:right;font-weight:700;margin-top:10px"></p>' +
+      '<div class="flex justify-between" style="margin-top:16px"><button class="btn btn-ghost" data-modal-close>Cancelar</button><button class="btn btn-primary" id="fc-generar">Generar Factura</button></div>'
+    );
+
+    function recalcular() {
+      var subtotal = filas.reduce(function (a, f) { return a + f.precio * f.cantidad; }, 0);
+      var descuento = parseFloat(document.getElementById("fc-descuento").value) || 0;
+      var impuesto = parseFloat(document.getElementById("fc-impuesto").value) || 0;
+      var total = Math.max(0, subtotal - descuento + impuesto);
+      document.getElementById("fc-totales").textContent = "Subtotal: " + fmtMoneda(subtotal) + "   ·   Total a Pagar: " + fmtMoneda(total);
+      filas.forEach(function (f, i) {
+        var el = wrap.querySelector('.fc-importe[data-i="' + i + '"]');
+        if (el) el.textContent = fmtMoneda(f.precio * f.cantidad);
+      });
+    }
+    wrap.querySelectorAll(".fc-precio").forEach(function (inp) {
+      inp.addEventListener("input", function () { filas[this.dataset.i].precio = parseFloat(this.value) || 0; recalcular(); });
+    });
+    wrap.querySelectorAll(".fc-cant").forEach(function (inp) {
+      inp.addEventListener("input", function () { filas[this.dataset.i].cantidad = parseFloat(this.value) || 0; recalcular(); });
+    });
+    wrap.querySelector("#fc-descuento").addEventListener("input", recalcular);
+    wrap.querySelector("#fc-impuesto").addEventListener("input", recalcular);
+    recalcular();
+
+    wrap.querySelector("#fc-generar").addEventListener("click", function () {
+      var session = BIO_AUTH.getSession();
+      var numeroFinal = parseInt(document.getElementById("fc-numero").value, 10) || numeroSugerido;
+      var descuento = parseFloat(document.getElementById("fc-descuento").value) || 0;
+      var impuesto = parseFloat(document.getElementById("fc-impuesto").value) || 0;
+      var subtotal = filas.reduce(function (a, f) { return a + f.precio * f.cantidad; }, 0);
+      var factura = {
+        numero: numeroFinal, fecha: new Date().toISOString(),
+        filas: filas.map(function (f) { return { codigo: f.codigo, descripcion: f.descripcion, precio: f.precio, cantidad: f.cantidad }; }),
+        descuento: descuento, impuesto: impuesto,
+        abono: parseFloat(document.getElementById("fc-abono").value) || 0,
+        observaciones: document.getElementById("fc-observaciones").value.trim()
+      };
+      S.facturacion.guardarFacturaGenerada(order.tenantId, {
+        numero: numeroFinal, numeroOrden: order.numeroOrden, patientId: order.patientId,
+        pacienteNombre: pac ? U.nombreCompleto(pac) : "—", total: Math.max(0, subtotal - descuento + impuesto),
+        estilo: "clasica", generadoPor: session.username
+      });
+      S.addAudit(order.tenantId, session.nombre, session.rol, "GENERATE_FACTURA_CLASICA", "orden", order.id, "Generó la Factura Clásica N° " + numeroFinal + " para la orden " + order.numeroOrden + ".");
+      U.closeModal(wrap);
+      onListo(factura);
+    });
+  }
+
   async function abrirReciboOrden(order, tenant, onDone) {
     var pac = S.getPatient(order.patientId);
     var precios = {};
     S.cotizador.listPrecios(order.tenantId).forEach(function (p) { precios[p.examId] = p.precio; });
+    var formatoClasico = tenant.formatoFactura === "clasica";
 
     async function generarYEnviar(pago) {
-      var bytes = await BIO_PDF_RECIBO_ORDEN.buildReciboOrdenPDF(order, pac, tenant, pago, precios);
-      U.downloadBytes(bytes, "Recibo_Orden_" + order.numeroOrden + ".pdf");
-      U.toast("Recibo generado y descargado.", "success");
-      var monto = pago.monto != null ? pago.monto : order.valorCobrar;
+      var esFacturaClasica = formatoClasico && order.facturaClasica;
+      var bytes = esFacturaClasica
+        ? await BIO_PDF_FACTURA_CLASICA.buildFacturaClasicaPDF(order, pac, tenant, order.facturaClasica)
+        : await BIO_PDF_RECIBO_ORDEN.buildReciboOrdenPDF(order, pac, tenant, pago, precios);
+      var nombreArchivo = (esFacturaClasica ? "Factura_" : "Recibo_") + "Orden_" + order.numeroOrden + ".pdf";
+      U.downloadBytes(bytes, nombreArchivo);
+      U.toast((esFacturaClasica ? "Factura" : "Recibo") + " generado y descargado.", "success");
+      // Con Factura Estilo Clásico el monto que de verdad cobra la factura
+      // (con su propio descuento/impuesto) puede no ser igual al Valor a
+      // Cobrar de la orden — se usa el Total a Pagar real de la factura
+      // para que el mensaje de envío no diga un monto distinto al del PDF.
+      var monto = esFacturaClasica
+        ? Math.max(0, order.facturaClasica.filas.reduce(function (a, f) { return a + f.precio * f.cantidad; }, 0) - (order.facturaClasica.descuento || 0) + (order.facturaClasica.impuesto || 0))
+        : (pago.monto != null ? pago.monto : order.valorCobrar);
       var extra = C.fmtMonedaAdicional(tenant, monto);
-      var mensaje = "Hola " + (pac ? U.nombreCompleto(pac).split(" ")[0] : "") + " 👋 Adjunto el recibo de pago de tu orden " + order.numeroOrden + " en " + tenant.nombre + " por " + fmtMoneda(monto) + (extra ? " (" + extra + ")" : "") + ". ¡Gracias por tu confianza!";
+      var mensaje = "Hola " + (pac ? U.nombreCompleto(pac).split(" ")[0] : "") + " 👋 Adjunto " + (esFacturaClasica ? "la factura" : "el recibo de pago") + " de tu orden " + order.numeroOrden + " en " + tenant.nombre + " por " + fmtMoneda(monto) + (extra ? " (" + extra + ")" : "") + ". ¡Gracias por tu confianza!";
       var wrapEnvio = U.openModal(
-        '<h3 class="modal-title">Recibo listo</h3>' +
+        '<h3 class="modal-title">' + (esFacturaClasica ? "Factura lista" : "Recibo listo") + '</h3>' +
         '<p class="text-muted" style="margin-top:0">Ya se descargó el PDF. Adjúntalo antes de enviar por el canal que elijas, o imprímelo directamente.</p>' +
         '<div class="flex gap-2 wrap">' +
         '<button class="btn btn-outline btn-sm" id="rec-ord-print">' + U.icon("printer") + " Imprimir</button>" +
@@ -547,11 +643,28 @@
         var numero = U.numeroWhatsapp(pac.celular, tenant.pais);
         window.open("https://wa.me/" + numero + "?text=" + encodeURIComponent(mensaje), "_blank");
       });
-      if (pac && pac.email) U.wireEmailProviderButtons(wrapEnvio, "rec-ord-mail", pac.email, "Recibo de pago — " + tenant.nombre, mensaje);
+      if (pac && pac.email) U.wireEmailProviderButtons(wrapEnvio, "rec-ord-mail", pac.email, (esFacturaClasica ? "Factura" : "Recibo de pago") + " — " + tenant.nombre, mensaje);
       if (onDone) onDone();
     }
 
-    if (order.pago) { await generarYEnviar(order.pago); return; }
+    // Con Factura Estilo Clásico, antes de generar (pagado ya o recién
+    // confirmado) hace falta armar la factura (código/precio/cantidad de
+    // cada examen, descuento, impuesto, observaciones) — pero solo la
+    // PRIMERA vez para esta orden; si ya se armó antes (order.facturaClasica),
+    // se reutiliza tal cual, igual que order.pago ya se reutiliza siempre.
+    function continuarConPago(pago) {
+      if (formatoClasico && !order.facturaClasica) {
+        abrirEditorFacturaClasica(order, pac, tenant, precios, function (factura) {
+          order.facturaClasica = factura;
+          S.saveOrder(order);
+          generarYEnviar(pago);
+        });
+        return;
+      }
+      generarYEnviar(pago);
+    }
+
+    if (order.pago) { await continuarConPago(order.pago); return; }
 
     // Con "Recibo de Pago detallado" activo, una orden que pertenece a un
     // convenio se trata como lo que es — un cargo a crédito, no un pago
@@ -607,7 +720,7 @@
         tieneCopago ? "Confirmó el copago de " + fmtMoneda(valorCopago) + " y generó el cargo a crédito de " + fmtMoneda(valorConvenio) + " al convenio " + (order.convenioNombre || "—") + " para la orden " + order.numeroOrden + "."
         : esCargoConvenio ? "Generó el cargo a crédito del convenio " + (order.convenioNombre || "—") + " para la orden " + order.numeroOrden + "." : "Confirmó el pago de la orden " + order.numeroOrden + " y generó el recibo.");
       U.closeModal(wrapConfirm);
-      await generarYEnviar(pago);
+      continuarConPago(pago);
     });
   }
 
