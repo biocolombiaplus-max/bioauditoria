@@ -4,239 +4,388 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
 <meta name="apple-mobile-web-app-capable" content="yes">
-<meta name="theme-color" content="#0D0D1A">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="theme-color" content="#08081A">
 <title>BIOAuditoria — Portal</title>
-<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
 <style>
 *{box-sizing:border-box;margin:0;padding:0;-webkit-user-select:none!important;user-select:none!important;-webkit-tap-highlight-color:transparent}
 :root{
-  --or:#FF6B00;--or2:#FF8C33;--or-bg:rgba(255,107,0,0.12);--orb:rgba(255,107,0,0.3);
-  --pu:#7B2FBE;--pu2:#9B4FDE;--pu-bg:rgba(123,47,190,0.12);--pub:rgba(123,47,190,0.3);
-  --dark:#0D0D1A;--dark2:#141428;--dark3:#1C1C35;--dark4:#22223A;
-  --text:#F0F0FF;--text2:#A0A0C0;--text3:#5A5A8A;
-  --bd:rgba(255,255,255,0.07);--bd2:rgba(255,255,255,0.13);
-  --green:#2D9F5C;--gbg:rgba(45,159,92,0.12);
-  --red:#E63946;--rbg:rgba(230,57,70,0.12);
-  --yellow:#F4A261;--ybg:rgba(244,162,97,0.12);
-  --bn:64px;--r:13px;
+  --or:#FF6B00;--or2:#FF8C33;--or-bg:rgba(255,107,0,0.1);--orb:rgba(255,107,0,0.3);
+  --pu:#7B2FBE;--pu2:#A855F7;--pu-bg:rgba(168,85,247,0.1);
+  --bg:#08081A;--s1:#0F0F24;--s2:#161630;--s3:#1D1D3D;--s4:#242450;
+  --t1:#F4F4FF;--t2:#9090B8;--t3:#5050808;--t4:#2A2A50;
+  --bd:rgba(255,255,255,0.06);--bd2:rgba(255,255,255,0.12);
+  --green:#22C55E;--gbg:rgba(34,197,94,0.1);--gb:rgba(34,197,94,0.3);
+  --red:#EF4444;--rbg:rgba(239,68,68,0.1);--rb:rgba(239,68,68,0.3);
+  --yellow:#F59E0B;--ybg:rgba(245,158,11,0.1);--yb:rgba(245,158,11,0.3);
+  --r:16px;--r2:12px;--r3:8px;
+  --bn:72px;
 }
-html,body{height:100%;overflow:hidden;background:var(--dark);color:var(--text);font-family:'Plus Jakarta Sans',sans-serif;font-size:14px}
-.shell{display:flex;height:100vh;overflow:hidden}
-/* SIDEBAR */
-.sidebar{width:250px;background:var(--dark2);border-right:1px solid var(--bd);display:flex;flex-direction:column;flex-shrink:0;overflow-y:auto}
-.slogo{padding:16px 14px 12px;border-bottom:1px solid var(--bd);display:flex;align-items:center;gap:10px}
-.logo-img{width:36px;height:36px;border-radius:9px;background:linear-gradient(135deg,var(--or),var(--pu));display:flex;align-items:center;justify-content:center;font-size:17px;flex-shrink:0;overflow:hidden}
-.logo-img img{width:100%;height:100%;object-fit:cover;border-radius:9px}
-.logo-txt{font-size:15px;font-weight:800}.logo-txt span{color:var(--or)}
-.logo-sub{font-size:10px;color:var(--text3);margin-top:1px;line-height:1.3}
-.ns{padding:10px 12px 3px;font-size:10px;text-transform:uppercase;letter-spacing:0.07em;color:var(--text3);font-weight:700}
-.ni{display:flex;align-items:center;gap:10px;padding:9px 12px;border-radius:9px;margin:1px 6px;cursor:pointer;color:var(--text2);transition:all 0.15s;font-size:13px;font-weight:500}
-.ni:hover{background:rgba(255,255,255,0.05);color:var(--text)}.ni.act{background:var(--or-bg);color:var(--or);font-weight:700}
-.ni i{width:16px;text-align:center;font-size:14px}
-.ni-badge{margin-left:auto;background:var(--rbg);color:var(--red);border-radius:4px;padding:1px 6px;font-size:10px;font-weight:700}
-.sfoot{padding:12px;border-top:1px solid var(--bd);margin-top:auto}
-.ucard{background:var(--dark3);border-radius:10px;padding:10px 12px;margin-bottom:8px}
-.unm{font-size:12px;font-weight:700}.url2{font-size:10px;color:var(--text3);margin-top:1px}
-.lkbadge{display:flex;align-items:center;gap:5px;background:var(--rbg);border:1px solid rgba(230,57,70,0.2);border-radius:6px;padding:5px 8px;font-size:10px;color:var(--red);font-weight:600}
-.lkbtn{font-size:11px;color:var(--text3);cursor:pointer;text-align:center;margin-top:8px;padding:4px}
-/* MAIN */
-.main{flex:1;display:flex;flex-direction:column;overflow:hidden}
-.topbar{display:flex;align-items:center;justify-content:space-between;padding:12px 18px;border-bottom:1px solid var(--bd);background:var(--dark2);flex-shrink:0;gap:8px}
-.pgtitle{font-size:14px;font-weight:700}
-.prot{display:flex;align-items:center;gap:4px;background:var(--rbg);border:1px solid rgba(230,57,70,0.2);border-radius:6px;padding:4px 9px;font-size:11px;color:var(--red);font-weight:600;flex-shrink:0}
-/* CONTENT */
-.content{flex:1;overflow-y:auto;padding:16px;-webkit-overflow-scrolling:touch}
-.page{display:none}.page.act{display:block}
-/* STATS */
-.sgrid{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:14px}
-.sc{background:var(--dark3);border:1px solid var(--bd);border-radius:var(--r);padding:13px;text-align:center}
-.sn{font-size:24px;font-weight:800;line-height:1}.sl{font-size:10px;color:var(--text2);margin-top:3px}
-/* ESTANDAR CARDS */
-.estd{background:var(--dark3);border:1px solid var(--bd);border-radius:var(--r);padding:14px;margin-bottom:10px;cursor:pointer;transition:border-color 0.15s,background 0.15s}
-.estd:hover,.estd:active{border-color:var(--or);background:rgba(255,107,0,0.04)}
-.estd-head{display:flex;align-items:center;gap:12px;margin-bottom:8px}
-.estd-ico{width:42px;height:42px;border-radius:11px;display:flex;align-items:center;justify-content:center;font-size:20px;flex-shrink:0}
-.estd-num{font-size:10px;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:0.05em}
-.estd-nm{font-size:14px;font-weight:700;line-height:1.2}
-.estd-desc{font-size:11px;color:var(--text2);margin-top:1px}
-.estd-foot{display:flex;align-items:center;justify-content:space-between;margin-top:8px}
-.estd-prog{flex:1;margin-right:12px}
-.estd-prog-lbl{display:flex;justify-content:space-between;font-size:10px;color:var(--text3);margin-bottom:3px}
-.pw{height:5px;background:var(--bd);border-radius:3px;overflow:hidden}
-.pf{height:100%;border-radius:3px}
-.estd-tags{display:flex;flex-wrap:wrap;gap:3px}
-.tag{display:inline-block;padding:2px 7px;border-radius:4px;font-size:10px;font-weight:600}
-.tv{background:var(--gbg);color:var(--green)}.tp{background:var(--ybg);color:var(--yellow)}.tr{background:var(--rbg);color:var(--red)}
-/* DOC LIST INSIDE ESTÁNDAR */
-.edocs{display:none;margin-top:10px;border-top:1px solid var(--bd);padding-top:10px}
-.edocs.open{display:block}
-.dr{display:flex;align-items:center;gap:8px;padding:9px 10px;border-radius:8px;border:1px solid var(--bd);margin-bottom:5px;background:var(--dark4)}
-.dl{display:flex;align-items:center;gap:9px;flex:1;min-width:0}
-.di{width:30px;height:30px;border-radius:7px;display:flex;align-items:center;justify-content:center;font-size:13px;flex-shrink:0}
-.dn{font-size:12px;font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.dm{font-size:10px;color:var(--text3)}
-.dtipo{font-size:9px;background:var(--pu-bg);color:var(--pu2);padding:1px 5px;border-radius:3px;font-weight:600;text-transform:uppercase;flex-shrink:0}
-.status{display:inline-block;padding:2px 7px;border-radius:4px;font-size:10px;font-weight:700;text-transform:uppercase;flex-shrink:0}
-.sv{background:var(--gbg);color:var(--green)}.sp{background:var(--ybg);color:var(--yellow)}.sr{background:var(--rbg);color:var(--red)}
-.bver{display:inline-flex;align-items:center;gap:4px;padding:6px 10px;border-radius:7px;font-size:11px;font-weight:700;cursor:pointer;border:1px solid var(--pub);background:var(--pu-bg);color:var(--pu2);font-family:inherit;white-space:nowrap;flex-shrink:0}
-/* VERIFY */
-.estd-ver{background:var(--dark3);border:1px solid var(--bd);border-radius:var(--r);margin-bottom:8px;overflow:hidden}
-.evhead{display:flex;align-items:center;justify-content:space-between;padding:11px 14px;cursor:pointer;transition:background 0.15s}
-.evhead:hover{background:rgba(255,255,255,0.03)}
-.evtitle{font-size:13px;font-weight:700;display:flex;align-items:center;gap:8px}
-.evbody{display:none;padding:4px 14px 12px}
-.evbody.open{display:block}
-.vrow{display:flex;align-items:center;gap:8px;padding:7px 10px;border-radius:7px;margin-bottom:4px;border:1px solid var(--bd);background:var(--dark4)}
-.vcode{font-size:10px;font-weight:700;color:var(--text3);min-width:28px}
-.vd{flex:1;font-size:12px}
-/* ALERT */
-.alert{display:flex;align-items:flex-start;gap:8px;padding:10px 12px;border-radius:9px;font-size:12px;margin-bottom:12px}
-.aw{background:var(--ybg);border:1px solid rgba(244,162,97,0.3);color:var(--yellow)}
-.ai{background:var(--pu-bg);border:1px solid var(--pub);color:var(--pu2)}
-.ag{background:var(--gbg);border:1px solid rgba(45,159,92,0.3);color:var(--green)}
-/* AUDITORIA */
-.audit-form{background:var(--dark3);border:1px solid var(--bd);border-radius:var(--r);padding:16px;margin-bottom:12px}
-.fg{display:flex;flex-direction:column;gap:4px;margin-bottom:10px}
-.fl{font-size:11px;font-weight:600;color:var(--text2);text-transform:uppercase;letter-spacing:0.05em}
-.fi{padding:10px 12px;background:rgba(255,255,255,0.04);border:1px solid var(--bd);border-radius:8px;color:var(--text);font-size:13px;font-family:inherit;outline:none;transition:border 0.2s;width:100%;-webkit-appearance:none}
+html,body{height:100%;background:var(--bg);color:var(--t1);font-family:'Plus Jakarta Sans',sans-serif;font-size:15px;overflow:hidden}
+
+/* ─── SHELL ─── */
+.app{display:flex;flex-direction:column;height:100vh;overflow:hidden}
+.topbar{background:var(--s1);border-bottom:1px solid var(--bd);padding:12px 18px;display:flex;align-items:center;justify-content:space-between;flex-shrink:0;gap:10px}
+.tb-left{display:flex;align-items:center;gap:10px}
+.tb-logo{width:34px;height:34px;border-radius:9px;background:linear-gradient(135deg,var(--or),var(--pu));display:flex;align-items:center;justify-content:center;font-size:15px;flex-shrink:0;overflow:hidden}
+.tb-logo img{width:100%;height:100%;object-fit:cover;border-radius:9px}
+.tb-name{font-size:14px;font-weight:800;line-height:1.15}
+.tb-name span{color:var(--or)}
+.tb-sub{font-size:10px;color:var(--t2);font-weight:500}
+.tb-right{display:flex;align-items:center;gap:6px}
+.prot-pill{display:flex;align-items:center;gap:5px;background:rgba(239,68,68,0.08);border:1px solid var(--rb);border-radius:20px;padding:5px 10px;font-size:10px;color:var(--red);font-weight:700}
+.logout-btn{width:30px;height:30px;border-radius:50%;background:var(--s3);border:none;color:var(--t2);cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:12px;font-family:inherit}
+
+/* ─── CONTENT ─── */
+.scroll{flex:1;overflow-y:auto;-webkit-overflow-scrolling:touch;padding:0 0 calc(var(--bn) + 16px)}
+.page{display:none;padding:18px 16px 0}.page.act{display:block}
+
+/* ─── HOME HERO ─── */
+.hero{background:linear-gradient(145deg,var(--s2),var(--s1));border:1px solid var(--bd2);border-radius:var(--r);padding:20px;margin-bottom:16px;display:flex;align-items:center;gap:18px}
+.ring-wrap{position:relative;flex-shrink:0}
+.ring-svg{width:90px;height:90px}
+.ring-inner{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center}
+.ring-pct{font-size:20px;font-weight:900;line-height:1;color:var(--t1)}
+.ring-lbl{font-size:9px;color:var(--t2);font-weight:700;text-transform:uppercase;letter-spacing:0.06em;margin-top:1px}
+.hero-info{flex:1;min-width:0}
+.hero-greeting{font-size:13px;color:var(--t2);font-weight:500;margin-bottom:2px}
+.hero-empresa{font-size:16px;font-weight:800;line-height:1.2;margin-bottom:8px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.hero-pills{display:flex;gap:5px;flex-wrap:wrap}
+.hpill{display:inline-flex;align-items:center;gap:4px;padding:4px 9px;border-radius:20px;font-size:10px;font-weight:700}
+.hpill-g{background:var(--gbg);border:1px solid var(--gb);color:var(--green)}
+.hpill-y{background:var(--ybg);border:1px solid var(--yb);color:var(--yellow)}
+.hpill-r{background:var(--rbg);border:1px solid var(--rb);color:var(--red)}
+
+/* ─── SECTION HEADER ─── */
+.sh{display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;margin-top:4px}
+.sh-title{font-size:13px;font-weight:800;color:var(--t1);display:flex;align-items:center;gap:6px}
+.sh-action{font-size:11px;color:var(--or2);font-weight:700;cursor:pointer}
+
+/* ─── ALERT ─── */
+.alert{display:flex;align-items:flex-start;gap:10px;padding:12px 14px;border-radius:var(--r2);font-size:12px;margin-bottom:14px;line-height:1.5}
+.alert i{font-size:14px;flex-shrink:0;margin-top:1px}
+.aw{background:var(--ybg);border:1px solid var(--yb);color:var(--yellow)}
+.ai{background:var(--pu-bg);border:1px solid rgba(168,85,247,0.25);color:var(--pu2)}
+.ag{background:var(--gbg);border:1px solid var(--gb);color:var(--green)}
+
+/* ─── STANDARD CARDS (home) ─── */
+.estd-mini{background:var(--s2);border:1px solid var(--bd);border-radius:var(--r2);padding:14px;margin-bottom:8px;cursor:pointer;transition:border-color 0.15s,transform 0.1s;active-transform:scale(0.99)}
+.estd-mini:active{transform:scale(0.99)}
+.estd-mini:hover{border-color:var(--bd2)}
+.em-row{display:flex;align-items:center;gap:12px}
+.em-ico{width:44px;height:44px;border-radius:12px;display:flex;align-items:center;justify-content:center;font-size:20px;flex-shrink:0}
+.em-info{flex:1;min-width:0}
+.em-num{font-size:10px;color:var(--t2);font-weight:600;text-transform:uppercase;letter-spacing:0.05em;margin-bottom:1px}
+.em-name{font-size:14px;font-weight:700;margin-bottom:5px;line-height:1.2}
+.em-bar-wrap{display:flex;align-items:center;gap:8px}
+.em-bar{flex:1;height:5px;background:var(--s4);border-radius:3px;overflow:hidden}
+.em-fill{height:100%;border-radius:3px;transition:width 0.4s}
+.em-pct{font-size:11px;font-weight:700;min-width:32px;text-align:right;flex-shrink:0}
+.em-chevron{color:var(--t2);font-size:12px;flex-shrink:0}
+.em-tags{display:flex;gap:4px;margin-top:8px;flex-wrap:wrap}
+.tag{display:inline-flex;align-items:center;gap:3px;padding:3px 8px;border-radius:20px;font-size:10px;font-weight:700}
+.tv{background:var(--gbg);border:1px solid var(--gb);color:var(--green)}
+.tp{background:var(--ybg);border:1px solid var(--yb);color:var(--yellow)}
+.tr{background:var(--rbg);border:1px solid var(--rb);color:var(--red)}
+
+/* ─── ESTÁNDARES PAGE ─── */
+.estd-card{background:var(--s2);border:1px solid var(--bd);border-radius:var(--r2);margin-bottom:10px;overflow:hidden;transition:border-color 0.15s}
+.estd-card.open{border-color:var(--bd2)}
+.ec-head{display:flex;align-items:center;gap:12px;padding:14px 16px;cursor:pointer}
+.ec-ico{width:46px;height:46px;border-radius:12px;display:flex;align-items:center;justify-content:center;font-size:22px;flex-shrink:0}
+.ec-meta{flex:1;min-width:0}
+.ec-num{font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:0.06em;color:var(--t2);margin-bottom:2px}
+.ec-name{font-size:15px;font-weight:800;margin-bottom:4px;line-height:1.2}
+.ec-prog{display:flex;align-items:center;gap:8px}
+.ec-bar{flex:1;height:4px;background:var(--s4);border-radius:3px;overflow:hidden}
+.ec-fill{height:100%;border-radius:3px}
+.ec-pct{font-size:11px;font-weight:800;min-width:28px}
+.ec-right{display:flex;flex-direction:column;align-items:flex-end;gap:4px;flex-shrink:0}
+.ec-chev{color:var(--t2);font-size:14px;transition:transform 0.2s}
+.ec-body{display:none;border-top:1px solid var(--bd);padding:14px 16px 16px}
+.ec-body.open{display:block}
+.ec-desc{font-size:12px;color:var(--t2);padding:10px 12px;background:var(--s3);border-radius:var(--r3);margin-bottom:14px;line-height:1.6}
+.ec-section-lbl{font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:0.06em;color:var(--pu2);margin-bottom:8px;display:flex;align-items:center;gap:5px}
+.req-list{margin-bottom:14px}
+.req-row{display:flex;align-items:flex-start;gap:8px;font-size:12px;color:var(--t2);padding:5px 0;line-height:1.5}
+.req-dot{width:18px;height:18px;border-radius:50%;background:var(--gbg);border:1px solid var(--gb);display:flex;align-items:center;justify-content:center;flex-shrink:0;margin-top:1px}
+.req-dot i{font-size:8px;color:var(--green)}
+
+/* ─── DOC ROWS ─── */
+.doc-row{display:flex;align-items:center;gap:10px;padding:10px 12px;background:var(--s3);border-radius:var(--r3);margin-bottom:6px;border:1px solid var(--bd)}
+.doc-ico{width:36px;height:36px;border-radius:9px;display:flex;align-items:center;justify-content:center;font-size:15px;flex-shrink:0}
+.doc-info{flex:1;min-width:0}
+.doc-name{font-size:13px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;margin-bottom:2px}
+.doc-meta{font-size:10px;color:var(--t2);display:flex;align-items:center;gap:5px}
+.tipo-pill{background:var(--pu-bg);color:var(--pu2);padding:1px 5px;border-radius:4px;font-size:9px;font-weight:700;text-transform:uppercase}
+.status{display:inline-flex;align-items:center;gap:4px;padding:3px 8px;border-radius:20px;font-size:10px;font-weight:700;flex-shrink:0}
+.sv{background:var(--gbg);border:1px solid var(--gb);color:var(--green)}
+.sp{background:var(--ybg);border:1px solid var(--yb);color:var(--yellow)}
+.sr{background:var(--rbg);border:1px solid var(--rb);color:var(--red)}
+.view-btn{display:inline-flex;align-items:center;gap:4px;padding:6px 10px;border-radius:var(--r3);font-size:11px;font-weight:700;cursor:pointer;background:var(--pu-bg);border:1px solid rgba(168,85,247,0.25);color:var(--pu2);font-family:inherit;flex-shrink:0}
+
+/* ─── FORMATOS ─── */
+.fmt-group-lbl{font-size:10px;font-weight:800;text-transform:uppercase;letter-spacing:0.08em;color:var(--or2);padding:5px 10px;background:var(--or-bg);border-radius:20px;display:inline-block;margin-bottom:8px;margin-top:14px}
+.fmt-row{display:flex;align-items:center;gap:10px;padding:12px 14px;background:var(--s2);border-radius:var(--r2);margin-bottom:6px;border:1px solid var(--bd);cursor:pointer;transition:border-color 0.15s}
+.fmt-row:hover{border-color:var(--bd2)}
+.fmt-ico{width:38px;height:38px;border-radius:10px;background:var(--pu-bg);display:flex;align-items:center;justify-content:center;font-size:16px;flex-shrink:0}
+.fmt-info{flex:1;min-width:0}
+.fmt-name{font-size:13px;font-weight:700;margin-bottom:2px}
+.fmt-cat{font-size:11px;color:var(--t2)}
+.fmt-arrow{color:var(--t2);font-size:13px;flex-shrink:0}
+
+/* ─── VERIFICACIÓN ─── */
+.ver-hero{background:var(--s2);border:1px solid var(--bd);border-radius:var(--r);padding:18px;margin-bottom:16px;display:flex;align-items:center;gap:16px}
+.ver-ring{position:relative;flex-shrink:0}
+.ver-stat-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-top:12px}
+.vstat{background:var(--s3);border:1px solid var(--bd);border-radius:var(--r3);padding:10px;text-align:center}
+.vstat-n{font-size:18px;font-weight:900;line-height:1}
+.vstat-l{font-size:9px;color:var(--t2);font-weight:600;text-transform:uppercase;margin-top:3px;letter-spacing:0.04em}
+.ver-std-card{background:var(--s2);border:1px solid var(--bd);border-radius:var(--r2);margin-bottom:8px;overflow:hidden}
+.vsc-head{display:flex;align-items:center;gap:10px;padding:12px 14px;cursor:pointer;transition:background 0.15s}
+.vsc-head:hover{background:rgba(255,255,255,0.02)}
+.vsc-ico{font-size:18px;flex-shrink:0}
+.vsc-label{font-size:13px;font-weight:700;flex:1}
+.vsc-score{font-size:12px;font-weight:800;flex-shrink:0}
+.vsc-chev{color:var(--t2);font-size:12px;transition:transform 0.2s;flex-shrink:0}
+.vsc-body{display:none;border-top:1px solid var(--bd);padding:8px 14px 12px}
+.vsc-body.open{display:block}
+.vitem{display:flex;align-items:center;gap:10px;padding:9px 10px;background:var(--s3);border-radius:var(--r3);margin-bottom:5px;border:1px solid var(--bd)}
+.vcode{font-size:10px;font-weight:700;color:var(--t2);min-width:30px;font-variant-numeric:tabular-nums}
+.vdesc{flex:1;font-size:12px;line-height:1.4;color:var(--t1)}
+
+/* ─── AUDITORÍA ─── */
+.section-card{background:var(--s2);border:1px solid var(--bd);border-radius:var(--r);padding:18px;margin-bottom:12px}
+.sc-title{font-size:14px;font-weight:800;color:var(--or2);margin-bottom:16px;display:flex;align-items:center;gap:7px}
+.fg{display:flex;flex-direction:column;gap:5px;margin-bottom:12px}
+.fl{font-size:11px;font-weight:700;color:var(--t2);text-transform:uppercase;letter-spacing:0.05em}
+.fi{padding:11px 14px;background:var(--s3);border:1px solid var(--bd);border-radius:var(--r2);color:var(--t1);font-size:13px;font-family:inherit;outline:none;transition:border-color 0.2s;width:100%;-webkit-appearance:none;appearance:none}
 .fi:focus{border-color:var(--or)}
-.fta{min-height:70px;resize:vertical}
-select.fi option{background:var(--dark2)}
+.fta{min-height:80px;resize:vertical}
+select.fi option{background:var(--s1)}
 .fgrid{display:grid;grid-template-columns:1fr 1fr;gap:10px}
-.hallazgo-item{background:var(--dark4);border:1px solid var(--bd);border-radius:9px;padding:12px;margin-bottom:8px;position:relative}
-.hall-n{font-size:12px;font-weight:700;margin-bottom:4px}
-.hall-m{font-size:11px;color:var(--text2)}
-.hall-del{position:absolute;top:10px;right:10px;width:24px;height:24px;border-radius:50%;background:var(--rbg);border:none;color:var(--red);cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:11px;font-family:inherit}
-/* ACTAS */
-.acta-card{background:var(--dark3);border:1px solid var(--bd);border-radius:var(--r);padding:14px;margin-bottom:8px}
-.acta-head{display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:8px}
-.acta-tipo{font-size:11px;font-weight:700;background:var(--or-bg);color:var(--or2);padding:2px 8px;border-radius:4px;flex-shrink:0}
-.acta-fecha{font-size:11px;color:var(--text3)}
-/* BOTTOM NAV */
-.bnav{display:none;position:fixed;bottom:0;left:0;right:0;height:var(--bn);background:var(--dark2);border-top:1px solid var(--bd);z-index:100;padding-bottom:env(safe-area-inset-bottom,0px)}
-.bni{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;cursor:pointer;padding:8px 4px;color:var(--text3);transition:color 0.15s;font-size:9px;font-weight:700;text-transform:uppercase;position:relative}
-.bni i{font-size:19px;transition:all 0.15s}
-.bni.act{color:var(--or)}.bni.act i{filter:drop-shadow(0 0 6px rgba(255,107,0,0.6))}
-.bn-dot{position:absolute;top:8px;right:calc(50% - 14px);width:7px;height:7px;border-radius:50%;background:var(--red)}
-/* VIEWER */
-.viewer{display:none;position:fixed;inset:0;z-index:200;background:rgba(0,0,0,0.9);backdrop-filter:blur(16px);align-items:flex-end;justify-content:center}
+.fg-sub{font-size:12px;font-weight:700;color:var(--pu2);margin:14px 0 8px;display:flex;align-items:center;gap:6px}
+.hallazgo-item{background:var(--s3);border:1px solid var(--bd);border-radius:var(--r2);padding:14px;margin-bottom:8px;position:relative}
+.hall-num{font-size:11px;font-weight:700;color:var(--or2);margin-bottom:10px;text-transform:uppercase;letter-spacing:0.05em}
+.hall-del{position:absolute;top:12px;right:12px;width:26px;height:26px;border-radius:50%;background:var(--rbg);border:1px solid var(--rb);color:var(--red);cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:11px;font-family:inherit}
+.add-btn{display:flex;align-items:center;gap:6px;padding:9px 14px;border-radius:var(--r2);background:var(--or-bg);border:1px solid var(--orb);color:var(--or2);font-size:12px;font-weight:700;cursor:pointer;font-family:inherit}
+.primary-btn{width:100%;padding:15px;background:linear-gradient(135deg,var(--or),#C2410C);color:#fff;border:none;border-radius:var(--r2);font-size:15px;font-weight:800;cursor:pointer;font-family:inherit;display:flex;align-items:center;justify-content:center;gap:8px;letter-spacing:0.02em}
+.no-items{font-size:12px;color:var(--t2);text-align:center;padding:24px;line-height:1.6}
+
+/* ─── ACTAS ─── */
+.acta-card{background:var(--s2);border:1px solid var(--bd);border-radius:var(--r);padding:16px;margin-bottom:10px}
+.acta-badge{display:inline-flex;align-items:center;gap:4px;padding:4px 10px;border-radius:20px;font-size:11px;font-weight:700;background:var(--or-bg);border:1px solid var(--orb);color:var(--or2)}
+.acta-date{font-size:11px;color:var(--t2);margin-top:3px}
+.acta-actions{display:flex;gap:8px;margin-top:12px}
+.sec-btn{flex:1;padding:10px;border-radius:var(--r3);font-size:12px;font-weight:700;cursor:pointer;font-family:inherit;display:flex;align-items:center;justify-content:center;gap:5px;background:var(--s3);border:1px solid var(--bd);color:var(--t2)}
+
+/* ─── BOTTOM NAV ─── */
+.bnav{position:fixed;bottom:0;left:0;right:0;height:var(--bn);background:var(--s1);border-top:1px solid var(--bd);z-index:100;display:flex;padding-bottom:env(safe-area-inset-bottom,0px)}
+.bni{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;cursor:pointer;color:var(--t2);transition:color 0.15s;font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:0.04em;position:relative;padding:8px 2px}
+.bni i{font-size:20px;transition:all 0.2s}
+.bni.act{color:var(--or)}
+.bni.act i{filter:drop-shadow(0 0 8px rgba(255,107,0,0.7))}
+.bn-badge{position:absolute;top:8px;right:calc(50% - 16px);min-width:16px;height:16px;border-radius:8px;background:var(--red);color:#fff;font-size:9px;font-weight:700;display:flex;align-items:center;justify-content:center;padding:0 3px;border:2px solid var(--s1)}
+
+/* ─── VIEWER ─── */
+.viewer{display:none;position:fixed;inset:0;z-index:200;background:rgba(0,0,0,0.85);backdrop-filter:blur(20px);align-items:flex-end;justify-content:center}
 .viewer.open{display:flex}
-.vbox{background:var(--dark2);border:1px solid var(--bd2);border-radius:20px 20px 0 0;width:100%;max-width:750px;max-height:92vh;overflow:hidden;display:flex;flex-direction:column}
-.vhead{display:flex;align-items:center;justify-content:space-between;padding:14px 18px;border-bottom:1px solid var(--bd);flex-shrink:0}
-.vtitle{font-size:13px;font-weight:700;flex:1;margin-right:8px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.vclose{width:30px;height:30px;border-radius:50%;background:rgba(255,255,255,0.08);display:flex;align-items:center;justify-content:center;cursor:pointer;font-size:14px;flex-shrink:0}
+.vbox{background:var(--s1);border:1px solid var(--bd2);border-radius:22px 22px 0 0;width:100%;max-width:760px;max-height:91vh;display:flex;flex-direction:column}
+.vhead{display:flex;align-items:center;justify-content:space-between;padding:16px 18px;border-bottom:1px solid var(--bd);flex-shrink:0}
+.vtitle{font-size:13px;font-weight:700;flex:1;margin-right:10px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.vhead-pills{display:flex;align-items:center;gap:6px}
 .vbody{padding:16px;overflow-y:auto;flex:1;-webkit-overflow-scrolling:touch}
-.dprev{background:#fff;color:#111;padding:24px 28px;border-radius:10px;font-family:'Plus Jakarta Sans',Arial,sans-serif;font-size:12px;line-height:1.9;position:relative}
-.dprev .wm{position:absolute;top:50%;left:50%;transform:translate(-50%,-50%) rotate(-35deg);font-size:55px;color:rgba(255,107,0,0.05);font-weight:900;white-space:nowrap;pointer-events:none;z-index:1}
-.dprev h1{font-size:15px;font-weight:800;text-align:center;color:#0A3D55;margin-bottom:8px;border-bottom:2px solid #FF6B00;padding-bottom:10px}
+.dprev{background:#fff;color:#111;padding:24px;border-radius:10px;font-family:'Plus Jakarta Sans',Arial,sans-serif;font-size:12px;line-height:1.9;position:relative}
+.dprev .wm{position:absolute;top:50%;left:50%;transform:translate(-50%,-50%) rotate(-35deg);font-size:60px;color:rgba(255,107,0,0.05);font-weight:900;white-space:nowrap;pointer-events:none;z-index:1}
+.dprev h1{font-size:15px;font-weight:800;text-align:center;color:#0A3D55;margin-bottom:10px;border-bottom:2px solid #FF6B00;padding-bottom:10px}
 .dprev h2{font-size:12px;font-weight:700;color:#7B2FBE;margin:16px 0 6px;border-left:3px solid #FF6B00;padding-left:8px}
 .dprev p{margin-bottom:8px;color:#222;text-align:justify}
 .dprev table{width:100%;border-collapse:collapse;margin:8px 0;font-size:11px}
 .dprev td,.dprev th{padding:6px 8px;border:1px solid #ddd}
 .dprev th{background:#0A3D55;color:#fff;font-weight:700}
-.dprev .sig{border:1px dashed #ccc;border-radius:6px;padding:12px;margin-top:12px;text-align:center;color:#888;font-size:11px;min-height:55px;display:grid;grid-template-columns:1fr 1fr;gap:10px}
-.dprev .sig-box{border-top:1px solid #ccc;padding-top:6px;margin-top:20px}
+.dprev .sig-grid{display:grid;grid-template-columns:1fr 1fr;gap:20px;margin-top:20px}
+.dprev .sig-box{border-top:1px solid #ccc;padding-top:8px;text-align:center;font-size:11px;min-height:60px}
 .pov{position:absolute;inset:0;z-index:10;cursor:not-allowed}
-.nodl{font-size:10px;color:var(--red);background:var(--rbg);padding:6px 12px;border-radius:6px;margin-bottom:12px;display:flex;align-items:center;gap:6px}
-/* MOBILE */
+.nodl{font-size:10px;color:var(--red);background:var(--rbg);padding:8px 12px;border-radius:var(--r3);margin-bottom:12px;display:flex;align-items:center;gap:6px;border:1px solid var(--rb)}
+.vclose-btn{width:32px;height:32px;border-radius:50%;background:var(--s3);display:flex;align-items:center;justify-content:center;cursor:pointer;font-size:14px;border:1px solid var(--bd);color:var(--t2)}
+
+/* ─── SIDEBAR (desktop only) ─── */
+.sidebar{display:none}
+
+/* ─── MOBILE ─── */
 @media(max-width:768px){
-  .sidebar{display:none}
-  .topbar{padding:10px 14px}
-  .content{padding:12px;padding-bottom:calc(var(--bn) + 12px)}
-  .sgrid{gap:8px}.sc{padding:11px 8px}.sn{font-size:20px}.sl{font-size:9px}
   .bnav{display:flex}
-  .mhdr{display:flex!important;align-items:center;justify-content:space-between;margin-bottom:14px}
-  .mlogo-box{display:flex;align-items:center;gap:8px}
-  .mlogo{font-size:17px;font-weight:800}.mlogo span{color:var(--or)}
   .fgrid{grid-template-columns:1fr}
 }
-@media(min-width:769px){.bnav{display:none}.mhdr{display:none}}
-/* NOTA AUDITORÍA */
-.nota-badge{display:inline-flex;align-items:center;gap:4px;padding:3px 8px;border-radius:5px;font-size:10px;font-weight:700;background:rgba(255,107,0,0.15);color:var(--or2);border:1px solid var(--orb)}
+@media(min-width:769px){
+  .app{flex-direction:row}
+  .sidebar{display:flex;flex-direction:column;width:240px;background:var(--s1);border-right:1px solid var(--bd);flex-shrink:0;overflow-y:auto}
+  .s-logo{padding:18px 14px 14px;border-bottom:1px solid var(--bd);display:flex;align-items:center;gap:10px}
+  .s-logo-ico{width:36px;height:36px;border-radius:10px;background:linear-gradient(135deg,var(--or),var(--pu));display:flex;align-items:center;justify-content:center;font-size:16px;overflow:hidden}
+  .s-logo-ico img{width:100%;height:100%;object-fit:cover;border-radius:10px}
+  .s-logo-name{font-size:14px;font-weight:800}.s-logo-name span{color:var(--or)}
+  .s-logo-sub{font-size:10px;color:var(--t2);margin-top:1px}
+  .s-section{font-size:10px;text-transform:uppercase;letter-spacing:0.07em;color:var(--t2);padding:12px 14px 4px;font-weight:700}
+  .s-item{display:flex;align-items:center;gap:9px;padding:9px 14px;margin:1px 6px;border-radius:var(--r3);cursor:pointer;color:var(--t2);font-size:13px;font-weight:500;transition:all 0.15s}
+  .s-item:hover{background:rgba(255,255,255,0.04);color:var(--t1)}
+  .s-item.act{background:var(--or-bg);color:var(--or);font-weight:700}
+  .s-item i{width:16px;text-align:center;font-size:14px}
+  .s-badge{margin-left:auto;background:var(--rbg);border:1px solid var(--rb);color:var(--red);border-radius:20px;padding:1px 7px;font-size:10px;font-weight:700}
+  .s-foot{padding:12px;border-top:1px solid var(--bd);margin-top:auto}
+  .s-ucard{background:var(--s2);border-radius:var(--r3);padding:10px 12px;margin-bottom:8px}
+  .s-uname{font-size:12px;font-weight:700}.s-ulevel{font-size:10px;color:var(--t2);margin-top:1px}
+  .s-prot{display:flex;align-items:center;gap:5px;background:var(--rbg);border:1px solid var(--rb);border-radius:6px;padding:5px 9px;font-size:10px;color:var(--red);font-weight:600}
+  .s-logout{font-size:11px;color:var(--t2);cursor:pointer;text-align:center;margin-top:8px;padding:4px}
+  .main-area{flex:1;display:flex;flex-direction:column;overflow:hidden}
+  .topbar{display:none}
+  .bnav{display:none}
+  .scroll{padding:0 0 18px}
+  .page{padding:20px 22px 0}
+}
 </style>
 </head>
 <body>
-<div class="shell">
-  <!-- SIDEBAR -->
+<div class="app">
+
+  <!-- SIDEBAR (desktop) -->
   <div class="sidebar">
-    <div class="slogo">
-      <div class="logo-img" id="s-logo-img">🏥</div>
+    <div class="s-logo">
+      <div class="s-logo-ico" id="sd-logo">🏥</div>
       <div>
-        <div class="logo-txt">BIO<span>Auditoria</span></div>
-        <div class="logo-sub" id="s-empresa">Portal del Prestador</div>
+        <div class="s-logo-name">BIO<span>Auditoria</span></div>
+        <div class="s-logo-sub" id="sd-empresa">Portal del Prestador</div>
       </div>
     </div>
-    <div class="ns">Documentación</div>
-    <div class="ni act" onclick="go(this,'inicio','Inicio')"><i class="fas fa-home"></i>Inicio</div>
-    <div class="ni" onclick="go(this,'estandares','Estándares Res. 3100')"><i class="fas fa-layer-group"></i>Estándares 3100 <span class="ni-badge" id="badge-req">—</span></div>
-    <div class="ni" onclick="go(this,'formatos','Formatos')"><i class="fas fa-file-alt"></i>Formatos</div>
-    <div class="ns">Auditoría</div>
-    <div class="ni" onclick="go(this,'verificacion','Verificación 3100')"><i class="fas fa-clipboard-check"></i>Verificación</div>
-    <div class="ni" onclick="go(this,'auditoria','Módulo Auditoría')"><i class="fas fa-search"></i>Módulo Auditoría</div>
-    <div class="ni" onclick="go(this,'actas','Actas')"><i class="fas fa-file-signature"></i>Actas generadas</div>
-    <div class="sfoot">
-      <div class="ucard"><div class="unm" id="s-unm">—</div><div class="url2" id="s-nivel">—</div></div>
-      <div class="lkbadge"><i class="fas fa-lock"></i>Solo lectura · Sin descarga</div>
-      <div class="lkbtn" onclick="logout()"><i class="fas fa-sign-out-alt"></i> Cerrar sesión</div>
+    <div class="s-section">Documentación</div>
+    <div class="s-item act" onclick="nav(this,'inicio')"><i class="fas fa-home"></i>Inicio</div>
+    <div class="s-item" onclick="nav(this,'estandares')"><i class="fas fa-layer-group"></i>Estándares 3100<span class="s-badge" id="sd-badge-req" style="display:none">!</span></div>
+    <div class="s-item" onclick="nav(this,'formatos')"><i class="fas fa-file-alt"></i>Formatos</div>
+    <div class="s-section">Auditoría</div>
+    <div class="s-item" onclick="nav(this,'verificacion')"><i class="fas fa-clipboard-check"></i>Verificación</div>
+    <div class="s-item" onclick="nav(this,'auditoria')"><i class="fas fa-search"></i>Módulo Auditoría</div>
+    <div class="s-item" onclick="nav(this,'actas')"><i class="fas fa-file-signature"></i>Actas</div>
+    <div class="s-foot">
+      <div class="s-ucard"><div class="s-uname" id="sd-uname">—</div><div class="s-ulevel" id="sd-ulevel">—</div></div>
+      <div class="s-prot"><i class="fas fa-lock"></i>Solo lectura</div>
+      <div class="s-logout" onclick="logout()"><i class="fas fa-sign-out-alt"></i> Cerrar sesión</div>
     </div>
   </div>
 
-  <!-- MAIN -->
-  <div class="main">
-    <div class="topbar">
-      <div class="pgtitle" id="pgtitle">Inicio</div>
-      <div class="prot"><i class="fas fa-shield-alt"></i>Protegido</div>
-    </div>
-    <div class="content">
+  <!-- MAIN AREA -->
+  <div class="main-area" style="flex:1;display:flex;flex-direction:column;overflow:hidden">
 
-      <!-- INICIO -->
+    <!-- TOPBAR (mobile) -->
+    <div class="topbar">
+      <div class="tb-left">
+        <div class="tb-logo" id="tb-logo">🏥</div>
+        <div>
+          <div class="tb-name">BIO<span>Auditoria</span></div>
+          <div class="tb-sub" id="tb-sub">Portal del Prestador</div>
+        </div>
+      </div>
+      <div class="tb-right">
+        <div class="prot-pill"><i class="fas fa-lock"></i>Solo lectura</div>
+        <button class="logout-btn" onclick="logout()" title="Cerrar sesión"><i class="fas fa-sign-out-alt"></i></button>
+      </div>
+    </div>
+
+    <!-- SCROLL AREA -->
+    <div class="scroll">
+
+      <!-- ═══ INICIO ═══ -->
       <div class="page act" id="page-inicio">
-        <div class="mhdr" style="display:none">
-          <div class="mlogo-box">
-            <div style="width:30px;height:30px;border-radius:8px;background:linear-gradient(135deg,var(--or),var(--pu));display:flex;align-items:center;justify-content:center;font-size:14px" id="m-logo-ico">🏥</div>
-            <div class="mlogo">BIO<span>Auditoria</span></div>
+
+        <!-- Hero compliance ring -->
+        <div class="hero">
+          <div class="ring-wrap">
+            <svg class="ring-svg" viewBox="0 0 90 90">
+              <circle cx="45" cy="45" r="38" fill="none" stroke="rgba(255,255,255,0.06)" stroke-width="8"/>
+              <circle cx="45" cy="45" r="38" fill="none" stroke="url(#ring-grad)" stroke-width="8"
+                stroke-linecap="round" stroke-dasharray="238.76" id="ring-circle"
+                stroke-dashoffset="238.76" transform="rotate(-90 45 45)"/>
+              <defs>
+                <linearGradient id="ring-grad" x1="0%" y1="0%" x2="100%" y2="0%">
+                  <stop offset="0%" stop-color="#FF6B00"/>
+                  <stop offset="100%" stop-color="#A855F7"/>
+                </linearGradient>
+              </defs>
+            </svg>
+            <div class="ring-inner">
+              <div class="ring-pct" id="hero-pct">—</div>
+              <div class="ring-lbl">Cumpl.</div>
+            </div>
           </div>
-          <div style="font-size:11px;color:var(--text2)" id="m-unm2">—</div>
+          <div class="hero-info">
+            <div class="hero-greeting">Bienvenida 👋</div>
+            <div class="hero-empresa" id="hero-empresa">—</div>
+            <div class="hero-pills" id="hero-pills"></div>
+          </div>
         </div>
-        <div style="margin-bottom:14px">
-          <div style="font-size:18px;font-weight:800;margin-bottom:2px">Bienvenida 👋</div>
-          <div style="font-size:12px;color:var(--text2)" id="i-sub">—</div>
-        </div>
-        <div class="sgrid">
-          <div class="sc"><div class="sn" style="color:var(--or)" id="st-total">—</div><div class="sl">Documentos</div></div>
-          <div class="sc"><div class="sn" style="color:var(--green)" id="st-pct">—</div><div class="sl">Cumplimiento</div></div>
-          <div class="sc"><div class="sn" style="color:var(--red)" id="st-req">—</div><div class="sl">Urgentes</div></div>
-        </div>
+
         <div id="alert-inicio"></div>
-        <div style="font-size:13px;font-weight:700;margin-bottom:10px">📐 Estándares Res. 3100/2019</div>
+
+        <div class="sh">
+          <div class="sh-title"><i class="fas fa-layer-group" style="color:var(--or)"></i>Estándares Res. 3100</div>
+          <div class="sh-action" onclick="nav(null,'estandares')">Ver todos →</div>
+        </div>
         <div id="inicio-estandares"></div>
+
       </div>
 
-      <!-- ESTÁNDARES -->
+      <!-- ═══ ESTÁNDARES ═══ -->
       <div class="page" id="page-estandares">
-        <div style="font-size:13px;color:var(--text2);margin-bottom:14px">Toca cada estándar para ver sus documentos</div>
+        <div style="font-size:12px;color:var(--t2);margin-bottom:14px;line-height:1.5">Toca cada estándar para expandir los documentos y verificar su estado.</div>
         <div id="estandares-list"></div>
       </div>
 
-      <!-- FORMATOS -->
+      <!-- ═══ FORMATOS ═══ -->
       <div class="page" id="page-formatos">
-        <div class="alert ai"><i class="fas fa-info-circle" style="flex-shrink:0"></i><div>Formatos organizados por frecuencia de uso. Solo visualización — para editar solicita acceso al administrador.</div></div>
+        <div class="alert ai"><i class="fas fa-info-circle"></i><div>Formatos organizados por frecuencia de uso. Solo visualización — para editar, solicita al administrador BIOAuditoria.</div></div>
         <div id="formatos-list"></div>
       </div>
 
-      <!-- VERIFICACIÓN -->
+      <!-- ═══ VERIFICACIÓN ═══ -->
       <div class="page" id="page-verificacion">
-        <div id="ver-stats" style="margin-bottom:14px"></div>
+        <!-- Hero stats -->
+        <div class="ver-hero">
+          <div class="ver-ring">
+            <svg width="80" height="80" viewBox="0 0 80 80">
+              <circle cx="40" cy="40" r="33" fill="none" stroke="rgba(255,255,255,0.06)" stroke-width="7"/>
+              <circle cx="40" cy="40" r="33" fill="none" stroke="url(#ver-grad)" stroke-width="7"
+                stroke-linecap="round" stroke-dasharray="207.34" id="ver-circle"
+                stroke-dashoffset="207.34" transform="rotate(-90 40 40)"/>
+              <defs>
+                <linearGradient id="ver-grad" x1="0%" y1="0%" x2="100%" y2="0%">
+                  <stop offset="0%" stop-color="#22C55E"/>
+                  <stop offset="100%" stop-color="#FF6B00"/>
+                </linearGradient>
+              </defs>
+            </svg>
+            <div style="position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center">
+              <div style="font-size:18px;font-weight:900;line-height:1" id="ver-pct-ring">—</div>
+              <div style="font-size:8px;color:var(--t2);font-weight:700;text-transform:uppercase;margin-top:1px">Check</div>
+            </div>
+          </div>
+          <div style="flex:1">
+            <div style="font-size:15px;font-weight:800;margin-bottom:2px">Verificación Res. 3100/2019</div>
+            <div style="font-size:12px;color:var(--t2);margin-bottom:10px" id="ver-sub">—</div>
+            <div class="ver-stat-grid" id="ver-stat-grid"></div>
+          </div>
+        </div>
         <div id="ver-list"></div>
       </div>
 
-      <!-- MÓDULO AUDITORÍA -->
+      <!-- ═══ AUDITORÍA ═══ -->
       <div class="page" id="page-auditoria">
-        <div class="alert ag"><i class="fas fa-search" style="flex-shrink:0"></i><div><strong>Módulo de Auditoría</strong> — Registra hallazgos en tiempo real durante la visita. Al finalizar genera el acta automáticamente.</div></div>
-        <div class="audit-form">
-          <div style="font-size:13px;font-weight:700;margin-bottom:12px;color:var(--or)">📋 Datos de la visita</div>
-          <div class="fg"><label class="fl">Tipo de auditoría / visita</label>
+        <div class="alert ag"><i class="fas fa-shield-alt"></i><div><strong>Módulo de Auditoría</strong> — Registra hallazgos durante la visita y genera el acta oficial al finalizar.</div></div>
+
+        <!-- Datos visita -->
+        <div class="section-card">
+          <div class="sc-title"><i class="fas fa-clipboard-list"></i>Datos de la visita</div>
+          <div class="fg">
+            <label class="fl">Tipo de auditoría / visita</label>
             <select class="fi" id="a-tipo">
               <option value="">Seleccionar tipo...</option>
               <option>Visita de verificación habilitación (Secretaría de Salud)</option>
@@ -253,35 +402,34 @@ select.fi option{background:var(--dark2)}
             <div class="fg"><label class="fl">Fecha de la visita</label><input class="fi" type="date" id="a-fecha"></div>
             <div class="fg"><label class="fl">Hora inicio</label><input class="fi" type="time" id="a-hora"></div>
           </div>
-          <div style="font-size:12px;font-weight:700;margin:12px 0 8px;color:var(--pu2)">👮 Funcionario(s) auditor(es)</div>
+          <div class="fg-sub"><i class="fas fa-user-check"></i>Funcionario(s) auditor(es)</div>
           <div class="fgrid">
             <div class="fg"><label class="fl">Nombre del auditor</label><input class="fi" id="a-auditor" placeholder="Nombre completo"></div>
             <div class="fg"><label class="fl">Cargo / Entidad</label><input class="fi" id="a-entidad" placeholder="Ej: Secretaría de Salud"></div>
           </div>
-          <div class="fg"><label class="fl">Cédula o ID del auditor</label><input class="fi" id="a-cedula-aud" placeholder="Número de identificación"></div>
-          <div style="font-size:12px;font-weight:700;margin:12px 0 8px;color:var(--pu2)">🏥 Quien recibe la auditoría</div>
+          <div class="fg"><label class="fl">Cédula del auditor</label><input class="fi" id="a-cedula-aud" placeholder="Número de identificación"></div>
+          <div class="fg-sub"><i class="fas fa-hospital"></i>Quien recibe la auditoría</div>
           <div class="fgrid">
-            <div class="fg"><label class="fl">Nombre del receptor</label><input class="fi" id="a-receptor" placeholder="Nombre de quien recibe"></div>
+            <div class="fg"><label class="fl">Nombre del receptor</label><input class="fi" id="a-receptor" placeholder="Nombre"></div>
             <div class="fg"><label class="fl">Cargo</label><input class="fi" id="a-cargo-rec" placeholder="Cargo en la institución"></div>
           </div>
-          <div class="fg"><label class="fl">Observación inicial / alcance de la visita</label><textarea class="fi fta" id="a-alcance" placeholder="Describe el alcance y objetivo de la visita..."></textarea></div>
+          <div class="fg"><label class="fl">Alcance de la visita</label><textarea class="fi fta" id="a-alcance" placeholder="Describe el objetivo y alcance..."></textarea></div>
         </div>
 
-        <div class="audit-form">
-          <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px">
-            <div style="font-size:13px;font-weight:700;color:var(--or)">🔍 Hallazgos de la auditoría</div>
-            <button onclick="addHallazgo()" style="display:flex;align-items:center;gap:5px;padding:7px 11px;border-radius:8px;background:var(--or-bg);border:1px solid var(--orb);color:var(--or2);font-size:12px;font-weight:700;cursor:pointer;font-family:inherit"><i class="fas fa-plus"></i>Agregar</button>
+        <!-- Hallazgos -->
+        <div class="section-card">
+          <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px">
+            <div class="sc-title" style="margin:0"><i class="fas fa-search"></i>Hallazgos</div>
+            <button class="add-btn" onclick="addHallazgo()"><i class="fas fa-plus"></i>Agregar</button>
           </div>
-          <div id="hallazgos-list"><div style="font-size:12px;color:var(--text3);text-align:center;padding:20px">No hay hallazgos registrados aún. Toca "Agregar" para iniciar.</div></div>
+          <div id="hallazgos-list"><div class="no-items">No hay hallazgos aún.<br>Toca "Agregar" para iniciar.</div></div>
         </div>
 
-        <div class="audit-form">
-          <div style="font-size:13px;font-weight:700;margin-bottom:12px;color:var(--or)">✅ Cierre de la visita</div>
-          <div class="fg"><label class="fl">Hora de cierre</label><input class="fi" type="time" id="a-hora-fin"></div>
-          <div class="fg"><label class="fl">Conclusión general</label><textarea class="fi fta" id="a-conclusion" placeholder="Resumen de la visita, impresión general del auditor..."></textarea></div>
-          <div class="fg"><label class="fl">Compromisos acordados</label><textarea class="fi fta" id="a-compromisos" placeholder="Acciones correctivas acordadas, plazos, responsables..."></textarea></div>
+        <!-- Cierre -->
+        <div class="section-card">
+          <div class="sc-title"><i class="fas fa-flag-checkered"></i>Cierre de la visita</div>
           <div class="fgrid">
-            <div class="fg"><label class="fl">Próxima visita de seguimiento</label><input class="fi" type="date" id="a-prox"></div>
+            <div class="fg"><label class="fl">Hora de cierre</label><input class="fi" type="time" id="a-hora-fin"></div>
             <div class="fg"><label class="fl">Calificación final</label>
               <select class="fi" id="a-calificacion">
                 <option value="">Seleccionar...</option>
@@ -292,37 +440,51 @@ select.fi option{background:var(--dark2)}
               </select>
             </div>
           </div>
-          <button onclick="generarActa()" style="width:100%;padding:13px;background:linear-gradient(135deg,var(--or),var(--pu));color:#fff;border:none;border-radius:11px;font-size:14px;font-weight:800;cursor:pointer;font-family:inherit;margin-top:6px;display:flex;align-items:center;justify-content:center;gap:8px"><i class="fas fa-file-signature"></i>Generar Acta de Auditoría</button>
+          <div class="fg"><label class="fl">Conclusión general</label><textarea class="fi fta" id="a-conclusion" placeholder="Resumen e impresión del auditor..."></textarea></div>
+          <div class="fg"><label class="fl">Compromisos acordados</label><textarea class="fi fta" id="a-compromisos" placeholder="Acciones correctivas, plazos, responsables..."></textarea></div>
+          <div class="fg"><label class="fl">Próxima visita de seguimiento</label><input class="fi" type="date" id="a-prox"></div>
+          <button class="primary-btn" onclick="generarActa()" style="margin-top:4px"><i class="fas fa-file-signature"></i>Generar Acta de Auditoría</button>
         </div>
       </div>
 
-      <!-- ACTAS -->
+      <!-- ═══ ACTAS ═══ -->
       <div class="page" id="page-actas">
-        <div class="alert ai"><i class="fas fa-file-signature" style="flex-shrink:0"></i><div>Actas generadas en esta sesión. Para guardar permanentemente, descarga el PDF o contacta al administrador.</div></div>
-        <div id="actas-list"><div style="font-size:13px;color:var(--text3);text-align:center;padding:30px">No hay actas generadas aún.</div></div>
+        <div class="alert ai"><i class="fas fa-file-signature"></i><div>Actas generadas en esta sesión. Descarga el PDF o contacta al administrador para guardarlas permanentemente.</div></div>
+        <div id="actas-list"><div class="no-items">No hay actas generadas aún.<br>Completa la auditoría y genera el acta.</div></div>
       </div>
 
-    </div>
-  </div>
-</div>
+    </div><!-- /scroll -->
+  </div><!-- /main-area -->
+</div><!-- /app -->
 
-<!-- BOTTOM NAV -->
+<!-- ═══ BOTTOM NAV (mobile) ═══ -->
 <nav class="bnav">
-  <div class="bni act" id="bn-inicio" onclick="go(null,'inicio','Inicio');bn('bn-inicio')"><i class="fas fa-home"></i>Inicio</div>
-  <div class="bni" id="bn-estandares" onclick="go(null,'estandares','Estándares');bn('bn-estandares')"><i class="fas fa-layer-group"></i>3100<span class="bn-dot" id="bn-dot-req" style="display:none"></span></div>
-  <div class="bni" id="bn-verificacion" onclick="go(null,'verificacion','Verificación');bn('bn-verificacion')"><i class="fas fa-clipboard-check"></i>Check</div>
-  <div class="bni" id="bn-auditoria" onclick="go(null,'auditoria','Auditoría');bn('bn-auditoria')"><i class="fas fa-search"></i>Audita</div>
-  <div class="bni" id="bn-actas" onclick="go(null,'actas','Actas');bn('bn-actas')"><i class="fas fa-file-signature"></i>Actas</div>
+  <div class="bni act" id="bn-inicio" onclick="nav(this,'inicio');bnav('bn-inicio')">
+    <i class="fas fa-home"></i>Inicio
+  </div>
+  <div class="bni" id="bn-estandares" onclick="nav(this,'estandares');bnav('bn-estandares')">
+    <i class="fas fa-layer-group"></i>3100
+    <span class="bn-badge" id="bn-badge-req" style="display:none">!</span>
+  </div>
+  <div class="bni" id="bn-verificacion" onclick="nav(this,'verificacion');bnav('bn-verificacion')">
+    <i class="fas fa-clipboard-check"></i>Verificar
+  </div>
+  <div class="bni" id="bn-auditoria" onclick="nav(this,'auditoria');bnav('bn-auditoria')">
+    <i class="fas fa-search"></i>Auditar
+  </div>
+  <div class="bni" id="bn-actas" onclick="nav(this,'actas');bnav('bn-actas')">
+    <i class="fas fa-file-signature"></i>Actas
+  </div>
 </nav>
 
-<!-- VIEWER -->
+<!-- ═══ VIEWER ═══ -->
 <div class="viewer" id="viewer">
   <div class="vbox">
     <div class="vhead">
       <div class="vtitle" id="vtitle">Documento</div>
-      <div style="display:flex;align-items:center;gap:7px">
-        <span style="font-size:10px;background:var(--rbg);color:var(--red);padding:3px 7px;border-radius:4px;font-weight:700"><i class="fas fa-lock"></i> Solo lectura</span>
-        <div class="vclose" onclick="closeViewer()">✕</div>
+      <div class="vhead-pills">
+        <span style="display:flex;align-items:center;gap:4px;background:var(--rbg);border:1px solid var(--rb);border-radius:20px;padding:4px 10px;font-size:10px;color:var(--red);font-weight:700"><i class="fas fa-lock"></i>Solo lectura</span>
+        <div class="vclose-btn" onclick="closeViewer()"><i class="fas fa-times"></i></div>
       </div>
     </div>
     <div class="vbody" id="vbody"></div>
@@ -330,11 +492,10 @@ select.fi option{background:var(--dark2)}
 </div>
 
 <script>
-
 var GITHUB_URL = 'https://raw.githubusercontent.com/biocolombiaplus-max/bioauditoria/main/docs/';
 
 var ESTANDARES_3100 = [
-  {id:'e1',num:1,nombre:'Talento Humano',icono:'👤',color:'#7B2FBE',
+  {id:'e1',num:1,nombre:'Talento Humano',icono:'👤',color:'#A855F7',
    descripcion:'Idoneidad, suficiencia y competencias del recurso humano en salud',
    norma:'Res. 3100/2019 — Estándar 1',
    requisitos:['Hojas de vida con soportes académicos vigentes','Tarjeta profesional y registro RETHUS activo','Certificados de vacunación completos (HepB, Tétanos, Influenza, COVID)','Programa de inducción y reinducción ejecutado con registro','Evaluación de desempeño anual documentada','Educación continuada mínima 20 horas/año con certificados','Contratos o vinculaciones laborales vigentes']},
@@ -342,11 +503,11 @@ var ESTANDARES_3100 = [
    descripcion:'Condiciones físicas, ambientales y de seguridad de la sede habilitada',
    norma:'Res. 3100/2019 — Estándar 2',
    requisitos:['Plano de planta física actualizado y archivado','Condiciones de ventilación e iluminación adecuadas','Accesibilidad para personas con discapacidad','Señalización de emergencias y rutas de evacuación visibles','Extintor vigente, accesible y personal capacitado','Plan de gestión del riesgo de desastres implementado','Privacidad del paciente garantizada en todos los ambientes']},
-  {id:'e3',num:3,nombre:'Dotación',icono:'🩺',color:'#2D9F5C',
+  {id:'e3',num:3,nombre:'Dotación',icono:'🩺',color:'#22C55E',
    descripcion:'Equipos biomédicos, mobiliario e insumos según el servicio habilitado',
    norma:'Res. 3100/2019 — Estándar 3',
    requisitos:['Inventario de dotación actualizado y firmado','Hojas de vida de todos los equipos biomédicos','Programa de mantenimiento preventivo al día','Calibración de equipos de medición vigente','Contratos de mantenimiento con proveedores certificados','Insumos suficientes para la prestación del servicio']},
-  {id:'e4',num:4,nombre:'Medicamentos y Dispositivos',icono:'💊',color:'#E63946',
+  {id:'e4',num:4,nombre:'Medicamentos y Dispositivos',icono:'💊',color:'#EF4444',
    descripcion:'Gestión segura de medicamentos, dispositivos médicos e insumos terapéuticos',
    norma:'Res. 3100/2019 — Estándar 4 · Res. 1403/2007',
    requisitos:['Listado CURE de medicamentos autorizados disponible y vigente','Política de medicamentos seguros implementada (5 correctos)','Control de vencimientos mensual documentado','Condiciones de almacenamiento correctas (temperatura, luz, humedad)','Cadena de frío cuando aplique con registros de temperatura','Registro de RAM al INVIMA cuando corresponda']},
@@ -354,11 +515,11 @@ var ESTANDARES_3100 = [
    descripcion:'Bioseguridad, seguridad del paciente, PGIRH y procesos asistenciales críticos',
    norma:'Res. 3100/2019 — Estándar 5',
    requisitos:['Manual de bioseguridad implementado y socializado','Protocolo lavado de manos 5 momentos OMS con monitoreo','Protocolo limpieza y desinfección de superficies','Plan PGIRH actualizado con gestor externo contratado y vigente','Segregación correcta de residuos en la fuente','Programa de seguridad del paciente implementado','Consentimientos informados vigentes por servicio','EPP disponible, suficiente y en buen estado','Protocolo de manejo de accidente de riesgo biológico']},
-  {id:'e6',num:6,nombre:'Historia Clínica',icono:'📁',color:'#7B2FBE',
+  {id:'e6',num:6,nombre:'Historia Clínica',icono:'📁',color:'#A855F7',
    descripcion:'Sistema de gestión, custodia y confidencialidad de la historia clínica',
    norma:'Res. 3100/2019 — Estándar 6 · Res. 1995/1999',
    requisitos:['Manual del sistema de historia clínica disponible','Formato de historia clínica estandarizado en uso','Política de custodia y conservación mínimo 30 años','Sistema de archivo activo, central e histórico implementado','Política de confidencialidad y control de acceso','Autorización de tratamiento de datos (Ley 1581/2012)']},
-  {id:'e7',num:7,nombre:'Interdependencia',icono:'🔗',color:'#2D9F5C',
+  {id:'e7',num:7,nombre:'Interdependencia',icono:'🔗',color:'#22C55E',
    descripcion:'Articulación con otros servicios y redes de apoyo diagnóstico y terapéutico',
    norma:'Res. 3100/2019 — Estándar 7',
    requisitos:['Protocolo de referencia y contrarreferencia documentado','Directorio actualizado de entidades de referencia','Convenios o acuerdos con laboratorio clínico','Convenios con servicio de imágenes diagnósticas','Protocolo de traslado seguro de pacientes','Procedimiento de remisión de urgencias']},
@@ -412,27 +573,27 @@ var VESGA = {
       {id:'e4-01',nombre:'Listado de medicamentos autorizados CURE',version:'v1.0 · 2025',estado:'requerido',archivo:'',tipo:'listado'},
       {id:'e4-02',nombre:'Política de medicamentos seguros — 5 correctos',version:'v1.0 · 2025',estado:'vigente',archivo:'31_Politica_Medicamentos_Seguros.docx',tipo:'politica'},
       {id:'e4-03',nombre:'Control mensual de medicamentos y vencimientos',version:'v1.0 · 2025',estado:'vigente',archivo:'29_Control_Medicamentos_Vencimientos.docx',tipo:'formato'},
-      {id:'e4-04',nombre:'Inventario y control del botiquín de primeros auxilios',version:'v1.0 · 2025',estado:'vigente',archivo:'28_Inventario_Botiquin.docx',tipo:'inventario'},
+      {id:'e4-04',nombre:'Inventario y control del botiquín',version:'v1.0 · 2025',estado:'vigente',archivo:'28_Inventario_Botiquin.docx',tipo:'inventario'},
     ]},
     {id:'e5',estandar_num:5,documentos:[
       {id:'e5-01',nombre:'Manual de bioseguridad',version:'v1.0 · 2025',estado:'vigente',archivo:'02_Manual_Bioseguridad.docx',tipo:'manual'},
-      {id:'e5-02',nombre:'Protocolo de lavado de manos — 5 momentos OMS',version:'v1.0 · 2025',estado:'vigente',archivo:'19_Protocolo_Lavado_Manos.docx',tipo:'protocolo'},
-      {id:'e5-03',nombre:'Protocolo de limpieza y desinfección de superficies',version:'v1.0 · 2025',estado:'vigente',archivo:'18_Protocolo_Limpieza_Desinfeccion.docx',tipo:'protocolo'},
-      {id:'e5-04',nombre:'Plan PGIRH completo — Residuos hospitalarios',version:'v2.0 · 2025',estado:'vigente',archivo:'15_Plan_PGIRH.docx',tipo:'plan'},
-      {id:'e5-05',nombre:'Procedimiento de segregación en la fuente',version:'v1.0 · 2025',estado:'vigente',archivo:'17_Protocolo_Segregacion_Residuos.docx',tipo:'protocolo'},
+      {id:'e5-02',nombre:'Protocolo lavado de manos — 5 momentos OMS',version:'v1.0 · 2025',estado:'vigente',archivo:'19_Protocolo_Lavado_Manos.docx',tipo:'protocolo'},
+      {id:'e5-03',nombre:'Protocolo limpieza y desinfección de superficies',version:'v1.0 · 2025',estado:'vigente',archivo:'18_Protocolo_Limpieza_Desinfeccion.docx',tipo:'protocolo'},
+      {id:'e5-04',nombre:'Plan PGIRH — Residuos hospitalarios',version:'v2.0 · 2025',estado:'vigente',archivo:'15_Plan_PGIRH.docx',tipo:'plan'},
+      {id:'e5-05',nombre:'Procedimiento segregación en la fuente',version:'v1.0 · 2025',estado:'vigente',archivo:'17_Protocolo_Segregacion_Residuos.docx',tipo:'protocolo'},
       {id:'e5-06',nombre:'Registro mensual de generación de residuos PGIRH',version:'v1.0 · 2025',estado:'vigente',archivo:'16_Registro_Mensual_PGIRH.docx',tipo:'formato'},
-      {id:'e5-07',nombre:'Contrato con gestor externo de residuos hospitalarios',version:'v1.0 · 2025',estado:'pendiente',archivo:'',tipo:'contrato'},
+      {id:'e5-07',nombre:'Contrato con gestor externo de residuos',version:'v1.0 · 2025',estado:'pendiente',archivo:'',tipo:'contrato'},
       {id:'e5-08',nombre:'Programa de seguridad del paciente',version:'v1.0 · 2025',estado:'vigente',archivo:'05_Programa_Seguridad_Paciente.docx',tipo:'programa'},
-      {id:'e5-09',nombre:'Protocolo manejo de accidente de riesgo biológico',version:'v1.0 · 2025',estado:'vigente',archivo:'27_Protocolo_Accidente_Biologico.docx',tipo:'protocolo'},
+      {id:'e5-09',nombre:'Protocolo accidente de riesgo biológico',version:'v1.0 · 2025',estado:'vigente',archivo:'27_Protocolo_Accidente_Biologico.docx',tipo:'protocolo'},
       {id:'e5-10',nombre:'Consentimiento informado general',version:'v1.1 · 2025',estado:'vigente',archivo:'08_Consentimiento_Informado_General.docx',tipo:'formato'},
       {id:'e5-11',nombre:'Consentimiento informado — procedimientos estéticos',version:'v1.0 · 2025',estado:'vigente',archivo:'09_Consentimiento_Estetica.docx',tipo:'formato'},
-      {id:'e5-12',nombre:'Protocolo de procedimientos estéticos no invasivos',version:'v1.0 · 2025',estado:'vigente',archivo:'11_Protocolo_Procedimientos_Esteticos.docx',tipo:'protocolo'},
+      {id:'e5-12',nombre:'Protocolo procedimientos estéticos no invasivos',version:'v1.0 · 2025',estado:'vigente',archivo:'11_Protocolo_Procedimientos_Esteticos.docx',tipo:'protocolo'},
     ]},
     {id:'e6',estandar_num:6,documentos:[
       {id:'e6-01',nombre:'Manual del sistema de historia clínica',version:'v1.0 · 2025',estado:'vigente',archivo:'20_Manual_Historia_Clinica.docx',tipo:'manual'},
       {id:'e6-02',nombre:'Formato de historia clínica estandarizado',version:'v2.0 · 2025',estado:'vigente',archivo:'07_Formato_Historia_Clinica.docx',tipo:'formato'},
-      {id:'e6-03',nombre:'Política de custodia, conservación y confidencialidad',version:'v1.0 · 2025',estado:'vigente',archivo:'20_Manual_Historia_Clinica.docx',tipo:'politica'},
-      {id:'e6-04',nombre:'Política tratamiento de datos personales (Ley 1581/2012)',version:'v1.0 · 2025',estado:'vigente',archivo:'21_Politica_Habeas_Data.docx',tipo:'politica'},
+      {id:'e6-03',nombre:'Política custodia, conservación y confidencialidad',version:'v1.0 · 2025',estado:'vigente',archivo:'20_Manual_Historia_Clinica.docx',tipo:'politica'},
+      {id:'e6-04',nombre:'Política tratamiento de datos personales (Ley 1581)',version:'v1.0 · 2025',estado:'vigente',archivo:'21_Politica_Habeas_Data.docx',tipo:'politica'},
       {id:'e6-05',nombre:'Registro de préstamo y devolución de historias clínicas',version:'v1.0 · 2025',estado:'pendiente',archivo:'',tipo:'registro'},
     ]},
     {id:'e7',estandar_num:7,documentos:[
@@ -506,19 +667,10 @@ var VERIFICACION = [
   {e:'8',cod:'8.5',desc:'Política habeas data publicada (Ley 1581/2012)',estado:'vigente'},
 ];
 
-var TRAZABILIDAD = [
-  {fecha:'05/06/2025 10:00',usuario:'Admin (BIOMarketing)',accion:'Publicó',doc:'BIOAuditoria v3 — Plataforma completa Res. 3100'},
-  {fecha:'04/06/2025 16:00',usuario:'Admin',accion:'Activó',doc:'Dominio bioauditoria.com'},
-  {fecha:'04/06/2025 09:00',usuario:'Sistema',accion:'Alerta',doc:'Tarjetas profesionales y vacunación pendientes'},
-];
-
-
-// Compatibility: BIO_DATA alias for any legacy code
 var BIO_DATA = {
-  clientes: { vesga: VESGA },
-  verificacion_3100: VERIFICACION,
-  trazabilidad: TRAZABILIDAD,
-  github_docs_url: GITHUB_URL
+  clientes:{vesga:VESGA},
+  verificacion_3100:VERIFICACION,
+  github_docs_url:GITHUB_URL
 };
 </script>
 <script>
@@ -527,256 +679,303 @@ if(!sessionStorage.getItem('bio_user')||sessionStorage.getItem('bio_role')!=='cl
 document.addEventListener('contextmenu',e=>e.preventDefault());
 document.addEventListener('keydown',e=>{if((e.ctrlKey||e.metaKey)&&['s','a','c','p','u'].includes(e.key.toLowerCase()))e.preventDefault()});
 
-const C = BIO_DATA.clientes.vesga;
+const C = VESGA;
 const ES = ESTANDARES_3100;
 let hallazgos = [];
 let actas = [];
 
-// INIT UI
-document.getElementById('s-unm').textContent = C.nombre;
-document.getElementById('s-empresa').textContent = C.empresa;
-document.getElementById('s-nivel').textContent = 'Nivel '+C.nivel_atencion+' · '+C.ciudad;
-document.getElementById('m-unm2').textContent = C.nombre.split(' ')[1];
-document.getElementById('i-sub').textContent = C.empresa+' · NIT '+C.nit;
-if(C.logo_url){
-  document.getElementById('s-logo-img').innerHTML='<img src="'+C.logo_url+'" alt="Logo">';
-  document.getElementById('m-logo-ico').innerHTML='<img src="'+C.logo_url+'" alt="Logo" style="width:100%;height:100%;object-fit:cover;border-radius:8px">';
+// ─── INIT UI ───
+function initUI(){
+  // topbar / sidebar identity
+  if(C.logo_url){
+    document.getElementById('tb-logo').innerHTML='<img src="'+C.logo_url+'" alt="logo">';
+    document.getElementById('sd-logo').innerHTML='<img src="'+C.logo_url+'" alt="logo">';
+  }
+  document.getElementById('tb-sub').textContent = C.empresa;
+  document.getElementById('sd-empresa').textContent = C.empresa;
+  document.getElementById('sd-uname').textContent = C.nombre;
+  document.getElementById('sd-ulevel').textContent = 'Nivel '+C.nivel_atencion+' · '+C.ciudad;
+
+  // stats
+  var docs = C.estandares.flatMap(e=>e.documentos);
+  var total = docs.length;
+  var ok = docs.filter(d=>d.estado==='vigente').length;
+  var pen = docs.filter(d=>d.estado==='pendiente').length;
+  var req = docs.filter(d=>d.estado==='requerido').length;
+  var pct = Math.round(ok/total*100);
+
+  // hero ring
+  document.getElementById('hero-pct').textContent = pct+'%';
+  document.getElementById('hero-empresa').textContent = C.empresa;
+  var circ = 238.76;
+  var offset = circ - (circ * pct / 100);
+  document.getElementById('ring-circle').style.strokeDashoffset = offset;
+
+  // hero pills
+  var pills = '';
+  if(ok) pills += '<span class="hpill hpill-g"><i class="fas fa-check"></i>'+ok+' vigentes</span>';
+  if(pen) pills += '<span class="hpill hpill-y"><i class="fas fa-clock"></i>'+pen+' pendientes</span>';
+  if(req) pills += '<span class="hpill hpill-r"><i class="fas fa-exclamation"></i>'+req+' requeridos</span>';
+  document.getElementById('hero-pills').innerHTML = pills;
+
+  // alert
+  if(req>0){
+    document.getElementById('alert-inicio').innerHTML='<div class="alert aw"><i class="fas fa-exclamation-triangle"></i><div>Tienes <strong>'+req+' documento(s) requerido(s)</strong> urgentes. Contacta a tu administrador BIOAuditoria antes de cualquier visita de verificación.</div></div>';
+  } else if(pct>=90){
+    document.getElementById('alert-inicio').innerHTML='<div class="alert ag"><i class="fas fa-check-circle"></i><div><strong>¡Excelente cumplimiento ('+pct+'%)!</strong> Tu documentación está lista para una visita de verificación.</div></div>';
+  }
+
+  // badge
+  if(req>0){
+    document.getElementById('bn-badge-req').style.display='flex';
+    document.getElementById('bn-badge-req').textContent=req;
+    var sdBadge=document.getElementById('sd-badge-req');
+    if(sdBadge){sdBadge.style.display='inline-flex';sdBadge.textContent=req}
+  }
 }
 
-function logout(){sessionStorage.clear();window.location.replace('../index.html')}
-function go(el,id,title){
-  document.querySelectorAll('.ni').forEach(n=>n.classList.remove('act'));
-  if(el)el.classList.add('act');
+// ─── NAVIGATION ───
+function nav(el, id){
   document.querySelectorAll('.page').forEach(p=>p.classList.remove('act'));
   document.getElementById('page-'+id).classList.add('act');
-  document.getElementById('pgtitle').textContent=title;
+  document.querySelectorAll('.s-item').forEach(s=>s.classList.remove('act'));
+  if(el && el.classList && el.classList.contains('s-item')) el.classList.add('act');
+  else {
+    document.querySelectorAll('.s-item').forEach(s=>{
+      if(s.getAttribute('onclick') && s.getAttribute('onclick').includes("'"+id+"'")) s.classList.add('act');
+    });
+  }
 }
-function bn(id){document.querySelectorAll('.bni').forEach(b=>b.classList.remove('act'));document.getElementById(id).classList.add('act')}
+function bnav(id){
+  document.querySelectorAll('.bni').forEach(b=>b.classList.remove('act'));
+  document.getElementById(id).classList.add('act');
+}
+function logout(){sessionStorage.clear();window.location.replace('../index.html')}
+
+// ─── STATUS BADGE ───
 function sh(s){
-  if(s==='vigente')return '<span class="status sv">✅ Vigente</span>';
-  if(s==='pendiente')return '<span class="status sp">⚠️ Pendiente</span>';
-  return '<span class="status sr">🚨 Requerido</span>';
+  if(s==='vigente') return '<span class="status sv"><i class="fas fa-check" style="font-size:8px"></i>Vigente</span>';
+  if(s==='pendiente') return '<span class="status sp"><i class="fas fa-clock" style="font-size:8px"></i>Pendiente</span>';
+  return '<span class="status sr"><i class="fas fa-exclamation" style="font-size:8px"></i>Requerido</span>';
+}
+function docIcoBg(estado){
+  if(estado==='vigente') return 'background:var(--gbg);border:1px solid var(--gb)';
+  if(estado==='pendiente') return 'background:var(--ybg);border:1px solid var(--yb)';
+  return 'background:var(--rbg);border:1px solid var(--rb)';
 }
 
-// STATS
-function initStats(){
-  const docs=C.estandares.flatMap(e=>e.documentos);
-  const total=docs.length, ok=docs.filter(d=>d.estado==='vigente').length;
-  const req=docs.filter(d=>d.estado==='requerido').length;
-  const pct=Math.round(ok/total*100);
-  document.getElementById('st-total').textContent=total;
-  document.getElementById('st-pct').textContent=pct+'%';
-  document.getElementById('st-req').textContent=req;
-  document.getElementById('badge-req').textContent=req>0?req:'✓';
-  if(req>0){
-    document.getElementById('badge-req').style.background='var(--rbg)';
-    document.getElementById('badge-req').style.color='var(--red)';
-    document.getElementById('bn-dot-req').style.display='block';
-  }
-  const alertEl=document.getElementById('alert-inicio');
-  if(req>0){
-    alertEl.innerHTML=`<div class="alert aw"><i class="fas fa-exclamation-triangle" style="flex-shrink:0"></i><div>Tienes <strong>${req} documento(s) requerido(s)</strong> pendientes de gestión. Contacta a tu administrador BIOAuditoria antes de cualquier visita de verificación.</div></div>`;
-  } else if(pct>=90){
-    alertEl.innerHTML=`<div class="alert ag"><i class="fas fa-check-circle" style="flex-shrink:0"></i><div><strong>Excelente cumplimiento (${pct}%)</strong> — Tu documentación está en muy buen estado para una visita de verificación.</div></div>`;
-  }
-}
-
-// INICIO ESTÁNDARES
+// ─── INICIO ESTÁNDARES ───
 function renderInicioEstandares(){
-  document.getElementById('inicio-estandares').innerHTML=C.estandares.map(e=>{
-    const estInfo=ES.find(x=>x.id===e.id);
-    const ok=e.documentos.filter(d=>d.estado==='vigente').length;
-    const total=e.documentos.length;
-    const req=e.documentos.filter(d=>d.estado==='requerido').length;
-    const pen=e.documentos.filter(d=>d.estado==='pendiente').length;
-    const pct=Math.round(ok/total*100);
-    return `<div class="estd" onclick="goEstandar('${e.id}')">
-      <div class="estd-head">
-        <div class="estd-ico" style="background:${estInfo.color}22">${estInfo.icono}</div>
-        <div style="flex:1;min-width:0">
-          <div class="estd-num">Estándar ${estInfo.num} · ${estInfo.norma.split('—')[1]?.trim()||''}</div>
-          <div class="estd-nm">${estInfo.nombre}</div>
-          <div class="estd-desc">${estInfo.descripcion}</div>
-        </div>
-        <i class="fas fa-chevron-right" style="color:var(--text3);font-size:12px;flex-shrink:0;margin-left:8px"></i>
-      </div>
-      <div class="estd-foot">
-        <div class="estd-prog">
-          <div class="estd-prog-lbl"><span>${ok}/${total} documentos vigentes</span><span style="color:${pct>=80?'var(--green)':pct>=50?'var(--yellow)':'var(--red)'}">${pct}%</span></div>
-          <div class="pw"><div class="pf" style="width:${pct}%;background:${pct>=80?'var(--green)':pct>=50?'var(--yellow)':'var(--red)'}"></div></div>
-        </div>
-        <div class="estd-tags">
-          ${ok>0?`<span class="tag tv">${ok} ✅</span>`:''}
-          ${pen>0?`<span class="tag tp">${pen} ⚠️</span>`:''}
-          ${req>0?`<span class="tag tr">${req} 🚨</span>`:''}
-        </div>
-      </div>
-    </div>`;
+  document.getElementById('inicio-estandares').innerHTML = C.estandares.map(e=>{
+    var ei = ES.find(x=>x.id===e.id);
+    var ok = e.documentos.filter(d=>d.estado==='vigente').length;
+    var pen = e.documentos.filter(d=>d.estado==='pendiente').length;
+    var req = e.documentos.filter(d=>d.estado==='requerido').length;
+    var total = e.documentos.length;
+    var pct = Math.round(ok/total*100);
+    var pcolor = pct>=80?'var(--green)':pct>=50?'var(--yellow)':'var(--red)';
+    return '<div class="estd-mini" onclick="goEstandar(\''+e.id+'\')">'
+      +'<div class="em-row">'
+      +'<div class="em-ico" style="background:'+ei.color+'22">'+ei.icono+'</div>'
+      +'<div class="em-info">'
+      +'<div class="em-num">Estándar '+ei.num+'</div>'
+      +'<div class="em-name">'+ei.nombre+'</div>'
+      +'<div class="em-bar-wrap">'
+      +'<div class="em-bar"><div class="em-fill" style="width:'+pct+'%;background:'+pcolor+'"></div></div>'
+      +'<div class="em-pct" style="color:'+pcolor+'">'+pct+'%</div>'
+      +'</div>'
+      +'</div>'
+      +'<i class="fas fa-chevron-right em-chevron"></i>'
+      +'</div>'
+      +(req||pen?'<div class="em-tags">'+(req?'<span class="tag tr"><i class="fas fa-exclamation" style="font-size:8px"></i>'+req+' requerido'+(req>1?'s':'')+'</span>':'')+(pen?'<span class="tag tp"><i class="fas fa-clock" style="font-size:8px"></i>'+pen+' pendiente'+(pen>1?'s':'')+'</span>':'')+'</div>':'')
+      +'</div>';
   }).join('');
 }
 
 function goEstandar(eid){
-  go(null,'estandares','Estándares Res. 3100');
-  bn('bn-estandares');
-  setTimeout(()=>{
-    const el=document.getElementById('estd-'+eid);
-    if(el){el.scrollIntoView({behavior:'smooth',block:'start'});toggleEstd(eid)}
+  nav(null,'estandares');
+  bnav('bn-estandares');
+  setTimeout(function(){
+    var el=document.getElementById('estd-'+eid);
+    if(el){el.scrollIntoView({behavior:'smooth',block:'start'});openEstd(eid)}
   },80);
 }
 
-// ESTÁNDARES PAGE
+// ─── ESTÁNDARES PAGE ───
 function renderEstandares(){
-  document.getElementById('estandares-list').innerHTML=C.estandares.map(e=>{
-    const estInfo=ES.find(x=>x.id===e.id);
-    const ok=e.documentos.filter(d=>d.estado==='vigente').length;
-    const total=e.documentos.length;
-    const req=e.documentos.filter(d=>d.estado==='requerido').length;
-    const pen=e.documentos.filter(d=>d.estado==='pendiente').length;
-    const pct=Math.round(ok/total*100);
-    const docs=e.documentos.map(d=>`
-      <div class="dr">
-        <div class="dl">
-          <div class="di" style="background:${d.estado==='vigente'?'var(--gbg)':d.estado==='pendiente'?'var(--ybg)':'var(--rbg)'}">📄</div>
-          <div style="min-width:0">
-            <div class="dn">${d.nombre}</div>
-            <div class="dm">${d.version} &nbsp;·&nbsp; <span class="dtipo">${d.tipo}</span></div>
-          </div>
-        </div>
-        <div style="display:flex;align-items:center;gap:4px;flex-shrink:0">
-          ${sh(d.estado)}
-          ${d.archivo?`<button class="bver" onclick="viewDoc('${d.nombre}','${d.archivo}','${e.id}')"><i class="fas fa-eye"></i></button>`:'<span style="font-size:10px;color:var(--text3);padding:0 6px">Sin archivo</span>'}
-        </div>
-      </div>`).join('');
-    const reqs=estInfo.requisitos.map(r=>`<div style="display:flex;align-items:flex-start;gap:6px;padding:4px 0;font-size:11px;color:var(--text2)"><i class="fas fa-check-circle" style="color:var(--green);font-size:11px;margin-top:1px;flex-shrink:0"></i>${r}</div>`).join('');
-    return `<div class="estd-ver" id="estd-${e.id}">
-      <div class="evhead" onclick="toggleEstd('${e.id}')">
-        <div class="evtitle">
-          <div style="width:36px;height:36px;border-radius:9px;background:${estInfo.color}22;display:flex;align-items:center;justify-content:center;font-size:17px;flex-shrink:0">${estInfo.icono}</div>
-          <div>
-            <div style="font-size:10px;color:var(--text3);font-weight:600;text-transform:uppercase">Estándar ${estInfo.num}</div>
-            <div style="font-size:13px;font-weight:700">${estInfo.nombre}</div>
-          </div>
-        </div>
-        <div style="display:flex;align-items:center;gap:6px;flex-shrink:0">
-          ${req>0?`<span class="tag tr">${req}🚨</span>`:''}
-          ${pen>0?`<span class="tag tp">${pen}⚠️</span>`:''}
-          <span style="font-size:11px;font-weight:700;color:${pct>=80?'var(--green)':pct>=50?'var(--yellow)':'var(--red)'}">${pct}%</span>
-          <i class="fas fa-chevron-down" style="color:var(--text3);font-size:12px" id="chev-${e.id}"></i>
-        </div>
-      </div>
-      <div class="evbody" id="evbody-${e.id}">
-        <div style="padding:8px 10px;background:var(--dark4);border-radius:8px;margin-bottom:10px;font-size:11px;color:var(--text2)">${estInfo.descripcion}</div>
-        <div style="font-size:11px;font-weight:700;color:var(--pu2);margin-bottom:6px;text-transform:uppercase;letter-spacing:0.05em">📐 Requisitos normativos</div>
-        <div style="margin-bottom:12px">${reqs}</div>
-        <div style="font-size:11px;font-weight:700;color:var(--or2);margin-bottom:6px;text-transform:uppercase;letter-spacing:0.05em">📄 Documentos (${total})</div>
-        ${docs}
-      </div>
-    </div>`;
+  document.getElementById('estandares-list').innerHTML = C.estandares.map(e=>{
+    var ei = ES.find(x=>x.id===e.id);
+    var ok = e.documentos.filter(d=>d.estado==='vigente').length;
+    var pen = e.documentos.filter(d=>d.estado==='pendiente').length;
+    var req = e.documentos.filter(d=>d.estado==='requerido').length;
+    var total = e.documentos.length;
+    var pct = Math.round(ok/total*100);
+    var pcolor = pct>=80?'var(--green)':pct>=50?'var(--yellow)':'var(--red)';
+
+    var reqRows = ei.requisitos.map(r=>
+      '<div class="req-row"><div class="req-dot"><i class="fas fa-check"></i></div>'+r+'</div>'
+    ).join('');
+
+    var docRows = e.documentos.map(d=>
+      '<div class="doc-row">'
+      +'<div class="doc-ico" style="'+docIcoBg(d.estado)+'">📄</div>'
+      +'<div class="doc-info">'
+      +'<div class="doc-name">'+d.nombre+'</div>'
+      +'<div class="doc-meta">'+d.version+' &nbsp;·&nbsp; <span class="tipo-pill">'+d.tipo+'</span></div>'
+      +'</div>'
+      +'<div style="display:flex;align-items:center;gap:5px;flex-shrink:0">'
+      +sh(d.estado)
+      +(d.archivo?'<button class="view-btn" onclick="viewDoc(\''+d.nombre+'\',\''+d.archivo+'\')"><i class="fas fa-eye"></i></button>':'<span style="font-size:10px;color:var(--t2);padding:0 4px">Sin archivo</span>')
+      +'</div>'
+      +'</div>'
+    ).join('');
+
+    var tagHtml = (req?'<span class="tag tr">'+req+' 🚨</span>':'')
+                + (pen?'<span class="tag tp">'+pen+' ⚠️</span>':'')
+                + (ok?'<span class="tag tv">'+ok+' ✅</span>':'');
+
+    return '<div class="estd-card" id="estd-'+e.id+'">'
+      +'<div class="ec-head" onclick="toggleEstd(\''+e.id+'\')">'
+      +'<div class="ec-ico" style="background:'+ei.color+'22">'+ei.icono+'</div>'
+      +'<div class="ec-meta">'
+      +'<div class="ec-num">Estándar '+ei.num+' — '+ei.norma.split('—')[1]?.trim()+'</div>'
+      +'<div class="ec-name">'+ei.nombre+'</div>'
+      +'<div class="ec-prog">'
+      +'<div class="ec-bar"><div class="ec-fill" style="width:'+pct+'%;background:'+pcolor+'"></div></div>'
+      +'<div class="ec-pct" style="color:'+pcolor+'">'+pct+'%</div>'
+      +'</div>'
+      +'</div>'
+      +'<div class="ec-right">'
+      +'<i class="fas fa-chevron-down ec-chev" id="ec-chev-'+e.id+'"></i>'
+      +'<div style="display:flex;gap:3px;flex-wrap:wrap;justify-content:flex-end;max-width:80px">'+tagHtml+'</div>'
+      +'</div>'
+      +'</div>'
+      +'<div class="ec-body" id="ec-body-'+e.id+'">'
+      +'<div class="ec-desc">'+ei.descripcion+'</div>'
+      +'<div class="ec-section-lbl"><i class="fas fa-list-check"></i>Requisitos normativos</div>'
+      +'<div class="req-list">'+reqRows+'</div>'
+      +'<div class="ec-section-lbl" style="color:var(--or2)"><i class="fas fa-file-alt"></i>Documentos del estándar ('+total+')</div>'
+      +docRows
+      +'</div>'
+      +'</div>';
   }).join('');
 }
 
 function toggleEstd(eid){
-  const body=document.getElementById('evbody-'+eid);
-  const chev=document.getElementById('chev-'+eid);
-  const isOpen=body.classList.contains('open');
+  var body = document.getElementById('ec-body-'+eid);
+  var chev = document.getElementById('ec-chev-'+eid);
+  var card = document.getElementById('estd-'+eid);
+  var isOpen = body.classList.contains('open');
   body.classList.toggle('open');
-  if(chev)chev.style.transform=isOpen?'':'rotate(180deg)';
+  card.classList.toggle('open');
+  if(chev) chev.style.transform = isOpen?'':'rotate(180deg)';
+}
+function openEstd(eid){
+  var body = document.getElementById('ec-body-'+eid);
+  if(!body.classList.contains('open')) toggleEstd(eid);
 }
 
-// FORMATOS
+// ─── FORMATOS ───
 function renderFormatos(){
-  const grupos={};
-  C.formatos_diligenciables.forEach(f=>{
-    if(!grupos[f.frecuencia])grupos[f.frecuencia]=[];
-    grupos[f.frecuencia].push(f);
+  var grupos={};
+  C.formatos.forEach(f=>{
+    if(!grupos[f.freq]) grupos[f.freq]=[];
+    grupos[f.freq].push(f);
   });
-  const order=['Por consulta','Por procedimiento','Diario','Mensual','Semestral','Anual'];
-  document.getElementById('formatos-list').innerHTML=order.filter(k=>grupos[k]).map(k=>`
-    <div style="font-size:11px;font-weight:700;color:var(--or2);text-transform:uppercase;letter-spacing:0.05em;margin-bottom:8px;margin-top:12px;padding:5px 10px;background:var(--or-bg);border-radius:6px;display:inline-block">⏱ ${k}</div>
-    ${grupos[k].map(f=>`<div class="dr">
-      <div class="dl">
-        <div class="di" style="background:var(--pu-bg)">📝</div>
-        <div style="min-width:0">
-          <div class="dn">${f.nombre}</div>
-          <div class="dm">${f.categoria}</div>
-        </div>
+  var order = ['Por consulta','Por procedimiento','Por evento','Por solicitud','Diario','Mensual'];
+  document.getElementById('formatos-list').innerHTML = order.filter(k=>grupos[k]).map(k=>`
+    <div class="fmt-group-lbl">⏱ ${k}</div>
+    ${grupos[k].map(f=>`<div class="fmt-row" onclick="viewDoc('${f.nombre}','${f.archivo}')">
+      <div class="fmt-ico">📝</div>
+      <div class="fmt-info">
+        <div class="fmt-name">${f.nombre}</div>
+        <div class="fmt-cat">${f.cat}</div>
       </div>
-      <button class="bver" onclick="viewDoc('${f.nombre}','${f.archivo}','')"><i class="fas fa-eye"></i></button>
+      <i class="fas fa-eye fmt-arrow"></i>
     </div>`).join('')}`
   ).join('');
 }
 
-// VERIFICACIÓN
+// ─── VERIFICACIÓN ───
 function renderVer(){
-  const list=BIO_DATA.verificacion_3100;
-  const grupos={};
-  list.forEach(v=>{if(!grupos[v.estandar])grupos[v.estandar]=[];grupos[v.estandar].push(v)});
-  const ok=list.filter(v=>v.estado==='vigente').length;
-  const req=list.filter(v=>v.estado==='requerido').length;
-  const pen=list.filter(v=>v.estado==='pendiente').length;
-  const pct=Math.round(ok/list.length*100);
-  document.getElementById('ver-stats').innerHTML=`
-    <div style="display:flex;align-items:center;gap:14px;padding:14px;background:var(--dark3);border:1px solid var(--bd);border-radius:var(--r)">
-      <div style="width:58px;height:58px;border-radius:50%;background:conic-gradient(var(--or) ${pct}%,var(--dark4) 0);display:flex;align-items:center;justify-content:center;flex-shrink:0">
-        <div style="width:44px;height:44px;border-radius:50%;background:var(--dark3);display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:800">${pct}%</div>
-      </div>
-      <div>
-        <div style="font-size:15px;font-weight:700">Verificación Res. 3100/2019</div>
-        <div style="font-size:11px;color:var(--text2)">${ok} de ${list.length} ítems cumplidos</div>
-        <div style="display:flex;gap:6px;margin-top:5px">
-          <span class="tag tv">${ok} ✅ Vigente</span>
-          <span class="tag tp">${pen} ⚠️ Pendiente</span>
-          <span class="tag tr">${req} 🚨 Requerido</span>
-        </div>
-      </div>
-    </div>`;
-  document.getElementById('ver-list').innerHTML=Object.keys(grupos).sort().map(eNum=>{
-    const estInfo=ES.find(x=>x.num===parseInt(eNum));
-    const items=grupos[eNum];
-    const eok=items.filter(v=>v.estado==='vigente').length;
-    return `<div style="margin-bottom:10px">
-      <div style="display:flex;align-items:center;gap:8px;padding:9px 12px;background:var(--dark3);border:1px solid var(--bd);border-radius:9px 9px 0 0;border-bottom:none">
-        <span style="font-size:16px">${estInfo?.icono||'📌'}</span>
-        <div style="font-size:12px;font-weight:700;flex:1">Estándar ${eNum} — ${estInfo?.nombre||''}</div>
-        <span style="font-size:11px;font-weight:700;color:${eok===items.length?'var(--green)':'var(--yellow)'}">${eok}/${items.length}</span>
-      </div>
-      ${items.map(v=>`<div class="vrow" style="border-radius:0;${items.indexOf(v)===items.length-1?'border-radius:0 0 9px 9px':''}">
-        <div class="vcode">${v.codigo}</div>
-        <div class="vd">${v.descripcion}</div>
-        ${sh(v.estado)}
-      </div>`).join('')}
-    </div>`;
+  var list = VERIFICACION;
+  var ok = list.filter(v=>v.estado==='vigente').length;
+  var pen = list.filter(v=>v.estado==='pendiente').length;
+  var req = list.filter(v=>v.estado==='requerido').length;
+  var pct = Math.round(ok/list.length*100);
+
+  // ring
+  document.getElementById('ver-pct-ring').textContent = pct+'%';
+  var circ = 207.34;
+  document.getElementById('ver-circle').style.strokeDashoffset = circ - (circ*pct/100);
+  document.getElementById('ver-sub').textContent = ok+' de '+list.length+' ítems cumplidos';
+
+  document.getElementById('ver-stat-grid').innerHTML =
+    '<div class="vstat"><div class="vstat-n" style="color:var(--green)">'+ok+'</div><div class="vstat-l">Vigentes</div></div>'
+    +'<div class="vstat"><div class="vstat-n" style="color:var(--yellow)">'+pen+'</div><div class="vstat-l">Pendientes</div></div>'
+    +'<div class="vstat"><div class="vstat-n" style="color:var(--red)">'+req+'</div><div class="vstat-l">Requeridos</div></div>';
+
+  // group by standard
+  var grupos={};
+  list.forEach(v=>{if(!grupos[v.e])grupos[v.e]=[];grupos[v.e].push(v)});
+
+  document.getElementById('ver-list').innerHTML = Object.keys(grupos).sort().map(eNum=>{
+    var ei = ES.find(x=>x.num===parseInt(eNum));
+    var items = grupos[eNum];
+    var eok = items.filter(v=>v.estado==='vigente').length;
+    var ecolor = eok===items.length?'var(--green)':eok/items.length>=0.5?'var(--yellow)':'var(--red)';
+    var rows = items.map(v=>
+      '<div class="vitem">'
+      +'<div class="vcode">'+v.cod+'</div>'
+      +'<div class="vdesc">'+v.desc+'</div>'
+      +sh(v.estado)
+      +'</div>'
+    ).join('');
+    return '<div class="ver-std-card">'
+      +'<div class="vsc-head" onclick="toggleVer(\'v'+eNum+'\')">'
+      +'<span class="vsc-ico">'+(ei?ei.icono:'📌')+'</span>'
+      +'<div class="vsc-label">Estándar '+eNum+(ei?' — '+ei.nombre:'')+'</div>'
+      +'<div class="vsc-score" style="color:'+ecolor+'">'+eok+'/'+items.length+'</div>'
+      +'<i class="fas fa-chevron-down vsc-chev" id="vchev-v'+eNum+'"></i>'
+      +'</div>'
+      +'<div class="vsc-body" id="vbody-v'+eNum+'">'+rows+'</div>'
+      +'</div>';
   }).join('');
 }
 
-// HALLAZGOS
+function toggleVer(id){
+  var body = document.getElementById('vbody-'+id);
+  var chev = document.getElementById('vchev-'+id);
+  var isOpen = body.classList.contains('open');
+  body.classList.toggle('open');
+  if(chev) chev.style.transform = isOpen?'':'rotate(180deg)';
+}
+
+// ─── HALLAZGOS ───
 function addHallazgo(){
-  const n=hallazgos.length+1;
-  const id='h'+Date.now();
-  hallazgos.push({id,num:n,norma:'',descripcion:'',tipo:'',accion:'',plazo:''});
+  var id = 'h'+Date.now();
+  hallazgos.push({id,num:hallazgos.length+1,norma:'',descripcion:'',tipo:'',accion:'',plazo:''});
   renderHallazgos();
-  setTimeout(()=>{
-    const el=document.getElementById('hn-'+id);
-    if(el)el.focus();
-  },100);
+  setTimeout(function(){var el=document.getElementById('htxt-'+id);if(el)el.focus()},100);
 }
 function delHallazgo(id){hallazgos=hallazgos.filter(h=>h.id!==id);renderHallazgos()}
+function updH(id,campo,val){var h=hallazgos.find(x=>x.id===id);if(h)h[campo]=val}
 function renderHallazgos(){
-  const el=document.getElementById('hallazgos-list');
-  if(!hallazgos.length){
-    el.innerHTML='<div style="font-size:12px;color:var(--text3);text-align:center;padding:20px">No hay hallazgos registrados aún. Toca "Agregar" para iniciar.</div>';return;
-  }
-  el.innerHTML=hallazgos.map((h,i)=>`
+  var el = document.getElementById('hallazgos-list');
+  if(!hallazgos.length){el.innerHTML='<div class="no-items">No hay hallazgos registrados aún.<br>Toca "Agregar" para iniciar.</div>';return}
+  el.innerHTML = hallazgos.map((h,i)=>`
     <div class="hallazgo-item">
       <button class="hall-del" onclick="delHallazgo('${h.id}')"><i class="fas fa-times"></i></button>
-      <div class="hall-n">Hallazgo #${i+1}</div>
-      <div class="fg"><label class="fl">Estándar / Norma</label>
-        <select class="fi" id="hestd-${h.id}" onchange="updH('${h.id}','norma',this.value)">
+      <div class="hall-num">Hallazgo #${i+1}</div>
+      <div class="fg">
+        <label class="fl">Estándar / Norma</label>
+        <select class="fi" onchange="updH('${h.id}','norma',this.value)">
           <option value="">Seleccionar estándar...</option>
           ${ES.map(e=>`<option value="E${e.num} — ${e.nombre}" ${h.norma===`E${e.num} — ${e.nombre}`?'selected':''}>E${e.num} — ${e.nombre}</option>`).join('')}
         </select>
       </div>
-      <div class="fg"><label class="fl">Tipo de hallazgo</label>
+      <div class="fg">
+        <label class="fl">Tipo de hallazgo</label>
         <select class="fi" onchange="updH('${h.id}','tipo',this.value)">
           <option value="">Seleccionar...</option>
           <option value="No conformidad mayor" ${h.tipo==='No conformidad mayor'?'selected':''}>🔴 No conformidad mayor</option>
@@ -786,170 +985,172 @@ function renderHallazgos(){
           <option value="Fortaleza" ${h.tipo==='Fortaleza'?'selected':''}>⭐ Fortaleza</option>
         </select>
       </div>
-      <div class="fg"><label class="fl">Descripción del hallazgo</label>
-        <textarea class="fi fta" id="hn-${h.id}" placeholder="Describe detalladamente el hallazgo encontrado..." onchange="updH('${h.id}','descripcion',this.value)">${h.descripcion}</textarea>
+      <div class="fg">
+        <label class="fl">Descripción del hallazgo</label>
+        <textarea class="fi fta" id="htxt-${h.id}" placeholder="Describe el hallazgo encontrado..." onchange="updH('${h.id}','descripcion',this.value)">${h.descripcion}</textarea>
       </div>
       <div class="fgrid">
-        <div class="fg"><label class="fl">Acción correctiva propuesta</label>
-          <input class="fi" placeholder="Acción a tomar..." value="${h.accion}" onchange="updH('${h.id}','accion',this.value)">
-        </div>
-        <div class="fg"><label class="fl">Plazo de cumplimiento</label>
-          <input class="fi" type="date" value="${h.plazo}" onchange="updH('${h.id}','plazo',this.value)">
-        </div>
+        <div class="fg"><label class="fl">Acción correctiva</label><input class="fi" placeholder="Acción a tomar..." value="${h.accion}" onchange="updH('${h.id}','accion',this.value)"></div>
+        <div class="fg"><label class="fl">Plazo</label><input class="fi" type="date" value="${h.plazo}" onchange="updH('${h.id}','plazo',this.value)"></div>
       </div>
     </div>`).join('');
 }
-function updH(id,campo,val){
-  const h=hallazgos.find(x=>x.id===id);
-  if(h)h[campo]=val;
-}
 
-// GENERAR ACTA
+// ─── GENERAR ACTA ───
 function generarActa(){
-  const tipo=document.getElementById('a-tipo').value;
-  const fecha=document.getElementById('a-fecha').value;
+  var tipo = document.getElementById('a-tipo').value;
+  var fecha = document.getElementById('a-fecha').value;
   if(!tipo||!fecha){alert('Completa el tipo y fecha de la visita para generar el acta.');return}
-  const auditor=document.getElementById('a-auditor').value||'(pendiente)';
-  const entidad=document.getElementById('a-entidad').value||'(pendiente)';
-  const cedAud=document.getElementById('a-cedula-aud').value||'(pendiente)';
-  const receptor=document.getElementById('a-receptor').value||C.nombre;
-  const cargoRec=document.getElementById('a-cargo-rec').value||C.especialidad;
-  const alcance=document.getElementById('a-alcance').value||'Visita de verificación programada';
-  const horaIn=document.getElementById('a-hora').value||'(hora)';
-  const horaFin=document.getElementById('a-hora-fin').value||'(hora)';
-  const conclusion=document.getElementById('a-conclusion').value||'(pendiente)';
-  const compromisos=document.getElementById('a-compromisos').value||'(pendiente)';
-  const calif=document.getElementById('a-calificacion').value||'pendiente';
-  const califLabel={'cumple':'✅ CUMPLE — Sin hallazgos','cumple-obs':'⚠️ CUMPLE CON OBSERVACIONES','no-cumple':'🚨 NO CUMPLE — Requiere correcciones','suspendido':'🔴 SERVICIO SUSPENDIDO','pendiente':'(pendiente definir)'}[calif];
-  const acta={
-    id:'acta-'+Date.now(), tipo, fecha, auditor, entidad, cedAud,
-    receptor, cargoRec, alcance, horaIn, horaFin, conclusion, compromisos,
-    califLabel, hallazgos:[...hallazgos],
-    empresa:C.empresa, nit:C.nit, servicio:C.servicio_habilitado,
-    medico:C.nombre, cedula:C.cedula
-  };
+  var auditor = document.getElementById('a-auditor').value||'(pendiente)';
+  var entidad = document.getElementById('a-entidad').value||'(pendiente)';
+  var cedAud = document.getElementById('a-cedula-aud').value||'(pendiente)';
+  var receptor = document.getElementById('a-receptor').value||C.nombre;
+  var cargoRec = document.getElementById('a-cargo-rec').value||C.especialidad;
+  var alcance = document.getElementById('a-alcance').value||'Visita de verificación programada';
+  var horaIn = document.getElementById('a-hora').value||'—';
+  var horaFin = document.getElementById('a-hora-fin').value||'—';
+  var conclusion = document.getElementById('a-conclusion').value||'(pendiente)';
+  var compromisos = document.getElementById('a-compromisos').value||'(pendiente)';
+  var calif = document.getElementById('a-calificacion').value||'pendiente';
+  var califLabel = {
+    'cumple':'✅ CUMPLE — Sin hallazgos',
+    'cumple-obs':'⚠️ CUMPLE CON OBSERVACIONES',
+    'no-cumple':'🚨 NO CUMPLE — Requiere correcciones',
+    'suspendido':'🔴 SERVICIO SUSPENDIDO',
+    'pendiente':'(pendiente definir)'
+  }[calif];
+  var acta = {id:'acta-'+Date.now(),tipo,fecha,auditor,entidad,cedAud,receptor,cargoRec,alcance,horaIn,horaFin,conclusion,compromisos,califLabel,hallazgos:[...hallazgos],empresa:C.empresa,nit:C.nit,servicio:C.servicio_habilitado,medico:C.nombre,cedula:C.cedula};
   actas.unshift(acta);
   renderActas();
-  go(null,'actas','Actas');
-  bn('bn-actas');
-  alert('✅ Acta generada exitosamente. Puedes verla en la sección "Actas".');
+  nav(null,'actas');
+  bnav('bn-actas');
 }
 
 function renderActas(){
-  if(!actas.length){document.getElementById('actas-list').innerHTML='<div style="font-size:13px;color:var(--text3);text-align:center;padding:30px">No hay actas generadas aún.</div>';return}
-  document.getElementById('actas-list').innerHTML=actas.map(a=>`
+  if(!actas.length){document.getElementById('actas-list').innerHTML='<div class="no-items">No hay actas generadas aún.<br>Completa la auditoría y genera el acta.</div>';return}
+  document.getElementById('actas-list').innerHTML = actas.map(a=>`
     <div class="acta-card">
-      <div class="acta-head">
+      <div style="display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:10px">
         <div>
-          <div style="font-size:14px;font-weight:700;margin-bottom:4px">${a.tipo}</div>
-          <div style="font-size:11px;color:var(--text2)">${a.empresa} · NIT ${a.nit}</div>
-          <div style="font-size:11px;color:var(--text2)">${a.medico}</div>
+          <div style="font-size:14px;font-weight:800;margin-bottom:4px">${a.tipo}</div>
+          <div style="font-size:11px;color:var(--t2)">${a.empresa} · NIT ${a.nit}</div>
+          <div style="font-size:11px;color:var(--t2)">${a.medico}</div>
         </div>
-        <div style="text-align:right;flex-shrink:0">
-          <div class="acta-tipo">${a.califLabel}</div>
-          <div class="acta-fecha" style="margin-top:4px">${a.fecha}</div>
-          <div class="acta-fecha">${a.horaIn} - ${a.horaFin}</div>
+        <div style="text-align:right;flex-shrink:0;margin-left:10px">
+          <div class="acta-badge">${a.califLabel}</div>
+          <div class="acta-date">${a.fecha} &nbsp; ${a.horaIn}–${a.horaFin}</div>
         </div>
       </div>
-      <div style="background:var(--dark4);border-radius:8px;padding:10px;font-size:11px;margin-bottom:8px">
-        <div style="margin-bottom:4px"><strong>Auditor:</strong> ${a.auditor} — ${a.entidad} (C.C. ${a.cedAud})</div>
-        <div style="margin-bottom:4px"><strong>Recibe:</strong> ${a.receptor} — ${a.cargoRec}</div>
-        <div><strong>Alcance:</strong> ${a.alcance}</div>
+      <div style="background:var(--s3);border:1px solid var(--bd);border-radius:var(--r3);padding:10px;font-size:11px;line-height:1.6;margin-bottom:8px">
+        <div><strong>Auditor:</strong> ${a.auditor} — ${a.entidad}</div>
+        <div><strong>Recibe:</strong> ${a.receptor} — ${a.cargoRec}</div>
       </div>
-      ${a.hallazgos.length?`<div style="font-size:11px;font-weight:700;color:var(--or2);margin-bottom:6px">${a.hallazgos.length} Hallazgo(s) registrado(s):</div>
-      ${a.hallazgos.map((h,i)=>`<div style="background:var(--dark4);border-radius:7px;padding:8px;margin-bottom:5px;font-size:11px"><strong>#${i+1} ${h.tipo||''}</strong> — ${h.norma||''}<br>${h.descripcion||''}</div>`).join('')}`:'<div style="font-size:11px;color:var(--green)">✅ Sin hallazgos registrados</div>'}
-      <div style="margin-top:10px;padding-top:10px;border-top:1px solid var(--bd);font-size:11px">
-        <div style="margin-bottom:4px"><strong>Conclusión:</strong> ${a.conclusion}</div>
+      ${a.hallazgos.length
+        ?'<div style="font-size:11px;font-weight:700;color:var(--or2);margin-bottom:6px">'+a.hallazgos.length+' hallazgo(s) registrado(s)</div>'
+        +''+a.hallazgos.map((h,i)=>'<div style="background:var(--s3);border:1px solid var(--bd);border-radius:var(--r3);padding:8px 10px;margin-bottom:4px;font-size:11px;line-height:1.5"><strong>#'+(i+1)+' '+h.tipo+'</strong> — '+h.norma+'<br>'+h.descripcion+'</div>').join('')
+        :'<div style="font-size:11px;color:var(--green);display:flex;align-items:center;gap:5px"><i class="fas fa-check-circle"></i>Sin hallazgos registrados</div>'}
+      <div style="margin-top:10px;padding-top:10px;border-top:1px solid var(--bd);font-size:11px;line-height:1.6">
+        <div><strong>Conclusión:</strong> ${a.conclusion}</div>
         <div><strong>Compromisos:</strong> ${a.compromisos}</div>
       </div>
-      <button onclick="printActa('${a.id}')" style="width:100%;margin-top:10px;padding:9px;background:var(--or-bg);border:1px solid var(--orb);color:var(--or2);border-radius:8px;font-size:12px;font-weight:700;cursor:pointer;font-family:inherit;display:flex;align-items:center;justify-content:center;gap:6px"><i class="fas fa-print"></i>Imprimir / Descargar acta</button>
+      <div class="acta-actions">
+        <button class="sec-btn" style="color:var(--or2);border-color:var(--orb);background:var(--or-bg)" onclick="printActa('${a.id}')"><i class="fas fa-print"></i>Imprimir / PDF</button>
+      </div>
     </div>`).join('');
 }
 
 function printActa(id){
-  const a=actas.find(x=>x.id===id);
-  if(!a)return;
-  const w=window.open('','_blank');
+  var a = actas.find(x=>x.id===id);
+  if(!a) return;
+  var w = window.open('','_blank');
   w.document.write(`<!DOCTYPE html><html><head><meta charset="UTF-8"><title>Acta Auditoría</title>
-  <style>body{font-family:Arial,sans-serif;font-size:12px;color:#111;max-width:800px;margin:0 auto;padding:30px}
-  h1{font-size:16px;text-align:center;color:#0A3D55;border-bottom:2px solid #FF6B00;padding-bottom:10px;margin-bottom:20px}
-  h2{font-size:13px;color:#7B2FBE;border-left:3px solid #FF6B00;padding-left:8px;margin:16px 0 8px}
-  table{width:100%;border-collapse:collapse;margin:8px 0}
-  td,th{padding:7px 10px;border:1px solid #ddd;font-size:11px}
-  th{background:#0A3D55;color:#fff}
+  <style>body{font-family:'Segoe UI',Arial,sans-serif;font-size:12px;color:#111;max-width:800px;margin:0 auto;padding:30px}
+  .header{text-align:center;border-bottom:3px solid #FF6B00;padding-bottom:16px;margin-bottom:20px}
+  .brand{font-size:22px;font-weight:900;color:#FF6B00}
+  .brand span{color:#7B2FBE}
+  h1{font-size:15px;color:#0A3D55;margin:10px 0 0;text-transform:uppercase;letter-spacing:0.05em}
+  h2{font-size:12px;color:#7B2FBE;border-left:3px solid #FF6B00;padding-left:8px;margin:18px 0 8px}
+  table{width:100%;border-collapse:collapse;margin:8px 0;font-size:11px}
+  td,th{padding:7px 10px;border:1px solid #e0e0e0}th{background:#0A3D55;color:#fff;font-weight:700;text-align:left}
   .sig-grid{display:grid;grid-template-columns:1fr 1fr;gap:40px;margin-top:40px}
-  .sig-box{border-top:2px solid #333;padding-top:8px;text-align:center;font-size:11px}
-  @media print{button{display:none}}</style></head><body>
-  <div style="text-align:center;margin-bottom:16px"><strong style="font-size:18px;color:#FF6B00">BIOAuditoria®</strong><br><span style="font-size:11px;color:#666">Sistema de gestión documental para habilitación en salud</span></div>
-  <h1>ACTA DE AUDITORÍA / VISITA DE VERIFICACIÓN</h1>
+  .sig-box{border-top:2px solid #333;padding-top:8px;text-align:center;font-size:11px;min-height:70px;padding-top:14px}
+  .calificacion{font-size:15px;font-weight:800;padding:10px 16px;border-radius:6px;display:inline-block;background:#f0f0f0}
+  @media print{button{display:none!important}}</style></head><body>
+  <div class="header">
+    <div class="brand">BIO<span>Auditoria</span>®</div>
+    <div style="font-size:10px;color:#888;margin-top:4px">Sistema de gestión documental para habilitación en salud · Res. 3100/2019</div>
+    <h1>Acta de Auditoría / Visita de Verificación</h1>
+  </div>
   <h2>1. Datos de la visita</h2>
-  <table><tr><th>Campo</th><th>Dato</th></tr>
-  <tr><td>Tipo de visita</td><td>${a.tipo}</td></tr>
+  <table><tr><th style="width:35%">Campo</th><th>Dato</th></tr>
+  <tr><td>Tipo de visita</td><td><strong>${a.tipo}</strong></td></tr>
   <tr><td>Fecha</td><td>${a.fecha}</td></tr>
   <tr><td>Hora inicio</td><td>${a.horaIn}</td></tr>
   <tr><td>Hora fin</td><td>${a.horaFin}</td></tr>
   <tr><td>Alcance</td><td>${a.alcance}</td></tr></table>
   <h2>2. Partes</h2>
-  <table><tr><th>Rol</th><th>Nombre</th><th>Cargo / Entidad</th><th>Identificación</th></tr>
-  <tr><td>Auditor</td><td>${a.auditor}</td><td>${a.entidad}</td><td>${a.cedAud}</td></tr>
-  <tr><td>Receptor</td><td>${a.receptor}</td><td>${a.cargoRec}</td><td>${a.cedula}</td></tr></table>
+  <table><tr><th>Rol</th><th>Nombre</th><th>Cargo / Entidad</th></tr>
+  <tr><td>Auditor</td><td>${a.auditor}</td><td>${a.entidad} (C.C. ${a.cedAud})</td></tr>
+  <tr><td>Receptor</td><td>${a.receptor}</td><td>${a.cargoRec}</td></tr></table>
   <h2>3. Institución auditada</h2>
   <table><tr><th>Campo</th><th>Dato</th></tr>
-  <tr><td>Razón social</td><td>${a.empresa}</td></tr>
+  <tr><td>Razón social</td><td><strong>${a.empresa}</strong></td></tr>
   <tr><td>NIT</td><td>${a.nit}</td></tr>
   <tr><td>Médico responsable</td><td>${a.medico}</td></tr>
   <tr><td>Servicio habilitado</td><td>${a.servicio}</td></tr></table>
   <h2>4. Hallazgos (${a.hallazgos.length})</h2>
-  ${a.hallazgos.length?`<table><tr><th>#</th><th>Estándar</th><th>Tipo</th><th>Descripción</th><th>Acción correctiva</th><th>Plazo</th></tr>
-  ${a.hallazgos.map((h,i)=>`<tr><td>${i+1}</td><td>${h.norma||'—'}</td><td>${h.tipo||'—'}</td><td>${h.descripcion||'—'}</td><td>${h.accion||'—'}</td><td>${h.plazo||'—'}</td></tr>`).join('')}</table>`
-  :'<p>Sin hallazgos registrados durante la visita.</p>'}
+  ${a.hallazgos.length
+    ?'<table><tr><th>#</th><th>Estándar</th><th>Tipo</th><th>Descripción</th><th>Acción correctiva</th><th>Plazo</th></tr>'
+      +a.hallazgos.map((h,i)=>`<tr><td>${i+1}</td><td>${h.norma||'—'}</td><td>${h.tipo||'—'}</td><td>${h.descripcion||'—'}</td><td>${h.accion||'—'}</td><td>${h.plazo||'—'}</td></tr>`).join('')
+      +'</table>'
+    :'<p style="color:#22C55E;font-weight:700">✅ Sin hallazgos registrados durante la visita.</p>'}
   <h2>5. Conclusiones</h2><p>${a.conclusion}</p>
   <h2>6. Compromisos acordados</h2><p>${a.compromisos}</p>
-  <h2>7. Calificación final</h2><p style="font-size:14px;font-weight:bold">${a.califLabel}</p>
+  <h2>7. Calificación final</h2><div class="calificacion">${a.califLabel}</div>
   <div class="sig-grid">
-    <div class="sig-box"><br><br><strong>${a.auditor}</strong><br>${a.entidad}<br>C.C. ${a.cedAud}<br><em>Auditor</em></div>
-    <div class="sig-box"><br><br><strong>${a.receptor}</strong><br>${a.cargoRec}<br><em>Representante de la institución</em></div>
+    <div class="sig-box"><strong>${a.auditor}</strong><br>${a.entidad}<br>C.C. ${a.cedAud}<br><em style="color:#888">Auditor</em></div>
+    <div class="sig-box"><strong>${a.receptor}</strong><br>${a.cargoRec}<br><em style="color:#888">Representante de la institución</em></div>
   </div>
-  <p style="margin-top:30px;font-size:10px;color:#999;text-align:center">Acta generada por BIOAuditoria® — biomarketing.salud@gmail.com — ${new Date().toLocaleString('es-CO')}</p>
-  <button onclick="window.print()" style="width:100%;padding:10px;background:#FF6B00;color:#fff;border:none;border-radius:8px;font-size:14px;font-weight:bold;cursor:pointer;margin-top:20px">🖨️ Imprimir / Guardar PDF</button>
+  <p style="margin-top:30px;font-size:10px;color:#aaa;text-align:center">Acta generada por BIOAuditoria® — ${new Date().toLocaleString('es-CO')} — Documento de uso exclusivo interno</p>
+  <button onclick="window.print()" style="width:100%;padding:12px;background:linear-gradient(135deg,#FF6B00,#7B2FBE);color:#fff;border:none;border-radius:8px;font-size:14px;font-weight:800;cursor:pointer;margin-top:20px">🖨️ Imprimir / Guardar como PDF</button>
   </body></html>`);
   w.document.close();
 }
 
-// VIEWER
-function viewDoc(nombre,archivo,eid){
-  document.getElementById('vtitle').textContent=nombre;
-  const fecha=new Date().toLocaleDateString('es-CO');
-  document.getElementById('vbody').innerHTML=`
-    <div class="nodl"><i class="fas fa-ban"></i>Documento protegido · Solo visualización · © BIOAuditoria / BIOMarketing</div>
-    <div class="dprev" oncopy="return false">
-      <div style="display:flex;justify-content:space-between;margin-bottom:12px;padding-bottom:12px;border-bottom:1px solid #eee;font-size:10px;color:#777">
-        <div><strong>${C.empresa}</strong><br>NIT ${C.nit}<br>${C.direccion}<br>${C.ciudad}<br>Tel: ${C.telefono}</div>
-        <div style="text-align:right"><strong>BIOAuditoria®</strong><br>Res. 3100/2019<br>${fecha}<br><em>Solo lectura</em></div>
-      </div>
-      <h1>${nombre.toUpperCase()}</h1>
-      <h2>Datos del prestador</h2>
-      <table><tr><td><strong>Empresa</strong></td><td>${C.empresa}</td><td><strong>NIT</strong></td><td>${C.nit}</td></tr>
-      <tr><td><strong>Médico</strong></td><td>${C.nombre}</td><td><strong>C.C.</strong></td><td>${C.cedula}</td></tr>
-      <tr><td><strong>Especialidad</strong></td><td>${C.especialidad}</td><td><strong>Reg. médico</strong></td><td>${C.registro_medico}</td></tr>
-      <tr><td><strong>Servicio</strong></td><td colspan="3">${C.servicio_habilitado}</td></tr>
-      <tr><td><strong>Dirección</strong></td><td colspan="3">${C.direccion}, ${C.ciudad}</td></tr></table>
-      <h2>Información del documento</h2>
-      <p>Este documento hace parte del sistema de gestión documental de <strong>${C.empresa}</strong>, administrado por <strong>BIOAuditoria®</strong> en cumplimiento de los estándares de la Resolución 3100 de 2019 del Ministerio de Salud y Protección Social de Colombia.</p>
-      <p>Para obtener el archivo Word completo y editable, contacte al administrador BIOAuditoria: <strong>${C.email_admin}</strong></p>
-      <div class="sig" style="display:block">
-        <div class="sig-box" style="display:inline-block;width:45%;margin-right:8%;text-align:center">Firma responsable<br><strong>${C.nombre}</strong><br>${C.especialidad}</div>
-        <div class="sig-box" style="display:inline-block;width:45%;text-align:center">Sello institucional<br><strong>${C.empresa}</strong></div>
-      </div>
-      <div class="wm">BIOAuditoria</div>
-      <div class="pov"></div>
-    </div>`;
+// ─── VIEWER ───
+function viewDoc(nombre, archivo){
+  document.getElementById('vtitle').textContent = nombre;
+  var fecha = new Date().toLocaleDateString('es-CO',{year:'numeric',month:'long',day:'numeric'});
+  document.getElementById('vbody').innerHTML =
+    '<div class="nodl"><i class="fas fa-ban"></i>Documento protegido · Solo visualización · © BIOAuditoria / BIOMarketing</div>'
+    +'<div class="dprev" oncopy="return false">'
+    +'<div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:14px;padding-bottom:14px;border-bottom:2px solid #FF6B00;font-size:10px;color:#777">'
+    +'<div><strong style="font-size:12px;color:#0A3D55">'+C.empresa+'</strong><br>NIT '+C.nit+'<br>'+C.direccion+'<br>'+C.ciudad+'</div>'
+    +'<div style="text-align:right"><strong style="font-size:12px;color:#FF6B00">BIOAuditoria®</strong><br>Res. 3100/2019<br>'+fecha+'<br><span style="background:#f0f0f0;padding:2px 6px;border-radius:4px;color:#555">Solo lectura</span></div>'
+    +'</div>'
+    +'<h1>'+nombre.toUpperCase()+'</h1>'
+    +'<h2>Datos del prestador</h2>'
+    +'<table><tr><td><strong>Empresa</strong></td><td>'+C.empresa+'</td><td><strong>NIT</strong></td><td>'+C.nit+'</td></tr>'
+    +'<tr><td><strong>Médico</strong></td><td>'+C.nombre+'</td><td><strong>C.C.</strong></td><td>'+C.cedula+'</td></tr>'
+    +'<tr><td><strong>Especialidad</strong></td><td>'+C.especialidad+'</td><td><strong>Reg. médico</strong></td><td>'+C.registro_medico+'</td></tr>'
+    +'<tr><td><strong>Servicio</strong></td><td colspan="3">'+C.servicio_habilitado+'</td></tr>'
+    +'<tr><td><strong>Dirección</strong></td><td colspan="3">'+C.direccion+', '+C.ciudad+'</td></tr></table>'
+    +'<h2>Información del documento</h2>'
+    +'<p>Este documento hace parte del sistema de gestión documental de <strong>'+C.empresa+'</strong>, administrado por <strong>BIOAuditoria®</strong> en cumplimiento de los estándares de la Resolución 3100 de 2019.</p>'
+    +'<p>Para obtener el archivo editable, contacte al administrador BIOAuditoria: <strong>'+C.email_admin+'</strong></p>'
+    +'<div class="sig-grid">'
+    +'<div class="sig-box">Firma responsable<br><strong>'+C.nombre+'</strong><br>'+C.especialidad+'</div>'
+    +'<div class="sig-box">Sello institucional<br><strong>'+C.empresa+'</strong></div>'
+    +'</div>'
+    +'<div class="wm">BIOAuditoria</div>'
+    +'<div class="pov"></div>'
+    +'</div>';
   document.getElementById('viewer').classList.add('open');
 }
 function closeViewer(){document.getElementById('viewer').classList.remove('open')}
 
-// INIT
-initStats();
+// ─── INIT ───
+initUI();
 renderInicioEstandares();
 renderEstandares();
 renderFormatos();
