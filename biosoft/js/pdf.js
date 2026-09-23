@@ -696,11 +696,11 @@
     // primera hoja.
     function dibujarBloqueInformePaciente(yInicial) {
       var y = yInicial;
-      if (!estiloDiscreto) {
-        doc.setFont(fontFam, "bold"); doc.setFontSize(13); doc.setTextColor(20, 20, 20);
-        doc.text("INFORME DE RESULTADOS DE LABORATORIO CLÍNICO", margin, y);
-        y += 10;
-      }
+      // El título "INFORME DE RESULTADOS DE LABORATORIO CLÍNICO" que iba
+      // aquí se quitó a pedido explícito: es información obvia por sí sola
+      // (el paciente ya sabe qué documento está viendo, y el membrete de
+      // arriba ya identifica al laboratorio) y solo restaba espacio/se
+      // veía recargado — un informe más limpio y premium no lo necesita.
       // El aviso de preliminar/parcial va en su PROPIA línea debajo del
       // título (antes iba a la derecha, en la misma línea que el título, y
       // con textos largos las dos frases se montaban una sobre la otra).
