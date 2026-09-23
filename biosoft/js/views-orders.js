@@ -150,6 +150,14 @@
     // Sirve tanto para sugerir el "Valor a Cobrar" con su precio especial
     // como para que, si más adelante se le crea un acceso de solo consulta
     // a esa empresa (rol "aliado"), esta orden aparezca en su portal.
+    // Médicos Remitentes registrados (ver "Médicos Remitentes" en
+    // Administración) — quedan disponibles para elegir aquí, pero nunca
+    // obligan: quien registra la orden siempre puede escribir un nombre
+    // libre para un médico que aún no está registrado. Solo cuando se
+    // elige uno del catálogo la orden queda ligada a él (order.
+    // medicoRemitenteId) para poder calcular su comisión más adelante en
+    // "Comisiones a Médicos Remitentes" (Reportes Administrativos).
+    var medicosRemitentes = S.medicos.list(session.tenantId).filter(function (m) { return m.activo !== false; });
     var convenios = S.cotizador.listConvenios(session.tenantId).filter(function (c) { return c.activo; });
     var convenioPreciosPorConvenio = {};
     convenios.forEach(function (cv) {
@@ -192,7 +200,11 @@
             patients.map(function (p) { return '<option value="' + p.id + '" ' + (p.id === prefillId ? "selected" : "") + ">" + p.tipoDocumento + " " + p.numeroDocumento + " — " + U.esc(U.nombreCompleto(p)) + "</option>"; }).join("") +
           "</select></div>" +
           F.sel("prioridad", "Prioridad", C.PRIORIDADES.map(function (p) { return "<option>" + p + "</option>"; }).join("")) +
-          F.inp("medicoRemitente", "Médico Remitente", "") +
+          '<div class="field"><label>Médico Remitente</label><select id="f_medicoRemitenteId">' +
+            '<option value="">✏️ Escribir un nombre (no registrado)</option>' +
+            medicosRemitentes.map(function (m) { return '<option value="' + m.id + '">' + U.esc(m.nombre) + "</option>"; }).join("") +
+            "</select>" +
+            '<input id="f_medicoRemitenteTexto" placeholder="Nombre del médico" style="margin-top:6px"/></div>' +
           F.sel("procedencia", "Procedencia", C.PROCEDENCIAS.map(function (p) { return "<option>" + p + "</option>"; }).join("")) +
           F.inp("diagnostico", "Diagnóstico / Motivo", "") +
           (tenant.pais === "CO" ? F.inp("numAutorizacion", "N° de Autorización (si aplica, para RIPS)", "") + F.inp("diagnosticoCIE10", "Código CIE-10 (opcional, para RIPS)", "") : "") +
@@ -242,6 +254,12 @@
       window.BIO_openPatientForm(null, function () { location.hash = "#/ordenes/nueva"; BIO_ROUTER.renderRoute(); });
     });
     document.getElementById("exam-search").addEventListener("input", function (e) { searchTerm = e.target.value; renderSections(); renderExams(); });
+
+    var selMedicoRemitente = document.getElementById("f_medicoRemitenteId");
+    var inpMedicoRemitenteTexto = document.getElementById("f_medicoRemitenteTexto");
+    function actualizarCampoMedicoRemitente() { inpMedicoRemitenteTexto.style.display = selMedicoRemitente.value ? "none" : ""; }
+    selMedicoRemitente.addEventListener("change", actualizarCampoMedicoRemitente);
+    actualizarCampoMedicoRemitente();
 
     function renderSections() {
       document.getElementById("sec-list").innerHTML = seccionesActuales().map(function (s) {
@@ -425,6 +443,7 @@
       });
       var pacSel = S.getPatient(patientId);
       var convenioSel = convenioIdSel ? convenios.filter(function (c) { return c.id === convenioIdSel; })[0] : null;
+      var medicoRemitenteSel = selMedicoRemitente.value ? medicosRemitentes.filter(function (m) { return m.id === selMedicoRemitente.value; })[0] : null;
       var order = {
         tenantId: session.tenantId,
         numeroOrden: S.nextOrderNumber(session.tenantId),
@@ -443,7 +462,8 @@
         fechaOrden: new Date().toISOString(),
         prioridad: document.getElementById("f_prioridad").value,
         procedencia: document.getElementById("f_procedencia").value,
-        medicoRemitente: document.getElementById("f_medicoRemitente").value,
+        medicoRemitente: medicoRemitenteSel ? medicoRemitenteSel.nombre : document.getElementById("f_medicoRemitenteTexto").value.trim(),
+        medicoRemitenteId: selMedicoRemitente.value || "",
         diagnostico: document.getElementById("f_diagnostico").value,
         numAutorizacion: tenant.pais === "CO" ? document.getElementById("f_numAutorizacion").value : "",
         diagnosticoCIE10: tenant.pais === "CO" ? document.getElementById("f_diagnosticoCIE10").value : "",

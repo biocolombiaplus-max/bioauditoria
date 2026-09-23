@@ -164,7 +164,8 @@
       attach("convenioPrecios", "convenioPrecios", false),
       attach("ripsGenerados", "ripsGenerados", false),
       attach("facturasGeneradas", "facturasGeneradas", false),
-      attach("paquetesExamenes", "paquetesExamenes", false)
+      attach("paquetesExamenes", "paquetesExamenes", false),
+      attach("medicosRemitentes", "medicosRemitentes", false)
     ]).then(function () { return realCache; });
   }
 
@@ -663,7 +664,8 @@
     return {
       tenants: {}, users: [], patients: [], orders: [], auditLog: [], qcControles: [], qcLecturas: [], preciosExamenes: [], cotizaciones: [],
       reglasRemarketing: [], remarketingContactos: [], insumos: [], recetasReactivos: [], kardexInventario: [], examenesPersonalizados: [],
-      ripsGenerados: [], facturasGeneradas: [], convenios: [], convenioPrecios: [], consentimientos: [], examenesReferencia: [], paquetesExamenes: []
+      ripsGenerados: [], facturasGeneradas: [], convenios: [], convenioPrecios: [], consentimientos: [], examenesReferencia: [], paquetesExamenes: [],
+      medicosRemitentes: []
     };
   }
 
@@ -1431,6 +1433,52 @@
   }
 
   // ---------------------------------------------------------------------
+  // MÉDICOS REMITENTES — el profesional externo que remite al paciente al
+  // laboratorio (ver el selector "Médico Remitente" en Nueva Orden). A
+  // diferencia de un Convenio (que le DEBE dinero al laboratorio), aquí es
+  // al revés: el laboratorio le paga una comisión al médico por cada
+  // paciente que le remite — por eso "tarifa" aquí es lo que se le debe
+  // pagar, no un descuento. tipoTarifa: "fijo_orden" (un valor fijo por
+  // cada orden remitida, sin importar cuántos exámenes tenga),
+  // "fijo_examen" (un valor fijo por cada examen remitido) o "porcentaje"
+  // (un % del Valor a Cobrar de la orden). Ver "Comisiones a Médicos
+  // Remitentes" en Reportes Administrativos para el cálculo de cuánto se
+  // le debe pagar a cada uno en un periodo.
+  // ---------------------------------------------------------------------
+  function listMedicosRemitentes(tenantId) {
+    var db = loadDB();
+    return (db.medicosRemitentes || []).filter(function (m) { return m.tenantId === tenantId; }).sort(function (a, b) { return (a.nombre || "").localeCompare(b.nombre || ""); });
+  }
+  function getMedicoRemitente(id) {
+    var db = loadDB();
+    return (db.medicosRemitentes || []).filter(function (m) { return m.id === id; })[0];
+  }
+  function createMedicoRemitente(data) {
+    var db = loadDB();
+    db.medicosRemitentes = db.medicosRemitentes || [];
+    var m = Object.assign({ id: uid("med"), activo: true, tipoTarifa: "fijo_orden", valorTarifa: 0, creadoEn: nowISO() }, data);
+    db.medicosRemitentes.push(m);
+    saveDB(db);
+    fbWrite("medicosRemitentes", m.id, m);
+    return m;
+  }
+  function updateMedicoRemitente(id, patch) {
+    var db = loadDB();
+    var m = (db.medicosRemitentes || []).filter(function (x) { return x.id === id; })[0];
+    if (!m) return null;
+    Object.assign(m, patch);
+    saveDB(db);
+    fbWrite("medicosRemitentes", m.id, m);
+    return m;
+  }
+  function eliminarMedicoRemitente(tenantId, medicoId) {
+    var db = loadDB();
+    db.medicosRemitentes = (db.medicosRemitentes || []).filter(function (m) { return m.id !== medicoId; });
+    saveDB(db);
+    fbDelete("medicosRemitentes", medicoId);
+  }
+
+  // ---------------------------------------------------------------------
   // PAQUETES DE EXÁMENES — bultos de exámenes del catálogo (propios o
   // personalizados) que el laboratorio vende como una sola línea con UN
   // precio total (ej. "Perfil Lipídico", "Perfil 20"), en vez de sumar el
@@ -1892,6 +1940,10 @@
     consentimientos: {
       listPorOrden: listConsentimientosPorOrden, get: getConsentimiento, create: createConsentimiento,
       update: updateConsentimiento, firmarPublico: firmarConsentimientoPublico
+    },
+    medicos: {
+      list: listMedicosRemitentes, get: getMedicoRemitente, create: createMedicoRemitente,
+      update: updateMedicoRemitente, eliminar: eliminarMedicoRemitente
     }
   };
 })(window);

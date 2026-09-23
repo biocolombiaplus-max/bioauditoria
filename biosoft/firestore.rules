@@ -218,6 +218,9 @@ service cloud.firestore {
       match /convenioPrecios/{convenioPrecioId} {
         allow read, write: if esDeEsteLab(tenantId);
       }
+      match /medicosRemitentes/{medicoId} {
+        allow read, write: if esDeEsteLab(tenantId);
+      }
       // Exámenes de laboratorio de referencia (ej. IDIME): precio de
       // compra y de venta de los exámenes que este laboratorio remite a un
       // tercero — catálogo independiente del catálogo interno de exámenes.

@@ -28,6 +28,7 @@
       ]},
       { sec: "ADMINISTRACIÓN", items: [
         { route: "usuarios", label: "Usuarios del Laboratorio", icon: "users" },
+        { route: "medicos", label: "Médicos Remitentes", icon: "users" },
         { route: "catalogo", label: "Valores de Referencia", icon: "flask" },
         { route: "config", label: "Configuración del Laboratorio", icon: "settings" },
         { route: "auditoria", label: "Trazabilidad", icon: "history" }
@@ -188,7 +189,8 @@
     config: "Configuración del Laboratorio", auditoria: "Trazabilidad y Auditoría", tenants: "Laboratorios Cliente",
     catalogo: "Valores de Referencia del Catálogo", productividad: "Productividad Mensual", crm: "Clientes (CRM)",
     calidad: "Control de Calidad", cotizador: "Cotizador de Exámenes", marketing: "Marketing Digital", inventario: "Inventario y Reactivos",
-    facturacion: "Facturación y RIPS", "landing-imagenes": "Imágenes de la Landing", "portal-aliado": "Portal de Resultados"
+    facturacion: "Facturación y RIPS", "landing-imagenes": "Imágenes de la Landing", "portal-aliado": "Portal de Resultados",
+    medicos: "Médicos Remitentes"
   };
 
   // Rutas visibles solo para laboratorios en un país con módulo de
@@ -198,7 +200,7 @@
 
   var ALLOWED_ROUTES = {
     superadmin: ["crm", "tenants", "dashboard", "landing-imagenes"],
-    admin: ["dashboard", "pacientes", "ordenes", "resultados", "hojas-trabajo", "reportes", "productividad", "calidad", "cotizador", "marketing", "inventario", "usuarios", "config", "auditoria", "catalogo", "facturacion"],
+    admin: ["dashboard", "pacientes", "ordenes", "resultados", "hojas-trabajo", "reportes", "productividad", "calidad", "cotizador", "marketing", "inventario", "usuarios", "medicos", "config", "auditoria", "catalogo", "facturacion"],
     bacteriologo: ["dashboard", "resultados", "hojas-trabajo", "calidad"],
     recepcion: ["dashboard", "pacientes", "ordenes", "resultados", "hojas-trabajo", "reportes", "cotizador", "marketing"],
     aliado: ["portal-aliado"]

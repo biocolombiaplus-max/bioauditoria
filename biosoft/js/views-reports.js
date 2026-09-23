@@ -66,6 +66,7 @@
       var tenant = BIO_AUTH.currentTenant();
       var insumos = S.inventario.listInsumos(tenantId);
       var conveniosActivos = S.cotizador.listConvenios(tenantId).filter(function (c) { return c.activo; });
+      var medicosRemitentes = S.medicos.list(tenantId);
       return '<div class="lp-grid" style="margin-top:14px;grid-template-columns:repeat(auto-fit,minmax(280px,1fr))">' +
         '<div class="lp-feature">' +
         '<div class="lp-ic">💊</div><h3>Gasto de Reactivos</h3>' +
@@ -146,12 +147,27 @@
           "</select></div>" : "") +
         '<button class="btn btn-primary btn-block" id="btn-rep-caja">' + U.icon("download") + " Generar PDF</button>" +
         "</div>" +
+        '<div class="lp-feature">' +
+        '<div class="lp-ic">🩺</div><h3>Comisiones a Médicos Remitentes</h3>' +
+        '<p>Cuánto se le debe pagar a cada médico remitente en un periodo, según su tarifa configurada (fija por orden, fija por examen, o % del valor) — agrupado por médico, con el detalle de cada orden que remitió.</p>' +
+        '<div class="form-grid" style="margin:10px 0">' +
+        '<div class="field"><label>Desde</label><input type="date" id="rep-comisiones-desde" value="' + primerDiaMes() + '"/></div>' +
+        '<div class="field"><label>Hasta</label><input type="date" id="rep-comisiones-hasta" value="' + hoyISO() + '"/></div>' +
+        "</div>" +
+        (medicosRemitentes.length ?
+          '<div class="field" style="margin:0 0 10px"><label>Médico (opcional)</label><select id="rep-comisiones-medico"><option value="">Todos los médicos</option>' +
+          medicosRemitentes.map(function (m) { return '<option value="' + m.id + '">' + U.esc(m.nombre) + "</option>"; }).join("") +
+          "</select></div>" :
+          '<p class="text-muted" style="font-size:12px">Aún no has registrado ningún médico remitente — hazlo en Administración → Médicos Remitentes.</p>') +
+        '<button class="btn btn-primary btn-block" id="btn-rep-comisiones" ' + (medicosRemitentes.length ? "" : "disabled") + '>' + U.icon("download") + " Generar PDF</button>" +
+        "</div>" +
         "</div>";
     }
 
     function wireAdmin() {
       var tenant = BIO_AUTH.currentTenant();
       var conveniosActivos = S.cotizador.listConvenios(tenantId).filter(function (c) { return c.activo; });
+      var medicosRemitentes = S.medicos.list(tenantId);
       var btnGasto = document.getElementById("btn-rep-gasto");
       if (btnGasto) btnGasto.addEventListener("click", function () {
         var desde = document.getElementById("rep-gasto-desde").value;
@@ -347,6 +363,45 @@
         var sufijoMoneda = monedaFiltroLabel ? "_" + monedaFiltroId : "";
         U.downloadBytes(bytesCaja, "Cierre_Caja_" + desde + "_a_" + hasta + sufijoMoneda + ".pdf");
         U.toast("Cierre de caja descargado.", "success");
+      });
+      var btnComisiones = document.getElementById("btn-rep-comisiones");
+      if (btnComisiones) btnComisiones.addEventListener("click", function () {
+        var desde = document.getElementById("rep-comisiones-desde").value;
+        var hasta = document.getElementById("rep-comisiones-hasta").value;
+        var elMedico = document.getElementById("rep-comisiones-medico");
+        var medicoIdFiltro = elMedico ? elMedico.value : "";
+        var medicosPorId = {};
+        medicosRemitentes.forEach(function (m) { medicosPorId[m.id] = m; });
+        // Solo cuentan las órdenes que quedaron ligadas a un médico
+        // REGISTRADO (order.medicoRemitenteId, ver "Médico Remitente" en
+        // Nueva Orden) — un nombre escrito a mano, sin elegir del
+        // catálogo, no tiene una tarifa configurada con la que calcular
+        // ninguna comisión.
+        var filas = [];
+        S.listOrders(tenantId).filter(function (o) {
+          var fecha = (o.fechaOrden || "").slice(0, 10);
+          if (!o.medicoRemitenteId || !medicosPorId[o.medicoRemitenteId]) return false;
+          if (medicoIdFiltro && o.medicoRemitenteId !== medicoIdFiltro) return false;
+          return fecha >= desde && fecha <= hasta;
+        }).forEach(function (o) {
+          var medico = medicosPorId[o.medicoRemitenteId];
+          var pac = S.getPatient(o.patientId);
+          var numExamenes = o.examenes ? o.examenes.length : 0;
+          var comision = medico.tipoTarifa === "porcentaje" ? (o.valorCobrar || 0) * ((medico.valorTarifa || 0) / 100)
+            : medico.tipoTarifa === "fijo_examen" ? (medico.valorTarifa || 0) * numExamenes
+            : (medico.valorTarifa || 0);
+          filas.push({
+            numeroOrden: o.numeroOrden, fecha: o.fechaOrden, paciente: pac ? U.nombreCompleto(pac) : "—",
+            medicoId: o.medicoRemitenteId, medicoNombre: medico.nombre,
+            numExamenes: numExamenes, valorCobrar: o.valorCobrar || 0, comision: Math.round(comision)
+          });
+        });
+        filas.sort(function (a, b) { return a.fecha.localeCompare(b.fecha); });
+        var medicoFiltroLabel = medicoIdFiltro && medicosPorId[medicoIdFiltro] ? medicosPorId[medicoIdFiltro].nombre : "";
+        var bytesComisiones = BIO_PDF_COMISIONES_MEDICOS.buildComisionesMedicosPDF(filas, medicosPorId, tenant, desde, hasta, medicoFiltroLabel);
+        var sufijoMedico = medicoFiltroLabel ? "_" + medicoFiltroLabel.replace(/\s+/g, "_") : "";
+        U.downloadBytes(bytesComisiones, "Comisiones_Medicos_" + desde + "_a_" + hasta + sufijoMedico + ".pdf");
+        U.toast("Reporte de comisiones descargado.", "success");
       });
     }
 
