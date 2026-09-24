@@ -1,0 +1,93 @@
+========================================================================
+ BIOsoft — Interfaz con el equipo Mindray BS-220 (Química Sanguínea)
+ INSTRUCCIONES PARA INSTALAR EN LA COMPUTADORA DEL LABORATORIO
+========================================================================
+
+Esta carpeta contiene el programa que recibe los resultados del equipo
+Mindray BS-220 y los envía automáticamente a BIOsoft. Sigue estos pasos
+EN ORDEN, en la computadora que va a quedar conectada en red con el
+equipo (no hace falta que sea la misma donde se usa BIOsoft en el
+navegador, pero sí debe estar en la misma red que el equipo).
+
+------------------------------------------------------------------------
+PASO 1 — Instalar Node.js (una sola vez)
+------------------------------------------------------------------------
+1. Entra a https://nodejs.org
+2. Descarga la versión "LTS" (la recomendada, el botón más grande).
+3. Ábrela e instala con las opciones que trae por defecto (Siguiente,
+   Siguiente, Instalar).
+
+------------------------------------------------------------------------
+PASO 2 — Copiar esta carpeta a la computadora
+------------------------------------------------------------------------
+Copia toda esta carpeta "equipo-interfaz-lis" a un lugar fijo de esa
+computadora, por ejemplo directo en "Escritorio" o en "Documentos". No
+la dejes en una memoria USB ni en una carpeta temporal.
+
+------------------------------------------------------------------------
+PASO 3 — Abrir una terminal DENTRO de esta carpeta
+------------------------------------------------------------------------
+1. Abre la carpeta "equipo-interfaz-lis" en el Explorador de Archivos.
+2. Haz clic en la barra de direcciones de arriba (donde se ve la ruta),
+   escribe "cmd" y presiona Enter.
+   (Se abre una ventana negra — es la terminal, ya está ubicada dentro
+   de esta carpeta.)
+
+------------------------------------------------------------------------
+PASO 4 — Instalar lo que necesita el programa (una sola vez)
+------------------------------------------------------------------------
+En esa ventana negra, escribe exactamente esto y presiona Enter:
+
+    npm install
+
+Espera a que termine (puede tardar 1-2 minutos). Al final debe volver a
+aparecer el cursor esperando, sin mensajes en rojo grandes de error.
+
+------------------------------------------------------------------------
+PASO 5 — Probar la conexión con el equipo (IMPORTANTE, no te lo saltes)
+------------------------------------------------------------------------
+En la misma ventana, escribe:
+
+    node capturar-hl7.js servidor 5150
+
+Va a aparecer un mensaje con una o varias direcciones IP — anótalas,
+esa es la IP de ESTA computadora.
+
+Ahora, en el equipo Mindray BS-220, ve a la pantalla donde configuraste
+"Correspondencia de test" (Sistema -> LIS) y en el campo "IP host LIS"
+escribe esa IP que acabas de anotar (reemplaza lo que hubiera ahí, por
+ejemplo si dice 127.0.0.1). Deja "Puerto" en 5150. Guarda/OK.
+
+Corre una muestra de control real en el equipo (con varias pruebas,
+ej. Glucosa, Colesterol, Creatinina). Mira la ventana negra: si aparece
+un bloque de texto que dice "MENSAJE HL7 COMPLETO" con líneas de datos,
+¡la conexión funciona! No cierres esa ventana todavía.
+
+Esto genera un archivo que empieza con "captura_hl7_" dentro de esta
+misma carpeta — ENVÍANOSLO (o el contenido de la ventana negra) antes
+de seguir al Paso 6. Necesitamos revisarlo para confirmar que todo
+coincide antes de usarlo con un paciente real.
+
+Para cerrar esta prueba: en la ventana negra, presiona Ctrl + C.
+
+------------------------------------------------------------------------
+PASO 6 — Configuración final (solo después de que confirmemos el Paso 5)
+------------------------------------------------------------------------
+Te daremos en ese momento los datos exactos para completar el archivo
+"config-bs220.json" (una copia de "config-bs220.example.json" con tus
+datos reales) y el comando final para dejar el programa funcionando
+todos los días:
+
+    node index-hl7.js config-bs220.json
+
+------------------------------------------------------------------------
+¿Algo no funciona?
+------------------------------------------------------------------------
+- Si "npm install" o "node ..." dicen "no se reconoce como un comando":
+  Node.js no quedó bien instalado, o hay que cerrar y volver a abrir la
+  ventana negra después de instalarlo.
+- Si no aparece nada al correr la muestra de control: revisa que la IP
+  en el equipo sea EXACTAMENTE la que mostró el Paso 5, que el "Puerto"
+  sea 5150 en ambos lados, y que el equipo y esta computadora estén en
+  la misma red (mismo router/WiFi).
+- Cualquier duda, manda captura de pantalla de la ventana negra.
