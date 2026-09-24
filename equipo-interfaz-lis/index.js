@@ -59,6 +59,32 @@ function extraerNumeroOrden(registros) {
   return (o.campos[2] || "").trim() || null;
 }
 
+/* Un mapeo "clásico" de un solo panel por archivo (ej. mindray-bc10-map.js:
+ * TODO el hemograma es un único examen de BIOsoft, HEM-001) devuelve
+ * {valores, ignorados} y expone mapeo.EXAM_ID_BIOSOFT — sirve para
+ * cualquier equipo donde el equipo físico y el examId de BIOsoft son 1 a 1.
+ *
+ * Un analizador de QUÍMICA (ej. Mindray BS-220) no encaja en ese molde: un
+ * solo mensaje del equipo puede traer resultados de VARIOS parámetros (ej.
+ * Glucosa, Colesterol, Creatinina) y CADA UNO es un examen SEPARADO en el
+ * catálogo de BIOsoft (a diferencia del hemograma, que es un único examen
+ * con varios parámetros adentro) — ver catalog.js, sección "quimica": cada
+ * QUI-XXX es su propio examen. Para estos casos, el mapeo devuelve en su
+ * lugar {porExamen: {examId: {codigo: valor, ...}, ...}, ignorados} (ver
+ * mapeo-generico-multiexamen-template.js) y esta función escribe UNA
+ * actualización de Firestore POR CADA examId presente en el mensaje, en
+ * vez de una sola con mapeo.EXAM_ID_BIOSOFT fijo.
+ *
+ * agruparPorExamen() normaliza ambas formas a un solo objeto
+ * {examId: {codigo: valor}} para que procesarMensaje() no tenga que saber
+ * cuál de los dos estilos de mapeo está usando — así un mapeo clásico
+ * (BC-10) sigue funcionando exactamente igual que antes, sin tocarlo. */
+function agruparPorExamen(resultadoMapeo, examIdLegacy) {
+  if (resultadoMapeo.porExamen) return resultadoMapeo.porExamen;
+  if (!examIdLegacy) return {};
+  return { [examIdLegacy]: resultadoMapeo.valores || {} };
+}
+
 async function procesarMensaje(config, mapeo, db, registros) {
   const numeroOrden = extraerNumeroOrden(registros);
   if (!numeroOrden) {
@@ -66,22 +92,28 @@ async function procesarMensaje(config, mapeo, db, registros) {
     return;
   }
   const registrosR = registros.filter((r) => r.tipo === "R");
-  const { valores, ignorados } = mapeo.mapearResultados(registrosR);
+  const resultadoMapeo = mapeo.mapearResultados(registrosR);
+  const ignorados = resultadoMapeo.ignorados || [];
   if (ignorados.length) {
     console.warn(`[BIOsoft-LIS] Orden ${numeroOrden}: ${ignorados.length} campo(s) del equipo no reconocido(s), se ignoraron:`, ignorados.join(", "));
   }
-  if (!Object.keys(valores).length) {
+
+  const porExamen = agruparPorExamen(resultadoMapeo, mapeo.EXAM_ID_BIOSOFT);
+  const examIds = Object.keys(porExamen).filter((examId) => Object.keys(porExamen[examId] || {}).length);
+  if (!examIds.length) {
     console.warn(`[BIOsoft-LIS] Orden ${numeroOrden}: no se reconoció ningún valor mapeable — no se escribe nada.`);
     return;
   }
 
-  console.log(`[BIOsoft-LIS] Orden ${numeroOrden}: enviando ${Object.keys(valores).length} valor(es) a BIOsoft ->`, valores);
-  const resultado = await recibirResultadoEquipo(db, {
-    tenantId: config.tenantId, numeroOrden, examId: mapeo.EXAM_ID_BIOSOFT,
-    valoresPorCodigo: valores, equipoNombre: config.nombreEquipo
-  });
-  if (resultado.ok) console.log(`[BIOsoft-LIS] Orden ${numeroOrden}: guardado como borrador en BIOsoft. Pendiente de revisión por un bacteriólogo.`);
-  else console.error(`[BIOsoft-LIS] Orden ${numeroOrden}: NO se pudo guardar -> ${resultado.error}`);
+  for (const examId of examIds) {
+    const valores = porExamen[examId];
+    console.log(`[BIOsoft-LIS] Orden ${numeroOrden}, examen ${examId}: enviando ${Object.keys(valores).length} valor(es) a BIOsoft ->`, valores);
+    const resultado = await recibirResultadoEquipo(db, {
+      tenantId: config.tenantId, numeroOrden, examId, valoresPorCodigo: valores, equipoNombre: config.nombreEquipo
+    });
+    if (resultado.ok) console.log(`[BIOsoft-LIS] Orden ${numeroOrden}, examen ${examId}: guardado como borrador en BIOsoft. Pendiente de revisión por un bacteriólogo.`);
+    else console.error(`[BIOsoft-LIS] Orden ${numeroOrden}, examen ${examId}: NO se pudo guardar -> ${resultado.error}`);
+  }
 }
 
 async function main() {
@@ -111,7 +143,16 @@ async function main() {
   port.on("open", () => console.log("[BIOsoft-LIS] Puerto serial abierto. Esperando transmisiones del equipo..."));
 }
 
-main().catch((e) => {
-  console.error("[BIOsoft-LIS] Error fatal al iniciar:", e);
-  process.exit(1);
-});
+// Solo arranca de verdad (abre puerto serial, inicia sesión en Firebase)
+// cuando se ejecuta directamente con "node index.js" — al hacer require()
+// desde una prueba automática (ver test/index-agrupacion.test.js) esto se
+// salta, para poder probar extraerNumeroOrden()/agruparPorExamen() sin
+// necesitar un puerto serial real ni credenciales de BIOsoft.
+if (require.main === module) {
+  main().catch((e) => {
+    console.error("[BIOsoft-LIS] Error fatal al iniciar:", e);
+    process.exit(1);
+  });
+}
+
+module.exports = { extraerNumeroOrden, agruparPorExamen, procesarMensaje, cargarMapeo };

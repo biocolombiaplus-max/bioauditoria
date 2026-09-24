@@ -75,6 +75,20 @@ function extraerNumeroOrden(segmentos) {
   return null;
 }
 
+/* Igual que agruparPorExamen() en index.js (versión ASTM): un mapeo
+ * "clásico" de un solo panel (ej. hemograma Dymind, un solo examId) expone
+ * mapeo.EXAM_ID_BIOSOFT y devuelve {valores, ignorados}; un mapeo
+ * MULTI-EXAMEN (ej. química, donde cada segmento OBX puede pertenecer a un
+ * examen distinto de BIOsoft) devuelve en su lugar {porExamen: {examId:
+ * {codigo: valor}}, ignorados} — ver mapeo-generico-hl7-multiexamen-template.js.
+ * Esto normaliza ambas formas para que procesarMensaje() no tenga que
+ * saber cuál está usando cada equipo. */
+function agruparPorExamen(resultadoMapeo, examIdLegacy) {
+  if (resultadoMapeo.porExamen) return resultadoMapeo.porExamen;
+  if (!examIdLegacy) return {};
+  return { [examIdLegacy]: resultadoMapeo.valores || {} };
+}
+
 async function procesarMensaje(config, mapeo, db, texto) {
   const segmentos = texto.split(/[\r\n]+/).filter(Boolean).map((s) => s.split("|"));
   let controlId = "";
@@ -88,22 +102,28 @@ async function procesarMensaje(config, mapeo, db, texto) {
   }
 
   const segmentosOBX = segmentos.filter((s) => s[0] === "OBX");
-  const { valores, ignorados } = mapeo.mapearResultados(segmentosOBX);
+  const resultadoMapeo = mapeo.mapearResultados(segmentosOBX);
+  const ignorados = resultadoMapeo.ignorados || [];
   if (ignorados.length) {
     console.warn(`[BIOsoft-HL7] Orden ${numeroOrden}: ${ignorados.length} campo(s) del equipo no reconocido(s), se ignoraron:`, ignorados.join(", "));
   }
-  if (!Object.keys(valores).length) {
+
+  const porExamen = agruparPorExamen(resultadoMapeo, mapeo.EXAM_ID_BIOSOFT);
+  const examIds = Object.keys(porExamen).filter((examId) => Object.keys(porExamen[examId] || {}).length);
+  if (!examIds.length) {
     console.warn(`[BIOsoft-HL7] Orden ${numeroOrden}: no se reconoció ningún valor mapeable — no se escribe nada.`);
     return controlId;
   }
 
-  console.log(`[BIOsoft-HL7] Orden ${numeroOrden}: enviando ${Object.keys(valores).length} valor(es) a BIOsoft ->`, valores);
-  const resultado = await recibirResultadoEquipo(db, {
-    tenantId: config.tenantId, numeroOrden, examId: mapeo.EXAM_ID_BIOSOFT,
-    valoresPorCodigo: valores, equipoNombre: config.nombreEquipo
-  });
-  if (resultado.ok) console.log(`[BIOsoft-HL7] Orden ${numeroOrden}: guardado como borrador en BIOsoft. Pendiente de revisión por un bacteriólogo.`);
-  else console.error(`[BIOsoft-HL7] Orden ${numeroOrden}: NO se pudo guardar -> ${resultado.error}`);
+  for (const examId of examIds) {
+    const valores = porExamen[examId];
+    console.log(`[BIOsoft-HL7] Orden ${numeroOrden}, examen ${examId}: enviando ${Object.keys(valores).length} valor(es) a BIOsoft ->`, valores);
+    const resultado = await recibirResultadoEquipo(db, {
+      tenantId: config.tenantId, numeroOrden, examId, valoresPorCodigo: valores, equipoNombre: config.nombreEquipo
+    });
+    if (resultado.ok) console.log(`[BIOsoft-HL7] Orden ${numeroOrden}, examen ${examId}: guardado como borrador en BIOsoft. Pendiente de revisión por un bacteriólogo.`);
+    else console.error(`[BIOsoft-HL7] Orden ${numeroOrden}, examen ${examId}: NO se pudo guardar -> ${resultado.error}`);
+  }
 
   return controlId;
 }
@@ -140,7 +160,16 @@ async function main() {
   server.on("error", (e) => console.error("[BIOsoft-HL7] Error al escuchar:", e.message));
 }
 
-main().catch((e) => {
-  console.error("[BIOsoft-HL7] Error fatal al iniciar:", e);
-  process.exit(1);
-});
+// Solo arranca de verdad (abre el puerto TCP, inicia sesión en Firebase)
+// al ejecutar "node index-hl7.js" directamente — ver el mismo patrón en
+// index.js (versión ASTM) para más detalle de por qué esto hace falta
+// para poder probar extraerNumeroOrden()/agruparPorExamen() sin necesitar
+// una conexión de red real ni credenciales de BIOsoft.
+if (require.main === module) {
+  main().catch((e) => {
+    console.error("[BIOsoft-HL7] Error fatal al iniciar:", e);
+    process.exit(1);
+  });
+}
+
+module.exports = { extraerNumeroOrden, agruparPorExamen, procesarMensaje, cargarMapeo, construirACK };

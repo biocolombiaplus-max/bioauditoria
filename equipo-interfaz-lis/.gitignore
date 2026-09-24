@@ -1,5 +1,6 @@
 config*.json
 !config.example.json
 !config-hl7.example.json
+!config-bs220.example.json
 node_modules/
 captura_*.log

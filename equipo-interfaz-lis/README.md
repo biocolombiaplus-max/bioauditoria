@@ -22,6 +22,60 @@ del fabricante, **no verificado contra los equipos físicos**:
   que ya está construido: prueba `capturar-tcp.js` (o `capturar.js` si
   tiene puerto serial).
 
+### Mindray BS-220 (Química) — observado directamente en un equipo real en sitio
+
+A diferencia de los 3 equipos de arriba (solo documentación pública), esto
+sí se leyó directamente de la pantalla del equipo (menú **Sistema →
+LIS**) de un BS-220 real:
+
+- **Es LIS sobre RED (TCP/IP), no serial.** La pantalla tiene "Habilitar
+  LIS", "IP host LIS" y "Puerto" (ej. `5150` de fábrica) — **el equipo se
+  conecta COMO CLIENTE** a esa IP:puerto, nunca al revés. Esto confirma lo
+  que ya sugería la documentación pública de Mindray para la familia
+  BS-200/BS-220/BS-120/BS-130/BS-180 (HL7 v2.3.1 sobre TCP) — usa
+  `capturar-hl7.js`/`index-hl7.js`, NO `capturar.js`/`index.js` (los de
+  puerto serial). El campo "IP host LIS" venía con `127.0.0.1` de fábrica
+  — hay que cambiarlo a la IP de la computadora donde corra este
+  middleware (nunca dejarlo en `127.0.0.1`, salvo que el middleware
+  corriera en la misma computadora embebida del equipo, que no es el caso).
+- **"Enviar result tras cada muestra" activado** = envío automático (no
+  hace falta un botón "enviar" por muestra) — igual que "Auto Send" en
+  otros equipos.
+- **"Correspondencia de test" (Test → "Cód en LIS") es la mejor noticia de
+  los 4 equipos investigados hasta ahora:** el propio operador puede
+  escribir en el equipo QUÉ código usará cada prueba (GLUCOSA, CREATININA,
+  COLESTEROL, TRIGLICERIDOS, ACIDO URICO, PROTEINA TOTAL, ALBUMINA, TGO,
+  TGP, CALCIO, FOSFORO, ALP, LDH, B. Total, B. Directa, AMILASA MR, CK NAC,
+  CK MB, y posiblemente más al hacer scroll en esa lista). Esto elimina
+  casi toda la incertidumbre de "¿qué código interno usa este equipo?" —
+  en vez de averiguarlo, **se lo decimos al cliente**: ver
+  `mindray-bs220-hl7-map.js`, ya construido con un código corto por cada
+  prueba (ej. "GLU" para Glucosa) listo para copiar en esa pantalla.
+- **Es un equipo de QUÍMICA, no de un solo panel** (a diferencia del BC-10,
+  que es un hemograma completo en un solo examen): cada prueba que corre
+  es un examen SEPARADO en el catálogo de BIOsoft (QUI-001, QUI-004,
+  etc.), así que `mindray-bs220-hl7-map.js` usa el contrato MULTI-EXAMEN
+  (ver `mapeo-generico-hl7-multiexamen-template.js` y la sección
+  "Mapeo multi-examen" más abajo) — un mensaje que traiga varios
+  resultados a la vez se reparte automáticamente entre los examId que
+  correspondan.
+
+**Lo que TODAVÍA no está confirmado (aun con el equipo real observado):**
+1. Si el protocolo de fondo, detrás de esa pantalla "LIS", es HL7 v2.3.1
+   "de verdad" (segmentos MSH/PID/OBR/OBX con framing MLLP) o una variante
+   simplificada propia de este equipo — solo una captura real con
+   `capturar-hl7.js` lo confirma. Si no muestra nada reconocible, prueba
+   `capturar-tcp.js` con la misma IP/puerto para ver los bytes crudos tal
+   cual llegan, sea cual sea el formato real.
+2. En qué campo exacto del mensaje aparece el "Cód en LIS" que se escriba
+   en esa pantalla — se asume que es la parte antes del "^" en OBX-3 (lo
+   más común en HL7), pero hay que comprobarlo con la captura real antes
+   de un resultado de un paciente.
+3. De dónde saca el equipo el número de orden/muestra que llega en PID-3
+   (`extraerNumeroOrden()` en `index-hl7.js`) — confirmar que el operador
+   escanea/digita ahí el mismo número de orden que imprime el sticker de
+   BIOsoft.
+
 ### Medonic M32 (Boule Diagnostics) — observado directamente en un equipo real en sitio
 
 A diferencia de los 3 anteriores (solo documentación pública), esto sí se
@@ -98,6 +152,19 @@ no está probado:
   puerto serial), y con un checksum corrupto a propósito para confirmar
   que se detecta y se pide reenvío (NAK). Esta parte es la misma para
   cualquiera de los equipos de la lista de arriba.
+- **Mapeo multi-examen** (`agruparPorExamen()` en `index.js` e
+  `index-hl7.js`): un analizador de QUÍMICA (ej. Mindray BS-220) puede
+  reportar varios parámetros por muestra, cada uno un examen SEPARADO en
+  el catálogo de BIOsoft — a diferencia de un hemograma, donde todo el
+  panel es un solo examen. Un mapeo "multi-examen" (ver
+  `mapeo-generico-multiexamen-template.js` /
+  `mapeo-generico-hl7-multiexamen-template.js`, y `mindray-bs220-hl7-map.js`
+  ya construido) agrupa los resultados de un mismo mensaje por examId y
+  escribe una actualización de Firestore por cada uno — probado con datos
+  sintéticos, incluyendo el caso de un examen con más de un parámetro
+  (Bilirrubinas: BT + BD). Un mapeo "clásico" de un solo panel (BC-10,
+  Dymind) sigue funcionando exactamente igual que antes, sin tocarse — es
+  compatibilidad hacia atrás, no un reemplazo.
 - La escritura en BIOsoft/Firestore replica exactamente el mismo contrato
   de datos que usa la app web (`biosoft/js/store.js::recibirResultadoEquipo`):
   nunca deja un resultado como "preliminar" ni "validado" automáticamente,
@@ -225,38 +292,89 @@ ejemplo — así sabes exactamente qué esperar cuando sí sea el equipo real.
    Bacteriólogo(a), asignado **solo** a la sección correspondiente (ej.
    Hematología o Química). Este usuario es exclusivamente para el
    middleware, no para una persona.
-3. En esta carpeta:
-   ```
-   npm install
-   cp config.example.json config.json
-   ```
-   Completa `config.json` con los datos de los pasos 1 y 2, y el puerto
-   serial donde está conectado el equipo.
+3. En esta carpeta, según cómo se conecte TU equipo (ver la sección de
+   investigación por marca/modelo más arriba para saber cuál probar
+   primero):
+   - **Puerto serial / ASTM** (BC-10, y probablemente Dirui/Rayto/Maglumi):
+     ```
+     npm install
+     cp config.example.json config.json
+     ```
+     Completa `config.json` con los datos de los pasos 1 y 2, y el puerto
+     serial donde está conectado el equipo.
+   - **Red / HL7 sobre TCP** (Mindray BS-220, Dymind DF52 — el equipo tiene
+     una pantalla "LIS" con IP/Puerto en vez de un puerto serial):
+     ```
+     npm install
+     cp config-bs220.example.json config-bs220.json    # o config-hl7.example.json para otra marca HL7
+     ```
+     Completa ese archivo con los datos de los pasos 1 y 2. En el equipo,
+     cambia "IP host LIS" por la IP de ESTA computadora (la imprime
+     `capturar-hl7.js` al arrancar) y "Puerto" por el mismo puerto del
+     archivo de configuración.
 4. **Si tu equipo es un Mindray BC-10:** ya tienes un mapeo de referencia
-   (`mindray-bc10-map.js`) — aún así, valida el punto 1 de la sección de
-   arriba antes de confiar en él.
-   **Si tu equipo es otra marca** (Dirui, Dymind, Maglumi, Rayto, Mindray
-   química, u otra): copia `mapeo-generico-template.js` a un archivo nuevo
-   (ej. `dirui-cst240-map.js`), llena los códigos reales de esa marca
-   siguiendo las instrucciones del propio archivo, y apunta `index.js` a
-   ese mapeo en vez de `mindray-bc10-map.js`.
-5. `npm test` — confirma que el parser ASTM y el mapeo de ejemplo pasan
-   las pruebas automáticas (esto no requiere ningún equipo conectado).
-6. `npm start` — deja el middleware corriendo, escuchando el puerto
-   serial. Corre una muestra de control en el equipo real y observa la
-   consola con `verboso: true`.
+   (`mindray-bc10-map.js`). **Si es un Mindray BS-220:** ya tienes
+   `mindray-bs220-hl7-map.js`, con los códigos que debes pedirle al cliente
+   escribir en "Correspondencia de test" en el equipo (ver la sección
+   "Mindray BS-220" más arriba). En ambos casos, aún así valida el punto 1
+   de "❌ NO validado" antes de confiar en un resultado real.
+   **Si tu equipo es otra marca** (Dirui, Dymind, Maglumi, Rayto, u otra):
+   copia `mapeo-generico-template.js` (ASTM, un solo panel — ej.
+   hematología), `mapeo-generico-multiexamen-template.js` (ASTM, varios
+   exámenes por mensaje — ej. química) o la versión `-hl7-` de cualquiera
+   de los dos (si el equipo es de red/HL7) a un archivo nuevo (ej.
+   `dirui-cst240-map.js`), llena los códigos reales de esa marca siguiendo
+   las instrucciones del propio archivo, y apunta `archivoMapeo` en tu
+   `config*.json` a ese mapeo.
+5. `npm test` — confirma que el parser ASTM, la agrupación multi-examen y
+   los mapeos de ejemplo pasan las pruebas automáticas (esto no requiere
+   ningún equipo conectado).
+6. `npm start` (equipo serial/ASTM, usa `config.json`) o
+   `node index-hl7.js config-bs220.json` (equipo de red/HL7 — cambia el
+   nombre del archivo si no es un BS-220) — deja el middleware corriendo.
+   Corre una muestra de control en el equipo real y observa la consola con
+   `verboso: true` (ASTM) o los mensajes `[BIOsoft-HL7] ...` en consola.
 
 ## Archivos
 
+**Puerto serial / ASTM E1394:**
 - `astm.js` — protocolo ASTM E1394 de bajo nivel (framing, checksum,
-  ENQ/ACK/NAK/EOT). Genérico, válido para cualquier equipo de la lista.
-- `mindray-bc10-map.js` — mapeo de parámetros del Mindray BC-10 a códigos
-  de BIOsoft (⚠️ plantilla de mejor esfuerzo, ver limitaciones arriba).
-- `mapeo-generico-template.js` — plantilla comentada para construir el
-  mapeo de cualquier OTRA marca/modelo, sin códigos inventados.
-- `firestore-writer.js` — autenticación y escritura en Firestore,
-  replicando el contrato de `store.js`. Genérico, no cambia por equipo.
+  ENQ/ACK/NAK/EOT). Genérico, válido para cualquier equipo serial.
+- `capturar.js` — herramienta de solo captura (Paso 0), sin necesitar
+  usuario/clave de BIOsoft.
+- `mindray-bc10-map.js` — mapeo de un solo panel (Mindray BC-10,
+  hematología) a códigos de BIOsoft (⚠️ plantilla de mejor esfuerzo, ver
+  limitaciones arriba).
+- `mapeo-generico-template.js` — plantilla para el mapeo de un equipo de
+  UN SOLO panel (ej. otro hematológico), sin códigos inventados.
+- `mapeo-generico-multiexamen-template.js` — plantilla para un equipo que
+  reporta VARIOS exámenes distintos por mensaje (ej. química) — ver
+  "Mapeo multi-examen" arriba.
 - `index.js` — punto de entrada: abre el puerto serial y conecta todo lo
-  anterior. Se ajusta según qué archivo de mapeo uses (paso 4 arriba).
+  anterior. Se ajusta según qué archivo de mapeo uses (`archivoMapeo` en
+  `config.json`).
+
+**Red / HL7 sobre TCP:**
+- `capturar-hl7.js` — herramienta de solo captura (Paso 0) para equipos de
+  red, sin necesitar usuario/clave de BIOsoft.
+- `mindray-bs220-hl7-map.js` — mapeo multi-examen del Mindray BS-220
+  (química) a códigos de BIOsoft, usando los códigos LIS que se le piden
+  al cliente escribir en "Correspondencia de test" en el equipo (ver
+  "Mindray BS-220" arriba).
+- `mapeo-generico-hl7-template.js` — plantilla para un equipo HL7 de UN
+  SOLO panel (ej. Dymind DF52, hematología).
+- `mapeo-generico-hl7-multiexamen-template.js` — plantilla para un equipo
+  HL7 que reporta VARIOS exámenes distintos por mensaje (ej. otra química).
+- `index-hl7.js` — punto de entrada para equipos de red: escucha por TCP
+  (el equipo se conecta como cliente) y conecta todo lo anterior. Se
+  ajusta según qué archivo de mapeo uses (`archivoMapeo` en
+  `config-hl7.json`/`config-bs220.json`).
+
+**Comunes a ambos:**
+- `firestore-writer.js` — autenticación y escritura en Firestore,
+  replicando el contrato de `store.js`. Genérico, no cambia por equipo ni
+  por protocolo.
 - `test/` — pruebas automáticas con datos sintéticos (no capturados de
-  ningún equipo real).
+  ningún equipo real), incluyendo la agrupación multi-examen
+  (`agrupacion-multiexamen.test.js`) y el mapeo del BS-220
+  (`mindray-bs220-hl7-map.test.js`).

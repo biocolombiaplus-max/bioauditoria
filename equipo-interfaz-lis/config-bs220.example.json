@@ -1,0 +1,19 @@
+{
+  "_comentario": "Copia este archivo a config-bs220.json (sin el _comentario) y completa los valores reales. NUNCA subas config-bs220.json a git — ya está en .gitignore. Este es el mismo formato que config-hl7.example.json, ya prellenado para un Mindray BS-220 (química) — ver README.md, sección 'Mindray BS-220'.",
+
+  "tenantId": "ID-DE-TU-LABORATORIO",
+  "_tenantId_donde_lo_saco": "Configuración del Laboratorio -> Equipos Conectados -> al registrar el equipo, se muestra el 'ID del Laboratorio (tenantId)'.",
+
+  "nombreEquipo": "Mindray BS-220 — Química",
+  "_nombreEquipo_donde_lo_saco": "El mismo nombre que le pusiste al registrar el equipo en BIOsoft.",
+
+  "archivoMapeo": "mindray-bs220-hl7-map",
+  "_archivoMapeo_ojo": "Ya construido para el BS-220 (ver mindray-bs220-hl7-map.js) — usa los códigos que le pidas al cliente escribir en 'Correspondencia de test' en el equipo (ver README.md). AÚN ASÍ valida con capturar-hl7.js antes de confiar en un resultado real.",
+
+  "usuarioEmail": "interfaz.bs220@tu-laboratorio.com",
+  "usuarioPassword": "CAMBIA-ESTA-CLAVE",
+  "_usuario_como_crearlo": "En BIOsoft: Usuarios del Laboratorio -> Nuevo Usuario -> rol Bacteriólogo(a), asignado SOLO a la sección de Química. Dedica ese usuario exclusivamente a este middleware (no lo use una persona).",
+
+  "puerto": 5150,
+  "_puerto_ojo": "5150 es el que trae el BS-220 por defecto en su pantalla Sistema -> LIS (\"Puerto\") — se deja igual aquí para no tener que cambiarlo también en el equipo, pero puedes usar cualquier otro puerto libre siempre que coincida en ambos lados. En 'IP host LIS' (en el equipo) escribe la IP de ESTA computadora (ver la que imprime capturar-hl7.js al arrancar), nunca 127.0.0.1."
+}

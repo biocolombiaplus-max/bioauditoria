@@ -6,8 +6,10 @@
   "main": "index.js",
   "scripts": {
     "start": "node index.js",
+    "start:hl7": "node index-hl7.js",
     "capturar": "node capturar.js",
-    "test": "node test/astm-parser.test.js && node test/mapping.test.js"
+    "capturar:hl7": "node capturar-hl7.js",
+    "test": "node test/astm-parser.test.js && node test/mapping.test.js && node test/agrupacion-multiexamen.test.js && node test/mindray-bs220-hl7-map.test.js"
   },
   "dependencies": {
     "firebase": "^10.12.2",
