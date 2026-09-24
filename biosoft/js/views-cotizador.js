@@ -887,9 +887,14 @@
         var valorAbonado = !o.pago ? 0 : (esSoloCredito ? valorTotal : C.totalAbonado(o));
         var key = o.convenioNombre || "Particulares";
         if (!porConvenio[key]) porConvenio[key] = { nombre: key, ordenes: [], total: 0, abonado: 0, pendiente: 0 };
+        // "moneda": en qué moneda pagó ESTA orden en concreto (Bolívares,
+        // Dólares, Pesos COP — ver order.monedaPago, solo se pide en
+        // Venezuela). Vacío en Colombia/Ecuador o si la orden no la
+        // registró — no se inventa una moneda que el usuario no eligió.
         porConvenio[key].ordenes.push({
           numeroOrden: o.numeroOrden, fecha: o.fechaOrden, paciente: pac ? U.nombreCompleto(pac) : "—",
-          valorTotal: valorTotal, valorAbonado: valorAbonado, saldoPendiente: valorTotal - valorAbonado, pagado: !!o.pago
+          valorTotal: valorTotal, valorAbonado: valorAbonado, saldoPendiente: valorTotal - valorAbonado, pagado: !!o.pago,
+          monedaCod: o.monedaPago || "", moneda: o.monedaPago ? C.monedaPagoLabel(o.monedaPago) : ""
         });
         porConvenio[key].total += valorTotal;
         porConvenio[key].abonado += valorAbonado;
@@ -910,6 +915,21 @@
         "</div>";
     }
 
+    // Un color/emoji propio por moneda, para distinguirlas de un vistazo en
+    // la tabla — sobre todo útil en Venezuela, donde es normal recibir
+    // bolívares y dólares el mismo día y hay que poder diferenciarlos rápido
+    // sin leer la etiqueta completa de cada fila.
+    var MONEDA_BADGE = {
+      VES: { emoji: "🇻🇪", color: "#0b6b8a", bg: "#e6f4f9" },
+      USD: { emoji: "💵", color: "#0b8a4a", bg: "#e7f7ee" },
+      COP: { emoji: "🇨🇴", color: "#a1631a", bg: "#fbf1e3" }
+    };
+    function monedaBadgeHtml(o) {
+      if (!o.monedaCod) return '<span class="text-muted">—</span>';
+      var b = MONEDA_BADGE[o.monedaCod] || { emoji: "💱", color: "#475569", bg: "#f1f5f9" };
+      return '<span style="display:inline-flex;align-items:center;gap:4px;padding:2px 8px;border-radius:999px;font-size:11px;font-weight:700;white-space:nowrap;color:' + b.color + ";background:" + b.bg + '">' + b.emoji + " " + U.esc(o.moneda) + "</span>";
+    }
+
     function carteraFilaConvenioHtml(g, idx) {
       var key = String(idx);
       var abierto = !!carteraExpandido[key];
@@ -923,9 +943,10 @@
         "</tr>";
       if (!abierto) return filaResumen;
       var detalle = "<tr><td></td><td colspan='5' style='padding:0 0 12px'>" +
-        '<div class="table-wrap"><table><thead><tr><th>Orden</th><th>Fecha</th><th>Paciente</th><th>Total</th><th>Abonado</th><th>Saldo</th><th></th></tr></thead><tbody>' +
+        '<div class="table-wrap"><table><thead><tr><th>Orden</th><th>Fecha</th><th>Paciente</th><th>Moneda de Pago</th><th>Total</th><th>Abonado</th><th>Saldo</th><th></th></tr></thead><tbody>' +
         g.ordenes.map(function (o) {
           return "<tr><td>" + o.numeroOrden + "</td><td>" + fmtFechaCorta(o.fecha) + "</td><td>" + U.esc(o.paciente) + "</td>" +
+            "<td>" + monedaBadgeHtml(o) + "</td>" +
             "<td>" + fmtMoneda(o.valorTotal) + "</td><td>" + fmtMoneda(o.valorAbonado) + "</td>" +
             "<td style='font-weight:700;color:" + (o.saldoPendiente > 0 ? "#d64545" : "#0b8a4a") + "'>" + fmtMoneda(o.saldoPendiente) + "</td>" +
             "<td>" + (o.pagado ? '<span class="badge badge-validado">Pagada</span>' : '<span class="badge badge-pendiente">Pendiente</span>') + "</td></tr>";
@@ -983,7 +1004,7 @@
         var filas = [];
         grupos.forEach(function (g) {
           g.ordenes.forEach(function (o) {
-            filas.push({ numeroOrden: o.numeroOrden, fecha: o.fecha, paciente: o.paciente, aliado: g.nombre, valorTotal: o.valorTotal, valorAbonado: o.valorAbonado, saldoPendiente: o.saldoPendiente });
+            filas.push({ numeroOrden: o.numeroOrden, fecha: o.fecha, paciente: o.paciente, aliado: g.nombre, valorTotal: o.valorTotal, valorAbonado: o.valorAbonado, saldoPendiente: o.saldoPendiente, moneda: o.moneda });
           });
         });
         filas.sort(function (a, b) { return a.fecha.localeCompare(b.fecha); });
