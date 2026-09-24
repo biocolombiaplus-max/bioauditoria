@@ -89,8 +89,11 @@
         celdaPago = "<td>—</td>";
       } else if (o.pago) {
         var saldoFila = C.saldoPendienteOrden(o);
+        var esCreditoFila = o.pago.esCredito && !o.pago.tieneCopago;
         celdaPago = saldoFila > 0
           ? '<td><span class="badge badge-parcial">Parcial — Saldo ' + fmtMoneda(saldoFila) + '</span> <button class="btn btn-ghost btn-sm" style="margin-top:4px" data-agregar-abono-orden="' + o.id + '">' + U.icon("plus") + " Agregar Abono</button></td>"
+          : esCreditoFila
+          ? '<td><span class="badge badge-pendiente">🤝 A Crédito — Pendiente del Convenio</span> <button class="btn btn-ghost btn-sm" style="margin-top:4px" data-reenviar-recibo-orden="' + o.id + '" title="Reenviar el recibo de pago">' + U.icon("send") + " Recibo</button></td>"
           : '<td><span class="badge badge-validado">Pagado</span> <button class="btn btn-ghost btn-sm" style="margin-top:4px" data-reenviar-recibo-orden="' + o.id + '" title="Reenviar el recibo de pago">' + U.icon("send") + " Recibo</button></td>";
       } else {
         celdaPago = '<td><span class="badge badge-pendiente">Pago pendiente</span> <button class="btn btn-outline btn-sm" style="margin-top:4px" data-registrar-pago-orden="' + o.id + '">' + U.icon("check") + " Registrar Pago</button></td>";
@@ -210,6 +213,16 @@
           (tenant.pais === "CO" ? F.inp("numAutorizacion", "N° de Autorización (si aplica, para RIPS)", "") + F.inp("diagnosticoCIE10", "Código CIE-10 (opcional, para RIPS)", "") : "") +
           (convenios.length ? '<div class="field"><label>Convenio / Empresa Aliada (opcional)</label><select id="f_convenio"><option value="">Sin convenio (particular)</option>' +
             convenios.map(function (c) { return '<option value="' + c.id + '">' + U.esc(c.nombre) + "</option>"; }).join("") + "</select></div>" : "") +
+          // Solo tiene sentido para una orden de convenio: si el paciente
+          // paga de contado, sigue el flujo normal de siempre (Recibo de
+          // Pago pide confirmar cuánto pagó). Si es a crédito, la orden
+          // queda marcada como cargo al convenio desde ya — sin pedir pago
+          // al paciente — y aparece como PENDIENTE en Cartera por Convenio
+          // y demás reportes, hasta que se le cobre al convenio.
+          (convenios.length && tenant.mostrarPrecioOrden ? '<div class="field" id="campo-forma-pago-convenio" style="display:none"><label>Forma de Pago del Convenio</label><select id="f_formaPagoConvenio">' +
+            '<option value="contado">Contado (el paciente paga ahora)</option>' +
+            '<option value="credito">Crédito (queda pendiente — se le cobra al convenio después)</option>' +
+            "</select></div>" : "") +
           (tenant.mostrarPrecioOrden ? '<div class="field"><label>Valor a Cobrar</label><input id="f_valorCobrar" type="number" step="any" value=""/>' +
             '<span class="text-muted" style="font-size:11px" id="valorCobrar-hint">Se calcula solo según los exámenes que selecciones — puedes ajustarlo a mano.</span>' +
             '<span class="text-muted" style="font-size:11px;display:block" id="valorCobrar-equiv"></span></div>' : "") +
@@ -393,10 +406,13 @@
         });
       });
     }
+    var campoFormaPagoConvenio = document.getElementById("campo-forma-pago-convenio");
+    function actualizarCampoFormaPagoConvenio() { if (campoFormaPagoConvenio) campoFormaPagoConvenio.style.display = convenioIdSel ? "" : "none"; }
     var selConvenioEl = document.getElementById("f_convenio");
     if (selConvenioEl) {
       selConvenioEl.addEventListener("change", function (e) {
         convenioIdSel = e.target.value;
+        actualizarCampoFormaPagoConvenio();
         precioEditadoManualmente = false;
         // Un paquete exclusivo de OTRO convenio (o de ninguno, si venía
         // marcado antes de elegir convenio) deja de ser válido al cambiar
@@ -443,6 +459,8 @@
       });
       var pacSel = S.getPatient(patientId);
       var convenioSel = convenioIdSel ? convenios.filter(function (c) { return c.id === convenioIdSel; })[0] : null;
+      var formaPagoConvenioEl = document.getElementById("f_formaPagoConvenio");
+      var esCreditoConvenio = !!(convenioIdSel && formaPagoConvenioEl && formaPagoConvenioEl.value === "credito");
       var medicoRemitenteSel = selMedicoRemitente.value ? medicosRemitentes.filter(function (m) { return m.id === selMedicoRemitente.value; })[0] : null;
       var order = {
         tenantId: session.tenantId,
@@ -479,9 +497,18 @@
         }),
         estadoGeneral: "pendiente", creadoPor: session.username
       };
+      // A crédito de convenio: se marca el pago desde ya (sin pedirle nada
+      // al paciente) para que "Recibo de Pago" genere directo el cargo a
+      // convenio de una vez, y para que el saldo quede como PENDIENTE en
+      // Cartera por Convenio y demás reportes hasta que se le cobre al
+      // convenio — ver calcularCartera() en views-cotizador.js.
+      if (esCreditoConvenio) {
+        order.pago = { fecha: order.fechaOrden, monto: order.valorCobrar || 0, confirmadoPor: session.nombre, esCredito: true };
+      }
       var created = S.createOrder(order);
       var detallePaquetes = selectedPaquetes.length ? " (incluye " + selectedPaquetes.length + " paquete(s))" : "";
-      S.addAudit(session.tenantId, session.nombre, session.rol, "CREATE_ORDER", "orden", created.id, "Creó la orden " + created.numeroOrden + " con " + idsExamenesFinal.length + " examen(es)" + detallePaquetes + ".");
+      S.addAudit(session.tenantId, session.nombre, session.rol, "CREATE_ORDER", "orden", created.id, "Creó la orden " + created.numeroOrden + " con " + idsExamenesFinal.length + " examen(es)" + detallePaquetes +
+        (esCreditoConvenio ? " a crédito del convenio " + (convenioSel ? convenioSel.nombre : "—") + "." : "."));
       U.toast("Orden " + created.numeroOrden + " creada.", "success");
       ofrecerStickers(created);
     });
@@ -932,6 +959,7 @@
             (tenant.mostrarPrecioOrden ? fieldHtml("Valor a Cobrar", order.valorCobrar ? U.esc(fmtMoneda(order.valorCobrar)) + fmtMonedaEquiv(tenant, order.valorCobrar) : "—") : "") +
             (order.monedaPago ? field("Moneda de Pago", C.monedaPagoLabel(order.monedaPago)) : "") +
             (puedeReciboOrden(tenant) ? field("Estado de Pago", !order.pago ? "Pendiente de confirmar"
+              : (order.pago.esCredito && !order.pago.tieneCopago) ? "🤝 A Crédito de Convenio — Pendiente de cobrar a " + (order.convenioNombre || "—")
               : saldoOrden > 0 ? "Parcial — Abonado " + fmtMoneda(C.totalAbonado(order)) + " de " + fmtMoneda(C.montoAdeudarPaciente(order)) + " — Saldo " + fmtMoneda(saldoOrden)
               : "✓ Pagado (" + (BIO_PDF_RECIBO_ORDEN.METODO_PAGO_LABEL[order.pago.metodoPago] || order.pago.metodoPago) + ") — " + U.fmtFecha(order.pago.fecha)) : "") +
           "</div></div>" +

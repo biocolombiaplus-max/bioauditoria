@@ -239,14 +239,11 @@
         var filas = orders.map(function (o) {
           var pac = S.getPatient(o.patientId);
           var valorTotal = o.valorCobrar || 0;
-          // Un cargo 100% a crédito de convenio (sin copago) se sigue
-          // contando como "abonado" aquí en cuanto se gestiona — a ese
-          // convenio se le cobra aparte, fuera de BIOsoft — pero una orden
-          // particular o con copago ahora refleja el abono REAL recibido
-          // (puede ser parcial, ver "Agregar Abono" en la orden), en vez
-          // de asumir siempre que "tiene pago" es igual a "pagó todo".
-          var esSoloCredito = !!(o.pago && o.pago.esCredito && !o.pago.tieneCopago);
-          var valorAbonado = !o.pago ? 0 : (esSoloCredito ? valorTotal : BIO_CATALOG.totalAbonado(o));
+          // Un cargo 100% a crédito de convenio (sin copago) NO cuenta como
+          // abonado: nadie ha pagado nada todavía, así que queda como saldo
+          // pendiente hasta que se le cobre al convenio — igual que en
+          // Cartera por Convenio (ver calcularCartera() en views-cotizador.js).
+          var valorAbonado = !o.pago ? 0 : BIO_CATALOG.totalAbonado(o);
           return {
             numeroOrden: o.numeroOrden,
             fecha: o.fechaOrden,
