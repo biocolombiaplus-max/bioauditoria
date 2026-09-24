@@ -3,91 +3,209 @@
  INSTRUCCIONES PARA INSTALAR EN LA COMPUTADORA DEL LABORATORIO
 ========================================================================
 
-Esta carpeta contiene el programa que recibe los resultados del equipo
-Mindray BS-220 y los envía automáticamente a BIOsoft. Sigue estos pasos
-EN ORDEN, en la computadora que va a quedar conectada en red con el
-equipo (no hace falta que sea la misma donde se usa BIOsoft en el
-navegador, pero sí debe estar en la misma red que el equipo).
+Este instructivo está escrito para alguien que NUNCA ha usado esto antes.
+No necesitas saber de computadores ni de programación — solo sigue cada
+paso EN ORDEN, sin saltarte ninguno, y sin cerrar ventanas que digan que
+no cierres. Si algo se ve distinto a lo descrito aquí (por ejemplo tu
+Windows es una versión distinta), sigue leyendo igual: casi siempre el
+resultado final es el mismo aunque el camino se vea un poco diferente.
+
+Todo esto se hace en LA COMPUTADORA QUE VA A QUEDAR CONECTADA EN RED CON
+EL EQUIPO MINDRAY BS-220 (no tiene que ser la misma donde usas BIOsoft en
+el navegador todos los días, pero sí debe estar conectada a la misma red
+—el mismo WiFi o cable de red— que el equipo).
 
 ------------------------------------------------------------------------
-PASO 1 — Instalar Node.js (una sola vez)
+PASO 1 — Instalar Node.js (una sola vez, no se repite)
 ------------------------------------------------------------------------
-1. Entra a https://nodejs.org
-2. Descarga la versión "LTS" (la recomendada, el botón más grande).
-3. Ábrela e instala con las opciones que trae por defecto (Siguiente,
-   Siguiente, Instalar).
-
-------------------------------------------------------------------------
-PASO 2 — Copiar esta carpeta a la computadora
-------------------------------------------------------------------------
-Copia toda esta carpeta "equipo-interfaz-lis" a un lugar fijo de esa
-computadora, por ejemplo directo en "Escritorio" o en "Documentos". No
-la dejes en una memoria USB ni en una carpeta temporal.
-
-------------------------------------------------------------------------
-PASO 3 — Abrir una terminal DENTRO de esta carpeta
-------------------------------------------------------------------------
-1. Abre la carpeta "equipo-interfaz-lis" en el Explorador de Archivos.
-2. Haz clic en la barra de direcciones de arriba (donde se ve la ruta),
-   escribe "cmd" y presiona Enter.
-   (Se abre una ventana negra — es la terminal, ya está ubicada dentro
-   de esta carpeta.)
+1. Abre tu navegador (Chrome, Edge, el que uses normalmente).
+2. Ve a esta dirección: https://nodejs.org
+3. Vas a ver dos botones grandes para descargar. Haz clic en el que dice
+   "LTS" (es el recomendado — el otro botón, que dice "Current", NO lo
+   uses).
+4. Se descarga un archivo (revisa la carpeta "Descargas" si no lo ves
+   aparecer solo). Haz doble clic sobre ese archivo descargado para
+   abrirlo.
+5. Se abre un instalador. Simplemente haz clic en "Next" (Siguiente)
+   varias veces, sin cambiar ninguna opción, hasta que aparezca el botón
+   "Install" (Instalar) — haz clic ahí, espera a que termine, y al final
+   haz clic en "Finish" (Finalizar).
+6. Listo, este paso no se repite nunca más en esta computadora.
 
 ------------------------------------------------------------------------
-PASO 4 — Instalar lo que necesita el programa (una sola vez)
+PASO 2 — Descomprimir la carpeta en un lugar fijo
 ------------------------------------------------------------------------
-En esa ventana negra, escribe exactamente esto y presiona Enter:
+Te enviamos un archivo llamado algo como "equipo-interfaz-lis-BS220.zip".
+Un archivo ".zip" es como una caja cerrada que hay que "abrir" (se llama
+"descomprimir" o "extraer") antes de poder usar lo que tiene adentro.
 
-    npm install
-
-Espera a que termine (puede tardar 1-2 minutos). Al final debe volver a
-aparecer el cursor esperando, sin mensajes en rojo grandes de error.
-
-------------------------------------------------------------------------
-PASO 5 — Probar la conexión con el equipo (IMPORTANTE, no te lo saltes)
-------------------------------------------------------------------------
-En la misma ventana, escribe:
-
-    node capturar-hl7.js servidor 5150
-
-Va a aparecer un mensaje con una o varias direcciones IP — anótalas,
-esa es la IP de ESTA computadora.
-
-Ahora, en el equipo Mindray BS-220, ve a la pantalla donde configuraste
-"Correspondencia de test" (Sistema -> LIS) y en el campo "IP host LIS"
-escribe esa IP que acabas de anotar (reemplaza lo que hubiera ahí, por
-ejemplo si dice 127.0.0.1). Deja "Puerto" en 5150. Guarda/OK.
-
-Corre una muestra de control real en el equipo (con varias pruebas,
-ej. Glucosa, Colesterol, Creatinina). Mira la ventana negra: si aparece
-un bloque de texto que dice "MENSAJE HL7 COMPLETO" con líneas de datos,
-¡la conexión funciona! No cierres esa ventana todavía.
-
-Esto genera un archivo que empieza con "captura_hl7_" dentro de esta
-misma carpeta — ENVÍANOSLO (o el contenido de la ventana negra) antes
-de seguir al Paso 6. Necesitamos revisarlo para confirmar que todo
-coincide antes de usarlo con un paciente real.
-
-Para cerrar esta prueba: en la ventana negra, presiona Ctrl + C.
+1. Guarda ese archivo .zip en el Escritorio de la computadora (arrástralo
+   ahí, o descárgalo directo ahí si te lo mandamos por correo/WhatsApp
+   Web).
+2. Haz CLIC DERECHO sobre el archivo .zip (un solo clic con el botón
+   derecho del mouse, no doble clic).
+3. En el menú que aparece, busca la opción que dice "Extraer todo..."
+   (en inglés "Extract All...") y haz clic ahí.
+4. Aparece una ventana preguntando dónde guardar lo extraído — no cambies
+   nada, solo haz clic en el botón "Extraer" ("Extract").
+5. Al terminar, se abre (o aparece en el Escritorio) una carpeta nueva
+   llamada "equipo-interfaz-lis-BS220" o "equipo-interfaz-lis". ESA
+   carpeta es la que vamos a usar de aquí en adelante — la nombraremos
+   simplemente "la carpeta" en el resto de este instructivo.
+6. Deja esa carpeta ahí, en el Escritorio, de forma permanente (no la
+   muevas, no la borres, no uses el archivo .zip original de nuevo).
 
 ------------------------------------------------------------------------
-PASO 6 — Configuración final (solo después de que confirmemos el Paso 5)
+PASO 3 — Abrir "la carpeta" y dejar lista la ventana para escribir
+comandos (esto SÍ hay que repetirlo cada vez que quieras usar el programa,
+pero es rápido)
 ------------------------------------------------------------------------
-Te daremos en ese momento los datos exactos para completar el archivo
-"config-bs220.json" (una copia de "config-bs220.example.json" con tus
-datos reales) y el comando final para dejar el programa funcionando
-todos los días:
+1. Haz doble clic sobre "la carpeta" (del Paso 2) para entrar en ella.
+   Deberías ver adentro varios archivos con nombres como "index.js",
+   "README.md", "package.json", etc. Si ves eso, vas bien.
+2. Mira arriba de la ventana: hay una barra larga y blanca que muestra la
+   ruta de la carpeta (algo como "Escritorio > equipo-interfaz-lis-BS220"
+   o una ruta con barras invertidas, como "C:\Users\TuNombre\Desktop\
+   equipo-interfaz-lis-BS220"). Esa es la "barra de direcciones".
+3. Haz CLIC UNA SOLA VEZ justo en esa barra, en una zona vacía a la
+   derecha del texto que ya tiene (no sobre las palabras/flechas). Al
+   hacer clic ahí, todo el texto de la ruta se selecciona en azul y
+   queda listo para escribir encima.
+4. Escribe (sin hacer clic en ningún otro lado antes): cmd
+   y presiona la tecla Enter.
+5. Se abre una ventana nueva, con fondo NEGRO y letras blancas. Esta es
+   la "terminal" o "Símbolo del sistema" — aquí es donde vamos a escribir
+   los comandos de los siguientes pasos. Ya está ubicada exactamente
+   dentro de "la carpeta", no hay que navegar a ningún otro lado.
 
-    node index-hl7.js config-bs220.json
+   ⚠️ IMPORTANTE sobre esta ventana negra:
+   - NO la cierres hasta que este instructivo te diga que la cierres.
+   - NO hagas clic con el mouse DENTRO del área negra mientras un comando
+     está corriendo (instalando algo, esperando datos del equipo, etc.).
+     En Windows, hacer clic ahí puede "congelar" el programa sin que se
+     vea ningún error — simplemente parece que no hace nada. Si eso te
+     pasa, presiona la tecla Enter una vez para que siga.
+   - Todo lo que escribas en esta ventana, escríbelo TAL CUAL aparece
+     aquí (mayúsculas/minúsculas importan), y presiona Enter al final de
+     cada línea para que se ejecute.
+
+   Si no te aparece la ventana negra al escribir "cmd": vuelve a intentar
+   el punto 3-4 asegurándote de hacer clic justo en la barra de arriba
+   (no en un archivo ni en un espacio vacío de la carpeta).
+
+------------------------------------------------------------------------
+PASO 4 — Instalar lo que necesita el programa (una sola vez, no se repite)
+------------------------------------------------------------------------
+1. Con la ventana negra abierta (Paso 3), escribe exactamente esto:
+
+       npm install
+
+   y presiona Enter.
+2. Vas a ver mucho texto apareciendo solo, subiendo rápido — eso es
+   normal, no toques nada, no cierres la ventana. Puede tardar entre 1 y
+   3 minutos según qué tan rápida sea la conexión a internet.
+3. Sabrás que terminó cuando el texto deja de moverse y vuelve a aparecer
+   una línea con la ruta de la carpeta esperando que escribas algo (el
+   "cursor" parpadeando). Puede que veas algunas líneas en amarillo
+   ("warnings" / advertencias) — eso es normal y no es un problema. Solo
+   preocúpate si ves un bloque grande en texto ROJO que diga "error".
+4. Este paso NO se repite — solo hay que hacerlo una vez en esta
+   computadora, aunque cierres y vuelvas a abrir la ventana negra otro
+   día (ahí sí repites el Paso 3, pero no este Paso 4).
+
+------------------------------------------------------------------------
+PASO 5 — Probar la conexión con el equipo (MUY IMPORTANTE, no te lo saltes
+ni sigas al siguiente paso sin avisarnos primero)
+------------------------------------------------------------------------
+1. En la misma ventana negra, escribe exactamente esto:
+
+       node capturar-hl7.js servidor 5150
+
+   y presiona Enter.
+2. Va a aparecer un mensaje con una o varias direcciones IP de esta
+   computadora — se ven como 4 números separados por puntos, por ejemplo
+   "192.168.1.45". ANOTA esa dirección en un papel o en el celular
+   (si aparece más de una, anótalas todas). Esta ventana debe quedar
+   ABIERTA Y CORRIENDO — no la cierres, no escribas nada más ahí por
+   ahora, solo déjala así, visible, y pasa al siguiente punto.
+3. Ahora ve al EQUIPO MINDRAY BS-220 (la pantalla táctil del equipo, no
+   la computadora). Entra al menú donde ya escribiste los códigos de las
+   pruebas (Sistema -> LIS, la pantalla con "Correspondencia de test").
+4. Busca el campo que dice "IP host LIS". Bórralo por completo y escribe
+   ahí la dirección IP que anotaste en el punto 2 (por ejemplo
+   "192.168.1.45") — tiene que quedar IDÉNTICA, punto por punto, número
+   por número.
+5. Revisa que el campo "Puerto" diga 5150. Si dice otra cosa, cámbialo a
+   5150.
+6. Guarda esos cambios en el equipo (botón "OK" o el que use el equipo
+   para guardar/aceptar esa pantalla).
+7. En el equipo, corre una muestra de control REAL, con varias pruebas a
+   la vez (por ejemplo Glucosa, Colesterol y Creatinina juntas, como se
+   haría normalmente).
+8. Vuelve a mirar la ventana NEGRA en la computadora (la que dejaste
+   corriendo en el punto 2). Si la conexión funcionó, va a aparecer un
+   bloque de texto que dice algo como:
+
+       ========== MENSAJE HL7 COMPLETO #1 ==========
+
+   seguido de varias líneas con datos. Si ves eso, ¡FUNCIONÓ! Si después
+   de 1-2 minutos de correr la muestra no aparece nada nuevo en la
+   ventana negra, revisa la sección "¿Algo no funciona?" al final de
+   este documento.
+9. Esta prueba deja guardado, dentro de "la carpeta", un archivo nuevo
+   con un nombre que empieza así: "captura_hl7_" (seguido de la fecha y
+   la hora). Para encontrarlo: abre "la carpeta" de nuevo en el
+   Explorador de Archivos (la misma del Paso 3) y ordénala por "Fecha de
+   modificación" (clic derecho en un espacio vacío -> Ordenar por ->
+   Fecha de modificación) — el archivo más nuevo, arriba de todo, es ese.
+10. ENVÍANOS ese archivo (adjúntalo a un correo o a un WhatsApp, tal cual
+    está, sin abrirlo ni editarlo) ANTES de seguir a cualquier otro paso.
+    Necesitamos revisarlo para confirmar que todo coincide antes de usar
+    esto con un paciente real.
+11. Cuando quieras, puedes cerrar la ventana negra: haz clic UNA VEZ
+    dentro de ella (para que quede "activa") y presiona las teclas
+    Ctrl + C al mismo tiempo. Si pregunta algo, escribe "S" o "Y" y
+    Enter.
+
+------------------------------------------------------------------------
+PASO 6 — Configuración final (SOLO después de que te confirmemos que el
+archivo del Paso 5 está bien)
+------------------------------------------------------------------------
+Cuando te confirmemos que todo coincide, te vamos a dar:
+- Los datos exactos para completar un archivo llamado "config-bs220.json"
+  (te diremos exactamente qué escribir y dónde, con el mismo nivel de
+  detalle que este instructivo).
+- El comando final para dejar el programa funcionando todos los días
+  (será algo como "node index-hl7.js config-bs220.json", escrito en la
+  ventana negra igual que en los pasos anteriores).
+
+No hace falta que hagas nada de esto todavía — espera nuestra
+confirmación después de enviarnos el archivo del Paso 5.
 
 ------------------------------------------------------------------------
 ¿Algo no funciona?
 ------------------------------------------------------------------------
-- Si "npm install" o "node ..." dicen "no se reconoce como un comando":
-  Node.js no quedó bien instalado, o hay que cerrar y volver a abrir la
-  ventana negra después de instalarlo.
-- Si no aparece nada al correr la muestra de control: revisa que la IP
-  en el equipo sea EXACTAMENTE la que mostró el Paso 5, que el "Puerto"
-  sea 5150 en ambos lados, y que el equipo y esta computadora estén en
-  la misma red (mismo router/WiFi).
-- Cualquier duda, manda captura de pantalla de la ventana negra.
+- Si al escribir "npm install" o "node ..." la ventana dice algo como
+  "no se reconoce como un comando interno o externo": significa que
+  Node.js (Paso 1) no quedó bien instalado, o que esta ventana negra se
+  abrió ANTES de instalarlo. Solución: cierra la ventana negra, repite el
+  Paso 1 completo, y luego repite el Paso 3 para abrir una ventana negra
+  nueva.
+- Si la ventana negra "no responde" o parece congelada: haz clic una vez
+  dentro de ella y presiona la tecla Enter — puede que se haya
+  "pausado" por un clic accidental (ver la advertencia del Paso 3).
+- Si en el Paso 5 no aparece ningún "MENSAJE HL7 COMPLETO" después de
+  correr la muestra: revisa con calma, en este orden:
+    1. Que la IP escrita en el equipo sea EXACTAMENTE igual a la que
+       mostró la ventana negra (sin espacios de más, sin puntos de más).
+    2. Que el "Puerto" sea 5150 tanto en el equipo como en el comando que
+       escribiste.
+    3. Que el equipo y esta computadora estén conectados a la MISMA red
+       (mismo router, mismo WiFi) — si uno está por cable y el otro por
+       WiFi, deben ser parte de la misma red igual, pregunta a quien
+       instaló el internet del laboratorio si tienes dudas.
+    4. Vuelve a correr la muestra de control en el equipo una vez más,
+       con la ventana negra ya abierta y visible ANTES de correrla.
+- Cualquier duda en cualquier paso: toma una foto o captura de pantalla
+  de lo que ves (la ventana negra, la pantalla del equipo) y envíala —
+  es más fácil ayudarte viendo exactamente qué pasa.
