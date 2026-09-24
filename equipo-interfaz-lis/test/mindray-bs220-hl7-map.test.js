@@ -37,12 +37,21 @@ correr("avisa de un código LIS no reconocido, sin inventar nada", () => {
   assert.deepStrictEqual(ignorados, ["CODIGO_NUEVO"]);
 });
 
-correr("todos los códigos de MAPEO apuntan a un examId no vacío (sanity check del archivo)", () => {
+correr("todos los códigos de MAPEO apuntan a un examId y codigo no vacíos (sanity check del archivo)", () => {
+  // La mayoría son QUI-xxx (química), pero también hay exámenes de otras
+  // secciones que el propio equipo reporta (GAS-002 electrolitos, INM-008
+  // PCR, URO-002 albúmina en orina) — el mapeo no está limitado a química.
   Object.keys(MAPEO).forEach((codigoLis) => {
     const m = MAPEO[codigoLis];
-    assert.ok(m.examId && m.examId.indexOf("QUI-") === 0, `${codigoLis} -> examId inválido: ${m.examId}`);
+    assert.ok(m.examId && /^[A-Z]+-\d+$/.test(m.examId), `${codigoLis} -> examId inválido: ${m.examId}`);
     assert.ok(m.codigo, `${codigoLis} -> falta codigo`);
   });
+});
+
+correr("agrupa un panel de electrolitos (GAS-002: Na, K, Cl) bajo un solo examId", () => {
+  const segmentosOBX = [obx("NA", "140"), obx("K", "4.2"), obx("CL", "102")];
+  const { porExamen } = mapearResultados(segmentosOBX);
+  assert.deepStrictEqual(porExamen["GAS-002"], { NA: "140", K: "4.2", CL: "102" });
 });
 
 if (process.exitCode) { console.error("\nHay pruebas fallidas."); process.exit(1); }

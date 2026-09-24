@@ -61,11 +61,43 @@ const MAPEO = {
   "BD": { examId: "QUI-011", codigo: "BD", factor: 1 }, // B. Directa
   "AMIL": { examId: "QUI-017", codigo: "AMIL", factor: 1 }, // AMILASA MR
   "CPK": { examId: "QUI-020", codigo: "CPK", factor: 1 }, // CK NAC (CPK Total)
-  "CPKMB": { examId: "QUI-021", codigo: "CPKMB", factor: 1 } // CK MB
-  // El equipo también podría mostrar más pruebas al hacer scroll en
-  // "Correspondencia de test" (la lista capturada llegaba hasta "CK MB") —
-  // si el BS-220 real del cliente ofrece alguna más, agrégala aquí con el
-  // mismo patrón, usando el examId/código de catalog.js que corresponda.
+  "CPKMB": { examId: "QUI-021", codigo: "CPKMB", factor: 1 }, // CK MB
+  // Segunda tanda vista al hacer scroll en el equipo real (ver README.md):
+  "K": { examId: "GAS-002", codigo: "K", factor: 1 }, // K (Potasio)
+  "NA": { examId: "GAS-002", codigo: "NA", factor: 1 }, // Na (Sodio)
+  "CL": { examId: "GAS-002", codigo: "CL", factor: 1 }, // Cl (Cloro)
+  "MG": { examId: "QUI-025", codigo: "MG", factor: 1 }, // MAGNESIO Bi... (Magnesio Sérico)
+  "HDL": { examId: "QUI-005", codigo: "HDL", factor: 1 }, // HDL - C
+  "GGT": { examId: "QUI-016", codigo: "GGT", factor: 1 }, // GGT
+  "PCR": { examId: "INM-008", codigo: "PCR", factor: 1 }, // P.C.R (nota: examen de Inmunología, no de Química — no importa, el mapeo funciona igual)
+  "FE": { examId: "QUI-026", codigo: "FE", factor: 1 }, // Hierro
+  // "Albumina Orina": se asume que corresponde a Microalbuminuria de
+  // BIOsoft (URO-002, mismo analito — albúmina cuantitativa en orina),
+  // aunque el equipo la llame distinto. Confirmar con el cliente antes de
+  // confiar en esto si su "Albumina Orina" mide algo distinto.
+  "MALB": { examId: "URO-002", codigo: "MALB", factor: 1 }, // Albumina Orina
+  "BI": { examId: "QUI-011", codigo: "BI", factor: 1 } // B INDIRECTA
+  // NO se mapean a propósito (ver README.md, sección "Mindray BS-220"):
+  // - GLOBULINA: BIOsoft ya la calcula sola (Proteína Total - Albúmina) en
+  //   cuanto llegan esos dos — mapearla aparte sería redundante y podría
+  //   pisar ese cálculo con el valor del equipo.
+  // - L.D.L-C (VLDL igual, sin examen en BIOsoft): BIOsoft ya calcula el
+  //   LDL solo (fórmula de Friedewald) en cuanto llegan Colesterol, HDL y
+  //   Triglicéridos — mismo motivo que Globulina, no se mapea.
+  // - PROT-U (proteína en orina): el examen más parecido en BIOsoft,
+  //   "Proteinuria de 24 Horas" (URO-004), mide un TOTAL de 24 horas
+  //   (mg/24h) — casi seguro NO es lo mismo que reporta este test del
+  //   equipo (probablemente una concentración puntual, mg/dL o mg/L, de
+  //   una muestra aislada). Mapearlo tal cual mezclaría unidades
+  //   incompatibles. Pendiente de confirmar con el cliente qué mide
+  //   exactamente antes de mapearlo a algo.
+  // - UREA CINETICA: BIOsoft solo tiene "Nitrógeno Ureico (BUN)" (QUI-009,
+  //   rango normal 7-20 mg/dL) — Urea y BUN NO son lo mismo numéricamente
+  //   (Urea ≈ BUN × 2.14), así que mapearlo tal cual podría marcar un
+  //   valor normal de Urea como "anormal" si en realidad se necesita
+  //   convertir. Pendiente de confirmar con el cliente/el manual del
+  //   equipo si "Urea Cinética" reporta Urea o ya viene calibrado como
+  //   BUN antes de mapearlo (y con qué factor, si hace falta convertir).
 };
 
 /** Recibe los segmentos OBX ya separados en arreglos de campos (por "|") y

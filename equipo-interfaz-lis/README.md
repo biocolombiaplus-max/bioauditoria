@@ -43,14 +43,27 @@ LIS**) de un BS-220 real:
   otros equipos.
 - **"Correspondencia de test" (Test → "Cód en LIS") es la mejor noticia de
   los 4 equipos investigados hasta ahora:** el propio operador puede
-  escribir en el equipo QUÉ código usará cada prueba (GLUCOSA, CREATININA,
+  escribir en el equipo QUÉ código usará cada prueba. Lista completa
+  observada en el equipo real (con scroll): GLUCOSA, CREATININA,
   COLESTEROL, TRIGLICERIDOS, ACIDO URICO, PROTEINA TOTAL, ALBUMINA, TGO,
   TGP, CALCIO, FOSFORO, ALP, LDH, B. Total, B. Directa, AMILASA MR, CK NAC,
-  CK MB, y posiblemente más al hacer scroll en esa lista). Esto elimina
-  casi toda la incertidumbre de "¿qué código interno usa este equipo?" —
-  en vez de averiguarlo, **se lo decimos al cliente**: ver
+  CK MB, PROT-U, K, Na, Cl, MAGNESIO, HDL-C, GGT, P.C.R, UREA CINETICA,
+  Hierro, Albúmina Orina, GLOBULINA, VLDL, B INDIRECTA, L.D.L-C. Esto
+  elimina casi toda la incertidumbre de "¿qué código interno usa este
+  equipo?" — en vez de averiguarlo, **se lo decimos al cliente**: ver
   `mindray-bs220-hl7-map.js`, ya construido con un código corto por cada
-  prueba (ej. "GLU" para Glucosa) listo para copiar en esa pantalla.
+  prueba mapeable (ej. "GLU" para Glucosa) listo para copiar en esa
+  pantalla. De esa lista, 4 pruebas quedan A PROPÓSITO sin mapear por
+  ahora (ver los comentarios del propio archivo):
+  - **GLOBULINA** y **L.D.L-C**: BIOsoft ya las calcula solas (fórmulas a
+    partir de Proteína Total/Albúmina y de Colesterol/HDL/Triglicéridos)
+    — mapearlas sería redundante y podría pisar ese cálculo.
+  - **VLDL**: no existe un examen equivalente en el catálogo de BIOsoft.
+  - **PROT-U** y **UREA CINETICA**: hay una duda real de unidades/definición
+    (¿es una concentración puntual o un total de 24h? ¿reporta Urea o
+    BUN, que no son el mismo número?) que hay que resolver con el cliente
+    antes de mapearlas — mapear a ciegas podría marcar un valor normal
+    como anormal o viceversa.
 - **Es un equipo de QUÍMICA, no de un solo panel** (a diferencia del BC-10,
   que es un hemograma completo en un solo examen): cada prueba que corre
   es un examen SEPARADO en el catálogo de BIOsoft (QUI-001, QUI-004,
