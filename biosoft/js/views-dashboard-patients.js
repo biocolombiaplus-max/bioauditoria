@@ -295,6 +295,7 @@
 
       document.getElementById("btn-new-pac").addEventListener("click", function () { openPatientForm(null, renderList); });
       document.getElementById("pac-search").addEventListener("input", function (e) { renderList(e.target.value); });
+      root.querySelectorAll("[data-historial]").forEach(function (b) { b.addEventListener("click", function () { abrirHistorialPaciente(S.getPatient(b.dataset.historial)); }); });
       root.querySelectorAll("[data-edit]").forEach(function (b) { b.addEventListener("click", function () { openPatientForm(S.getPatient(b.dataset.edit), function () { renderList(filter); }); }); });
       root.querySelectorAll("[data-neworden]").forEach(function (b) { b.addEventListener("click", function () { location.hash = "#/ordenes/nueva-" + b.dataset.neworden; }); });
       // Solo el Administrador puede eliminar un paciente — pensado para
@@ -322,12 +323,92 @@
     function rowPatient(p) {
       var esAdmin = session.rol === "admin";
       return "<tr><td>" + p.tipoDocumento + " " + U.esc(p.numeroDocumento) + "</td><td>" + U.esc(U.nombreCompleto(p)) + "</td><td>" + U.edadTexto(p) + "</td><td>" + p.sexo + "</td><td>" + (p.pais === "CO" ? U.esc(p.eps || "—") : "—") + "</td><td>" + U.esc(p.ciudad || "—") + "</td>" +
-        '<td><div class="flex gap-2"><button class="btn btn-ghost btn-sm" data-edit="' + p.id + '">' + U.icon("edit") + " Editar</button>" +
+        '<td><div class="flex gap-2 wrap"><button class="btn btn-outline btn-sm" data-historial="' + p.id + '">' + U.icon("history") + " Historial</button>" +
+        '<button class="btn btn-ghost btn-sm" data-edit="' + p.id + '">' + U.icon("edit") + " Editar</button>" +
         (session.rol !== "bacteriologo" || BIO_AUTH.tienePermisoExtra("ordenes") ? '<button class="btn btn-outline btn-sm" data-neworden="' + p.id + '">' + U.icon("plus") + " Orden</button>" : "") +
         (esAdmin ? '<button class="btn btn-ghost btn-sm" data-eliminar-pac="' + p.id + '" title="Eliminar paciente (solo si aún no tiene órdenes)">' + U.icon("trash") + "</button>" : "") +
         "</div></td></tr>";
     }
   };
+
+  // ------------------------------------------------------------------
+  // HISTORIAL CLÍNICO DEL PACIENTE — se busca al paciente por cédula o
+  // nombre en "Pacientes" (el buscador que ya existía ahí) y desde su fila
+  // se abre este historial completo: todas sus órdenes en el tiempo, con
+  // su estado, exámenes y (si el laboratorio cobra por orden) lo
+  // facturado — para poder resolver de un vistazo "¿qué se le ha hecho a
+  // este paciente y cuándo?" sin tener que ir orden por orden buscando en
+  // la lista general de "Órdenes de Laboratorio".
+  // ------------------------------------------------------------------
+  function fmtMoneda(n) {
+    n = n || 0;
+    var dec = Math.round(n) === n ? 0 : 2;
+    return "$" + n.toLocaleString("es-CO", { minimumFractionDigits: dec, maximumFractionDigits: 2 });
+  }
+
+  function abrirHistorialPaciente(patient) {
+    if (!patient) return;
+    var session = BIO_AUTH.getSession();
+    var tenant = BIO_AUTH.currentTenant();
+    var ordenes = S.listOrders(session.tenantId)
+      .filter(function (o) { return o.patientId === patient.id; })
+      .sort(function (a, b) { return (b.fechaOrden || "").localeCompare(a.fechaOrden || ""); });
+
+    var primeraVisita = ordenes.length ? ordenes[ordenes.length - 1].fechaOrden : null;
+    var ultimaVisita = ordenes.length ? ordenes[0].fechaOrden : null;
+    var totalFacturado = ordenes.reduce(function (a, o) { return a + (o.valorCobrar || 0); }, 0);
+
+    function chip(label, value) {
+      return '<div class="card" style="flex:1;min-width:140px;text-align:center;padding:12px"><div class="text-muted" style="font-size:11px;margin-bottom:4px">' + label + '</div><div style="font-size:16px;font-weight:800">' + value + "</div></div>";
+    }
+
+    function filaOrden(o) {
+      var exCatalogo = o.examenes.map(function (ex) { return C.examenEfectivo(ex.examId, tenant); }).filter(Boolean);
+      var nombresExamenes = exCatalogo.map(function (e) { return e.nombre; }).join(", ");
+      var tienePdf = o.examenes.some(function (ex) { return ex.estado === "validado" || ex.estado === "remitido" || ex.estado === "preliminar"; });
+      return "<tr>" +
+        "<td>" + U.fmtFecha(o.fechaOrden) + "</td>" +
+        "<td><b>" + U.esc(o.numeroOrden) + "</b>" + (o.convenioNombre ? '<div class="text-muted" style="font-size:11px">🤝 ' + U.esc(o.convenioNombre) + "</div>" : "") + "</td>" +
+        "<td style='max-width:280px'>" + o.examenes.length + " examen" + (o.examenes.length === 1 ? "" : "es") + '<div class="text-muted" style="font-size:11px" title="' + U.esc(nombresExamenes) + '">' + U.esc(nombresExamenes.length > 70 ? nombresExamenes.slice(0, 70) + "…" : nombresExamenes) + "</div></td>" +
+        "<td>" + window.BIO_badgeEstado(o.estadoGeneral) + "</td>" +
+        (tenant.mostrarPrecioOrden ? "<td>" + (o.valorCobrar ? fmtMoneda(o.valorCobrar) : "—") + "</td>" : "") +
+        '<td><div class="flex gap-2 wrap">' +
+        '<button class="btn btn-outline btn-sm" data-hist-ver="' + o.id + '">' + U.icon("file") + " Ver Orden</button>" +
+        (tienePdf ? '<button class="btn btn-ghost btn-sm" data-hist-pdf="' + o.id + '">' + U.icon("download") + " PDF</button>" : "") +
+        "</div></td></tr>";
+    }
+
+    var wrap = U.openModal(
+      '<h3 class="modal-title">🕓 Historial Clínico — ' + U.esc(U.nombreCompleto(patient)) + "</h3>" +
+      '<p class="text-muted" style="margin:0 0 12px">' + patient.tipoDocumento + " " + U.esc(patient.numeroDocumento) + " · " + U.edadTexto(patient) + " · " + U.esc(patient.sexo) + (patient.pais === "CO" && patient.eps ? " · " + U.esc(patient.eps) : "") + "</p>" +
+      '<div class="flex gap-2 wrap" style="margin-bottom:16px">' +
+      chip("Órdenes Totales", ordenes.length) +
+      chip("Primera Visita", primeraVisita ? U.fmtFechaCorta(primeraVisita) : "—") +
+      chip("Última Visita", ultimaVisita ? U.fmtFechaCorta(ultimaVisita) : "—") +
+      (tenant.mostrarPrecioOrden ? chip("Total Facturado", fmtMoneda(totalFacturado)) : "") +
+      "</div>" +
+      (ordenes.length
+        ? '<div class="table-wrap" style="max-height:420px;overflow-y:auto"><table><thead><tr><th>Fecha</th><th>Orden</th><th>Exámenes</th><th>Estado</th>' + (tenant.mostrarPrecioOrden ? "<th>Valor</th>" : "") + "<th></th></tr></thead><tbody>" +
+          ordenes.map(filaOrden).join("") + "</tbody></table></div>"
+        : '<p class="text-muted">Este paciente todavía no tiene ninguna orden registrada.</p>') +
+      '<div class="flex justify-between" style="margin-top:16px"><button class="btn btn-ghost" data-modal-close>Cerrar</button>' +
+      (session.rol !== "bacteriologo" || BIO_AUTH.tienePermisoExtra("ordenes") ? '<button class="btn btn-primary" id="hist-nueva-orden">' + U.icon("plus") + " Nueva Orden para este Paciente</button>" : "") +
+      "</div>",
+      { lg: true }
+    );
+
+    wrap.querySelectorAll("[data-hist-ver]").forEach(function (b) {
+      b.addEventListener("click", function () { U.closeModal(wrap); location.hash = "#/ordenes/" + b.dataset.histVer; });
+    });
+    wrap.querySelectorAll("[data-hist-pdf]").forEach(function (b) {
+      b.addEventListener("click", function () {
+        var o = S.getOrder(b.dataset.histPdf);
+        window.BIO_PDF.previewOrModal(o, patient, tenant);
+      });
+    });
+    var btnNuevaOrden = wrap.querySelector("#hist-nueva-orden");
+    if (btnNuevaOrden) btnNuevaOrden.addEventListener("click", function () { U.closeModal(wrap); location.hash = "#/ordenes/nueva-" + patient.id; });
+  }
 
   function openPatientForm(patient, onSaved) {
     var session = BIO_AUTH.getSession();
