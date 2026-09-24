@@ -32,10 +32,17 @@
     var vista = "insumos";
     var insumos = [];
     var recetas = [];
+    var tenant;
 
     function cargar() {
+      tenant = S.getTenant(tenantId);
       insumos = S.inventario.listInsumos(tenantId);
       recetas = S.inventario.listRecetas(tenantId);
+      // Se fija la primera vez que se carga la vista, ya C.seccionesEfectivas()
+      // necesita el tenant (para incluir también las secciones propias del
+      // laboratorio) — antes de esto no existe todavía, así que no se puede
+      // calcular en la declaración de recetaActiveSection más abajo.
+      if (recetaActiveSection === null) recetaActiveSection = C.seccionesEfectivas(tenant)[0].id;
       build();
     }
 
@@ -220,7 +227,7 @@
     // RECETAS POR EXAMEN
     // ---------------------------------------------------------------------
     var recetaSearchTerm = "";
-    var recetaActiveSection = C.SECCIONES[0].id;
+    var recetaActiveSection = null;
 
     function buildRecetasHtml() {
       return '<p class="text-muted" style="margin:14px 0">Configura cuánto reactivo o insumo consume cada examen. Cada vez que se ingrese un resultado por primera vez, BIOsoft descuenta automáticamente esas cantidades del inventario.</p>' +
@@ -238,7 +245,7 @@
     }
 
     function renderRecSections() {
-      document.getElementById("rec-sec-list").innerHTML = C.SECCIONES.map(function (s) {
+      document.getElementById("rec-sec-list").innerHTML = C.seccionesEfectivas(tenant).map(function (s) {
         return '<div class="sec-item ' + (!recetaSearchTerm && s.id === recetaActiveSection ? "active" : "") + '" data-sec="' + s.id + '">' + s.nombre + "</div>";
       }).join("");
       document.querySelectorAll("#rec-sec-list .sec-item").forEach(function (el) {
@@ -251,21 +258,28 @@
 
     function renderRecExams() {
       var term = U.normalizar(recetaSearchTerm.trim());
+      // C.examenesDisponibles() trae el catálogo global MÁS los exámenes
+      // propios que el laboratorio haya creado en Catálogo (tenant.
+      // examenesPersonalizados) — antes esto solo miraba C.EXAMENES (el
+      // catálogo de fábrica), así que un examen propio nunca aparecía aquí
+      // y no había forma de configurarle su consumo de insumos ni de que se
+      // descontara solo del inventario al validar su resultado.
+      var todos = C.examenesDisponibles(tenant);
       var pool = term
-        ? C.EXAMENES.filter(function (e) { return U.normalizar(e.nombre).indexOf(term) !== -1 || e.cups.indexOf(term) !== -1; })
-        : C.EXAMENES.filter(function (e) { return e.seccion === recetaActiveSection; });
+        ? todos.filter(function (e) { return U.normalizar(e.nombre).indexOf(term) !== -1 || (e.cups || "").indexOf(term) !== -1; })
+        : todos.filter(function (e) { return e.seccion === recetaActiveSection; });
 
       document.getElementById("rec-exam-list").innerHTML = pool.map(function (e) {
         var n = recetasDeExamen(e.id).length;
         return '<button type="button" class="exam-row" data-config-receta="' + e.id + '" style="width:100%;text-align:left;border:none;background:none;cursor:pointer">' +
-          '<div class="grow"><div>' + U.esc(e.nombre) + (term ? ' <span class="text-muted" style="font-size:11px">— ' + C.seccionNombre(e.seccion) + "</span>" : "") + "</div>" +
-          '<div class="meta">CUPS ' + e.cups + "</div></div>" +
+          '<div class="grow"><div>' + U.esc(e.nombre) + (term ? ' <span class="text-muted" style="font-size:11px">— ' + C.seccionNombre(e.seccion, tenant) + "</span>" : "") + "</div>" +
+          '<div class="meta">CUPS ' + (e.cups || "—") + "</div></div>" +
           (n ? '<span class="badge badge-validado">' + n + " insumo(s)</span>" : '<span class="text-muted" style="font-size:12px">Sin configurar</span>') +
           "</button>";
       }).join("") || '<p class="text-muted" style="padding:14px">Sin resultados para tu búsqueda.</p>';
 
       root.querySelectorAll("[data-config-receta]").forEach(function (b) {
-        b.addEventListener("click", function () { abrirFormReceta(C.examenPorId(b.dataset.configReceta)); });
+        b.addEventListener("click", function () { abrirFormReceta(C.examenEfectivo(b.dataset.configReceta, tenant)); });
       });
     }
 
