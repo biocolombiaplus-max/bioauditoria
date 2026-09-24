@@ -362,10 +362,13 @@
         '<p class="text-muted" style="margin-top:0">Ya se descargó el PDF. Ahora elige por dónde enviarlo.</p>' +
         '<p class="text-muted" style="margin:0 0 12px;font-size:12.5px">Queda guardada como <b>pendiente de pago</b> en la pestaña Historial — cuando el cliente pague, entra ahí y usa "Registrar Pago" para generar su recibo.</p>' +
         '<button class="btn btn-whatsapp btn-block" id="cot-send-wa">' + U.icon("send") + " Enviar por WhatsApp</button>" +
+        (U.botonCompartirPDFHtml("cot-compartir") ? '<div style="margin-top:8px">' + U.botonCompartirPDFHtml("cot-compartir") + "</div>" : "") +
         (correo ? U.emailProviderButtonsHtml("cot-mail") : "") +
         '<div class="flex justify-between" style="margin-top:16px"><button class="btn btn-ghost" data-modal-close>Cerrar</button></div>'
       );
       wrap.querySelector("#cot-send-wa").addEventListener("click", function () { window.open(waLinkTo(whatsapp, mensaje), "_blank"); });
+      var btnCompartirCot = wrap.querySelector("#cot-compartir");
+      if (btnCompartirCot) btnCompartirCot.addEventListener("click", function () { U.compartirPDF(bytes, nombreArchivo, mensaje); });
       if (correo) U.wireEmailProviderButtons(wrap, "cot-mail", correo, "Cotización de exámenes — " + tenant.nombre, mensaje);
 
       pickerNueva.selected = []; pickerNueva.selectedPaquetes = []; cargar();
@@ -1767,7 +1770,8 @@
       var tenant = S.getTenant(tenantId);
       var cliente = cot.cliente || {};
       var bytes = await BIO_PDF_RECIBO_COTIZACION.buildReciboCotizacionPDF(cot, tenant);
-      U.downloadBytes(bytes, "Recibo_" + (cliente.nombre || "Cliente").replace(/\s+/g, "_") + ".pdf");
+      var nombreArchivo = "Recibo_" + (cliente.nombre || "Cliente").replace(/\s+/g, "_") + ".pdf";
+      U.downloadBytes(bytes, nombreArchivo);
       var montoRecibo = (cot.pago && cot.pago.monto) || cot.total;
       var mensaje = "Hola " + (cliente.nombre ? cliente.nombre.split(" ")[0] : "") + " 👋 Adjunto el recibo de pago de tu compra en " + tenant.nombre + " por " + fmtMoneda(montoRecibo) + textoMonedaExtra(montoRecibo) + ". ¡Gracias por tu confianza! Cualquier duda, quedamos atentos.";
       U.toast("Recibo generado y descargado.", "success");
@@ -1775,10 +1779,13 @@
         '<h3 class="modal-title">Recibo listo</h3>' +
         '<p class="text-muted" style="margin-top:0">Ya se descargó el PDF. Adjúntalo antes de enviar por el canal que elijas.</p>' +
         '<button class="btn btn-whatsapp btn-block" id="rec-send-wa">' + U.icon("send") + " Enviar por WhatsApp</button>" +
+        (U.botonCompartirPDFHtml("rec-compartir") ? '<div style="margin-top:8px">' + U.botonCompartirPDFHtml("rec-compartir") + "</div>" : "") +
         (cliente.correo ? U.emailProviderButtonsHtml("rec-mail") : "") +
         '<div class="flex justify-between" style="margin-top:16px"><button class="btn btn-ghost" data-modal-close>Cerrar</button></div>'
       );
       wrap.querySelector("#rec-send-wa").addEventListener("click", function () { window.open(waLinkTo(cliente.whatsapp, mensaje), "_blank"); });
+      var btnCompartirRecibo = wrap.querySelector("#rec-compartir");
+      if (btnCompartirRecibo) btnCompartirRecibo.addEventListener("click", function () { U.compartirPDF(bytes, nombreArchivo, mensaje); });
       if (cliente.correo) U.wireEmailProviderButtons(wrap, "rec-mail", cliente.correo, "Recibo de pago — " + tenant.nombre, mensaje);
     }
 

@@ -432,6 +432,7 @@
       '<div class="field"><label>Mensaje</label><textarea id="send-msg">Estimado(a) ' + U.esc(U.nombreCompleto(pac)) + ',\n\nAdjuntamos sus resultados de laboratorio correspondientes a la orden ' + order.numeroOrden + '.\n\n' + U.esc(tenant.nombre) + "</textarea></div>" +
       '<p class="text-muted" style="margin:0 0 10px;font-size:12.5px">Un solo clic: se descarga el PDF y se abre WhatsApp o tu correo ya redactado — solo adjunta el archivo que se acaba de descargar antes de darle enviar (ningún navegador permite adjuntarlo automáticamente).</p>' +
       '<button type="button" class="btn btn-whatsapp btn-block" id="send-wa">' + U.icon("send") + " Enviar por WhatsApp</button>" +
+      (U.botonCompartirPDFHtml("send-compartir") ? '<div style="margin-top:8px">' + U.botonCompartirPDFHtml("send-compartir") + '<p class="text-muted" style="margin:4px 0 0;font-size:11.5px">En celular: abre el menú de compartir con el PDF ya adjunto — puedes elegir WhatsApp ahí mismo.</p></div>' : "") +
       '<div class="flex gap-2 wrap" style="margin-top:8px">' +
       '<button type="button" class="btn btn-outline btn-sm" id="send-gmail">📧 Enviar por Gmail</button>' +
       '<button type="button" class="btn btn-outline btn-sm" id="send-outlook">📧 Enviar por Outlook / Hotmail</button>' +
@@ -467,13 +468,15 @@
     // el archivo al mensaje sigue siendo manual porque ningún navegador
     // permite adjuntarlo automáticamente desde un enlace de WhatsApp/correo.
     var pdfCache = null;
+    var pdfFilenameCache = null;
     function obtenerPdf() {
       if (pdfCache) return Promise.resolve(pdfCache);
       var tipo = wrap.querySelector("#send-tipo").value;
       return window.BIO_PDF.buildResultadosPDF(order, pac, tenant, tipo).then(function (bytes) {
         pdfCache = bytes;
         var nombreArchivo = window.BIO_PDF.nombreParaArchivo(pac);
-        U.downloadBytes(bytes, "Resultados_" + order.numeroOrden + (nombreArchivo ? "_" + nombreArchivo : "") + "_" + (tipo === "final" ? "Final" : "Preliminar") + ".pdf");
+        pdfFilenameCache = "Resultados_" + order.numeroOrden + (nombreArchivo ? "_" + nombreArchivo : "") + "_" + (tipo === "final" ? "Final" : "Preliminar") + ".pdf";
+        U.downloadBytes(bytes, pdfFilenameCache);
         order.enviado = true; order.fechaEnvio = S.nowISO();
         S.saveOrder(order);
         return bytes;
@@ -518,6 +521,18 @@
         });
       });
     });
+
+    var btnCompartir = wrap.querySelector("#send-compartir");
+    if (btnCompartir) {
+      btnCompartir.addEventListener("click", function (e) {
+        conBotonOcupado(e.currentTarget, function () {
+          return obtenerPdf().then(function (bytes) {
+            U.compartirPDF(bytes, pdfFilenameCache, wrap.querySelector("#send-msg").value);
+            registrarEnvio("compartir (PDF adjunto)");
+          });
+        });
+      });
+    }
 
     [
       { id: "send-gmail", buildUrl: function (links) { return links.gmail; } },

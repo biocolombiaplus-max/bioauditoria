@@ -684,6 +684,7 @@
         '<div class="flex gap-2 wrap">' +
         '<button class="btn btn-outline btn-sm" id="rec-ord-print">' + U.icon("printer") + " Imprimir</button>" +
         (pac && pac.celular ? '<button class="btn btn-whatsapp btn-sm" id="rec-ord-wa">' + U.icon("send") + " Enviar por WhatsApp</button>" : "") +
+        U.botonCompartirPDFHtml("rec-ord-compartir") +
         "</div>" +
         (pac && pac.email ? U.emailProviderButtonsHtml("rec-ord-mail") : '<p class="text-muted" style="font-size:12px;margin-top:10px">Este paciente no tiene correo ni WhatsApp guardados para enviarlo directo — descarga e imprime, o agrégalos a su ficha.</p>') +
         '<div class="flex justify-between" style="margin-top:16px"><button class="btn btn-ghost" data-modal-close>Cerrar</button></div>'
@@ -699,6 +700,8 @@
         var numero = U.numeroWhatsapp(pac.celular, tenant.pais);
         window.open("https://wa.me/" + numero + "?text=" + encodeURIComponent(mensaje), "_blank");
       });
+      var btnCompartir = wrapEnvio.querySelector("#rec-ord-compartir");
+      if (btnCompartir) btnCompartir.addEventListener("click", function () { U.compartirPDF(bytes, nombreArchivo, mensaje); });
       if (pac && pac.email) U.wireEmailProviderButtons(wrapEnvio, "rec-ord-mail", pac.email, (esFacturaClasica ? "Factura" : "Recibo de pago") + " — " + tenant.nombre, mensaje);
       if (onDone) onDone();
     }
@@ -873,6 +876,7 @@
         '<div class="flex gap-2 wrap">' +
         '<button class="btn btn-outline btn-sm" id="ab-print">' + U.icon("printer") + " Imprimir</button>" +
         (pac && pac.celular ? '<button class="btn btn-whatsapp btn-sm" id="ab-wa">' + U.icon("send") + " Enviar por WhatsApp</button>" : "") +
+        U.botonCompartirPDFHtml("ab-compartir") +
         "</div>" +
         (pac && pac.email ? U.emailProviderButtonsHtml("ab-mail") : '<p class="text-muted" style="font-size:12px;margin-top:10px">Este paciente no tiene correo ni WhatsApp guardados para enviarlo directo — descarga e imprime, o agrégalos a su ficha.</p>') +
         '<div class="flex justify-between" style="margin-top:16px"><button class="btn btn-ghost" data-modal-close>Cerrar</button></div>'
@@ -888,6 +892,8 @@
         var numero = U.numeroWhatsapp(pac.celular, tenant.pais);
         window.open("https://wa.me/" + numero + "?text=" + encodeURIComponent(mensaje), "_blank");
       });
+      var btnCompartirAbono = wrapEnvio.querySelector("#ab-compartir");
+      if (btnCompartirAbono) btnCompartirAbono.addEventListener("click", function () { U.compartirPDF(bytes, "Recibo_Abono_Orden_" + order.numeroOrden + ".pdf", mensaje); });
       if (pac && pac.email) U.wireEmailProviderButtons(wrapEnvio, "ab-mail", pac.email, "Recibo de abono — " + tenant.nombre, mensaje);
       if (onDone) onDone();
     });
@@ -1189,6 +1195,7 @@
       '<p style="margin:0 0 4px"><b>2. Elige dónde enviarlo</b></p>' +
       U.emailProviderButtonsHtml("rem") +
       '<a class="btn btn-whatsapp btn-block" id="rem-wa" target="_blank" rel="noopener" style="margin-top:8px">' + U.icon("send") + " Enviar por WhatsApp</a>" +
+      (U.botonCompartirPDFHtml("rem-compartir") ? '<div style="margin-top:8px">' + U.botonCompartirPDFHtml("rem-compartir") + "</div>" : "") +
       "</div>",
       { lg: true }
     );
@@ -1256,6 +1263,8 @@
       } else {
         waBtn.classList.add("hidden");
       }
+      var btnCompartirRem = wrap.querySelector("#rem-compartir");
+      if (btnCompartirRem) btnCompartirRem.addEventListener("click", function () { U.compartirPDF(bytes, "Hoja_Remision_" + numero + ".pdf", mensaje); });
       U.toast("Hoja de Remisión generada y descargada.", "success");
       onDone();
     });

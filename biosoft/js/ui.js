@@ -287,6 +287,37 @@
     if (m) m.addEventListener("click", function () { window.open(links.mailto, "_blank"); });
   }
 
+  /* "Compartir con PDF Adjunto" — en celular/tablet, usa el menú nativo de
+     compartir del sistema (Web Share API con archivos) para que el PDF
+     viaje YA ADJUNTO al elegir WhatsApp desde ese menú, sin que quien
+     envía tenga que buscar el archivo recién descargado y adjuntarlo a
+     mano. Es la única forma sin costo de evitar ese paso manual: un
+     enlace wa.me (el botón normal de WhatsApp) SOLO admite texto, nunca
+     un archivo — es una restricción del propio WhatsApp, no de BIOsoft.
+     Solo aparece en navegadores que soportan compartir archivos (celular/
+     tablet, Android e iPhone recientes) — en computador de escritorio el
+     botón normal de WhatsApp sigue siendo el único disponible. */
+  function soportaCompartirArchivos() {
+    return !!(navigator.share && navigator.canShare);
+  }
+  function compartirPDF(bytes, filename, texto) {
+    try {
+      var file = new File([bytes], filename, { type: "application/pdf" });
+      if (!navigator.canShare({ files: [file] })) {
+        toast("Este dispositivo no admite compartir archivos directamente — descarga el PDF y adjúntalo a mano.", "error");
+        return;
+      }
+      navigator.share({ files: [file], text: texto }).catch(function (e) {
+        if (e && e.name !== "AbortError") toast("No se pudo compartir el archivo.", "error");
+      });
+    } catch (e) {
+      toast("Este dispositivo no admite compartir archivos directamente — descarga el PDF y adjúntalo a mano.", "error");
+    }
+  }
+  function botonCompartirPDFHtml(idBtn) {
+    return soportaCompartirArchivos() ? '<button type="button" class="btn btn-outline btn-sm" id="' + idBtn + '">' + icon("send") + " Compartir con PDF Adjunto</button>" : "";
+  }
+
   /* Reduce cualquier imagen (logo, etc.) a un PNG de máximo maxDim px de
      lado antes de guardarla como data URL. Un logo sin redimensionar (ej.
      una foto de celular de varios MB) puede superar el límite de tamaño de
@@ -357,6 +388,7 @@
     downloadBytes: downloadBytes, normalizar: normalizar, emailLinks: emailLinks,
     emailProviderButtonsHtml: emailProviderButtonsHtml, wireEmailProviderButtons: wireEmailProviderButtons,
     redimensionarImagen: redimensionarImagen, recomprimirDataUrlSiHaceFalta: recomprimirDataUrlSiHaceFalta,
-    indicativoPais: indicativoPais, numeroWhatsapp: numeroWhatsapp
+    indicativoPais: indicativoPais, numeroWhatsapp: numeroWhatsapp,
+    soportaCompartirArchivos: soportaCompartirArchivos, compartirPDF: compartirPDF, botonCompartirPDFHtml: botonCompartirPDFHtml
   };
 })(window);
