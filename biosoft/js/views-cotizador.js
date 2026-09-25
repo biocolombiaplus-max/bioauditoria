@@ -1158,7 +1158,8 @@
         nit: "", direccion: "", ciudad: "", contactoNombre: "", contactoEmail: "", contactoCelular: "",
         tipoPersona: "juridica", tipoSociedad: TIPOS_SOCIEDAD_CONVENIO[0], regimenTributario: "responsable",
         granContribuyente: false, autorretenedor: false,
-        tieneCopago: false, copagoTipo: "fijo", copagoValor: 0
+        tieneCopago: false, copagoTipo: "fijo", copagoValor: 0,
+        mostrarNumeroAutorizacion: false, ocultarMembrete: false
       };
       var esCO = tenant.pais === "CO";
       var wrap = U.openModal(
@@ -1195,6 +1196,10 @@
           '<div class="checkbox-row"><input type="checkbox" id="f_cnv_grancontribuyente" ' + (convenio.granContribuyente ? "checked" : "") + '/><label style="margin:0" for="f_cnv_grancontribuyente">Gran Contribuyente</label></div>' +
           '<div class="checkbox-row"><input type="checkbox" id="f_cnv_autorretenedor" ' + (convenio.autorretenedor ? "checked" : "") + '/><label style="margin:0" for="f_cnv_autorretenedor">Autorretenedor</label></div>'
           : "") +
+        "</fieldset>" +
+        '<fieldset><legend>Informe de Resultados para este Convenio</legend>' +
+        (esCO ? '<div class="checkbox-row"><input type="checkbox" id="f_cnv_mostrarautorizacion" ' + (convenio.mostrarNumeroAutorizacion ? "checked" : "") + '/><label style="margin:0" for="f_cnv_mostrarautorizacion">Mostrar el N° de Autorización de la orden en el informe de resultados en PDF</label></div>' : "") +
+        '<div class="checkbox-row"><input type="checkbox" id="f_cnv_ocultarmembrete" ' + (convenio.ocultarMembrete ? "checked" : "") + '/><label style="margin:0" for="f_cnv_ocultarmembrete">No incluir el membrete del laboratorio (logo, nombre, datos de contacto) en el informe — genera solo el PDF de resultados, limpio y ordenado, para que el convenio lo imprima sobre su propio membrete</label></div>' +
         "</fieldset>" +
         '<div class="flex gap-2 justify-between" style="margin-top:6px">' +
         '<button type="button" class="btn btn-ghost" data-modal-close>Cancelar</button>' +
@@ -1245,7 +1250,9 @@
           contactoCelular: wrap.querySelector("#f_cnv_contactocelular").value.trim(),
           tieneCopago: wrap.querySelector("#f_cnv_tienecopago").checked,
           copagoTipo: wrap.querySelector("#f_cnv_copagotipo") ? wrap.querySelector("#f_cnv_copagotipo").value : "fijo",
-          copagoValor: wrap.querySelector("#f_cnv_copagovalor") ? (parseFloat(wrap.querySelector("#f_cnv_copagovalor").value) || 0) : 0
+          copagoValor: wrap.querySelector("#f_cnv_copagovalor") ? (parseFloat(wrap.querySelector("#f_cnv_copagovalor").value) || 0) : 0,
+          mostrarNumeroAutorizacion: wrap.querySelector("#f_cnv_mostrarautorizacion") ? wrap.querySelector("#f_cnv_mostrarautorizacion").checked : false,
+          ocultarMembrete: wrap.querySelector("#f_cnv_ocultarmembrete").checked
         };
         if (esCO) {
           data.tipoSociedad = data.tipoPersona === "natural" ? "" : wrap.querySelector("#f_cnv_tiposociedad").value;

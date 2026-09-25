@@ -584,7 +584,17 @@
     // para conservar la jerarquía visual sin importar el tamaño elegido.
     var tamanoBase = tenant.tamanoFuenteReporte || 8;
 
-    y = await dibujarMembrete(doc, tenant, margin);
+    // Un convenio puede pedir que su informe de resultados NO lleve el
+    // membrete del laboratorio (logo, nombre, datos de contacto) — ej.
+    // porque lo va a imprimir sobre su propio papel membretado — dejado en
+    // "Convenios/Tarifas → Informe de Resultados para este Convenio" al
+    // crear o editar el convenio. Se busca por order.convenioId (no todas
+    // las órdenes tienen convenio, ahí sinMembrete queda en false y el
+    // informe sale exactamente como siempre).
+    var convenioOrden = order.convenioId ? S.cotizador.listConvenios(tenant.id).filter(function (c) { return c.id === order.convenioId; })[0] : null;
+    var sinMembrete = !!(convenioOrden && convenioOrden.ocultarMembrete);
+
+    y = sinMembrete ? margin : await dibujarMembrete(doc, tenant, margin);
 
     // Si el laboratorio activó "Repetir el encabezado en todas las hojas"
     // (Configuración → Diseño del Reporte de Resultados), cada hoja
@@ -595,7 +605,7 @@
     // membrete de forma síncrona en cada salto de página sin repetir ese
     // recorte async en medio de un bucle.
     var logoCache = null, logoSecCache = null;
-    if (tenant.membreteEnTodasLasHojas) {
+    if (tenant.membreteEnTodasLasHojas && !sinMembrete) {
       logoCache = await precargarLogoCache(tenant.logoDataUrl);
       logoSecCache = await precargarLogoCache(tenant.logoSecundarioDataUrl);
     }
@@ -605,9 +615,11 @@
     // para el caso en que una tabla larga (ej. una sección con muchísimos
     // exámenes) decida por su cuenta pasar de página mientras se dibuja,
     // sin pasar por nuevaPagina(). Sin este seguro, esa página quedaría sin
-    // encabezado — justo lo que el laboratorio pidió evitar siempre.
+    // encabezado — justo lo que el laboratorio pidió evitar siempre. Con
+    // sinMembrete, el "encabezado" que se repite es solo el bloque de datos
+    // del paciente/orden, nunca el logo ni los datos del laboratorio.
     function dibujarEncabezadoRepetido() {
-      var yy = dibujarMembreteSync(doc, tenant, margin, logoCache, logoSecCache);
+      var yy = sinMembrete ? margin : dibujarMembreteSync(doc, tenant, margin, logoCache, logoSecCache);
       return dibujarBloqueInformePaciente(yy);
     }
     function nuevaPagina() {
@@ -781,6 +793,11 @@
       // otros campos (bug real reportado: se montaba sobre "N° de Orden" y
       // las fechas).
       if (order.convenioNombre) right.push(["Convenio:", order.convenioNombre]);
+      // Solo se imprime si el convenio de esta orden lo activó
+      // explícitamente ("Mostrar el N° de Autorización…" en su formulario)
+      // Y la orden de verdad tiene uno capturado — la mayoría de órdenes
+      // (particulares, o un convenio que no lo pidió) nunca lo muestran.
+      if (convenioOrden && convenioOrden.mostrarNumeroAutorizacion && order.numAutorizacion) right.push(["N° de Autorización:", order.numAutorizacion]);
       right.push(["Fecha de Orden:", U.fmtFecha(order.fechaOrden)]);
       right.push(["Fecha de Impresión:", U.fmtFecha(new Date().toISOString())]);
       if (campos.medico !== false) right.push(["Médico Remitente:", order.medicoRemitente || "—"]);
