@@ -841,6 +841,15 @@
       bySeccion[seccionId] = C.ordenarPorExamen(bySeccion[seccionId], tenant, function (ex) { return ex.examId; });
     });
 
+    // Firmar sección por sección solo tiene sentido cuando el laboratorio
+    // tiene MÁS DE UN Bacteriólogo(a)/Bioanalista — ahí sí hace falta dejar
+    // claro cuál de ellos validó cuál sección. Con uno solo (o ninguno
+    // registrado con ese rol, ej. lo valida el mismo Administrador), repetir
+    // su firma debajo de cada sección es puro ruido: el respaldo de más
+    // abajo ya deja UNA sola firma general al final de todo el informe.
+    var totalBacteriologos = S.listUsers(tenant.id).filter(function (u) { return u.rol === "bacteriologo" && u.activo !== false; }).length;
+    var firmaUnicaAlFinal = totalBacteriologos <= 1;
+
     // Se recorre con un "for" normal (no .forEach) porque, al final de cada
     // sección, hay que dibujar el bloque de firma de quien la validó, y eso
     // requiere "await" (recortarEspacioSobrante es async) — .forEach no
@@ -1161,7 +1170,7 @@
       // termina así, más abajo hay un respaldo con la firma general del
       // laboratorio.
       var validadosSeccion = bySeccion[seccionId].filter(function (ex) { return ex.estado === "validado"; });
-      if (validadosSeccion.length) {
+      if (validadosSeccion.length && !firmaUnicaAlFinal) {
         var firmantesSeccion = firmantesDe(order, tenant, validadosSeccion);
         for (var vsi = 0; vsi < firmantesSeccion.length; vsi++) {
           if (y > pageBottom - 47) { y = nuevaPagina(); }
@@ -1190,12 +1199,15 @@
       y = doc.lastAutoTable.finalY + 18;
     }
 
-    // Cada sección ya dibujó su propia firma justo debajo de sus
-    // resultados (ver el bloque "Firma de quien validó ESTA sección" más
-    // arriba) — este bloque es solo un RESPALDO para cuando ninguna
+    // Este bloque dibuja la firma única de cierre del informe. Se usa en
+    // dos casos: (1) el laboratorio tiene un solo Bacteriólogo(a)/
+    // Bioanalista (firmaUnicaAlFinal), donde repetir su firma sección por
+    // sección no aporta nada, así que directamente se saltó ese dibujado
+    // arriba y todo el informe cierra con una sola firma acá; (2) ninguna
     // sección tuvo firma propia (ej. una orden 100% remitida a laboratorios
-    // externos, o un informe preliminar sin nada validado todavía), para
-    // que el informe nunca salga sin ningún nombre responsable.
+    // externos, o un informe preliminar sin nada validado todavía) — un
+    // RESPALDO para que el informe nunca salga sin ningún nombre
+    // responsable.
     if (!huboFirmaPorSeccion) {
       var firmantes = firmantesDe(order, tenant, examsToShow);
       y += 16;

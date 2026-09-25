@@ -165,8 +165,38 @@
       parametros: [num("RETIC", "Reticulocitos", "%", 0.5, 2.5)] },
     { id: "HEM-003", seccion: "hematologia", nombre: "Velocidad de Sedimentación Globular (VSG)", cups: "903230", nivel: 1, muestra: "Sangre total citrato", metodo: "Westergren", tubo: "citrato",
       parametros: [num("VSG", "VSG 1 hora", "mm/h", 0, 20, "0-20 mm/h (mujer un poco mayor)")] },
+    // Extendido morfológico estructurado: en vez de un único campo de
+    // texto libre donde el bacteriólogo(a) tenía que redactar todo el
+    // hallazgo a mano, cada característica que normalmente se reporta en
+    // un extendido de sangre periférica (serie roja, serie blanca y
+    // plaquetas) tiene su propio selector — mismo mecanismo de "cual"
+    // (cualitativo, con NORMAL/ANORMAL automático) que ya se usa en Grupo
+    // Sanguíneo, Coombs, etc., así que se diligencia con un clic en vez de
+    // escribir un párrafo, y se sigue pudiendo editar/corregir igual que
+    // cualquier otro parámetro. Los hallazgos que pueden coexistir varios
+    // a la vez (formas eritrocitarias raras, inclusiones, formas
+    // inmaduras) quedan como texto libre porque un solo selector no
+    // alcanza a capturar combinaciones.
     { id: "HEM-004", seccion: "hematologia", nombre: "Extendido de Sangre Periférica", cups: "902225", nivel: 1, muestra: "Sangre total EDTA", metodo: "Microscopía óptica", tubo: "edta",
-      parametros: [texto("MORFO", "Descripción morfológica", "Sin alteraciones morfológicas relevantes")] },
+      parametros: [
+        cual("MORFO-GEN", "Morfología eritrocitaria", ["Normocítico normocrómico", "Normocítico hipocrómico", "Microcítico hipocrómico", "Microcítico normocrómico", "Macrocítico normocrómico", "Macrocítico hipocrómico", "Anisocitosis marcada (dimorfismo)"], "Normocítico normocrómico"),
+        cual("HIPOCROMIA", "Hipocromía", ["Ausente", "+", "++", "+++", "++++"], "Ausente"),
+        cual("ANISOCITOSIS", "Anisocitosis", ["Ausente", "+", "++", "+++"], "Ausente"),
+        cual("POIQUILOCITOSIS", "Poiquilocitosis", ["Ausente", "+", "++", "+++"], "Ausente"),
+        cual("POLICROMASIA", "Policromatofilia", ["Ausente", "+", "++", "+++"], "Ausente"),
+        texto("FORMAS-ERITROCITARIAS", "Formas eritrocitarias anormales (esquistocitos, esferocitos, dianocitos, dacriocitos, drepanocitos, equinocitos, ovalocitos, rouleaux…)", "Ninguna"),
+        texto("INCLUSIONES-ERITROCITARIAS", "Inclusiones eritrocitarias (punteado basófilo, Howell-Jolly, anillos de Cabot…)", "Ninguna"),
+        cual("GRANULACIONES-TOXICAS", "Granulaciones tóxicas (neutrófilos)", ["Ausentes", "+", "++", "+++"], "Ausentes"),
+        cual("VACUOLIZACION", "Vacuolización citoplasmática", ["Ausente", "Presente"], "Ausente"),
+        cual("DOHLE", "Cuerpos de Döhle", ["Ausentes", "Presentes"], "Ausentes"),
+        cual("HIPERSEGMENTACION", "Hipersegmentación neutrofílica", ["Ausente", "Presente"], "Ausente"),
+        cual("LINFOCITOS-REACTIVOS", "Linfocitos reactivos/atípicos", ["Ausentes", "Presentes"], "Ausentes"),
+        texto("FORMAS-INMADURAS", "Formas inmaduras / blastos (cayados, metamielocitos, mielocitos, promielocitos, blastos…)", "Ninguna"),
+        cual("PLAQUETAS-RECUENTO", "Recuento plaquetario estimado", ["Adecuado para el frotis", "Disminuido", "Aumentado"], "Adecuado para el frotis"),
+        cual("PLAQUETAS-MORFO", "Morfología plaquetaria", ["Normal", "Macroplaquetas", "Microplaquetas"], "Normal"),
+        cual("PLAQUETAS-AGREGADOS", "Agregados plaquetarios", ["Ausentes", "Presentes"], "Ausentes"),
+        texto("CONCLUSION", "Impresión diagnóstica / Conclusión", "Sin alteraciones morfológicas relevantes")
+      ] },
     { id: "HEM-005", seccion: "hematologia", nombre: "Recuento de Plaquetas (aislado)", cups: "902217", nivel: 1, muestra: "Sangre total EDTA", metodo: "Impedancia", tubo: "edta",
       parametros: [num("PLT", "Plaquetas", "x10³/µL", 150, 450)] },
 
