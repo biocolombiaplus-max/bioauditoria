@@ -384,8 +384,19 @@
           var medico = medicosPorId[o.medicoRemitenteId];
           var pac = S.getPatient(o.patientId);
           var numExamenes = o.examenes ? o.examenes.length : 0;
+          // Si el médico tiene tarifas especiales configuradas para
+          // exámenes puntuales (ver "Tarifas Especiales" en Médicos
+          // Remitentes), esos exámenes se pagan a su valor especial y el
+          // resto sigue con la tarifa fija de siempre.
+          var tarifasEspecialesPorExamen = {};
+          if (medico.tipoTarifa === "fijo_examen") {
+            S.medicos.listTarifasExamen(tenantId, medico.id).forEach(function (t) { tarifasEspecialesPorExamen[t.examId] = t.valorTarifa; });
+          }
           var comision = medico.tipoTarifa === "porcentaje" ? (o.valorCobrar || 0) * ((medico.valorTarifa || 0) / 100)
-            : medico.tipoTarifa === "fijo_examen" ? (medico.valorTarifa || 0) * numExamenes
+            : medico.tipoTarifa === "fijo_examen" ? (o.examenes || []).reduce(function (sum, ex) {
+                var especial = tarifasEspecialesPorExamen[ex.examId];
+                return sum + (especial !== undefined ? especial : (medico.valorTarifa || 0));
+              }, 0)
             : (medico.valorTarifa || 0);
           filas.push({
             numeroOrden: o.numeroOrden, fecha: o.fechaOrden, paciente: pac ? U.nombreCompleto(pac) : "—",

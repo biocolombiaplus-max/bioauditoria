@@ -7,7 +7,7 @@
 (function () {
   "use strict";
   window.BIO_VIEWS = window.BIO_VIEWS || {};
-  var U = BIO_UI, S = BIO_STORE, F = window.BIO_formHelpers;
+  var U = BIO_UI, S = BIO_STORE, C = BIO_CATALOG, F = window.BIO_formHelpers;
 
   function fmtMoneda(n) {
     n = n || 0;
@@ -29,6 +29,7 @@
   window.BIO_VIEWS.medicos = function (root) {
     var session = BIO_AUTH.getSession();
     var tenantId = session.tenantId;
+    var tenant = BIO_AUTH.currentTenant();
     var medicos = [];
 
     function cargar() {
@@ -57,9 +58,17 @@
           cargar();
         });
       });
+      document.querySelectorAll("[data-tarifas-especiales]").forEach(function (b) {
+        b.addEventListener("click", function () { abrirTarifasEspeciales(medicos.filter(function (m) { return m.id === b.dataset.tarifasEspeciales; })[0]); });
+      });
     }
 
     function medicoCardHtml(m) {
+      // "Tarifas Especiales" (comisión distinta para exámenes puntuales,
+      // ej. más costosos) solo tiene sentido cuando la comisión base ya es
+      // "por examen remitido" — con "por orden" o "% del valor" no hay una
+      // tarifa POR EXAMEN que pueda excepcionarse examen por examen.
+      var numEspeciales = m.tipoTarifa === "fijo_examen" ? S.medicos.listTarifasExamen(tenantId, m.id).length : 0;
       return '<div class="card" style="width:280px' + (m.activo === false ? ";opacity:.55" : "") + '">' +
         '<div class="flex justify-between items-start"><h4 style="margin:0 0 2px">' + U.esc(m.nombre) + "</h4>" +
         (m.activo === false ? '<span class="badge badge-pendiente">Inactivo</span>' : '<span class="badge badge-validado">Activo</span>') +
@@ -67,9 +76,11 @@
         (m.especialidad ? '<p class="text-muted" style="margin:2px 0;font-size:12.5px">' + U.esc(m.especialidad) + "</p>" : "") +
         (m.documento ? '<p class="text-muted" style="margin:0 0 4px;font-size:12px">Doc. ' + U.esc(m.documento) + "</p>" : "") +
         '<p style="margin:8px 0 4px;font-size:13px">Comisión: <b>' + tarifaTexto(m) + "</b></p>" +
+        (numEspeciales ? '<p class="text-muted" style="margin:0 0 4px;font-size:12px">💲 ' + numEspeciales + " examen(es) con tarifa especial</p>" : "") +
         (m.telefono || m.email ? '<p class="text-muted" style="margin:0 0 10px;font-size:12px">' + [m.telefono, m.email].filter(Boolean).map(U.esc).join(" · ") + "</p>" : '<div style="margin-bottom:10px"></div>') +
         '<div class="flex gap-2 wrap">' +
         '<button type="button" class="btn btn-ghost btn-sm" data-editar-medico="' + m.id + '">' + U.icon("edit") + " Editar</button>" +
+        (m.tipoTarifa === "fijo_examen" ? '<button type="button" class="btn btn-outline btn-sm" data-tarifas-especiales="' + m.id + '">💲 Tarifas Especiales</button>' : "") +
         '<button type="button" class="btn btn-ghost btn-sm" data-eliminar-medico="' + m.id + '">' + U.icon("trash") + " Eliminar</button>" +
         "</div></div>";
     }
@@ -122,6 +133,75 @@
         U.closeModal(wrap);
         cargar();
       });
+    }
+
+    var tarifasEspecialesSearchTerm = "";
+    function abrirTarifasEspeciales(medico) {
+      var wrap = U.openModal(
+        '<h3 class="modal-title">💲 Tarifas Especiales — ' + U.esc(medico.nombre) + "</h3>" +
+        '<p class="text-muted" style="margin-top:0">A la mayoría de exámenes se les paga la comisión fija de siempre (' + fmtMoneda(medico.valorTarifa) + '). Para exámenes puntuales más costosos, define aquí un valor especial que reemplaza esa tarifa base solo para ese examen.</p>' +
+        '<div class="field" style="margin-bottom:10px"><input id="te-search" placeholder="Buscar examen por nombre o código CUPS…"/></div>' +
+        '<div class="table-wrap" style="max-height:380px;overflow-y:auto"><table><thead><tr><th>Examen</th><th>Tarifa Base</th><th style="min-width:140px">Tarifa Especial</th><th></th></tr></thead><tbody id="te-tbody"></tbody></table></div>' +
+        '<div class="flex justify-between" style="margin-top:16px"><button type="button" class="btn btn-ghost" data-modal-close>Cerrar</button><span></span></div>',
+        { lg: true }
+      );
+      tarifasEspecialesSearchTerm = "";
+
+      function tarifasDeEsteMedico() {
+        var lista = S.medicos.listTarifasExamen(tenantId, medico.id);
+        var porExamen = {};
+        lista.forEach(function (t) { porExamen[t.examId] = t; });
+        return porExamen;
+      }
+
+      function renderTabla() {
+        var term = U.normalizar(tarifasEspecialesSearchTerm.trim());
+        var especiales = tarifasDeEsteMedico();
+        var todos = C.examenesDisponibles(tenant);
+        var pool = term
+          ? todos.filter(function (e) { return U.normalizar(e.nombre).indexOf(term) !== -1 || (e.cups || "").indexOf(term) !== -1; })
+          : todos.filter(function (e) { return especiales[e.id]; }); // sin buscar: solo muestra los que ya tienen tarifa especial
+
+        if (!term && !pool.length) {
+          wrap.querySelector("#te-tbody").innerHTML = '<tr><td colspan="4" class="text-muted">Aún no tienes tarifas especiales para este médico. Busca un examen arriba para agregarle una.</td></tr>';
+          return;
+        }
+
+        wrap.querySelector("#te-tbody").innerHTML = pool.map(function (e) {
+          var especial = especiales[e.id];
+          return "<tr>" +
+            "<td>" + U.esc(e.nombre) + '<div class="text-muted" style="font-size:11px">CUPS ' + U.esc(e.cups || "—") + "</div></td>" +
+            "<td>" + fmtMoneda(medico.valorTarifa) + "</td>" +
+            '<td><input type="number" step="any" min="0" data-te-valor="' + e.id + '" placeholder="Sin especial" value="' + (especial ? especial.valorTarifa : "") + '"/></td>' +
+            '<td><div class="flex gap-2">' +
+            '<button type="button" class="btn btn-primary btn-sm" data-te-guardar="' + e.id + '">' + U.icon("check") + "</button>" +
+            (especial ? '<button type="button" class="btn btn-ghost btn-sm" data-te-quitar="' + e.id + '">' + U.icon("trash") + "</button>" : "") +
+            "</div></td>" +
+            "</tr>";
+        }).join("");
+
+        wrap.querySelectorAll("[data-te-guardar]").forEach(function (btn) {
+          btn.addEventListener("click", function () {
+            var examId = btn.dataset.teGuardar;
+            var valor = parseFloat(wrap.querySelector('[data-te-valor="' + examId + '"]').value);
+            if (!valor || valor <= 0) { U.toast("Escribe un valor mayor a cero.", "error"); return; }
+            S.medicos.setTarifaExamen(tenantId, medico.id, examId, valor);
+            U.toast("Tarifa especial guardada.", "success");
+            renderTabla();
+          });
+        });
+        wrap.querySelectorAll("[data-te-quitar]").forEach(function (btn) {
+          btn.addEventListener("click", function () {
+            S.medicos.quitarTarifaExamen(tenantId, medico.id, btn.dataset.teQuitar);
+            U.toast("Tarifa especial quitada.", "success");
+            renderTabla();
+          });
+        });
+      }
+
+      wrap.querySelector("#te-search").addEventListener("input", function (e) { tarifasEspecialesSearchTerm = e.target.value; renderTabla(); });
+      renderTabla();
+      wrap.querySelectorAll("[data-modal-close]").forEach(function (b) { b.addEventListener("click", function () { U.closeModal(wrap); cargar(); }); });
     }
 
     cargar();

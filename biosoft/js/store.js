@@ -165,7 +165,8 @@
       attach("ripsGenerados", "ripsGenerados", false),
       attach("facturasGeneradas", "facturasGeneradas", false),
       attach("paquetesExamenes", "paquetesExamenes", false),
-      attach("medicosRemitentes", "medicosRemitentes", false)
+      attach("medicosRemitentes", "medicosRemitentes", false),
+      attach("medicoTarifasExamen", "medicoTarifasExamen", false)
     ]).then(function () { return realCache; });
   }
 
@@ -665,7 +666,7 @@
       tenants: {}, users: [], patients: [], orders: [], auditLog: [], qcControles: [], qcLecturas: [], preciosExamenes: [], cotizaciones: [],
       reglasRemarketing: [], remarketingContactos: [], insumos: [], recetasReactivos: [], kardexInventario: [], examenesPersonalizados: [],
       ripsGenerados: [], facturasGeneradas: [], convenios: [], convenioPrecios: [], consentimientos: [], examenesReferencia: [], paquetesExamenes: [],
-      medicosRemitentes: []
+      medicosRemitentes: [], medicoTarifasExamen: []
     };
   }
 
@@ -1474,8 +1475,39 @@
   function eliminarMedicoRemitente(tenantId, medicoId) {
     var db = loadDB();
     db.medicosRemitentes = (db.medicosRemitentes || []).filter(function (m) { return m.id !== medicoId; });
+    var tarifasAQuitar = (db.medicoTarifasExamen || []).filter(function (t) { return t.medicoId === medicoId; });
+    db.medicoTarifasExamen = (db.medicoTarifasExamen || []).filter(function (t) { return t.medicoId !== medicoId; });
     saveDB(db);
     fbDelete("medicosRemitentes", medicoId);
+    tarifasAQuitar.forEach(function (t) { fbDelete("medicoTarifasExamen", t.id); });
+  }
+
+  // Tarifa especial de un médico remitente para UN examen puntual (ej. la
+  // mayoría de exámenes se le pagan a la tarifa fija de siempre, pero un
+  // examen más costoso que remita se le paga más) — solo tiene sentido
+  // cuando el médico usa tipoTarifa "fijo_examen" (un valor fijo por cada
+  // examen); para "fijo_orden"/"porcentaje" no aplica, ver views-medicos.js.
+  function listMedicoTarifasExamen(tenantId, medicoId) {
+    var db = loadDB();
+    return (db.medicoTarifasExamen || []).filter(function (t) { return t.tenantId === tenantId && t.medicoId === medicoId; });
+  }
+  function setMedicoTarifaExamen(tenantId, medicoId, examId, valorTarifa) {
+    var db = loadDB();
+    db.medicoTarifasExamen = db.medicoTarifasExamen || [];
+    var reg = db.medicoTarifasExamen.filter(function (t) { return t.tenantId === tenantId && t.medicoId === medicoId && t.examId === examId; })[0];
+    if (reg) { reg.valorTarifa = valorTarifa; reg.actualizadoEn = nowISO(); }
+    else { reg = { id: uid("medtar"), tenantId: tenantId, medicoId: medicoId, examId: examId, valorTarifa: valorTarifa, actualizadoEn: nowISO() }; db.medicoTarifasExamen.push(reg); }
+    saveDB(db);
+    fbWrite("medicoTarifasExamen", reg.id, reg);
+    return reg;
+  }
+  function quitarMedicoTarifaExamen(tenantId, medicoId, examId) {
+    var db = loadDB();
+    var reg = (db.medicoTarifasExamen || []).filter(function (t) { return t.tenantId === tenantId && t.medicoId === medicoId && t.examId === examId; })[0];
+    if (!reg) return;
+    db.medicoTarifasExamen = db.medicoTarifasExamen.filter(function (t) { return t.id !== reg.id; });
+    saveDB(db);
+    fbDelete("medicoTarifasExamen", reg.id);
   }
 
   // ---------------------------------------------------------------------
@@ -1943,7 +1975,8 @@
     },
     medicos: {
       list: listMedicosRemitentes, get: getMedicoRemitente, create: createMedicoRemitente,
-      update: updateMedicoRemitente, eliminar: eliminarMedicoRemitente
+      update: updateMedicoRemitente, eliminar: eliminarMedicoRemitente,
+      listTarifasExamen: listMedicoTarifasExamen, setTarifaExamen: setMedicoTarifaExamen, quitarTarifaExamen: quitarMedicoTarifaExamen
     }
   };
 })(window);
