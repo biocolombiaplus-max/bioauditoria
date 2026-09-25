@@ -850,7 +850,7 @@
         }
         function mensajeFaltantes(faltantes) {
           var nombres = faltantes.map(function (f) { return f.nombre; });
-          return "Falta diligenciar: " + nombres.slice(0, 4).join(", ") + (nombres.length > 4 ? " y " + (nombres.length - 4) + " más" : "") + ".";
+          return "Sin diligenciar: " + nombres.slice(0, 4).join(", ") + (nombres.length > 4 ? " y " + (nombres.length - 4) + " más" : "") + ". Se puede guardar igual — revise que sea intencional.";
         }
 
         var btnBorrador = card.querySelector('[data-action="borrador"]');
@@ -864,11 +864,20 @@
           U.toast("Borrador guardado.", "success");
         });
 
+        // Un campo sin diligenciar (ej. varios de los selectores del nuevo
+        // Extendido de Sangre Periférica que casi siempre quedan en "Ausente"
+        // y el bacteriólogo(a) no necesita tocar uno por uno) ya NO bloquea
+        // guardar/validar — antes exigía llenar TODOS los campos del examen
+        // sin excepción, lo cual iba justo en contra de que un examen con
+        // muchos parámetros opcionales fuera rápido de diligenciar. Ahora
+        // solo se resalta en el campo y se avisa con un toast de
+        // advertencia, mostrando el nombre, pero se deja avanzar igual —
+        // queda a criterio profesional del bacteriólogo(a).
         var btnPrelim = card.querySelector('[data-action="preliminar"]');
         if (btnPrelim) btnPrelim.addEventListener("click", function () {
           var vals = collectValues();
           var faltantes = camposFaltantes(vals);
-          if (faltantes.length) { resaltarFaltantes(faltantes); U.toast(mensajeFaltantes(faltantes), "error"); return; }
+          if (faltantes.length) { resaltarFaltantes(faltantes); U.toast(mensajeFaltantes(faltantes), "warning"); }
           ex.valores = vals; ex.observaciones = card.querySelector("[data-obs]").value; ex.estado = "preliminar";
           ex.ingresadoPor = session.username; ex.fechaIngreso = S.nowISO();
           S.recalcEstadoGeneral(order); S.saveOrder(order);
@@ -881,7 +890,7 @@
         if (btnValidar) btnValidar.addEventListener("click", function () {
           var vals = collectValues();
           var faltantes = camposFaltantes(vals);
-          if (faltantes.length) { resaltarFaltantes(faltantes); U.toast(mensajeFaltantes(faltantes), "error"); return; }
+          if (faltantes.length) { resaltarFaltantes(faltantes); U.toast(mensajeFaltantes(faltantes), "warning"); }
           confirmValidation(function () {
             ex.valores = vals; ex.observaciones = card.querySelector("[data-obs]").value;
             ex.estado = "validado"; ex.validadoPor = session.nombre; ex.validadoPorUserId = session.userId; ex.fechaValidacion = S.nowISO();
