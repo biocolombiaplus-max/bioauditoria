@@ -1237,7 +1237,7 @@
       var remision = {
         numero: numero, fecha: fecha,
         laboratorioDestino: { nombre: labNombre, direccion: wrap.querySelector("#f_labDireccion").value.trim(), telefono: wrap.querySelector("#f_labTelefono").value.trim() },
-        paciente: { nombre: pac ? U.nombreCompleto(pac) : "—", tipoDocumento: pac ? pac.tipoDocumento : "", numeroDocumento: pac ? pac.numeroDocumento : "", edadTexto: pac ? U.edadTexto(pac) : "", sexo: pac ? pac.sexo : "" },
+        paciente: { nombre: pac ? U.nombreCompleto(pac) : "—", tipoDocumento: pac ? pac.tipoDocumento : "", numeroDocumento: pac ? pac.numeroDocumento : "", edadTexto: pac ? U.edadTexto(pac) : "", sexo: pac ? pac.sexo : "", fechaNacimiento: pac ? pac.fechaNacimiento : "" },
         numeroOrden: order.numeroOrden, medicoRemitente: order.medicoRemitente, procedencia: order.procedencia,
         examenes: examenesRemision, incluirValores: incluirValores,
         observaciones: wrap.querySelector("#rem-observaciones").value.trim()

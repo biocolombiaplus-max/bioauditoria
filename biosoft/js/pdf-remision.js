@@ -41,7 +41,7 @@
 
   /* remision = {
        numero, fecha (Date), laboratorioDestino: {nombre, direccion, telefono, contacto},
-       paciente: {nombre, tipoDocumento, numeroDocumento, edadTexto, sexo},
+       paciente: {nombre, tipoDocumento, numeroDocumento, edadTexto, sexo, fechaNacimiento},
        numeroOrden, medicoRemitente, procedencia,
        examenes: [{nombre, cups, seccionNombre, muestra, tuboNombre, valor}],
        incluirValores (bool), observaciones
@@ -88,7 +88,8 @@
     var left = [
       ["Paciente:", pac.nombre || "—"],
       ["Documento:", (pac.tipoDocumento || "") + " " + (pac.numeroDocumento || "")],
-      ["Edad / Sexo:", (pac.edadTexto || "—") + " / " + (pac.sexo || "—")]
+      ["Edad / Sexo:", (pac.edadTexto || "—") + " / " + (pac.sexo || "—")],
+      ["Nacimiento:", pac.fechaNacimiento ? new Date(pac.fechaNacimiento + "T00:00:00").toLocaleDateString("es-CO", { day: "2-digit", month: "short", year: "numeric" }) : "—"]
     ];
     var right = [
       ["N° de Orden:", remision.numeroOrden || "—"],
@@ -104,7 +105,7 @@
       doc.setFont("helvetica", "bold"); doc.setTextColor(20, 20, 20); doc.text(row[0], col2, y + i * 14);
       doc.setFont("helvetica", "normal"); doc.setTextColor(50, 50, 50); doc.text(String(row[1]), col2 + 90, y + i * 14, { maxWidth: pageW - margin - col2 - 90 });
     });
-    y += 3 * 14 + 16;
+    y += Math.max(left.length, right.length) * 14 + 16;
 
     // ---------- Remitido a ----------
     var lab = remision.laboratorioDestino || {};
