@@ -764,17 +764,39 @@
       });
     });
 
+    // Estos tres "Restablecer" (nombre/sección/tubo del examen) guardan de
+    // inmediato, igual que el "Restablecer" de cada parámetro individual
+    // (ver [data-reset] más abajo) — antes solo limpiaban la casilla en
+    // pantalla, dejando el cambio real pendiente de un "Guardar Cambios"
+    // aparte. Si el laboratorio cerraba el modal justo después de darle
+    // "Restablecer" (algo esperable, el botón sugiere una acción completa
+    // por sí sola), el restablecimiento nunca quedaba guardado y el examen
+    // seguía viéndose personalizado al volver a abrirlo (bug real reportado).
     var btnRestablecerNombre = wrap.querySelector("#btn-restablecer-nombre");
-    if (btnRestablecerNombre) btnRestablecerNombre.addEventListener("click", function () { wrap.querySelector("#cat-nombre-examen").value = exCat.nombre; });
+    if (btnRestablecerNombre) btnRestablecerNombre.addEventListener("click", function () {
+      C.renombrarExamen(tenant, examId, "");
+      S.updateTenant(tenant.id, { examCustom: tenant.examCustom || {} });
+      S.addAudit(session.tenantId, session.nombre, session.rol, "RENAME_EXAM", "catalogo", examId, "Restableció el nombre de fábrica de " + exCat.nombre + ".");
+      U.toast("Nombre restablecido a fábrica.", "success");
+      reabrir();
+    });
 
     var btnRestablecerSeccion = wrap.querySelector("#btn-restablecer-seccion");
-    if (btnRestablecerSeccion) btnRestablecerSeccion.addEventListener("click", function () { wrap.querySelector("#f_cat_seccion").value = exCat.seccion; });
+    if (btnRestablecerSeccion) btnRestablecerSeccion.addEventListener("click", function () {
+      C.cambiarSeccionExamen(tenant, examId, exCat.seccion);
+      S.updateTenant(tenant.id, { examCustom: tenant.examCustom || {} });
+      S.addAudit(session.tenantId, session.nombre, session.rol, "RECATEGORIZE_EXAM", "catalogo", examId, "Restableció la sección de fábrica de " + exCat.nombre + ".");
+      U.toast("Sección restablecida a fábrica.", "success");
+      reabrir();
+    });
 
     var btnRestablecerTubo = wrap.querySelector("#btn-restablecer-tubo");
     if (btnRestablecerTubo) btnRestablecerTubo.addEventListener("click", function () {
-      wrap.querySelector("#f_cat_tubo").value = exCat.tubo;
-      var box = wrap.querySelector('[data-tubo-otro-box="cat_tubo"]');
-      if (box) box.style.display = "none";
+      C.cambiarTuboExamen(tenant, examId, exCat.tubo);
+      S.updateTenant(tenant.id, { examCustom: tenant.examCustom || {} });
+      S.addAudit(session.tenantId, session.nombre, session.rol, "CHANGE_EXAM_TUBE", "catalogo", examId, "Restableció el tubo de recolección de fábrica de " + exCat.nombre + ".");
+      U.toast("Tubo de recolección restablecido a fábrica.", "success");
+      reabrir();
     });
 
     wrap.querySelectorAll("[data-bandas]").forEach(function (btn) {
