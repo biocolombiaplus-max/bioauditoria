@@ -112,7 +112,11 @@ function mapearResultados(segmentosOBX) {
     const m = MAPEO[idCampo];
     if (!m) { ignorados.push(idCampo); continue; }
     const n = parseFloat(valorCrudo);
-    const valor = isNaN(n) ? valorCrudo : String(n * m.factor);
+    // El equipo manda el valor con muchos más decimales de los que se
+    // reportan en la práctica (ej. "226.261017" en vez de "226.26") —
+    // se redondea a 2 decimales para que el resultado se vea profesional
+    // en BIOsoft, igual que cualquier otro examen de química.
+    const valor = isNaN(n) ? valorCrudo : (n * m.factor).toFixed(2);
     if (!porExamen[m.examId]) porExamen[m.examId] = {};
     porExamen[m.examId][m.codigo] = valor;
   }

@@ -18,22 +18,22 @@ function obx(codigoLis, valor) {
 correr("agrupa varios exámenes distintos de un mismo mensaje, cada uno bajo su propio examId", () => {
   const segmentosOBX = [obx("GLU", "95"), obx("CREA", "0.9"), obx("COLT", "180")];
   const { porExamen, ignorados } = mapearResultados(segmentosOBX);
-  assert.deepStrictEqual(porExamen["QUI-001"], { GLU: "95" });
-  assert.deepStrictEqual(porExamen["QUI-008"], { CREA: "0.9" });
-  assert.deepStrictEqual(porExamen["QUI-004"], { COLT: "180" });
+  assert.deepStrictEqual(porExamen["QUI-001"], { GLU: "95.00" });
+  assert.deepStrictEqual(porExamen["QUI-008"], { CREA: "0.90" });
+  assert.deepStrictEqual(porExamen["QUI-004"], { COLT: "180.00" });
   assert.deepStrictEqual(ignorados, []);
 });
 
 correr("agrupa dos parámetros del MISMO examen (Bilirrubinas: BT + BD) bajo un solo examId", () => {
   const segmentosOBX = [obx("BT", "0.8"), obx("BD", "0.2")];
   const { porExamen } = mapearResultados(segmentosOBX);
-  assert.deepStrictEqual(porExamen["QUI-011"], { BT: "0.8", BD: "0.2" });
+  assert.deepStrictEqual(porExamen["QUI-011"], { BT: "0.80", BD: "0.20" });
 });
 
 correr("avisa de un código LIS no reconocido, sin inventar nada", () => {
   const segmentosOBX = [obx("GLU", "95"), obx("CODIGO_NUEVO", "1")];
   const { porExamen, ignorados } = mapearResultados(segmentosOBX);
-  assert.deepStrictEqual(porExamen["QUI-001"], { GLU: "95" });
+  assert.deepStrictEqual(porExamen["QUI-001"], { GLU: "95.00" });
   assert.deepStrictEqual(ignorados, ["CODIGO_NUEVO"]);
 });
 
@@ -51,7 +51,7 @@ correr("todos los códigos de MAPEO apuntan a un examId y codigo no vacíos (san
 correr("agrupa un panel de electrolitos (GAS-002: Na, K, Cl) bajo un solo examId", () => {
   const segmentosOBX = [obx("NA", "140"), obx("K", "4.2"), obx("CL", "102")];
   const { porExamen } = mapearResultados(segmentosOBX);
-  assert.deepStrictEqual(porExamen["GAS-002"], { NA: "140", K: "4.2", CL: "102" });
+  assert.deepStrictEqual(porExamen["GAS-002"], { NA: "140.00", K: "4.20", CL: "102.00" });
 });
 
 if (process.exitCode) { console.error("\nHay pruebas fallidas."); process.exit(1); }
