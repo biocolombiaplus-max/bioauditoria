@@ -182,6 +182,13 @@ select.fi option{background:var(--dark2)}
 .svc-card .sc-nivel{display:inline-block;padding:1px 6px;border-radius:3px;font-size:9px;font-weight:700;margin-top:4px}
 .svc-sel-info{background:var(--dark4);border:1px solid var(--orb);border-radius:9px;padding:10px 12px;margin-top:9px;font-size:12px;display:none}
 .svc-sel-info.show{display:block}
+/* WHATSAPP BTN */
+.wa-btn{display:inline-flex;align-items:center;gap:6px;padding:9px 14px;border-radius:9px;background:rgba(37,211,102,0.12);border:1px solid rgba(37,211,102,0.35);color:#25D166;font-size:12px;font-weight:700;cursor:pointer;font-family:inherit;transition:all 0.15s;white-space:nowrap}
+.wa-btn:hover{background:rgba(37,211,102,0.22);filter:brightness(1.1)}
+.wa-btn i{font-size:15px}
+/* PENDING CARD */
+.pend-card{background:linear-gradient(135deg,rgba(37,211,102,0.06),rgba(123,47,190,0.06));border:1px solid rgba(37,211,102,0.25);border-radius:var(--r);padding:14px;margin-bottom:8px}
+.pend-badge{display:inline-flex;align-items:center;gap:4px;background:rgba(245,158,11,0.12);border:1px solid rgba(245,158,11,0.3);color:#F4A261;border-radius:5px;padding:2px 8px;font-size:10px;font-weight:800;margin-bottom:8px}
 /* MOBILE */
 @media(max-width:768px){
   .sidebar{position:fixed;top:0;left:0;bottom:0;z-index:200;transform:translateX(-100%);width:260px}
@@ -247,7 +254,28 @@ select.fi option{background:var(--dark2)}
 
       <!-- CLIENTES -->
       <div class="page" id="pg-clientes">
-        <div class="card"><div class="ch"><div class="ct">👥 Clientes registrados</div><button class="btn bor" style="font-size:11px;padding:6px 10px" onclick="openNewCliente()"><i class="fas fa-plus"></i>Nuevo cliente</button></div><div id="cli-list"></div></div>
+        <!-- PENDIENTES DE ACTIVACIÓN -->
+        <div class="card" id="card-pendientes" style="display:none">
+          <div class="ch">
+            <div>
+              <div class="ct">🔔 Registros pendientes de activación</div>
+              <div style="font-size:11px;color:var(--text3);margin-top:2px">Clientes que completaron el formulario de registro — requieren activación</div>
+            </div>
+            <span class="status sp" id="pend-count">0 pendientes</span>
+          </div>
+          <div id="pend-list"></div>
+        </div>
+        <!-- CLIENTES ACTIVOS -->
+        <div class="card">
+          <div class="ch">
+            <div class="ct">👥 Clientes registrados</div>
+            <div style="display:flex;gap:6px">
+              <a href="../registro/" target="_blank" class="btn bg" style="font-size:11px;padding:6px 10px;text-decoration:none"><i class="fas fa-external-link-alt"></i>Link registro</a>
+              <button class="btn bor" style="font-size:11px;padding:6px 10px" onclick="openNewCliente()"><i class="fas fa-plus"></i>Nuevo cliente</button>
+            </div>
+          </div>
+          <div id="cli-list"></div>
+        </div>
       </div>
 
       <!-- ESTÁNDARES -->
@@ -1779,6 +1807,7 @@ function guardarCliente() {
     addTraz('Servicios REPS seleccionados', ncServiciosSeleccionados.map(function(k){ return SERVICIOS_REPS[k] ? SERVICIOS_REPS[k].nombre : k; }).join(', '));
   }
   renderCli();
+  renderPendientes();
   closeNewCliente();
   logoDataUrl = null;
 
@@ -1812,9 +1841,63 @@ function showInstrucciones(nombre, user, linea, servicios) {
     '<div style="background:#141428;border-radius:8px;padding:10px;font-family:monospace;font-size:12px;color:#9B4FDE;word-break:break-all;border:1px solid rgba(123,47,190,0.3)">' + linea.replace(/</g,'&lt;') + '</div>' +
     '<button onclick="navigator.clipboard&&navigator.clipboard.writeText(\'' + linea.replace(/'/g,"\'") + '\').then(function(){document.getElementById(\'copy-btn\').textContent=\'✅ Copiado\'})" id="copy-btn" style="margin-top:8px;padding:6px 14px;background:rgba(123,47,190,0.2);border:1px solid rgba(123,47,190,0.4);border-radius:6px;color:#9B4FDE;font-size:11px;font-weight:700;cursor:pointer;font-family:inherit">📋 Copiar línea</button>' +
     '</div>' +
+    '<button onclick="enviarWhatsApp(\'' + nombre.replace(/'/g,"\\'") + '\',\'' + user + '\',\'' + pass + '\',\'\')" style="width:100%;padding:12px;background:rgba(37,211,102,0.12);border:1px solid rgba(37,211,102,0.35);color:#25D166;border-radius:10px;font-size:13px;font-weight:700;cursor:pointer;font-family:inherit;margin-bottom:8px;display:flex;align-items:center;justify-content:center;gap:8px"><i class="fab fa-whatsapp" style="font-size:18px"></i>Enviar credenciales por WhatsApp</button>' +
     '<button onclick="this.closest(\'div[style*=fixed]\').remove()" style="width:100%;padding:11px;background:linear-gradient(135deg,#FF6B00,#7B2FBE);color:#fff;border:none;border-radius:10px;font-size:13px;font-weight:700;cursor:pointer;font-family:inherit">Entendido</button>' +
     '</div>';
   document.body.appendChild(msg);
+}
+
+// ================================================================
+// WHATSAPP + PENDIENTES
+// ================================================================
+function enviarWhatsApp(nombre, usuario, pass, telefono) {
+  var msg = '¡Hola ' + nombre + '! 👋\n\n' +
+    'Te damos la bienvenida a *BIOAuditoria* 🏥\n\n' +
+    'Tu portal de gestión documental para habilitación en salud ya está listo.\n\n' +
+    '📋 *Tus credenciales de acceso:*\n' +
+    '🔗 Portal: https://bioauditoria.com/cliente/\n' +
+    '👤 Usuario: *' + usuario + '*\n' +
+    '🔑 Contraseña: *' + pass + '*\n\n' +
+    '📌 *Tu portal incluye:*\n' +
+    '✅ Estándares Res. 3100/2019\n' +
+    '📄 Consentimientos informados\n' +
+    '📊 PGIRH · PAMEC · Programas\n' +
+    '🔍 Módulo de verificación\n\n' +
+    'Cualquier duda estamos disponibles.\n' +
+    '_BIOAuditoria® — Sistema oficial de gestión documental para habilitación en salud_';
+  var url = 'https://wa.me/' + (telefono || '') + '?text=' + encodeURIComponent(msg);
+  window.open(url, '_blank');
+}
+
+function renderPendientes() {
+  var pendientes = JSON.parse(localStorage.getItem('bio_reg_pendientes') || '[]');
+  var card = document.getElementById('card-pendientes');
+  var list = document.getElementById('pend-list');
+  var count = document.getElementById('pend-count');
+  if (!card || !list) return;
+  if (!pendientes.length) { card.style.display = 'none'; return; }
+  card.style.display = 'block';
+  if (count) count.textContent = pendientes.length + ' pendiente' + (pendientes.length !== 1 ? 's' : '');
+  list.innerHTML = pendientes.map(function(p, idx) {
+    return '<div class="pend-card">' +
+      '<div class="pend-badge">🔔 Pendiente activación</div>' +
+      '<div style="font-weight:700;font-size:14px;margin-bottom:3px">' + (p.nombre||'') + '</div>' +
+      '<div style="font-size:11px;color:var(--text2);margin-bottom:3px">' + (p.especialidad||'') + (p.empresa ? ' · ' + p.empresa : '') + '</div>' +
+      '<div style="font-size:11px;color:var(--text3);margin-bottom:8px">@' + (p.usuario||'') + (p.ciudad ? ' · ' + p.ciudad : '') + (p.fecha_registro ? ' · ' + p.fecha_registro : '') + '</div>' +
+      (p.servicios_reps && p.servicios_reps.length ? '<div style="font-size:11px;color:var(--text2);margin-bottom:8px">Servicios REPS: ' + p.servicios_reps.length + ' seleccionado(s)</div>' : '') +
+      '<div style="display:flex;gap:6px;flex-wrap:wrap">' +
+      '<button class="wa-btn" onclick="enviarWhatsApp(\'' + (p.nombre||'').replace(/'/g,"\\'") + '\',\'' + (p.usuario||'') + '\',\'' + (p.pass||'') + '\',\'' + (p.telefono||'') + '\')"><i class="fab fa-whatsapp"></i> Enviar credenciales WhatsApp</button>' +
+      '<button class="btn bgr" style="font-size:11px" onclick="activarPendiente(' + idx + ')"><i class="fas fa-check"></i> Activado</button>' +
+      '</div></div>';
+  }).join('');
+}
+
+function activarPendiente(idx) {
+  var pendientes = JSON.parse(localStorage.getItem('bio_reg_pendientes') || '[]');
+  pendientes.splice(idx, 1);
+  localStorage.setItem('bio_reg_pendientes', JSON.stringify(pendientes));
+  renderPendientes();
+  toast('Cliente marcado como activado ✓', 'ok');
 }
 
 // ================================================================
@@ -2824,6 +2907,7 @@ function generarActaRadicacion() {
   renderLog('log-mini', 5);
   renderLog('log-full', 99);
   renderCli();
+  renderPendientes();
   renderEstdTabs();
   renderFmt();
   renderVer();
