@@ -1848,6 +1848,36 @@ function showInstrucciones(nombre, user, linea, servicios) {
 }
 
 // ================================================================
+// FIREBASE CONFIG
+// ================================================================
+var FIREBASE_URL = 'https://bioauditoria-default-rtdb.firebaseio.com'; // ← reemplaza con tu URL
+
+function cargarPendientesFirebase() {
+  if (!FIREBASE_URL || FIREBASE_URL.includes('TU_PROYECTO')) return;
+  fetch(FIREBASE_URL + '/pendientes.json')
+    .then(function(r){ return r.json(); })
+    .then(function(data) {
+      if (!data) return;
+      var items = Object.entries(data).map(function(e){ return Object.assign({_fbKey: e[0]}, e[1]); });
+      // merge with localStorage list (avoid duplicates by usuario)
+      var local = JSON.parse(localStorage.getItem('bio_reg_pendientes') || '[]');
+      var usuariosLocal = local.map(function(x){ return x.usuario; });
+      var nuevos = items.filter(function(x){ return !usuariosLocal.includes(x.usuario); });
+      if (nuevos.length) {
+        var merged = local.concat(nuevos);
+        localStorage.setItem('bio_reg_pendientes', JSON.stringify(merged));
+        renderPendientes();
+      }
+    })
+    .catch(function(e){ console.warn('Firebase read failed:', e); });
+}
+
+function eliminarPendienteFirebase(fbKey) {
+  if (!fbKey || !FIREBASE_URL || FIREBASE_URL.includes('TU_PROYECTO')) return;
+  fetch(FIREBASE_URL + '/pendientes/' + fbKey + '.json', { method: 'DELETE' }).catch(function(){});
+}
+
+// ================================================================
 // WHATSAPP + PENDIENTES
 // ================================================================
 function enviarWhatsApp(nombre, usuario, pass, telefono) {
@@ -1894,6 +1924,8 @@ function renderPendientes() {
 
 function activarPendiente(idx) {
   var pendientes = JSON.parse(localStorage.getItem('bio_reg_pendientes') || '[]');
+  var item = pendientes[idx];
+  if (item && item._fbKey) eliminarPendienteFirebase(item._fbKey);
   pendientes.splice(idx, 1);
   localStorage.setItem('bio_reg_pendientes', JSON.stringify(pendientes));
   renderPendientes();
@@ -2908,6 +2940,7 @@ function generarActaRadicacion() {
   renderLog('log-full', 99);
   renderCli();
   renderPendientes();
+  cargarPendientesFirebase();
   renderEstdTabs();
   renderFmt();
   renderVer();

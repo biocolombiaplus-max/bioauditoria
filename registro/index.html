@@ -667,10 +667,13 @@ function enviarRegistro() {
     _desde_formulario: true
   };
 
-  // Save to localStorage (admin will pick it up)
+  // Save to localStorage (fallback)
   var pendientes = JSON.parse(localStorage.getItem('bio_reg_pendientes') || '[]');
   pendientes.push(cliente);
   localStorage.setItem('bio_reg_pendientes', JSON.stringify(pendientes));
+
+  // Save to Firebase (shared with admin panel)
+  enviarAFirebase(cliente);
 
   // Also save as a regular client
   var clientes = JSON.parse(localStorage.getItem('bio_clientes_list') || '[]');
@@ -704,6 +707,20 @@ function copyRegCode() {
       document.getElementById('copy-reg-btn').textContent = '✅ Copiado';
     });
   }
+}
+
+// ================================================================
+// FIREBASE SYNC
+// ================================================================
+var FIREBASE_URL = 'https://bioauditoria-default-rtdb.firebaseio.com'; // ← reemplaza con tu URL
+
+function enviarAFirebase(data) {
+  if (!FIREBASE_URL || FIREBASE_URL.includes('TU_PROYECTO')) return;
+  fetch(FIREBASE_URL + '/pendientes.json', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(data)
+  }).catch(function(e){ console.warn('Firebase write failed:', e); });
 }
 
 // Init
