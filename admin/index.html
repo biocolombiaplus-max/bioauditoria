@@ -1959,6 +1959,105 @@ function renderPendientes() {
   }).join('');
 }
 
+function eliminarCliente(idx, nombre) {
+  if (!confirm('¿Eliminar a ' + nombre + '? Esta acción no se puede deshacer.')) return;
+  var clientes = JSON.parse(localStorage.getItem('bio_clientes_list') || '[]');
+  var cli = clientes[idx];
+  if (!cli) return;
+  // Remove credentials from users db
+  var usersDb = JSON.parse(localStorage.getItem('bio_users_db') || '{}');
+  if (cli.usuario) delete usersDb[cli.usuario];
+  localStorage.setItem('bio_users_db', JSON.stringify(usersDb));
+  clientes.splice(idx, 1);
+  localStorage.setItem('bio_clientes_list', JSON.stringify(clientes));
+  renderCli();
+  renderPendientes();
+  toast('Cliente eliminado ✓', 'ok');
+}
+
+var _editIdx = -1;
+function editarCliente(idx) {
+  var clientes = JSON.parse(localStorage.getItem('bio_clientes_list') || '[]');
+  var cli = clientes[idx];
+  if (!cli) return;
+  _editIdx = idx;
+
+  // Build edit modal
+  var ov = document.createElement('div');
+  ov.id = 'edit-cli-overlay';
+  ov.style.cssText = 'position:fixed;inset:0;z-index:9999;background:rgba(0,0,0,0.85);display:flex;align-items:center;justify-content:center;padding:16px;backdrop-filter:blur(10px);overflow-y:auto';
+  ov.innerHTML =
+    '<div style="background:#1C1C35;border:1px solid rgba(255,255,255,0.12);border-radius:16px;padding:24px;max-width:540px;width:100%;font-family:Plus Jakarta Sans,sans-serif;max-height:90vh;overflow-y:auto">' +
+    '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:18px">' +
+    '<div style="font-size:15px;font-weight:800;color:#F0F0FF">✏️ Editar cliente</div>' +
+    '<button onclick="document.getElementById(\'edit-cli-overlay\').remove()" style="background:none;border:none;color:var(--text3);font-size:20px;cursor:pointer">×</button></div>' +
+    // Row 1
+    '<div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:10px">' +
+    fld('Nombre completo *','ec-nombre','text',cli.nombre||'') +
+    fld('Especialidad','ec-esp','text',cli.especialidad||'') + '</div>' +
+    '<div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:10px">' +
+    fld('Empresa / IPS *','ec-empresa','text',cli.empresa||'') +
+    fld('NIT','ec-nit','text',cli.nit||'') + '</div>' +
+    '<div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:10px">' +
+    fld('Ciudad','ec-ciudad','text',cli.ciudad||'') +
+    fldSel('Estado habilitación','ec-estado',[['nuevo','🆕 En proceso'],['habilitado','✅ Habilitado'],['renovacion','🔄 Renovación']],cli.estado_habilitacion||'nuevo') + '</div>' +
+    '<div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:10px">' +
+    fld('Teléfono','ec-tel','text',cli.telefono||'') +
+    fld('Email','ec-email','email',cli.email||'') + '</div>' +
+    '<div style="border-top:1px solid var(--bd);margin:12px 0;padding-top:12px;font-size:11px;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:.05em">Credenciales de acceso</div>' +
+    '<div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:14px">' +
+    fld('Usuario','ec-user','text',cli.usuario||'') +
+    fld('Nueva contraseña (vacío = sin cambio)','ec-pass','password','') + '</div>' +
+    '<div style="display:flex;gap:8px">' +
+    '<button onclick="guardarEdicion()" style="flex:1;padding:12px;background:linear-gradient(135deg,#FF6B00,#7B2FBE);color:#fff;border:none;border-radius:10px;font-size:13px;font-weight:700;cursor:pointer;font-family:inherit">💾 Guardar cambios</button>' +
+    '<button onclick="document.getElementById(\'edit-cli-overlay\').remove()" style="padding:12px 16px;border:1px solid var(--bd2);border-radius:10px;background:none;color:var(--text2);font-size:13px;cursor:pointer;font-family:inherit">Cancelar</button>' +
+    '</div></div>';
+  document.body.appendChild(ov);
+}
+
+function fld(label, id, type, val) {
+  return '<div><label style="font-size:10px;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:.05em;display:block;margin-bottom:4px">' + label + '</label>' +
+    '<input id="' + id + '" type="' + type + '" value="' + (val||'').toString().replace(/"/g,'&quot;') + '" style="width:100%;padding:10px 12px;background:var(--dark4);border:1px solid var(--bd2);border-radius:8px;color:var(--text1);font-size:13px;font-family:inherit;outline:none"></div>';
+}
+function fldSel(label, id, opts, val) {
+  return '<div><label style="font-size:10px;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:.05em;display:block;margin-bottom:4px">' + label + '</label>' +
+    '<select id="' + id + '" style="width:100%;padding:10px 12px;background:var(--dark4);border:1px solid var(--bd2);border-radius:8px;color:var(--text1);font-size:13px;font-family:inherit;outline:none">' +
+    opts.map(function(o){ return '<option value="' + o[0] + '"' + (val===o[0]?' selected':'') + '>' + o[1] + '</option>'; }).join('') + '</select></div>';
+}
+
+function guardarEdicion() {
+  var clientes = JSON.parse(localStorage.getItem('bio_clientes_list') || '[]');
+  var cli = clientes[_editIdx];
+  if (!cli) return;
+  var oldUser = cli.usuario;
+  var g = function(id){ var el = document.getElementById(id); return el ? el.value.trim() : ''; };
+
+  cli.nombre    = g('ec-nombre') || cli.nombre;
+  cli.especialidad = g('ec-esp');
+  cli.empresa   = g('ec-empresa') || cli.empresa;
+  cli.nit       = g('ec-nit');
+  cli.ciudad    = g('ec-ciudad');
+  cli.telefono  = g('ec-tel');
+  cli.email     = g('ec-email');
+  cli.estado_habilitacion = g('ec-estado') || cli.estado_habilitacion;
+  var newUser   = g('ec-user').toLowerCase() || cli.usuario;
+  var newPass   = g('ec-pass');
+
+  cli.usuario = newUser;
+  clientes[_editIdx] = cli;
+  localStorage.setItem('bio_clientes_list', JSON.stringify(clientes));
+
+  // Update credentials in users db
+  var usersDb = JSON.parse(localStorage.getItem('bio_users_db') || '{}');
+  if (oldUser && oldUser !== newUser) delete usersDb[oldUser];
+  usersDb[newUser] = { pass: newPass || (usersDb[oldUser]||{}).pass || '', role: 'cliente', to: 'cliente/index.html' };
+  localStorage.setItem('bio_users_db', JSON.stringify(usersDb));
+
+  document.getElementById('edit-cli-overlay').remove();
+  renderCli();
+  toast('Cliente actualizado ✓', 'ok');
+}
+
 function activarPendiente(idx) {
   var pendientes = JSON.parse(localStorage.getItem('bio_reg_pendientes') || '[]');
   var item = pendientes[idx];
@@ -2044,6 +2143,13 @@ function renderCli() {
     var logoEl = cli.logo_url
       ? '<img src="' + cli.logo_url + '" style="width:40px;height:40px;border-radius:50%;object-fit:cover">'
       : '<div style="width:40px;height:40px;border-radius:50%;background:linear-gradient(135deg,var(--or),var(--pu));display:flex;align-items:center;justify-content:center;font-size:14px;font-weight:800;flex-shrink:0">' + initials + '</div>';
+    var idx = cli._base ? -1 : savedClientes.indexOf(cli);
+    var actions = cli._base
+      ? '<span class="status sv">Base</span>'
+      : '<div style="display:flex;gap:6px;align-items:center">' +
+        '<button onclick="editarCliente(' + idx + ')" style="padding:5px 11px;border:1px solid var(--bd2);border-radius:7px;background:var(--dark4);color:var(--text2);font-size:11px;font-weight:600;cursor:pointer;font-family:inherit;display:flex;align-items:center;gap:4px"><i class="fas fa-pen" style="font-size:10px"></i> Editar</button>' +
+        '<button onclick="eliminarCliente(' + idx + ',\'' + (cli.nombre||'').replace(/'/g,"\\'") + '\')" style="padding:5px 11px;border:1px solid var(--rb);border-radius:7px;background:var(--rbg);color:var(--red);font-size:11px;font-weight:600;cursor:pointer;font-family:inherit;display:flex;align-items:center;gap:4px"><i class="fas fa-trash" style="font-size:10px"></i> Eliminar</button>' +
+        '<span class="status sv">Activo</span></div>';
     return '<div class="dr" style="padding:12px;flex-wrap:wrap;gap:10px">' +
       '<div class="dl">' + logoEl +
       '<div><div style="font-weight:700;font-size:13px">' + cli.nombre + '</div>' +
@@ -2051,7 +2157,7 @@ function renderCli() {
       '<div style="font-size:10px;color:var(--text3)">@' + (cli.usuario || '') + ' · Nivel ' + (cli.nivel || cli.nivel_atencion || '1') + (cli.ciudad ? ' · ' + cli.ciudad : '') + '</div>' +
       '<div style="margin-top:5px">' + habTag + docsInfo + '</div>' +
       '</div></div>' +
-      '<div class="da"><span class="status sv">Activo</span></div></div>';
+      '<div class="da">' + actions + '</div></div>';
   }).join('');
 }
 
