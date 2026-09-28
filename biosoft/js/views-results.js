@@ -77,7 +77,7 @@
         });
         rows.sort(function (a, b) {
           var pr = { Urgente: 0, Rutina: 1 };
-          return (pr[a.order.prioridad] - pr[b.order.prioridad]) || a.order.fechaOrden.localeCompare(b.order.fechaOrden);
+          return (pr[a.order.prioridad] - pr[b.order.prioridad]) || b.order.fechaOrden.localeCompare(a.order.fechaOrden);
         });
 
         root.innerHTML =
