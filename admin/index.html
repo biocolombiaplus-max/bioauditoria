@@ -146,26 +146,42 @@ select.fi option{background:var(--dark2)}
 .toast.show{transform:translateX(-50%) translateY(0)}
 .toast.ok{border-color:rgba(45,159,92,0.4);color:var(--green)}.toast.err{border-color:rgba(230,57,70,0.4);color:var(--red)}.toast.info{border-color:var(--pub);color:var(--pu2)}
 /* CLIENTE STEPS */
-.step-bar{display:flex;gap:8px;margin-bottom:20px}
+.step-bar{display:flex;gap:8px;margin-bottom:20px;align-items:center}
 .step-dot{flex:1;height:4px;border-radius:2px;background:var(--bd);transition:background 0.3s}
 .step-dot.act{background:var(--or)}.step-dot.done{background:var(--green)}
 .step-content{display:none}.step-content.act{display:block}
+/* DOC PERSONAL UPLOAD CARD */
+.doc-upload-card{background:var(--dark4);border:1px solid var(--bd);border-radius:10px;padding:12px;margin-bottom:8px;display:flex;align-items:center;gap:10px}
+.doc-upload-card .duc-icon{width:36px;height:36px;border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:16px;flex-shrink:0}
+.doc-upload-card .duc-info{flex:1;min-width:0}
+.doc-upload-card .duc-name{font-size:13px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.doc-upload-card .duc-sub{font-size:10px;color:var(--text3);margin-top:2px}
+.doc-upload-card .duc-actions{display:flex;align-items:center;gap:5px;flex-shrink:0}
+.doc-upload-card.uploaded{border-color:rgba(45,159,92,0.4);background:rgba(45,159,92,0.06)}
+.habilitacion-option{border:2px solid var(--bd);border-radius:12px;padding:16px;cursor:pointer;transition:all 0.2s;margin-bottom:10px}
+.habilitacion-option:hover{border-color:var(--or);background:var(--or-bg)}
+.habilitacion-option.selected{border-color:var(--or);background:var(--or-bg)}
+.habilitacion-option .ho-title{font-size:14px;font-weight:700;margin-bottom:4px}
+.habilitacion-option .ho-desc{font-size:12px;color:var(--text2)}
 /* OVERLAY */
 .ov{display:none;position:fixed;inset:0;background:rgba(0,0,0,0.6);z-index:150;backdrop-filter:blur(4px)}
 .ov.show{display:block}
-.client-switcher-btn { transition: all 0.2s; }
-.client-switcher-btn.active-client { box-shadow: 0 2px 10px rgba(255,107,0,0.3); }
-.mod-header { background:linear-gradient(135deg,var(--dark2),var(--dark3)); border:1px solid var(--bd); border-radius:14px; padding:20px; margin-bottom:16px; }
-.mod-header h2 { margin:0 0 4px; font-size:18px; }
-.mod-header p { margin:0; font-size:12px; color:var(--text3); }
-.eq-card,.th-card,.ev-card { background:var(--dark3); border:1px solid var(--bd); border-radius:12px; padding:14px; margin-bottom:10px; }
-.eq-card:hover,.th-card:hover,.ev-card:hover { border-color:var(--or2); }
-.badge-riesgo-i { background:rgba(45,159,92,0.15); color:#2D9F5C; padding:2px 8px; border-radius:10px; font-size:10px; font-weight:700; }
-.badge-riesgo-ii { background:rgba(244,162,97,0.15); color:#F4A261; padding:2px 8px; border-radius:10px; font-size:10px; font-weight:700; }
-.badge-riesgo-iii { background:rgba(230,57,70,0.15); color:#E63946; padding:2px 8px; border-radius:10px; font-size:10px; font-weight:700; }
-.ev-tipo-adverso { border-left:4px solid var(--red); }
-.ev-tipo-incidente { border-left:4px solid var(--yellow); }
-.ev-tipo-cuasi { border-left:4px solid var(--or2); }
+/* SERVICE PICKER */
+.svc-filter-bar{display:flex;gap:6px;overflow-x:auto;padding-bottom:4px;margin-bottom:10px;scrollbar-width:none}
+.svc-filter-bar::-webkit-scrollbar{display:none}
+.svc-filter-btn{flex-shrink:0;padding:5px 11px;border-radius:7px;font-size:11px;font-weight:700;cursor:pointer;border:1px solid var(--bd);background:var(--dark4);color:var(--text2);transition:all 0.15s;white-space:nowrap;font-family:inherit}
+.svc-filter-btn.act{background:var(--or-bg);color:var(--or);border-color:var(--orb)}
+.svc-picker-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:7px;max-height:300px;overflow-y:auto;padding-right:2px}
+.svc-picker-grid::-webkit-scrollbar{width:4px}.svc-picker-grid::-webkit-scrollbar-thumb{background:var(--bd2);border-radius:2px}
+.svc-card{border:1.5px solid var(--bd);border-radius:10px;padding:10px 11px;cursor:pointer;transition:all 0.18s;background:var(--dark4);position:relative}
+.svc-card:hover{border-color:var(--or2);background:var(--or-bg)}
+.svc-card.sel{border-color:var(--or);background:var(--or-bg)}
+.svc-card.sel::after{content:'✓';position:absolute;top:7px;right:9px;font-size:11px;font-weight:800;color:var(--or)}
+.svc-card .sc-name{font-size:12px;font-weight:700;color:var(--text);line-height:1.3;padding-right:14px}
+.svc-card .sc-grupo{font-size:10px;color:var(--text3);margin-top:3px}
+.svc-card .sc-nivel{display:inline-block;padding:1px 6px;border-radius:3px;font-size:9px;font-weight:700;margin-top:4px}
+.svc-sel-info{background:var(--dark4);border:1px solid var(--orb);border-radius:9px;padding:10px 12px;margin-top:9px;font-size:12px;display:none}
+.svc-sel-info.show{display:block}
 /* MOBILE */
 @media(max-width:768px){
   .sidebar{position:fixed;top:0;left:0;bottom:0;z-index:200;transform:translateX(-100%);width:260px}
@@ -174,10 +190,6 @@ select.fi option{background:var(--dark2)}
   .srow{grid-template-columns:1fr 1fr;gap:8px}.sc{padding:12px}.sn{font-size:20px}
   .g2{grid-template-columns:1fr}.content{padding:12px}.tbr .bg{display:none}
   .dn{font-size:12px}.fgrid{grid-template-columns:1fr}.topbar{padding:10px 12px}
-  .client-switcher-btn { font-size:11px; padding:5px 9px; }
-  .mod-header h2 { font-size:15px; }
-  .fgrid { grid-template-columns:1fr !important; }
-  .eq-card,.th-card,.ev-card { padding:11px; }
 }
 </style>
 </head>
@@ -203,12 +215,6 @@ select.fi option{background:var(--dark2)}
     <div class="ns">REPS e Inscripción</div>
     <div class="ni" onclick="nav(this,'reps','Módulo REPS')"><i class="fas fa-hospital-user"></i>Módulo REPS</div>
     <div class="ni" onclick="nav(this,'servicios','Servicios Habilitados')"><i class="fas fa-stethoscope"></i>Servicios</div>
-    <div class="ns">Gestión Clínica</div>
-    <div class="ni" onclick="nav(this,'equipos','Equipos Biomédicos')"><i class="fas fa-heartbeat"></i>Equipos Biomédicos</div>
-    <div class="ni" onclick="nav(this,'talento','Talento Humano')"><i class="fas fa-id-badge"></i>Talento Humano</div>
-    <div class="ni" onclick="nav(this,'eventos','Seguridad del Paciente')"><i class="fas fa-shield-alt"></i>Seguridad Paciente</div>
-    <div class="ns">Drive</div>
-    <div class="ni" onclick="nav(this,'gesdocs','Documentos por Cliente')"><i class="fas fa-folder-open"></i>Docs por Cliente</div>
     <div class="sfoot">
       <div class="upill"><div class="uav">BM</div><div><div class="unm">BIOMarketing Admin</div><div class="url">biomarketing.salud@gmail.com</div></div></div>
       <div class="lbtn" onclick="logout()"><i class="fas fa-sign-out-alt"></i> Cerrar sesión</div>
@@ -263,6 +269,11 @@ select.fi option{background:var(--dark2)}
 
       <!-- VERIFICACION -->
       <div class="page" id="pg-verificacion">
+        <div style="display:flex;gap:8px;margin-bottom:14px;flex-wrap:wrap">
+          <button class="btn bor" onclick="generarListaChequeo()" style="font-size:12px"><i class="fas fa-clipboard-check"></i>Lista de Chequeo Res. 3100</button>
+          <button class="btn bpu" onclick="generarActaRadicacion()" style="font-size:12px"><i class="fas fa-file-signature"></i>Carta de Radicación</button>
+          <button class="btn bgr" onclick="generarDocumentosReps()" style="font-size:12px"><i class="fas fa-file-medical"></i>Documentos REPS</button>
+        </div>
         <div id="ver-stats" style="margin-bottom:14px"></div><div id="ver-list"></div>
       </div>
 
@@ -281,66 +292,6 @@ select.fi option{background:var(--dark2)}
         <div id="servicios-content"></div>
       </div>
 
-      <!-- GESTIÓN DOCUMENTOS POR CLIENTE (DRIVE) -->
-      <div class="page" id="pg-gesdocs">
-        <div id="gesdocs-content"></div>
-      </div>
-
-      <!-- EQUIPOS BIOMÉDICOS -->
-      <div class="page" id="pg-equipos">
-        <div id="equipos-content"></div>
-      </div>
-
-      <!-- TALENTO HUMANO -->
-      <div class="page" id="pg-talento">
-        <div id="talento-content"></div>
-      </div>
-
-      <!-- SEGURIDAD DEL PACIENTE / EVENTOS ADVERSOS -->
-      <div class="page" id="pg-eventos">
-        <div id="eventos-content"></div>
-      </div>
-
-    </div>
-  </div>
-</div>
-
-<!-- ============ MODAL: INSTRUCCIONES DRIVE ============ -->
-<div class="modal" id="modal-instrucciones">
-  <div class="mbox">
-    <div class="mh">
-      <div class="mt2">📋 Cómo asignar documentos a un cliente</div>
-      <div class="mc" onclick="document.getElementById('modal-instrucciones').classList.remove('open')">✕</div>
-    </div>
-    <div style="font-size:13px;line-height:1.7;color:var(--text2)">
-      <div style="background:var(--or-bg);border:1px solid var(--orb);border-radius:10px;padding:14px;margin-bottom:14px">
-        <div style="font-size:12px;font-weight:800;color:var(--or2);margin-bottom:8px">PASO 1 — Crear carpeta del cliente en Drive</div>
-        <div>• Ve a Drive y abre la carpeta raíz de clientes</div>
-        <div>• Crea una nueva carpeta con el nombre: <strong>NombreCliente - NIT - Año</strong></div>
-        <div>• Comparte la carpeta con el email del cliente (ver o editar)</div>
-        <div style="margin-top:8px"><a href="https://drive.google.com/drive/folders/1Qq7ymzOFEaxkOliCaJedacIPjzLCsrQ3" target="_blank" style="color:#4285F4;font-weight:700;font-size:12px">📁 Ver carpeta raíz de plantillas ↗</a></div>
-      </div>
-      <div style="background:var(--pu-bg);border:1px solid var(--pub);border-radius:10px;padding:14px;margin-bottom:14px">
-        <div style="font-size:12px;font-weight:800;color:var(--pu2);margin-bottom:8px">PASO 2 — Copiar plantillas originales</div>
-        <div>• En la carpeta de plantillas, abre el estándar correspondiente</div>
-        <div>• Selecciona el documento que necesitas copiar</div>
-        <div>• Click derecho → <strong>"Hacer una copia"</strong></div>
-        <div>• Mueve la copia a la carpeta que creaste para el cliente</div>
-        <div>• Renombra el archivo con el nombre del cliente si deseas</div>
-      </div>
-      <div style="background:var(--gbg);border:1px solid rgba(45,159,92,0.3);border-radius:10px;padding:14px;margin-bottom:14px">
-        <div style="font-size:12px;font-weight:800;color:var(--green);margin-bottom:8px">PASO 3 — Enlazar en la plataforma</div>
-        <div>• Abre el documento copiado en Drive</div>
-        <div>• Copia el ID de la URL: <code style="background:rgba(255,255,255,0.1);padding:2px 5px;border-radius:4px;font-size:11px">drive.google.com/file/d/<strong>[ESTE-ES-EL-ID]</strong>/view</code></div>
-        <div>• En esta sección, selecciona el cliente y pega el ID en el campo del documento</div>
-        <div>• Haz click en <strong>Guardar</strong></div>
-      </div>
-      <div style="background:var(--dark3);border:1px solid var(--bd);border-radius:10px;padding:14px">
-        <div style="font-size:12px;font-weight:800;color:var(--text);margin-bottom:8px">PASO 4 — El cliente ya puede verlos</div>
-        <div>• El cliente ingresa a su portal y ve la sección "Mis Documentos"</div>
-        <div>• Puede abrir y editar cada documento directamente en Drive</div>
-        <div>• Los documentos originales (plantillas) NO se modifican</div>
-      </div>
     </div>
   </div>
 </div>
@@ -467,85 +418,110 @@ select.fi option{background:var(--dark2)}
 </div>
 
 <!-- ============ MODAL: NUEVO CLIENTE ============ -->
-<div class="modal" id="modal-nc" id="nc-modal">
+<div class="modal" id="modal-nc">
   <div class="mbox">
     <div class="mh">
-      <div class="mt2" id="nc-modal-title">👤 Registrar nuevo cliente</div>
+      <div>
+        <div class="mt2">👤 Registrar nuevo cliente</div>
+        <div id="nc-step-label" style="font-size:11px;color:var(--text3);margin-top:2px">Paso 1 de 5 — Datos del prestador</div>
+      </div>
       <div class="mc" onclick="closeNewCliente()"><i class="fas fa-times"></i></div>
     </div>
     <div class="step-bar">
       <div class="step-dot act" id="sd1"></div>
       <div class="step-dot" id="sd2"></div>
       <div class="step-dot" id="sd3"></div>
+      <div class="step-dot" id="sd4"></div>
+      <div class="step-dot" id="sd5"></div>
     </div>
 
     <!-- PASO 1: DATOS BÁSICOS -->
     <div class="step-content act" id="nc-s1">
-      <div style="font-size:13px;font-weight:700;color:var(--or);margin-bottom:14px">Paso 1 — Datos del prestador</div>
+      <div class="alert ai" style="margin-bottom:14px"><i class="fas fa-user-md" style="flex-shrink:0"></i><div><strong>Datos del prestador</strong> — Información del profesional de salud o institución que se va a habilitar ante la Secretaría de Salud.</div></div>
       <div class="fgrid">
         <div class="fg"><label class="fl">Nombre completo *</label><input class="fi" id="nc-nombre" placeholder="Dra/Dr. Nombre Apellido"></div>
-        <div class="fg"><label class="fl">Cédula *</label><input class="fi" id="nc-cedula" placeholder="0.000.000.000"></div>
+        <div class="fg"><label class="fl">Cédula de ciudadanía *</label><input class="fi" id="nc-cedula" placeholder="1.000.000.000"></div>
       </div>
       <div class="fgrid">
-        <div class="fg"><label class="fl">Especialidad *</label><input class="fi" id="nc-esp" placeholder="Médico General"></div>
-        <div class="fg"><label class="fl">Registro médico</label><input class="fi" id="nc-rm" placeholder="RM-XXXXX"></div>
+        <div class="fg"><label class="fl">Especialidad / Profesión *</label><input class="fi" id="nc-esp" placeholder="Médico General, Odontólogo…"></div>
+        <div class="fg"><label class="fl">No. Registro médico (RETHUS)</label><input class="fi" id="nc-rm" placeholder="RM-XXXXX"></div>
       </div>
-      <div class="fg"><label class="fl">Empresa / Razón social *</label><input class="fi" id="nc-empresa" placeholder="Nombre IPS / SAS / Persona natural"></div>
+      <div class="fg"><label class="fl">Empresa / Razón social *</label><input class="fi" id="nc-empresa" placeholder="Nombre IPS / Clínica / SAS / Persona natural"></div>
       <div class="fgrid">
-        <div class="fg"><label class="fl">NIT</label><input class="fi" id="nc-nit" placeholder="000.000.000-0"></div>
+        <div class="fg"><label class="fl">NIT / CC Representante legal</label><input class="fi" id="nc-nit" placeholder="000.000.000-0"></div>
         <div class="fg"><label class="fl">Nivel de atención</label>
-          <select class="fi" id="nc-nivel"><option value="1">Nivel 1 — Básico</option><option value="2">Nivel 2 — Mediano</option><option value="3">Nivel 3 — Alta complejidad</option></select>
+          <select class="fi" id="nc-nivel">
+            <option value="1">Nivel 1 — Básico (Consulta ext., procedimientos)</option>
+            <option value="2">Nivel 2 — Mediano (Hospitalización, urgencias)</option>
+            <option value="3">Nivel 3 — Alta complejidad (UCI, cirugía esp.)</option>
+          </select>
         </div>
       </div>
-      <button class="btn bor" style="width:100%;justify-content:center;padding:12px;margin-top:4px" onclick="ncStep(2)">Siguiente <i class="fas fa-arrow-right"></i></button>
+      <div class="fg"><label class="fl">Secretaría / Instituto de Salud ante quien radica</label><input class="fi" id="nc-secretaria" placeholder="Secretaría de Salud Municipal de Cúcuta"></div>
+      <div class="fg"><label class="fl">Código de habilitación (si ya lo tiene)</label><input class="fi" id="nc-codigo-hab" placeholder="Dejar vacío si es nuevo"></div>
+
+      <div class="sec-div"><span>🏥 Servicios a inscribir en REPS</span></div>
+      <div style="font-size:12px;color:var(--text2);margin-bottom:10px">Selecciona los servicios que se van a habilitar. Esto pre-cargará el módulo REPS y generará la documentación correcta según Res. 3100/2019.</div>
+      <div class="svc-filter-bar">
+        <button class="svc-filter-btn act" onclick="filtrarServicios(0,this)">Todos</button>
+        <button class="svc-filter-btn" onclick="filtrarServicios(1,this)">Nivel 1</button>
+        <button class="svc-filter-btn" onclick="filtrarServicios(2,this)">Nivel 2</button>
+        <button class="svc-filter-btn" onclick="filtrarServicios(3,this)">Nivel 3</button>
+      </div>
+      <div class="svc-picker-grid" id="svc-picker-grid"></div>
+      <div class="svc-sel-info" id="svc-sel-info">
+        <div style="font-weight:700;color:var(--or);margin-bottom:4px"><span id="svc-sel-count">0</span> servicio(s) seleccionado(s)</div>
+        <div id="svc-sel-list" style="color:var(--text2);font-size:11px;line-height:1.6"></div>
+      </div>
+
+      <button class="btn bor" style="width:100%;justify-content:center;padding:12px;margin-top:10px" onclick="ncStep(2)">Continuar — Sede y branding <i class="fas fa-arrow-right"></i></button>
     </div>
 
     <!-- PASO 2: SEDE Y LOGO -->
     <div class="step-content" id="nc-s2">
-      <div style="font-size:13px;font-weight:700;color:var(--or);margin-bottom:14px">Paso 2 — Sede, logo y colores</div>
-      <div class="fg"><label class="fl">Dirección de la sede *</label><input class="fi" id="nc-dir" placeholder="Calle X No. Y-Z, Barrio, Ciudad"></div>
+      <div class="alert ai" style="margin-bottom:14px"><i class="fas fa-building" style="flex-shrink:0"></i><div><strong>Sede, logo y colores</strong> — Esta información aparecerá en todos los documentos, listas de chequeo y actas generadas para el cliente.</div></div>
+      <div class="fg"><label class="fl">Dirección de la sede *</label><input class="fi" id="nc-dir" placeholder="Calle X No. Y-Z, Barrio, Ciudad" oninput="updateDocPreview()"></div>
       <div class="fgrid">
-        <div class="fg"><label class="fl">Ciudad *</label><input class="fi" id="nc-ciudad" placeholder="Cúcuta, Norte de Santander"></div>
+        <div class="fg"><label class="fl">Ciudad y departamento *</label><input class="fi" id="nc-ciudad" placeholder="Cúcuta, Norte de Santander" oninput="updateDocPreview()"></div>
         <div class="fg"><label class="fl">Teléfono</label><input class="fi" id="nc-tel" placeholder="(607) 000-0000"></div>
       </div>
       <div class="fg"><label class="fl">Correo electrónico</label><input class="fi" id="nc-email" placeholder="correo@ejemplo.com"></div>
-      <div class="fg"><label class="fl">Servicio habilitado *</label><input class="fi" id="nc-servicio" placeholder="Consulta externa medicina general"></div>
+      <div class="fg"><label class="fl">Servicios habilitados / a habilitar *</label><input class="fi" id="nc-servicio" placeholder="Consulta externa medicina general, Estética no invasiva…" oninput="updateDocPreview()"></div>
       <div class="fgrid">
         <div class="fg">
           <label class="fl">Color institucional principal</label>
           <div style="display:flex;gap:8px;align-items:center">
-            <input class="fi" type="color" id="nc-color1" value="#FF6B00" style="padding:4px;height:42px;cursor:pointer">
+            <input class="fi" type="color" id="nc-color1" value="#FF6B00" style="padding:4px;height:42px;cursor:pointer" oninput="updateDocPreview()">
             <input class="fi" type="text" id="nc-color1-txt" value="#FF6B00" placeholder="#FF6B00" style="flex:1" oninput="syncColor(1)">
           </div>
         </div>
         <div class="fg">
           <label class="fl">Color institucional secundario</label>
           <div style="display:flex;gap:8px;align-items:center">
-            <input class="fi" type="color" id="nc-color2" value="#7B2FBE" style="padding:4px;height:42px;cursor:pointer">
+            <input class="fi" type="color" id="nc-color2" value="#7B2FBE" style="padding:4px;height:42px;cursor:pointer" oninput="updateDocPreview()">
             <input class="fi" type="text" id="nc-color2-txt" value="#7B2FBE" placeholder="#7B2FBE" style="flex:1" oninput="syncColor(2)">
           </div>
         </div>
       </div>
-      <!-- Logo upload -->
       <div class="fg">
-        <label class="fl">Logo del cliente (PNG, JPG, SVG)</label>
+        <label class="fl">Logo institucional (PNG, JPG, SVG)</label>
         <div class="logo-upload-area" id="logo-area" ondragover="event.preventDefault()" ondrop="logoDropped(event)">
           <input type="file" id="nc-logo" accept="image/*" onchange="logoChosen(event)">
           <div id="logo-placeholder">
             <div style="font-size:28px;margin-bottom:6px">🖼️</div>
             <div style="font-size:13px;font-weight:600;color:var(--text2)">Arrastra el logo o toca para seleccionar</div>
-            <div style="font-size:11px;color:var(--text3);margin-top:3px">Recomendado: fondo transparente (PNG)</div>
+            <div style="font-size:11px;color:var(--text3);margin-top:3px">Recomendado: fondo transparente (PNG) · Aparecerá en todos los documentos</div>
           </div>
           <img id="logo-preview-img" style="display:none" class="logo-preview">
         </div>
       </div>
-      <!-- Preview -->
       <div id="color-preview" style="background:var(--dark4);border-radius:10px;padding:12px;margin-bottom:12px">
-        <div style="font-size:11px;color:var(--text3);margin-bottom:8px">Vista previa del encabezado del documento:</div>
+        <div style="font-size:11px;color:var(--text3);margin-bottom:8px">Vista previa del encabezado de documentos:</div>
         <div id="doc-header-preview" style="background:white;border-radius:6px;padding:10px 14px;display:flex;justify-content:space-between;align-items:center">
           <div>
             <div id="prev-empresa" style="font-weight:800;font-size:13px;color:#0A3D55">NOMBRE EMPRESA</div>
             <div id="prev-servicio" style="font-size:10px;color:#666">Servicio habilitado</div>
+            <div id="prev-ciudad" style="font-size:9px;color:#999">Ciudad</div>
           </div>
           <div id="prev-logo-box" style="width:40px;height:40px;border-radius:8px;background:linear-gradient(135deg,#FF6B00,#7B2FBE);display:flex;align-items:center;justify-content:center;font-size:16px">🏥</div>
         </div>
@@ -553,13 +529,161 @@ select.fi option{background:var(--dark2)}
       </div>
       <div style="display:flex;gap:8px">
         <button class="btn bg" onclick="ncStep(1)" style="padding:12px 16px"><i class="fas fa-arrow-left"></i></button>
-        <button class="btn bor" style="flex:1;justify-content:center;padding:12px" onclick="ncStep(3)">Siguiente <i class="fas fa-arrow-right"></i></button>
+        <button class="btn bor" style="flex:1;justify-content:center;padding:12px" onclick="ncStep(3)">Continuar — Estado habilitación <i class="fas fa-arrow-right"></i></button>
       </div>
     </div>
 
-    <!-- PASO 3: ACCESO Y DRIVE -->
+    <!-- PASO 3: ESTADO DE HABILITACIÓN -->
     <div class="step-content" id="nc-s3">
-      <div style="font-size:13px;font-weight:700;color:var(--or);margin-bottom:14px">Paso 3 — Acceso y Google Drive</div>
+      <div class="alert ai" style="margin-bottom:16px"><i class="fas fa-hospital-user" style="flex-shrink:0"></i><div><strong>Estado de habilitación</strong> — Selecciona si el cliente ya está habilitado ante la Secretaría de Salud o si este es un nuevo proceso de habilitación. Esto determinará qué documentos son requeridos.</div></div>
+      <div class="habilitacion-option selected" id="hab-opt-nuevo" onclick="selectHabOpt('nuevo')">
+        <div style="display:flex;align-items:center;gap:10px;margin-bottom:6px">
+          <div style="width:20px;height:20px;border-radius:50%;background:var(--or);display:flex;align-items:center;justify-content:center;font-size:10px;color:#fff;flex-shrink:0" id="hab-radio-nuevo">●</div>
+          <div class="ho-title">🆕 Nuevo proceso — Cliente hasta ahora se va a habilitar</div>
+        </div>
+        <div class="ho-desc">El cliente necesita cargar todos los documentos requeridos por la Resolución 3100/2019 para solicitar habilitación ante la Secretaría de Salud. Se generará la lista de chequeo completa y el documento de radicación.</div>
+      </div>
+      <div class="habilitacion-option" id="hab-opt-habilitado" onclick="selectHabOpt('habilitado')">
+        <div style="display:flex;align-items:center;gap:10px;margin-bottom:6px">
+          <div style="width:20px;height:20px;border-radius:50%;background:var(--bd);display:flex;align-items:center;justify-content:center;font-size:10px;color:var(--text3);flex-shrink:0" id="hab-radio-habilitado">○</div>
+          <div class="ho-title">✅ Ya habilitado — Cliente tiene código de habilitación vigente</div>
+        </div>
+        <div class="ho-desc">El cliente ya superó el proceso de habilitación. Solo se necesita gestionar el mantenimiento documental. Se omite la carga obligatoria de documentos del prestador.</div>
+      </div>
+      <div class="habilitacion-option" id="hab-opt-renovacion" onclick="selectHabOpt('renovacion')">
+        <div style="display:flex;align-items:center;gap:10px;margin-bottom:6px">
+          <div style="width:20px;height:20px;border-radius:50%;background:var(--bd);display:flex;align-items:center;justify-content:center;font-size:10px;color:var(--text3);flex-shrink:0" id="hab-radio-renovacion">○</div>
+          <div class="ho-title">🔄 Renovación / Actualización de servicios</div>
+        </div>
+        <div class="ho-desc">El cliente está habilitado pero va a agregar nuevos servicios, cambiar de sede o actualizar su portafolio. Requiere documentos actualizados.</div>
+      </div>
+      <div style="display:flex;gap:8px;margin-top:4px">
+        <button class="btn bg" onclick="ncStep(2)" style="padding:12px 16px"><i class="fas fa-arrow-left"></i></button>
+        <button class="btn bor" style="flex:1;justify-content:center;padding:12px" onclick="ncStep(4)" id="btn-nc-step4">Continuar — Documentos del prestador <i class="fas fa-arrow-right"></i></button>
+      </div>
+    </div>
+
+    <!-- PASO 4: DOCUMENTOS DEL PRESTADOR -->
+    <div class="step-content" id="nc-s4">
+      <div class="alert aw" style="margin-bottom:14px"><i class="fas fa-file-medical" style="flex-shrink:0"></i><div><strong>Documentos del prestador (Estándar 1 — Talento Humano)</strong> · Res. 3100/2019<br>Carga los documentos del profesional o representante legal. Puedes agregar el enlace de Google Drive o subir el archivo directamente.</div></div>
+
+      <!-- Documentos personales -->
+      <div style="font-size:12px;font-weight:700;color:var(--text2);text-transform:uppercase;letter-spacing:0.05em;margin-bottom:8px">📋 Documentos de identidad y credenciales</div>
+      <div class="doc-upload-card" id="duc-cedula">
+        <div class="duc-icon" style="background:rgba(123,47,190,0.15)">🪪</div>
+        <div class="duc-info">
+          <div class="duc-name">Cédula de ciudadanía</div>
+          <div class="duc-sub">Representante legal o prestador · Documento de identidad vigente</div>
+        </div>
+        <div class="duc-actions">
+          <span class="status sp" id="duc-cedula-status">⚠️ Pendiente</span>
+          <button class="ib" title="Agregar enlace Drive" onclick="addDocLink('cedula','Cédula de ciudadanía')"><i class="fas fa-link"></i></button>
+          <label class="ib" title="Subir archivo" style="cursor:pointer"><input type="file" style="display:none" accept=".pdf,.jpg,.jpeg,.png" onchange="handleDocUpload(event,'cedula','Cédula de ciudadanía')"><i class="fas fa-upload"></i></label>
+        </div>
+      </div>
+      <div class="doc-upload-card" id="duc-hv">
+        <div class="duc-icon" style="background:rgba(255,107,0,0.15)">📄</div>
+        <div class="duc-info">
+          <div class="duc-name">Hoja de vida con soportes académicos</div>
+          <div class="duc-sub">Incluir diplomas, actas de grado, certificados académicos</div>
+        </div>
+        <div class="duc-actions">
+          <span class="status sp" id="duc-hv-status">⚠️ Pendiente</span>
+          <button class="ib" title="Agregar enlace Drive" onclick="addDocLink('hv','Hoja de vida con soportes')"><i class="fas fa-link"></i></button>
+          <label class="ib" title="Subir archivo" style="cursor:pointer"><input type="file" style="display:none" accept=".pdf,.jpg,.jpeg,.png,.docx" onchange="handleDocUpload(event,'hv','Hoja de vida')"><i class="fas fa-upload"></i></label>
+        </div>
+      </div>
+      <div class="doc-upload-card" id="duc-tp">
+        <div class="duc-icon" style="background:rgba(45,159,92,0.15)">🏅</div>
+        <div class="duc-info">
+          <div class="duc-name">Tarjeta profesional vigente</div>
+          <div class="duc-sub">Emitida por el tribunal ético · Verificar en RETHUS · Res. 3100 Estándar 1</div>
+        </div>
+        <div class="duc-actions">
+          <span class="status sr" id="duc-tp-status">🚨 Requerido</span>
+          <button class="ib" title="Agregar enlace Drive" onclick="addDocLink('tp','Tarjeta profesional')"><i class="fas fa-link"></i></button>
+          <label class="ib" title="Subir archivo" style="cursor:pointer"><input type="file" style="display:none" accept=".pdf,.jpg,.jpeg,.png" onchange="handleDocUpload(event,'tp','Tarjeta profesional')"><i class="fas fa-upload"></i></label>
+        </div>
+      </div>
+      <div class="doc-upload-card" id="duc-rethus">
+        <div class="duc-icon" style="background:rgba(230,57,70,0.15)">🔍</div>
+        <div class="duc-info">
+          <div class="duc-name">Certificado RETHUS — Registro Talento Humano en Salud</div>
+          <div class="duc-sub">Descargable en: rethus.minsalud.gov.co · Obligatorio Res. 3100</div>
+        </div>
+        <div class="duc-actions">
+          <span class="status sr" id="duc-rethus-status">🚨 Requerido</span>
+          <button class="ib" title="Abrir RETHUS" onclick="window.open('https://www.rethus.minsalud.gov.co','_blank')"><i class="fas fa-external-link-alt"></i></button>
+          <button class="ib" title="Agregar enlace Drive" onclick="addDocLink('rethus','Certificado RETHUS')"><i class="fas fa-link"></i></button>
+          <label class="ib" title="Subir archivo" style="cursor:pointer"><input type="file" style="display:none" accept=".pdf,.jpg,.jpeg,.png" onchange="handleDocUpload(event,'rethus','Certificado RETHUS')"><i class="fas fa-upload"></i></label>
+        </div>
+      </div>
+
+      <div style="font-size:12px;font-weight:700;color:var(--text2);text-transform:uppercase;letter-spacing:0.05em;margin:14px 0 8px">💉 Certificados de salud y vacunación</div>
+      <div class="doc-upload-card" id="duc-vacunas">
+        <div class="duc-icon" style="background:rgba(244,162,97,0.15)">💉</div>
+        <div class="duc-info">
+          <div class="duc-name">Certificados de vacunación completos</div>
+          <div class="duc-sub">Hepatitis B · Tétanos · Influenza · Según riesgo biológico Res. 3100</div>
+        </div>
+        <div class="duc-actions">
+          <span class="status sr" id="duc-vacunas-status">🚨 Requerido</span>
+          <button class="ib" onclick="addDocLink('vacunas','Certificados de vacunación')"><i class="fas fa-link"></i></button>
+          <label class="ib" style="cursor:pointer"><input type="file" style="display:none" accept=".pdf,.jpg,.jpeg,.png" onchange="handleDocUpload(event,'vacunas','Certificados vacunación')"><i class="fas fa-upload"></i></label>
+        </div>
+      </div>
+
+      <div style="font-size:12px;font-weight:700;color:var(--text2);text-transform:uppercase;letter-spacing:0.05em;margin:14px 0 8px">🏢 Documentos de la empresa / institución</div>
+      <div class="doc-upload-card" id="duc-rut">
+        <div class="duc-icon" style="background:rgba(66,133,244,0.15)">📑</div>
+        <div class="duc-info">
+          <div class="duc-name">RUT (Registro Único Tributario) actualizado</div>
+          <div class="duc-sub">Descargable en DIAN · Debe estar actualizado en actividades de salud</div>
+        </div>
+        <div class="duc-actions">
+          <span class="status sp" id="duc-rut-status">⚠️ Pendiente</span>
+          <button class="ib" onclick="addDocLink('rut','RUT actualizado')"><i class="fas fa-link"></i></button>
+          <label class="ib" style="cursor:pointer"><input type="file" style="display:none" accept=".pdf,.jpg,.jpeg,.png" onchange="handleDocUpload(event,'rut','RUT')"><i class="fas fa-upload"></i></label>
+        </div>
+      </div>
+      <div class="doc-upload-card" id="duc-camcom">
+        <div class="duc-icon" style="background:rgba(45,159,92,0.15)">🏛️</div>
+        <div class="duc-info">
+          <div class="duc-name">Certificado de existencia y representación legal</div>
+          <div class="duc-sub">Cámara de Comercio · Vigencia máx. 30 días antes de radicar</div>
+        </div>
+        <div class="duc-actions">
+          <span class="status sp" id="duc-camcom-status">⚠️ Pendiente</span>
+          <button class="ib" onclick="addDocLink('camcom','Cámara de Comercio')"><i class="fas fa-link"></i></button>
+          <label class="ib" style="cursor:pointer"><input type="file" style="display:none" accept=".pdf,.jpg,.jpeg,.png" onchange="handleDocUpload(event,'camcom','Cámara de Comercio')"><i class="fas fa-upload"></i></label>
+        </div>
+      </div>
+      <div class="doc-upload-card" id="duc-contrato">
+        <div class="duc-icon" style="background:rgba(123,47,190,0.15)">📝</div>
+        <div class="duc-info">
+          <div class="duc-name">Contrato o vinculación laboral del profesional</div>
+          <div class="duc-sub">Si es persona jurídica · Contrato de prestación de servicios o laboral</div>
+        </div>
+        <div class="duc-actions">
+          <span class="status sp" id="duc-contrato-status">⚠️ Pendiente</span>
+          <button class="ib" onclick="addDocLink('contrato','Contrato laboral/prestación de servicios')"><i class="fas fa-link"></i></button>
+          <label class="ib" style="cursor:pointer"><input type="file" style="display:none" accept=".pdf,.jpg,.jpeg,.png,.docx" onchange="handleDocUpload(event,'contrato','Contrato laboral')"><i class="fas fa-upload"></i></label>
+        </div>
+      </div>
+
+      <div id="duc-docs-resumen" style="background:var(--dark4);border-radius:10px;padding:12px;margin:12px 0;font-size:12px;color:var(--text2)">
+        <strong style="color:var(--text)">📊 Resumen:</strong> <span id="duc-count-ok">0</span> documentos cargados · <span id="duc-count-pend">7</span> pendientes
+      </div>
+
+      <div style="display:flex;gap:8px">
+        <button class="btn bg" onclick="ncStep(3)" style="padding:12px 16px"><i class="fas fa-arrow-left"></i></button>
+        <button class="btn bor" style="flex:1;justify-content:center;padding:12px" onclick="ncStep(5)">Continuar — Acceso y Drive <i class="fas fa-arrow-right"></i></button>
+      </div>
+    </div>
+
+    <!-- PASO 5: ACCESO Y DRIVE -->
+    <div class="step-content" id="nc-s5">
+      <div class="alert ai" style="margin-bottom:14px"><i class="fas fa-key" style="flex-shrink:0"></i><div><strong>Acceso al sistema y Google Drive</strong> — Configura las credenciales del cliente para ingresar a su portal y la carpeta de Drive donde se almacenarán los documentos.</div></div>
       <div class="fgrid">
         <div class="fg"><label class="fl">Usuario de acceso *</label><input class="fi" id="nc-user" placeholder="ej: dra.garcia" autocapitalize="none"></div>
         <div class="fg"><label class="fl">Contraseña inicial *</label><input class="fi" type="password" id="nc-pass" placeholder="Mínimo 8 caracteres"></div>
@@ -570,16 +694,43 @@ select.fi option{background:var(--dark2)}
           <input class="fi" type="url" id="nc-drive" placeholder="https://drive.google.com/drive/folders/...">
           <button class="drive-btn" onclick="if(document.getElementById('nc-drive').value){window.open(document.getElementById('nc-drive').value,'_blank')}"><i class="fas fa-external-link-alt"></i></button>
         </div>
-        <div style="font-size:11px;color:var(--text3);margin-top:4px">Esta será la carpeta de Drive donde se guarden todos sus documentos. Puedes dejarla vacía y agregarla después.</div>
+        <div style="font-size:11px;color:var(--text3);margin-top:4px">Carpeta principal de Drive donde se almacenarán todos los documentos. Puede configurarse después.</div>
       </div>
       <div class="alert ai">
         <i class="fas fa-info-circle" style="flex-shrink:0"></i>
-        <div>Después de registrar el cliente debes agregar manualmente su usuario en el archivo <strong>index.html</strong> (sección USERS). Las instrucciones aparecerán al guardar.</div>
+        <div>Después de registrar el cliente, debes agregar su usuario en el archivo <strong>index.html</strong> (sección USERS). Las instrucciones aparecerán automáticamente al guardar.</div>
       </div>
-      <div class="fg"><label class="fl">Notas / observaciones</label><textarea class="fi fta" id="nc-notas" placeholder="Información adicional sobre el cliente..."></textarea></div>
+      <div class="fg"><label class="fl">Notas / observaciones</label><textarea class="fi fta" id="nc-notas" placeholder="Información adicional, estado del proceso, observaciones de la visita…"></textarea></div>
+      <div style="background:var(--dark4);border:1px solid var(--bd);border-radius:10px;padding:12px;margin-bottom:12px" id="nc-resumen-final">
+        <div style="font-size:11px;font-weight:700;color:var(--text2);text-transform:uppercase;letter-spacing:0.05em;margin-bottom:8px">Resumen del cliente a registrar</div>
+        <div id="nc-resumen-datos" style="font-size:12px;color:var(--text2)">Completa los pasos anteriores para ver el resumen.</div>
+      </div>
+      <div id="nc-gen-panel" style="display:none;background:linear-gradient(135deg,rgba(255,107,0,0.06),rgba(123,47,190,0.06));border:1px solid var(--orb);border-radius:12px;padding:14px;margin-bottom:12px">
+        <div style="font-size:12px;font-weight:700;color:var(--or);margin-bottom:3px">🚀 Documentos listos para generar</div>
+        <div style="font-size:11px;color:var(--text2);margin-bottom:10px">Registra primero al cliente. Luego podrás generar e imprimir estos documentos para radicar ante la Secretaría de Salud.</div>
+        <div id="nc-svc-summary" style="background:var(--dark4);border-radius:8px;padding:9px 11px;margin-bottom:10px;font-size:11px;color:var(--text2)"></div>
+        <div style="font-size:11px;font-weight:700;color:var(--text2);text-transform:uppercase;letter-spacing:0.05em;margin-bottom:7px">Se generarán automáticamente:</div>
+        <div style="display:flex;flex-direction:column;gap:5px">
+          <div style="display:flex;align-items:center;gap:8px;font-size:12px;padding:8px 10px;background:var(--dark4);border-radius:7px">
+            <span style="font-size:16px">📋</span>
+            <div><div style="font-weight:600">Lista de chequeo Res. 3100/2019</div><div style="font-size:10px;color:var(--text3)">Por estándar con estado de cada documento</div></div>
+            <span class="status sv" style="margin-left:auto">Incluido</span>
+          </div>
+          <div style="display:flex;align-items:center;gap:8px;font-size:12px;padding:8px 10px;background:var(--dark4);border-radius:7px">
+            <span style="font-size:16px">📜</span>
+            <div><div style="font-weight:600">Carta de radicación ante Secretaría de Salud</div><div style="font-size:10px;color:var(--text3)">Con servicios seleccionados y documentos adjuntos</div></div>
+            <span class="status sv" style="margin-left:auto">Incluido</span>
+          </div>
+          <div style="display:flex;align-items:center;gap:8px;font-size:12px;padding:8px 10px;background:var(--dark4);border-radius:7px">
+            <span style="font-size:16px">🏥</span>
+            <div><div style="font-weight:600">Paquete REPS — formulario de inscripción</div><div style="font-size:10px;color:var(--text3)">Módulo REPS pre-cargado con servicios seleccionados</div></div>
+            <span class="status sv" style="margin-left:auto">Incluido</span>
+          </div>
+        </div>
+      </div>
       <div style="display:flex;gap:8px">
-        <button class="btn bg" onclick="ncStep(2)" style="padding:12px 16px"><i class="fas fa-arrow-left"></i></button>
-        <button class="btn bor nc-save-btn" style="flex:1;justify-content:center;padding:12px" onclick="guardarCliente()"><i class="fas fa-check"></i>Registrar cliente</button>
+        <button class="btn bg" onclick="ncStep(4)" style="padding:12px 16px" id="btn-back-step5"><i class="fas fa-arrow-left"></i></button>
+        <button class="btn bor" style="flex:1;justify-content:center;padding:12px" onclick="guardarCliente()"><i class="fas fa-check"></i> Registrar cliente</button>
       </div>
     </div>
 
@@ -616,7 +767,7 @@ var VESGA = {
     {id:'e1',estandar_num:1,documentos:[
       {id:'e1-04',nombre:'Manual de talento humano',version:'v1.0 · 2025',estado:'vigente',archivo:'03_Manual_Talento_Humano.docx',tipo:'manual',fuente:'github'},
       {id:'e1-05',nombre:'Programa de inducción y reinducción',version:'v1.0 · 2025',estado:'vigente',archivo:'30_Programa_Induccion_Reinduccion.docx',tipo:'programa',fuente:'github'},
-      {id:'e1-01',nombre:'Hoja de vida profesional',version:'v1.0 · 2025',estado:'pendiente',archivo:'04_Hoja_Vida_Medico.docx',tipo:'documento',fuente:'github'},
+      {id:'e1-01',nombre:'Hoja de vida — Dra. Yesika Zayra Vesga',version:'v1.0 · 2025',estado:'pendiente',archivo:'04_Hoja_Vida_Medico.docx',tipo:'documento',fuente:'github'},
       {id:'e1-02',nombre:'Tarjeta profesional médica y RETHUS',version:'v1.0 · 2025',estado:'requerido',archivo:'',tipo:'soporte',fuente:''},
       {id:'e1-03',nombre:'Certificados de vacunación del personal',version:'v1.0 · 2025',estado:'requerido',archivo:'',tipo:'soporte',fuente:''},
     ]},
@@ -735,66 +886,8 @@ var metodo = 'drive';
 var selectedFile = null;
 var ncCurrentStep = 1;
 var logoDataUrl = null;
-var currentClientId = 'vesga';
-
-function getAllClientes() {
-  var saved = JSON.parse(localStorage.getItem('bio_clientes_list') || '[]');
-  var base = [{ id:'vesga', nombre:VESGA.nombre, empresa:VESGA.empresa, nit:VESGA.nit,
-    nivel_atencion:VESGA.nivel_atencion, ciudad:VESGA.ciudad, usuario:'dra.vesga',
-    color1:VESGA.color1, color2:VESGA.color2, logo_url:VESGA.logo_url, _base:true }];
-  saved.forEach(function(c) { if (!c.id) c.id = c.usuario || c.nombre; });
-  return base.concat(saved);
-}
-
-function crearEstandaresVacios() {
-  // Use VESGA as template but clear files/states — each doc starts as 'requerido'
-  return VESGA.estandares.map(function(e) {
-    return {
-      id: e.id,
-      estandar_num: e.estandar_num,
-      documentos: e.documentos.map(function(d) {
-        return { id: d.id, nombre: d.nombre, version: d.version, tipo: d.tipo, archivo: '', estado: 'requerido', fuente: '' };
-      })
-    };
-  });
-}
-
-function switchClient(clientId) {
-  if (clientId === currentClientId) return;
-  currentClientId = clientId;
-  if (clientId === 'vesga') {
-    C = VESGA;
-  } else {
-    var saved = JSON.parse(localStorage.getItem('bio_clientes_list') || '[]');
-    var found = saved.find(function(c) { return (c.usuario || c.nombre) === clientId; });
-    if (!found) { toast('Cliente no encontrado', 'err'); return; }
-    if (!found.id) found.id = found.usuario || found.nombre;
-    if (!found.color1) found.color1 = '#FF6B00';
-    if (!found.color2) found.color2 = '#7B2FBE';
-    // Load this client's own standards — NEVER inherit from VESGA
-    var savedEst = null;
-    try { savedEst = JSON.parse(localStorage.getItem('bio_servicios_' + found.id)); } catch(e) {}
-    found.estandares = savedEst || crearEstandaresVacios();
-    // Patch legacy personalized names from old seeds
-    found.estandares.forEach(function(e) {
-      e.documentos.forEach(function(d) {
-        if (d.id === 'e1-01' && d.nombre && d.nombre.indexOf('Vesga') !== -1) {
-          d.nombre = 'Hoja de vida profesional';
-        }
-      });
-    });
-    C = found;
-  }
-  loadData();
-  renderDash();
-  if (document.getElementById('pg-estandares').classList.contains('act')) renderEstdTabs();
-  if (document.getElementById('pg-reps').classList.contains('act')) renderReps();
-  updateSidebarLogo();
-  document.querySelectorAll('.client-switcher-btn').forEach(function(b) {
-    b.classList.toggle('active-client', b.getAttribute('data-cid') === clientId);
-  });
-  toast('Vista: ' + C.nombre.split(' ').slice(0,3).join(' ') + ' ✓');
-}
+var ncServiciosSeleccionados = [];
+var ncSvcFiltroNivel = 0;
 // ================================================================
 // BASE DE DATOS NORMATIVA — Servicios de Salud Colombia
 // Res. 2003/2014 (REPS) + Res. 3100/2019 (Habilitación)
@@ -868,37 +961,32 @@ var TRAZ = [];
 
 // Load data from localStorage
 function loadData() {
-  var cid = C.id || C.usuario || currentClientId;
-  // Only merge _local extra docs (user-uploaded via admin) — never touch base standards
-  var extra = JSON.parse(localStorage.getItem('bio_extra_' + cid) || '[]');
+  var extra = JSON.parse(localStorage.getItem('bio_docs_' + C.id) || '[]');
   extra.forEach(function(d) {
     var estd = C.estandares.find(function(e) { return e.id === d.estdId; });
     if (estd && !estd.documentos.find(function(x) { return x.id === d.id; })) {
       estd.documentos.unshift(d);
     }
   });
-  var savedTraz = JSON.parse(localStorage.getItem('bio_traz_' + cid) || '[]');
+  var savedTraz = JSON.parse(localStorage.getItem('bio_traz_' + C.id) || '[]');
   TRAZ = savedTraz;
   // Load client customizations
-  var cUser = C.usuario || currentClientId;
-  var custom = JSON.parse(localStorage.getItem('bio_custom_' + cUser) || localStorage.getItem('bio_cliente_' + C.id) || '{}');
+  var custom = JSON.parse(localStorage.getItem('bio_custom_dra.vesga') || localStorage.getItem('bio_cliente_' + C.id) || '{}');
   if (custom.logo_url) C.logo_url = custom.logo_url;
   if (custom.color1) C.color1 = custom.color1;
   if (custom.color2) C.color2 = custom.color2;
   if (custom.drive_url) C.drive_url = custom.drive_url;
-  var savedLogo = localStorage.getItem('bio_logo_' + cUser);
+  // Also check logo stored separately
+  var savedLogo = localStorage.getItem('bio_logo_dra.vesga');
   if (savedLogo && !C.logo_url) C.logo_url = savedLogo;
   updateSidebarLogo();
 }
 
 function saveExtraDocs() {
-  var cid = C.id || C.usuario || currentClientId;
   var extra = C.estandares.reduce(function(a, e) {
     return a.concat(e.documentos.filter(function(d) { return d._local; }));
   }, []);
-  localStorage.setItem('bio_extra_' + cid, JSON.stringify(extra));
-  // Also persist the full standards state for this client
-  localStorage.setItem('bio_servicios_' + cid, JSON.stringify(C.estandares));
+  localStorage.setItem('bio_docs_' + C.id, JSON.stringify(extra));
 }
 
 function addTraz(accion, doc) {
@@ -921,7 +1009,7 @@ function updateSidebarLogo() {
 // ================================================================
 // UI
 // ================================================================
-function logout() { sessionStorage.clear(); window.location.replace('../login.html'); }
+function logout() { sessionStorage.clear(); window.location.replace('../index.html'); }
 function openSb() { document.getElementById('sb').classList.add('open'); document.getElementById('ov').classList.add('show'); }
 function closeSb() { document.getElementById('sb').classList.remove('open'); document.getElementById('ov').classList.remove('show'); }
 
@@ -934,14 +1022,8 @@ function nav(el, id, title) {
   document.getElementById('pgtit').textContent = title;
   closeSb();
   // Lazy-render modules on demand
-  if (id === 'estandares') renderEstdTabs();
   if (id === 'reps') renderReps();
   if (id === 'servicios') renderServicios();
-  if (id === 'gesdocs') renderGesdocs();
-  if (id === 'equipos') renderEquipos();
-  if (id === 'talento') renderTalento();
-  if (id === 'eventos') renderEventos();
-  if (id === 'clientes') renderCli();
 }
 
 var toastTimer;
@@ -1350,50 +1432,211 @@ function reactivarDoc(docId) {
 // MODAL NUEVO CLIENTE
 // ================================================================
 function openNewCliente() {
-  ncCurrentStep = 1; updateNcStep();
-  var t = document.getElementById('nc-modal-title');
-  if (t) t.textContent = '👤 Registrar nuevo cliente';
-  var sb = document.querySelector('.nc-save-btn');
-  if (sb) { sb.textContent = ''; sb.innerHTML = '<i class="fas fa-check"></i>Registrar cliente'; sb.removeAttribute('data-edit-id'); sb.removeAttribute('data-edit-base'); }
-  // Clear all form fields
-  ['nc-nombre','nc-cedula','nc-esp','nc-rm','nc-empresa','nc-nit','nc-nivel','nc-dir','nc-ciudad','nc-tel','nc-email','nc-servicio','nc-drive','nc-user','nc-pass','nc-notas'].forEach(function(id) {
-    var el = document.getElementById(id); if (el) el.value = '';
+  ncCurrentStep = 1; ncHabEstado = 'nuevo'; ncDocLinks = {}; ncDocCount = 0; logoDataUrl = null;
+  selectHabOpt('nuevo');
+  ['cedula','hv','tp','rethus','vacunas','rut','camcom','contrato'].forEach(function(id) {
+    var card = document.getElementById('duc-' + id);
+    var statusEl = document.getElementById('duc-' + id + '-status');
+    if (card) card.classList.remove('uploaded');
+    // Restore default status
+    var defaults = {cedula:'⚠️ Pendiente',hv:'⚠️ Pendiente',tp:'🚨 Requerido',rethus:'🚨 Requerido',vacunas:'🚨 Requerido',rut:'⚠️ Pendiente',camcom:'⚠️ Pendiente',contrato:'⚠️ Pendiente'};
+    var defaultClass = {cedula:'sp',hv:'sp',tp:'sr',rethus:'sr',vacunas:'sr',rut:'sp',camcom:'sp',contrato:'sp'};
+    if (statusEl) { statusEl.textContent = defaults[id] || '⚠️ Pendiente'; statusEl.className = 'status ' + (defaultClass[id]||'sp'); }
   });
-  var c1 = document.getElementById('nc-color1'); if (c1) c1.value = '#FF6B00';
-  var c2 = document.getElementById('nc-color2'); if (c2) c2.value = '#7B2FBE';
-  var ct1 = document.getElementById('nc-color1-txt'); if (ct1) ct1.value = '#FF6B00';
-  var ct2 = document.getElementById('nc-color2-txt'); if (ct2) ct2.value = '#7B2FBE';
-  var img = document.getElementById('logo-preview-img'); if (img) { img.src = ''; img.style.display = 'none'; }
-  var ph = document.getElementById('logo-placeholder'); if (ph) ph.style.display = '';
-  // Restore password field to required state
-  var passInput = document.getElementById('nc-pass'); if (passInput) passInput.placeholder = 'Mínimo 8 caracteres';
-  var passContainer = passInput ? passInput.closest('.fg') : null;
-  if (passContainer) { var lbl = passContainer.querySelector('.fl'); if (lbl) lbl.textContent = 'Contraseña inicial *'; }
-  logoDataUrl = null;
+  ncServiciosSeleccionados = [];
+  ncSvcFiltroNivel = 0;
+  renderSvcPicker();
+  updateDocCounter();
+  updateNcStep();
   document.getElementById('modal-nc').classList.add('open');
 }
-function closeNewCliente() { document.getElementById('modal-nc').classList.remove('open'); }
+function closeNewCliente() { document.getElementById('modal-nc').classList.remove('open'); logoDataUrl = null; ncDocLinks = {}; ncDocCount = 0; }
+
+var ncHabEstado = 'nuevo'; // 'nuevo' | 'habilitado' | 'renovacion'
+var ncDocLinks = {}; // {cedula: {url, nombre}, hv: {url, nombre}, ...}
+var ncDocCount = 0;
+var NC_TOTAL_DOCS = 7;
+var NC_STEP_LABELS = ['','Datos del prestador','Sede y branding','Estado de habilitación','Documentos del prestador','Acceso y Drive'];
+
+function selectHabOpt(opt) {
+  ncHabEstado = opt;
+  ['nuevo','habilitado','renovacion'].forEach(function(o) {
+    var card = document.getElementById('hab-opt-' + o);
+    var radio = document.getElementById('hab-radio-' + o);
+    if (o === opt) {
+      card.classList.add('selected');
+      radio.textContent = '●'; radio.style.background = 'var(--or)'; radio.style.color = '#fff';
+    } else {
+      card.classList.remove('selected');
+      radio.textContent = '○'; radio.style.background = 'var(--bd)'; radio.style.color = 'var(--text3)';
+    }
+  });
+  var btn4 = document.getElementById('btn-nc-step4');
+  if (opt === 'habilitado') {
+    btn4.textContent = '';
+    btn4.innerHTML = 'Omitir documentos — Ir a acceso <i class="fas fa-forward"></i>';
+  } else {
+    btn4.innerHTML = 'Continuar — Documentos del prestador <i class="fas fa-arrow-right"></i>';
+  }
+}
 
 function ncStep(n) {
   if (n === 2) {
-    if (!document.getElementById('nc-nombre').value.trim()) { toast('Ingresa el nombre del médico', 'err'); return; }
+    if (!document.getElementById('nc-nombre').value.trim()) { toast('Ingresa el nombre del médico o profesional', 'err'); return; }
     if (!document.getElementById('nc-empresa').value.trim()) { toast('Ingresa la empresa o razón social', 'err'); return; }
   }
   if (n === 3) {
     if (!document.getElementById('nc-dir').value.trim()) { toast('Ingresa la dirección de la sede', 'err'); return; }
     if (!document.getElementById('nc-ciudad').value.trim()) { toast('Ingresa la ciudad', 'err'); return; }
   }
+  if (n === 4 && ncHabEstado === 'habilitado') {
+    n = 5; // Skip paso 4 si ya está habilitado
+  }
+  if (n === 5) {
+    var backBtn = document.getElementById('btn-back-step5');
+    if (backBtn) backBtn.onclick = function() { ncStep(ncHabEstado === 'habilitado' ? 3 : 4); };
+    updateResumenFinal();
+    updateGenPanel();
+  }
   ncCurrentStep = n;
   updateNcStep();
 }
 
 function updateNcStep() {
-  for (var i = 1; i <= 3; i++) {
-    document.getElementById('nc-s' + i).className = 'step-content' + (i === ncCurrentStep ? ' act' : '');
+  var totalSteps = ncHabEstado === 'habilitado' ? 4 : 5;
+  var displayStep = ncCurrentStep > 3 && ncHabEstado === 'habilitado' ? ncCurrentStep - 1 : ncCurrentStep;
+  for (var i = 1; i <= 5; i++) {
+    var el = document.getElementById('nc-s' + i);
+    if (el) el.className = 'step-content' + (i === ncCurrentStep ? ' act' : '');
     var dot = document.getElementById('sd' + i);
-    dot.className = 'step-dot' + (i === ncCurrentStep ? ' act' : i < ncCurrentStep ? ' done' : '');
+    if (dot) dot.className = 'step-dot' + (i === ncCurrentStep ? ' act' : i < ncCurrentStep ? ' done' : '');
   }
+  var lbl = document.getElementById('nc-step-label');
+  if (lbl) lbl.textContent = 'Paso ' + displayStep + ' de ' + totalSteps + ' — ' + (NC_STEP_LABELS[ncCurrentStep] || '');
   updateDocPreview();
+}
+
+// ================================================================
+// SERVICE PICKER
+// ================================================================
+function renderSvcPicker() {
+  var grid = document.getElementById('svc-picker-grid');
+  if (!grid) return;
+  var keys = Object.keys(SERVICIOS_REPS);
+  var html = '';
+  keys.forEach(function(k) {
+    var s = SERVICIOS_REPS[k];
+    if (ncSvcFiltroNivel !== 0 && s.nivel !== ncSvcFiltroNivel) return;
+    var sel = ncServiciosSeleccionados.indexOf(k) >= 0;
+    var nivelColor = s.nivel === 1 ? 'var(--green)' : s.nivel === 2 ? 'var(--yellow)' : 'var(--red)';
+    html += '<div class="svc-card' + (sel ? ' sel' : '') + '" onclick="toggleSvc(\'' + k + '\')">' +
+      '<div class="sc-name">' + s.nombre + '</div>' +
+      '<div class="sc-grupo">' + s.grupo + '</div>' +
+      '<span class="sc-nivel" style="background:' + nivelColor + '22;color:' + nivelColor + '">N' + s.nivel + '</span>' +
+      '</div>';
+  });
+  grid.innerHTML = html || '<div style="font-size:12px;color:var(--text3);padding:10px;grid-column:1/-1;text-align:center">Sin servicios para este nivel</div>';
+}
+
+function filtrarServicios(nivel, btn) {
+  ncSvcFiltroNivel = nivel;
+  document.querySelectorAll('.svc-filter-btn').forEach(function(b) { b.classList.remove('act'); });
+  if (btn) btn.classList.add('act');
+  renderSvcPicker();
+}
+
+function toggleSvc(codigo) {
+  var idx = ncServiciosSeleccionados.indexOf(codigo);
+  if (idx >= 0) ncServiciosSeleccionados.splice(idx, 1);
+  else ncServiciosSeleccionados.push(codigo);
+  renderSvcPicker();
+  updateSvcSelInfo();
+}
+
+function updateSvcSelInfo() {
+  var info = document.getElementById('svc-sel-info');
+  var countEl = document.getElementById('svc-sel-count');
+  var listEl = document.getElementById('svc-sel-list');
+  if (!info) return;
+  if (ncServiciosSeleccionados.length === 0) { info.classList.remove('show'); return; }
+  info.classList.add('show');
+  countEl.textContent = ncServiciosSeleccionados.length;
+  listEl.innerHTML = ncServiciosSeleccionados.map(function(k) {
+    var s = SERVICIOS_REPS[k];
+    return s ? '• ' + s.nombre + ' (N' + s.nivel + ')' : '';
+  }).join('<br>');
+}
+
+function updateGenPanel() {
+  var panel = document.getElementById('nc-gen-panel');
+  var summary = document.getElementById('nc-svc-summary');
+  if (!panel || !summary) return;
+  if (ncServiciosSeleccionados.length === 0) {
+    panel.style.display = 'none'; return;
+  }
+  panel.style.display = 'block';
+  summary.innerHTML = '<strong style="color:var(--text)">' + ncServiciosSeleccionados.length + ' servicio(s) a inscribir:</strong><br>' +
+    ncServiciosSeleccionados.map(function(k) {
+      var s = SERVICIOS_REPS[k]; return s ? '• ' + s.nombre : '';
+    }).join('<br>');
+}
+
+function addDocLink(docId, docNombre) {
+  var url = prompt('Pega el enlace de Google Drive para: ' + docNombre);
+  if (!url || !url.trim()) return;
+  ncDocLinks[docId] = { url: url.trim(), nombre: docNombre, fuente: 'drive' };
+  markDocUploaded(docId, 'Drive: ' + url.trim().substring(0,35) + '…');
+  toast(docNombre + ' vinculado ✓');
+}
+
+function handleDocUpload(event, docId, docNombre) {
+  var file = event.target.files[0];
+  if (!file) return;
+  if (file.size > 10 * 1024 * 1024) { toast('El archivo es demasiado grande (máx. 10MB)', 'err'); return; }
+  var reader = new FileReader();
+  reader.onload = function(ev) {
+    ncDocLinks[docId] = { url: ev.target.result, nombre: docNombre, fuente: 'local', fileName: file.name, fileSize: file.size };
+    markDocUploaded(docId, file.name + ' (' + Math.round(file.size/1024) + ' KB)');
+    toast(docNombre + ' cargado ✓');
+  };
+  reader.readAsDataURL(file);
+}
+
+function markDocUploaded(docId, info) {
+  var card = document.getElementById('duc-' + docId);
+  var statusEl = document.getElementById('duc-' + docId + '-status');
+  if (card) card.classList.add('uploaded');
+  if (statusEl) { statusEl.textContent = '✅ Cargado'; statusEl.className = 'status sv'; }
+  var sub = card ? card.querySelector('.duc-sub') : null;
+  if (sub) sub.textContent = '✅ ' + info;
+  updateDocCounter();
+}
+
+function updateDocCounter() {
+  ncDocCount = Object.keys(ncDocLinks).length;
+  var okEl = document.getElementById('duc-count-ok');
+  var pendEl = document.getElementById('duc-count-pend');
+  if (okEl) okEl.textContent = ncDocCount;
+  if (pendEl) pendEl.textContent = Math.max(0, NC_TOTAL_DOCS - ncDocCount);
+}
+
+function updateResumenFinal() {
+  var el = document.getElementById('nc-resumen-datos');
+  if (!el) return;
+  var nombre = document.getElementById('nc-nombre') ? document.getElementById('nc-nombre').value || '—' : '—';
+  var empresa = document.getElementById('nc-empresa') ? document.getElementById('nc-empresa').value || '—' : '—';
+  var ciudad = document.getElementById('nc-ciudad') ? document.getElementById('nc-ciudad').value || '—' : '—';
+  var nivel = document.getElementById('nc-nivel') ? document.getElementById('nc-nivel').value : '1';
+  var hab = ncHabEstado === 'nuevo' ? '🆕 Nuevo proceso' : ncHabEstado === 'habilitado' ? '✅ Ya habilitado' : '🔄 Renovación';
+  el.innerHTML =
+    '<div style="display:grid;grid-template-columns:1fr 1fr;gap:6px">' +
+    '<div><span style="color:var(--text3)">Profesional:</span> <strong>' + nombre + '</strong></div>' +
+    '<div><span style="color:var(--text3)">Empresa:</span> <strong>' + empresa + '</strong></div>' +
+    '<div><span style="color:var(--text3)">Ciudad:</span> ' + ciudad + '</div>' +
+    '<div><span style="color:var(--text3)">Nivel:</span> N' + nivel + '</div>' +
+    '<div><span style="color:var(--text3)">Habilitación:</span> ' + hab + '</div>' +
+    '<div><span style="color:var(--text3)">Docs personales:</span> ' + ncDocCount + '/' + NC_TOTAL_DOCS + ' cargados</div>' +
+    '</div>';
 }
 
 function syncColor(n) {
@@ -1407,14 +1650,17 @@ function syncColor(n) {
 function updateDocPreview() {
   var empresa = document.getElementById('nc-empresa') ? document.getElementById('nc-empresa').value || 'NOMBRE EMPRESA' : 'NOMBRE EMPRESA';
   var servicio = document.getElementById('nc-servicio') ? document.getElementById('nc-servicio').value || 'Servicio habilitado' : 'Servicio habilitado';
+  var ciudad = document.getElementById('nc-ciudad') ? document.getElementById('nc-ciudad').value || 'Ciudad' : 'Ciudad';
   var c1 = document.getElementById('nc-color1') ? document.getElementById('nc-color1').value : '#FF6B00';
   var c2 = document.getElementById('nc-color2') ? document.getElementById('nc-color2').value : '#7B2FBE';
   var pe = document.getElementById('prev-empresa');
   var ps = document.getElementById('prev-servicio');
+  var pcu = document.getElementById('prev-ciudad');
   var pd = document.getElementById('prev-divider');
   var plb = document.getElementById('prev-logo-box');
   if (pe) pe.textContent = empresa;
   if (ps) ps.textContent = servicio;
+  if (pcu) pcu.textContent = ciudad;
   if (pd) pd.style.background = 'linear-gradient(90deg,' + c1 + ',' + c2 + ')';
   if (plb) {
     if (logoDataUrl) {
@@ -1422,7 +1668,7 @@ function updateDocPreview() {
       plb.style.background = 'transparent';
     } else {
       plb.style.background = 'linear-gradient(135deg,' + c1 + ',' + c2 + ')';
-      plb.textContent = '🏥';
+      plb.innerHTML = '<i class="fas fa-hospital" style="color:#fff;font-size:14px"></i>';
     }
   }
 }
@@ -1445,17 +1691,11 @@ function processLogo(f) {
 }
 
 function guardarCliente() {
-  var saveBtn = document.querySelector('#nc-modal .nc-save-btn') || document.querySelector('.nc-save-btn');
-  var editId = saveBtn ? saveBtn.getAttribute('data-edit-id') : null;
-  var editBase = saveBtn ? saveBtn.getAttribute('data-edit-base') === 'true' : false;
-  var isEdit = !!editId;
-
   var user = document.getElementById('nc-user').value.trim().toLowerCase();
   var pass = document.getElementById('nc-pass').value;
   var nombre = document.getElementById('nc-nombre').value.trim();
-  if (!user) { toast('Ingresa el nombre de usuario', 'err'); return; }
-  if (!isEdit && !pass) { toast('Ingresa una contraseña para el nuevo cliente', 'err'); return; }
-  if (pass && pass.length < 8) { toast('La contraseña debe tener mínimo 8 caracteres', 'err'); return; }
+  if (!user || !pass) { toast('Ingresa usuario y contraseña', 'err'); return; }
+  if (pass.length < 8) { toast('La contraseña debe tener mínimo 8 caracteres', 'err'); return; }
 
   var cliente = {
     nombre: nombre,
@@ -1476,36 +1716,16 @@ function guardarCliente() {
     logo_url: logoDataUrl || '',
     usuario: user,
     notas: document.getElementById('nc-notas').value,
-    fecha_registro: new Date().toLocaleString('es-CO')
+    fecha_registro: new Date().toLocaleString('es-CO'),
+    secretaria: document.getElementById('nc-secretaria') ? document.getElementById('nc-secretaria').value : '',
+    codigo_habilitacion: document.getElementById('nc-codigo-hab') ? document.getElementById('nc-codigo-hab').value : '',
+    estado_habilitacion: ncHabEstado,
+    docs_personales: ncDocLinks
   };
 
-  // Save to localStorage — update existing or push new
+  // Save to localStorage
   var clientes = JSON.parse(localStorage.getItem('bio_clientes_list') || '[]');
-  if (isEdit && !editBase) {
-    var idx = clientes.findIndex(function(c) { return (c.usuario || c.nombre) === editId; });
-    if (idx >= 0) {
-      // Preserve password if not changed
-      if (!pass) cliente._pass = clientes[idx]._pass;
-      else cliente._pass = pass;
-      clientes[idx] = cliente;
-    } else {
-      clientes.push(cliente);
-    }
-  } else if (isEdit && editBase) {
-    // Editing the base VESGA client — update VESGA object in memory
-    VESGA.nombre = cliente.nombre; VESGA.empresa = cliente.empresa; VESGA.nit = cliente.nit;
-    VESGA.nivel_atencion = cliente.nivel; VESGA.ciudad = cliente.ciudad;
-    VESGA.especialidad = cliente.especialidad; VESGA.email = cliente.email;
-    VESGA.telefono = cliente.telefono; VESGA.cedula = cliente.cedula;
-    VESGA.direccion = cliente.direccion; VESGA.color1 = cliente.color1;
-    VESGA.color2 = cliente.color2; VESGA.registro_medico = cliente.rm;
-    VESGA.drive_url = cliente.drive_url;
-    if (logoDataUrl) VESGA.logo_url = logoDataUrl;
-    localStorage.setItem('bio_vesga_custom', JSON.stringify(VESGA));
-  } else {
-    cliente._pass = pass;
-    clientes.push(cliente);
-  }
+  clientes.push(cliente);
   localStorage.setItem('bio_clientes_list', JSON.stringify(clientes));
 
   // Save logo (compress if too large)
@@ -1543,16 +1763,58 @@ function guardarCliente() {
     renderDash();
   }
 
-  addTraz(isEdit ? 'Actualizó cliente' : 'Registró cliente', nombre + ' — ' + cliente.empresa);
+  // Save selected REPS services
+  if (ncServiciosSeleccionados.length > 0) {
+    var svcData = ncServiciosSeleccionados.map(function(k) {
+      var s = SERVICIOS_REPS[k];
+      return s ? { codigo: s.codigo, nombre: s.nombre, nivel: s.nivel, grupo: s.grupo,
+        estado: 'en_proceso', fecha_inscripcion: new Date().toLocaleDateString('es-CO'),
+        documentos_obligatorios: s.documentos_obligatorios, requisitos_reps: s.requisitos_reps } : null;
+    }).filter(Boolean);
+    localStorage.setItem('bio_servicios_' + user, JSON.stringify(svcData));
+  }
+
+  addTraz('Registró cliente', nombre + ' — ' + cliente.empresa);
+  if (ncServiciosSeleccionados.length > 0) {
+    addTraz('Servicios REPS seleccionados', ncServiciosSeleccionados.map(function(k){ return SERVICIOS_REPS[k] ? SERVICIOS_REPS[k].nombre : k; }).join(', '));
+  }
   renderCli();
   closeNewCliente();
   logoDataUrl = null;
 
-  if (isEdit) {
-    toast('Cliente actualizado correctamente ✓');
-  } else {
-    toast('✅ ' + nombre + ' registrado — ya puede ingresar con usuario: ' + user);
+  var instruccion = '\'' + user + '\': {pass:\'' + pass + '\', role:\'cliente\', to:\'cliente/index.html\'},';
+  showInstrucciones(nombre, user, instruccion, ncServiciosSeleccionados.slice());
+  ncServiciosSeleccionados = [];
+}
+
+function showInstrucciones(nombre, user, linea, servicios) {
+  servicios = servicios || [];
+  var svcHtml = '';
+  if (servicios.length > 0) {
+    svcHtml = '<div style="background:linear-gradient(135deg,rgba(255,107,0,0.08),rgba(123,47,190,0.08));border:1px solid rgba(255,107,0,0.3);border-radius:10px;padding:14px;margin-bottom:12px">' +
+      '<div style="font-size:12px;font-weight:700;color:#FF8C33;margin-bottom:10px">🚀 Documentos de inscripción — ' + servicios.length + ' servicio(s)</div>' +
+      '<div style="font-size:11px;color:#A0A0C0;margin-bottom:10px">' + servicios.map(function(k){ return SERVICIOS_REPS[k] ? '• ' + SERVICIOS_REPS[k].nombre : ''; }).join('<br>') + '</div>' +
+      '<div style="display:flex;flex-direction:column;gap:6px">' +
+      '<button onclick="generarListaChequeo()" style="padding:9px 12px;background:rgba(45,159,92,0.15);border:1px solid rgba(45,159,92,0.4);border-radius:8px;color:#2D9F5C;font-size:12px;font-weight:700;cursor:pointer;font-family:inherit;text-align:left">📋 Generar lista de chequeo Res. 3100/2019</button>' +
+      '<button onclick="generarActaRadicacion()" style="padding:9px 12px;background:rgba(123,47,190,0.15);border:1px solid rgba(123,47,190,0.4);border-radius:8px;color:#9B4FDE;font-size:12px;font-weight:700;cursor:pointer;font-family:inherit;text-align:left">📜 Generar carta de radicación ante Secretaría</button>' +
+      '<button onclick="generarDocumentosReps()" style="padding:9px 12px;background:rgba(255,107,0,0.12);border:1px solid rgba(255,107,0,0.4);border-radius:8px;color:#FF8C33;font-size:12px;font-weight:700;cursor:pointer;font-family:inherit;text-align:left">🏥 Generar paquete completo REPS</button>' +
+      '</div></div>';
   }
+  var msg = document.createElement('div');
+  msg.style.cssText = 'position:fixed;inset:0;z-index:9999;background:rgba(0,0,0,0.85);display:flex;align-items:center;justify-content:center;padding:20px;backdrop-filter:blur(10px);overflow-y:auto';
+  msg.innerHTML = '<div style="background:#1C1C35;border:1px solid rgba(255,255,255,0.15);border-radius:16px;padding:24px;max-width:520px;width:100%;font-family:Plus Jakarta Sans,sans-serif">' +
+    '<div style="font-size:16px;font-weight:800;color:#F0F0FF;margin-bottom:6px">✅ Cliente registrado exitosamente</div>' +
+    '<div style="font-size:13px;color:#A0A0C0;margin-bottom:16px">' + nombre + ' fue guardado. El módulo REPS fue pre-cargado con los servicios seleccionados.</div>' +
+    svcHtml +
+    '<div style="background:#0D0D1A;border:1px solid rgba(255,107,0,0.3);border-radius:10px;padding:14px;margin-bottom:14px">' +
+    '<div style="font-size:11px;font-weight:700;color:#FF8C33;margin-bottom:8px;text-transform:uppercase">⚠️ Paso requerido — Agregar en index.html</div>' +
+    '<div style="font-size:12px;color:#A0A0C0;margin-bottom:8px">En la sección <strong style="color:#F0F0FF">USERS</strong> del archivo <strong style="color:#F0F0FF">index.html</strong> (raíz), agrega esta línea:</div>' +
+    '<div style="background:#141428;border-radius:8px;padding:10px;font-family:monospace;font-size:12px;color:#9B4FDE;word-break:break-all;border:1px solid rgba(123,47,190,0.3)">' + linea.replace(/</g,'&lt;') + '</div>' +
+    '<button onclick="navigator.clipboard&&navigator.clipboard.writeText(\'' + linea.replace(/'/g,"\'") + '\').then(function(){document.getElementById(\'copy-btn\').textContent=\'✅ Copiado\'})" id="copy-btn" style="margin-top:8px;padding:6px 14px;background:rgba(123,47,190,0.2);border:1px solid rgba(123,47,190,0.4);border-radius:6px;color:#9B4FDE;font-size:11px;font-weight:700;cursor:pointer;font-family:inherit">📋 Copiar línea</button>' +
+    '</div>' +
+    '<button onclick="this.closest(\'div[style*=fixed]\').remove()" style="width:100%;padding:11px;background:linear-gradient(135deg,#FF6B00,#7B2FBE);color:#fff;border:none;border-radius:10px;font-size:13px;font-weight:700;cursor:pointer;font-family:inherit">Entendido</button>' +
+    '</div>';
+  document.body.appendChild(msg);
 }
 
 // ================================================================
@@ -1566,53 +1828,37 @@ function renderDash() {
     else if (d.estado === 'pendiente') pen++;
     else req++;
   });
-  var pct = total > 0 ? Math.round(ok / total * 100) : 0;
+  var pct = Math.round(ok / total * 100);
 
   document.getElementById('st-row').innerHTML =
     sc('📄', 'var(--or)', total, 'Total docs', pct) +
     sc('✅', 'var(--green)', ok, 'Vigentes', 100) +
-    sc('⚠️', 'var(--yellow)', pen, 'Pendientes', total ? Math.round(pen/total*100) : 0) +
-    sc('🚨', 'var(--red)', req, 'Requeridos', total ? Math.round(req/total*100) : 0);
+    sc('⚠️', 'var(--yellow)', pen, 'Pendientes', Math.round(pen/total*100)) +
+    sc('🚨', 'var(--red)', req, 'Requeridos', Math.round(req/total*100));
 
   document.getElementById('dash-alert').innerHTML = req > 0
     ? '<div class="alert aw"><i class="fas fa-exclamation-triangle" style="flex-shrink:0"></i><div><strong>' + req + ' documento(s) requeridos</strong> — Gestiónalos antes de cualquier visita de verificación.</div></div>'
     : '<div class="alert ag"><i class="fas fa-check-circle" style="flex-shrink:0"></i><div><strong>Cumplimiento ' + pct + '%</strong> — Documentación en buen estado.</div></div>';
 
   var c1 = C.color1 || '#FF6B00', c2 = C.color2 || '#7B2FBE';
-  var initials = (C.nombre || '').split(' ').map(function(x){return x[0]||'';}).join('').substr(0,2).toUpperCase();
   var logoHtml = C.logo_url
     ? '<img src="' + C.logo_url + '" style="width:46px;height:46px;border-radius:50%;object-fit:cover">'
-    : '<div style="width:46px;height:46px;border-radius:50%;background:linear-gradient(135deg,' + c1 + ',' + c2 + ');display:flex;align-items:center;justify-content:center;font-size:17px;font-weight:800">' + initials + '</div>';
-
-  // All clients switcher
-  var allCli = getAllClientes();
-  var switcherHtml = '<div style="display:flex;flex-wrap:wrap;gap:8px;padding:12px 0 4px">' +
-    allCli.map(function(cli) {
-      var cid = cli.id || cli.usuario || cli.nombre;
-      var iAct = cid === currentClientId;
-      var cc1 = cli.color1 || '#FF6B00', cc2 = cli.color2 || '#7B2FBE';
-      var ini = (cli.nombre||'').split(' ').map(function(x){return x[0]||'';}).join('').substr(0,2).toUpperCase();
-      return '<button class="client-switcher-btn' + (iAct ? ' active-client' : '') + '" data-cid="' + cid + '" onclick="switchClient(\'' + cid + '\')" style="display:flex;align-items:center;gap:8px;padding:7px 12px;border-radius:20px;border:2px solid ' + (iAct ? cc1 : 'var(--bd)') + ';background:' + (iAct ? cc1+'22' : 'var(--dark3)') + ';cursor:pointer;font-family:inherit;color:var(--text);font-size:12px;font-weight:' + (iAct?'800':'600') + ';transition:all 0.2s">' +
-        '<div style="width:24px;height:24px;border-radius:50%;background:linear-gradient(135deg,' + cc1 + ',' + cc2 + ');display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:800;color:#fff;flex-shrink:0">' + ini + '</div>' +
-        (cli.nombre.split(' ').slice(1,3).join(' ')) +
-        (iAct ? '<span style="font-size:9px;background:' + cc1 + ';color:#fff;padding:1px 5px;border-radius:8px;margin-left:2px">Activo</span>' : '') +
-        '</button>';
-    }).join('') +
-    '</div>';
+    : '<div style="width:46px;height:46px;border-radius:50%;background:linear-gradient(135deg,' + c1 + ',' + c2 + ');display:flex;align-items:center;justify-content:center;font-size:17px;font-weight:800">YV</div>';
 
   document.getElementById('client-card').innerHTML =
-    '<div style="margin-bottom:10px"><div style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:0.06em;color:var(--text3);margin-bottom:4px">Cambiar cliente</div>' + switcherHtml + '</div>' +
-    '<div style="height:1px;background:var(--bd);margin-bottom:12px"></div>' +
     '<div style="display:flex;align-items:center;gap:12px;margin-bottom:12px">' + logoHtml +
     '<div><div style="font-weight:700;font-size:14px">' + C.nombre + '</div>' +
-    '<div style="font-size:11px;color:var(--text2)">' + (C.especialidad || C.servicio || 'Prestador de salud') + ' · ' + (C.ciudad || '') + '</div>' +
-    '<div style="font-size:10px;color:var(--text3)">' + (C.empresa || '') + (C.nit ? ' · NIT ' + C.nit : '') + '</div></div></div>' +
+    '<div style="font-size:11px;color:var(--text2)">' + C.especialidad + ' · ' + C.ciudad + '</div>' +
+    '<div style="font-size:10px;color:var(--text3)">' + C.empresa + ' · NIT ' + C.nit + '</div></div></div>' +
+    '<div style="display:flex;flex-wrap:wrap;gap:3px;margin-bottom:10px">' +
+    '<span class="tag" style="background:' + c2 + '22;color:' + c2 + ';border:1px solid ' + c2 + '44">Consulta externa</span>' +
+    '<span class="tag" style="background:' + c1 + '22;color:' + c1 + ';border:1px solid ' + c1 + '44">Estética no invasiva</span>' +
+    '<span class="tag" style="background:var(--gbg);color:var(--green)">Habilitado</span></div>' +
     '<div style="display:flex;justify-content:space-between;font-size:11px;margin-bottom:4px"><span style="color:var(--text2)">Cumplimiento Res. 3100</span><span style="color:' + c1 + ';font-weight:700">' + pct + '%</span></div>' +
     '<div class="pw"><div class="pf" style="width:' + pct + '%;background:linear-gradient(90deg,' + c1 + ',' + c2 + ')"></div></div>' +
     '<div style="display:flex;gap:6px;margin-top:12px">' +
     '<button class="btn bor" style="flex:1;justify-content:center;font-size:11px;background:linear-gradient(135deg,' + c1 + ',' + c2 + ')" onclick="nav(document.querySelectorAll(\'.ni\')[2],\'estandares\',\'Estándares 3100\')"><i class="fas fa-folder-open"></i>Ver documentos</button>' +
-    (C.drive_url ? '<button class="btn bgr" style="font-size:11px" onclick="window.open(\'' + C.drive_url + '\',\'_blank\')"><i class="fab fa-google-drive"></i>Drive</button>' : '') +
-    '</div>';
+    '<button class="btn bgr" style="font-size:11px" onclick="window.open(\'' + (C.drive_url || '') + '\',\'_blank\')"><i class="fab fa-google-drive"></i>Drive</button></div>';
 }
 
 function sc(ico, color, num, label, pct) {
@@ -1634,75 +1880,27 @@ function renderLog(el, n) {
 
 function renderCli() {
   var savedClientes = JSON.parse(localStorage.getItem('bio_clientes_list') || '[]');
-  var allClientes = [{ nombre: VESGA.nombre, empresa: VESGA.empresa, nit: VESGA.nit,
-    nivel: VESGA.nivel_atencion, ciudad: VESGA.ciudad, usuario: 'dra.vesga',
-    especialidad: VESGA.especialidad, color1: VESGA.color1, color2: VESGA.color2,
-    email: VESGA.email, telefono: VESGA.telefono, direccion: VESGA.direccion, _base: true }].concat(savedClientes);
-  document.getElementById('cli-list').innerHTML = allClientes.map(function(cli, idx) {
-    var cid = cli.usuario || cli.nombre;
+  var allClientes = [{ nombre: C.nombre, empresa: C.empresa, nit: C.nit, nivel: C.nivel_atencion, ciudad: C.ciudad, usuario: 'dra.vesga', estado_habilitacion: 'habilitado', _base: true }].concat(savedClientes);
+  document.getElementById('cli-list').innerHTML = allClientes.map(function(cli) {
     var initials = (cli.nombre || '').split(' ').map(function(x) { return x[0]; }).join('').substr(0, 2).toUpperCase();
-    var c1 = cli.color1 || '#FF6B00', c2 = cli.color2 || '#7B2FBE';
-    var isActive = cid === currentClientId;
-    var svcs = JSON.parse(localStorage.getItem('bio_servicios_' + cid) || '[]');
-    return '<div class="dr" style="padding:12px;border-left:3px solid ' + (isActive ? c1 : 'transparent') + ';cursor:pointer" onclick="switchClient(\'' + cid + '\')">' +
-      '<div class="dl">' +
-      '<div style="width:42px;height:42px;border-radius:50%;background:linear-gradient(135deg,' + c1 + ',' + c2 + ');display:flex;align-items:center;justify-content:center;font-size:14px;font-weight:800;flex-shrink:0;color:#fff">' + initials + '</div>' +
-      '<div style="min-width:0">' +
-      '<div style="font-weight:700;font-size:13px">' + cli.nombre + (isActive ? ' <span style="font-size:9px;background:'+c1+';color:#fff;padding:1px 6px;border-radius:8px">Activo</span>' : '') + '</div>' +
+    var habTag = '';
+    if (cli.estado_habilitacion === 'habilitado') habTag = '<span class="tag" style="background:var(--gbg);color:var(--green)">✅ Habilitado</span>';
+    else if (cli.estado_habilitacion === 'renovacion') habTag = '<span class="tag" style="background:var(--ybg);color:var(--yellow)">🔄 Renovación</span>';
+    else habTag = '<span class="tag" style="background:var(--or-bg);color:var(--or2)">🆕 En proceso</span>';
+    var docsPersonales = cli.docs_personales ? Object.keys(cli.docs_personales).length : 0;
+    var docsInfo = docsPersonales > 0 ? '<span class="tag" style="background:var(--gbg);color:var(--green)">' + docsPersonales + ' docs personales</span>' : '';
+    var logoEl = cli.logo_url
+      ? '<img src="' + cli.logo_url + '" style="width:40px;height:40px;border-radius:50%;object-fit:cover">'
+      : '<div style="width:40px;height:40px;border-radius:50%;background:linear-gradient(135deg,var(--or),var(--pu));display:flex;align-items:center;justify-content:center;font-size:14px;font-weight:800;flex-shrink:0">' + initials + '</div>';
+    return '<div class="dr" style="padding:12px;flex-wrap:wrap;gap:10px">' +
+      '<div class="dl">' + logoEl +
+      '<div><div style="font-weight:700;font-size:13px">' + cli.nombre + '</div>' +
       '<div style="font-size:11px;color:var(--text2)">' + (cli.empresa || '') + (cli.nit ? ' · NIT ' + cli.nit : '') + '</div>' +
       '<div style="font-size:10px;color:var(--text3)">@' + (cli.usuario || '') + ' · Nivel ' + (cli.nivel || cli.nivel_atencion || '1') + (cli.ciudad ? ' · ' + cli.ciudad : '') + '</div>' +
-      (svcs.length > 0 ? '<div style="font-size:10px;color:var(--or2);margin-top:2px">' + svcs.length + ' servicio(s) REPS</div>' : '') +
+      '<div style="margin-top:5px">' + habTag + docsInfo + '</div>' +
       '</div></div>' +
-      '<div style="display:flex;gap:5px;align-items:center">' +
-      '<button class="btn bg" style="font-size:10px;padding:5px 8px" onclick="event.stopPropagation();editCliente(\'' + cid + '\',' + (cli._base ? 'true' : 'false') + ')"><i class="fas fa-edit"></i></button>' +
-      (!cli._base ? '<button class="btn bg" style="font-size:10px;padding:5px 8px;background:var(--rbg);color:var(--red)" onclick="event.stopPropagation();eliminarCliente(\'' + cid + '\')"><i class="fas fa-trash"></i></button>' : '') +
-      '<span class="status sv">Activo</span></div></div>';
+      '<div class="da"><span class="status sv">Activo</span></div></div>';
   }).join('');
-}
-
-function editCliente(clientId, isBase) {
-  var cli;
-  if (isBase) {
-    cli = { nombre: VESGA.nombre, empresa: VESGA.empresa, nit: VESGA.nit,
-      nivel: VESGA.nivel_atencion, ciudad: VESGA.ciudad, usuario: 'dra.vesga',
-      especialidad: VESGA.especialidad, email: VESGA.email, telefono: VESGA.telefono,
-      cedula: VESGA.cedula, direccion: VESGA.direccion, color1: VESGA.color1, color2: VESGA.color2,
-      rm: VESGA.registro_medico, drive_url: VESGA.drive_url, _base: true };
-  } else {
-    var saved = JSON.parse(localStorage.getItem('bio_clientes_list') || '[]');
-    cli = saved.find(function(c) { return (c.usuario || c.nombre) === clientId; });
-  }
-  if (!cli) return;
-  openNewCliente();
-  setTimeout(function() {
-    var set = function(id, val) { var el = document.getElementById(id); if (el && val) el.value = val; };
-    set('nc-nombre', cli.nombre); set('nc-cedula', cli.cedula); set('nc-esp', cli.especialidad);
-    set('nc-rm', cli.rm || cli.registro_medico); set('nc-empresa', cli.empresa); set('nc-nit', cli.nit);
-    set('nc-nivel', cli.nivel || cli.nivel_atencion); set('nc-dir', cli.direccion); set('nc-ciudad', cli.ciudad);
-    set('nc-tel', cli.telefono); set('nc-email', cli.email); set('nc-servicio', cli.servicio || '');
-    set('nc-color1', cli.color1); set('nc-color2', cli.color2); set('nc-drive', cli.drive_url);
-    set('nc-user', cli.usuario); set('nc-notas', cli.notas);
-    var ct1 = document.getElementById('nc-color1-txt'); if (ct1) ct1.value = cli.color1 || '#FF6B00';
-    var ct2 = document.getElementById('nc-color2-txt'); if (ct2) ct2.value = cli.color2 || '#7B2FBE';
-    document.getElementById('nc-modal-title').textContent = '✏️ Editar cliente';
-    var passLbl = document.querySelector('label[for="nc-pass"], label.fl + input#nc-pass, .fg:has(#nc-pass) .fl');
-    var passInput = document.getElementById('nc-pass');
-    if (passInput) passInput.placeholder = 'Dejar vacío para no cambiarla';
-    var passContainer = passInput ? passInput.closest('.fg') : null;
-    if (passContainer) { var lbl = passContainer.querySelector('.fl'); if (lbl) lbl.textContent = 'Contraseña (opcional al editar)'; }
-    var saveBtn = document.querySelector('#nc-modal .nc-save-btn');
-    if (saveBtn) { saveBtn.innerHTML = '<i class="fas fa-save"></i>💾 Guardar cambios'; saveBtn.setAttribute('data-edit-id', clientId); saveBtn.setAttribute('data-edit-base', isBase); }
-    updateDocPreview();
-  }, 100);
-}
-
-function eliminarCliente(clientId) {
-  if (!confirm('¿Eliminar permanentemente este cliente? Esta acción no se puede deshacer.')) return;
-  var saved = JSON.parse(localStorage.getItem('bio_clientes_list') || '[]');
-  saved = saved.filter(function(c) { return (c.usuario || c.nombre) !== clientId; });
-  localStorage.setItem('bio_clientes_list', JSON.stringify(saved));
-  if (currentClientId === clientId) { currentClientId = 'vesga'; C = VESGA; loadData(); }
-  renderCli(); renderDash(); toast('Cliente eliminado');
 }
 
 function renderEstdTabs() {
@@ -2290,758 +2488,336 @@ function quickAddServicio(codigo) {
 }
 
 // ================================================================
-// MÓDULO GESTIÓN DOCUMENTAL POR CLIENTE (DRIVE)
 // ================================================================
+// GENERADOR LISTA DE CHEQUEO — Res. 3100/2019 (Premium)
+// ================================================================
+function generarListaChequeo() {
+  var fecha = new Date().toLocaleDateString('es-CO', {year:'numeric',month:'long',day:'numeric'});
+  var c1 = C.color1 || '#FF6B00', c2 = C.color2 || '#7B2FBE';
+  var logoHtml = C.logo_url
+    ? '<img src="' + C.logo_url + '" style="width:60px;height:60px;object-fit:contain;border-radius:8px">'
+    : '<div style="width:60px;height:60px;border-radius:8px;background:linear-gradient(135deg,' + c1 + ',' + c2 + ');display:flex;align-items:center;justify-content:center;font-size:24px">🏥</div>';
 
-function getDocsCliente(clienteId) {
-  var saved = localStorage.getItem('bio_docs_' + clienteId);
-  if (saved) {
-    try { return JSON.parse(saved); } catch(e) {}
-  }
-  // Buscar en BIO_DATA
-  var cli = BIO_DATA.clientes[clienteId];
-  if (cli && cli.documentosDrive) return JSON.parse(JSON.stringify(cli.documentosDrive));
-  return { carpetaClienteId: '', carpetaClienteUrl: '', serviciosHabilitados: ['medicina_general'], documentos: [] };
-}
+  var docs = C.estandares.reduce(function(a, e) { return a.concat(e.documentos); }, []);
+  var total = docs.length;
+  var vigentes = docs.filter(function(d){return d.estado==='vigente';}).length;
+  var pendientes = docs.filter(function(d){return d.estado==='pendiente';}).length;
+  var requeridos = docs.filter(function(d){return d.estado==='requerido';}).length;
+  var pct = Math.round(vigentes/total*100);
 
-function saveDocsCliente(clienteId, data) {
-  localStorage.setItem('bio_docs_' + clienteId, JSON.stringify(data));
-}
-
-function enlazarDocumentoCliente(clienteId, codigo, driveId) {
-  var data = getDocsCliente(clienteId);
-  var driveUrl = driveId ? 'https://drive.google.com/file/d/' + driveId + '/view' : '';
-  var idx = data.documentos.findIndex(function(d) { return d.codigo === codigo; });
-  if (idx >= 0) {
-    data.documentos[idx].driveId = driveId;
-    data.documentos[idx].driveUrl = driveUrl;
-    data.documentos[idx].estado = driveId ? 'disponible' : 'pendiente';
-  } else {
-    data.documentos.push({ codigo: codigo, driveId: driveId, driveUrl: driveUrl, estado: driveId ? 'disponible' : 'pendiente' });
-  }
-  saveDocsCliente(clienteId, data);
-}
-
-function renderGesdocs() {
-  var clientes = Object.values(BIO_DATA.clientes);
-  var selId = document.getElementById('gd-cliente-sel') ? document.getElementById('gd-cliente-sel').value : (clientes[0] ? clientes[0].id : '');
-
-  var cliOptions = clientes.map(function(c) {
-    return '<option value="' + c.id + '"' + (selId === c.id ? ' selected' : '') + '>' + c.nombre_corto + ' — ' + c.empresa + '</option>';
+  var estandaresHtml = C.estandares.map(function(estd) {
+    var info = ESTANDARES_3100.find(function(x){return x.id===estd.id;});
+    if (!info) return '';
+    var ok = estd.documentos.filter(function(d){return d.estado==='vigente';}).length;
+    var tot = estd.documentos.length;
+    var estPct = Math.round(ok/tot*100);
+    var statusColor = estPct >= 80 ? '#2D9F5C' : estPct >= 50 ? '#F4A261' : '#E63946';
+    var docsHtml = estd.documentos.map(function(d, i) {
+      var stIco = d.estado==='vigente'?'✅':d.estado==='pendiente'?'⚠️':'🚨';
+      var stColor = d.estado==='vigente'?'#2D9F5C':d.estado==='pendiente'?'#B8860B':'#C0392B';
+      var stLabel = d.estado==='vigente'?'VIGENTE':d.estado==='pendiente'?'PENDIENTE':'REQUERIDO';
+      return '<tr style="border-bottom:1px solid #F5F5F5;' + (i%2===0?'background:#FAFAFA':'') + '">' +
+        '<td style="padding:6px 10px;font-size:10px;color:#666;width:24px;text-align:center">' + (i+1) + '</td>' +
+        '<td style="padding:6px 10px;font-size:11px;color:#222">' + d.nombre + '</td>' +
+        '<td style="padding:6px 10px;font-size:10px;color:#555;width:90px">' + (d.version||'—') + '</td>' +
+        '<td style="padding:6px 10px;text-align:center;width:80px">' +
+          '<span style="background:' + stColor + '15;color:' + stColor + ';padding:2px 6px;border-radius:3px;font-size:9px;font-weight:700;border:1px solid ' + stColor + '40">' + stIco + ' ' + stLabel + '</span>' +
+        '</td>' +
+        '<td style="padding:6px 10px;width:100px;border:1px solid #E0E0E0"></td>' +
+      '</tr>';
+    }).join('');
+    return '<div style="margin-bottom:20px;break-inside:avoid">' +
+      '<div style="background:linear-gradient(135deg,' + c1 + ',' + c2 + ');color:#fff;padding:10px 14px;border-radius:8px 8px 0 0;display:flex;justify-content:space-between;align-items:center">' +
+        '<div>' +
+          '<div style="font-size:13px;font-weight:700">E' + info.num + ' — ' + info.icono + ' ' + info.nombre + '</div>' +
+          '<div style="font-size:10px;opacity:0.85">' + info.norma + '</div>' +
+        '</div>' +
+        '<div style="text-align:right">' +
+          '<div style="font-size:18px;font-weight:800">' + estPct + '%</div>' +
+          '<div style="font-size:10px;opacity:0.85">' + ok + '/' + tot + ' docs</div>' +
+        '</div>' +
+      '</div>' +
+      '<table style="width:100%;border-collapse:collapse;border:1px solid #E5E5E5;border-top:none">' +
+        '<tr style="background:#F0F0F0"><th style="padding:6px 10px;font-size:9px;text-align:left;color:#555;font-weight:700">N°</th>' +
+        '<th style="padding:6px 10px;font-size:9px;text-align:left;color:#555;font-weight:700">Documento / Requisito</th>' +
+        '<th style="padding:6px 10px;font-size:9px;color:#555;font-weight:700">Versión</th>' +
+        '<th style="padding:6px 10px;font-size:9px;text-align:center;color:#555;font-weight:700">Estado</th>' +
+        '<th style="padding:6px 10px;font-size:9px;text-align:center;color:#555;font-weight:700">Firma / Sello</th></tr>' +
+        docsHtml +
+      '</table></div>';
   }).join('');
 
-  var html = '<div class="alert ai"><i class="fas fa-folder-open" style="flex-shrink:0;font-size:16px"></i>' +
-    '<div><strong>Gestión Documental por Cliente — Google Drive</strong><br>' +
-    'Asigna y enlaza los documentos de cada cliente con sus copias en Google Drive. El cliente podrá verlos y editarlos desde su portal.</div></div>';
-
-  html += '<div class="card">' +
-    '<div class="ch"><div class="ct">📋 Gestión Documental por Cliente</div>' +
-    '<button class="btn bg" onclick="document.getElementById(\'modal-instrucciones\').classList.add(\'open\')"><i class="fas fa-question-circle"></i>Ver instrucciones</button></div>';
-
-  html += '<div class="fg" style="margin-bottom:14px">' +
-    '<label class="fl">Seleccionar Cliente</label>' +
-    '<select class="fi" id="gd-cliente-sel" onchange="renderGesdocs()">' + cliOptions + '</select></div>';
-
-  if (!selId) { html += '</div>'; document.getElementById('gesdocs-content').innerHTML = html; return; }
-
-  var data = getDocsCliente(selId);
-  var cli = BIO_DATA.clientes[selId];
-
-  // Carpeta Drive del cliente
-  html += '<div style="background:var(--dark4);border:1px solid var(--bd2);border-radius:10px;padding:14px;margin-bottom:14px">' +
-    '<div style="font-size:12px;font-weight:700;color:var(--text2);margin-bottom:8px"><i class="fab fa-google-drive" style="color:#4285F4"></i> Carpeta Drive del cliente</div>' +
-    '<div style="display:flex;gap:8px;margin-bottom:8px">' +
-    '<input class="fi" id="gd-carpeta-id" placeholder="ID de la carpeta Drive del cliente..." value="' + (data.carpetaClienteId || '') + '" style="flex:1">' +
-    '<button class="drive-btn" onclick="guardarCarpetaCliente(\'' + selId + '\')">💾 Guardar</button>' +
-    (data.carpetaClienteId ? '<a href="https://drive.google.com/drive/folders/' + data.carpetaClienteId + '" target="_blank" class="drive-btn" style="text-decoration:none">📁 Abrir ↗</a>' : '') +
-    '</div>' +
-    '<div style="font-size:11px;color:var(--text3)">Pega el ID de la carpeta (lo encuentras en la URL de Drive: drive.google.com/drive/folders/<strong>[ID]</strong>)</div>' +
-    '</div>';
-
-  // Servicios habilitados
-  var svcsHab = data.serviciosHabilitados || ['medicina_general'];
-  html += '<div style="background:var(--dark4);border:1px solid var(--bd);border-radius:10px;padding:14px;margin-bottom:14px">' +
-    '<div style="font-size:12px;font-weight:700;color:var(--text2);margin-bottom:10px">Servicios habilitados del cliente</div>' +
-    '<div style="display:flex;flex-wrap:wrap;gap:12px">' +
-    '<label style="display:flex;align-items:center;gap:6px;font-size:12px;cursor:pointer">' +
-    '<input type="checkbox" id="svc-medicina" ' + (svcsHab.indexOf('medicina_general') >= 0 ? 'checked' : '') + ' onchange="toggleServicio(\'' + selId + '\',\'medicina_general\')">' +
-    'Medicina General</label>' +
-    '<label style="display:flex;align-items:center;gap:6px;font-size:12px;cursor:pointer">' +
-    '<input type="checkbox" id="svc-estetica" ' + (svcsHab.indexOf('estetica') >= 0 ? 'checked' : '') + ' onchange="toggleServicio(\'' + selId + '\',\'estetica\')">' +
-    'Estética No Invasiva</label>' +
-    '<label style="display:flex;align-items:center;gap:6px;font-size:12px;cursor:pointer">' +
-    '<input type="checkbox" id="svc-urgencias" ' + (svcsHab.indexOf('urgencias') >= 0 ? 'checked' : '') + ' onchange="toggleServicio(\'' + selId + '\',\'urgencias\')">' +
-    'Urgencias</label>' +
-    '</div></div>';
-
-  // Documentos por estándar
-  html += '<div style="font-size:12px;font-weight:700;color:var(--text);margin-bottom:10px;padding-bottom:6px;border-bottom:1px solid var(--bd)">Documentos a asignar (según servicios)</div>';
-
-  Object.keys(PLANTILLAS_DRIVE.estandares).forEach(function(eKey) {
-    var estd = PLANTILLAS_DRIVE.estandares[eKey];
-    // Filtrar documentos relevantes según servicios
-    var docs = estd.documentos.filter(function(d) {
-      if (!d.servicio) return true;
-      return svcsHab.indexOf(d.servicio) >= 0;
-    });
-    if (!docs.length) return;
-
-    var carpUrl = 'https://drive.google.com/drive/folders/' + estd.carpetaDriveId;
-    html += '<div style="background:var(--dark4);border:1px solid var(--bd);border-radius:10px;padding:12px;margin-bottom:8px">';
-    html += '<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px">' +
-      '<div style="font-size:12px;font-weight:700;color:var(--or2)">📁 ' + estd.nombre + '</div>' +
-      '<a href="' + carpUrl + '" target="_blank" style="font-size:10px;color:#4285F4;font-weight:600;text-decoration:none">Ver plantillas ↗</a></div>';
-
-    docs.forEach(function(doc) {
-      var guardado = data.documentos.find(function(d) { return d.codigo === doc.codigo; }) || {};
-      var driveId = guardado.driveId || '';
-      var estado = driveId ? 'disponible' : 'pendiente';
-      var estadoClass = driveId ? 'sv' : 'sp';
-      var estadoLabel = driveId ? '✅ Enlazado' : '⏳ Pendiente';
-      html += '<div class="dr" style="margin-bottom:6px">' +
-        '<div class="dl">' +
-        '<div class="di" style="background:var(--dark3);font-size:10px;font-weight:700;color:var(--text3)">' + doc.codigo.split('-')[0] + '</div>' +
-        '<div style="min-width:0">' +
-        '<div class="dn">' + doc.nombre + '</div>' +
-        '<div class="dm">' + doc.codigo + (doc.obligatorio ? ' · Obligatorio' : ' · Opcional') + (doc.servicio ? ' · Solo ' + doc.servicio : '') + '</div>' +
-        '</div></div>' +
-        '<div class="da">' +
-        '<span class="status ' + estadoClass + '">' + estadoLabel + '</span>' +
-        '</div></div>';
-      html += '<div style="display:flex;gap:6px;margin-bottom:10px;padding:0 4px">' +
-        '<input class="fi" id="drv-' + selId + '-' + doc.codigo + '" placeholder="ID de Drive de la copia del cliente..." value="' + driveId + '" style="font-size:11px;padding:7px 10px">' +
-        '<button class="drive-btn" style="padding:7px 12px;font-size:11px" onclick="guardarDriveId(\'' + selId + '\',\'' + doc.codigo + '\')">Guardar</button>' +
-        (driveId ? '<a href="https://drive.google.com/file/d/' + driveId + '/view" target="_blank" class="drive-btn" style="padding:7px 10px;font-size:11px;text-decoration:none">↗</a>' : '') +
-        '</div>';
-    });
-    html += '</div>';
+  var verificacionHtml = '';
+  var verPorE = {};
+  VERIFICACION.forEach(function(v) {
+    if (!verPorE[v.e]) verPorE[v.e] = [];
+    verPorE[v.e].push(v);
   });
-
-  // Estadísticas
-  var total = 0;
-  var enlazados = 0;
-  Object.keys(PLANTILLAS_DRIVE.estandares).forEach(function(eKey) {
-    PLANTILLAS_DRIVE.estandares[eKey].documentos.forEach(function(d) {
-      if (d.servicio && svcsHab.indexOf(d.servicio) < 0) return;
-      total++;
-      var g = data.documentos.find(function(x) { return x.codigo === d.codigo; });
-      if (g && g.driveId) enlazados++;
+  Object.keys(verPorE).sort().forEach(function(eNum) {
+    var items = verPorE[eNum];
+    var info = ESTANDARES_3100.find(function(x){return x.num===parseInt(eNum);});
+    verificacionHtml += '<tr style="background:linear-gradient(90deg,' + c1 + '20,' + c2 + '10)">' +
+      '<td colspan="4" style="padding:6px 10px;font-size:11px;font-weight:700;color:#333">Estándar ' + eNum + (info?' — '+info.nombre:'') + '</td></tr>';
+    items.forEach(function(v, i) {
+      var stIco = v.estado==='vigente'?'✅':v.estado==='pendiente'?'⚠️':'🚨';
+      var stColor = v.estado==='vigente'?'#2D9F5C':v.estado==='pendiente'?'#B8860B':'#C0392B';
+      verificacionHtml += '<tr style="border-bottom:1px solid #F5F5F5;' + (i%2===0?'background:#FAFAFA':'') + '">' +
+        '<td style="padding:5px 10px;font-size:10px;color:#888;width:40px;text-align:center">' + v.cod + '</td>' +
+        '<td style="padding:5px 10px;font-size:11px;color:#222">' + v.desc + '</td>' +
+        '<td style="padding:5px 10px;text-align:center;width:80px"><span style="color:' + stColor + ';font-size:11px">' + stIco + '</span></td>' +
+        '<td style="padding:5px 10px;width:120px;border:1px solid #E0E0E0;font-size:9px;color:#999">Verificador / fecha</td></tr>';
     });
   });
 
-  var pct = total > 0 ? Math.round((enlazados / total) * 100) : 0;
-  html += '<div style="background:var(--dark4);border:1px solid var(--bd2);border-radius:10px;padding:14px;margin-top:8px">' +
-    '<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:6px">' +
-    '<div style="font-size:12px;font-weight:700">Estado documental</div>' +
-    '<div style="font-size:12px;color:var(--or2);font-weight:700">' + enlazados + '/' + total + ' documentos (' + pct + '%)</div></div>' +
-    '<div class="pw"><div class="pf" style="width:' + pct + '%"></div></div></div>';
-
-  html += '</div>'; // card
-
-  document.getElementById('gesdocs-content').innerHTML = html;
-}
-
-function guardarCarpetaCliente(clienteId) {
-  var id = document.getElementById('gd-carpeta-id').value.trim();
-  var data = getDocsCliente(clienteId);
-  data.carpetaClienteId = id;
-  data.carpetaClienteUrl = id ? 'https://drive.google.com/drive/folders/' + id : '';
-  saveDocsCliente(clienteId, data);
-  addTraz('Configuró carpeta Drive', BIO_DATA.clientes[clienteId].nombre_corto + ' → ' + id);
-  toast('Carpeta Drive guardada ✓');
-  renderGesdocs();
-}
-
-function toggleServicio(clienteId, servicio) {
-  var data = getDocsCliente(clienteId);
-  var idx = data.serviciosHabilitados.indexOf(servicio);
-  if (idx >= 0) data.serviciosHabilitados.splice(idx, 1);
-  else data.serviciosHabilitados.push(servicio);
-  saveDocsCliente(clienteId, data);
-  renderGesdocs();
-}
-
-function guardarDriveId(clienteId, codigo) {
-  var input = document.getElementById('drv-' + clienteId + '-' + codigo);
-  if (!input) return;
-  var driveId = input.value.trim();
-  enlazarDocumentoCliente(clienteId, codigo, driveId);
-  addTraz('Enlazó documento Drive', codigo + ' → ' + (driveId || '(vacío)'));
-  toast(driveId ? 'Documento "' + codigo + '" enlazado ✓' : 'Enlace removido', driveId ? 'ok' : 'info');
-  renderGesdocs();
-}
-
-// ================================================================
-// MÓDULO EQUIPOS BIOMÉDICOS
-// ================================================================
-function getEquipos() { return JSON.parse(localStorage.getItem('bio_equipos_' + C.id) || '[]'); }
-function saveEquipos(data) { localStorage.setItem('bio_equipos_' + C.id, JSON.stringify(data)); }
-
-var RIESGOS_INVIMA = ['I — Bajo riesgo','IIA — Riesgo moderado','IIB — Riesgo moderado-alto','III — Alto riesgo'];
-
-function renderEquipos() {
-  var equipos = getEquipos();
-  var c1 = C.color1 || '#FF6B00', c2 = C.color2 || '#7B2FBE';
-  var html = '<div class="mod-header"><div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px">' +
-    '<div><h2>🩺 Equipos Biomédicos — ' + C.nombre.split(' ').slice(0,3).join(' ') + '</h2>' +
-    '<p>Inventario, hojas de vida y cronograma de mantenimiento según INVIMA y Res. 3100/2019</p></div>' +
-    '<button class="btn bor" style="font-size:12px" onclick="openAddEquipo()"><i class="fas fa-plus"></i>Agregar equipo</button></div></div>';
-
-  if (equipos.length === 0) {
-    html += '<div class="card" style="text-align:center;padding:30px"><div style="font-size:36px;margin-bottom:10px">🩺</div><div style="font-size:14px;color:var(--text3)">No hay equipos registrados.<br>Agrega equipos biomédicos para generar hojas de vida y cronogramas.</div></div>';
-  } else {
-    // Resumen
-    var porMantener = equipos.filter(function(e) {
-      if (!e.proxMantenimiento) return false;
-      return new Date(e.proxMantenimiento) <= new Date(Date.now() + 30*24*3600*1000);
-    }).length;
-    html += '<div class="srow" style="grid-template-columns:repeat(3,1fr);margin-bottom:16px">' +
-      sc('🩺','var(--or)',equipos.length,'Equipos registrados',100) +
-      sc('📅','var(--yellow)',porMantener,'Mantenimiento próximo',Math.round(porMantener/equipos.length*100)) +
-      sc('✅','var(--green)',equipos.length-porMantener,'Al día',Math.round((equipos.length-porMantener)/equipos.length*100)) + '</div>';
-
-    html += '<div class="card"><div class="ch"><div class="ct">📋 Inventario de Equipos Biomédicos</div></div>';
-    equipos.forEach(function(eq, idx) {
-      var riesgoBadge = eq.riesgo && eq.riesgo.startsWith('III') ? 'badge-riesgo-iii' : eq.riesgo && eq.riesgo.startsWith('II') ? 'badge-riesgo-ii' : 'badge-riesgo-i';
-      var vencido = eq.proxMantenimiento && new Date(eq.proxMantenimiento) < new Date();
-      html += '<div class="eq-card">' +
-        '<div style="display:flex;align-items:flex-start;gap:12px">' +
-        (eq.foto ? '<img src="' + eq.foto + '" style="width:56px;height:56px;border-radius:8px;object-fit:cover;flex-shrink:0">' :
-          '<div style="width:56px;height:56px;border-radius:8px;background:linear-gradient(135deg,' + c1 + '22,' + c2 + '22);display:flex;align-items:center;justify-content:center;font-size:22px;flex-shrink:0">🔬</div>') +
-        '<div style="flex:1;min-width:0">' +
-        '<div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap;margin-bottom:4px">' +
-        '<span style="font-weight:700;font-size:14px">' + eq.nombre + '</span>' +
-        '<span class="' + riesgoBadge + '">' + (eq.riesgo || 'Sin clasificar') + '</span>' +
-        (vencido ? '<span style="background:var(--rbg);color:var(--red);padding:2px 7px;border-radius:8px;font-size:10px;font-weight:700">⚠️ Mantenimiento vencido</span>' : '') +
-        '</div>' +
-        '<div style="font-size:11px;color:var(--text2);margin-bottom:3px">' + (eq.marca||'') + ' ' + (eq.modelo||'') + (eq.serie ? ' · Serie: ' + eq.serie : '') + '</div>' +
-        (eq.registroInvima ? '<div style="font-size:10px;color:var(--text3)">INVIMA: ' + eq.registroInvima + '</div>' : '') +
-        '<div style="display:flex;gap:10px;margin-top:6px;flex-wrap:wrap">' +
-        (eq.fechaAdquisicion ? '<span style="font-size:10px;color:var(--text3)">📦 ' + eq.fechaAdquisicion + '</span>' : '') +
-        (eq.proxMantenimiento ? '<span style="font-size:10px;color:' + (vencido?'var(--red)':'var(--green)') + '">🔧 Próx. mant: ' + eq.proxMantenimiento + '</span>' : '') +
-        '</div></div>' +
-        '<div style="display:flex;gap:5px;flex-shrink:0">' +
-        '<button class="btn bg" style="font-size:10px;padding:5px 8px" onclick="verHojaVidaEquipo(' + idx + ')"><i class="fas fa-file-alt"></i></button>' +
-        '<button class="btn bg" style="font-size:10px;padding:5px 8px" onclick="editEquipo(' + idx + ')"><i class="fas fa-edit"></i></button>' +
-        '<button class="btn bg" style="font-size:10px;padding:5px 8px;background:var(--rbg);color:var(--red)" onclick="eliminarEquipo(' + idx + ')"><i class="fas fa-trash"></i></button>' +
-        '</div></div></div>';
-    });
-    html += '</div>';
-
-    // Cronograma de mantenimiento
-    html += '<div class="card"><div class="ch"><div class="ct">📅 Cronograma de Mantenimiento Preventivo</div></div>';
-    var meses = ['Ene','Feb','Mar','Abr','May','Jun','Jul','Ago','Sep','Oct','Nov','Dic'];
-    var hoy = new Date();
-    var cronHtml = '<div style="overflow-x:auto"><table style="width:100%;border-collapse:collapse;font-size:11px"><thead><tr>' +
-      '<th style="text-align:left;padding:6px;border-bottom:1px solid var(--bd);min-width:150px">Equipo</th>' +
-      '<th style="padding:6px;border-bottom:1px solid var(--bd)">Frec.</th>' +
-      meses.map(function(m) { return '<th style="padding:6px;border-bottom:1px solid var(--bd);text-align:center">' + m + '</th>'; }).join('') +
-      '</tr></thead><tbody>';
-    equipos.forEach(function(eq) {
-      var freq = parseInt(eq.frecMantenimiento) || 6;
-      cronHtml += '<tr><td style="padding:6px;border-bottom:1px solid var(--bd2);font-weight:600">' + eq.nombre + '</td>' +
-        '<td style="padding:6px;border-bottom:1px solid var(--bd2);text-align:center;color:var(--text3)">' + freq + 'm</td>';
-      for (var m = 0; m < 12; m++) {
-        var esMes = (m % freq === (hoy.getMonth() % freq));
-        cronHtml += '<td style="padding:6px;border-bottom:1px solid var(--bd2);text-align:center">' +
-          (esMes ? '<span style="background:' + c1 + ';color:#fff;padding:2px 6px;border-radius:6px;font-size:10px;font-weight:700">M</span>' : '<span style="color:var(--bd)">·</span>') + '</td>';
-      }
-      cronHtml += '</tr>';
-    });
-    cronHtml += '</tbody></table></div>';
-    html += cronHtml + '</div>';
-  }
-  document.getElementById('equipos-content').innerHTML = html;
-}
-
-function openAddEquipo(editIdx) {
-  var equipos = getEquipos();
-  var eq = editIdx !== undefined ? equipos[editIdx] : {};
-  var isEdit = editIdx !== undefined;
-  var overlay = document.createElement('div');
-  overlay.style.cssText = 'position:fixed;inset:0;z-index:9999;background:rgba(0,0,0,0.88);display:flex;align-items:center;justify-content:center;backdrop-filter:blur(12px);padding:16px';
-  overlay.innerHTML =
-    '<div style="background:#141428;border:1px solid rgba(255,255,255,0.13);border-radius:18px;width:100%;max-width:640px;max-height:90vh;overflow-y:auto;padding:24px;font-family:Plus Jakarta Sans,sans-serif">' +
-    '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:20px">' +
-    '<div style="font-size:16px;font-weight:800;color:#F0F0FF">' + (isEdit?'✏️ Editar':'➕ Nuevo') + ' Equipo Biomédico</div>' +
-    '<div onclick="this.closest(\'div[style]\').parentElement.remove()" style="width:30px;height:30px;border-radius:50%;background:rgba(255,255,255,0.08);display:flex;align-items:center;justify-content:center;cursor:pointer;font-size:14px;color:#A0A0C0">✕</div></div>' +
-    '<div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">' +
-    fld('eq-nombre','Nombre del equipo *','text',eq.nombre,'Ej: Tensiómetro digital','col-span:2') +
-    fld('eq-marca','Marca / Fabricante','text',eq.marca,'Ej: Riester, Welch Allyn') +
-    fld('eq-modelo','Modelo','text',eq.modelo,'Ej: Big Ben') +
-    fld('eq-serie','Número de serie','text',eq.serie,'') +
-    fld('eq-invima','Registro INVIMA','text',eq.registroInvima,'Ej: 2020DM-0012345') +
-    '<div style="grid-column:span 1"><label style="font-size:11px;font-weight:700;color:#A0A0C0;text-transform:uppercase;letter-spacing:0.05em;display:block;margin-bottom:5px">Clasificación de riesgo INVIMA</label>' +
-    '<select id="eq-riesgo" style="width:100%;padding:10px 12px;background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.1);border-radius:9px;color:#F0F0FF;font-size:13px;font-family:inherit">' +
-    RIESGOS_INVIMA.map(function(r) { return '<option value="' + r + '"' + (eq.riesgo===r?' selected':'') + '>' + r + '</option>'; }).join('') + '</select></div>' +
-    fld('eq-adquisicion','Fecha de adquisición','date',eq.fechaAdquisicion,'') +
-    fld('eq-proveedor','Proveedor / Distribuidor','text',eq.proveedor,'') +
-    fld('eq-vida','Vida útil estimada','text',eq.vidaUtil,'Ej: 10 años') +
-    fld('eq-freq','Frecuencia mantenimiento (meses)','number',eq.frecMantenimiento||6,'') +
-    fld('eq-prox','Próxima fecha mantenimiento','date',eq.proxMantenimiento,'','col-span:1') +
-    fld('eq-responsable','Responsable de mantenimiento','text',eq.responsable,'','col-span:2') +
-    fld('eq-contrato','Empresa de mantenimiento / contrato','text',eq.empresa_mant,'','col-span:2') +
-    fld('eq-calibracion','Fecha última calibración','date',eq.calibracion,'') +
-    fld('eq-prox-calib','Próxima calibración','date',eq.proxCalibracion,'') +
-    '</div>' +
-    '<div style="margin-top:12px"><label style="font-size:11px;font-weight:700;color:#A0A0C0;text-transform:uppercase;letter-spacing:0.05em;display:block;margin-bottom:5px">Foto del equipo (opcional)</label>' +
-    '<div style="display:flex;align-items:center;gap:10px">' +
-    '<div id="eq-foto-preview" style="width:60px;height:60px;border-radius:8px;background:rgba(255,255,255,0.05);border:1px dashed rgba(255,255,255,0.2);display:flex;align-items:center;justify-content:center;font-size:20px">' +
-    (eq.foto ? '<img src="' + eq.foto + '" style="width:100%;height:100%;object-fit:cover;border-radius:8px">' : '🔬') + '</div>' +
-    '<input type="file" id="eq-foto-input" accept="image/*" style="font-size:12px;color:#A0A0C0" onchange="previewEquipoFoto(this)"></div></div>' +
-    '<div style="margin-top:14px"><label style="font-size:11px;font-weight:700;color:#A0A0C0;text-transform:uppercase;letter-spacing:0.05em;display:block;margin-bottom:5px">Observaciones técnicas</label>' +
-    '<textarea id="eq-obs" rows="3" style="width:100%;padding:10px 12px;background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.1);border-radius:9px;color:#F0F0FF;font-size:13px;font-family:inherit;resize:vertical;box-sizing:border-box">' + (eq.observaciones||'') + '</textarea></div>' +
-    '<div style="margin-top:16px;display:flex;gap:10px">' +
-    '<button onclick="guardarEquipo(' + (isEdit?editIdx:-1) + ',this)" style="flex:1;padding:12px;background:linear-gradient(135deg,#FF6B00,#7B2FBE);color:#fff;border:none;border-radius:9px;font-size:13px;font-weight:700;cursor:pointer;font-family:inherit">' + (isEdit?'💾 Guardar cambios':'➕ Agregar equipo') + '</button>' +
-    '</div></div>';
-  overlay._eqFotoData = eq.foto || null;
-  document.body.appendChild(overlay);
-}
-
-function fld(id, label, type, value, placeholder, extra) {
-  var span = extra ? 'grid-column:span 2' : '';
-  return '<div style="' + span + '"><label style="font-size:11px;font-weight:700;color:#A0A0C0;text-transform:uppercase;letter-spacing:0.05em;display:block;margin-bottom:5px">' + label + '</label>' +
-    '<input id="' + id + '" type="' + type + '" value="' + (value||'') + '" placeholder="' + (placeholder||'') + '" style="width:100%;padding:10px 12px;background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.1);border-radius:9px;color:#F0F0FF;font-size:13px;font-family:inherit;box-sizing:border-box"></div>';
-}
-
-var _eqFotoData = null;
-function previewEquipoFoto(input) {
-  if (!input.files[0]) return;
-  var reader = new FileReader();
-  reader.onload = function(e) {
-    _eqFotoData = e.target.result;
-    var prev = document.getElementById('eq-foto-preview');
-    if (prev) prev.innerHTML = '<img src="' + _eqFotoData + '" style="width:100%;height:100%;object-fit:cover;border-radius:8px">';
-  };
-  reader.readAsDataURL(input.files[0]);
-}
-
-function guardarEquipo(editIdx, btn) {
-  var nombre = document.getElementById('eq-nombre').value.trim();
-  if (!nombre) { toast('Ingresa el nombre del equipo', 'err'); return; }
-  var eq = {
-    nombre: nombre, marca: document.getElementById('eq-marca').value.trim(),
-    modelo: document.getElementById('eq-modelo').value.trim(), serie: document.getElementById('eq-serie').value.trim(),
-    registroInvima: document.getElementById('eq-invima').value.trim(), riesgo: document.getElementById('eq-riesgo').value,
-    fechaAdquisicion: document.getElementById('eq-adquisicion').value, proveedor: document.getElementById('eq-proveedor').value.trim(),
-    vidaUtil: document.getElementById('eq-vida').value.trim(), frecMantenimiento: document.getElementById('eq-freq').value,
-    proxMantenimiento: document.getElementById('eq-prox').value, responsable: document.getElementById('eq-responsable').value.trim(),
-    empresa_mant: document.getElementById('eq-contrato').value.trim(), calibracion: document.getElementById('eq-calibracion').value,
-    proxCalibracion: document.getElementById('eq-prox-calib').value, observaciones: document.getElementById('eq-obs').value.trim(),
-    foto: _eqFotoData || (editIdx >= 0 ? getEquipos()[editIdx].foto : null)
-  };
-  var equipos = getEquipos();
-  if (editIdx >= 0) equipos[editIdx] = eq;
-  else equipos.push(eq);
-  saveEquipos(equipos);
-  _eqFotoData = null;
-  btn.closest('div[style]').parentElement.remove();
-  addTraz(editIdx >= 0 ? 'Editó equipo biomédico' : 'Registró equipo biomédico', nombre);
-  renderEquipos();
-  toast((editIdx >= 0 ? 'Equipo actualizado' : 'Equipo registrado') + ' ✓');
-}
-
-function editEquipo(idx) { _eqFotoData = null; openAddEquipo(idx); }
-
-function eliminarEquipo(idx) {
-  if (!confirm('¿Eliminar este equipo del inventario?')) return;
-  var equipos = getEquipos(); equipos.splice(idx, 1); saveEquipos(equipos);
-  renderEquipos(); toast('Equipo eliminado');
-}
-
-function verHojaVidaEquipo(idx) {
-  var eq = getEquipos()[idx];
-  if (!eq) return;
-  var c1 = C.color1 || '#FF6B00', c2 = C.color2 || '#7B2FBE';
-  var fecha = new Date().toLocaleDateString('es-CO', {year:'numeric',month:'long',day:'numeric'});
-  var html = '<!DOCTYPE html><html><head><meta charset="UTF-8"><title>Hoja de Vida — ' + eq.nombre + '</title>' +
-    '<style>*{box-sizing:border-box;margin:0;padding:0}body{font-family:Georgia,serif;background:#fff;color:#1a1a1a}' +
-    '.page{width:210mm;min-height:297mm;margin:0 auto;padding:20mm;background:#fff}' +
-    '.header{background:linear-gradient(135deg,' + c1 + ',' + c2 + ');color:#fff;padding:20px 24px;border-radius:10px;margin-bottom:20px;display:flex;align-items:center;gap:16px}' +
-    '.header img{width:70px;height:70px;border-radius:8px;object-fit:cover;border:2px solid rgba(255,255,255,0.5)}' +
-    '.header .ico{width:70px;height:70px;border-radius:8px;background:rgba(255,255,255,0.15);display:flex;align-items:center;justify-content:center;font-size:28px}' +
-    'h1{font-size:20px;margin-bottom:4px}h2{font-size:14px;font-weight:400;opacity:0.85}' +
-    '.section{margin-bottom:18px}.section-title{font-size:13px;font-weight:700;text-transform:uppercase;letter-spacing:0.06em;color:' + c1 + ';border-bottom:2px solid ' + c1 + ';padding-bottom:4px;margin-bottom:10px}' +
-    'table{width:100%;border-collapse:collapse}td{padding:6px 10px;font-size:12px;border:1px solid #e5e5e5;vertical-align:top}' +
-    'td:first-child{font-weight:700;background:#f8f8f8;width:35%;color:#444}' +
-    '.invima-badge{display:inline-block;padding:3px 10px;border-radius:20px;font-size:11px;font-weight:700;background:' + c1 + '20;color:' + c1 + ';border:1px solid ' + c1 + '44}' +
-    '.firma{margin-top:30px;padding-top:20px;border-top:1px solid #ddd;display:flex;justify-content:space-between}' +
-    '.firma-line{text-align:center;width:200px}.firma-blank{border-bottom:1px solid #333;height:40px;margin-bottom:5px}.firma-label{font-size:11px;color:#666}' +
-    '@media print{body{background:#fff}.page{margin:0;padding:15mm;box-shadow:none}}' +
-    '</style></head><body><div class="page">' +
-    '<div class="header">' +
-    (eq.foto ? '<img src="' + eq.foto + '">' : '<div class="ico">🔬</div>') +
-    '<div><h1>Hoja de Vida — Equipo Biomédico</h1><h2>' + eq.nombre + (eq.marca ? ' · ' + eq.marca : '') + '</h2></div></div>' +
-    '<div style="text-align:right;font-size:11px;color:#888;margin-bottom:16px">Generado: ' + fecha + ' · ' + C.empresa + '</div>' +
-    '<div class="section"><div class="section-title">1. Identificación del Equipo</div>' +
-    '<table><tr><td>Nombre del equipo</td><td>' + eq.nombre + '</td></tr>' +
-    '<tr><td>Marca / Fabricante</td><td>' + (eq.marca||'—') + '</td></tr>' +
-    '<tr><td>Modelo</td><td>' + (eq.modelo||'—') + '</td></tr>' +
-    '<tr><td>Número de serie</td><td>' + (eq.serie||'—') + '</td></tr>' +
-    '<tr><td>Registro INVIMA</td><td>' + (eq.registroInvima ? '<span class="invima-badge">' + eq.registroInvima + '</span>' : '—') + '</td></tr>' +
-    '<tr><td>Clasificación de riesgo</td><td><span class="invima-badge">' + (eq.riesgo||'Sin clasificar') + '</span></td></tr>' +
-    '</table></div>' +
-    '<div class="section"><div class="section-title">2. Información Administrativa</div>' +
-    '<table><tr><td>Fecha de adquisición</td><td>' + (eq.fechaAdquisicion||'—') + '</td></tr>' +
-    '<tr><td>Proveedor / Distribuidor</td><td>' + (eq.proveedor||'—') + '</td></tr>' +
-    '<tr><td>Vida útil estimada</td><td>' + (eq.vidaUtil||'—') + '</td></tr>' +
-    '<tr><td>Prestador de salud</td><td>' + C.empresa + '</td></tr>' +
-    '<tr><td>Ubicación / Sede</td><td>' + (C.direccion||'') + '</td></tr>' +
-    '</table></div>' +
-    '<div class="section"><div class="section-title">3. Plan de Mantenimiento</div>' +
-    '<table><tr><td>Frecuencia preventivo</td><td>Cada ' + (eq.frecMantenimiento||6) + ' meses</td></tr>' +
-    '<tr><td>Próximo mantenimiento</td><td>' + (eq.proxMantenimiento||'Por programar') + '</td></tr>' +
-    '<tr><td>Empresa de mantenimiento</td><td>' + (eq.empresa_mant||'—') + '</td></tr>' +
-    '<tr><td>Responsable</td><td>' + (eq.responsable||'—') + '</td></tr>' +
-    '<tr><td>Última calibración</td><td>' + (eq.calibracion||'—') + '</td></tr>' +
-    '<tr><td>Próxima calibración</td><td>' + (eq.proxCalibracion||'Por programar') + '</td></tr>' +
-    '</table></div>' +
-    (eq.observaciones ? '<div class="section"><div class="section-title">4. Observaciones Técnicas</div><p style="font-size:12px;line-height:1.6;padding:10px;background:#f8f8f8;border-radius:6px">' + eq.observaciones + '</p></div>' : '') +
-    '<div class="firma"><div class="firma-line"><div class="firma-blank"></div><div class="firma-label">Firma responsable técnico</div></div>' +
-    '<div class="firma-line"><div class="firma-blank"></div><div class="firma-label">Firma director médico</div></div></div>' +
-    '</div></body></html>';
   var w = window.open('', '_blank');
-  w.document.write(html);
+  w.document.write('<!DOCTYPE html><html lang="es"><head><meta charset="UTF-8">' +
+    '<title>Lista de Chequeo Res. 3100/2019 — ' + C.empresa + '</title>' +
+    '<style>' +
+    'body{font-family:Arial,sans-serif;font-size:12px;color:#111;max-width:860px;margin:0 auto;padding:30px;background:#fff}' +
+    'h2{font-size:14px;color:#333;margin:20px 0 10px;border-left:4px solid ' + c1 + ';padding-left:10px}' +
+    '.no-print{position:fixed;bottom:20px;right:20px;display:flex;flex-direction:column;gap:8px}' +
+    '.print-btn{padding:12px 20px;background:' + c1 + ';color:#fff;border:none;border-radius:10px;font-size:14px;font-weight:bold;cursor:pointer;box-shadow:0 4px 15px rgba(0,0,0,0.2)}' +
+    '@media print{.no-print{display:none}@page{margin:15mm;size:A4}body{padding:0;max-width:100%}}' +
+    '</style></head><body>' +
+
+    // ENCABEZADO PREMIUM
+    '<div style="background:linear-gradient(135deg,' + c1 + ',' + c2 + ');padding:20px 24px;border-radius:12px;margin-bottom:20px;color:#fff">' +
+      '<div style="display:flex;justify-content:space-between;align-items:flex-start">' +
+        '<div style="display:flex;align-items:center;gap:14px">' +
+          logoHtml +
+          '<div>' +
+            '<div style="font-size:20px;font-weight:800;line-height:1.2">' + C.empresa + '</div>' +
+            '<div style="font-size:12px;opacity:0.9;margin-top:4px">' + C.servicio_habilitado + '</div>' +
+            '<div style="font-size:11px;opacity:0.8;margin-top:2px">NIT: ' + C.nit + ' · ' + C.ciudad + '</div>' +
+          '</div>' +
+        '</div>' +
+        '<div style="text-align:right">' +
+          '<div style="font-size:11px;opacity:0.8">LISTA DE CHEQUEO</div>' +
+          '<div style="font-size:22px;font-weight:800;margin-top:2px">' + pct + '%</div>' +
+          '<div style="font-size:10px;opacity:0.8">Cumplimiento Res. 3100/2019</div>' +
+          '<div style="font-size:10px;opacity:0.7;margin-top:4px">' + fecha + '</div>' +
+        '</div>' +
+      '</div>' +
+      '<div style="display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-top:16px;padding-top:14px;border-top:1px solid rgba(255,255,255,0.3)">' +
+        '<div style="text-align:center;background:rgba(255,255,255,0.15);border-radius:8px;padding:8px"><div style="font-size:22px;font-weight:800">' + vigentes + '</div><div style="font-size:10px;opacity:0.85">✅ Vigentes</div></div>' +
+        '<div style="text-align:center;background:rgba(255,255,255,0.15);border-radius:8px;padding:8px"><div style="font-size:22px;font-weight:800">' + pendientes + '</div><div style="font-size:10px;opacity:0.85">⚠️ Pendientes</div></div>' +
+        '<div style="text-align:center;background:rgba(255,255,255,0.15);border-radius:8px;padding:8px"><div style="font-size:22px;font-weight:800">' + requeridos + '</div><div style="font-size:10px;opacity:0.85">🚨 Requeridos</div></div>' +
+      '</div>' +
+    '</div>' +
+
+    // INFO LEGAL
+    '<div style="background:#F8F9FA;border:1px solid #E5E5E5;border-radius:8px;padding:12px;margin-bottom:18px;display:grid;grid-template-columns:1fr 1fr;gap:10px;font-size:11px">' +
+      '<div><strong>Prestador:</strong> ' + C.nombre + '</div>' +
+      '<div><strong>Cédula:</strong> ' + C.cedula + '</div>' +
+      '<div><strong>Dirección:</strong> ' + C.direccion + '</div>' +
+      '<div><strong>Código habilitación:</strong> ' + (C.codigo_habilitacion||'Pendiente REPS') + '</div>' +
+      '<div><strong>Teléfono:</strong> ' + (C.telefono||'—') + '</div>' +
+      '<div><strong>E-mail:</strong> ' + (C.email||'—') + '</div>' +
+    '</div>' +
+
+    '<h2>1. LISTA DE CHEQUEO — DOCUMENTOS POR ESTÁNDAR (Res. 3100/2019)</h2>' +
+    estandaresHtml +
+
+    '<div style="page-break-before:always"></div>' +
+    '<h2>2. VERIFICACIÓN DE CUMPLIMIENTO — ÍTEMS RES. 3100/2019</h2>' +
+    '<table style="width:100%;border-collapse:collapse;border:1px solid #E5E5E5">' +
+      '<tr style="background:#333;color:#fff">' +
+        '<th style="padding:7px 10px;font-size:10px;font-weight:700;text-align:left;width:50px">Código</th>' +
+        '<th style="padding:7px 10px;font-size:10px;font-weight:700;text-align:left">Ítem de verificación</th>' +
+        '<th style="padding:7px 10px;font-size:10px;font-weight:700;text-align:center;width:70px">Estado</th>' +
+        '<th style="padding:7px 10px;font-size:10px;font-weight:700;text-align:center;width:120px">Verificador / Fecha</th>' +
+      '</tr>' +
+      verificacionHtml +
+    '</table>' +
+
+    // FIRMAS
+    '<div style="page-break-before:always"></div>' +
+    '<h2>3. SECCIÓN DE FIRMAS Y COMPROMISOS</h2>' +
+    '<div style="border:1px solid #DDD;border-radius:8px;padding:16px;margin-bottom:16px;font-size:11px">' +
+      '<p style="line-height:1.8;margin-bottom:12px">Yo, <strong>' + C.nombre + '</strong>, identificado(a) con C.C. ' + C.cedula + ', en calidad de ' + C.especialidad + ' y Representante Legal de <strong>' + C.empresa + '</strong> (NIT ' + C.nit + '), con sede en ' + C.direccion + ', ' + C.ciudad + ', declaro que la información consignada en la presente lista de chequeo es verídica y que los documentos relacionados reposan en el archivo institucional de la entidad, disponibles para inspección por parte de los organismos de vigilancia y control.</p>' +
+      '<p style="line-height:1.8">Me comprometo a mantener vigentes todas las condiciones de habilitación según lo establecido en la <strong>Resolución 3100 de 2019</strong>, la <strong>Resolución 2003 de 2014</strong>, la <strong>Ley 1122 de 2007</strong> y demás normas concordantes del sistema de salud colombiano.</p>' +
+    '</div>' +
+    '<div style="display:grid;grid-template-columns:1fr 1fr;gap:40px;margin-top:30px">' +
+      '<div style="border-top:2px solid #333;padding-top:10px;text-align:center">' +
+        '<strong>' + C.nombre + '</strong><br>' +
+        C.especialidad + '<br>' +
+        'C.C. ' + C.cedula + '<br>' +
+        '<span style="font-size:10px;color:#666">Representante Legal / Prestador</span>' +
+      '</div>' +
+      '<div style="border-top:2px solid #333;padding-top:10px;text-align:center">' +
+        '<br><br>' +
+        '<strong>Verificador / Auditor</strong><br>' +
+        '<span style="font-size:10px;color:#666">Nombre y cargo del verificador</span>' +
+      '</div>' +
+    '</div>' +
+
+    // PIE DE PÁGINA
+    '<div style="margin-top:30px;padding-top:12px;border-top:2px solid ' + c1 + ';display:flex;justify-content:space-between;align-items:center;font-size:9px;color:#999">' +
+      '<div>BIOAuditoria® — Sistema de gestión para habilitación en salud · bioauditoria.com</div>' +
+      '<div>Generado: ' + fecha + ' · Res. 3100/2019 · Res. 2003/2014 · Ley 1122/2007 · Decreto 780/2016</div>' +
+    '</div>' +
+
+    '<div class="no-print">' +
+      '<button class="print-btn" onclick="window.print()"><i>🖨️</i> Imprimir / PDF</button>' +
+    '</div>' +
+    '</body></html>');
   w.document.close();
-  setTimeout(function() { w.print(); }, 500);
+  addTraz('Generó Lista de Chequeo Res. 3100', C.empresa);
+  toast('Lista de chequeo generada ✓');
 }
 
 // ================================================================
-// MÓDULO TALENTO HUMANO
+// GENERADOR ACTA DE RADICACIÓN — Para secretarías de salud
 // ================================================================
-function getPersonal() { return JSON.parse(localStorage.getItem('bio_personal_' + C.id) || '[]'); }
-function savePersonal(data) { localStorage.setItem('bio_personal_' + C.id, JSON.stringify(data)); }
-
-function renderTalento() {
-  var personal = getPersonal();
+function generarActaRadicacion() {
+  var fecha = new Date().toLocaleDateString('es-CO', {year:'numeric',month:'long',day:'numeric'});
+  var fechaNum = new Date().toLocaleDateString('es-CO');
   var c1 = C.color1 || '#FF6B00', c2 = C.color2 || '#7B2FBE';
-  var html = '<div class="mod-header"><div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px">' +
-    '<div><h2>👤 Talento Humano — ' + C.nombre.split(' ').slice(0,3).join(' ') + '</h2>' +
-    '<p>Gestión de colaboradores, hojas de vida y verificación de requisitos normativos según Res. 3100/2019 Estándar 1</p></div>' +
-    '<button class="btn bor" style="font-size:12px" onclick="openAddPersonal()"><i class="fas fa-user-plus"></i>Agregar colaborador</button></div></div>';
+  var logoHtml = C.logo_url
+    ? '<img src="' + C.logo_url + '" style="width:70px;height:70px;object-fit:contain">'
+    : '<div style="width:70px;height:70px;border-radius:8px;background:linear-gradient(135deg,' + c1 + ',' + c2 + ');display:flex;align-items:center;justify-content:center;font-size:28px">🏥</div>';
 
-  if (personal.length === 0) {
-    html += '<div class="card" style="text-align:center;padding:30px"><div style="font-size:36px;margin-bottom:10px">👤</div><div style="font-size:14px;color:var(--text3)">No hay colaboradores registrados.<br>Agrega el equipo de salud para generar hojas de vida.</div></div>';
-  } else {
-    html += '<div class="card"><div class="ch"><div class="ct">👥 Equipo de Salud</div></div>';
-    personal.forEach(function(p, idx) {
-      var initials = (p.nombre||'').split(' ').map(function(x){return x[0]||'';}).join('').substr(0,2).toUpperCase();
-      var completo = p.tarjetaProfesional && p.rethus && p.vacunas;
-      html += '<div class="th-card" style="display:flex;align-items:flex-start;gap:12px">' +
-        (p.foto ? '<img src="' + p.foto + '" style="width:56px;height:56px;border-radius:50%;object-fit:cover;flex-shrink:0">' :
-          '<div style="width:56px;height:56px;border-radius:50%;background:linear-gradient(135deg,' + c1 + ',' + c2 + ');display:flex;align-items:center;justify-content:center;font-size:18px;font-weight:800;color:#fff;flex-shrink:0">' + initials + '</div>') +
-        '<div style="flex:1;min-width:0">' +
-        '<div style="font-weight:700;font-size:14px;margin-bottom:2px">' + p.nombre + '</div>' +
-        '<div style="font-size:11px;color:var(--text2);margin-bottom:4px">' + (p.cargo||'') + (p.especialidad ? ' · ' + p.especialidad : '') + '</div>' +
-        '<div style="display:flex;gap:5px;flex-wrap:wrap">' +
-        '<span style="font-size:10px;background:' + (p.tarjetaProfesional?'var(--gbg)':'var(--rbg)') + ';color:' + (p.tarjetaProfesional?'var(--green)':'var(--red)') + ';padding:2px 7px;border-radius:8px">' + (p.tarjetaProfesional?'✅':'⚠️') + ' Tarjeta prof.</span>' +
-        '<span style="font-size:10px;background:' + (p.rethus?'var(--gbg)':'var(--rbg)') + ';color:' + (p.rethus?'var(--green)':'var(--red)') + ';padding:2px 7px;border-radius:8px">' + (p.rethus?'✅':'⚠️') + ' RETHUS</span>' +
-        '<span style="font-size:10px;background:' + (p.vacunas?'var(--gbg)':'var(--rbg)') + ';color:' + (p.vacunas?'var(--green)':'var(--red)') + ';padding:2px 7px;border-radius:8px">' + (p.vacunas?'✅':'⚠️') + ' Vacunas</span>' +
-        '</div></div>' +
-        '<div style="display:flex;gap:5px;flex-shrink:0">' +
-        '<button class="btn bg" style="font-size:10px;padding:5px 8px" onclick="verHojaVidaPersonal(' + idx + ')"><i class="fas fa-id-card"></i></button>' +
-        '<button class="btn bg" style="font-size:10px;padding:5px 8px" onclick="editPersonal(' + idx + ')"><i class="fas fa-edit"></i></button>' +
-        '<button class="btn bg" style="font-size:10px;padding:5px 8px;background:var(--rbg);color:var(--red)" onclick="eliminarPersonal(' + idx + ')"><i class="fas fa-trash"></i></button>' +
-        '</div></div>';
-    });
-    html += '</div>';
-  }
-  document.getElementById('talento-content').innerHTML = html;
-}
+  var serviciosCliente = JSON.parse(localStorage.getItem('bio_servicios_' + C.id) || '[]');
+  var docs = C.estandares.reduce(function(a, e) { return a.concat(e.documentos); }, []);
+  var vigentes = docs.filter(function(d){return d.estado==='vigente';});
+  var secretaria = C.secretaria_salud || 'Secretaría de Salud Municipal';
 
-var _thFotoData = null;
-function openAddPersonal(editIdx) {
-  var personal = getPersonal();
-  var p = editIdx !== undefined ? personal[editIdx] : {};
-  _thFotoData = null;
-  var overlay = document.createElement('div');
-  overlay.style.cssText = 'position:fixed;inset:0;z-index:9999;background:rgba(0,0,0,0.88);display:flex;align-items:center;justify-content:center;backdrop-filter:blur(12px);padding:16px';
-  var chk = function(id,lbl,val) { return '<label style="display:flex;align-items:center;gap:7px;cursor:pointer;font-size:12px;color:#C0C0D0;padding:6px 0">' +
-    '<input type="checkbox" id="' + id + '"' + (val?' checked':'') + ' style="width:15px;height:15px;accent-color:#FF6B00"> ' + lbl + '</label>'; };
-  overlay.innerHTML =
-    '<div style="background:#141428;border:1px solid rgba(255,255,255,0.13);border-radius:18px;width:100%;max-width:620px;max-height:90vh;overflow-y:auto;padding:24px;font-family:Plus Jakarta Sans,sans-serif">' +
-    '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:20px">' +
-    '<div style="font-size:16px;font-weight:800;color:#F0F0FF">' + (editIdx!==undefined?'✏️ Editar':'👤 Nuevo') + ' Colaborador</div>' +
-    '<div onclick="this.closest(\'div[style]\').parentElement.remove()" style="width:30px;height:30px;border-radius:50%;background:rgba(255,255,255,0.08);display:flex;align-items:center;justify-content:center;cursor:pointer;font-size:14px;color:#A0A0C0">✕</div></div>' +
-    '<div style="display:flex;gap:14px;margin-bottom:16px;align-items:center">' +
-    '<div id="th-foto-preview" style="width:70px;height:70px;border-radius:50%;background:rgba(255,255,255,0.05);border:2px dashed rgba(255,255,255,0.2);display:flex;align-items:center;justify-content:center;font-size:24px;cursor:pointer;flex-shrink:0;overflow:hidden" onclick="document.getElementById(\'th-foto-input\').click()">' +
-    (p.foto ? '<img src="' + p.foto + '" style="width:100%;height:100%;object-fit:cover">' : '📷') + '</div>' +
-    '<div><div style="font-size:12px;color:#A0A0C0;margin-bottom:4px">Foto del colaborador (opcional)</div>' +
-    '<input type="file" id="th-foto-input" accept="image/*" style="display:none" onchange="previewPersonalFoto(this)">' +
-    '<button onclick="document.getElementById(\'th-foto-input\').click()" style="padding:6px 12px;background:rgba(255,255,255,0.07);border:1px solid rgba(255,255,255,0.12);border-radius:8px;color:#C0C0D0;font-size:12px;cursor:pointer;font-family:inherit"><i class="fas fa-camera"></i> Subir foto</button></div></div>' +
-    '<div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">' +
-    fld('th-nombre','Nombre completo *','text',p.nombre,'','col-span:2') +
-    fld('th-doc','Tipo y N° identificación','text',p.documento,'Ej: CC 1140858207') +
-    fld('th-cargo','Cargo','text',p.cargo,'Ej: Médico general') +
-    fld('th-esp','Especialidad / Perfil','text',p.especialidad,'') +
-    fld('th-rm','Registro médico / profesional','text',p.registroMedico,'') +
-    fld('th-fecha','Fecha de vinculación','date',p.fechaVinculacion,'','col-span:2') +
+  var serviciosHtml = serviciosCliente.length
+    ? serviciosCliente.map(function(s, i) {
+        var info = SERVICIOS_REPS[s.codigo]||{};
+        return '<tr style="' + (i%2===0?'background:#FAFAFA':'') + '">' +
+          '<td style="padding:7px 12px;font-size:11px;border-bottom:1px solid #EEE">' + (info.nombre||s.nombre) + '</td>' +
+          '<td style="padding:7px 12px;font-size:11px;text-align:center;border-bottom:1px solid #EEE">Nivel ' + (info.nivel||s.nivel) + '</td>' +
+          '<td style="padding:7px 12px;font-size:11px;text-align:center;border-bottom:1px solid #EEE">' + (info.grupo||'—') + '</td>' +
+        '</tr>';
+      }).join('')
+    : '<tr><td colspan="3" style="padding:10px;text-align:center;color:#999;font-size:11px">• ' + (C.servicio_habilitado||'Consulta Externa') + '</td></tr>';
+
+  var docsAdjHtml = vigentes.slice(0,20).map(function(d,i){
+    var eInfo = C.estandares.find(function(e){return e.documentos.find(function(x){return x.id===d.id;});});
+    var eNum = eInfo ? eInfo.estandar_num : '—';
+    return '<tr style="' + (i%2===0?'background:#FAFAFA':'') + '">' +
+      '<td style="padding:5px 10px;font-size:10px;color:#666;text-align:center;width:24px">' + (i+1) + '</td>' +
+      '<td style="padding:5px 10px;font-size:11px">' + d.nombre + '</td>' +
+      '<td style="padding:5px 10px;font-size:10px;text-align:center;white-space:nowrap">E' + eNum + '</td>' +
+      '<td style="padding:5px 10px;font-size:10px;text-align:center">✅ Vigente</td>' +
+    '</tr>';
+  }).join('');
+
+  var w = window.open('', '_blank');
+  w.document.write('<!DOCTYPE html><html lang="es"><head><meta charset="UTF-8">' +
+    '<title>Carta de Radicación — ' + C.empresa + '</title>' +
+    '<style>' +
+    'body{font-family:Arial,sans-serif;font-size:12px;color:#111;max-width:800px;margin:0 auto;padding:30px;background:#fff;line-height:1.7}' +
+    'p{margin-bottom:12px}' +
+    '.no-print{position:fixed;bottom:20px;right:20px;display:flex;flex-direction:column;gap:8px}' +
+    '.print-btn{padding:12px 20px;background:' + c1 + ';color:#fff;border:none;border-radius:10px;font-size:14px;font-weight:bold;cursor:pointer;box-shadow:0 4px 15px rgba(0,0,0,0.2)}' +
+    'table{width:100%;border-collapse:collapse}td,th{padding:7px 10px}th{text-align:left}' +
+    '@media print{.no-print{display:none}@page{margin:20mm;size:A4}body{padding:0;max-width:100%}}' +
+    '</style></head><body>' +
+
+    // MEMBRETE INSTITUCIONAL
+    '<div style="border-bottom:4px solid ' + c1 + ';padding-bottom:16px;margin-bottom:20px">' +
+      '<div style="display:flex;justify-content:space-between;align-items:flex-start">' +
+        '<div style="display:flex;align-items:center;gap:14px">' +
+          logoHtml +
+          '<div>' +
+            '<div style="font-size:18px;font-weight:800;color:#0A1930">' + C.empresa + '</div>' +
+            '<div style="font-size:11px;color:#555;margin-top:2px">NIT: ' + C.nit + '</div>' +
+            '<div style="font-size:11px;color:#555">' + C.direccion + '</div>' +
+            '<div style="font-size:11px;color:#555">' + C.ciudad + (C.telefono && C.telefono!=='(pendiente)' ? ' · ' + C.telefono : '') + '</div>' +
+          '</div>' +
+        '</div>' +
+        '<div style="text-align:right;font-size:11px;color:#555">' +
+          '<div style="font-size:16px;font-weight:800;color:#0A1930">CARTA DE RADICACIÓN</div>' +
+          '<div style="color:#666">Proceso de Habilitación</div>' +
+          '<div style="margin-top:6px;color:#666">Ciudad y fecha:</div>' +
+          '<div>' + C.ciudad + ', ' + fecha + '</div>' +
+        '</div>' +
+      '</div>' +
     '</div>' +
-    '<div style="margin-top:14px"><div style="font-size:11px;font-weight:700;color:#A0A0C0;text-transform:uppercase;letter-spacing:0.05em;margin-bottom:8px">Requisitos normativos Res. 3100</div>' +
-    '<div style="display:grid;grid-template-columns:1fr 1fr;gap:4px">' +
-    chk('th-tarjeta','Tarjeta profesional vigente',p.tarjetaProfesional) +
-    chk('th-rethus','Inscrito en RETHUS',p.rethus) +
-    chk('th-vacunas','Certificados de vacunación',p.vacunas) +
-    chk('th-induccion','Inducción realizada',p.induccion) +
-    chk('th-reinduccion','Reinducción al día',p.reinduccion) +
-    chk('th-evaluacion','Evaluación de desempeño',p.evaluacion) +
-    '</div></div>' +
-    '<div style="margin-top:12px"><label style="font-size:11px;font-weight:700;color:#A0A0C0;text-transform:uppercase;letter-spacing:0.05em;display:block;margin-bottom:5px">Formación académica y postgrados</label>' +
-    '<textarea id="th-formacion" rows="3" style="width:100%;padding:10px 12px;background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.1);border-radius:9px;color:#F0F0FF;font-size:13px;font-family:inherit;resize:vertical;box-sizing:border-box">' + (p.formacion||'') + '</textarea></div>' +
-    '<div style="margin-top:8px"><label style="font-size:11px;font-weight:700;color:#A0A0C0;text-transform:uppercase;letter-spacing:0.05em;display:block;margin-bottom:5px">Observaciones</label>' +
-    '<textarea id="th-obs" rows="2" style="width:100%;padding:10px 12px;background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.1);border-radius:9px;color:#F0F0FF;font-size:13px;font-family:inherit;resize:vertical;box-sizing:border-box">' + (p.observaciones||'') + '</textarea></div>' +
-    '<button onclick="guardarPersonal(' + (editIdx!==undefined?editIdx:-1) + ',this)" style="width:100%;padding:12px;background:linear-gradient(135deg,#FF6B00,#7B2FBE);color:#fff;border:none;border-radius:9px;font-size:13px;font-weight:700;cursor:pointer;font-family:inherit;margin-top:16px">' + (editIdx!==undefined?'💾 Guardar cambios':'👤 Agregar colaborador') + '</button>' +
-    '</div>';
-  document.body.appendChild(overlay);
-}
 
-function previewPersonalFoto(input) {
-  if (!input.files[0]) return;
-  var reader = new FileReader();
-  reader.onload = function(e) {
-    _thFotoData = e.target.result;
-    var prev = document.getElementById('th-foto-preview');
-    if (prev) prev.innerHTML = '<img src="' + _thFotoData + '" style="width:100%;height:100%;object-fit:cover">';
-  };
-  reader.readAsDataURL(input.files[0]);
-}
+    // DESTINATARIO
+    '<p><strong>Señores</strong><br>' +
+    secretaria + '<br>' +
+    C.ciudad + '</p>' +
 
-function guardarPersonal(editIdx, btn) {
-  var nombre = document.getElementById('th-nombre').value.trim();
-  if (!nombre) { toast('Ingresa el nombre del colaborador', 'err'); return; }
-  var chkVal = function(id) { var el = document.getElementById(id); return el ? el.checked : false; };
-  var p = {
-    nombre: nombre, documento: document.getElementById('th-doc').value.trim(),
-    cargo: document.getElementById('th-cargo').value.trim(), especialidad: document.getElementById('th-esp').value.trim(),
-    registroMedico: document.getElementById('th-rm').value.trim(), fechaVinculacion: document.getElementById('th-fecha').value,
-    tarjetaProfesional: chkVal('th-tarjeta'), rethus: chkVal('th-rethus'), vacunas: chkVal('th-vacunas'),
-    induccion: chkVal('th-induccion'), reinduccion: chkVal('th-reinduccion'), evaluacion: chkVal('th-evaluacion'),
-    formacion: document.getElementById('th-formacion').value.trim(), observaciones: document.getElementById('th-obs').value.trim(),
-    foto: _thFotoData || (editIdx >= 0 ? getPersonal()[editIdx].foto : null)
-  };
-  var personal = getPersonal();
-  if (editIdx >= 0) personal[editIdx] = p; else personal.push(p);
-  savePersonal(personal);
-  _thFotoData = null;
-  btn.closest('div[style]').parentElement.remove();
-  addTraz(editIdx>=0?'Editó colaborador':'Registró colaborador', nombre);
-  renderTalento(); toast((editIdx>=0?'Colaborador actualizado':'Colaborador registrado') + ' ✓');
-}
+    '<p><strong>Referencia:</strong> Solicitud de inscripción / verificación de condiciones de habilitación en el Registro Especial de Prestadores de Servicios de Salud (REPS) — Resolución 2003 de 2014 y Resolución 3100 de 2019.</p>' +
 
-function editPersonal(idx) { _thFotoData = null; openAddPersonal(idx); }
-function eliminarPersonal(idx) {
-  if (!confirm('¿Eliminar este colaborador?')) return;
-  var p = getPersonal(); p.splice(idx,1); savePersonal(p);
-  renderTalento(); toast('Colaborador eliminado');
-}
+    // CUERPO DE LA CARTA
+    '<p>Yo, <strong>' + C.nombre + '</strong>, identificado(a) con Cédula de Ciudadanía No. <strong>' + C.cedula + '</strong>, en calidad de ' + C.especialidad + ' y Representante Legal de <strong>' + C.empresa + '</strong>, persona jurídica identificada con NIT <strong>' + C.nit + '</strong>, con domicilio principal en ' + C.direccion + ', ' + C.ciudad + ', me permito presentar ante su despacho la documentación requerida para el proceso de <strong>inscripción en el Registro Especial de Prestadores de Servicios de Salud (REPS)</strong> y la verificación de condiciones de habilitación de los servicios de salud que se relacionan a continuación.</p>' +
 
-function verHojaVidaPersonal(idx) {
-  var p = getPersonal()[idx];
-  if (!p) return;
-  var c1 = C.color1||'#FF6B00', c2 = C.color2||'#7B2FBE';
-  var fecha = new Date().toLocaleDateString('es-CO',{year:'numeric',month:'long',day:'numeric'});
-  var req = function(ok, lbl) { return '<tr><td>' + lbl + '</td><td style="color:' + (ok?'#2D9F5C':'#E63946') + ';font-weight:700">' + (ok?'✅ Cumple':'⚠️ Pendiente') + '</td></tr>'; };
-  var html = '<!DOCTYPE html><html><head><meta charset="UTF-8"><title>Hoja de Vida — ' + p.nombre + '</title>' +
-    '<style>*{box-sizing:border-box;margin:0;padding:0}body{font-family:Georgia,serif;background:#fff;color:#1a1a1a}' +
-    '.page{width:210mm;min-height:297mm;margin:0 auto;padding:20mm;background:#fff}' +
-    '.header{background:linear-gradient(135deg,' + c1 + ',' + c2 + ');color:#fff;padding:20px 24px;border-radius:10px;margin-bottom:20px;display:flex;align-items:center;gap:16px}' +
-    '.avatar{width:80px;height:80px;border-radius:50%;background:rgba(255,255,255,0.2);display:flex;align-items:center;justify-content:center;font-size:28px;font-weight:800;flex-shrink:0;overflow:hidden;border:2px solid rgba(255,255,255,0.5)}' +
-    '.section{margin-bottom:18px}.section-title{font-size:13px;font-weight:700;text-transform:uppercase;letter-spacing:0.06em;color:' + c1 + ';border-bottom:2px solid ' + c1 + ';padding-bottom:4px;margin-bottom:10px}' +
-    'table{width:100%;border-collapse:collapse}td{padding:6px 10px;font-size:12px;border:1px solid #e5e5e5;vertical-align:top}' +
-    'td:first-child{font-weight:700;background:#f8f8f8;width:35%;color:#444}' +
-    '.firma{margin-top:30px;padding-top:20px;border-top:1px solid #ddd;display:flex;justify-content:space-between}' +
-    '.firma-line{text-align:center;width:200px}.firma-blank{border-bottom:1px solid #333;height:40px;margin-bottom:5px}.firma-label{font-size:11px;color:#666}' +
-    '@media print{body{background:#fff}.page{margin:0;padding:15mm}}' +
-    '</style></head><body><div class="page">' +
-    '<div class="header">' +
-    '<div class="avatar">' + (p.foto ? '<img src="' + p.foto + '" style="width:100%;height:100%;object-fit:cover">' : (p.nombre||'').split(' ').map(function(x){return x[0]||'';}).join('').substr(0,2).toUpperCase()) + '</div>' +
-    '<div><h1 style="font-size:22px;margin-bottom:4px">' + p.nombre + '</h1><h2 style="font-size:14px;font-weight:400;opacity:0.85">' + (p.cargo||'') + (p.especialidad?' · '+p.especialidad:'') + '</h2>' +
-    (p.registroMedico?'<div style="font-size:12px;opacity:0.8;margin-top:4px">RM: ' + p.registroMedico + '</div>':'') + '</div></div>' +
-    '<div style="text-align:right;font-size:11px;color:#888;margin-bottom:16px">Generado: ' + fecha + ' · ' + C.empresa + '</div>' +
-    '<div class="section"><div class="section-title">1. Datos Personales e Identificación</div>' +
-    '<table><tr><td>Nombre completo</td><td>' + p.nombre + '</td></tr>' +
-    '<tr><td>Identificación</td><td>' + (p.documento||'—') + '</td></tr>' +
-    '<tr><td>Cargo</td><td>' + (p.cargo||'—') + '</td></tr>' +
-    '<tr><td>Especialidad / Perfil</td><td>' + (p.especialidad||'—') + '</td></tr>' +
-    '<tr><td>Registro médico / profesional</td><td>' + (p.registroMedico||'—') + '</td></tr>' +
-    '<tr><td>Fecha de vinculación</td><td>' + (p.fechaVinculacion||'—') + '</td></tr>' +
-    '<tr><td>Institución</td><td>' + C.empresa + '</td></tr>' +
-    '</table></div>' +
-    (p.formacion ? '<div class="section"><div class="section-title">2. Formación Académica</div><div style="font-size:12px;line-height:1.7;padding:10px;background:#f8f8f8;border-radius:6px;white-space:pre-line">' + p.formacion + '</div></div>' : '') +
-    '<div class="section"><div class="section-title">3. Verificación de Requisitos Normativos (Res. 3100/2019)</div>' +
-    '<table>' + req(p.tarjetaProfesional,'Tarjeta profesional vigente') + req(p.rethus,'Inscrito en RETHUS') + req(p.vacunas,'Certificados de vacunación al día') + req(p.induccion,'Inducción realizada') + req(p.reinduccion,'Reinducción vigente') + req(p.evaluacion,'Evaluación de desempeño') + '</table></div>' +
-    (p.observaciones ? '<div class="section"><div class="section-title">4. Observaciones</div><p style="font-size:12px;line-height:1.6;padding:10px;background:#f8f8f8;border-radius:6px">' + p.observaciones + '</p></div>' : '') +
-    '<div class="firma"><div class="firma-line"><div class="firma-blank"></div><div class="firma-label">Firma del colaborador</div></div>' +
-    '<div class="firma-line"><div class="firma-blank"></div><div class="firma-label">Firma representante legal</div></div></div>' +
-    '</div></body></html>';
-  var w = window.open('','_blank'); w.document.write(html); w.document.close();
-  setTimeout(function(){w.print();},500);
-}
+    '<p>Los servicios para los cuales se solicita habilitación son:</p>' +
+    '<table style="border:1px solid #DDD;border-radius:4px;margin:12px 0">' +
+      '<tr style="background:#0A1930;color:#fff"><th style="padding:8px 12px;font-size:11px">Servicio de Salud</th><th style="padding:8px 12px;font-size:11px;text-align:center">Nivel</th><th style="padding:8px 12px;font-size:11px">Grupo</th></tr>' +
+      serviciosHtml +
+    '</table>' +
 
-// ================================================================
-// MÓDULO SEGURIDAD DEL PACIENTE / EVENTOS ADVERSOS
-// ================================================================
-function getEventos() { return JSON.parse(localStorage.getItem('bio_eventos_' + C.id) || '[]'); }
-function saveEventos(data) { localStorage.setItem('bio_eventos_' + C.id, JSON.stringify(data)); }
+    '<p>Para los efectos del proceso de habilitación, se adjuntan los siguientes documentos, los cuales dan cumplimiento a los <strong>8 estándares de la Resolución 3100 de 2019</strong> (Talento Humano, Infraestructura, Dotación, Medicamentos, Procesos Prioritarios, Historia Clínica, Interdependencia de Servicios y Mejoramiento de la Calidad):</p>' +
 
-var TIPOS_EVENTO = {
-  'adverso':'Evento adverso','incidente':'Incidente de seguridad','cuasi':'Cuasi-falla','complicacion':'Complicación médica'
-};
+    '<table style="border:1px solid #DDD;margin:12px 0">' +
+      '<tr style="background:#0A1930;color:#fff">' +
+        '<th style="padding:7px 10px;font-size:10px">N°</th>' +
+        '<th style="padding:7px 10px;font-size:10px">Documento</th>' +
+        '<th style="padding:7px 10px;font-size:10px;text-align:center">Estándar</th>' +
+        '<th style="padding:7px 10px;font-size:10px;text-align:center">Estado</th>' +
+      '</tr>' +
+      docsAdjHtml +
+    '</table>' +
 
-function renderEventos() {
-  var eventos = getEventos();
-  var c1 = C.color1||'#FF6B00', c2 = C.color2||'#7B2FBE';
-  var html = '<div class="mod-header"><div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px">' +
-    '<div><h2>🛡️ Seguridad del Paciente — ' + C.nombre.split(' ').slice(0,3).join(' ') + '</h2>' +
-    '<p>Reporte y seguimiento de eventos adversos, incidentes y acciones de mejora según Res. 256/2016 y Política Nacional de Seguridad del Paciente</p></div>' +
-    '<button class="btn bor" style="font-size:12px" onclick="openAddEvento()"><i class="fas fa-plus"></i>Registrar evento</button></div></div>';
+    '<p>Todos los documentos relacionados cumplen con los requisitos establecidos en la normatividad vigente aplicable: <strong>Resolución 3100 de 2019</strong>, Resolución 2003 de 2014, Ley 1122 de 2007, Decreto 780 de 2016, Resolución 1995 de 1999 (Historia Clínica) y demás normas concordantes.</p>' +
 
-  var adversos = eventos.filter(function(e){return e.tipo==='adverso';}).length;
-  var incidentes = eventos.filter(function(e){return e.tipo==='incidente';}).length;
-  var sinCerrar = eventos.filter(function(e){return e.estado!=='cerrado';}).length;
-  html += '<div class="srow" style="grid-template-columns:repeat(4,1fr);margin-bottom:16px">' +
-    sc('📋','var(--or)',eventos.length,'Total reportes',100) +
-    sc('🚨','var(--red)',adversos,'Eventos adversos',adversos?Math.round(adversos/eventos.length*100):0) +
-    sc('⚠️','var(--yellow)',incidentes,'Incidentes',incidentes?Math.round(incidentes/eventos.length*100):0) +
-    sc('🔓','var(--pu)',sinCerrar,'Sin cerrar',sinCerrar?Math.round(sinCerrar/eventos.length*100):0) + '</div>';
+    '<p>Me comprometo a mantener vigentes las condiciones de habilitación durante todo el tiempo de ejercicio de los servicios inscritos y a notificar oportunamente cualquier novedad que afecte dichas condiciones, de conformidad con lo establecido en el artículo 4 de la Resolución 2003 de 2014.</p>' +
 
-  if (eventos.length === 0) {
-    html += '<div class="card" style="text-align:center;padding:30px"><div style="font-size:36px;margin-bottom:10px">🛡️</div><div style="font-size:14px;color:var(--text3)">No hay eventos reportados.<br>Registra eventos adversos e incidentes para el seguimiento normativo.</div></div>';
-  } else {
-    html += '<div class="card"><div class="ch"><div class="ct">📋 Registro de Eventos</div></div>';
-    eventos.slice().reverse().forEach(function(ev, ridx) {
-      var idx = eventos.length - 1 - ridx;
-      var tipoClass = 'ev-tipo-' + (ev.tipo==='adverso'?'adverso':ev.tipo==='incidente'?'incidente':'cuasi');
-      var estadoColor = ev.estado==='cerrado'?'var(--green)':ev.estado==='en_seguimiento'?'var(--yellow)':'var(--red)';
-      html += '<div class="ev-card ' + tipoClass + '">' +
-        '<div style="display:flex;align-items:flex-start;justify-content:space-between;gap:10px;flex-wrap:wrap">' +
-        '<div><div style="font-weight:700;font-size:13px;margin-bottom:3px">' + (TIPOS_EVENTO[ev.tipo]||ev.tipo) + '</div>' +
-        '<div style="font-size:11px;color:var(--text3)">' + ev.fecha + (ev.paciente?' · Paciente: '+ev.paciente:'') + '</div></div>' +
-        '<div style="display:flex;gap:5px;align-items:center">' +
-        '<span style="font-size:10px;background:' + estadoColor + '22;color:' + estadoColor + ';padding:2px 8px;border-radius:8px;font-weight:700">' + (ev.estado==='cerrado'?'✅ Cerrado':ev.estado==='en_seguimiento'?'⏳ En seguimiento':'🔴 Abierto') + '</span>' +
-        '<button class="btn bg" style="font-size:10px;padding:5px 8px" onclick="verActaEvento(' + idx + ')"><i class="fas fa-file-alt"></i></button>' +
-        '<button class="btn bg" style="font-size:10px;padding:5px 8px;background:var(--rbg);color:var(--red)" onclick="eliminarEvento(' + idx + ')"><i class="fas fa-trash"></i></button>' +
-        '</div></div>' +
-        '<div style="font-size:12px;color:var(--text2);margin-top:8px;line-height:1.5">' + ev.descripcion.substr(0,150) + (ev.descripcion.length>150?'...':'') + '</div>' +
-        (ev.acciones ? '<div style="font-size:11px;color:var(--green);margin-top:5px"><strong>Acciones:</strong> ' + ev.acciones.substr(0,100) + '</div>' : '') +
-        '</div>';
-    });
-    html += '</div>';
-  }
-  document.getElementById('eventos-content').innerHTML = html;
-}
+    '<p>Agradezco la atención brindada y quedo en espera de la programación de la visita de verificación.<br><br>Cordialmente,</p>' +
 
-function openAddEvento() {
-  var overlay = document.createElement('div');
-  overlay.style.cssText = 'position:fixed;inset:0;z-index:9999;background:rgba(0,0,0,0.88);display:flex;align-items:center;justify-content:center;backdrop-filter:blur(12px);padding:16px';
-  var sel = function(id,lbl,opts,val) {
-    return '<div><label style="font-size:11px;font-weight:700;color:#A0A0C0;text-transform:uppercase;letter-spacing:0.05em;display:block;margin-bottom:5px">' + lbl + '</label>' +
-      '<select id="' + id + '" style="width:100%;padding:10px 12px;background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.1);border-radius:9px;color:#F0F0FF;font-size:13px;font-family:inherit">' +
-      opts.map(function(o){return '<option value="'+o.v+'"'+(val===o.v?' selected':'')+'>'+o.l+'</option>';}).join('') + '</select></div>';
-  };
-  var ta = function(id,lbl,val,rows) {
-    return '<div><label style="font-size:11px;font-weight:700;color:#A0A0C0;text-transform:uppercase;letter-spacing:0.05em;display:block;margin-bottom:5px">' + lbl + '</label>' +
-      '<textarea id="' + id + '" rows="' + (rows||3) + '" style="width:100%;padding:10px 12px;background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.1);border-radius:9px;color:#F0F0FF;font-size:13px;font-family:inherit;resize:vertical;box-sizing:border-box">' + (val||'') + '</textarea></div>';
-  };
-  overlay.innerHTML =
-    '<div style="background:#141428;border:1px solid rgba(255,255,255,0.13);border-radius:18px;width:100%;max-width:600px;max-height:90vh;overflow-y:auto;padding:24px;font-family:Plus Jakarta Sans,sans-serif">' +
-    '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:20px">' +
-    '<div style="font-size:16px;font-weight:800;color:#F0F0FF">🚨 Registrar Evento de Seguridad</div>' +
-    '<div onclick="this.closest(\'div[style]\').parentElement.remove()" style="width:30px;height:30px;border-radius:50%;background:rgba(255,255,255,0.08);display:flex;align-items:center;justify-content:center;cursor:pointer;font-size:14px;color:#A0A0C0">✕</div></div>' +
-    '<div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:12px">' +
-    sel('ev-tipo','Tipo de evento *',[{v:'adverso',l:'🚨 Evento adverso'},{v:'incidente',l:'⚠️ Incidente de seguridad'},{v:'cuasi',l:'⚡ Cuasi-falla'},{v:'complicacion',l:'📋 Complicación médica'}]) +
-    fld('ev-fecha','Fecha del evento *','date',new Date().toISOString().slice(0,10),'') +
+    // FIRMA
+    '<div style="margin-top:40px;display:flex;justify-content:flex-start">' +
+      '<div style="min-width:250px">' +
+        '<div style="border-top:2px solid #0A1930;padding-top:10px">' +
+          (C.logo_url ? '<img src="' + C.logo_url + '" style="width:30px;height:30px;object-fit:contain;margin-bottom:6px;display:block">' : '') +
+          '<strong>' + C.nombre + '</strong><br>' +
+          C.especialidad + '<br>' +
+          'C.C. ' + C.cedula + '<br>' +
+          (C.rm && C.rm!=='(completar RM)' ? 'Reg. Médico ' + C.rm + '<br>' : '') +
+          'Representante Legal<br>' +
+          C.empresa + '<br>' +
+          'NIT ' + C.nit +
+        '</div>' +
+      '</div>' +
     '</div>' +
-    '<div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:12px">' +
-    fld('ev-paciente','Iniciales del paciente','text','','Ej: J.G.R.') +
-    fld('ev-responsable','Responsable del reporte','text','','Nombre del reportador') +
+
+    // RECIBIDO
+    '<div style="margin-top:40px;border:1px solid #DDD;border-radius:8px;padding:14px">' +
+      '<div style="font-size:11px;font-weight:700;color:#333;margin-bottom:12px;text-transform:uppercase">Para uso exclusivo de la entidad receptora — SELLO DE RADICACIÓN</div>' +
+      '<div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:16px;font-size:11px">' +
+        '<div>Número de radicado: <div style="border-bottom:1px solid #CCC;min-height:22px;margin-top:4px"></div></div>' +
+        '<div>Fecha de recibido: <div style="border-bottom:1px solid #CCC;min-height:22px;margin-top:4px"></div></div>' +
+        '<div>Responsable: <div style="border-bottom:1px solid #CCC;min-height:22px;margin-top:4px"></div></div>' +
+      '</div>' +
+      '<div style="margin-top:14px;font-size:11px">Sello y firma: <div style="border-bottom:1px solid #CCC;min-height:36px;margin-top:4px"></div></div>' +
     '</div>' +
-    '<div style="display:grid;gap:12px;margin-bottom:12px">' +
-    ta('ev-desc','Descripción detallada del evento *','',4) +
-    ta('ev-causas','Análisis de causas (método 5 porqués)','',3) +
-    ta('ev-acciones','Acciones correctivas / Plan de mejora','',3) +
+
+    // PIE DE PÁGINA
+    '<div style="margin-top:24px;padding-top:10px;border-top:2px solid ' + c1 + ';display:flex;justify-content:space-between;align-items:center;font-size:9px;color:#999">' +
+      '<div>BIOAuditoria® — Sistema de gestión para habilitación en salud</div>' +
+      '<div>Generado: ' + fecha + ' · Res. 2003/2014 · Res. 3100/2019 · Ley 1122/2007</div>' +
     '</div>' +
-    '<div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:16px">' +
-    sel('ev-estado','Estado del caso',[{v:'abierto',l:'🔴 Abierto'},{v:'en_seguimiento',l:'⏳ En seguimiento'},{v:'cerrado',l:'✅ Cerrado'}]) +
-    fld('ev-email','Notificar a (email)','email','','biomarketing.salud@gmail.com') +
+
+    '<div class="no-print">' +
+      '<button class="print-btn" onclick="window.print()">🖨️ Imprimir / PDF</button>' +
     '</div>' +
-    '<div style="background:rgba(255,107,0,0.08);border:1px solid rgba(255,107,0,0.2);border-radius:9px;padding:10px 12px;margin-bottom:16px;font-size:11px;color:#A0A0C0">' +
-    '⚕️ <strong style="color:#FF8C33">Res. 256/2016:</strong> Los eventos adversos graves deben reportarse a la EPS y al ente territorial de salud. Use este registro para documentación interna y SIVIGILA si aplica.</div>' +
-    '<div style="display:flex;gap:10px">' +
-    '<button onclick="guardarEvento(this)" style="flex:1;padding:12px;background:linear-gradient(135deg,#E63946,#7B2FBE);color:#fff;border:none;border-radius:9px;font-size:13px;font-weight:700;cursor:pointer;font-family:inherit">🚨 Registrar evento</button>' +
-    '</div></div>';
-  document.body.appendChild(overlay);
+    '</body></html>');
+  w.document.close();
+  addTraz('Generó Carta de Radicación', C.empresa + ' — ' + fecha);
+  toast('Carta de radicación generada ✓');
 }
 
-function guardarEvento(btn) {
-  var desc = document.getElementById('ev-desc').value.trim();
-  if (!desc) { toast('Describe el evento', 'err'); return; }
-  var ev = {
-    tipo: document.getElementById('ev-tipo').value, fecha: document.getElementById('ev-fecha').value,
-    paciente: document.getElementById('ev-paciente').value.trim(), responsable: document.getElementById('ev-responsable').value.trim(),
-    descripcion: desc, causas: document.getElementById('ev-causas').value.trim(),
-    acciones: document.getElementById('ev-acciones').value.trim(), estado: document.getElementById('ev-estado').value,
-    email: document.getElementById('ev-email').value.trim(), fechaRegistro: new Date().toLocaleString('es-CO')
-  };
-  var eventos = getEventos(); eventos.push(ev); saveEventos(eventos);
-  btn.closest('div[style]').parentElement.remove();
-  addTraz('Registró evento de seguridad', TIPOS_EVENTO[ev.tipo] + ' — ' + ev.fecha);
-  renderEventos();
-  toast('Evento registrado ✓ · Asegúrate de notificar al ente territorial si aplica');
-}
-
-function eliminarEvento(idx) {
-  if (!confirm('¿Eliminar este reporte?')) return;
-  var ev = getEventos(); ev.splice(idx,1); saveEventos(ev);
-  renderEventos(); toast('Reporte eliminado');
-}
-
-function verActaEvento(idx) {
-  var ev = getEventos()[idx];
-  if (!ev) return;
-  var c1 = C.color1||'#FF6B00', c2 = C.color2||'#7B2FBE';
-  var fecha = new Date().toLocaleDateString('es-CO',{year:'numeric',month:'long',day:'numeric'});
-  var acta = '<!DOCTYPE html><html><head><meta charset="UTF-8"><title>Acta Evento — ' + ev.fecha + '</title>' +
-    '<style>*{box-sizing:border-box;margin:0;padding:0}body{font-family:Georgia,serif;background:#fff;color:#1a1a1a}' +
-    '.page{width:210mm;min-height:297mm;margin:0 auto;padding:20mm;background:#fff}' +
-    '.header-top{background:linear-gradient(135deg,' + c1 + ',' + c2 + ');color:#fff;padding:16px 20px;border-radius:8px;margin-bottom:16px;text-align:center}' +
-    '.acta-num{font-size:11px;opacity:0.8;margin-bottom:4px}.acta-title{font-size:20px;font-weight:700}' +
-    '.section{margin-bottom:14px;border:1px solid #e5e5e5;border-radius:6px;overflow:hidden}' +
-    '.section-head{background:' + c1 + '15;padding:8px 12px;font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:0.05em;color:' + c1 + ';border-bottom:1px solid #e5e5e5}' +
-    '.section-body{padding:12px;font-size:12px;line-height:1.7;white-space:pre-wrap}' +
-    'table{width:100%;border-collapse:collapse}td{padding:7px 12px;font-size:12px;border:1px solid #e5e5e5}td:first-child{font-weight:700;background:#f8f8f8;width:35%}' +
-    '.firma{margin-top:24px;display:flex;justify-content:space-between}.firma-line{text-align:center;width:180px}.firma-blank{border-bottom:1px solid #333;height:40px;margin-bottom:5px}.firma-label{font-size:11px;color:#666}' +
-    '@media print{.page{margin:0;padding:15mm}}</style></head><body><div class="page">' +
-    '<div class="header-top"><div class="acta-num">ACTA DE REPORTE · ' + ev.fechaRegistro + '</div>' +
-    '<div class="acta-title">' + (TIPOS_EVENTO[ev.tipo]||ev.tipo).toUpperCase() + ' DE SEGURIDAD DEL PACIENTE</div>' +
-    '<div style="font-size:12px;opacity:0.8;margin-top:4px">' + C.empresa + ' · ' + (C.direccion||C.ciudad||'') + '</div></div>' +
-    '<div class="section"><div class="section-head">1. Datos Generales</div>' +
-    '<table><tr><td>Institución</td><td>' + C.empresa + '</td></tr>' +
-    '<tr><td>Fecha del evento</td><td>' + ev.fecha + '</td></tr>' +
-    '<tr><td>Tipo de evento</td><td>' + (TIPOS_EVENTO[ev.tipo]||ev.tipo) + '</td></tr>' +
-    '<tr><td>Paciente (iniciales)</td><td>' + (ev.paciente||'No registrado') + '</td></tr>' +
-    '<tr><td>Responsable del reporte</td><td>' + (ev.responsable||'—') + '</td></tr>' +
-    '<tr><td>Estado del caso</td><td>' + (ev.estado==='cerrado'?'✅ Cerrado':ev.estado==='en_seguimiento'?'⏳ En seguimiento':'🔴 Abierto') + '</td></tr>' +
-    '</table></div>' +
-    '<div class="section"><div class="section-head">2. Descripción del Evento</div><div class="section-body">' + ev.descripcion + '</div></div>' +
-    (ev.causas ? '<div class="section"><div class="section-head">3. Análisis de Causas (5 Porqués)</div><div class="section-body">' + ev.causas + '</div></div>' : '') +
-    (ev.acciones ? '<div class="section"><div class="section-head">4. Acciones Correctivas / Plan de Mejora</div><div class="section-body">' + ev.acciones + '</div></div>' : '') +
-    '<div style="margin-top:14px;padding:10px 12px;background:#fff3f3;border:1px solid #ffcccc;border-radius:6px;font-size:11px;color:#c00">' +
-    '⚠️ Este documento es confidencial y hace parte del Sistema de Gestión de Calidad de la institución según Res. 256/2016 del Ministerio de Salud.</div>' +
-    '<div class="firma"><div class="firma-line"><div class="firma-blank"></div><div class="firma-label">Reportador</div></div>' +
-    '<div class="firma-line"><div class="firma-blank"></div><div class="firma-label">Director médico</div></div>' +
-    '<div class="firma-line"><div class="firma-blank"></div><div class="firma-label">Gerente / Representante legal</div></div></div>' +
-    '</div></body></html>';
-  var w = window.open('','_blank'); w.document.write(acta); w.document.close();
-  setTimeout(function(){w.print();},500);
-}
-
-// ================================================================
 // INIT
 // ================================================================
 (function() {
   if (!sessionStorage.getItem('bio_user') || sessionStorage.getItem('bio_role') !== 'admin') {
-    window.location.replace('../login.html'); return;
+    window.location.replace('../index.html'); return;
   }
   loadData();
   renderDash();
