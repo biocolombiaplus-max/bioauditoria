@@ -591,10 +591,22 @@
         "</div>";
       var quitarHtml = '<button type="button" class="btn btn-ghost btn-sm" data-quitar-campo="' + p.codigo + '">' + (esDeFabrica ? "Quitar" : "Eliminar") + "</button>";
       var codigoHtml = ' <code style="background:var(--surface-2);border:1px solid var(--border);border-radius:4px;padding:1px 5px;font-size:10px;color:var(--text-muted);font-family:monospace" title="Código de este parámetro — úsalo en fórmulas de Valor Calculado">' + U.esc(p.codigo) + "</code>";
-      var nombreHtml = U.esc(p.nombre) + codigoHtml + (esDeFabrica ? "" : ' <span class="badge badge-preliminar" style="font-size:9px">Personalizado</span>');
+      // El NOMBRE del parámetro se puede renombrar aquí mismo (ej. que en
+      // vez de "Glucosa" simplemente diga "Resultado") sin tocar su código
+      // interno — ese código es justo el que usan los equipos conectados
+      // (ver Configuración → Equipos Conectados / el middleware) para saber
+      // dónde va cada resultado que llega automáticamente. Antes, para
+      // lograr ese mismo cambio de nombre, había que OCULTAR el campo de
+      // fábrica y agregar uno personalizado con un código nuevo — lo que
+      // rompía en silencio cualquier equipo que ya estuviera mandando
+      // resultados a ese código de fábrica (bug real reportado: un cliente
+      // ocultó "Glucosa" y agregó "Resultado" aparte, y el Mindray dejó de
+      // poder guardar la glicemia porque ya no encontraba el código GLU
+      // activo en el examen).
+      var nombreHtml = '<input type="text" data-pnombre="' + p.codigo + '" value="' + U.esc(p.nombre) + '" style="font-weight:600;border:none;background:transparent;padding:2px 0;width:100%;color:inherit;font-size:inherit"/>' + codigoHtml + (esDeFabrica ? "" : ' <span class="badge badge-preliminar" style="font-size:9px">Personalizado</span>');
 
       if (p.tipo === "numerico") {
-        var overNum = base && (p.min !== base.min || p.max !== base.max || p.refText !== base.refText);
+        var overNum = base && (p.min !== base.min || p.max !== base.max || p.refText !== base.refText || p.nombre !== base.nombre);
         var conBandas = C.tieneBandas(tenant, examId, p.codigo);
         var bandasHtml = '<button type="button" class="btn btn-ghost btn-sm" data-bandas="' + p.codigo + '" title="Definir rangos distintos por género y/o edad">🚻 ' + (conBandas ? "Rangos (activo)" : "Por género/edad") + "</button>";
         var conRangos = C.tieneRangosInterpretacion(tenant, examId, p.codigo);
@@ -625,7 +637,7 @@
           "<td><div class='flex gap-1 wrap'>" + (overNum ? '<button type="button" class="btn btn-ghost btn-sm" data-reset="' + p.codigo + '">Restablecer</button>' : "") + bandasHtml + rangosHtml + calculadoHtml + quitarHtml + "</div></td></tr>";
       }
       if (p.tipo === "cualitativo" || p.tipo === "descriptivo") {
-        var overCual = base && (p.normal !== base.normal || p.refText !== base.refText);
+        var overCual = base && (p.normal !== base.normal || p.refText !== base.refText || p.nombre !== base.nombre);
         var ocultarRefHtmlCual = '<label class="checkbox-row" style="margin:4px 0 0;font-size:10.5px;font-weight:400"><input type="checkbox" data-ocultarref ' + (p.ocultarEnInforme ? "checked" : "") + '/> No mostrar en el informe</label>';
         var ocultarInterpHtmlCual = p.tipo === "cualitativo" ? '<label class="checkbox-row" style="margin:2px 0 0;font-size:10.5px;font-weight:400"><input type="checkbox" data-ocultarinterp ' + (p.ocultarInterpretacionEnInforme ? "checked" : "") + '/> No mostrar la interpretación en el informe</label>' : "";
         return '<tr data-prow="' + p.codigo + '">' +
@@ -640,6 +652,8 @@
           '<td class="text-muted" style="font-size:11px">' + (esDeFabrica ? "Fábrica: " + U.esc(base.normal || "—") : "—") + "</td>" +
           "<td><div class='flex gap-1 wrap'>" + (overCual ? '<button type="button" class="btn btn-ghost btn-sm" data-reset="' + p.codigo + '">Restablecer</button>' : "") + quitarHtml + "</div></td></tr>";
       }
+      var overNombreSolo = base && p.nombre !== base.nombre;
+      var restablecerNombreHtml = overNombreSolo ? '<button type="button" class="btn btn-ghost btn-sm" data-reset="' + p.codigo + '">Restablecer</button>' : "";
       if (p.tipo === "panel") {
         var etiquetaPanel = p.panelTipo === "alergia" ? "Panel de selección — Alergia (IgE por alérgeno, Clase/Interpretación automática)" :
           p.panelTipo === "parasito" ? "Panel de selección — Parasitología (cruces + / ++ / +++ / ++++, o Negativo)" :
@@ -647,12 +661,12 @@
         return '<tr data-prow="' + p.codigo + '">' +
           "<td>" + moverHtml + "</td>" +
           "<td>" + nombreHtml + '</td><td colspan="3" class="text-muted">' + etiquetaPanel + "</td>" +
-          "<td>" + quitarHtml + "</td></tr>";
+          "<td><div class='flex gap-1 wrap'>" + restablecerNombreHtml + quitarHtml + "</div></td></tr>";
       }
       return '<tr data-prow="' + p.codigo + '">' +
         "<td>" + moverHtml + "</td>" +
         "<td>" + nombreHtml + '</td><td colspan="3" class="text-muted">Campo de texto libre (sin valores de referencia numéricos)</td>' +
-        "<td>" + quitarHtml + "</td></tr>";
+        "<td><div class='flex gap-1 wrap'>" + restablecerNombreHtml + quitarHtml + "</div></td></tr>";
     }
 
     var wrap = U.openModal(
@@ -826,6 +840,14 @@
         var ocultarInterpEl = row.querySelector("[data-ocultarinterp]");
         var ocultarInterp = !!ocultarInterpEl && ocultarInterpEl.checked;
         var ocultarInterpBase = !!(base && base.ocultarInterpretacionEnInforme);
+        // Renombrar el parámetro (ej. que diga "Resultado" en vez de
+        // "Glucosa") vive en el mismo override que su rango/valor normal —
+        // así un equipo conectado sigue encontrando el resultado por su
+        // CÓDIGO de siempre (nunca cambia), sin importar cómo se llame en
+        // pantalla. Si se deja en blanco, se conserva el nombre que ya
+        // tenía (nunca se guarda un parámetro sin nombre).
+        var nombreInput = row.querySelector("[data-pnombre]");
+        var nombreNuevo = nombreInput && nombreInput.value.trim() ? nombreInput.value.trim() : p.nombre;
         if (p.tipo === "numerico") {
           var min = parseFloat(row.querySelector("[data-min]").value);
           var max = parseFloat(row.querySelector("[data-max]").value);
@@ -841,20 +863,27 @@
           // porque setOverride() reemplaza TODO el override del
           // parámetro de una vez, no solo lo que cambió en esta tabla.
           var calcIgualBase = !p.calculado === !(base && base.calculado) && (p.formula || "") === ((base && base.formula) || "");
-          if (base && min === base.min && max === base.max && refText === base.refText && calcIgualBase && ocultarRef === ocultarRefBase && ocultarInterp === ocultarInterpBase) { C.clearOverride(tenant, examId, p.codigo); return; }
-          C.setOverride(tenant, examId, p.codigo, { min: min, max: max, refText: refText || (min + " - " + max + " " + (p.unidad || "")), calculado: !!p.calculado, formula: p.formula || "", ocultarEnInforme: ocultarRef, ocultarInterpretacionEnInforme: ocultarInterp });
+          if (base && min === base.min && max === base.max && refText === base.refText && nombreNuevo === base.nombre && calcIgualBase && ocultarRef === ocultarRefBase && ocultarInterp === ocultarInterpBase) { C.clearOverride(tenant, examId, p.codigo); return; }
+          C.setOverride(tenant, examId, p.codigo, { nombre: nombreNuevo, min: min, max: max, refText: refText || (min + " - " + max + " " + (p.unidad || "")), calculado: !!p.calculado, formula: p.formula || "", ocultarEnInforme: ocultarRef, ocultarInterpretacionEnInforme: ocultarInterp });
           cambios++;
         } else if (p.tipo === "cualitativo") {
           var normalSel = row.querySelector("[data-normal]");
           var refText2 = row.querySelector("[data-reftext]").value.trim();
           var normal = normalSel ? normalSel.value : p.normal;
-          if (base && normal === base.normal && refText2 === base.refText && ocultarRef === ocultarRefBase && ocultarInterp === ocultarInterpBase) { C.clearOverride(tenant, examId, p.codigo); return; }
-          C.setOverride(tenant, examId, p.codigo, { normal: normal, refText: refText2 || ("Normal: " + normal), ocultarEnInforme: ocultarRef, ocultarInterpretacionEnInforme: ocultarInterp });
+          if (base && normal === base.normal && refText2 === base.refText && nombreNuevo === base.nombre && ocultarRef === ocultarRefBase && ocultarInterp === ocultarInterpBase) { C.clearOverride(tenant, examId, p.codigo); return; }
+          C.setOverride(tenant, examId, p.codigo, { nombre: nombreNuevo, normal: normal, refText: refText2 || ("Normal: " + normal), ocultarEnInforme: ocultarRef, ocultarInterpretacionEnInforme: ocultarInterp });
           cambios++;
         } else if (p.tipo === "descriptivo") {
           var refText3 = row.querySelector("[data-reftext]").value.trim();
-          if (base && refText3 === base.refText && ocultarRef === ocultarRefBase) { C.clearOverride(tenant, examId, p.codigo); return; }
-          C.setOverride(tenant, examId, p.codigo, { refText: refText3, ocultarEnInforme: ocultarRef });
+          if (base && refText3 === base.refText && nombreNuevo === base.nombre && ocultarRef === ocultarRefBase) { C.clearOverride(tenant, examId, p.codigo); return; }
+          C.setOverride(tenant, examId, p.codigo, { nombre: nombreNuevo, refText: refText3, ocultarEnInforme: ocultarRef });
+          cambios++;
+        } else {
+          // Paneles y campos de texto libre no tienen rango/valor normal
+          // que guardar aquí — lo único editable en esta tabla es el
+          // nombre, así que es el único override posible para ellos.
+          if (base && nombreNuevo === base.nombre) { C.clearOverride(tenant, examId, p.codigo); return; }
+          C.setOverride(tenant, examId, p.codigo, { nombre: nombreNuevo });
           cambios++;
         }
       });
