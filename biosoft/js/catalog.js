@@ -103,7 +103,11 @@
     hisopo: { nombre: "Hisopo / Tórula Estéril", color: "#64748b" },
     esputo: { nombre: "Frasco Estéril de Esputo", color: "#475569" },
     hemocultivo: { nombre: "Frasco de Hemocultivo", color: "#0f172a" },
-    capilar: { nombre: "Muestra Capilar (Lanceta)", color: "#f472b6" }
+    capilar: { nombre: "Muestra Capilar (Lanceta)", color: "#f472b6" },
+    vph: { nombre: "Kit de Toma para VPH (Cepillo + Medio de Transporte)", color: "#db2777" },
+    citologia: { nombre: "Kit de Citología en Base Líquida (Papanicolau)", color: "#be185d" },
+    urotainer: { nombre: "Urotainer / Frasco Estéril para Urocultivo", color: "#ca8a04" },
+    hisopo_viral: { nombre: "Hisopo con Medio de Transporte Viral (VTM)", color: "#0369a1" }
   };
 
   /* "formula" (opcional, ej. "COLT - HDL - (TGD/5)" para el LDL calculado

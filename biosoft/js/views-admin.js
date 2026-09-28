@@ -485,6 +485,40 @@
     });
   }
 
+  // El catálogo de tubos/envases (C.TUBOS) trae los más comunes, pero hay
+  // envases/kits de toma muy especializados y específicos de cada
+  // laboratorio (kits comerciales de VPH, urotainers de una marca puntual,
+  // etc.) que sería imposible enumerar todos de fábrica. En vez de eso, el
+  // selector de "Tubo de Recolección" siempre trae una última opción "Otro"
+  // que revela un campo de texto libre — lo que se escriba ahí se guarda
+  // TAL CUAL como el tubo del examen (C.tuboInfo() ya sabe mostrar
+  // cualquier texto que no esté en su catálogo, con un color neutro), así
+  // que el sticker de la muestra y la pantalla de resultados lo muestran
+  // igual de bien sin necesitar ningún otro ajuste.
+  var TUBO_OTRO = "__otro__";
+  function tuboSelectHtml(idBase, label, valorActual) {
+    var esConocido = !!C.TUBOS[valorActual];
+    var esCustom = !!valorActual && !esConocido;
+    return F.sel(idBase, label, Object.keys(C.TUBOS).map(function (k) {
+      return "<option value='" + k + "' " + (k === valorActual ? "selected" : "") + ">" + C.TUBOS[k].nombre + "</option>";
+    }).join("") + "<option value='" + TUBO_OTRO + "' " + (esCustom ? "selected" : "") + ">Otro (escribir el envase/kit especializado)…</option>") +
+      '<div class="field" data-tubo-otro-box="' + idBase + '" style="margin-top:6px' + (esCustom ? "" : ";display:none") + '"><label>Nombre del envase/kit especializado</label>' +
+      '<input type="text" id="f_' + idBase + '_otro" placeholder="Ej: Kit VPH Cobas, Urotainer, Hisopo Viral…" value="' + (esCustom ? U.esc(valorActual) : "") + '"/></div>';
+  }
+  function wireTuboSelect(wrap, idBase) {
+    var sel = wrap.querySelector("#f_" + idBase);
+    var box = wrap.querySelector('[data-tubo-otro-box="' + idBase + '"]');
+    if (!sel || !box) return;
+    sel.addEventListener("change", function () { box.style.display = sel.value === TUBO_OTRO ? "" : "none"; });
+  }
+  function leerTuboSeleccionado(wrap, idBase) {
+    var sel = wrap.querySelector("#f_" + idBase);
+    if (!sel) return "";
+    if (sel.value !== TUBO_OTRO) return sel.value;
+    var input = wrap.querySelector("#f_" + idBase + "_otro");
+    return input ? input.value.trim() : "";
+  }
+
   function abrirCrearExamen(tenant, onDone) {
     var session = BIO_AUTH.getSession();
     var wrap = U.openModal(
@@ -497,11 +531,12 @@
       F.sel("nivel", "Nivel de Complejidad", [1, 2].map(function (n) { return "<option value='" + n + "'>Nivel " + n + "</option>"; }).join("")) +
       F.inp("muestra", "Tipo de Muestra (opcional)", "") +
       F.inp("metodo", "Método / Técnica (opcional, ej: ELISA, Electroquimioluminiscencia)", "") +
-      F.sel("tubo", "Tubo de Recolección", Object.keys(C.TUBOS).map(function (k) { return "<option value='" + k + "'>" + C.TUBOS[k].nombre + "</option>"; }).join("")) +
+      tuboSelectHtml("tubo", "Tubo de Recolección", "") +
       "</div>" +
       '<div class="flex gap-2 justify-between" style="margin-top:6px"><button type="button" class="btn btn-ghost" data-modal-close>Cancelar</button><button type="submit" class="btn btn-primary">' + U.icon("check") + " Crear y Agregar Parámetros</button></div>" +
       "</form>"
     );
+    wireTuboSelect(wrap, "tubo");
     wrap.querySelector("#nuevo-examen-form").addEventListener("submit", function (e) {
       e.preventDefault();
       var g = function (id) { return wrap.querySelector("#f_" + id).value.trim(); };
@@ -509,7 +544,7 @@
       if (!nombre) { U.toast("Ponle un nombre al examen.", "error"); return; }
       var nuevo = C.crearExamenPersonalizado(tenant, {
         nombre: nombre, seccion: g("seccion"), cups: g("cups"), nivel: parseInt(g("nivel"), 10) || 1,
-        muestra: g("muestra"), metodo: g("metodo"), tubo: g("tubo")
+        muestra: g("muestra"), metodo: g("metodo"), tubo: leerTuboSeleccionado(wrap, "tubo")
       });
       S.updateTenant(tenant.id, { examenesPersonalizados: tenant.examenesPersonalizados });
       S.addAudit(session.tenantId, session.nombre, session.rol, "CREATE_EXAM", "catalogo", nuevo.id, 'Agregó el examen propio "' + nombre + '" al catálogo del laboratorio.');
@@ -629,7 +664,7 @@
       '<div class="field"><label>Método / Técnica (opcional)</label>' +
       '<input id="cat-metodo-examen" placeholder="Ej: ELISA, Electroquimioluminiscencia…" value="' + U.esc(efectivo.metodo || "") + '"/></div>' +
       (!propio ? F.sel("cat_seccion", "Sección", C.seccionesEfectivas(tenant).map(function (s) { return "<option value='" + s.id + "' " + (s.id === efectivo.seccion ? "selected" : "") + ">" + s.nombre + "</option>"; }).join("")) : "") +
-      (!propio ? F.sel("cat_tubo", "Tubo de Recolección", Object.keys(C.TUBOS).map(function (k) { return "<option value='" + k + "' " + (k === efectivo.tubo ? "selected" : "") + ">" + C.TUBOS[k].nombre + "</option>"; }).join("")) : "") +
+      (!propio ? tuboSelectHtml("cat_tubo", "Tubo de Recolección", efectivo.tubo) : "") +
       "</div>" +
       (efectivo.nombre !== exCat.nombre ? '<p class="text-muted" style="margin:2px 0 12px;font-size:12px">Nombre de fábrica: ' + U.esc(exCat.nombre) + ' — <button type="button" class="btn btn-ghost btn-sm" id="btn-restablecer-nombre" style="padding:2px 6px">Restablecer</button></p>' : "") +
       (!propio && efectivo.seccion !== exCat.seccion ? '<p class="text-muted" style="margin:2px 0 12px;font-size:12px">Sección de fábrica: ' + U.esc(C.seccionNombre(exCat.seccion)) + ' — <button type="button" class="btn btn-ghost btn-sm" id="btn-restablecer-seccion" style="padding:2px 6px">Restablecer</button></p>' +
@@ -639,7 +674,7 @@
         F.sel("propio_seccion", "Sección", C.seccionesEfectivas(tenant).map(function (s) { return "<option value='" + s.id + "' " + (s.id === exCat.seccion ? "selected" : "") + ">" + s.nombre + "</option>"; }).join("")) +
         F.inp("propio_cups", "Código CUPS (opcional)", exCat.cups || "") +
         F.inp("propio_muestra", "Tipo de Muestra (opcional)", exCat.muestra || "") +
-        F.sel("propio_tubo", "Tubo de Recolección", Object.keys(C.TUBOS).map(function (k) { return "<option value='" + k + "' " + (k === exCat.tubo ? "selected" : "") + ">" + C.TUBOS[k].nombre + "</option>"; }).join("")) +
+        tuboSelectHtml("propio_tubo", "Tubo de Recolección", exCat.tubo) +
         "</div></fieldset>" : "") +
       '<div class="table-wrap"><table><thead><tr><th></th><th>Parámetro</th><th>Mínimo</th><th>Máximo</th><th>Texto de referencia</th><th>Original</th><th></th></tr></thead><tbody>' +
       efectivo.parametros.map(function (p, idx) { return paramRow(p, idx, efectivo.parametros.length); }).join("") +
@@ -656,6 +691,8 @@
       '<button class="btn btn-primary" id="cat-guardar">' + U.icon("check") + " Guardar Cambios</button></div>",
       { lg: true }
     );
+    wireTuboSelect(wrap, "cat_tubo");
+    wireTuboSelect(wrap, "propio_tubo");
 
     var btnRestablecerTodo = wrap.querySelector("#btn-restablecer-todo");
     if (btnRestablecerTodo) btnRestablecerTodo.addEventListener("click", function () {
@@ -720,7 +757,11 @@
     if (btnRestablecerSeccion) btnRestablecerSeccion.addEventListener("click", function () { wrap.querySelector("#f_cat_seccion").value = exCat.seccion; });
 
     var btnRestablecerTubo = wrap.querySelector("#btn-restablecer-tubo");
-    if (btnRestablecerTubo) btnRestablecerTubo.addEventListener("click", function () { wrap.querySelector("#f_cat_tubo").value = exCat.tubo; });
+    if (btnRestablecerTubo) btnRestablecerTubo.addEventListener("click", function () {
+      wrap.querySelector("#f_cat_tubo").value = exCat.tubo;
+      var box = wrap.querySelector('[data-tubo-otro-box="cat_tubo"]');
+      if (box) box.style.display = "none";
+    });
 
     wrap.querySelectorAll("[data-bandas]").forEach(function (btn) {
       btn.addEventListener("click", function () {
@@ -762,7 +803,7 @@
         }
         var tuboSel = wrap.querySelector("#f_cat_tubo");
         if (tuboSel) {
-          var nuevoTubo = tuboSel.value;
+          var nuevoTubo = leerTuboSeleccionado(wrap, "cat_tubo");
           tuboCambio = nuevoTubo !== efectivo.tubo;
           C.cambiarTuboExamen(tenant, examId, nuevoTubo);
         }
@@ -772,7 +813,7 @@
           seccion: wrap.querySelector("#f_propio_seccion").value,
           cups: wrap.querySelector("#f_propio_cups").value.trim(),
           muestra: wrap.querySelector("#f_propio_muestra").value.trim(),
-          tubo: wrap.querySelector("#f_propio_tubo").value
+          tubo: leerTuboSeleccionado(wrap, "propio_tubo")
         });
       }
       var cambios = 0;
@@ -820,7 +861,7 @@
       S.updateTenant(tenant.id, { refOverrides: tenant.refOverrides || {}, examCustom: tenant.examCustom || {} });
       if (nombreCambio) S.addAudit(session.tenantId, session.nombre, session.rol, "RENAME_EXAM", "catalogo", examId, "Renombró " + exCat.nombre + ' a "' + nuevoNombre + '" para su laboratorio.');
       if (seccionCambio) S.addAudit(session.tenantId, session.nombre, session.rol, "RECATEGORIZE_EXAM", "catalogo", examId, "Recategorizó " + exCat.nombre + " a la sección " + C.seccionNombre(wrap.querySelector("#f_cat_seccion").value, tenant) + " para su laboratorio.");
-      if (tuboCambio) S.addAudit(session.tenantId, session.nombre, session.rol, "CHANGE_EXAM_TUBE", "catalogo", examId, "Cambió el tubo de recolección de " + exCat.nombre + " a " + (C.TUBOS[wrap.querySelector("#f_cat_tubo").value] || {}).nombre + " para su laboratorio.");
+      if (tuboCambio) S.addAudit(session.tenantId, session.nombre, session.rol, "CHANGE_EXAM_TUBE", "catalogo", examId, "Cambió el tubo de recolección de " + exCat.nombre + " a " + C.tuboInfo(leerTuboSeleccionado(wrap, "cat_tubo")).nombre + " para su laboratorio.");
       S.addAudit(session.tenantId, session.nombre, session.rol, "UPDATE_REF_RANGE", "catalogo", examId, "Actualizó valores de referencia de " + exCat.nombre + " (" + cambios + " parámetro(s) personalizado(s)).");
       U.toast("Cambios guardados para tu laboratorio.", "success");
       U.closeModal(wrap);
