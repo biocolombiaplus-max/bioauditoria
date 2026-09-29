@@ -8,7 +8,13 @@
 (function (global) {
   "use strict";
   var C = BIO_CATALOG;
-  var METODO_PAGO_LABEL = { efectivo: "Efectivo", transferencia: "Transferencia", tarjeta: "Tarjeta Débito/Crédito", zelle: "Zelle", pago_movil: "Pago Móvil", otro: "Otro" };
+  // "cashea" (financiera de compra ahora/paga después muy usada en
+  // Venezuela) solo se OFRECE como opción para elegir en laboratorios de
+  // Venezuela (ver metodosPagoDisponibles() en views-orders.js) — pero su
+  // etiqueta vive aquí, en el mismo diccionario que todos los demás
+  // métodos, para que un pago ya guardado con "cashea" siempre se pueda
+  // mostrar bien (recibo, detalle de la orden) sin importar el país.
+  var METODO_PAGO_LABEL = { efectivo: "Efectivo", transferencia: "Transferencia", tarjeta: "Tarjeta Débito/Crédito", zelle: "Zelle", pago_movil: "Pago Móvil", cashea: "Cashea", otro: "Otro" };
 
   function hexToRgb(hex) {
     hex = (hex || "#f97316").replace("#", "");
@@ -186,13 +192,24 @@
       var cardX = pageW - margin - cardW, cardY = y;
       doc.setFillColor(250, 250, 251); doc.setDrawColor(rgb[0], rgb[1], rgb[2]); doc.setLineWidth(1.1);
       doc.roundedRect(cardX, cardY, cardW, cardH, 6, 6, "FD");
+      // Un laboratorio de Venezuela suele tener sus precios cargados en
+      // dólares (más estable), pero el paciente sigue pensando en
+      // bolívares — así que en este recibo, SOLO para Venezuela, se
+      // invierte cuál moneda se ve grande/principal: el bolívar arriba en
+      // grande, el dólar abajo como referencia — al revés de cualquier
+      // otro país, donde la moneda en la que el laboratorio tiene cargados
+      // sus precios sigue siendo la principal.
+      var montoPrincipal = esCredito ? order.valorCobrar : montoAbonado;
+      var valorBs = tenant.pais === "VE" ? C.convertirMonedaAdicional(tenant, montoPrincipal) : null;
+      var invertirVE = valorBs !== null;
       doc.setFont("helvetica", "bold"); doc.setFontSize(8.5); doc.setTextColor(110, 110, 110);
       doc.text(esCredito ? "SALDO A CARGO DEL CONVENIO" : "TOTAL PAGADO", cardX + 14, cardY + 17);
       doc.setFont("helvetica", "bold"); doc.setFontSize(15); doc.setTextColor(rgb[0], rgb[1], rgb[2]);
-      doc.text(fmtMoneda(esCredito ? order.valorCobrar : montoAbonado), cardX + cardW - 14, cardY + 30, { align: "right" });
-      if (extraMoneda) {
+      doc.text(invertirVE ? (valorBs.toLocaleString("es-VE", { minimumFractionDigits: 2, maximumFractionDigits: 2 }) + " Bs") : fmtMoneda(montoPrincipal), cardX + cardW - 14, cardY + 30, { align: "right" });
+      var textoChico = invertirVE ? (fmtMoneda(montoPrincipal) + " " + C.monedaBaseLabel(tenant)) : extraMoneda;
+      if (textoChico) {
         doc.setFont("helvetica", "normal"); doc.setFontSize(8.5); doc.setTextColor(120, 120, 120);
-        doc.text(extraMoneda, cardX + cardW - 14, cardY + 44, { align: "right" });
+        doc.text(textoChico, cardX + cardW - 14, cardY + 44, { align: "right" });
       }
       y = cardY + cardH + 24;
     }

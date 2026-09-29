@@ -14,6 +14,17 @@
     var extra = C.fmtMonedaAdicional(tenant, n || 0);
     return extra ? ' <span class="text-muted" style="font-size:11px">(' + extra + ')</span>' : "";
   }
+  // "Cashea" (financiera de compra-ahora-paga-después muy usada en
+  // Venezuela) solo se ofrece como opción de método de pago en
+  // laboratorios de Venezuela — para el resto de países no aparece en el
+  // selector, aunque su etiqueta sigue existiendo en METODO_PAGO_LABEL por
+  // si algún pago ya guardado la usa.
+  function metodosPagoDisponibles(tenant) {
+    return Object.keys(BIO_PDF_RECIBO_ORDEN.METODO_PAGO_LABEL).filter(function (k) { return k !== "cashea" || (tenant && tenant.pais === "VE"); });
+  }
+  function opcionesMetodoPagoHtml(tenant) {
+    return metodosPagoDisponibles(tenant).map(function (k) { return '<option value="' + k + '">' + BIO_PDF_RECIBO_ORDEN.METODO_PAGO_LABEL[k] + "</option>"; }).join("");
+  }
 
   window.BIO_VIEWS.ordenes = function (root, param) {
     if (param && (param === "nueva" || param.indexOf("nueva-") === 0)) {
@@ -223,7 +234,7 @@
             '<option value="contado">Contado (el paciente paga ahora)</option>' +
             '<option value="credito">Crédito (queda pendiente — se le cobra al convenio después)</option>' +
             "</select></div>" : "") +
-          (tenant.mostrarPrecioOrden ? '<div class="field"><label>Valor a Cobrar</label><input id="f_valorCobrar" type="number" step="any" value=""/>' +
+          (tenant.mostrarPrecioOrden ? '<div class="field"><label>Valor a Cobrar</label><input id="f_valorCobrar" type="text" inputmode="decimal" value=""/>' +
             '<span class="text-muted" style="font-size:11px" id="valorCobrar-hint">Se calcula solo según los exámenes que selecciones — puedes ajustarlo a mano.</span>' +
             '<span class="text-muted" style="font-size:11px;display:block" id="valorCobrar-equiv"></span></div>' : "") +
           // Solo Venezuela: ahí es normal que, según el paciente, el cobro
@@ -358,7 +369,7 @@
       if (!tenant.mostrarPrecioOrden) return;
       var equiv = document.getElementById("valorCobrar-equiv");
       if (precioEditadoManualmente) {
-        if (equiv) equiv.textContent = C.fmtMonedaAdicional(tenant, parseFloat(document.getElementById("f_valorCobrar").value) || 0);
+        if (equiv) equiv.textContent = C.fmtMonedaAdicional(tenant, U.parseMonto(document.getElementById("f_valorCobrar").value));
         return;
       }
       var input = document.getElementById("f_valorCobrar");
@@ -436,7 +447,7 @@
         var hint = document.getElementById("valorCobrar-hint");
         if (hint) hint.textContent = "Ajustado manualmente.";
         var equiv = document.getElementById("valorCobrar-equiv");
-        if (equiv) equiv.textContent = C.fmtMonedaAdicional(tenant, parseFloat(e.target.value) || 0);
+        if (equiv) equiv.textContent = C.fmtMonedaAdicional(tenant, U.parseMonto(e.target.value));
       });
       sugerirValorCobrar();
     }
@@ -485,7 +496,7 @@
         diagnostico: document.getElementById("f_diagnostico").value,
         numAutorizacion: tenant.pais === "CO" ? document.getElementById("f_numAutorizacion").value : "",
         diagnosticoCIE10: tenant.pais === "CO" ? document.getElementById("f_diagnosticoCIE10").value : "",
-        valorCobrar: tenant.mostrarPrecioOrden ? (parseFloat(document.getElementById("f_valorCobrar").value) || 0) : null,
+        valorCobrar: tenant.mostrarPrecioOrden ? U.parseMonto(document.getElementById("f_valorCobrar").value) : null,
         monedaPago: (tenant.pais === "VE" && tenant.mostrarPrecioOrden) ? document.getElementById("f_monedaPago").value : "",
         examenes: idsExamenesFinal.map(function (id) {
           var exCat = C.examenEfectivo(id, tenant);
@@ -754,9 +765,9 @@
         ? '<h3 class="modal-title">Copago — Orden ' + order.numeroOrden + '</h3>' +
           '<p class="text-muted" style="margin-top:0">El convenio <b>' + U.esc(order.convenioNombre || "—") + "</b> maneja copago: el paciente paga <b>" + fmtMoneda(valorCopago) + fmtMonedaEquiv(tenant, valorCopago) + "</b> y el resto (<b>" + fmtMoneda(valorConvenio) + fmtMonedaEquiv(tenant, valorConvenio) + "</b>) queda a crédito del convenio.</p>" +
           '<div class="field"><label>Método de Pago del Copago</label><select id="rec-ord-metodo">' +
-          Object.keys(BIO_PDF_RECIBO_ORDEN.METODO_PAGO_LABEL).map(function (k) { return '<option value="' + k + '">' + BIO_PDF_RECIBO_ORDEN.METODO_PAGO_LABEL[k] + "</option>"; }).join("") +
+          opcionesMetodoPagoHtml(tenant) +
           "</select></div>" +
-          '<div class="field"><label>Monto Recibido del Copago</label><input type="number" step="any" min="0" id="rec-ord-monto" value="' + valorCopago + '"/>' +
+          '<div class="field"><label>Monto Recibido del Copago</label><input type="text" inputmode="decimal" id="rec-ord-monto" value="' + valorCopago + '"/>' +
           '<span class="text-muted" style="font-size:11px" id="rec-ord-monto-hint"></span></div>' +
           '<label class="checkbox-row" style="margin-top:10px"><input type="checkbox" id="rec-ord-confirmo"/> Confirmo que el paciente pagó lo indicado arriba y se genera el cargo a crédito del resto al convenio ' + U.esc(order.convenioNombre || "—") + "</label>" +
           '<div class="flex justify-between" style="margin-top:16px"><button class="btn btn-ghost" data-modal-close>Cancelar</button><button class="btn btn-primary" id="rec-ord-confirmar" disabled>Confirmar y Generar Recibo</button></div>'
@@ -768,9 +779,9 @@
         : '<h3 class="modal-title">Recibo de Pago — Orden ' + order.numeroOrden + '</h3>' +
           '<p class="text-muted" style="margin-top:0">Antes de generar el recibo, confirma cuánto pagó el cliente. Si paga menos del valor total, la orden queda con saldo pendiente y podrás agregar el resto más adelante desde "Agregar Abono".</p>' +
           '<div class="field"><label>Método de Pago</label><select id="rec-ord-metodo">' +
-          Object.keys(BIO_PDF_RECIBO_ORDEN.METODO_PAGO_LABEL).map(function (k) { return '<option value="' + k + '">' + BIO_PDF_RECIBO_ORDEN.METODO_PAGO_LABEL[k] + "</option>"; }).join("") +
+          opcionesMetodoPagoHtml(tenant) +
           "</select></div>" +
-          '<div class="field"><label>Monto Recibido (Valor Total: ' + fmtMoneda(order.valorCobrar) + fmtMonedaEquiv(tenant, order.valorCobrar) + ')</label><input type="number" step="any" min="0" id="rec-ord-monto" value="' + order.valorCobrar + '"/>' +
+          '<div class="field"><label>Monto Recibido (Valor Total: ' + fmtMoneda(order.valorCobrar) + fmtMonedaEquiv(tenant, order.valorCobrar) + ')</label><input type="text" inputmode="decimal" id="rec-ord-monto" value="' + order.valorCobrar + '"/>' +
           '<span class="text-muted" style="font-size:11px" id="rec-ord-monto-hint"></span></div>' +
           '<label class="checkbox-row" style="margin-top:10px"><input type="checkbox" id="rec-ord-confirmo"/> Confirmo que el cliente pagó el monto indicado arriba</label>' +
           '<div class="flex justify-between" style="margin-top:16px"><button class="btn btn-ghost" data-modal-close>Cancelar</button><button class="btn btn-primary" id="rec-ord-confirmar" disabled>Confirmar Pago y Generar Recibo</button></div>'
@@ -782,7 +793,7 @@
     var hintMonto = wrapConfirm.querySelector("#rec-ord-monto-hint");
     if (inpMonto) {
       var actualizarHintMonto = function () {
-        var v = parseFloat(inpMonto.value) || 0;
+        var v = U.parseMonto(inpMonto.value);
         if (v <= 0) { hintMonto.textContent = "Escribe cuánto pagó realmente."; hintMonto.style.color = "var(--danger, #b91c1c)"; }
         else if (v < montoDebido) { hintMonto.textContent = "Abono parcial — queda un saldo pendiente de " + fmtMoneda(montoDebido - v) + fmtMonedaEquiv(tenant, montoDebido - v) + "."; hintMonto.style.color = "var(--warning, #c97d0d)"; }
         else { hintMonto.textContent = "Pago completo."; hintMonto.style.color = ""; }
@@ -792,7 +803,7 @@
     }
     btnConfirmar.addEventListener("click", async function () {
       var session = BIO_AUTH.getSession();
-      var montoRecibido = inpMonto ? (parseFloat(inpMonto.value) || 0) : order.valorCobrar;
+      var montoRecibido = inpMonto ? U.parseMonto(inpMonto.value) : order.valorCobrar;
       var pago = tieneCopago
         ? { fecha: new Date().toISOString(), metodoPago: wrapConfirm.querySelector("#rec-ord-metodo").value, monto: montoRecibido, valorCopago: valorCopago, valorConvenio: valorConvenio, tieneCopago: true, esCredito: true, confirmadoPor: session.nombre }
         : esCargoConvenio
@@ -832,9 +843,9 @@
       '<h3 class="modal-title">Agregar Abono — Orden ' + order.numeroOrden + '</h3>' +
       '<p class="text-muted" style="margin-top:0">Saldo pendiente actual: <b>' + fmtMoneda(saldo) + fmtMonedaEquiv(tenant, saldo) + '</b>.</p>' +
       '<div class="field"><label>Método de Pago</label><select id="ab-metodo">' +
-      Object.keys(BIO_PDF_RECIBO_ORDEN.METODO_PAGO_LABEL).map(function (k) { return '<option value="' + k + '">' + BIO_PDF_RECIBO_ORDEN.METODO_PAGO_LABEL[k] + "</option>"; }).join("") +
+      opcionesMetodoPagoHtml(tenant) +
       "</select></div>" +
-      '<div class="field"><label>Monto del Abono</label><input type="number" step="any" min="0.01" max="' + saldo + '" id="ab-monto" value="' + saldo + '"/>' +
+      '<div class="field"><label>Monto del Abono</label><input type="text" inputmode="decimal" id="ab-monto" value="' + saldo + '"/>' +
       '<span class="text-muted" style="font-size:11px" id="ab-monto-hint"></span></div>' +
       '<div class="flex justify-between" style="margin-top:16px"><button class="btn btn-ghost" data-modal-close>Cancelar</button><button class="btn btn-primary" id="ab-confirmar">Registrar Abono y Generar Recibo</button></div>'
     );
@@ -842,7 +853,7 @@
     var hint = wrap.querySelector("#ab-monto-hint");
     var btnConfirmar = wrap.querySelector("#ab-confirmar");
     function actualizarHint() {
-      var v = parseFloat(inpMonto.value) || 0;
+      var v = U.parseMonto(inpMonto.value);
       if (v <= 0) { hint.textContent = "Escribe cuánto abonó el cliente."; hint.style.color = "var(--danger, #b91c1c)"; btnConfirmar.disabled = true; }
       else if (v > saldo + 0.009) { hint.textContent = "No puede ser mayor al saldo pendiente (" + fmtMoneda(saldo) + ")."; hint.style.color = "var(--danger, #b91c1c)"; btnConfirmar.disabled = true; }
       else if (v < saldo) { hint.textContent = "Quedará un nuevo saldo pendiente de " + fmtMoneda(saldo - v) + "."; hint.style.color = "var(--warning, #c97d0d)"; btnConfirmar.disabled = false; }
@@ -852,7 +863,7 @@
     actualizarHint();
     btnConfirmar.addEventListener("click", async function () {
       var session = BIO_AUTH.getSession();
-      var monto = parseFloat(inpMonto.value) || 0;
+      var monto = U.parseMonto(inpMonto.value);
       if (monto <= 0 || monto > saldo + 0.009) return;
       var metodoPago = wrap.querySelector("#ab-metodo").value;
       var fecha = new Date().toISOString();

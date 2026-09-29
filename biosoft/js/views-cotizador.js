@@ -534,12 +534,12 @@
       document.getElementById("precios-tbody").innerHTML = pool.map(function (e) {
         var valor = preciosEditados.hasOwnProperty(e.id) ? preciosEditados[e.id] : precioDe(e.id);
         return "<tr><td>" + U.esc(e.nombre) + "</td><td>" + resolverSeccionNombre(e.seccion) + "</td><td>" + e.cups + "</td>" +
-          "<td><input type='number' step='any' min='0' data-precio-exam='" + e.id + "' value='" + (valor || "") + "' placeholder='0'/>" +
+          "<td><input type='text' inputmode='decimal' data-precio-exam='" + e.id + "' value='" + (valor || "") + "' placeholder='0'/>" +
           '<span data-precio-equiv="' + e.id + '" class="text-muted" style="display:block;font-size:11px;margin-top:2px">' + equivalenteMonedaTexto(valor) + "</span></td></tr>";
       }).join("") || '<tr><td colspan="4" class="text-muted">Sin resultados.</td></tr>';
       document.querySelectorAll("[data-precio-exam]").forEach(function (inp) {
         inp.addEventListener("input", function () {
-          var precio = parseFloat(inp.value) || 0;
+          var precio = U.parseMonto(inp.value);
           preciosEditados[inp.dataset.precioExam] = precio;
           var equiv = document.querySelector('[data-precio-equiv="' + inp.dataset.precioExam + '"]');
           if (equiv) equiv.textContent = equivalenteMonedaTexto(precio);
@@ -549,7 +549,7 @@
         // el botón "Guardar Cambios" al final de una lista larga.
         inp.addEventListener("change", function () {
           var examId = inp.dataset.precioExam;
-          var precio = parseFloat(inp.value) || 0;
+          var precio = U.parseMonto(inp.value);
           S.cotizador.setPrecio(tenantId, examId, precio);
           delete preciosEditados[examId];
           precios[examId] = precio;
@@ -1082,7 +1082,7 @@
         '<form id="paquete-form">' +
         '<div class="form-grid">' +
         '<div class="field"><label>Nombre del Paquete</label><input id="f_paq_nombre" value="' + U.esc(paquete.nombre) + '" placeholder="Ej. Perfil Lipídico" required/></div>' +
-        '<div class="field"><label>Precio Total del Paquete</label><input type="number" step="any" min="0" id="f_paq_precio" value="' + (paquete.precio || "") + '" placeholder="0" required/></div>' +
+        '<div class="field"><label>Precio Total del Paquete</label><input type="text" inputmode="decimal" id="f_paq_precio" value="' + (paquete.precio || "") + '" placeholder="0" required/></div>' +
         '<div class="field"><label>Estado</label><select id="f_paq_activo"><option value="1" ' + (paquete.activo !== false ? "selected" : "") + '>Activo</option><option value="0" ' + (paquete.activo === false ? "selected" : "") + ">Inactivo</option></select></div>" +
         (conveniosActivosPaquete.length ?
           '<div class="field"><label>Convenio Exclusivo (opcional)</label><select id="f_paq_convenio"><option value="">Disponible para todos (general)</option>' +
@@ -1129,7 +1129,7 @@
       wrap.querySelector("#paquete-form").addEventListener("submit", function (e) {
         e.preventDefault();
         var nombre = wrap.querySelector("#f_paq_nombre").value.trim();
-        var precio = parseFloat(wrap.querySelector("#f_paq_precio").value) || 0;
+        var precio = U.parseMonto(wrap.querySelector("#f_paq_precio").value);
         var activo = wrap.querySelector("#f_paq_activo").value === "1";
         var elConvenioPaq = wrap.querySelector("#f_paq_convenio");
         var convenioIdPaq = elConvenioPaq ? elConvenioPaq.value : "";
@@ -1600,16 +1600,16 @@
         '<p class="text-muted" style="margin-top:0">' + U.esc(examen.laboratorioReferencia || "Laboratorio de referencia") + " · Código " + U.esc(examen.codigoRef || "—") + (examen.cups ? " · CUPS " + U.esc(examen.cups) : "") + "</p>" +
         '<div class="form-grid">' +
         '<div class="field"><label>Precio de Compra (' + U.esc(examen.laboratorioReferencia || "laboratorio de referencia") + ')</label><input value="' + fmtMoneda(examen.precioCompra) + '" disabled/></div>' +
-        '<div class="field"><label>Precio de Venta (a tu paciente)</label><input type="number" step="any" min="0" id="rd-venta" value="' + (examen.precioVenta || "") + '" placeholder="0"/></div>' +
+        '<div class="field"><label>Precio de Venta (a tu paciente)</label><input type="text" inputmode="decimal" id="rd-venta" value="' + (examen.precioVenta || "") + '" placeholder="0"/></div>' +
         "</div>" +
         '<p style="margin:10px 0 0;font-size:14px">Ganancia: <span id="rd-ganancia">' + fmtGanancia(examen.precioCompra, examen.precioVenta) + "</span></p>" +
         '<div class="flex gap-2 justify-between" style="margin-top:16px"><button class="btn btn-ghost" data-modal-close>Cerrar</button><button type="button" class="btn btn-primary" id="rd-guardar">' + U.icon("check") + " Guardar Precio de Venta</button></div>"
       );
       wrap.querySelector("#rd-venta").addEventListener("input", function (e) {
-        wrap.querySelector("#rd-ganancia").innerHTML = fmtGanancia(examen.precioCompra, parseFloat(e.target.value) || 0);
+        wrap.querySelector("#rd-ganancia").innerHTML = fmtGanancia(examen.precioCompra, U.parseMonto(e.target.value));
       });
       wrap.querySelector("#rd-guardar").addEventListener("click", function () {
-        var venta = parseFloat(wrap.querySelector("#rd-venta").value) || 0;
+        var venta = U.parseMonto(wrap.querySelector("#rd-venta").value);
         S.cotizador.setPrecioVentaReferencia(tenantId, examen.id, venta);
         examen.precioVenta = venta;
         U.toast("Precio de venta guardado.", "success");

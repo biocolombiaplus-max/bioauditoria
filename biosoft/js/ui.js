@@ -48,6 +48,22 @@
     });
   }
 
+  // Lee un monto de dinero escrito a mano aceptando tanto "9.90" como
+  // "9,90" — la coma decimal es muy común al digitar en un teclado
+  // configurado en español (sobre todo la tecla "." del teclado numérico,
+  // que en Windows con configuración regional de Venezuela/Colombia
+  // produce una coma en vez de un punto). Usar esto en vez de parseFloat()
+  // directo en cualquier campo de monto que use type="text"
+  // inputmode="decimal" (en vez de type="number", que en varios
+  // navegadores/teclados RECHAZA la coma en silencio — bug real reportado:
+  // un monto en dólares con decimales no se dejaba guardar bien).
+  function parseMonto(v) {
+    if (v === null || typeof v === "undefined") return 0;
+    var s = String(v).trim().replace(",", ".");
+    var n = parseFloat(s);
+    return isNaN(n) ? 0 : n;
+  }
+
   function toast(msg, type) {
     var stack = document.getElementById("toast-stack");
     if (!stack) {
@@ -389,6 +405,7 @@
     emailProviderButtonsHtml: emailProviderButtonsHtml, wireEmailProviderButtons: wireEmailProviderButtons,
     redimensionarImagen: redimensionarImagen, recomprimirDataUrlSiHaceFalta: recomprimirDataUrlSiHaceFalta,
     indicativoPais: indicativoPais, numeroWhatsapp: numeroWhatsapp,
-    soportaCompartirArchivos: soportaCompartirArchivos, compartirPDF: compartirPDF, botonCompartirPDFHtml: botonCompartirPDFHtml
+    soportaCompartirArchivos: soportaCompartirArchivos, compartirPDF: compartirPDF, botonCompartirPDFHtml: botonCompartirPDFHtml,
+    parseMonto: parseMonto
   };
 })(window);

@@ -1380,18 +1380,30 @@
      "natural" clara. Devuelve "" si no hay ninguna configurada, para poder
      concatenar siempre sin condicionales. */
   var MONEDAS_DURAS = ["USD", "EUR"];
-  function fmtMonedaAdicional(tenant, montoBase) {
+  // Valor NUMÉRICO puro de la conversión (sin formatear a texto) — lo usa
+  // fmtMonedaAdicional() de abajo para el texto informativo de siempre
+  // ("~ 1.715,78 VES"), y también un recibo que necesite mostrar ese
+  // monto convertido como la cifra GRANDE/principal (ej. el recibo de pago
+  // en Venezuela, donde el bolívar debe verse primero aunque el
+  // laboratorio tenga sus precios cargados en dólares). Devuelve null si
+  // no hay moneda adicional configurada, para poder distinguirlo de un
+  // monto que sí se pudo convertir pero dio 0.
+  function convertirMonedaAdicional(tenant, montoBase) {
     var m = tenant && tenant.monedaAdicional;
-    if (!m || !m.codigo || !m.tasa) return "";
+    if (!m || !m.codigo || !m.tasa) return null;
     var base = monedaBaseLabel(tenant);
     var baseEsDura = MONEDAS_DURAS.indexOf(base) !== -1;
     var adicionalEsDura = MONEDAS_DURAS.indexOf(m.codigo) !== -1;
-    var valor = (baseEsDura && !adicionalEsDura) ? montoBase * m.tasa : montoBase / m.tasa;
+    return (baseEsDura && !adicionalEsDura) ? montoBase * m.tasa : montoBase / m.tasa;
+  }
+  function fmtMonedaAdicional(tenant, montoBase) {
+    var valor = convertirMonedaAdicional(tenant, montoBase);
+    if (valor === null) return "";
     // "~" y no "≈": este texto termina impreso en PDFs con las fuentes base
     // de jsPDF (Helvetica/WinAnsi), que no soportan "≈" — sale como un
     // carácter corrupto (bug real reportado, ver la nota en
     // pdf-contrato.js sobre no usar caracteres fuera de WinAnsi).
-    return "~ " + valor.toLocaleString("es-CO", { maximumFractionDigits: 2 }) + " " + m.codigo;
+    return "~ " + valor.toLocaleString("es-CO", { maximumFractionDigits: 2 }) + " " + tenant.monedaAdicional.codigo;
   }
 
   /* Copago: la parte del valor de una orden que, aunque pertenezca a un
@@ -2063,7 +2075,7 @@
     cambiarSeccionExamen: cambiarSeccionExamen,
     cambiarTuboExamen: cambiarTuboExamen,
     tuboInfo: tuboInfo,
-    fmtMonedaAdicional: fmtMonedaAdicional, monedaBaseLabel: monedaBaseLabel, calcularCopago: calcularCopago,
+    fmtMonedaAdicional: fmtMonedaAdicional, convertirMonedaAdicional: convertirMonedaAdicional, monedaBaseLabel: monedaBaseLabel, calcularCopago: calcularCopago,
     montoAdeudarPaciente: montoAdeudarPaciente, totalAbonado: totalAbonado, saldoPendienteOrden: saldoPendienteOrden,
     calcularFlag: calcularFlag,
     examenEfectivo: examenEfectivo,
