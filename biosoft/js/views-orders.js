@@ -910,6 +910,81 @@
     });
   }
 
+  // Corrige el monto de un pago YA CONFIRMADO (ej. se digitó $4.000 en vez
+  // de $4 por error) — exige la clave de administrador y el motivo, igual
+  // que corregir un resultado ya validado (ver abrirCorreccion() en
+  // views-results.js), para dejar trazabilidad completa de quién, cuándo y
+  // por qué se tocó un monto ya cobrado. order.abonos es la fuente de
+  // verdad de cuánto se ha recibido (ver totalAbonado() en catalog.js), así
+  // que la corrección se hace ahí; si el abono corregido es el primero
+  // (el pago inicial de la orden), también se actualiza order.pago.monto
+  // para que ambos queden sincronizados.
+  function abrirCorregirMontoPago(order, tenant, onDone) {
+    var session = BIO_AUTH.getSession();
+    var abonos = order.abonos || [];
+    if (!abonos.length) { U.toast("Esta orden no tiene ningún pago registrado para corregir.", "error"); return; }
+
+    function pasoClaveMotivo() {
+      var wrap = U.openModal(
+        '<h3 class="modal-title">' + U.icon("lock") + ' Corregir Monto de un Pago</h3>' +
+        '<p class="text-muted">Ya se confirmó un pago para la orden ' + order.numeroOrden + '. Para corregir el monto (ej. un error de digitación) se requiere la clave de administrador del laboratorio y el motivo, dejando trazabilidad completa (usuario, fecha y hora).</p>' +
+        '<div class="field"><label>Clave de administrador *</label><input type="password" id="cp-clave"/></div>' +
+        '<div class="field"><label>Motivo de la corrección *</label><textarea id="cp-motivo" placeholder="Ej: Se digitó $4.000 por error, el paciente pagó $4."></textarea></div>' +
+        '<div class="flex gap-2 justify-between"><button class="btn btn-ghost" data-modal-close>Cancelar</button><button class="btn btn-danger" id="cp-continuar">Verificar y Continuar</button></div>'
+      );
+      wrap.querySelector("#cp-continuar").addEventListener("click", function () {
+        var clave = wrap.querySelector("#cp-clave").value;
+        var motivo = wrap.querySelector("#cp-motivo").value.trim();
+        if (!motivo) { U.toast("Describe el motivo de la corrección.", "error"); return; }
+        if (!BIO_AUTH.verificarClaveAdmin(clave)) { U.toast("Clave de administrador incorrecta.", "error"); return; }
+        U.closeModal(wrap);
+        pasoElegirYCorregir(motivo);
+      });
+    }
+
+    function pasoElegirYCorregir(motivo) {
+      var wrap = U.openModal(
+        '<h3 class="modal-title">Corregir Monto — Orden ' + order.numeroOrden + '</h3>' +
+        (abonos.length > 1
+          ? '<div class="field"><label>¿Cuál de los pagos registrados quieres corregir?</label><select id="cp-abono">' +
+            abonos.map(function (a, i) { return '<option value="' + i + '">' + U.fmtFecha(a.fecha) + " — " + fmtMoneda(a.monto) + " (" + (BIO_PDF_RECIBO_ORDEN.METODO_PAGO_LABEL[a.metodoPago] || a.metodoPago || "—") + ")</option>"; }).join("") +
+            "</select></div>"
+          : "") +
+        '<div id="cp-actual-box"></div>' +
+        '<div class="field"><label>Monto correcto *</label><input type="text" inputmode="decimal" id="cp-nuevo-monto" placeholder="Ej: 4 o 4.50"/></div>' +
+        '<div class="flex gap-2 justify-between" style="margin-top:10px"><button class="btn btn-ghost" data-modal-close>Cancelar</button><button class="btn btn-primary" id="cp-guardar">' + U.icon("check") + " Guardar Corrección</button></div>"
+      );
+      var sel = wrap.querySelector("#cp-abono");
+      function actualizarActual() {
+        var idx = sel ? parseInt(sel.value, 10) : 0;
+        var a = abonos[idx];
+        wrap.querySelector("#cp-actual-box").innerHTML = '<p class="text-muted" style="margin:0 0 10px">Monto actual (a corregir): <b style="color:var(--danger,#b91c1c)">' + fmtMoneda(a.monto) + fmtMonedaEquiv(tenant, a.monto) + "</b></p>";
+      }
+      if (sel) sel.addEventListener("change", actualizarActual);
+      actualizarActual();
+
+      wrap.querySelector("#cp-guardar").addEventListener("click", function () {
+        var idx = sel ? parseInt(sel.value, 10) : 0;
+        var nuevoMonto = U.parseMonto(wrap.querySelector("#cp-nuevo-monto").value);
+        if (nuevoMonto <= 0) { U.toast("Escribe el monto correcto.", "error"); return; }
+        var abono = abonos[idx];
+        var montoAnterior = abono.monto;
+        abono.monto = nuevoMonto;
+        if (idx === 0 && order.pago) order.pago.monto = nuevoMonto;
+        order.correccionesPago = order.correccionesPago || [];
+        order.correccionesPago.push({ fecha: S.nowISO(), usuario: session.nombre, rol: session.rol, motivo: motivo, abonoId: abono.id, montoAnterior: montoAnterior, montoNuevo: nuevoMonto });
+        S.saveOrder(order);
+        S.addAudit(session.tenantId, session.nombre, session.rol, "CORRECT_PAYMENT_AMOUNT", "orden", order.id,
+          "Corrigió el monto de un pago de la orden " + order.numeroOrden + " de " + fmtMoneda(montoAnterior) + " a " + fmtMoneda(nuevoMonto) + ". Motivo: " + motivo + ".");
+        U.toast("Monto corregido correctamente.", "success");
+        U.closeModal(wrap);
+        onDone();
+      });
+    }
+
+    pasoClaveMotivo();
+  }
+
   // Solo un Administrador o un Bacteriólogo con el permiso explícito puede
   // generar y enviar Hojas de Remisión — se activa por usuario desde
   // "Usuarios del Laboratorio" (ver views-admin.js), para no dar este
@@ -961,6 +1036,7 @@
           (puedeGestionarRemision(session) ? '<button class="btn btn-outline btn-sm" id="btn-remision">' + U.icon("send") + " Hoja de Remisión</button>" : "") +
           (puedeReciboOrden(tenant) ? '<button class="btn btn-outline btn-sm" id="btn-recibo-orden">' + U.icon("send") + (order.pago ? " Reenviar Recibo de Pago" : " Recibo de Pago") + "</button>" : "") +
           (puedeReciboOrden(tenant) && order.pago && saldoOrden > 0 ? '<button class="btn btn-primary btn-sm" id="btn-agregar-abono">' + U.icon("plus") + " Agregar Abono</button>" : "") +
+          (puedeReciboOrden(tenant) && order.pago && (order.abonos || []).length ? '<button class="btn btn-ghost btn-sm" id="btn-corregir-pago" title="Corregir el monto de un pago ya confirmado, ej. un error de digitación">' + U.icon("lock") + " Corregir Monto de Pago</button>" : "") +
           (tenant.pais === "CO" ? '<button class="btn btn-outline btn-sm" id="btn-consentimiento">' + U.icon("file") + " Consentimiento Informado</button>" : "") +
           (tenant.pais === "CO" ? '<button class="btn btn-primary btn-sm" id="btn-firmar-consentimiento-aqui">' + U.icon("check") + " Firmar Consentimiento Aquí</button>" : "") +
           "</div></div>" +
@@ -979,7 +1055,9 @@
               : (order.pago.esCredito && !order.pago.tieneCopago) ? "🤝 A Crédito de Convenio — Pendiente de cobrar a " + (order.convenioNombre || "—")
               : saldoOrden > 0 ? "Parcial — Abonado " + fmtMoneda(C.totalAbonado(order)) + " de " + fmtMoneda(C.montoAdeudarPaciente(order)) + " — Saldo " + fmtMoneda(saldoOrden)
               : "✓ Pagado (" + (BIO_PDF_RECIBO_ORDEN.METODO_PAGO_LABEL[order.pago.metodoPago] || order.pago.metodoPago) + ") — " + U.fmtFecha(order.pago.fecha)) : "") +
-          "</div></div>" +
+          "</div>" +
+          (order.correccionesPago && order.correccionesPago.length ? '<p class="text-muted" style="font-size:12px;margin-top:10px">' + U.icon("history") + " Este pago tiene " + order.correccionesPago.length + " corrección(es) de monto registrada(s) en la trazabilidad." : "") +
+          "</div>" +
 
         '<div class="card" style="margin-top:16px"><div class="card-header"><h3 class="card-title">Exámenes de la Orden</h3></div>' +
           '<div class="table-wrap"><table><thead><tr><th>Examen</th><th>Sección</th><th>Tubo</th><th>Estado</th><th>Validado / Remitido por</th><th>Fecha</th><th></th></tr></thead><tbody>' +
@@ -1014,6 +1092,8 @@
       if (btnReciboOrden) btnReciboOrden.addEventListener("click", function () { abrirReciboOrden(order, tenant, build); });
       var btnAgregarAbono = document.getElementById("btn-agregar-abono");
       if (btnAgregarAbono) btnAgregarAbono.addEventListener("click", function () { abrirAgregarAbono(order, tenant, build); });
+      var btnCorregirPago = document.getElementById("btn-corregir-pago");
+      if (btnCorregirPago) btnCorregirPago.addEventListener("click", function () { abrirCorregirMontoPago(order, tenant, build); });
       var btnConsentimiento = document.getElementById("btn-consentimiento");
       if (btnConsentimiento) btnConsentimiento.addEventListener("click", function () { window.BIO_VIEWS_CONSENTIMIENTOS.abrir(order, pac, tenant, build); });
       var btnFirmarConsentimientoAqui = document.getElementById("btn-firmar-consentimiento-aqui");
