@@ -26,6 +26,12 @@
     return metodosPagoDisponibles(tenant).map(function (k) { return '<option value="' + k + '">' + BIO_PDF_RECIBO_ORDEN.METODO_PAGO_LABEL[k] + "</option>"; }).join("");
   }
 
+  // Se mantiene a nivel de módulo (no dentro de renderList) para que el
+  // término de búsqueda sobreviva entre un re-render y otro (ej. al
+  // registrar un pago desde la misma lista) — mismo patrón que el
+  // buscador del catálogo en views-admin.js.
+  var ordenesSearchTerm = "";
+
   window.BIO_VIEWS.ordenes = function (root, param) {
     if (param && (param === "nueva" || param.indexOf("nueva-") === 0)) {
       var prefillId = param.indexOf("nueva-") === 0 ? param.replace("nueva-", "") : null;
@@ -38,7 +44,7 @@
   function renderList(root) {
     var session = BIO_AUTH.getSession();
     var tenant = BIO_AUTH.currentTenant();
-    var orders = S.listOrders(session.tenantId);
+    var todasLasOrdenes = S.listOrders(session.tenantId);
     var conPrecio = !!(tenant && tenant.mostrarPrecioOrden);
     // El estado de pago (Pagado / Pago pendiente) solo aplica donde se
     // genera Recibo de Pago (ver puedeReciboOrden más abajo) — así el
@@ -47,13 +53,37 @@
     // botón directo para registrar el pago apenas el cliente pague — igual
     // que ya funciona en Cotizaciones (pestaña Historial).
     var conEstadoPago = conPrecio && puedeReciboOrden(tenant);
+    // Buscador por nombre o cédula del paciente (también matchea el N° de
+    // orden, de paso) — carga los pacientes UNA vez en un mapa por id, en
+    // vez de llamar S.getPatient() por cada orden en cada tecla, para que
+    // la búsqueda se sienta instantánea incluso con muchas órdenes.
+    var pacientesPorId = {};
+    S.listPatients(session.tenantId).forEach(function (p) { pacientesPorId[p.id] = p; });
+    var term = U.normalizar(ordenesSearchTerm.trim());
+    var orders = !term ? todasLasOrdenes : todasLasOrdenes.filter(function (o) {
+      var pac = pacientesPorId[o.patientId];
+      var nombre = pac ? U.normalizar(U.nombreCompleto(pac)) : "";
+      var documento = pac ? U.normalizar(String(pac.numeroDocumento || "")) : "";
+      return nombre.indexOf(term) !== -1 || documento.indexOf(term) !== -1 || U.normalizar(o.numeroOrden || "").indexOf(term) !== -1;
+    });
     root.innerHTML =
-      '<div class="card"><div class="card-header"><h3 class="card-title">Órdenes de Laboratorio (' + orders.length + ')</h3>' +
+      '<div class="card"><div class="card-header"><h3 class="card-title">Órdenes de Laboratorio (' + orders.length + (term ? " de " + todasLasOrdenes.length : "") + ')</h3>' +
       '<button class="btn btn-primary" id="btn-new-ord">' + U.icon("plus") + ' Nueva Orden</button></div>' +
+      '<div class="field" style="max-width:380px;margin-bottom:14px"><input type="text" id="ord-buscar" placeholder="🔎 Buscar por nombre o cédula del paciente…" value="' + U.esc(ordenesSearchTerm) + '"/></div>' +
       '<div class="table-wrap"><table><thead><tr><th>N° Orden</th><th>Paciente</th><th>Fecha</th><th>Prioridad</th><th># Exámenes</th>' + (conPrecio ? "<th>Valor a Cobrar</th>" : "") + (conEstadoPago ? "<th>Pago</th>" : "") + '<th>Estado</th><th></th></tr></thead><tbody>' +
-      (orders.length ? orders.map(function (o) { return rowOrder(o, conPrecio, conEstadoPago, tenant); }).join("") : '<tr><td colspan="' + (7 + (conPrecio ? 1 : 0) + (conEstadoPago ? 1 : 0)) + '" class="text-muted">No hay órdenes registradas.</td></tr>') +
+      (orders.length ? orders.map(function (o) { return rowOrder(o, conPrecio, conEstadoPago, tenant); }).join("") : '<tr><td colspan="' + (7 + (conPrecio ? 1 : 0) + (conEstadoPago ? 1 : 0)) + '" class="text-muted">' + (term ? "Ningún paciente u orden coincide con “" + U.esc(ordenesSearchTerm) + "”." : "No hay órdenes registradas.") + "</td></tr>") +
       "</tbody></table></div></div>";
     document.getElementById("btn-new-ord").addEventListener("click", function () { location.hash = "#/ordenes/nueva"; });
+    var inputBuscar = document.getElementById("ord-buscar");
+    inputBuscar.addEventListener("input", function (e) {
+      ordenesSearchTerm = e.target.value;
+      renderList(root);
+    });
+    // El foco se pierde en cada re-render (innerHTML rehace el input desde
+    // cero) — se lo devolvemos y dejamos el cursor al final, para poder
+    // seguir escribiendo sin que cada tecla obligue a hacer clic de nuevo.
+    inputBuscar.focus();
+    inputBuscar.setSelectionRange(inputBuscar.value.length, inputBuscar.value.length);
     root.querySelectorAll("[data-view]").forEach(function (b) { b.addEventListener("click", function () { location.hash = "#/ordenes/" + b.dataset.view; }); });
     root.querySelectorAll("[data-registrar-pago-orden]").forEach(function (b) {
       b.addEventListener("click", function () {

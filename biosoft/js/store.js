@@ -166,7 +166,8 @@
       attach("facturasGeneradas", "facturasGeneradas", false),
       attach("paquetesExamenes", "paquetesExamenes", false),
       attach("medicosRemitentes", "medicosRemitentes", false),
-      attach("medicoTarifasExamen", "medicoTarifasExamen", false)
+      attach("medicoTarifasExamen", "medicoTarifasExamen", false),
+      attach("convenioPagos", "convenioPagos", false)
     ]).then(function () { return realCache; });
   }
 
@@ -666,7 +667,7 @@
       tenants: {}, users: [], patients: [], orders: [], auditLog: [], qcControles: [], qcLecturas: [], preciosExamenes: [], cotizaciones: [],
       reglasRemarketing: [], remarketingContactos: [], insumos: [], recetasReactivos: [], kardexInventario: [], examenesPersonalizados: [],
       ripsGenerados: [], facturasGeneradas: [], convenios: [], convenioPrecios: [], consentimientos: [], examenesReferencia: [], paquetesExamenes: [],
-      medicosRemitentes: [], medicoTarifasExamen: []
+      medicosRemitentes: [], medicoTarifasExamen: [], convenioPagos: []
     };
   }
 
@@ -1511,6 +1512,32 @@
   }
 
   // ---------------------------------------------------------------------
+  // PAGOS DE CONVENIO — un convenio (empresa/EPS aliada) acumula deuda por
+  // todas las órdenes que le quedaron a crédito (ver "Cartera por
+  // Convenio" en views-cotizador.js); cuando ese convenio por fin paga
+  // (normalmente un solo monto que cubre varias órdenes a la vez, como
+  // hace cualquier empresa grande al pagarle a un proveedor), este
+  // registro deja constancia permanente del pago recibido — quién lo
+  // confirmó, cuánto, cómo y a cuáles órdenes se aplicó — sin importar
+  // que las órdenes a las que se aplicó cambien de estado después. Es el
+  // registro de cobranza (cash receipts), separado del registro de cada
+  // orden en sí.
+  function crearConvenioPago(tenantId, datos) {
+    var db = loadDB();
+    db.convenioPagos = db.convenioPagos || [];
+    var reg = Object.assign({ id: uid("cnvpago"), tenantId: tenantId, creadoEn: nowISO() }, datos);
+    db.convenioPagos.push(reg);
+    saveDB(db);
+    fbWrite("convenioPagos", reg.id, reg);
+    return reg;
+  }
+  function listConvenioPagos(tenantId, convenioId) {
+    var db = loadDB();
+    return (db.convenioPagos || []).filter(function (p) { return p.tenantId === tenantId && (!convenioId || p.convenioId === convenioId); })
+      .sort(function (a, b) { return (b.fecha || "").localeCompare(a.fecha || ""); });
+  }
+
+  // ---------------------------------------------------------------------
   // PAQUETES DE EXÁMENES — bultos de exámenes del catálogo (propios o
   // personalizados) que el laboratorio vende como una sola línea con UN
   // precio total (ej. "Perfil Lipídico", "Perfil 20"), en vez de sumar el
@@ -1953,7 +1980,8 @@
       listConvenioPrecios: listConvenioPrecios, setConvenioPrecio: setConvenioPrecio, quitarConvenioPrecio: quitarConvenioPrecio,
       listPaquetes: listPaquetes, createPaquete: createPaquete, updatePaquete: updatePaquete, eliminarPaquete: eliminarPaquete,
       listExamenesReferencia: listExamenesReferencia, bulkUpsertExamenesReferencia: bulkUpsertExamenesReferencia,
-      setPrecioVentaReferencia: setPrecioVentaReferencia, eliminarExamenReferencia: eliminarExamenReferencia
+      setPrecioVentaReferencia: setPrecioVentaReferencia, eliminarExamenReferencia: eliminarExamenReferencia,
+      crearConvenioPago: crearConvenioPago, listConvenioPagos: listConvenioPagos
     },
     remarketing: {
       listReglas: listReglasRemarketing, bulkCreateReglas: bulkCreateReglasRemarketing, updateRegla: updateReglaRemarketing,

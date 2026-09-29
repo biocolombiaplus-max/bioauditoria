@@ -891,13 +891,16 @@
         var esCredito = !!(o.pago && o.pago.esCredito && !o.pago.tieneCopago);
         var valorAbonado = !o.pago ? 0 : C.totalAbonado(o);
         var key = o.convenioNombre || "Particulares";
-        if (!porConvenio[key]) porConvenio[key] = { nombre: key, ordenes: [], total: 0, abonado: 0, pendiente: 0 };
+        if (!porConvenio[key]) porConvenio[key] = { nombre: key, convenioId: o.convenioId || "", ordenes: [], total: 0, abonado: 0, pendiente: 0 };
         // "moneda": en qué moneda pagó ESTA orden en concreto (Bolívares,
         // Dólares, Pesos COP — ver order.monedaPago, solo se pide en
         // Venezuela). Vacío en Colombia/Ecuador o si la orden no la
         // registró — no se inventa una moneda que el usuario no eligió.
+        // "id" se necesita para poder ubicar y actualizar la orden real al
+        // registrar un pago del convenio (ver abrirRegistrarPagoConvenio) —
+        // el resto de estos campos son solo un resumen para mostrar.
         porConvenio[key].ordenes.push({
-          numeroOrden: o.numeroOrden, fecha: o.fechaOrden, paciente: pac ? U.nombreCompleto(pac) : "—",
+          id: o.id, numeroOrden: o.numeroOrden, fecha: o.fechaOrden, paciente: pac ? U.nombreCompleto(pac) : "—",
           valorTotal: valorTotal, valorAbonado: valorAbonado, saldoPendiente: valorTotal - valorAbonado, pagado: !!o.pago && !esCredito, esCredito: esCredito,
           monedaCod: o.monedaPago || "", moneda: o.monedaPago ? C.monedaPagoLabel(o.monedaPago) : ""
         });
@@ -947,16 +950,41 @@
         "<td style='font-weight:700;color:" + (g.pendiente > 0 ? "#d64545" : "#0b8a4a") + "'>" + fmtMoneda(g.pendiente) + "</td>" +
         "</tr>";
       if (!abierto) return filaResumen;
-      var detalle = "<tr><td></td><td colspan='5' style='padding:0 0 12px'>" +
+      // Solo un convenio REGISTRADO (nunca "Particulares", un cajón que
+      // agrupa órdenes de pacientes sueltos sin convenio real) puede
+      // recibir un pago acá — un particular ya se cobra/abona orden por
+      // orden desde la propia orden (Recibo de Pago / Agregar Abono).
+      var esConvenioReal = !!g.convenioId;
+      var pagos = esConvenioReal ? S.cotizador.listConvenioPagos(tenantId, g.convenioId) : [];
+      var detalle = "<tr><td></td><td colspan='5' style='padding:0 0 16px'>" +
+        (esConvenioReal ? '<div class="flex gap-2 wrap" style="margin-bottom:10px">' +
+          (g.pendiente > 0 ? '<button type="button" class="btn btn-primary btn-sm" data-registrar-pago-convenio="' + idx + '">' + U.icon("plus") + " Registrar Pago del Convenio</button>" : "") +
+          "</div>" : "") +
         '<div class="table-wrap"><table><thead><tr><th>Orden</th><th>Fecha</th><th>Paciente</th><th>Moneda de Pago</th><th>Total</th><th>Abonado</th><th>Saldo</th><th></th></tr></thead><tbody>' +
         g.ordenes.map(function (o) {
+          // Un cargo a crédito que ya recibió un abono PARCIAL del
+          // convenio (pero todavía no se cubrió del todo) se distingue de
+          // uno que sigue 100% sin tocar — para que quede claro que el
+          // convenio ya empezó a pagar, sin tener que abrir cada orden.
+          var estadoBadge = o.pagado ? '<span class="badge badge-validado">Pagada</span>'
+            : (o.esCredito && o.valorAbonado > 0) ? '<span class="badge badge-parcial">🤝 Parcial (Convenio)</span>'
+            : o.esCredito ? '<span class="badge badge-pendiente">🤝 A Crédito</span>'
+            : '<span class="badge badge-pendiente">Pendiente</span>';
           return "<tr><td>" + o.numeroOrden + "</td><td>" + fmtFechaCorta(o.fecha) + "</td><td>" + U.esc(o.paciente) + "</td>" +
             "<td>" + monedaBadgeHtml(o) + "</td>" +
             "<td>" + fmtMoneda(o.valorTotal) + "</td><td>" + fmtMoneda(o.valorAbonado) + "</td>" +
             "<td style='font-weight:700;color:" + (o.saldoPendiente > 0 ? "#d64545" : "#0b8a4a") + "'>" + fmtMoneda(o.saldoPendiente) + "</td>" +
-            "<td>" + (o.pagado ? '<span class="badge badge-validado">Pagada</span>' : o.esCredito ? '<span class="badge badge-pendiente">🤝 A Crédito</span>' : '<span class="badge badge-pendiente">Pendiente</span>') + "</td></tr>";
+            "<td>" + estadoBadge + "</td></tr>";
         }).join("") +
         "</tbody></table></div>" +
+        (esConvenioReal && pagos.length ?
+          '<p class="text-muted" style="margin:14px 0 6px;font-size:12.5px;font-weight:700;text-transform:uppercase;letter-spacing:.03em">Historial de Pagos del Convenio</p>' +
+          '<div class="table-wrap"><table><thead><tr><th>Fecha</th><th>Monto</th><th>Método</th><th>Referencia</th><th>Registrado por</th></tr></thead><tbody>' +
+          pagos.map(function (p) {
+            return "<tr><td>" + fmtFechaCorta(p.fecha) + "</td><td>" + fmtMoneda(p.monto) + "</td><td>" + (BIO_PDF_RECIBO_ORDEN.METODO_PAGO_LABEL[p.metodoPago] || p.metodoPago || "—") + "</td><td>" + U.esc(p.referencia || "—") + "</td><td>" + U.esc(p.confirmadoPor || "—") + "</td></tr>";
+          }).join("") +
+          "</tbody></table></div>"
+          : "") +
         "</td></tr>";
       return filaResumen + detalle;
     }
@@ -992,6 +1020,96 @@
           : '<p class="text-muted">No hay órdenes con valor a cobrar en este periodo.</p>');
     }
 
+    // Métodos de pago disponibles para registrar el cobro a un convenio —
+    // misma fuente de verdad (BIO_PDF_RECIBO_ORDEN.METODO_PAGO_LABEL) que
+    // usa el pago de una orden individual en views-orders.js, con la misma
+    // regla de que "Cashea" solo aplica en Venezuela.
+    function opcionesMetodoPagoConvenioHtml() {
+      return Object.keys(BIO_PDF_RECIBO_ORDEN.METODO_PAGO_LABEL)
+        .filter(function (k) { return k !== "cashea" || tenant.pais === "VE"; })
+        .map(function (k) { return '<option value="' + k + '">' + BIO_PDF_RECIBO_ORDEN.METODO_PAGO_LABEL[k] + "</option>"; }).join("");
+    }
+
+    // Registra un pago (normalmente un solo monto grande que cubre varias
+    // órdenes a la vez, tal como paga una empresa/EPS de verdad) y lo
+    // aplica en orden — la orden a crédito MÁS ANTIGUA primero — hasta
+    // agotar el monto recibido, exactamente como una aplicación de cobros
+    // (cash application) de un sistema financiero real. Si el monto
+    // recibido no alcanza a cubrir todo, la última orden que toca queda
+    // con un abono PARCIAL (sigue "a crédito" por el resto); si sobra
+    // dinero después de cubrir TODAS las órdenes pendientes, ese excedente
+    // queda anotado en el registro del pago, sin inventar un saldo a
+    // favor para una orden futura (BIOsoft todavía no maneja eso).
+    function abrirRegistrarPagoConvenio(g, onDone) {
+      var pendientes = g.ordenes.filter(function (o) { return o.saldoPendiente > 0.009; });
+      var wrap = U.openModal(
+        '<h3 class="modal-title">💰 Registrar Pago del Convenio — ' + U.esc(g.nombre) + '</h3>' +
+        '<p class="text-muted" style="margin-top:0">Saldo pendiente actual: <b style="color:#d64545">' + fmtMoneda(g.pendiente) + '</b> en ' + pendientes.length + ' orden(es). El pago se aplica automáticamente empezando por la orden más antigua, hasta agotar el monto — igual que un pago real de una empresa a un proveedor.</p>' +
+        '<div class="form-grid">' +
+        '<div class="field"><label>Monto Recibido *</label><input type="text" inputmode="decimal" id="pc-monto" placeholder="Ej: 500 o 500.50"/></div>' +
+        '<div class="field"><label>Fecha del Pago</label><input type="date" id="pc-fecha" value="' + hoyISOCartera() + '"/></div>' +
+        '<div class="field"><label>Método de Pago</label><select id="pc-metodo">' + opcionesMetodoPagoConvenioHtml() + "</select></div>" +
+        '<div class="field"><label>Referencia (opcional)</label><input type="text" id="pc-referencia" placeholder="Ej: N° de transferencia, cheque…"/></div>' +
+        "</div>" +
+        '<div id="pc-preview" class="text-muted" style="font-size:12.5px;margin-top:6px"></div>' +
+        '<div class="flex gap-2 justify-between" style="margin-top:16px"><button class="btn btn-ghost" data-modal-close>Cancelar</button><button class="btn btn-primary" id="pc-guardar">' + U.icon("check") + " Registrar Pago</button></div>"
+      );
+      var inpMonto = wrap.querySelector("#pc-monto");
+      var preview = wrap.querySelector("#pc-preview");
+      function actualizarPreview() {
+        var monto = U.parseMonto(inpMonto.value);
+        if (monto <= 0) { preview.textContent = ""; return; }
+        var restante = monto, cubiertas = 0;
+        for (var i = 0; i < pendientes.length && restante > 0.009; i++) {
+          var aplicado = Math.min(restante, pendientes[i].saldoPendiente);
+          restante -= aplicado;
+          if (aplicado >= pendientes[i].saldoPendiente - 0.009) cubiertas++;
+        }
+        preview.textContent = "Con este monto quedan totalmente pagadas " + cubiertas + " de " + pendientes.length + " orden(es) pendientes" +
+          (restante > 0.009 ? ", y sobran " + fmtMoneda(restante) + " sin aplicar a ninguna orden." : cubiertas < pendientes.length ? ", la siguiente orden queda con abono parcial." : ".");
+      }
+      inpMonto.addEventListener("input", actualizarPreview);
+
+      wrap.querySelector("#pc-guardar").addEventListener("click", function () {
+        var montoTotal = U.parseMonto(inpMonto.value);
+        if (montoTotal <= 0) { U.toast("Escribe el monto recibido.", "error"); return; }
+        if (!pendientes.length) { U.toast("Este convenio no tiene ninguna orden pendiente en el periodo mostrado.", "error"); return; }
+        var fechaPago = wrap.querySelector("#pc-fecha").value || hoyISOCartera();
+        var metodoPago = wrap.querySelector("#pc-metodo").value;
+        var referencia = wrap.querySelector("#pc-referencia").value.trim();
+
+        var restante = montoTotal;
+        var aplicadoA = [];
+        for (var i = 0; i < pendientes.length && restante > 0.009; i++) {
+          var resumen = pendientes[i];
+          var ordenReal = S.getOrder(resumen.id);
+          if (!ordenReal) continue;
+          var montoAplicado = Math.min(restante, resumen.saldoPendiente);
+          ordenReal.abonos = ordenReal.abonos || [];
+          ordenReal.abonos.push({ id: S.uid("abono"), fecha: fechaPago, monto: montoAplicado, metodoPago: metodoPago, confirmadoPor: session.nombre, notaConvenio: "Pago del convenio " + g.nombre });
+          // Si el abono cubre TODO lo que faltaba, la orden deja de estar
+          // "a crédito" (ya se cobró) — si solo cubre una parte, sigue a
+          // crédito por el resto, ahora con abono parcial visible.
+          if (montoAplicado >= resumen.saldoPendiente - 0.009 && ordenReal.pago && ordenReal.pago.esCredito) ordenReal.pago.esCredito = false;
+          S.saveOrder(ordenReal);
+          aplicadoA.push({ orderId: resumen.id, numeroOrden: resumen.numeroOrden, monto: montoAplicado });
+          restante -= montoAplicado;
+        }
+        var montoNoAplicado = restante > 0.009 ? restante : 0;
+
+        S.cotizador.crearConvenioPago(tenantId, {
+          convenioId: g.convenioId, convenioNombre: g.nombre, fecha: fechaPago, monto: montoTotal,
+          metodoPago: metodoPago, referencia: referencia, confirmadoPor: session.nombre,
+          aplicadoA: aplicadoA, montoNoAplicado: montoNoAplicado
+        });
+        S.addAudit(session.tenantId, session.nombre, session.rol, "REGISTER_CONVENIO_PAYMENT", "convenio", g.convenioId || g.nombre,
+          "Registró un pago de " + fmtMoneda(montoTotal) + " del convenio " + g.nombre + ", aplicado a " + aplicadoA.length + " orden(es)." + (montoNoAplicado > 0 ? " Quedó un excedente de " + fmtMoneda(montoNoAplicado) + " sin aplicar." : ""));
+        U.toast("Pago del convenio registrado" + (montoNoAplicado > 0 ? " — quedó un excedente de " + fmtMoneda(montoNoAplicado) + " sin aplicar a ninguna orden." : ".") + ".", "success");
+        U.closeModal(wrap);
+        onDone();
+      });
+    }
+
     function wireCartera() {
       if (!tenant.mostrarPrecioOrden) return;
       document.getElementById("cart-desde").addEventListener("change", function (e) { carteraDesde = e.target.value; build(); });
@@ -1001,6 +1119,14 @@
           var key = tr.dataset.cartToggle;
           carteraExpandido[key] = !carteraExpandido[key];
           build();
+        });
+      });
+      document.querySelectorAll("[data-registrar-pago-convenio]").forEach(function (btn) {
+        btn.addEventListener("click", function (e) {
+          e.stopPropagation();
+          var grupos = calcularCartera(carteraDesde, carteraHasta);
+          var g = grupos[parseInt(btn.dataset.registrarPagoConvenio, 10)];
+          if (g) abrirRegistrarPagoConvenio(g, build);
         });
       });
       var btnPdf = document.getElementById("cart-pdf");
