@@ -426,15 +426,17 @@
     // país (la cédula local y la afiliación más común, respectivamente).
     var tipoDocumentoPorDefecto = (C.TIPOS_DOCUMENTO[paisPorDefecto] || [])[0];
     var tipoAfiliacionPorDefecto = (C.TIPOS_AFILIACION[paisPorDefecto] || [])[0];
-    // El campo de celular arranca con el indicativo del país del
-    // laboratorio (ej. "+58 " en Venezuela) — así, cuando más adelante se
+    // El selector de indicativo del campo de celular (ver
+    // U.telefonoInputHtml más abajo) ya arranca con el indicativo del país
+    // del laboratorio elegido de una vez — así, cuando más adelante se
     // envíe un resultado por WhatsApp, el número ya trae el indicativo
     // correcto sin que quien registra el paciente tenga que acordarse de
-    // escribirlo a mano.
+    // escribirlo a mano, pero sigue pudiendo elegir otro país si el
+    // paciente es extranjero o migrante.
     patient = patient || {
       pais: paisPorDefecto, tipoDocumento: tipoDocumentoPorDefecto ? tipoDocumentoPorDefecto.v : "CC",
       sexo: "Femenino", tipoAfiliacion: tipoAfiliacionPorDefecto || "Contributivo", procedencia: "Ambulatorio",
-      celular: "+" + U.indicativoPais(paisPorDefecto) + " "
+      celular: ""
     };
 
     var docOptions = function (pais, current) {
@@ -515,7 +517,7 @@
           '<div class="field" id="municipio-field"><label id="lbl-municipio">' + C.SUBDIVISION_LABEL[patient.pais] + '</label><select id="f_municipio">' + munOptions(patient.pais, depInicial, patient.ciudad) + "</select></div>" +
           '<div class="field" id="municipio-otro-field" style="display:none"><label>Escribe el ' + C.SUBDIVISION_LABEL[patient.pais].toLowerCase() + '</label><input id="f_municipio_otro" value="' + U.esc((patient.ciudad && (C.DEPARTAMENTOS_MUNICIPIOS[patient.pais][depInicial] || []).indexOf(patient.ciudad) === -1) ? patient.ciudad : "") + '"/></div>' +
           '<div class="field" id="localidad-field" style="display:none"><label>Localidad (para ubicar mejor al paciente dentro de Bogotá)</label><select id="f_localidad">' + localidadOptions(patient.localidad) + "</select></div>" +
-          inp("telefono", "Teléfono Fijo", patient.telefono) + inp("celular", "Celular", patient.celular) +
+          inp("telefono", "Teléfono Fijo", patient.telefono) + U.telefonoInputHtml("celular", "Celular / WhatsApp", patient.celular, patient.pais) +
           inp("email", "Correo Electrónico", patient.email, false, "email") +
         "</div>" +
         '<p class="text-muted" style="margin:0 0 8px">Elige el ' + C.SUBDIVISION_LABEL[patient.pais].toLowerCase() + ' de la lista, o "Otro (escribir)" si no aparece. En Bogotá, en vez de municipio se pide la localidad, para ubicar mejor al paciente dentro de la ciudad.</p>' +
@@ -591,12 +593,16 @@
       wrap.querySelector("#lbl-municipio").textContent = C.SUBDIVISION_LABEL[pais];
       wrap.querySelector("#f_departamento").innerHTML = depOptions(pais, depsDe(pais)[0]);
       onDepartamentoChange();
-      // Si el celular todavía es solo el indicativo (nadie escribió un
-      // número encima), lo actualiza al indicativo del país recién elegido
-      // — pero nunca toca un número que la persona ya empezó a digitar.
+      // Si todavía no se ha escrito ningún número de celular, el indicativo
+      // se actualiza al del país recién elegido — pero nunca toca un
+      // indicativo que la persona ya cambió a mano (ej. para un paciente
+      // extranjero), ni un número que ya empezó a digitar.
       if (!isEdit) {
         var celInput = wrap.querySelector("#f_celular");
-        if (/^\+\d+\s*$/.test(celInput.value.trim())) celInput.value = "+" + U.indicativoPais(pais) + " ";
+        if (celInput && !celInput.value.trim()) {
+          var celCod = wrap.querySelector("#f_celular_cod");
+          if (celCod) celCod.value = U.indicativoPais(pais);
+        }
       }
     }
     wrap.querySelector("#f_pais").addEventListener("change", refreshDependentSelects);
@@ -617,12 +623,20 @@
       if (!encontrado) { pacienteExistenteId = null; banner.classList.add("hidden"); return; }
       pacienteExistenteId = encontrado.id;
       var campos = ["pais", "tipoDocumento", "fechaNacimiento", "edadAnios", "sexo", "primerNombre", "segundoNombre", "primerApellido", "segundoApellido",
-        "direccion", "telefono", "celular", "email", "tipoAfiliacion", "eps", "medicoRemitente", "procedencia", "ocupacion",
+        "direccion", "telefono", "email", "tipoAfiliacion", "eps", "medicoRemitente", "procedencia", "ocupacion",
         "observaciones", "zonaResidencial", "codigoMunicipioDane"];
       campos.forEach(function (c) {
         var el = wrap.querySelector("#f_" + c);
         if (el && encontrado[c] != null) el.value = encontrado[c];
       });
+      // El celular es un campo compuesto (indicativo + número, ver
+      // U.telefonoInputHtml) — no un solo <input>, así que se separa antes
+      // de precargarlo.
+      var celPrevio = U.parsearTelefono(encontrado.celular, encontrado.pais || wrap.querySelector("#f_pais").value);
+      var celCodPrevio = wrap.querySelector("#f_celular_cod");
+      var celInputPrevio = wrap.querySelector("#f_celular");
+      if (celCodPrevio) celCodPrevio.value = celPrevio.codigo;
+      if (celInputPrevio) celInputPrevio.value = celPrevio.local;
       // La toma de muestra es un evento nuevo cada vez que el paciente
       // vuelve, así que aquí NO se precarga el auxiliar de su registro
       // anterior — se deja en el valor por defecto (quien tiene la sesión
@@ -665,7 +679,7 @@
         primerNombre: g("primerNombre"), segundoNombre: g("segundoNombre"), primerApellido: g("primerApellido"), segundoApellido: g("segundoApellido"),
         fechaNacimiento: g("fechaNacimiento"), edadAnios: g("edadAnios"), sexo: g("sexo"), direccion: g("direccion"),
         departamento: departamento, ciudad: ciudad, localidad: esBogotaSel ? g("localidad") : "", telefono: g("telefono"),
-        celular: g("celular"), email: g("email"), tipoAfiliacion: g("tipoAfiliacion"), eps: g("eps"), medicoRemitente: g("medicoRemitente"),
+        celular: U.leerTelefonoCompuesto(wrap, "celular"), email: g("email"), tipoAfiliacion: g("tipoAfiliacion"), eps: g("eps"), medicoRemitente: g("medicoRemitente"),
         procedencia: g("procedencia"), ocupacion: g("ocupacion"), observaciones: g("observaciones"),
         zonaResidencial: g("zonaResidencial"), codigoMunicipioDane: g("codigoMunicipioDane"), auxiliarTomaMuestra: g("auxiliarTomaMuestra")
       };

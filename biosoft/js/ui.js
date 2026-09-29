@@ -287,21 +287,121 @@
   var INDICATIVO_POR_PAIS = { CO: "57", VE: "58", EC: "593", MX: "52" };
   function indicativoPais(pais) { return INDICATIVO_POR_PAIS[pais] || INDICATIVO_POR_PAIS.CO; }
 
+  /* Lista de países para el selector de indicativo del campo de celular
+     (ver telefonoInputHtml más abajo) — no solo los 4 países que maneja el
+     resto del formulario de paciente (Colombia/Venezuela/Ecuador/México),
+     sino también los países más comunes de origen de un paciente migrante o
+     extranjero (ej. un venezolano en Chile, un colombiano en España), para
+     que el selector siempre tenga la opción correcta a mano en vez de
+     obligar a escribir el indicativo a mano en el número. */
+  var PAISES_TELEFONO = [
+    { cod: "57", bandera: "🇨🇴", nombre: "Colombia" },
+    { cod: "58", bandera: "🇻🇪", nombre: "Venezuela" },
+    { cod: "593", bandera: "🇪🇨", nombre: "Ecuador" },
+    { cod: "51", bandera: "🇵🇪", nombre: "Perú" },
+    { cod: "56", bandera: "🇨🇱", nombre: "Chile" },
+    { cod: "54", bandera: "🇦🇷", nombre: "Argentina" },
+    { cod: "52", bandera: "🇲🇽", nombre: "México" },
+    { cod: "507", bandera: "🇵🇦", nombre: "Panamá" },
+    { cod: "506", bandera: "🇨🇷", nombre: "Costa Rica" },
+    { cod: "502", bandera: "🇬🇹", nombre: "Guatemala" },
+    { cod: "504", bandera: "🇭🇳", nombre: "Honduras" },
+    { cod: "503", bandera: "🇸🇻", nombre: "El Salvador" },
+    { cod: "505", bandera: "🇳🇮", nombre: "Nicaragua" },
+    { cod: "591", bandera: "🇧🇴", nombre: "Bolivia" },
+    { cod: "595", bandera: "🇵🇾", nombre: "Paraguay" },
+    { cod: "598", bandera: "🇺🇾", nombre: "Uruguay" },
+    { cod: "55", bandera: "🇧🇷", nombre: "Brasil" },
+    { cod: "1", bandera: "🇺🇸", nombre: "Estados Unidos / Rep. Dominicana" },
+    { cod: "34", bandera: "🇪🇸", nombre: "España" }
+  ];
+
+  /* Separa un celular ya guardado en {codigo, local} para poder mostrarlo en
+     el selector de indicativo + número del formulario. Datos de antes de que
+     existiera el selector (ej. "3011234567", sin indicativo alguno) se
+     interpretan con el indicativo del país del laboratorio, para no perder
+     ni alterar ningún número ya guardado — el paciente sigue viendo su mismo
+     número, solo que ahora separado en indicativo + local. */
+  function parsearTelefono(valor, paisPorDefecto) {
+    var digitos = (valor || "").replace(/\D/g, "");
+    var codigoDefecto = indicativoPais(paisPorDefecto);
+    if (!digitos) return { codigo: codigoDefecto, local: "" };
+    // Se prueban los indicativos más largos primero (ej. "593" antes que
+    // "59") para no confundir a Ecuador con el principio de otro código.
+    var candidatos = PAISES_TELEFONO.slice().sort(function (a, b) { return b.cod.length - a.cod.length; });
+    for (var i = 0; i < candidatos.length; i++) {
+      var cod = candidatos[i].cod;
+      if (digitos.indexOf(cod) === 0 && digitos.length > cod.length + 6) {
+        return { codigo: cod, local: digitos.slice(cod.length) };
+      }
+    }
+    // Ningún indicativo conocido al principio -> número guardado sin
+    // indicativo (formato de antes) -> se asume el del país del laboratorio.
+    return { codigo: codigoDefecto, local: digitos };
+  }
+
+  function paisesTelefonoOptionsHtml(codigoSeleccionado) {
+    return PAISES_TELEFONO.map(function (p) {
+      return '<option value="' + p.cod + '" ' + (p.cod === codigoSeleccionado ? "selected" : "") + ">" + p.bandera + " +" + p.cod + "</option>";
+    }).join("");
+  }
+
+  /* Campo compuesto "indicativo de país + número" para el celular de un
+     paciente — se ve como un solo campo "Celular", pero por dentro son dos
+     controles (un <select> de indicativo, ya elegido según el país del
+     laboratorio, y un <input> solo para el número local) en vez de un único
+     campo de texto libre donde había que escribir bien el indicativo a mano
+     (ej. "+58 ") para que el envío de resultados por WhatsApp funcionara.
+     Sigue guardándose como un solo texto ("+58 4241234567", ver
+     leerTelefonoCompuesto) para no tener que tocar en ningún otro lado del
+     sistema cómo se lee o se usa patient.celular. */
+  function telefonoInputHtml(idBase, label, valorActual, paisPorDefecto) {
+    var t = parsearTelefono(valorActual, paisPorDefecto);
+    return '<div class="field"><label>' + label + '</label>' +
+      '<div class="phone-field-wrap">' +
+      '<select id="f_' + idBase + '_cod">' + paisesTelefonoOptionsHtml(t.codigo) + "</select>" +
+      '<input id="f_' + idBase + '" type="tel" inputmode="tel" placeholder="Número" value="' + esc(t.local) + '"/>' +
+      "</div></div>";
+  }
+
+  function leerTelefonoCompuesto(wrap, idBase) {
+    var cod = wrap.querySelector("#f_" + idBase + "_cod");
+    var local = wrap.querySelector("#f_" + idBase);
+    var digitosLocal = (local ? local.value : "").replace(/\D/g, "");
+    if (!digitosLocal) return "";
+    return "+" + (cod ? cod.value : indicativoPais("CO")) + " " + digitosLocal;
+  }
+
   /* Arma el número completo (con indicativo, solo dígitos) que necesita un
      enlace wa.me a partir de lo que haya en el campo de celular, usando el
-     país del laboratorio para saber qué indicativo agregar si hace falta.
-     Antes, en varios lugares del código, solo se reconocía el caso de un
-     celular colombiano de 10 dígitos que empieza en "3" — para un
-     laboratorio de Venezuela o Ecuador el número quedaba incompleto y el
-     enlace de WhatsApp no abría la conversación correcta. */
+     país del laboratorio para saber qué indicativo agregar si el número no
+     trae ninguno (formato de antes de que existiera el selector de país del
+     celular, ver telefonoInputHtml). Antes, en varios lugares del código,
+     solo se reconocía el caso de un celular colombiano de 10 dígitos que
+     empieza en "3" — para un laboratorio de Venezuela o Ecuador el número
+     quedaba incompleto y el enlace de WhatsApp no abría la conversación
+     correcta. */
   function numeroWhatsapp(numero, pais) {
-    var cod = indicativoPais(pais);
-    var largoLocal = pais === "EC" ? 9 : 10;
     var digitos = (numero || "").replace(/\D/g, "");
     if (!digitos) return "";
-    // Ya trae el indicativo de este país (u otro indicativo internacional,
-    // a juzgar por el largo total) -> se deja tal cual.
-    if (digitos.indexOf(cod) === 0 && digitos.length > largoLocal) return digitos;
+    // Si el número YA trae un indicativo internacional reconocido, se deja
+    // tal cual — sin importar si es el del laboratorio u OTRO (ej. un
+    // paciente extranjero que eligió su propio país en el selector de
+    // celular). Antes solo se reconocía el indicativo DEL LABORATORIO, así
+    // que a un paciente con un indicativo distinto (ej. +56 Chile en un
+    // laboratorio de Venezuela) se le pegaba por error el indicativo del
+    // laboratorio ENCIMA del que ya tenía, dejando un número inválido que
+    // WhatsApp no podía abrir.
+    var candidatos = PAISES_TELEFONO.slice().sort(function (a, b) { return b.cod.length - a.cod.length; });
+    for (var i = 0; i < candidatos.length; i++) {
+      var candidato = candidatos[i].cod;
+      if (digitos.indexOf(candidato) === 0 && digitos.length > candidato.length + 6) return digitos;
+    }
+    var cod = indicativoPais(pais);
+    var largoLocal = pais === "EC" ? 9 : 10;
+    // Ningún indicativo conocido al principio, pero el número ya es más
+    // largo de lo normal para un número local -> probablemente ya trae
+    // algún indicativo internacional fuera de la lista -> se deja tal cual.
     if (digitos.length > largoLocal + 1) return digitos;
     // Quita el "0" inicial típico de marcado local (ej. Venezuela 0424…,
     // Ecuador 099…) antes de anteponer el indicativo.
@@ -430,6 +530,7 @@
     redimensionarImagen: redimensionarImagen, recomprimirDataUrlSiHaceFalta: recomprimirDataUrlSiHaceFalta,
     indicativoPais: indicativoPais, numeroWhatsapp: numeroWhatsapp,
     soportaCompartirArchivos: soportaCompartirArchivos, compartirPDF: compartirPDF, botonCompartirPDFHtml: botonCompartirPDFHtml,
-    parseMonto: parseMonto, passwordToggleBtnHtml: passwordToggleBtnHtml
+    parseMonto: parseMonto, passwordToggleBtnHtml: passwordToggleBtnHtml,
+    telefonoInputHtml: telefonoInputHtml, leerTelefonoCompuesto: leerTelefonoCompuesto, parsearTelefono: parsearTelefono
   };
 })(window);
