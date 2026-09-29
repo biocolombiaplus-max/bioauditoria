@@ -112,6 +112,21 @@ input, select, textarea {
 }
 input:focus, select:focus, textarea:focus { border-color: var(--brand-primary); box-shadow: 0 0 0 3px color-mix(in srgb, var(--brand-primary) 15%, transparent); }
 input[type="color"] { padding: 3px; height: 42px; }
+/* Campo de contraseña con el "ojito" para mostrar/ocultar lo escrito —
+   igual que cualquier página grande (Gmail, bancos, etc.). El botón vive
+   DENTRO del mismo contenedor relativo que el input, superpuesto a la
+   derecha; el input le deja espacio con padding-right para que el texto
+   nunca quede tapado por el ícono. */
+.password-field-wrap { position: relative; }
+.password-field-wrap input { padding-right: 40px; }
+.password-toggle-btn {
+  position: absolute; top: 50%; right: 4px; transform: translateY(-50%);
+  width: 32px; height: 32px; padding: 0; border: none; background: transparent;
+  color: var(--text-muted); cursor: pointer; display: flex; align-items: center; justify-content: center;
+  border-radius: 7px;
+}
+.password-toggle-btn:hover { background: var(--surface-2); color: var(--text); }
+.password-toggle-btn .ic { width: 18px; height: 18px; }
 input[type="checkbox"], input[type="radio"] { width: auto; flex-shrink: 0; padding: 0; accent-color: var(--brand-primary); }
 textarea { resize: vertical; min-height: 70px; }
 .form-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 14px 18px; }

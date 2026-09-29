@@ -958,7 +958,7 @@
       var wrap = U.openModal(
         '<h3 class="modal-title">' + U.icon("lock") + ' Corregir Monto de un Pago</h3>' +
         '<p class="text-muted">Ya se confirmó un pago para la orden ' + order.numeroOrden + '. Para corregir el monto (ej. un error de digitación) se requiere la clave de administrador del laboratorio y el motivo, dejando trazabilidad completa (usuario, fecha y hora).</p>' +
-        '<div class="field"><label>Clave de administrador *</label><input type="password" id="cp-clave"/></div>' +
+        '<div class="field"><label>Clave de administrador *</label><div class="password-field-wrap"><input type="password" id="cp-clave"/>' + U.passwordToggleBtnHtml() + "</div></div>" +
         '<div class="field"><label>Motivo de la corrección *</label><textarea id="cp-motivo" placeholder="Ej: Se digitó $4.000 por error, el paciente pagó $4."></textarea></div>' +
         '<div class="flex gap-2 justify-between"><button class="btn btn-ghost" data-modal-close>Cancelar</button><button class="btn btn-danger" id="cp-continuar">Verificar y Continuar</button></div>'
       );
@@ -1073,6 +1073,7 @@
           '<div class="form-grid">' +
             field("Paciente", pac ? U.nombreCompleto(pac) + " (" + pac.tipoDocumento + " " + pac.numeroDocumento + ")" : "—") +
             field("Edad / Sexo", (pac ? U.edadTexto(pac) : "—") + " · " + (pac ? pac.sexo : "")) +
+            field("Fecha de Nacimiento", pac && pac.fechaNacimiento ? new Date(pac.fechaNacimiento + "T00:00:00").toLocaleDateString("es-CO", { day: "2-digit", month: "short", year: "numeric" }) : "—") +
             (pac && pac.pais === "CO" ? field("EPS / Seguro", pac.eps || "—") : "") +
             field("Médico Remitente", order.medicoRemitente || "—") +
             field("Procedencia", order.procedencia) +
@@ -1258,7 +1259,7 @@
         ? "Este examen ya está <b>" + ex.estado + "</b>. Quitar un resultado finalizado es una acción sensible — requiere la clave de administrador del laboratorio y el motivo, dejando trazabilidad completa (usuario, fecha y hora)."
         : "Se va a quitar <b>" + U.esc(exCat.nombre) + "</b> de la orden " + order.numeroOrden + ". Esta acción no se puede deshacer.") + "</p>" +
       (ex.reactivosDescontados ? '<p class="text-muted" style="font-size:12px">⚠️ El inventario de reactivos de este examen ya se descontó — al quitarlo, ese descuento NO se revierte automáticamente; ajústalo a mano en Inventario si hace falta.</p>' : "") +
-      (esFinal ? '<div class="field"><label>Clave de administrador *</label><input type="password" id="qe-clave"/></div>' : "") +
+      (esFinal ? '<div class="field"><label>Clave de administrador *</label><div class="password-field-wrap"><input type="password" id="qe-clave"/>' + U.passwordToggleBtnHtml() + "</div></div>" : "") +
       '<div class="field"><label>Motivo *</label><textarea id="qe-motivo" placeholder="Ej: Examen agregado por error, el paciente no lo solicitó."></textarea></div>' +
       '<div class="flex gap-2 justify-between" style="margin-top:10px"><button class="btn btn-ghost" data-modal-close>Cancelar</button><button class="btn btn-danger" id="qe-confirmar">' + U.icon("trash") + " Quitar Examen</button></div>"
     );

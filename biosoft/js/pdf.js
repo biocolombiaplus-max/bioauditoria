@@ -785,6 +785,9 @@
         if (estiloDiscreto) { left.push(["Edad:", edad]); left.push(["Sexo:", patient.sexo]); }
         else left.push(["Edad / Sexo:", edad + " / " + patient.sexo]);
       }
+      if (patient.fechaNacimiento) {
+        left.push(["Fecha de Nacimiento:", new Date(patient.fechaNacimiento + "T00:00:00").toLocaleDateString("es-CO", { day: "2-digit", month: "short", year: "numeric" })]);
+      }
       if (patient.pais === "CO" && campos.eps !== false) left.push(["EPS / Asegurador:", patient.eps || "Particular"]);
       var right = [["N° de Orden:", order.numeroOrden]];
       // El convenio/empresa aliada va como un dato más de la orden, en la

@@ -984,7 +984,7 @@
     var wrap = U.openModal(
       '<h3 class="modal-title">' + U.icon("lock") + (esRemision ? " Reemplazar PDF Remitido</h3>" : " Corrección de Resultado Validado</h3>") +
       '<p class="text-muted">' + (esRemision ? "Este examen fue remitido a un laboratorio externo. " : "El resultado <b>" + U.esc(exCat.nombre) + "</b> ya fue validado. ") + "Para modificarlo se requiere la clave de administrador del laboratorio y el motivo, dejando trazabilidad completa (usuario, fecha y hora).</p>" +
-      '<div class="field"><label>Clave de administrador *</label><input type="password" id="c-clave"/></div>' +
+      '<div class="field"><label>Clave de administrador *</label><div class="password-field-wrap"><input type="password" id="c-clave"/>' + U.passwordToggleBtnHtml() + "</div></div>" +
       '<div class="field"><label>Motivo de la corrección *</label><textarea id="c-motivo" placeholder="Ej: Error de digitación, se corrige según repetición de la prueba."></textarea></div>' +
       '<div class="flex gap-2 justify-between"><button class="btn btn-ghost" data-modal-close>Cancelar</button><button class="btn btn-danger" id="c-continuar">Verificar y Continuar</button></div>'
     );

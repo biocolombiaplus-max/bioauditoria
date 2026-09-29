@@ -64,6 +64,30 @@
     return isNaN(n) ? 0 : n;
   }
 
+  // Botón "ojito" para mostrar/ocultar una contraseña mientras se escribe
+  // — envuelve el <input type="password"> con esto: '<div class="password-
+  // field-wrap">' + input + passwordToggleBtnHtml() + '</div>'. El clic lo
+  // atiende una sola vez, por delegación en document (ver más abajo), así
+  // que funciona en CUALQUIER campo de contraseña de la app —el login, los
+  // de "clave de administrador" para corregir un resultado o un pago, un
+  // usuario nuevo, etc.— sin tener que conectar el evento aparte cada vez.
+  function passwordToggleBtnHtml() {
+    return '<button type="button" class="password-toggle-btn" data-toggle-password tabindex="-1" aria-label="Mostrar contraseña">' + icon("eye") + "</button>";
+  }
+  (function wirePasswordToggleDelegado() {
+    document.addEventListener("click", function (e) {
+      var btn = e.target.closest && e.target.closest("[data-toggle-password]");
+      if (!btn) return;
+      var wrapDiv = btn.closest(".password-field-wrap");
+      var input = wrapDiv && wrapDiv.querySelector("input");
+      if (!input) return;
+      var estaOculta = input.type === "password";
+      input.type = estaOculta ? "text" : "password";
+      btn.innerHTML = icon(estaOculta ? "eye-off" : "eye");
+      btn.setAttribute("aria-label", estaOculta ? "Ocultar contraseña" : "Mostrar contraseña");
+    });
+  })();
+
   function toast(msg, type) {
     var stack = document.getElementById("toast-stack");
     if (!stack) {
@@ -406,6 +430,6 @@
     redimensionarImagen: redimensionarImagen, recomprimirDataUrlSiHaceFalta: recomprimirDataUrlSiHaceFalta,
     indicativoPais: indicativoPais, numeroWhatsapp: numeroWhatsapp,
     soportaCompartirArchivos: soportaCompartirArchivos, compartirPDF: compartirPDF, botonCompartirPDFHtml: botonCompartirPDFHtml,
-    parseMonto: parseMonto
+    parseMonto: parseMonto, passwordToggleBtnHtml: passwordToggleBtnHtml
   };
 })(window);

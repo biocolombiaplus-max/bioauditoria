@@ -55,7 +55,14 @@
             <div class="divider-row"><div class="line"></div><span>Acceso para clientes con software adquirido</span><div class="line"></div></div>
             <form id="login-form">
               <div class="field"><label>Usuario</label><input id="login-username" required autocomplete="username" placeholder="tu correo electrónico"/></div>
-              <div class="field"><label>Contraseña</label><input id="login-password" type="password" required autocomplete="current-password"/></div>
+              <div class="field"><label>Contraseña</label>
+                <div class="password-field-wrap">
+                  <input id="login-password" type="password" required autocomplete="current-password"/>
+                  <button type="button" class="password-toggle-btn" data-toggle-password tabindex="-1" aria-label="Mostrar contraseña">
+                    <svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8ZM12 15a3 3 0 1 0 0-6 3 3 0 0 0 0 6Z"/></svg>
+                  </button>
+                </div>
+              </div>
               <button type="button" class="link-forgot-password" id="btn-forgot-password">¿Olvidaste tu contraseña?</button>
               <p id="login-error" class="text-danger hidden" style="font-size:13px"></p>
               <button class="btn btn-primary btn-block" type="submit">Ingresar</button>
@@ -131,14 +138,14 @@
   <script src="js/qc-westgard.js?v=3"></script>
   <script src="js/marketing-recall.js?v=1"></script>
   <script src="js/planes.js?v=7"></script>
-  <script src="js/store.js?v=40"></script>
+  <script src="js/store.js?v=41"></script>
   <script src="js/rips.js?v=1"></script>
   <script src="js/auth.js?v=10"></script>
   <script src="js/ui.js?v=15"></script>
   <script src="js/firma-pad.js?v=1"></script>
   <script src="js/consentimiento-texto.js?v=3"></script>
   <script src="js/tour.js?v=1"></script>
-  <script src="js/pdf.js?v=87"></script>
+  <script src="js/pdf.js?v=88"></script>
   <script src="js/pdf-contrato.js?v=12"></script>
   <script src="js/pdf-cotizacion.js?v=7"></script>
   <script src="js/pdf-recibo-cotizacion.js?v=5"></script>
@@ -155,7 +162,7 @@
   <script src="js/pdf-remision.js?v=3"></script>
   <script src="js/views-dashboard-patients.js?v=16"></script>
   <script src="js/views-productividad.js?v=2"></script>
-  <script src="js/views-orders.js?v=41"></script>
+  <script src="js/views-orders.js?v=42"></script>
   <script src="js/views-consentimientos.js?v=3"></script>
   <script src="js/views-results.js?v=30"></script>
   <script src="js/views-worksheets.js?v=5"></script>

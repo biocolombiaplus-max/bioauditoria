@@ -103,6 +103,19 @@
     var db = global.BIO_FB.db;
 
     function attach(coll, arrKey, isMap) {
+      // Caso real que motivó este .catch(): al agregar una colección nueva
+      // (ej. convenioPagos) hay que pegar la regla nueva de firestore.rules
+      // A MANO en la consola de Firebase — el push a git NUNCA la despliega
+      // sola. Si ese paso manual se olvida, esta colección responde
+      // "permission-denied" y, antes de este cambio, Promise.all(...) de más
+      // abajo rechazaba COMPLETO: como initRealtime() es lo primero que
+      // corre justo después de loginReal(), eso tumbaba el ingreso de TODO
+      // usuario real del laboratorio (no solo de quien tocó esa función),
+      // aunque su correo y contraseña fueran perfectamente correctos. Ahora
+      // una sola colección con reglas desactualizadas queda vacía en memoria
+      // (se recupera sola en cuanto se publique la regla, por el
+      // onSnapshot de las demás) en vez de bloquear el inicio de sesión de
+      // nadie.
       return fbColl(coll).get().then(function (snap) {
         snap.forEach(function (doc) { pushDoc(doc); });
         var unsub = fbColl(coll).onSnapshot(function (snap) {
@@ -111,8 +124,12 @@
             else pushDoc(change.doc);
           });
           if (onRealtimeChangeCb) onRealtimeChangeCb();
+        }, function (err) {
+          console.warn("BIOsoft: se perdió la sincronización en vivo de '" + coll + "' (" + (err && err.code) + ").", err);
         });
         realUnsubs.push(unsub);
+      }).catch(function (err) {
+        console.warn("BIOsoft: no se pudo cargar la colección '" + coll + "' (" + (err && err.code) + "). Se continúa sin bloquear el ingreso; probablemente falta publicar la regla de Firestore correspondiente en la consola de Firebase.", err);
       });
       function pushDoc(doc) {
         var data = doc.data();

@@ -1594,8 +1594,8 @@
         '<fieldset><legend>Seguridad — Clave de Administrador para Correcciones</legend>' +
         '<p class="text-muted" style="margin-top:0">Esta clave se solicita cuando un bacteriólogo necesita corregir un resultado ya validado, garantizando trazabilidad y control.</p>' +
         '<div class="form-grid">' +
-          '<div class="field"><label>Clave Actual</label><input type="password" id="f_claveActual"/></div>' +
-          '<div class="field"><label>Nueva Clave de Administrador</label><input type="password" id="f_claveNueva"/></div>' +
+          '<div class="field"><label>Clave Actual</label><div class="password-field-wrap"><input type="password" id="f_claveActual"/>' + U.passwordToggleBtnHtml() + "</div></div>" +
+          '<div class="field"><label>Nueva Clave de Administrador</label><div class="password-field-wrap"><input type="password" id="f_claveNueva"/>' + U.passwordToggleBtnHtml() + "</div></div>" +
         "</div></fieldset>" +
         '<button type="submit" class="btn btn-primary">' + U.icon("check") + " Guardar Configuración</button>" +
       "</form></div>";
