@@ -94,15 +94,24 @@ function setRole(r){
   document.querySelectorAll('.rbtn').forEach(b=>b.classList.remove('on'));
   document.getElementById('r-'+r).classList.add('on');
 }
+function getUser(u){
+  // Check hardcoded users first, then dynamic users saved by admin
+  if(USERS[u]) return USERS[u];
+  try {
+    const db=JSON.parse(localStorage.getItem('bio_users_db')||'{}');
+    return db[u]||null;
+  } catch(e){ return null; }
+}
 function doLogin(){
   const u=document.getElementById('user').value.trim().toLowerCase();
   const p=document.getElementById('pass').value;
   const e=document.getElementById('err');
-  if(USERS[u]&&USERS[u].pass===p&&USERS[u].role===rol){
+  const found=getUser(u);
+  if(found&&found.pass===p&&found.role===rol){
     e.style.display='none';
     sessionStorage.setItem('bio_user',u);
     sessionStorage.setItem('bio_role',rol);
-    window.location.href=USERS[u].to;
+    window.location.href=found.to;
   } else {
     e.style.display='block';
     document.getElementById('pass').value='';
