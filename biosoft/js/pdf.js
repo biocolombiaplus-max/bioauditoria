@@ -566,7 +566,7 @@
     // se usan para decidir CON ANTICIPACIÓN si un examen completo cabe en
     // lo que queda de página, en vez de dejar que se corte a la mitad.
     var pageBottom = pageH - footerReserva;
-    var ROW_H = 17, HEAD_H = 22;
+    var ROW_H = 17, HEAD_H = 18;
     var rgb = hexToRgb(tenant.colorPrimario);
     // Color de las barras de sección: por defecto es el mismo Color
     // Primario de la marca, pero el laboratorio puede darle un color propio
@@ -642,7 +642,14 @@
       doc.setFont(fontFam, "italic"); doc.setFontSize(7);
       if (estiloDiscreto) doc.setTextColor(0, 0, 0); else doc.setTextColor(140, 140, 140);
       doc.text("Validado por:", margin, yy);
-      yy += 7;
+      // Caso real reportado ("Validado por:" saliendo tapado por la firma):
+      // una firma ancha/alta (hasta 110x28) centrada en las 170pt de la
+      // línea se monta sobre la etiqueta "Validado por:" cuando el espacio
+      // vertical entre la etiqueta y la línea es muy chico (antes solo 15pt
+      // en total, menos que los 28pt de alto máximo permitido para la
+      // firma). Ahora hay espacio suficiente para que la firma más grande
+      // permitida quede SIEMPRE debajo de la etiqueta, nunca encima.
+      yy += 25;
       if (f.firmaDataUrl) {
         try {
           var recorte = await recortarEspacioSobrante(f.firmaDataUrl);
@@ -969,7 +976,51 @@
       // negrita con una línea fina debajo — también un poco más compacto.
       var alturaBanner = tenant.bandaSeccionSinColor ? 18 : 20;
       var altoPrimerGrupo = grupos.length ? altoGrupo(grupos[0]) : 0;
-      if (y + alturaBanner + HEAD_H + altoPrimerGrupo > pageBottom) { y = nuevaPagina(); }
+      // Casos reales que motivaron este bloque (reportados como PDFs "feos",
+      // con hojas casi en blanco): (1) una sección chica (ej. 2 exámenes de
+      // 1 parámetro cada uno) que no cabía completa en lo que quedaba de la
+      // hoja actual terminaba partida: el primer examen se quedaba en esta
+      // hoja y el resto saltaba a una hoja nueva casi vacía, con un
+      // "(continuación)" para un solo examen. (2) un examen con MUCHOS
+      // parámetros (ej. un hemograma personalizado con 20 filas) que no
+      // cabía ni en lo que quedaba de la hoja actual NI en una hoja nueva
+      // completa: como se exigía que cupiera ENTERO antes de dibujar su
+      // banner, terminaba empujando la sección completa a la siguiente
+      // hoja, dejando la actual con solo el encabezado del paciente y nada
+      // más — a veces sin ni siquiera resolverse ahí, repitiendo el
+      // problema hoja tras hoja.
+      // Ahora se calcula cuánto ocupa la sección COMPLETA (todos sus
+      // exámenes) y se decide entre tres casos:
+      var alturaTotalSeccion = HEAD_H + grupos.reduce(function (sum, g) { return sum + altoGrupo(g); }, 0);
+      var presupuestoHojaNueva = pageBottom - margin;
+      if (y + alturaBanner + alturaTotalSeccion > pageBottom && alturaBanner + alturaTotalSeccion <= presupuestoHojaNueva) {
+        // Caso 1: la sección ENTERA (banner + todos sus exámenes) no cabe
+        // en lo que queda de esta hoja, pero sí cabe completa en una hoja
+        // nueva — se pasa la sección completa a la siguiente hoja en vez
+        // de partirla dejando un examen huérfano al principio de la
+        // siguiente y un hueco grande en el resto de esta.
+        y = nuevaPagina();
+      } else if (alturaBanner + HEAD_H + altoPrimerGrupo <= presupuestoHojaNueva) {
+        // Caso 2 (el de siempre): la sección completa no cabe en una sola
+        // hoja, pero su primer examen sí cabe en una hoja nueva — se pasa
+        // de hoja solo si hace falta, para no dejarlo huérfano al fondo.
+        if (y + alturaBanner + HEAD_H + altoPrimerGrupo > pageBottom) { y = nuevaPagina(); }
+      }
+      // Caso 3 (ni siquiera el primer examen cabe en una hoja nueva
+      // completa, ej. un examen gigante con muchísimos parámetros): no se
+      // fuerza ningún salto de hoja aquí — se dibuja donde ya está, y es la
+      // propia tabla (autoTable, más abajo) la que reparte sus filas entre
+      // hojas repitiendo el encabezado — mejor eso que gastar una hoja
+      // entera casi en blanco esperando espacio que nunca va a sobrar.
+      // Única excepción: si en la hoja actual no queda ni siquiera espacio
+      // para el banner + el encabezado de la tabla + una primera fila, SÍ
+      // se pasa de hoja — si no, el banner quedaría huérfano solo, sin
+      // ninguna fila debajo en esta hoja (el mismo problema que todo este
+      // bloque busca evitar, solo que ahora por muy poco espacio en vez de
+      // por un examen grande).
+      else if (y + alturaBanner + HEAD_H + ROW_H > pageBottom) {
+        y = nuevaPagina();
+      }
 
       if (tenant.bandaSeccionSinColor) {
         if (estiloDiscreto) doc.setTextColor(0, 0, 0); else doc.setTextColor(30, 30, 30);
@@ -1193,7 +1244,7 @@
       if (validadosSeccion.length && !firmaUnicaAlFinal) {
         var firmantesSeccion = firmantesDe(order, tenant, validadosSeccion);
         for (var vsi = 0; vsi < firmantesSeccion.length; vsi++) {
-          if (y > pageBottom - 47) { y = nuevaPagina(); }
+          if (y > pageBottom - 65) { y = nuevaPagina(); }
           y = await dibujarBloqueFirmaSeccion(firmantesSeccion[vsi], y);
           huboFirmaPorSeccion = true;
         }
@@ -1232,7 +1283,7 @@
       var firmantes = firmantesDe(order, tenant, examsToShow);
       y += 16;
       for (var fi = 0; fi < firmantes.length; fi++) {
-        if (y > pageBottom - 47) { y = nuevaPagina(); }
+        if (y > pageBottom - 65) { y = nuevaPagina(); }
         y = await dibujarBloqueFirmaSeccion(firmantes[fi], y);
       }
     }
