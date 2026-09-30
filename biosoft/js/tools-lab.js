@@ -155,7 +155,23 @@
       var file = e.target.files && e.target.files[0];
       e.target.value = "";
       if (!file) return;
-      U.toast("La identificación de células por IA todavía no está activada para tu laboratorio — pídele a soporte que la habilite (tiene un costo por análisis). Tu foto no se envió a ningún lado.", "warning");
+      // Este aviso solo aparece si de verdad se intentó usar la función (se
+      // tomó/eligió una foto) — nunca como un anuncio suelto interrumpiendo
+      // el conteo — para ofrecer el paquete de IA Premium justo en el
+      // momento en que le serviría a quien lo está pidiendo.
+      var mensajeWa = "Hola, estoy usando BIOsoft y quiero más información sobre el paquete IA Premium (identificación de células por foto, USD $20/mes).";
+      U.openModal(
+        '<h3 class="modal-title">✨ Identificación de Células con IA</h3>' +
+        '<p class="text-muted">Esta función hace parte del <b>paquete IA Premium de BIOsoft</b> — identifica la célula de tu foto según sus rasgos morfológicos, y da acceso a más herramientas de inteligencia artificial a medida que las vayamos sumando.</p>' +
+        '<div style="background:var(--surface-2);border:1px solid var(--border);border-radius:10px;padding:14px 16px;margin:14px 0;text-align:center">' +
+        '<div style="font-size:26px;font-weight:800;color:var(--brand-primary)">USD $20<span style="font-size:14px;font-weight:600;color:var(--text-muted)">/mes</span></div>' +
+        '<div class="text-muted" style="font-size:12.5px">por laboratorio, sin importar cuántos usuarios lo usen</div>' +
+        "</div>" +
+        '<div class="flex gap-2 justify-between" style="margin-top:6px">' +
+        '<button class="btn btn-ghost" data-modal-close>Tal vez después</button>' +
+        '<a class="btn btn-whatsapp" href="https://wa.me/573505457420?text=' + encodeURIComponent(mensajeWa) + '" target="_blank">' + U.icon("send") + " Preguntar por WhatsApp</a>" +
+        "</div>"
+      );
     }
     function onKeydown(e) {
       var idx = -1;

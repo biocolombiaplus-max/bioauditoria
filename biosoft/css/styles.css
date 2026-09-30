@@ -548,7 +548,12 @@ tbody tr:hover { background: var(--surface-2); }
 .lab-tool-sub { font-size: 12.5px; opacity: .85; margin: 0; }
 
 .cc-overlay {
-  position: fixed; inset: 0; z-index: 90; background: linear-gradient(160deg, #0f172a, #1e1b4b);
+  /* Por debajo de .modal (60): el aviso de IA Premium se abre con
+     U.openModal() ENCIMA de esta pantalla completa (ver manejarFotoIA en
+     tools-lab.js) — con un z-index igual o mayor quedaba invisible detrás
+     del contador, aunque sí existía en la página (bug real encontrado al
+     probarlo). */
+  position: fixed; inset: 0; z-index: 50; background: linear-gradient(160deg, #0f172a, #1e1b4b);
   display: flex; flex-direction: column; padding: 22px 26px; overflow-y: auto; color: #fff;
 }
 .cc-topbar { display: flex; align-items: center; justify-content: space-between; margin-bottom: 18px; }
