@@ -2034,7 +2034,8 @@
         { titulo: "Documentos", acciones: [
           { label: "Enviar Contrato de Prestación de Servicios", icon: "file", onClick: function () { abrirEnviarContrato(tenant); } },
           { label: "Enviar Licencia de Funcionamiento de Software", icon: "award", onClick: function () { abrirEnviarLicencia(tenant); } },
-          { label: "Enviar Manual de Usuario", icon: "send", onClick: function () { abrirEnviarManual(tenant); } }
+          { label: "Enviar Manual de Usuario", icon: "send", onClick: function () { abrirEnviarManual(tenant); } },
+          { label: "Enviar Guía de Conexión de Equipo", icon: "send", onClick: function () { abrirEnviarGuiaConexion(tenant); } }
         ]},
         { titulo: "Acceso y Soporte", acciones: [
           { label: "Editar Datos del Laboratorio", icon: "edit", onClick: function () { abrirEditarDatos(tenant); } },
@@ -2493,6 +2494,73 @@
         }).finally(function () {
           btn.disabled = false; btn.innerHTML = htmlOriginal;
         });
+      });
+    }
+
+    // Se envía ANTES de mandar la carpeta técnica de equipo-interfaz-lis/,
+    // a laboratorios sin experiencia con computadores — les explica en
+    // lenguaje simple qué va a pasar (se les acompaña en vivo, paso a paso)
+    // y qué necesitan tener listo, para que no les tome por sorpresa ver
+    // una "ventana negra". El tipo de equipo/conexión es libre porque
+    // aplica a cualquier marca (Mindray, Dymind, Dirui, etc.), no solo al
+    // BS-220.
+    function abrirEnviarGuiaConexion(tenant) {
+      var TIPOS = BIO_PDF_CRM.TIPOS_CONEXION_EQUIPO;
+      var mensajeDefault = "Hola 👋 Antes de conectar tu equipo a BIOsoft, te comparto esta guía rápida con todo el proceso, para que sepas qué esperar. Cuando la leas, escríbenos y coordinamos la sesión guiada.";
+      var wrap = U.openModal(
+        '<h3 class="modal-title">Enviar Guía de Conexión de Equipo — ' + U.esc(tenant.nombre) + '</h3>' +
+        '<p class="text-muted" style="margin-top:0">Documento para enviar ANTES de empezar el proceso técnico — explica el paso a paso en lenguaje simple, sin tecnicismos.</p>' +
+        '<div class="form-grid">' +
+        '<div class="field"><label>Nombre del equipo *</label><input id="gc-equipo" placeholder="Ej: Mindray BS-220 — Química" required/></div>' +
+        '<div class="field"><label>Tipo de conexión</label><select id="gc-tipo">' +
+        Object.keys(TIPOS).map(function (k) { return '<option value="' + k + '">' + U.esc(TIPOS[k].etiqueta) + "</option>"; }).join("") +
+        "</select></div>" +
+        '<div class="field"><label>Correo del destinatario</label><input id="gc-email" type="email" value="' + U.esc(tenant.email || "") + '"/></div>' +
+        '<div class="field"><label>WhatsApp del destinatario</label><input id="gc-whatsapp" value="' + U.esc(tenant.telefonos || "") + '"/></div>' +
+        "</div>" +
+        '<div class="field"><label>Mensaje</label><textarea id="gc-msg">' + U.esc(mensajeDefault) + "</textarea></div>" +
+        '<div class="flex gap-2 justify-between"><button class="btn btn-ghost" data-modal-close>Cancelar</button><button class="btn btn-primary" id="gc-go">' + U.icon("download") + " 1. Generar y Descargar</button></div>" +
+        '<div id="gc-step2" class="hidden" style="margin-top:16px;border-top:1px solid var(--border);padding-top:14px">' +
+        '<p style="margin:0 0 4px"><b>2. Elige dónde enviarla</b></p>' +
+        '<p class="text-muted" style="margin:0 0 4px;font-size:12.5px">Se abrirá el correo o WhatsApp ya redactado — solo adjunta el PDF que acabas de descargar antes de darle enviar.</p>' +
+        U.emailProviderButtonsHtml("gc") +
+        '<a class="btn btn-whatsapp btn-block" id="gc-wa" target="_blank" rel="noopener" style="margin-top:8px">' + U.icon("send") + " Enviar por WhatsApp</a>" +
+        "</div>",
+        { lg: true }
+      );
+      wrap.querySelector("#gc-go").addEventListener("click", function (e) {
+        var nombreEquipo = wrap.querySelector("#gc-equipo").value.trim();
+        var tipoConexion = wrap.querySelector("#gc-tipo").value;
+        var email = wrap.querySelector("#gc-email").value.trim();
+        var whatsapp = wrap.querySelector("#gc-whatsapp").value.trim();
+        var msg = wrap.querySelector("#gc-msg").value;
+        if (!nombreEquipo) { U.toast("Escribe el nombre del equipo.", "error"); return; }
+        if (!email && !whatsapp) { U.toast("Ingresa un correo o un número de WhatsApp.", "error"); return; }
+        var btn = e.currentTarget;
+        var htmlOriginal = btn.innerHTML;
+        btn.disabled = true; btn.innerHTML = "Generando…";
+        try {
+          var bytes = BIO_PDF_CRM.buildGuiaConexionPDF(tenantParaDocs(tenant), { nombreEquipo: nombreEquipo, tipoConexion: tipoConexion });
+          U.downloadBytes(bytes, "Guia_Conexion_Equipo_" + (tenant.nombre || "Cliente").replace(/\s+/g, "_") + ".pdf");
+          var asunto = "Guía de Conexión de tu Equipo — BIOsoft";
+          var cuerpo = msg + "\n\n(Adjunte el archivo PDF que se acaba de descargar a su equipo)";
+          wrap.querySelector("#gc-step2").classList.remove("hidden");
+          U.wireEmailProviderButtons(wrap, "gc", email, asunto, cuerpo);
+          var waBtn = wrap.querySelector("#gc-wa");
+          if (whatsapp) {
+            var numero = whatsapp.replace(/\D/g, "");
+            if (numero.length === 10 && numero.charAt(0) === "3") numero = "57" + numero;
+            waBtn.href = "https://wa.me/" + numero + "?text=" + encodeURIComponent(msg + "\n\n(Adjunte el PDF que se acaba de descargar antes de enviar)");
+          } else {
+            waBtn.classList.add("hidden");
+          }
+          U.toast("Guía generada. Elige por dónde enviarla.", "success");
+        } catch (err) {
+          console.error("BIOsoft: no se pudo generar la guía de conexión ->", err);
+          U.toast("No se pudo generar la guía: " + (err && err.message ? err.message : err) + ". Si el problema sigue, recarga la página (Ctrl+Shift+R) e inténtalo de nuevo.", "error");
+        } finally {
+          btn.disabled = false; btn.innerHTML = htmlOriginal;
+        }
       });
     }
 

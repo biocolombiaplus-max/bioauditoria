@@ -1018,9 +1018,127 @@
     return new Uint8Array(doc.output("arraybuffer"));
   }
 
+  // -----------------------------------------------------------------------
+  // GUÍA DE CONEXIÓN DE EQUIPO — se envía ANTES de empezar el proceso de
+  // interfaz (ver equipo-interfaz-lis/), a laboratorios que casi nunca
+  // tienen experiencia con computadores. No trae detalles técnicos (eso va
+  // en LEEME-INSTALACION.txt, dentro de la carpeta que se envía después) —
+  // el objetivo de este documento es bajarle la ansiedad al cliente: que
+  // sepa qué va a pasar, que nunca va a estar solo(a) frente al computador,
+  // y qué necesita tener listo antes de la sesión guiada.
+  // -----------------------------------------------------------------------
+  var TIPOS_CONEXION_EQUIPO = {
+    red: {
+      etiqueta: "Por red (cable de red o WiFi)",
+      texto: "Tu equipo se conecta por cable de red (Ethernet) directo al mismo router o switch de tu laboratorio, o por WiFi si tu modelo lo permite — igual que se conecta una impresora de red. Durante la sesión guiada, vamos a configurar en la pantalla del propio equipo la dirección de la computadora que va a recibir los resultados."
+    },
+    serial: {
+      etiqueta: "Por cable serial (puerto RS-232)",
+      texto: "Tu equipo se conecta con un cable serial (puerto RS-232, el de forma trapezoidal con varios pines) directo a la computadora. Si la computadora no tiene ese puerto (lo más común en equipos modernos), vamos a necesitar un conversor USB a Serial — económico y fácil de conseguir en cualquier tienda de tecnología; te confirmamos si hace falta antes de la sesión."
+    },
+    no_seguro: {
+      etiqueta: "No estoy seguro / otro",
+      texto: "No hay problema si todavía no sabes cómo se conecta tu equipo — es normal. En la sesión guiada revisamos juntos la parte trasera del equipo (o su manual, si lo tienes a mano) para identificar el tipo de conexión, y de ahí seguimos con toda tranquilidad."
+    }
+  };
+
+  function buildGuiaConexionPDF(cliente, opts) {
+    cliente = cliente || {};
+    opts = opts || {};
+    var lab = cliente.laboratorio || {};
+    var contacto = cliente.contacto || {};
+    var nombreEquipo = opts.nombreEquipo || "tu equipo de laboratorio";
+    var tipoConexion = TIPOS_CONEXION_EQUIPO[opts.tipoConexion] ? opts.tipoConexion : "no_seguro";
+
+    var jsPDFCtor = window.jspdf ? window.jspdf.jsPDF : window.jsPDF;
+    var doc = new jsPDFCtor({ unit: "pt", format: "letter" });
+    var pageW = doc.internal.pageSize.getWidth();
+    var margin = 50;
+    var maxW = pageW - margin * 2;
+
+    var y = encabezado(doc, margin, "GUÍA DE CONEXIÓN DE TU EQUIPO", fechaLarga(new Date()));
+
+    function checkPage(minSpace) { if (y > 760 - (minSpace || 40)) { doc.addPage(); y = margin; } }
+    function parrafo(t, o) {
+      o = o || {};
+      doc.setFont("helvetica", o.bold ? "bold" : "normal"); doc.setFontSize(o.size || 9.7); doc.setTextColor.apply(doc, o.color || [40, 40, 40]);
+      var lines = doc.splitTextToSize(t, o.maxW || maxW);
+      checkPage(lines.length * (o.lineH || 13) + 8);
+      doc.text(lines, margin, y);
+      y += lines.length * (o.lineH || 13) + (o.gap != null ? o.gap : 11);
+      return lines.length;
+    }
+    function tituloSeccion(t) {
+      checkPage(32);
+      doc.setFillColor(249, 115, 22); doc.rect(margin, y - 9, 3, 13, "F");
+      doc.setFont("helvetica", "bold"); doc.setFontSize(11.5); doc.setTextColor(46, 16, 101);
+      doc.text(t.toUpperCase(), margin + 10, y);
+      y += 16;
+    }
+    // Mismo recuadro con relleno suave usado en la Propuesta Comercial —
+    // altura calculada antes de dibujar, para que el texto nunca se corte.
+    function recuadro(titulo, lineasItems, opts2) {
+      opts2 = opts2 || {};
+      doc.setFont("helvetica", "bold"); doc.setFontSize(10.5);
+      var tituloLines = titulo ? doc.splitTextToSize(titulo, maxW - 24) : [];
+      doc.setFont("helvetica", "normal"); doc.setFontSize(9.3);
+      var itemBlocks = lineasItems.map(function (it, i) {
+        var prefijo = opts2.numerado ? (i + 1) + ". " : "- ";
+        return doc.splitTextToSize(prefijo + it, maxW - 24);
+      });
+      var alto = 14 + tituloLines.length * 14 + itemBlocks.reduce(function (s, l) { return s + l.length * 12.5 + 5; }, 0) + 10;
+      checkPage(alto + 10);
+      doc.setFillColor(255, 247, 237); doc.setDrawColor(249, 115, 22); doc.setLineWidth(1);
+      doc.roundedRect(margin, y, maxW, alto, 6, 6, "FD");
+      var iy = y + 16;
+      if (tituloLines.length) {
+        doc.setFont("helvetica", "bold"); doc.setFontSize(10.5); doc.setTextColor(180, 83, 9);
+        doc.text(tituloLines, margin + 12, iy); iy += tituloLines.length * 14 + 3;
+      }
+      doc.setFont("helvetica", "normal"); doc.setFontSize(9.3); doc.setTextColor(60, 45, 30);
+      itemBlocks.forEach(function (lines) { doc.text(lines, margin + 12, iy); iy += lines.length * 12.5 + 5; });
+      y += alto + 14;
+    }
+
+    parrafo("Hola " + (contacto.nombre ? contacto.nombre.split(" ")[0] : "") + ",", { bold: true, size: 13, color: [20, 20, 20], gap: 6 });
+    parrafo(
+      "Vamos a conectar tu " + nombreEquipo + " directamente con BIOsoft, para que los resultados lleguen solos al sistema — sin que nadie tenga que volver a digitarlos a mano. No necesitas experiencia con computadores: nosotros te acompañamos en cada paso, en tiempo real, hasta dejarlo funcionando. Esta guía es solo para que sepas, antes de empezar, qué va a pasar y qué necesitamos que tengas listo."
+    );
+
+    tituloSeccion("Así va a ser el proceso, paso a paso");
+    recuadro(null, [
+      "Te enviamos, por WhatsApp o correo, una carpeta (un archivo comprimido) con el programa que conecta tu equipo con BIOsoft. Tú no tienes que buscar nada ni entender qué es — nosotros te la enviamos lista.",
+      "Te acompañamos EN VIVO, por WhatsApp o llamada, mientras la instalas en la computadora que va a quedar conectada al equipo. Nosotros te decimos exactamente qué hacer, un paso a la vez — tú solo sigues las indicaciones, con calma.",
+      "Juntos hacemos una prueba: corres una muestra de control en tu equipo, y revisamos en vivo que los datos lleguen bien a la computadora.",
+      "Confirmamos que todo coincide y dejamos la configuración final lista — este paso lo hacemos nosotros, no necesitas hacer nada especial.",
+      "De ahí en adelante, tu día a día queda así de simple: enciendes el equipo, haces un solo doble clic en un ícono, y ya puedes trabajar con toda normalidad — nada de comandos ni pantallas complicadas."
+    ], { numerado: true });
+
+    tituloSeccion("Antes de empezar, esto es lo que necesitamos que tengas listo");
+    recuadro(null, [
+      "Una computadora con Windows, conectada a la misma red (el mismo WiFi o cable) donde está el equipo — no tiene que ser la misma donde usas BIOsoft todos los días.",
+      "El equipo encendido y en su lugar de trabajo normal.",
+      "Unos 20 a 30 minutos donde alguien pueda estar frente a la computadora y el equipo al mismo tiempo (puede ser la misma persona).",
+      "Un número de WhatsApp donde podamos guiarte en tiempo real durante la instalación."
+    ]);
+
+    tituloSeccion("Sobre tu equipo: " + nombreEquipo);
+    parrafo("Tipo de conexión: " + TIPOS_CONEXION_EQUIPO[tipoConexion].etiqueta, { bold: true, gap: 6 });
+    parrafo(TIPOS_CONEXION_EQUIPO[tipoConexion].texto);
+
+    parrafo(
+      "Una vez tengas listo lo de arriba, escríbenos por WhatsApp al +" + PROVEEDOR.whatsapp + " para coordinar el horario de la sesión guiada. ¡Cualquier duda antes de eso, con gusto te la resolvemos!",
+      { bold: true, color: [20, 20, 20] }
+    );
+
+    piePagina(doc, margin);
+    return new Uint8Array(doc.output("arraybuffer"));
+  }
+
   global.BIO_PDF_CRM = {
     buildContratoPDF: buildContratoPDF, buildReciboPDF: buildReciboPDF, buildPropuestaPDF: buildPropuestaPDF,
     buildLicenciaPDF: buildLicenciaPDF, generarNumeroLicencia: generarNumeroLicencia, PROVEEDOR: PROVEEDOR,
-    buildCotizacionPDF: buildCotizacionPDF, generarNumeroCotizacion: generarNumeroCotizacion
+    buildCotizacionPDF: buildCotizacionPDF, generarNumeroCotizacion: generarNumeroCotizacion,
+    buildGuiaConexionPDF: buildGuiaConexionPDF, TIPOS_CONEXION_EQUIPO: TIPOS_CONEXION_EQUIPO
   };
 })(window);
