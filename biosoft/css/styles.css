@@ -532,6 +532,77 @@ tbody tr:hover { background: var(--surface-2); }
 .tour-modal-card p { margin: 0 0 22px; color: var(--text-muted); font-size: 14.5px; line-height: 1.55; }
 .tour-modal-actions { display: flex; align-items: center; justify-content: center; gap: 10px; flex-wrap: wrap; }
 
+/* ---------------- Herramientas de banco: Contador de Células y Cronómetro ---------------- */
+.lab-tools-row { display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 14px; margin-bottom: 18px; }
+.lab-tool-card {
+  display: flex; align-items: center; gap: 14px; padding: 18px 20px; border-radius: var(--radius);
+  border: none; cursor: pointer; text-align: left; color: #fff; box-shadow: var(--shadow-md);
+  transition: transform .15s ease, box-shadow .15s ease;
+}
+.lab-tool-card:hover { transform: translateY(-2px); box-shadow: var(--shadow-lg); }
+.lab-tool-card:active { transform: translateY(0); }
+.lab-tool-cellcounter { background: linear-gradient(135deg, #7c3aed, #4c1d95); }
+.lab-tool-timer { background: linear-gradient(135deg, #0891b2, #0e4f5c); }
+.lab-tool-icon { width: 46px; height: 46px; border-radius: 12px; background: rgba(255,255,255,.18); display: flex; align-items: center; justify-content: center; flex-shrink: 0; font-size: 22px; }
+.lab-tool-title { font-family: 'Poppins', sans-serif; font-weight: 700; font-size: 15.5px; margin: 0 0 2px; }
+.lab-tool-sub { font-size: 12.5px; opacity: .85; margin: 0; }
+
+.cc-overlay {
+  position: fixed; inset: 0; z-index: 90; background: linear-gradient(160deg, #0f172a, #1e1b4b);
+  display: flex; flex-direction: column; padding: 22px 26px; overflow-y: auto; color: #fff;
+}
+.cc-topbar { display: flex; align-items: center; justify-content: space-between; margin-bottom: 18px; }
+.cc-titulo { font-family: 'Poppins', sans-serif; font-weight: 700; font-size: 17px; }
+.cc-close { background: rgba(255,255,255,.12); border: none; color: #fff; width: 38px; height: 38px; border-radius: 10px; cursor: pointer; display: flex; align-items: center; justify-content: center; }
+.cc-close:hover { background: rgba(255,255,255,.22); }
+.cc-close .ic { width: 18px; height: 18px; }
+.cc-total-wrap { text-align: center; margin: 6px 0 22px; }
+.cc-total-num { font-family: 'Poppins', sans-serif; font-weight: 800; font-size: 56px; line-height: 1; }
+.cc-total-de100 { font-size: 26px; opacity: .55; font-weight: 600; }
+.cc-total-label { font-size: 14px; opacity: .8; margin-top: 4px; }
+.cc-total-bar { width: min(420px, 90%); height: 8px; border-radius: 5px; background: rgba(255,255,255,.15); margin: 10px auto 0; overflow: hidden; }
+.cc-total-fill { height: 100%; background: linear-gradient(90deg, #22d3ee, #a78bfa); transition: width .2s ease; }
+.cc-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 14px; max-width: 1100px; margin: 0 auto; width: 100%; }
+.cc-tile {
+  position: relative; display: flex; flex-direction: column; align-items: center; gap: 4px;
+  background: rgba(255,255,255,.06); border: 2px solid transparent; border-radius: 14px; padding: 16px 10px 14px;
+  cursor: pointer; color: #fff; transition: transform .1s ease, border-color .15s ease, background .15s ease;
+}
+.cc-tile::before { content: ""; position: absolute; top: 0; left: 0; right: 0; height: 5px; border-radius: 14px 14px 0 0; background: var(--tile-color); }
+.cc-tile:hover { background: rgba(255,255,255,.11); }
+.cc-tile:active { transform: scale(.97); }
+.cc-tile-activa { border-color: var(--tile-color); box-shadow: 0 0 0 4px color-mix(in srgb, var(--tile-color) 30%, transparent); }
+.cc-tile-tecla { position: absolute; top: 8px; right: 10px; font-size: 11px; font-weight: 700; opacity: .5; background: rgba(255,255,255,.12); width: 18px; height: 18px; border-radius: 5px; display: flex; align-items: center; justify-content: center; }
+.cc-tile-count { font-family: 'Poppins', sans-serif; font-weight: 800; font-size: 32px; margin-top: 6px; }
+.cc-tile-pct { font-size: 13px; opacity: .75; }
+.cc-tile-nombre { font-size: 12.5px; font-weight: 600; text-align: center; margin-top: 4px; line-height: 1.25; }
+.cc-footer { display: flex; gap: 10px; flex-wrap: wrap; justify-content: center; margin: 24px 0 8px; }
+.cc-footer .btn-outline { background: rgba(255,255,255,.08); border-color: rgba(255,255,255,.25); color: #fff; }
+.cc-footer .btn-outline:hover { background: rgba(255,255,255,.16); border-color: #fff; color: #fff; }
+.cc-footer .btn-outline:disabled { opacity: .35; cursor: not-allowed; }
+.cc-ayuda { text-align: center; font-size: 12px; opacity: .6; max-width: 640px; margin: 0 auto; }
+
+.timer-float {
+  position: fixed; left: 22px; bottom: 22px; z-index: 55; width: 250px;
+  background: var(--surface); border-radius: 16px; box-shadow: var(--shadow-lg); border: 1px solid var(--border);
+  padding: 14px 16px 16px; color: var(--text);
+}
+.timer-float-header { display: flex; align-items: center; justify-content: space-between; font-weight: 700; font-size: 13px; margin-bottom: 8px; }
+.timer-float-header button { background: transparent; border: none; cursor: pointer; color: var(--text-muted); padding: 2px; display: flex; }
+.timer-float-header button .ic { width: 16px; height: 16px; }
+.timer-display { font-family: 'Poppins', sans-serif; font-weight: 800; font-size: 40px; text-align: center; color: #0e4f5c; letter-spacing: 1px; }
+.timer-display-fin { color: var(--danger); }
+.timer-shake { animation: timerShake .4s ease 3; }
+@keyframes timerShake { 0%, 100% { transform: translateX(0); } 25% { transform: translateX(-4px); } 75% { transform: translateX(4px); } }
+.timer-presets { display: flex; gap: 5px; flex-wrap: wrap; justify-content: center; margin: 8px 0; }
+.timer-presets button { background: var(--surface-2); border: 1px solid var(--field-border); border-radius: 7px; padding: 4px 9px; font-size: 11.5px; font-weight: 600; cursor: pointer; color: var(--text); }
+.timer-presets button:hover { border-color: #0891b2; color: #0891b2; }
+.timer-custom { display: flex; gap: 5px; margin-bottom: 10px; }
+.timer-custom input { width: 100%; padding: 6px 8px; font-size: 12.5px; }
+.timer-custom button { flex-shrink: 0; background: #0891b2; color: #fff; border: none; border-radius: 8px; padding: 0 10px; font-size: 12px; font-weight: 700; cursor: pointer; }
+.timer-controls { display: flex; gap: 8px; }
+.timer-controls .btn { flex: 1; }
+
 /* ---------------- Impresión ---------------- */
 @media print {
   .no-print, .sidebar, .topbar, .demo-banner, .offline-banner, .toast-stack { display: none !important; }

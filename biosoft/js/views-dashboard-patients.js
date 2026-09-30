@@ -42,6 +42,23 @@
     html += kpi(pendItems.length, session.rol === "bacteriologo" ? "Pendientes en Mis Secciones" : "Exámenes Pendientes por Validar") + kpi(validadosHoy, "Validados Hoy");
     html += "</div>";
 
+    // Herramientas de banco de trabajo — no guardan nada en ninguna orden,
+    // son apoyo mientras se trabaja en el microscopio o se cronometra un
+    // reactivo, así que se ofrecen a cualquier rol (no solo bacteriólogo),
+    // igual que tener un contador y un cronómetro físicos sobre el mesón.
+    html += '<div class="lab-tools-row">' +
+      '<button type="button" class="lab-tool-card lab-tool-cellcounter" id="lab-tool-cellcounter">' +
+      '<span class="lab-tool-icon">🔬</span>' +
+      '<span><span class="lab-tool-title" style="display:block">Contador de Células</span>' +
+      '<span class="lab-tool-sub">Conteo diferencial con teclado y sonido — muy pro</span></span>' +
+      "</button>" +
+      '<button type="button" class="lab-tool-card lab-tool-timer" id="lab-tool-timer">' +
+      '<span class="lab-tool-icon">⏱️</span>' +
+      '<span><span class="lab-tool-title" style="display:block">Cronómetro de Laboratorio</span>' +
+      '<span class="lab-tool-sub">Prográmalo y sigue trabajando mientras suena</span></span>' +
+      "</button>" +
+      "</div>";
+
     html += '<div class="card">' +
       '<div class="card-header"><h3 class="card-title">' + (session.rol === "bacteriologo" ? "Mi bandeja de trabajo" : "Órdenes recientes") + '</h3>' +
       '<a class="btn btn-outline btn-sm" data-route="resultados">Ir a Resultados</a></div>' +
@@ -57,6 +74,8 @@
 
     root.innerHTML = html;
     root.querySelectorAll("[data-route]").forEach(function (a) { a.addEventListener("click", function () { location.hash = "#/" + a.dataset.route; }); });
+    root.querySelector("#lab-tool-cellcounter").addEventListener("click", function () { window.BIO_TOOLS.abrirContadorCelulas(); });
+    root.querySelector("#lab-tool-timer").addEventListener("click", function () { window.BIO_TOOLS.abrirCronometro(); });
   };
 
   function hoyISO() { return new Date().toISOString().slice(0, 10); }
