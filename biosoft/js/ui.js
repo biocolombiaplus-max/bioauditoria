@@ -455,8 +455,8 @@
       toast("Este dispositivo no admite compartir archivos directamente — descarga el PDF y adjúntalo a mano.", "error");
     }
   }
-  function botonCompartirPDFHtml(idBtn) {
-    return soportaCompartirArchivos() ? '<button type="button" class="btn btn-outline btn-sm" id="' + idBtn + '">' + icon("send") + " Compartir con PDF Adjunto</button>" : "";
+  function botonCompartirPDFHtml(idBtn, clases) {
+    return soportaCompartirArchivos() ? '<button type="button" class="btn ' + (clases || "btn-outline btn-sm") + '" id="' + idBtn + '">' + icon("send") + " Compartir con PDF Adjunto</button>" : "";
   }
 
   /* Reduce cualquier imagen (logo, etc.) a un PNG de máximo maxDim px de

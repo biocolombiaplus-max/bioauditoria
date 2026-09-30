@@ -441,9 +441,8 @@
         (hasPreliminar ? '<option value="preliminar">Informe Preliminar (resultados anticipados)</option>' : "") +
       "</select></div>" +
       '<div class="field"><label>Mensaje</label><textarea id="send-msg">Estimado(a) ' + U.esc(U.nombreCompleto(pac)) + ',\n\nAdjuntamos sus resultados de laboratorio correspondientes a la orden ' + order.numeroOrden + '.\n\n' + U.esc(tenant.nombre) + "</textarea></div>" +
-      '<p class="text-muted" style="margin:0 0 10px;font-size:12.5px">Un solo clic: se descarga el PDF y se abre WhatsApp o tu correo ya redactado — solo adjunta el archivo que se acaba de descargar antes de darle enviar (ningún navegador permite adjuntarlo automáticamente).</p>' +
-      '<button type="button" class="btn btn-whatsapp btn-block" id="send-wa">' + U.icon("send") + " Enviar por WhatsApp</button>" +
-      (U.botonCompartirPDFHtml("send-compartir") ? '<div style="margin-top:8px">' + U.botonCompartirPDFHtml("send-compartir") + '<p class="text-muted" style="margin:4px 0 0;font-size:11.5px">En celular: abre el menú de compartir con el PDF ya adjunto — puedes elegir WhatsApp ahí mismo.</p></div>' : "") +
+      '<p class="text-muted" style="margin:0 0 10px;font-size:12.5px">Un solo clic: se descarga el PDF y se abre el menú para compartirlo con el archivo ya adjunto — puedes elegir WhatsApp ahí mismo.</p>' +
+      U.botonCompartirPDFHtml("send-compartir", "btn-whatsapp btn-block") +
       '<div class="flex gap-2 wrap" style="margin-top:8px">' +
       '<button type="button" class="btn btn-outline btn-sm" id="send-gmail">📧 Enviar por Gmail</button>' +
       '<button type="button" class="btn btn-outline btn-sm" id="send-outlook">📧 Enviar por Outlook / Hotmail</button>' +
@@ -451,7 +450,7 @@
       "</div>" +
       '<div class="flex gap-2 justify-between" style="margin-top:14px;border-top:1px solid var(--border);padding-top:12px">' +
       '<button class="btn btn-ghost" data-modal-close>Cancelar</button>' +
-      '<button type="button" class="btn btn-outline btn-sm" id="send-solo-descargar">' + U.icon("download") + " Solo descargar PDF</button>" +
+      '<button type="button" class="btn btn-primary btn-sm" id="send-solo-descargar">' + U.icon("download") + " Solo descargar PDF</button>" +
       "</div>"
     );
 
@@ -503,35 +502,6 @@
       btn.disabled = true; btn.innerHTML = "Generando PDF…";
       return tarea().finally(function () { btn.disabled = false; btn.innerHTML = htmlOriginal; });
     }
-
-    wrap.querySelector("#send-wa").addEventListener("click", function (e) {
-      var whatsapp = wrap.querySelector("#send-whatsapp").value.trim();
-      if (!whatsapp) { U.toast("Ingresa el WhatsApp del paciente.", "error"); return; }
-      // La pestaña se abre EN BLANCO aquí mismo, de forma síncrona dentro del
-      // clic (para que el navegador no la bloquee como pop-up no solicitado)
-      // y solo se le asigna la URL de WhatsApp una vez el PDF ya se generó y
-      // descargó — si se abriera después del await, Chrome suele bloquearla
-      // en silencio porque ya no la reconoce como originada por un clic.
-      var pestana = window.open("", "_blank");
-      conBotonOcupado(e.currentTarget, function () {
-        return obtenerPdf().then(function () {
-          var msg = wrap.querySelector("#send-msg").value;
-          var numero = U.numeroWhatsapp(whatsapp, tenant.pais);
-          // El recordatorio de "adjunta el PDF" es para quien está
-          // enviando (ya va en el texto de ayuda de esta pantalla) — no
-          // debe ir dentro del mensaje que de verdad recibe el paciente
-          // (bug real reportado: se veía textual en el WhatsApp del
-          // paciente).
-          var url = "https://wa.me/" + numero + "?text=" + encodeURIComponent(msg);
-          if (pestana) pestana.location.href = url; else window.open(url, "_blank");
-          registrarEnvio(whatsapp);
-          U.toast("PDF descargado y WhatsApp abierto — adjunta el archivo antes de enviar.", "success");
-        }).catch(function (err) {
-          if (pestana) pestana.close();
-          throw err;
-        });
-      });
-    });
 
     var btnCompartir = wrap.querySelector("#send-compartir");
     if (btnCompartir) {
