@@ -389,8 +389,7 @@ select.fi option{background:var(--s1)}
 
       <!-- ═══ FORMATOS ═══ -->
       <div class="page" id="page-formatos">
-        <div class="alert ai"><i class="fas fa-info-circle"></i><div>Formatos organizados por frecuencia de uso. Solo visualización — para editar, solicita al administrador BIOAuditoria.</div></div>
-        <div id="formatos-list"></div>
+        <div id="formatos-content"></div>
       </div>
 
       <!-- ═══ VERIFICACIÓN ═══ -->
@@ -1270,24 +1269,141 @@ function openEstd(eid){
 }
 
 // ─── FORMATOS ───
+var FORMATOS_TELE = [
+  { cat:'👤 Talento Humano', color:'#6366F1', items:[
+    { id:'fmt-hv',       nombre:'Hoja de Vida — Médico/a Tratante',           norma:'Res. 3100/2019 E1', tipo:'Documento personal' },
+    { id:'fmt-cargo',    nombre:'Perfil y Manual de Cargo — Médico Telemedicina', norma:'Res. 3100/2019 E1', tipo:'Manual de cargo' },
+    { id:'fmt-induccion',nombre:'Acta de Inducción y Reinducción',             norma:'Res. 3100/2019 E1', tipo:'Acta' },
+    { id:'fmt-desempeño',nombre:'Formato de Evaluación de Desempeño Anual',   norma:'Res. 3100/2019 E1', tipo:'Formato' },
+  ]},
+  { cat:'🏥 Procesos Asistenciales', color:'#FF6B00', items:[
+    { id:'fmt-proto-tele',nombre:'Protocolo de Atención por Telemedicina',    norma:'Res. 2654/2019', tipo:'Protocolo' },
+    { id:'fmt-hc-tele',  nombre:'Historia Clínica — Consulta por Telemedicina', norma:'Res. 1995/1999', tipo:'Formato clínico' },
+    { id:'fmt-urgencias',nombre:'Protocolo de Urgencias durante Teleconsulta', norma:'Res. 2654/2019', tipo:'Protocolo' },
+    { id:'fmt-referencia',nombre:'Formato de Referencia y Contrarreferencia', norma:'Res. 3100/2019 E7', tipo:'Formato' },
+    { id:'fmt-id-paciente',nombre:'Protocolo de Identificación del Paciente Virtual', norma:'Res. 2654/2019', tipo:'Protocolo' },
+  ]},
+  { cat:'📋 Consentimientos', color:'#22C55E', items:[
+    { id:'fmt-cons-tele',nombre:'Consentimiento Informado — Telemedicina',    norma:'Res. 2654/2019', tipo:'Consentimiento' },
+    { id:'fmt-cons-gral',nombre:'Consentimiento Informado — Consulta General',norma:'Res. 3100/2019', tipo:'Consentimiento' },
+    { id:'fmt-cons-menor',nombre:'Consentimiento — Paciente Menor de Edad',  norma:'Cód. Civil Art. 253', tipo:'Consentimiento' },
+    { id:'fmt-habeas',   nombre:'Autorización Habeas Data — Tratamiento de Datos', norma:'Ley 1581/2012', tipo:'Autorización' },
+  ]},
+  { cat:'📊 Calidad y Auditoría', color:'#7B2FBE', items:[
+    { id:'fmt-pamec',    nombre:'PAMEC — Programa de Auditoría para la Calidad', norma:'Res. 256/2016', tipo:'Programa' },
+    { id:'fmt-indicadores',nombre:'Ficha de Indicadores de Calidad — Telemedicina', norma:'Res. 256/2016', tipo:'Ficha técnica' },
+    { id:'fmt-pqrs',     nombre:'Formato de PQRS — Radicación y Seguimiento', norma:'Ley 1755/2015', tipo:'Formato' },
+    { id:'fmt-auditoria',nombre:'Acta de Auditoría Interna',                  norma:'Res. 256/2016', tipo:'Acta' },
+    { id:'fmt-mejora',   nombre:'Plan de Mejoramiento Continuo',              norma:'Res. 3100/2019 E8', tipo:'Plan' },
+  ]},
+  { cat:'♻️ Gestión de Residuos (PGIRH)', color:'#16A34A', items:[
+    { id:'fmt-rh1',      nombre:'Registro RH1 — Generación Mensual de Residuos', norma:'Dec. 351/2014 · Res. 1164/2002', tipo:'Registro mensual' },
+    { id:'fmt-pgirh',    nombre:'Plan de Gestión Integral de Residuos (PGIRH)', norma:'Dec. 351/2014', tipo:'Plan' },
+  ]},
+  { cat:'🔒 Seguridad de la Información', color:'#EF4444', items:[
+    { id:'fmt-privacidad',nombre:'Política de Privacidad y Seguridad de Datos', norma:'Ley 1581/2012', tipo:'Política' },
+    { id:'fmt-backup',   nombre:'Protocolo de Backup y Continuidad Tecnológica', norma:'Res. 2654/2019', tipo:'Protocolo' },
+    { id:'fmt-seg-info', nombre:'Protocolo de Seguridad de la Historia Clínica Electrónica', norma:'Res. 1995/1999', tipo:'Protocolo' },
+  ]},
+];
+
 function renderFormatos(){
-  var grupos={};
-  C.formatos.forEach(f=>{
-    if(!grupos[f.freq]) grupos[f.freq]=[];
-    grupos[f.freq].push(f);
-  });
-  var order = ['Por consulta','Por procedimiento','Por evento','Por solicitud','Diario','Mensual'];
-  document.getElementById('formatos-list').innerHTML = order.filter(k=>grupos[k]).map(k=>`
-    <div class="fmt-group-lbl">⏱ ${k}</div>
-    ${grupos[k].map(f=>`<div class="fmt-row" onclick="viewDoc('${f.nombre}','${f.archivo}')">
-      <div class="fmt-ico">📝</div>
-      <div class="fmt-info">
-        <div class="fmt-name">${f.nombre}</div>
-        <div class="fmt-cat">${f.cat}</div>
-      </div>
-      <i class="fas fa-eye fmt-arrow"></i>
-    </div>`).join('')}`
-  ).join('');
+  var c1 = C.color1||'#FF6B00', c2 = C.color2||'#7B2FBE';
+  var html = '<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;flex-wrap:wrap;gap:8px">'
+    +'<div style="font-size:13px;font-weight:700;color:var(--t1)">📁 Manuales, Formatos y Protocolos</div>'
+    +'<div style="font-size:10px;color:var(--t3);background:var(--s2);padding:5px 10px;border-radius:20px">Toca 📄 para generar y editar</div></div>';
+
+  html += FORMATOS_TELE.map(function(cat){
+    return '<div style="margin-bottom:14px">'
+      +'<div style="font-size:11px;font-weight:800;color:'+cat.color+';text-transform:uppercase;letter-spacing:.05em;padding:8px 12px;background:'+cat.color+'14;border-radius:8px;margin-bottom:6px;border-left:3px solid '+cat.color+'">'+cat.cat+'</div>'
+      +cat.items.map(function(f){
+        return '<div style="display:flex;align-items:center;gap:10px;padding:10px 12px;background:var(--s1);border:1px solid var(--bd);border-radius:10px;margin-bottom:6px">'
+          +'<div style="flex:1;min-width:0">'
+          +'<div style="font-size:13px;font-weight:600;color:var(--t1);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">'+f.nombre+'</div>'
+          +'<div style="font-size:10px;color:var(--t3);margin-top:2px">'+f.tipo+' · '+f.norma+'</div></div>'
+          +'<button onclick="generarFormato(\''+f.id+'\')" style="flex-shrink:0;padding:7px 12px;background:linear-gradient(135deg,'+c1+','+c2+');color:#fff;border:none;border-radius:8px;font-size:11px;font-weight:700;cursor:pointer;font-family:inherit;display:flex;align-items:center;gap:5px;white-space:nowrap">'
+          +'<i class="fas fa-file-alt"></i> Generar / Editar</button>'
+          +'</div>';
+      }).join('')
+      +'</div>';
+  }).join('');
+
+  var el = document.getElementById('formatos-content');
+  if(el) el.innerHTML = html;
+}
+
+function generarFormato(id){
+  // Route to correct generator
+  if(id==='fmt-hc-tele')         return generarDocTele('tele-e6-01');
+  if(id==='fmt-proto-tele')      return generarDocTele('tele-e5-01');
+  if(id==='fmt-urgencias')       return generarDocTele('tele-e5-03');
+  if(id==='fmt-pamec')           return generarDocTele('tele-e8-01');
+  if(id==='fmt-pqrs')            return generarDocTele('tele-e8-03');
+  if(id==='fmt-cargo')           return generarDocTele('tele-e1-04');
+  if(id==='fmt-cons-tele')       return descargarFormatoBlanco('telemed');
+  if(id==='fmt-cons-gral')       return descargarFormatoBlanco('general');
+  if(id==='fmt-cons-menor')      return descargarFormatoBlanco('menor');
+  if(id==='fmt-habeas')          return descargarFormatoBlanco('habeas');
+  if(id==='fmt-rh1')             return generarPGIRH();
+  if(id==='fmt-pgirh')           return generarDocTele('tele-e2-04')||generarDocGenerico(id);
+  // Generic editable document for the rest
+  generarDocGenerico(id);
+}
+
+function generarDocGenerico(id){
+  var allItems = [];
+  FORMATOS_TELE.forEach(function(cat){ cat.items.forEach(function(f){ allItems.push(f); }); });
+  var fmt = allItems.find(function(f){ return f.id===id; });
+  if(!fmt) return;
+  var c1=C.color1||'#FF6B00', c2=C.color2||'#7B2FBE';
+  var empresa=C.empresa||'IPS', ciudad=C.ciudad||'', logo=C.logo_url?'<img src="'+C.logo_url+'" style="max-height:48px;max-width:130px;object-fit:contain">':'<div style="font-size:20px;font-weight:900;color:'+c1+'">BIO<span style="color:'+c2+'">Auditoria</span>®</div>';
+  var user = sessionStorage.getItem('bio_user')||'';
+  var key = 'bio_fmt_'+id+'_'+user;
+  var saved = localStorage.getItem(key);
+
+  var w=window.open('','_blank');
+  var meta = '<div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;margin:14px 0;font-size:10px">'
+    +['Versión','Fecha de elaboración','Próxima revisión','Elaboró','Revisó','Aprobó'].map(function(l,i){
+      return '<div><div style="font-size:9px;font-weight:700;color:#555;text-transform:uppercase;letter-spacing:.05em;margin-bottom:3px">'+l+'</div>'
+        +'<div contenteditable="true" class="ef" data-field="meta'+i+'" style="border-bottom:1px solid #bbb;min-height:18px;padding:2px 0;font-size:11px;color:#111;outline:none">'+(saved?'':i===0?'v1.0':i===1?new Date().toLocaleDateString('es-CO'):'')+'</div></div>';
+    }).join('')+'</div>';
+
+  var cuerpo = '<h2>1. Objeto</h2><div contenteditable="true" class="ef" data-field="s1" style="min-height:60px;border:1px dashed #ccc;border-radius:4px;padding:8px;font-size:11px;line-height:1.7;outline:none;color:#111">Describa el objeto y propósito de este documento...</div>'
+    +'<h2>2. Alcance</h2><div contenteditable="true" class="ef" data-field="s2" style="min-height:40px;border:1px dashed #ccc;border-radius:4px;padding:8px;font-size:11px;line-height:1.7;outline:none;color:#111">Defina el alcance y aplicación de este documento en la institución...</div>'
+    +'<h2>3. Marco normativo</h2><div contenteditable="true" class="ef" data-field="s3" style="min-height:40px;border:1px dashed #ccc;border-radius:4px;padding:8px;font-size:11px;line-height:1.7;outline:none;color:#111">'+fmt.norma+'</div>'
+    +'<h2>4. Contenido / Desarrollo</h2><div contenteditable="true" class="ef" data-field="s4" style="min-height:120px;border:1px dashed #ccc;border-radius:4px;padding:8px;font-size:11px;line-height:1.7;outline:none;color:#111">Desarrolle aquí el contenido principal del documento. Puede incluir procedimientos, pasos, responsabilidades, tablas y demás información requerida...</div>'
+    +'<h2>5. Responsables</h2><div contenteditable="true" class="ef" data-field="s5" style="min-height:40px;border:1px dashed #ccc;border-radius:4px;padding:8px;font-size:11px;line-height:1.7;outline:none;color:#111">Indique los responsables de este documento y su implementación...</div>';
+
+  if(saved){try{var d=JSON.parse(saved);cuerpo=d.cuerpo||cuerpo;meta=d.meta||meta;}catch(e){}}
+
+  w.document.write('<!DOCTYPE html><html lang="es"><head><meta charset="UTF-8"><title>'+fmt.nombre+'</title>'
+    +'<style>*{box-sizing:border-box}body{font-family:"Segoe UI",Arial,sans-serif;font-size:12px;color:#111;max-width:800px;margin:0 auto;padding:28px 32px;line-height:1.6}'
+    +'.header{display:flex;justify-content:space-between;align-items:flex-start;border-bottom:4px solid '+c1+';padding-bottom:14px;margin-bottom:4px}'
+    +'h1{font-size:13px;font-weight:900;text-align:center;color:#0A3D55;text-transform:uppercase;letter-spacing:.05em;margin:16px 0 4px;border-bottom:2px solid '+c2+';padding-bottom:10px}'
+    +'h2{font-size:10px;font-weight:800;color:'+c2+';border-left:3px solid '+c1+';padding-left:8px;margin:14px 0 6px;text-transform:uppercase;letter-spacing:.03em}'
+    +'.wm{position:fixed;top:50%;left:50%;transform:translate(-50%,-50%) rotate(-35deg);font-size:90px;color:rgba(0,0,0,0.025);font-weight:900;white-space:nowrap;pointer-events:none}'
+    +'.bar{position:fixed;bottom:0;left:0;right:0;background:#fff;border-top:1px solid #ddd;padding:10px 20px;display:flex;gap:10px;justify-content:center;z-index:100}'
+    +'.ef:focus{background:#fffbf0;border-color:'+c1+'!important}'
+    +'@media print{.bar{display:none!important}}</style></head><body>'
+    +'<div class="wm">BIOAuditoria®</div>'
+    +'<div class="header"><div>'+logo+'<div style="font-size:10px;color:#555;margin-top:4px;font-weight:600">'+empresa+'</div><div style="font-size:10px;color:#777">'+ciudad+'</div></div>'
+    +'<div style="text-align:right;font-size:9px;color:#666;line-height:1.8"><strong>'+fmt.norma+'</strong><br>'+fmt.tipo+'<br>BIOAuditoria®</div></div>'
+    +'<h1>'+fmt.nombre+'</h1>'
+    +meta+cuerpo
+    +'<div style="margin-top:28px;padding-top:10px;border-top:1px solid #ddd;font-size:9px;color:#aaa;text-align:center">'+empresa+' · '+fmt.norma+' · BIOAuditoria® · Generado el '+new Date().toLocaleDateString('es-CO')+'</div>'
+    +'<div class="bar">'
+    +'<button onclick="guardarFmtGenerico()" style="padding:10px 20px;background:linear-gradient(135deg,'+c1+','+c2+');color:#fff;border:none;border-radius:8px;font-size:13px;font-weight:800;cursor:pointer">💾 Guardar cambios</button>'
+    +'<button onclick="window.print()" style="padding:10px 20px;border:1px solid #ccc;border-radius:8px;font-size:13px;font-weight:600;cursor:pointer;background:#fff">🖨️ Imprimir / PDF</button>'
+    +'<button onclick="window.close()" style="padding:10px 20px;border:1px solid #eee;border-radius:8px;font-size:12px;cursor:pointer;background:#fff;color:#888">Cerrar</button>'
+    +'</div>'
+    +'<script>var _key="'+key+'";'
+    +'function guardarFmtGenerico(){'
+    +'  var cuerpo=document.querySelector("body").innerHTML;'
+    +'  localStorage.setItem(_key,JSON.stringify({cuerpo:cuerpo,ts:Date.now()}));'
+    +'  var btn=event.target;btn.textContent="✅ Guardado";setTimeout(function(){btn.innerHTML="💾 Guardar cambios"},2000);'
+    +'}<\/script>'
+    +'</body></html>');
+  w.document.close();
 }
 
 // ─── VERIFICACIÓN ───
