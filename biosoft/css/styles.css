@@ -577,10 +577,28 @@ tbody tr:hover { background: var(--surface-2); }
 .cc-tile:hover { background: rgba(255,255,255,.11); }
 .cc-tile:active { transform: scale(.97); }
 .cc-tile-activa { border-color: var(--tile-color); box-shadow: 0 0 0 4px color-mix(in srgb, var(--tile-color) 30%, transparent); }
-.cc-tile-tecla { position: absolute; top: 8px; right: 10px; font-size: 11px; font-weight: 700; opacity: .5; background: rgba(255,255,255,.12); width: 18px; height: 18px; border-radius: 5px; display: flex; align-items: center; justify-content: center; }
+/* La tecla de cada célula se ve como un "keycap" real (de verdad
+   levantado, con su sombra de borde inferior) en vez de una etiqueta
+   discreta — para que sea obvio de un vistazo cuál tecla oprimir sin
+   soltar la vista del microscopio, tal como un contador de células
+   electrónico de nivel profesional. */
+.cc-tile-tecla {
+  position: absolute; top: 10px; right: 10px; font-family: 'Poppins', sans-serif; font-size: 15px; font-weight: 800;
+  width: 26px; height: 26px; border-radius: 7px; display: flex; align-items: center; justify-content: center;
+  background: var(--tile-color); color: #fff; box-shadow: 0 2px 0 color-mix(in srgb, var(--tile-color) 55%, #000), 0 3px 6px rgba(0,0,0,.35);
+}
+.cc-tile-activa .cc-tile-tecla { box-shadow: 0 0 0 2px #fff, 0 2px 0 color-mix(in srgb, var(--tile-color) 55%, #000), 0 3px 6px rgba(0,0,0,.35); }
 .cc-tile-count { font-family: 'Poppins', sans-serif; font-weight: 800; font-size: 32px; margin-top: 6px; }
 .cc-tile-pct { font-size: 13px; opacity: .75; }
 .cc-tile-nombre { font-size: 12.5px; font-weight: 600; text-align: center; margin-top: 4px; line-height: 1.25; }
+/* Con el conteo ya en 100, las fichas se ven "apagadas" (sin dejar de
+   verse los números) para que sea evidente que un clic ya no suma —
+   pero SIGUEN siendo clicables: al tocarlas suena la alerta de límite en
+   vez de quedar mudas y sin explicación. */
+.cc-tile-completa { opacity: .55; cursor: not-allowed; }
+.cc-tile-completa:hover { background: rgba(255,255,255,.06); }
+.cc-shake { animation: ccShake .4s ease 2; }
+@keyframes ccShake { 0%, 100% { transform: translateX(0); } 25% { transform: translateX(-6px); } 75% { transform: translateX(6px); } }
 .cc-footer { display: flex; gap: 10px; flex-wrap: wrap; justify-content: center; margin: 24px 0 8px; }
 .cc-footer .btn-outline { background: rgba(255,255,255,.08); border-color: rgba(255,255,255,.25); color: #fff; }
 .cc-footer .btn-outline:hover { background: rgba(255,255,255,.16); border-color: #fff; color: #fff; }
@@ -588,7 +606,12 @@ tbody tr:hover { background: var(--surface-2); }
 .cc-ayuda { text-align: center; font-size: 12px; opacity: .6; max-width: 640px; margin: 0 auto; }
 
 .timer-float {
-  position: fixed; left: 22px; bottom: 22px; z-index: 55; width: 250px;
+  /* Al lado derecho (opuesto al menú/sidebar) y por encima del botoncito
+     flotante de WhatsApp (bottom:22px, 62px de alto) para no montarse
+     encima de él — así queda donde de verdad interfiere menos con el
+     trabajo normal, a diferencia de la esquina izquierda (pisaba el menú
+     de navegación). */
+  position: fixed; right: 22px; bottom: 96px; z-index: 55; width: 250px;
   background: var(--surface); border-radius: 16px; box-shadow: var(--shadow-lg); border: 1px solid var(--border);
   padding: 14px 16px 16px; color: var(--text);
 }
@@ -605,8 +628,17 @@ tbody tr:hover { background: var(--surface-2); }
 .timer-custom { display: flex; gap: 5px; margin-bottom: 10px; }
 .timer-custom input { width: 100%; padding: 6px 8px; font-size: 12.5px; }
 .timer-custom button { flex-shrink: 0; background: #0891b2; color: #fff; border: none; border-radius: 8px; padding: 0 10px; font-size: 12px; font-weight: 700; cursor: pointer; }
+.timer-nota-input { width: 100%; padding: 6px 8px; font-size: 12px; margin-bottom: 10px; }
 .timer-controls { display: flex; gap: 8px; }
 .timer-controls .btn { flex: 1; }
+
+/* Estado de alarma sonando — llamativo y no se puede confundir con la
+   pantalla normal del cronómetro: borde rojo pulsante hasta que se
+   apague a propósito con "Detener Alarma". */
+.timer-float-sonando { border-color: var(--danger); animation: timerAlarmPulse 1s ease-in-out infinite; }
+@keyframes timerAlarmPulse { 0%, 100% { box-shadow: var(--shadow-lg); } 50% { box-shadow: 0 0 0 6px color-mix(in srgb, var(--danger) 35%, transparent), var(--shadow-lg); } }
+.timer-float-header-alarma { justify-content: center; color: var(--danger); font-size: 14.5px; }
+.timer-nota-aviso { text-align: center; font-weight: 700; font-size: 14px; color: var(--text); background: var(--surface-2); border-radius: 8px; padding: 8px 10px; margin: 8px 0 14px; }
 
 /* ---------------- Impresión ---------------- */
 @media print {
