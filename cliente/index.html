@@ -1970,6 +1970,451 @@ function verReglamentacionTele() {
   window.open('https://www.minsalud.gov.co/sites/rid/Lists/BibliotecaDigital/RIDE/DE/DIJ/resolucion-2654-de-2019.pdf','_blank');
 }
 
+// ─── TOAST ───
+function toast(msg,tipo){
+  var t=document.getElementById('bio-toast');
+  if(!t){t=document.createElement('div');t.id='bio-toast';t.style.cssText='position:fixed;bottom:90px;left:50%;transform:translateX(-50%);padding:10px 20px;border-radius:20px;font-size:13px;font-weight:700;z-index:9999;transition:opacity 0.3s;white-space:nowrap;font-family:inherit;pointer-events:none';document.body.appendChild(t);}
+  t.textContent=msg;
+  t.style.background=tipo==='ok'?'#22C55E':tipo==='err'?'#EF4444':'#7B2FBE';
+  t.style.color='#fff';t.style.opacity='1';
+  clearTimeout(t._to);t._to=setTimeout(function(){t.style.opacity='0';},2800);
+}
+
+// ─── DOCUMENTOS TELEMEDICINA ───
+var TELE_DOCS={
+  'e1':[
+    {id:'tele-e1-01',nombre:'Hoja de vida médico/a — Telemedicina',version:'v1.0 · 2026',estado:'pendiente',archivo:'',tipo:'documento',_local:true,_tele:true},
+    {id:'tele-e1-02',nombre:'Tarjeta profesional y registro RETHUS',version:'v1.0 · 2026',estado:'pendiente',archivo:'',tipo:'soporte',_local:true,_tele:true},
+    {id:'tele-e1-03',nombre:'Certificados de vacunación del personal',version:'v1.0 · 2026',estado:'pendiente',archivo:'',tipo:'soporte',_local:true,_tele:true},
+    {id:'tele-e1-04',nombre:'Perfil y manual de cargo: Médico/a de Telemedicina',version:'v1.0 · 2026',estado:'pendiente',archivo:'',tipo:'manual',_local:true,_tele:true},
+    {id:'tele-e1-05',nombre:'Programa de inducción y reinducción',version:'v1.0 · 2026',estado:'pendiente',archivo:'',tipo:'programa',_local:true,_tele:true},
+    {id:'tele-e1-06',nombre:'Certificado de formación en telemedicina / plataformas digitales',version:'v1.0 · 2026',estado:'pendiente',archivo:'',tipo:'soporte',_local:true,_tele:true},
+    {id:'tele-e1-07',nombre:'Evaluación de desempeño anual',version:'v1.0 · 2026',estado:'pendiente',archivo:'',tipo:'formato',_local:true,_tele:true},
+  ],
+  'e2':[
+    {id:'tele-e2-01',nombre:'Descripción del área de trabajo y equipos tecnológicos',version:'v1.0 · 2026',estado:'pendiente',archivo:'',tipo:'documento',_local:true,_tele:true},
+    {id:'tele-e2-02',nombre:'Plan de gestión del riesgo de desastres',version:'v1.0 · 2026',estado:'pendiente',archivo:'',tipo:'plan',_local:true,_tele:true},
+    {id:'tele-e2-03',nombre:'Plan de continuidad tecnológica y backup',version:'v1.0 · 2026',estado:'pendiente',archivo:'',tipo:'plan',_local:true,_tele:true},
+    {id:'tele-e2-04',nombre:'Protocolo de seguridad de la información',version:'v1.0 · 2026',estado:'pendiente',archivo:'',tipo:'protocolo',_local:true,_tele:true},
+  ],
+  'e3':[
+    {id:'tele-e3-01',nombre:'Inventario de dotación tecnológica (equipos, cámara, micrófono, software)',version:'v1.0 · 2026',estado:'pendiente',archivo:'',tipo:'inventario',_local:true,_tele:true},
+    {id:'tele-e3-02',nombre:'Contrato/acuerdo con proveedor de plataforma de telemedicina',version:'v1.0 · 2026',estado:'pendiente',archivo:'',tipo:'contrato',_local:true,_tele:true},
+    {id:'tele-e3-03',nombre:'Programa de mantenimiento de equipos tecnológicos',version:'v1.0 · 2026',estado:'pendiente',archivo:'',tipo:'programa',_local:true,_tele:true},
+    {id:'tele-e3-04',nombre:'Manual de uso de la plataforma de teleconsulta',version:'v1.0 · 2026',estado:'pendiente',archivo:'',tipo:'manual',_local:true,_tele:true},
+  ],
+  'e4':[
+    {id:'tele-e4-01',nombre:'Inventario botiquín básico de primeros auxilios',version:'v1.0 · 2026',estado:'pendiente',archivo:'',tipo:'inventario',_local:true,_tele:true},
+    {id:'tele-e4-02',nombre:'Protocolo de manejo seguro de dispositivos médicos básicos',version:'v1.0 · 2026',estado:'pendiente',archivo:'',tipo:'protocolo',_local:true,_tele:true},
+  ],
+  'e5':[
+    {id:'tele-e5-01',nombre:'Protocolo de atención por telemedicina (Res. 2654/2019)',version:'v1.0 · 2026',estado:'pendiente',archivo:'',tipo:'protocolo',_local:true,_tele:true},
+    {id:'tele-e5-02',nombre:'Proceso de identificación y verificación del paciente virtual',version:'v1.0 · 2026',estado:'pendiente',archivo:'',tipo:'proceso',_local:true,_tele:true},
+    {id:'tele-e5-03',nombre:'Protocolo de manejo de urgencias y referencia durante teleconsulta',version:'v1.0 · 2026',estado:'pendiente',archivo:'',tipo:'protocolo',_local:true,_tele:true},
+    {id:'tele-e5-04',nombre:'Manual de procesos y procedimientos asistenciales',version:'v1.0 · 2026',estado:'pendiente',archivo:'',tipo:'manual',_local:true,_tele:true},
+    {id:'tele-e5-05',nombre:'Guía clínica de consulta médica general por telemedicina',version:'v1.0 · 2026',estado:'pendiente',archivo:'',tipo:'guia',_local:true,_tele:true},
+    {id:'tele-e5-06',nombre:'Protocolo de referencia y contrarreferencia',version:'v1.0 · 2026',estado:'pendiente',archivo:'',tipo:'protocolo',_local:true,_tele:true},
+    {id:'tele-e5-07',nombre:'Política de privacidad y consentimiento informado telemedicina',version:'v1.0 · 2026',estado:'pendiente',archivo:'',tipo:'politica',_local:true,_tele:true},
+  ],
+  'e6':[
+    {id:'tele-e6-01',nombre:'Formato de historia clínica de telemedicina',version:'v1.0 · 2026',estado:'pendiente',archivo:'',tipo:'formato',_local:true,_tele:true},
+    {id:'tele-e6-02',nombre:'Protocolo de seguridad y confidencialidad de la historia clínica',version:'v1.0 · 2026',estado:'pendiente',archivo:'',tipo:'protocolo',_local:true,_tele:true},
+    {id:'tele-e6-03',nombre:'Manual del sistema de historia clínica electrónica',version:'v1.0 · 2026',estado:'pendiente',archivo:'',tipo:'manual',_local:true,_tele:true},
+    {id:'tele-e6-04',nombre:'Política de acceso y custodia de registros clínicos',version:'v1.0 · 2026',estado:'pendiente',archivo:'',tipo:'politica',_local:true,_tele:true},
+  ],
+  'e7':[
+    {id:'tele-e7-01',nombre:'Acuerdo/convenio con IPS de referencia para urgencias presenciales',version:'v1.0 · 2026',estado:'pendiente',archivo:'',tipo:'convenio',_local:true,_tele:true},
+    {id:'tele-e7-02',nombre:'Protocolo de referencia y contrarreferencia documentado',version:'v1.0 · 2026',estado:'pendiente',archivo:'',tipo:'protocolo',_local:true,_tele:true},
+    {id:'tele-e7-03',nombre:'Directorio de IPS de referencia (urgencias, especialidades)',version:'v1.0 · 2026',estado:'pendiente',archivo:'',tipo:'directorio',_local:true,_tele:true},
+  ],
+  'e8':[
+    {id:'tele-e8-01',nombre:'Programa de Auditoría para el Mejoramiento de la Calidad (PAMEC)',version:'v1.0 · 2026',estado:'pendiente',archivo:'',tipo:'programa',_local:true,_tele:true},
+    {id:'tele-e8-02',nombre:'Indicadores de calidad de telemedicina (con ficha técnica)',version:'v1.0 · 2026',estado:'pendiente',archivo:'',tipo:'tablero',_local:true,_tele:true},
+    {id:'tele-e8-03',nombre:'Sistema de PQRS — Peticiones, Quejas, Reclamos y Sugerencias',version:'v1.0 · 2026',estado:'pendiente',archivo:'',tipo:'sistema',_local:true,_tele:true},
+    {id:'tele-e8-04',nombre:'Programa de seguridad del paciente',version:'v1.0 · 2026',estado:'pendiente',archivo:'',tipo:'programa',_local:true,_tele:true},
+    {id:'tele-e8-05',nombre:'Plan de mejoramiento continuo',version:'v1.0 · 2026',estado:'pendiente',archivo:'',tipo:'plan',_local:true,_tele:true},
+    {id:'tele-e8-06',nombre:'Política de habeas data (Ley 1581/2012)',version:'v1.0 · 2026',estado:'pendiente',archivo:'',tipo:'politica',_local:true,_tele:true},
+  ],
+};
+
+function inicializarDocsTele(){
+  var loggedUser=(sessionStorage.getItem('bio_user')||'').trim().toLowerCase();
+  var added=0;
+  C.estandares.forEach(function(estd){
+    var tdocs=TELE_DOCS[estd.id];
+    if(!tdocs) return;
+    tdocs.forEach(function(td){
+      if(!estd.documentos.some(function(d){return d.id===td.id;})){
+        estd.documentos.push(Object.assign({},td));
+        added++;
+      }
+    });
+  });
+  if(loggedUser){
+    try{
+      var key='bio_cli_'+loggedUser;
+      var saved=JSON.parse(localStorage.getItem(key)||'null');
+      if(saved){saved.estandares=C.estandares;localStorage.setItem(key,JSON.stringify(saved));}
+      else{var obj=JSON.parse(JSON.stringify(C));localStorage.setItem(key,JSON.stringify(obj));}
+    }catch(e){}
+  }
+  renderEstandares();
+  renderInicioEstandares();
+  initUI();
+  toast(added?'✅ '+added+' documentos de telemedicina agregados':'ℹ️ Documentación ya inicializada — sin cambios',added?'ok':'info');
+}
+
+// ─── GENERADOR DOCUMENTOS TELEMEDICINA ───
+function _teleDocStyle(c1,c2){
+  return '<style>*{box-sizing:border-box}'
+    +'body{font-family:"Segoe UI",Arial,sans-serif;font-size:12px;color:#111;max-width:840px;margin:0 auto;padding:30px 30px 90px;line-height:1.8}'
+    +'.hdr{display:flex;justify-content:space-between;align-items:flex-start;border-bottom:4px solid '+c1+';padding-bottom:14px;margin-bottom:20px}'
+    +'h1{font-size:15px;font-weight:900;text-align:center;color:#0A3D55;text-transform:uppercase;letter-spacing:0.04em;margin:14px 0 18px;border-bottom:2px solid '+c2+';padding-bottom:10px}'
+    +'h2{font-size:12px;font-weight:800;color:'+c2+';border-left:4px solid '+c1+';padding-left:9px;margin:18px 0 8px;text-transform:uppercase;letter-spacing:0.03em}'
+    +'p{margin-bottom:8px;text-align:justify}ul,ol{margin:6px 0 10px 22px;line-height:2.1}'
+    +'table{width:100%;border-collapse:collapse;margin:8px 0;font-size:11px}'
+    +'td,th{padding:7px 10px;border:1px solid #ddd}th{background:#0A3D55;color:#fff;font-weight:700;text-align:left}'
+    +'.e{outline:none;background:rgba(255,107,0,0.05);border-radius:3px;padding:2px 5px;min-width:60px;display:inline-block;-webkit-user-select:text!important;user-select:text!important}'
+    +'.e:focus{background:rgba(255,107,0,0.12);box-shadow:0 0 0 2px rgba(255,107,0,0.3)}'
+    +'.fb{background:#f9f9f9;border:1px solid #e0e0e0;border-radius:6px;padding:12px 14px;margin-bottom:10px;min-height:44px;-webkit-user-select:text!important;user-select:text!important}'
+    +'.sg{display:grid;grid-template-columns:1fr 1fr 1fr;gap:22px;margin-top:40px}'
+    +'.sb{border-top:2px solid #333;padding-top:10px;text-align:center;font-size:10px;min-height:80px}'
+    +'.wm{position:fixed;top:50%;left:50%;transform:translate(-50%,-50%) rotate(-35deg);font-size:70px;color:rgba(0,0,0,0.025);font-weight:900;white-space:nowrap;pointer-events:none;z-index:0}'
+    +'.bar{position:fixed;bottom:0;left:0;right:0;background:#fff;border-top:2px solid #e0e0e0;padding:10px 20px;display:flex;gap:10px;z-index:100}'
+    +'.bsv{flex:1;padding:12px;background:linear-gradient(135deg,#22C55E,#16A34A);color:#fff;border:none;border-radius:8px;font-size:13px;font-weight:800;cursor:pointer}'
+    +'.bpr{flex:1;padding:12px;background:linear-gradient(135deg,'+c1+','+c2+');color:#fff;border:none;border-radius:8px;font-size:13px;font-weight:800;cursor:pointer}'
+    +'@media print{.bar{display:none!important}.wm{display:none}}'
+    +'</style>';
+}
+
+function _teleDocWrap(docId,titulo,norma,cuerpo,c1,c2,empresa,ciudad){
+  var loggedUser=(sessionStorage.getItem('bio_user')||'guest');
+  var sk='bio_doc_tele_'+docId+'_'+loggedUser;
+  var fecha=new Date().toLocaleDateString('es-CO',{year:'numeric',month:'long',day:'numeric'});
+  var yr=new Date().getFullYear();
+  var logoHtml=C.logo_url?'<img src="'+C.logo_url+'" style="max-height:50px;max-width:140px;object-fit:contain">':'<div style="font-size:20px;font-weight:900;color:'+c1+'">BIO<span style="color:'+c2+'">Auditoria</span>®</div>';
+  return '<!DOCTYPE html><html lang="es"><head><meta charset="UTF-8"><title>'+titulo+'</title>'
+    +_teleDocStyle(c1,c2)+'</head><body>'
+    +'<div class="wm">BIOAuditoria®</div>'
+    +'<div class="hdr">'
+    +'<div>'+logoHtml+'<div style="font-size:10px;color:#555;margin-top:4px;font-weight:600">'+empresa+'</div><div style="font-size:10px;color:#777">'+ciudad+'</div></div>'
+    +'<div style="text-align:right;font-size:10px;color:#666;line-height:1.9"><strong style="font-size:11px;color:#333">'+norma+'</strong><br>'
+    +'Versión: <span class="e" contenteditable="true" data-f="ver">1.0</span><br>'
+    +'Elaboración: <span class="e" contenteditable="true" data-f="felb">'+fecha+'</span><br>'
+    +'Próxima revisión: <span class="e" contenteditable="true" data-f="prev">'+(yr+1)+'</span></div></div>'
+    +'<h1>'+titulo+'</h1>'
+    +'<table style="margin-bottom:18px"><tr><th>Elaboró</th><th>Revisó</th><th>Aprobó</th></tr>'
+    +'<tr><td><div class="e" contenteditable="true" data-f="elab">'+empresa+'</div></td>'
+    +'<td><div class="e" contenteditable="true" data-f="rev">Coordinación de Calidad</div></td>'
+    +'<td><div class="e" contenteditable="true" data-f="apr">Dirección Médica</div></td></tr></table>'
+    +cuerpo
+    +'<div class="sg">'
+    +'<div class="sb"><br><br><span class="e" contenteditable="true" data-f="s1">Nombre</span><br><strong>Elaboró</strong></div>'
+    +'<div class="sb"><br><br><span class="e" contenteditable="true" data-f="s2">Nombre</span><br><strong>Revisó</strong></div>'
+    +'<div class="sb"><br><br><span class="e" contenteditable="true" data-f="s3">Nombre / Cargo</span><br><strong>Aprobó</strong></div></div>'
+    +'<p style="margin-top:22px;font-size:10px;color:#aaa;text-align:center">BIOAuditoria® · '+empresa+' · '+fecha+' · Uso exclusivo interno</p>'
+    +'<div class="bar">'
+    +'<button class="bsv" onclick="saveDoc()">💾 Guardar cambios</button>'
+    +'<button class="bpr" onclick="window.print()">🖨️ Imprimir / PDF</button></div>'
+    +'<script>'
+    +'var _sk="'+sk+'";'
+    +'function saveDoc(){'
+    +'  var d={};'
+    +'  document.querySelectorAll("[contenteditable]").forEach(function(el){'
+    +'    var k=el.dataset.f||el.id;if(k) d[k]=el.innerHTML;'
+    +'  });'
+    +'  try{localStorage.setItem(_sk,JSON.stringify(d));alert("\\u2705 Cambios guardados.");}catch(e){alert("Error: "+e);}'
+    +'}'
+    +'(function(){'
+    +'  try{'
+    +'    var d=JSON.parse(localStorage.getItem(_sk)||"null");if(!d) return;'
+    +'    document.querySelectorAll("[contenteditable]").forEach(function(el){'
+    +'      var k=el.dataset.f||el.id;if(k&&d[k]!==undefined) el.innerHTML=d[k];'
+    +'    });'
+    +'  }catch(e){}'
+    +'})();'
+    +'<\/script></body></html>';
+}
+
+function generarDocTele(docId){
+  var w=window.open('','_blank');
+  var c1=C.color1||'#FF6B00';var c2=C.color2||'#7B2FBE';
+  var empresa=C.empresa||'IPS Telemedicina';var ciudad=C.ciudad||'Colombia';
+  var html='';
+  switch(docId){
+    case 'tele-e1-04': html=_tele_PerfilCargo(c1,c2,empresa,ciudad); break;
+    case 'tele-e5-01': html=_tele_ProtAtencion(c1,c2,empresa,ciudad); break;
+    case 'tele-e5-03': html=_tele_ProtUrgencias(c1,c2,empresa,ciudad); break;
+    case 'tele-e6-01': html=_tele_HC(c1,c2,empresa,ciudad); break;
+    case 'tele-e8-01': html=_tele_PAMEC(c1,c2,empresa,ciudad); break;
+    case 'tele-e8-03': html=_tele_PQRS(c1,c2,empresa,ciudad); break;
+    default:
+      var nom=(TELE_DOCS[docId.split('-')[0]+docId.split('-')[1]]||[]).find(function(d){return d.id===docId;});
+      var tn=nom?nom.nombre:'Documento de Telemedicina';
+      html=_teleDocWrap(docId,tn,'Res. 3100/2019 · Res. 2654/2019',
+        '<h2>Contenido</h2><div class="fb" contenteditable="true" id="body">Redacte aquí el contenido de este documento...</div>',c1,c2,empresa,ciudad);
+  }
+  w.document.write(html);w.document.close();
+}
+
+function _tele_PerfilCargo(c1,c2,empresa,ciudad){
+  var body='<h2>1. Identificación del cargo</h2>'
+    +'<table><tr><td><strong>Denominación</strong></td><td><div class="e" contenteditable="true" data-f="denom">Médico/a de Telemedicina</div></td><td><strong>Código</strong></td><td><div class="e" contenteditable="true" data-f="cod">MED-TELE-01</div></td></tr>'
+    +'<tr><td><strong>Área</strong></td><td><div class="e" contenteditable="true" data-f="area">Consulta Externa — Telemedicina</div></td><td><strong>Nivel</strong></td><td><div class="e" contenteditable="true" data-f="nivel">Asistencial</div></td></tr>'
+    +'<tr><td><strong>Jefe inmediato</strong></td><td><div class="e" contenteditable="true" data-f="jefe">Dirección Médica</div></td><td><strong>Modalidad</strong></td><td><div class="e" contenteditable="true" data-f="mod">Teletrabajo / Presencial</div></td></tr></table>'
+    +'<h2>2. Objeto del cargo</h2>'
+    +'<div class="fb" contenteditable="true" id="objeto">Prestar servicios de consulta médica general a través de plataformas digitales de telemedicina, garantizando calidad asistencial, seguridad del paciente y cumplimiento de la normativa vigente (Resolución 2654/2019 y Resolución 3100/2019), con aplicación de criterios clínicos y éticos en la atención remota.</div>'
+    +'<h2>3. Funciones principales</h2>'
+    +'<div class="fb" contenteditable="true" id="funciones"><ol>'
+    +'<li>Realizar consulta médica general por telemedicina conforme a la Res. 2654/2019 y los protocolos institucionales vigentes.</li>'
+    +'<li>Verificar la identidad del paciente al inicio de cada teleconsulta mediante documento de identificación visible en cámara.</li>'
+    +'<li>Registrar la historia clínica electrónica de cada atención de forma completa, veraz y oportuna (Res. 1995/1999).</li>'
+    +'<li>Formular diagnóstico diferencial, plan de manejo, prescripción médica e incapacidades cuando aplique.</li>'
+    +'<li>Identificar signos de alarma durante la teleconsulta y activar el protocolo de referencia a urgencias presenciales.</li>'
+    +'<li>Obtener el consentimiento informado del paciente para la atención por telemedicina antes de iniciar la consulta.</li>'
+    +'<li>Garantizar la confidencialidad y privacidad del paciente durante toda la sesión virtual (Ley 1581/2012).</li>'
+    +'<li>Reportar eventos adversos e incidentes de seguridad al PAMEC y al SIVIGILA cuando corresponda.</li>'
+    +'<li>Participar en actividades de educación continua, inducción, reinducción y capacitaciones institucionales (mín. 20 h/año).</li>'
+    +'<li>Cumplir los indicadores de calidad del servicio de telemedicina definidos en el PAMEC.</li>'
+    +'<li>Verificar el correcto funcionamiento de equipos tecnológicos antes de cada jornada de atención.</li>'
+    +'<li>Diligenciar registros de atención diaria y apoyar los procesos de auditoría interna.</li>'
+    +'</ol></div>'
+    +'<h2>4. Requisitos de formación</h2>'
+    +'<table><tr><th>Nivel</th><th>Área</th><th>Título requerido</th></tr>'
+    +'<tr><td>Profesional</td><td>Ciencias de la Salud</td><td>Médico/a Cirujano/a — Título homologado</td></tr>'
+    +'<tr><td>Posgrado (deseable)</td><td>Telemedicina / Salud digital</td><td>Diplomado o certificación en telemedicina</td></tr></table>'
+    +'<h2>5. Experiencia requerida</h2>'
+    +'<div class="fb" contenteditable="true" id="exp">Mínimo 1 año de experiencia en consulta médica general. Manejo básico de plataformas digitales y sistemas de historia clínica electrónica. Deseable experiencia en atención por telemedicina.</div>'
+    +'<h2>6. Competencias requeridas</h2>'
+    +'<table><tr><th>Tipo</th><th>Competencia</th></tr>'
+    +'<tr><td>Técnica</td><td>Manejo de plataformas de videoconferencia médica (Zoom Health, Teams, Doxy, etc.)</td></tr>'
+    +'<tr><td>Técnica</td><td>Historia clínica electrónica y prescripción digital</td></tr>'
+    +'<tr><td>Técnica</td><td>Diagnóstico clínico con limitación de examen físico (telesemiología)</td></tr>'
+    +'<tr><td>Blanda</td><td>Comunicación efectiva con el paciente en entorno virtual</td></tr>'
+    +'<tr><td>Blanda</td><td>Adaptabilidad y resolución de problemas tecnológicos durante la consulta</td></tr>'
+    +'<tr><td>Ética</td><td>Manejo confidencial de datos clínicos (Ley 1581/2012)</td></tr></table>'
+    +'<h2>7. Marco normativo aplicable</h2>'
+    +'<p>Res. 2654/2019 (Telemedicina) · Res. 3100/2019 (Habilitación IPS) · Res. 1995/1999 (Historia Clínica) · Ley 1438/2011 · Ley 1164/2007 (Talento Humano) · Ley 1581/2012 (Habeas Data) · Ley 23/1981 (Ética Médica)</p>';
+  return _teleDocWrap('tele-e1-04','PERFIL Y MANUAL DE CARGO — MÉDICO/A DE TELEMEDICINA','Res. 3100/2019 E1 · Res. 2654/2019',body,c1,c2,empresa,ciudad);
+}
+
+function _tele_ProtAtencion(c1,c2,empresa,ciudad){
+  var body='<h2>1. Objeto</h2>'
+    +'<div class="fb" contenteditable="true" id="obj">Establecer los lineamientos, procedimientos y responsabilidades para la prestación del servicio de consulta médica general por telemedicina en '+empresa+', garantizando calidad asistencial, seguridad del paciente y cumplimiento normativo según la Resolución 2654 de 2019 y la Resolución 3100 de 2019.</div>'
+    +'<h2>2. Alcance</h2>'
+    +'<div class="fb" contenteditable="true" id="alc">Aplica a todo el personal médico y administrativo vinculado al servicio de telemedicina de '+empresa+', para la atención de pacientes mayores y menores de edad en consulta médica general, a través de la plataforma tecnológica habilitada.</div>'
+    +'<h2>3. Base legal</h2>'
+    +'<table><tr><th>Norma</th><th>Descripción</th></tr>'
+    +'<tr><td>Res. 2654/2019</td><td>Reglamentación de la telemedicina en Colombia — Min. Salud y Protección Social</td></tr>'
+    +'<tr><td>Res. 3100/2019</td><td>Estándares de habilitación para prestadores de servicios de salud</td></tr>'
+    +'<tr><td>Ley 1438/2011</td><td>Reforma al Sistema General de Seguridad Social en Salud</td></tr>'
+    +'<tr><td>Res. 1995/1999</td><td>Normas para el manejo de la Historia Clínica</td></tr>'
+    +'<tr><td>Ley 1581/2012</td><td>Protección de datos personales — Habeas Data</td></tr>'
+    +'<tr><td>Circular 030/2020</td><td>Lineamientos Min. Salud para telemedicina</td></tr></table>'
+    +'<h2>4. Definiciones clave</h2>'
+    +'<p><strong>Telemedicina:</strong> Prestación de servicios de salud a distancia a través de las TIC (Res. 2654/2019).</p>'
+    +'<p><strong>Teleconsulta:</strong> Consulta médica en tiempo real mediante videoconferencia con audio y video de calidad suficiente.</p>'
+    +'<p><strong>Telexperticia:</strong> Interconsulta entre profesionales de salud a través de medios digitales.</p>'
+    +'<p><strong>Paciente idóneo:</strong> Paciente con condición estable que puede ser atendido con seguridad por telemedicina.</p>'
+    +'<h2>5. Flujograma del proceso de atención</h2>'
+    +'<div class="fb" contenteditable="true" id="flujo"><ol>'
+    +'<li><strong>Agendamiento:</strong> El paciente solicita cita por los canales habilitados (web, teléfono, WhatsApp).</li>'
+    +'<li><strong>Confirmación:</strong> El personal administrativo confirma la cita y envía instrucciones de acceso y enlace de conexión.</li>'
+    +'<li><strong>Elegibilidad:</strong> El médico evalúa si la condición del paciente es apta para telemedicina (ver numeral 6).</li>'
+    +'<li><strong>Consentimiento informado:</strong> Se obtiene consentimiento verbal o escrito antes de iniciar (Res. 2654/2019 Art. 10).</li>'
+    +'<li><strong>Identificación del paciente:</strong> El médico solicita mostrar el documento de identificación en cámara.</li>'
+    +'<li><strong>Anamnesis y evaluación:</strong> Historia completa: motivo de consulta, antecedentes, síntomas, revisión por sistemas.</li>'
+    +'<li><strong>Examen por teleconsulta:</strong> Evaluación visual (piel, postura, aspecto), signos vitales referidos, síntomas descritos.</li>'
+    +'<li><strong>Diagnóstico y plan:</strong> CIE-10, plan de manejo, prescripción, incapacidad si aplica.</li>'
+    +'<li><strong>Registro en HC:</strong> Historia clínica electrónica completa y firmada digitalmente al cierre de la consulta.</li>'
+    +'<li><strong>Cierre y seguimiento:</strong> Indicaciones al paciente, envío de fórmula y órdenes por correo/plataforma, cita de control si aplica.</li>'
+    +'</ol></div>'
+    +'<h2>6. Criterios de elegibilidad del paciente</h2>'
+    +'<div class="fb" contenteditable="true" id="eleg"><p><strong>Apto para telemedicina:</strong></p><ul>'
+    +'<li>Condición clínica estable, sin signos de alarma inmediatos</li>'
+    +'<li>Consulta de control de enfermedad crónica compensada</li>'
+    +'<li>Renovación de medicamentos con seguimiento previo documentado</li>'
+    +'<li>Asesoría médica, orientación de síntomas leves a moderados</li>'
+    +'<li>Lectura e interpretación de resultados de laboratorio o imágenes diagnósticas</li>'
+    +'</ul><p><strong>NO apto para telemedicina — referir a urgencias presenciales:</strong></p><ul>'
+    +'<li>Urgencia con riesgo vital (disnea severa, dolor torácico, pérdida de conciencia)</li>'
+    +'<li>Trauma o lesión que requiere examen físico directo</li>'
+    +'<li>Procedimientos diagnósticos o terapéuticos que requieren contacto físico</li>'
+    +'<li>Paciente sin medios tecnológicos que permitan una consulta segura y clara</li>'
+    +'</ul></div>'
+    +'<h2>7. Seguridad de la información</h2>'
+    +'<div class="fb" contenteditable="true" id="seg">La plataforma de telemedicina debe contar con encriptación de extremo a extremo (mínimo TLS 1.2). Las sesiones no se graban sin consentimiento explícito del paciente. El acceso a la historia clínica está restringido por usuario y contraseña. El médico realiza la consulta en espacio privado, libre de interrupciones y con garantía de confidencialidad.</div>'
+    +'<h2>8. Indicadores de seguimiento</h2>'
+    +'<table><tr><th>Indicador</th><th>Meta</th><th>Frecuencia</th></tr>'
+    +'<tr><td>% Teleconsultas completadas exitosamente</td><td>≥ 95%</td><td>Mensual</td></tr>'
+    +'<tr><td>Tiempo promedio de espera en plataforma</td><td>≤ 10 min</td><td>Mensual</td></tr>'
+    +'<tr><td>Satisfacción del usuario (telemedicina)</td><td>≥ 85%</td><td>Mensual</td></tr>'
+    +'<tr><td>Tasa de derivación a urgencias presenciales</td><td>Seguimiento</td><td>Mensual</td></tr>'
+    +'<tr><td>Cumplimiento diligenciamiento HC</td><td>100%</td><td>Mensual</td></tr></table>';
+  return _teleDocWrap('tele-e5-01','PROTOCOLO DE ATENCIÓN POR TELEMEDICINA','Res. 2654/2019 · Res. 3100/2019 E5 · Ley 1438/2011',body,c1,c2,empresa,ciudad);
+}
+
+function _tele_ProtUrgencias(c1,c2,empresa,ciudad){
+  var body='<h2>1. Objeto</h2>'
+    +'<div class="fb" contenteditable="true" id="obj">Establecer el protocolo de actuación cuando durante una teleconsulta se identifiquen signos de alarma, urgencia médica o condición que requiera atención presencial inmediata, garantizando la seguridad del paciente y derivación oportuna.</div>'
+    +'<h2>2. Identificación de signos de alarma durante teleconsulta</h2>'
+    +'<div class="fb" contenteditable="true" id="alarma"><ul>'
+    +'<li>Dificultad respiratoria severa (FR &gt; 30/min, uso de músculos accesorios visible)</li>'
+    +'<li>Dolor torácico de posible origen cardíaco (opresivo, irradiado a brazo, con sudoración)</li>'
+    +'<li>Alteración del estado de conciencia (confusión, somnolencia, pérdida de conocimiento)</li>'
+    +'<li>Signos de ACV: asimetría facial, debilidad unilateral súbita, trastorno del habla</li>'
+    +'<li>Crisis convulsiva activa o postictal</li>'
+    +'<li>Hemorragia activa incontrolable visible o referida</li>'
+    +'<li>Signos de shock (palidez extrema, sudoración fría, alteración hemodinámica referida)</li>'
+    +'<li>Emergencia obstétrica (sangrado en embarazo, trabajo de parto activo)</li>'
+    +'<li>Intoxicación aguda o sobredosis</li>'
+    +'<li>Cualquier condición que, a criterio clínico del médico, requiera evaluación presencial inmediata</li>'
+    +'</ul></div>'
+    +'<h2>3. Protocolo de actuación paso a paso</h2>'
+    +'<div class="fb" contenteditable="true" id="prot"><ol>'
+    +'<li><strong>Identificación:</strong> El médico identifica signos de alarma o urgencia durante la consulta virtual.</li>'
+    +'<li><strong>Calma y comunicación:</strong> Mantener la calma y comunicar al paciente/acompañante de forma clara la necesidad de atención presencial inmediata.</li>'
+    +'<li><strong>Activación de emergencias:</strong> Instruir al paciente o acompañante para llamar al 123 (NUSE) o 132 (Cruz Roja). Proporcionar la dirección del paciente si se conoce.</li>'
+    +'<li><strong>Soporte en línea:</strong> Permanecer en línea mientras llegan los servicios de emergencia, brindando instrucciones básicas de primeros auxilios si es posible.</li>'
+    +'<li><strong>Registro en HC:</strong> Documentar: hora de identificación del signo de alarma, acciones tomadas, hora de llamada a emergencias y servicio al que se refirió.</li>'
+    +'<li><strong>Notificación institucional:</strong> Informar a la dirección médica de '+empresa+' sobre el evento.</li>'
+    +'<li><strong>Seguimiento:</strong> Verificar dentro de las 24 horas si el paciente recibió atención oportuna.</li>'
+    +'<li><strong>Reporte SIVIGILA:</strong> Si el evento se clasifica como evento adverso, reportar según el PAMEC institucional.</li>'
+    +'</ol></div>'
+    +'<h2>4. IPS de referencia para urgencias — '+ciudad+'</h2>'
+    +'<div class="fb" contenteditable="true" id="ips"><table><tr><th>Institución</th><th>Dirección</th><th>Teléfono urgencias</th><th>Nivel</th></tr>'
+    +'<tr><td contenteditable="true">Hospital (completar)</td><td contenteditable="true">—</td><td contenteditable="true">—</td><td contenteditable="true">III</td></tr>'
+    +'<tr><td contenteditable="true">Clínica (completar)</td><td contenteditable="true">—</td><td contenteditable="true">—</td><td contenteditable="true">II</td></tr></table>'
+    +'<p style="margin-top:8px"><strong>NUSE: 123</strong> &nbsp;|&nbsp; <strong>Cruz Roja: 132</strong> &nbsp;|&nbsp; <strong>Bomberos: 119</strong></p></div>';
+  return _teleDocWrap('tele-e5-03','PROTOCOLO DE URGENCIAS DURANTE TELECONSULTA','Res. 2654/2019 Art. 12 · Res. 3100/2019 E5',body,c1,c2,empresa,ciudad);
+}
+
+function _tele_HC(c1,c2,empresa,ciudad){
+  var fh=new Date().toLocaleString('es-CO');
+  var body='<div style="background:#e8f4fd;border:1px solid #90cdf4;border-radius:6px;padding:10px 14px;margin-bottom:16px;font-size:11px"><strong>Formato editable:</strong> Complete los campos, luego use "Guardar cambios" para conservar o "Imprimir / PDF" para generar el documento oficial.</div>'
+    +'<h2>1. Identificación del paciente</h2>'
+    +'<table><tr><th>Campo</th><th>Dato</th><th>Campo</th><th>Dato</th></tr>'
+    +'<tr><td>Nombre completo</td><td><div class="e" contenteditable="true" data-f="pnombre"></div></td><td>Documento</td><td><div class="e" contenteditable="true" data-f="pdoc"></div></td></tr>'
+    +'<tr><td>Fecha nacimiento</td><td><div class="e" contenteditable="true" data-f="pfnac"></div></td><td>Edad</td><td><div class="e" contenteditable="true" data-f="pedad"></div></td></tr>'
+    +'<tr><td>Sexo</td><td><div class="e" contenteditable="true" data-f="psexo">☐ M &nbsp; ☐ F &nbsp; ☐ Otro</div></td><td>EPS</td><td><div class="e" contenteditable="true" data-f="peps"></div></td></tr>'
+    +'<tr><td>Teléfono</td><td><div class="e" contenteditable="true" data-f="ptel"></div></td><td>Ciudad</td><td><div class="e" contenteditable="true" data-f="pcdd">'+ciudad+'</div></td></tr>'
+    +'<tr><td>Médico tratante</td><td><div class="e" contenteditable="true" data-f="medico">'+C.nombre+'</div></td><td>Fecha y hora</td><td><div class="e" contenteditable="true" data-f="fhora">'+fh+'</div></td></tr>'
+    +'<tr><td>Modalidad</td><td colspan="3">Telemedicina — Plataforma: <span class="e" contenteditable="true" data-f="plat">—</span></td></tr></table>'
+    +'<h2>2. Motivo de consulta</h2><div class="fb" contenteditable="true" id="motivo"></div>'
+    +'<h2>3. Anamnesis (enfermedad actual)</h2><div class="fb" contenteditable="true" id="anam" style="min-height:80px"></div>'
+    +'<h2>4. Revisión por sistemas</h2>'
+    +'<table><tr><th>Sistema</th><th>Hallazgos</th><th>Sistema</th><th>Hallazgos</th></tr>'
+    +'<tr><td>Cardiovascular</td><td class="e" contenteditable="true"></td><td>Respiratorio</td><td class="e" contenteditable="true"></td></tr>'
+    +'<tr><td>Gastrointestinal</td><td class="e" contenteditable="true"></td><td>Genitourinario</td><td class="e" contenteditable="true"></td></tr>'
+    +'<tr><td>Musculoesquelético</td><td class="e" contenteditable="true"></td><td>Neurológico</td><td class="e" contenteditable="true"></td></tr>'
+    +'<tr><td>Dermatológico</td><td class="e" contenteditable="true"></td><td>Psiquiátrico</td><td class="e" contenteditable="true"></td></tr></table>'
+    +'<h2>5. Antecedentes</h2>'
+    +'<table><tr><th>Tipo</th><th>Descripción</th></tr>'
+    +'<tr><td>Patológicos</td><td><div class="e" contenteditable="true" data-f="apat"></div></td></tr>'
+    +'<tr><td>Quirúrgicos</td><td><div class="e" contenteditable="true" data-f="aqx"></div></td></tr>'
+    +'<tr><td>Farmacológicos</td><td><div class="e" contenteditable="true" data-f="afarm"></div></td></tr>'
+    +'<tr><td>Alérgicos</td><td><div class="e" contenteditable="true" data-f="aalerg"></div></td></tr>'
+    +'<tr><td>Familiares</td><td><div class="e" contenteditable="true" data-f="afam"></div></td></tr>'
+    +'<tr><td>Gineco-obstétricos</td><td><div class="e" contenteditable="true" data-f="ago">N/A</div></td></tr></table>'
+    +'<h2>6. Examen físico (evaluable por video)</h2>'
+    +'<table><tr><th>Parámetro</th><th>Hallazgo</th><th>Parámetro</th><th>Hallazgo</th></tr>'
+    +'<tr><td>Aspecto general</td><td class="e" contenteditable="true"></td><td>Estado de conciencia</td><td class="e" contenteditable="true"></td></tr>'
+    +'<tr><td>Coloración piel/mucosas</td><td class="e" contenteditable="true"></td><td>FC (referida)</td><td class="e" contenteditable="true"></td></tr>'
+    +'<tr><td>FR (estimada)</td><td class="e" contenteditable="true"></td><td>T.A. (referida)</td><td class="e" contenteditable="true"></td></tr>'
+    +'<tr><td>Dolor EVA 0-10</td><td class="e" contenteditable="true"></td><td>Otros signos</td><td class="e" contenteditable="true"></td></tr></table>'
+    +'<p style="font-size:10px;color:#888;font-style:italic">Nota: examen físico limitado por modalidad telemedicina. Se evalúan parámetros observables por video y datos referidos por el paciente.</p>'
+    +'<h2>7. Diagnóstico (CIE-10)</h2>'
+    +'<table><tr><th>#</th><th>Diagnóstico</th><th>CIE-10</th><th>Tipo</th></tr>'
+    +'<tr><td>1</td><td class="e" contenteditable="true"></td><td class="e" contenteditable="true"></td><td class="e" contenteditable="true">☐ Principal &nbsp; ☐ Secundario</td></tr>'
+    +'<tr><td>2</td><td class="e" contenteditable="true"></td><td class="e" contenteditable="true"></td><td class="e" contenteditable="true">☐ Principal &nbsp; ☐ Secundario</td></tr></table>'
+    +'<h2>8. Plan de manejo</h2><div class="fb" contenteditable="true" id="plan" style="min-height:70px"></div>'
+    +'<h2>9. Fórmula médica</h2>'
+    +'<table><tr><th>Medicamento</th><th>Dosis</th><th>Vía</th><th>Frecuencia</th><th>Días</th></tr>'
+    +'<tr><td class="e" contenteditable="true"></td><td class="e" contenteditable="true"></td><td class="e" contenteditable="true"></td><td class="e" contenteditable="true"></td><td class="e" contenteditable="true"></td></tr>'
+    +'<tr><td class="e" contenteditable="true"></td><td class="e" contenteditable="true"></td><td class="e" contenteditable="true"></td><td class="e" contenteditable="true"></td><td class="e" contenteditable="true"></td></tr></table>'
+    +'<h2>10. Incapacidad médica</h2>'
+    +'<table><tr><td><strong>Días:</strong></td><td class="e" contenteditable="true">N/A</td><td><strong>Desde:</strong></td><td class="e" contenteditable="true"></td><td><strong>Hasta:</strong></td><td class="e" contenteditable="true"></td></tr></table>'
+    +'<h2>11. Indicaciones y próxima cita</h2>'
+    +'<div class="fb" contenteditable="true" id="proxc">Próxima consulta: _____ &nbsp; Modalidad: ☐ Telemedicina &nbsp; ☐ Presencial<br><br>Indicaciones al paciente:</div>'
+    +'<h2>12. Firma del médico</h2>'
+    +'<table><tr><td><strong>Nombre:</strong> <span class="e" contenteditable="true" data-f="mnombre">'+C.nombre+'</span></td>'
+    +'<td><strong>Reg. médico:</strong> <span class="e" contenteditable="true" data-f="mrm">'+C.registro_medico+'</span></td>'
+    +'<td><strong>Firma digital:</strong> _____________</td></tr></table>';
+  return _teleDocWrap('tele-e6-01','HISTORIA CLÍNICA DE TELEMEDICINA','Res. 1995/1999 · Res. 2654/2019 · Res. 3100/2019 E6',body,c1,c2,empresa,ciudad);
+}
+
+function _tele_PAMEC(c1,c2,empresa,ciudad){
+  var body='<h2>1. Objeto</h2>'
+    +'<div class="fb" contenteditable="true" id="obj">Definir el programa de auditoría interna para el mejoramiento continuo de la calidad del servicio de telemedicina de '+empresa+', mediante medición sistemática de indicadores, análisis de brechas e implementación de planes de mejora conforme a la Res. 1446/2006 y Res. 256/2016.</div>'
+    +'<h2>2. Alcance</h2>'
+    +'<div class="fb" contenteditable="true" id="alc">Aplica a todos los procesos asistenciales y administrativos del servicio de telemedicina, incluyendo teleconsulta médica, historia clínica electrónica, sistema de PQRS y seguridad del paciente.</div>'
+    +'<h2>3. Metodología</h2>'
+    +'<div class="fb" contenteditable="true" id="met">El PAMEC aplica la metodología del ciclo PHVA (Planear – Hacer – Verificar – Actuar), con auditorías internas trimestrales y revisión mensual de indicadores. Las brechas identificadas generan planes de mejora con responsable, plazo y seguimiento documentado.</div>'
+    +'<h2>4. Indicadores de calidad — Telemedicina</h2>'
+    +'<table><tr><th>Indicador</th><th>Fórmula</th><th>Meta</th><th>Fuente</th><th>Período</th></tr>'
+    +'<tr><td><strong>% Teleconsultas exitosas</strong></td><td>(Completadas / Programadas) × 100</td><td>≥ 95%</td><td>Plataforma</td><td>Mensual</td></tr>'
+    +'<tr><td><strong>Tiempo promedio de espera</strong></td><td>Promedio de minutos cita programada vs inicio real</td><td>≤ 10 min</td><td>Plataforma</td><td>Mensual</td></tr>'
+    +'<tr><td><strong>Satisfacción del usuario</strong></td><td>(Valoraciones ≥ 4/5 / Total encuestas) × 100</td><td>≥ 85%</td><td>Encuesta post-consulta</td><td>Mensual</td></tr>'
+    +'<tr><td><strong>Tasa de derivación presencial</strong></td><td>(Teleconsultas derivadas / Total) × 100</td><td>Seguimiento</td><td>HC Electrónica</td><td>Mensual</td></tr>'
+    +'<tr><td><strong>Cumplimiento HC</strong></td><td>(HC completas / Total consultas) × 100</td><td>100%</td><td>HC Electrónica</td><td>Mensual</td></tr></table>'
+    +'<h2>5. Fichas técnicas de indicadores clave</h2>'
+    +'<div class="fb" contenteditable="true" id="fichas">'
+    +'<p><strong>Ind. 1 — % Teleconsultas exitosas</strong><br>Objetivo: Medir efectividad operativa del servicio.<br>Numerador: N° teleconsultas completadas. Denominador: Total programadas.<br>Meta: ≥ 95% | Umbral mínimo: 90% | Responsable: Administración · Período: Mensual</p>'
+    +'<p><strong>Ind. 2 — Satisfacción del usuario</strong><br>Objetivo: Evaluar percepción del paciente sobre la calidad.<br>Instrumento: Encuesta 5 ítems post-consulta (Likert 1-5).<br>Meta: ≥ 85% respuestas satisfactorias (puntaje ≥ 4) | Período: Mensual</p>'
+    +'<p><strong>Ind. 3 — Tasa de derivación presencial</strong><br>Objetivo: Identificar proporción de casos que superan capacidad resolutiva de telemedicina.<br>Meta: Seguimiento de tendencia (sin meta fija) | Período: Mensual</p>'
+    +'<p><strong>Ind. 4 — Tiempo promedio de espera</strong><br>Objetivo: Medir oportunidad de acceso al servicio.<br>Meta: ≤ 10 minutos entre hora programada e inicio real de consulta | Período: Mensual</p>'
+    +'<p><strong>Ind. 5 — Cumplimiento diligenciamiento HC</strong><br>Objetivo: Verificar registro completo de cada atención.<br>Meta: 100% | Auditoría: Revisión trimestral de muestra de HC</p>'
+    +'</div>'
+    +'<h2>6. Cronograma de auditorías</h2>'
+    +'<table><tr><th>Trimestre</th><th>Actividad</th><th>Responsable</th><th>Fecha</th></tr>'
+    +'<tr><td>Q1</td><td class="e" contenteditable="true">Auditoría procesos asistenciales telemedicina</td><td class="e" contenteditable="true">'+C.nombre+'</td><td class="e" contenteditable="true">Marzo</td></tr>'
+    +'<tr><td>Q2</td><td class="e" contenteditable="true">Auditoría historia clínica electrónica</td><td class="e" contenteditable="true">'+C.nombre+'</td><td class="e" contenteditable="true">Junio</td></tr>'
+    +'<tr><td>Q3</td><td class="e" contenteditable="true">Auditoría seguridad del paciente</td><td class="e" contenteditable="true">'+C.nombre+'</td><td class="e" contenteditable="true">Septiembre</td></tr>'
+    +'<tr><td>Q4</td><td class="e" contenteditable="true">Revisión integral PAMEC y plan de mejora anual</td><td class="e" contenteditable="true">'+C.nombre+'</td><td class="e" contenteditable="true">Diciembre</td></tr></table>'
+    +'<h2>7. Plan de mejoramiento continuo</h2>'
+    +'<table><tr><th>Brecha identificada</th><th>Causa raíz</th><th>Acción de mejora</th><th>Responsable</th><th>Plazo</th><th>Estado</th></tr>'
+    +'<tr><td class="e" contenteditable="true"></td><td class="e" contenteditable="true"></td><td class="e" contenteditable="true"></td><td class="e" contenteditable="true">'+C.nombre+'</td><td class="e" contenteditable="true"></td><td class="e" contenteditable="true">Pendiente</td></tr>'
+    +'<tr><td class="e" contenteditable="true"></td><td class="e" contenteditable="true"></td><td class="e" contenteditable="true"></td><td class="e" contenteditable="true"></td><td class="e" contenteditable="true"></td><td class="e" contenteditable="true">Pendiente</td></tr></table>';
+  return _teleDocWrap('tele-e8-01','PAMEC — PROGRAMA DE AUDITORÍA PARA EL MEJORAMIENTO DE LA CALIDAD','Res. 1446/2006 · Res. 256/2016 · Res. 3100/2019 E8',body,c1,c2,empresa,ciudad);
+}
+
+function _tele_PQRS(c1,c2,empresa,ciudad){
+  var fd=new Date().toLocaleDateString('es-CO');
+  var body='<h2>1. Formato de recepción de PQRS</h2>'
+    +'<table><tr><th>Campo</th><th>Dato</th></tr>'
+    +'<tr><td>Radicado N°</td><td class="e" contenteditable="true"></td></tr>'
+    +'<tr><td>Fecha de recepción</td><td class="e" contenteditable="true">'+fd+'</td></tr>'
+    +'<tr><td>Canal</td><td class="e" contenteditable="true">☐ Email &nbsp; ☐ WhatsApp &nbsp; ☐ Teléfono &nbsp; ☐ Presencial &nbsp; ☐ Plataforma</td></tr>'
+    +'<tr><td>Tipo de solicitud</td><td class="e" contenteditable="true">☐ Petición &nbsp; ☐ Queja &nbsp; ☐ Reclamo &nbsp; ☐ Sugerencia &nbsp; ☐ Felicitación</td></tr>'
+    +'<tr><td>Nombre del solicitante</td><td class="e" contenteditable="true"></td></tr>'
+    +'<tr><td>Documento de identidad</td><td class="e" contenteditable="true"></td></tr>'
+    +'<tr><td>Teléfono / Email</td><td class="e" contenteditable="true"></td></tr>'
+    +'<tr><td>Descripción</td><td><div class="e" contenteditable="true" data-f="desc" style="min-height:60px"></div></td></tr>'
+    +'<tr><td>Servicio relacionado</td><td class="e" contenteditable="true">Telemedicina</td></tr></table>'
+    +'<h2>2. Flujograma de respuesta</h2>'
+    +'<div class="fb" contenteditable="true" id="flujo"><ol>'
+    +'<li><strong>Recepción:</strong> La PQRS es recibida y registrada con número de radicado único dentro de las 24 horas.</li>'
+    +'<li><strong>Clasificación:</strong> El responsable administrativo clasifica la solicitud (Petición / Queja / Reclamo / Sugerencia).</li>'
+    +'<li><strong>Asignación:</strong> Se asigna responsable de gestión según tipo y área involucrada.</li>'
+    +'<li><strong>Investigación:</strong> El responsable investiga los hechos, revisa HC o registros relacionados y elabora la respuesta.</li>'
+    +'<li><strong>Respuesta al usuario:</strong> Se comunica la respuesta al solicitante dentro de los tiempos legales (numeral 3).</li>'
+    +'<li><strong>Cierre:</strong> Se registra el cierre, la satisfacción del usuario y se archiva la documentación.</li>'
+    +'<li><strong>Análisis mensual:</strong> Las PQRS son analizadas para identificar oportunidades de mejora (PAMEC).</li>'
+    +'</ol></div>'
+    +'<h2>3. Tiempos legales de respuesta</h2>'
+    +'<table><tr><th>Tipo</th><th>Plazo legal</th><th>Base normativa</th></tr>'
+    +'<tr><td>Petición de información</td><td>15 días hábiles</td><td>Ley 1755/2015 (CPACA)</td></tr>'
+    +'<tr><td>Queja o reclamo</td><td>15 días hábiles</td><td>Ley 1755/2015</td></tr>'
+    +'<tr><td>Solicitud urgente de salud</td><td>Inmediata / 10 días</td><td>Res. 3100/2019 E8</td></tr>'
+    +'<tr><td>Sugerencia</td><td>15 días hábiles</td><td>Ley 1755/2015</td></tr></table>'
+    +'<h2>4. Registro de seguimiento de PQRS</h2>'
+    +'<table><tr><th>Radicado</th><th>Tipo</th><th>Fecha recep.</th><th>Responsable</th><th>Fecha respuesta</th><th>En tiempo</th><th>Estado</th></tr>'
+    +'<tr><td class="e" contenteditable="true"></td><td class="e" contenteditable="true"></td><td class="e" contenteditable="true"></td><td class="e" contenteditable="true">'+C.nombre+'</td><td class="e" contenteditable="true"></td><td class="e" contenteditable="true">☐ Sí &nbsp; ☐ No</td><td class="e" contenteditable="true">☐ Abierto &nbsp; ☐ Cerrado</td></tr>'
+    +'<tr><td class="e" contenteditable="true"></td><td class="e" contenteditable="true"></td><td class="e" contenteditable="true"></td><td class="e" contenteditable="true"></td><td class="e" contenteditable="true"></td><td class="e" contenteditable="true">☐ Sí &nbsp; ☐ No</td><td class="e" contenteditable="true">☐ Abierto &nbsp; ☐ Cerrado</td></tr>'
+    +'<tr><td class="e" contenteditable="true"></td><td class="e" contenteditable="true"></td><td class="e" contenteditable="true"></td><td class="e" contenteditable="true"></td><td class="e" contenteditable="true"></td><td class="e" contenteditable="true">☐ Sí &nbsp; ☐ No</td><td class="e" contenteditable="true">☐ Abierto &nbsp; ☐ Cerrado</td></tr></table>';
+  return _teleDocWrap('tele-e8-03','SISTEMA DE PQRS — PETICIONES, QUEJAS, RECLAMOS Y SUGERENCIAS','Ley 1755/2015 · Res. 3100/2019 E8 · Ley 1437/2011',body,c1,c2,empresa,ciudad);
+}
+
 // ─── INIT ───
 initUI();
 renderInicioEstandares();
