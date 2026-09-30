@@ -228,6 +228,8 @@ select.fi option{background:var(--s1)}
 .sig-canvas{width:100%;height:80px;background:rgba(255,255,255,0.03);border:1px dashed var(--bd2);border-radius:var(--r3);cursor:crosshair;touch-action:none;margin:8px 0}
 .sig-name{font-size:11px;color:var(--t2);font-weight:700;text-transform:uppercase;letter-spacing:0.05em;margin-top:4px}
 .gen-cons-btn{width:100%;padding:13px;border-radius:var(--r2);background:linear-gradient(135deg,var(--green),#16A34A);color:#fff;border:none;font-size:13px;font-weight:800;cursor:pointer;font-family:inherit;display:flex;align-items:center;justify-content:center;gap:7px;margin-top:12px}
+.blank-cons-btn{width:100%;padding:10px;border-radius:var(--r2);background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.12);color:var(--t2);font-size:12px;font-weight:700;cursor:pointer;font-family:inherit;display:flex;align-items:center;justify-content:center;gap:7px;margin-top:6px}
+.blank-cons-btn:hover{background:rgba(255,255,255,0.08);color:var(--t1)}
 
 /* ─── PROGRAMAS (PGIRH / PAMEC) ─── */
 .prog-card{background:var(--s2);border:1px solid var(--bd);border-radius:var(--r);padding:16px;margin-bottom:12px;overflow:hidden}
@@ -549,6 +551,7 @@ select.fi option{background:var(--s1)}
               <div class="fg"><label class="fl">CC del acudiente</label><input class="fi" id="ct-cc-acudiente" placeholder="Cédula del acudiente" style="-webkit-user-select:text;user-select:text"></div>
             </div>
             <button class="gen-cons-btn" onclick="generarConsentimiento('telemed')"><i class="fas fa-file-pdf"></i>Generar consentimiento para imprimir / firmar</button>
+            <button class="blank-cons-btn" onclick="descargarFormatoBlanco('telemed')"><i class="fas fa-download"></i>Descargar formato en blanco (sin datos del paciente)</button>
           </div>
         </div>
 
@@ -581,6 +584,7 @@ select.fi option{background:var(--s1)}
               <div class="fg"><label class="fl">CC del acudiente</label><input class="fi" id="cg-cc-acudiente" placeholder="Solo si es menor" style="-webkit-user-select:text;user-select:text"></div>
             </div>
             <button class="gen-cons-btn" onclick="generarConsentimiento('general')"><i class="fas fa-file-pdf"></i>Generar consentimiento para imprimir / firmar</button>
+            <button class="blank-cons-btn" onclick="descargarFormatoBlanco('general')"><i class="fas fa-download"></i>Descargar formato en blanco (sin datos del paciente)</button>
           </div>
         </div>
 
@@ -617,6 +621,7 @@ select.fi option{background:var(--s1)}
             <div class="fg"><label class="fl">Médico tratante</label><input class="fi" id="cm-medico" placeholder="Dr/Dra. Nombre" style="-webkit-user-select:text;user-select:text"></div>
             <div class="fg"><label class="fl">Diagnóstico / Motivo de consulta</label><textarea class="fi fta" id="cm-motivo" placeholder="Descripción del motivo de atención..." style="-webkit-user-select:text;user-select:text"></textarea></div>
             <button class="gen-cons-btn" onclick="generarConsentimiento('menor')"><i class="fas fa-file-pdf"></i>Generar consentimiento para imprimir / firmar</button>
+            <button class="blank-cons-btn" onclick="descargarFormatoBlanco('menor')"><i class="fas fa-download"></i>Descargar formato en blanco (sin datos del paciente)</button>
           </div>
         </div>
 
@@ -640,6 +645,7 @@ select.fi option{background:var(--s1)}
               <div class="fg"><label class="fl">Documento de identidad</label><input class="fi" id="ch-doc" placeholder="CC/TI/CE" style="-webkit-user-select:text;user-select:text"></div>
             </div>
             <button class="gen-cons-btn" onclick="generarConsentimiento('habeas')"><i class="fas fa-file-pdf"></i>Generar autorización de datos para firmar</button>
+            <button class="blank-cons-btn" onclick="descargarFormatoBlanco('habeas')"><i class="fas fa-download"></i>Descargar formato en blanco (sin datos del paciente)</button>
           </div>
         </div>
 
@@ -1647,6 +1653,200 @@ function conHtml(titulo, cuerpo, paciente, medico, acudiente, norma, c1, c2, emp
     '<div class="footer">Documento generado por BIOAuditoria® · ' + empresa + ' · ' + fecha + ' · Este consentimiento hace parte de la historia clínica y debe ser conservado por mínimo 30 años (Res. 1995/1999)</div>' +
     '<br><button class="print-btn" onclick="window.print()" style="width:100%;padding:12px;background:linear-gradient(135deg,' + c1 + ',' + c2 + ');color:#fff;border:none;border-radius:8px;font-size:14px;font-weight:800;cursor:pointer">🖨️ Imprimir / Guardar como PDF</button>' +
     '</body></html>';
+}
+
+// ─── FORMATO EN BLANCO ───
+function descargarFormatoBlanco(tipo) {
+  var w = window.open('', '_blank');
+  var c1 = C.color1 || '#FF6B00';
+  var c2 = C.color2 || '#7B2FBE';
+  var empresa = C.empresa || 'Institución Prestadora de Servicios de Salud';
+  var ciudad = C.ciudad || '';
+  var medico = C.nombre || '';
+  var logoHtml = C.logo_url ? '<img src="' + C.logo_url + '" style="max-height:50px;max-width:130px;object-fit:contain">' : '<div style="font-size:22px;font-weight:900;color:' + c1 + '">BIO<span style="color:' + c2 + '">Auditoria</span>®</div>';
+
+  var titulos = {
+    telemed: 'CONSENTIMIENTO INFORMADO — CONSULTA POR TELEMEDICINA',
+    general: 'CONSENTIMIENTO INFORMADO — CONSULTA MÉDICA GENERAL',
+    menor:   'CONSENTIMIENTO INFORMADO — PACIENTE MENOR DE EDAD',
+    habeas:  'AUTORIZACIÓN TRATAMIENTO DATOS PERSONALES (HABEAS DATA)'
+  };
+  var normas = {
+    telemed: 'Res. 2654/2019 · Res. 3100/2019 · Ley 1581/2012',
+    general: 'Res. 3100/2019 · Ley 1438/2011 · Ley 1581/2012',
+    menor:   'Código Civil Art. 253 · Ley 1098/2006 · Res. 3100/2019',
+    habeas:  'Ley 1581/2012 · Decreto 1377/2013 · Res. 1995/1999'
+  };
+
+  var campo = function(label, lineas) {
+    lineas = lineas || 1;
+    var lines = '';
+    for (var i = 0; i < lineas; i++) lines += '<div style="border-bottom:1px solid #999;height:22px;margin-bottom:' + (i < lineas-1 ? '6px' : '0') + '"></div>';
+    return '<div style="margin-bottom:12px"><div style="font-size:9px;font-weight:700;color:#555;text-transform:uppercase;letter-spacing:0.06em;margin-bottom:4px">' + label + '</div>' + lines + '</div>';
+  };
+
+  var check = function(label) {
+    return '<div style="display:flex;align-items:flex-start;gap:8px;margin-bottom:8px"><div style="width:14px;height:14px;border:1.5px solid #555;border-radius:2px;flex-shrink:0;margin-top:1px"></div><div style="font-size:11px;line-height:1.5">' + label + '</div></div>';
+  };
+
+  var header = '<div style="display:flex;justify-content:space-between;align-items:flex-start;border-bottom:4px solid ' + c1 + ';padding-bottom:14px;margin-bottom:4px">' +
+    '<div>' + logoHtml + '<div style="font-size:10px;color:#555;margin-top:4px;font-weight:600">' + empresa + '</div><div style="font-size:10px;color:#777">' + ciudad + '</div></div>' +
+    '<div style="text-align:right;font-size:9px;color:#666;line-height:1.8">' +
+    '<div style="font-weight:700;font-size:10px;color:#333">N° Historia Clínica:</div>' +
+    '<div style="border-bottom:1px solid #999;width:120px;height:18px;display:inline-block;margin-bottom:4px"></div><br>' +
+    '<div style="font-weight:700;font-size:10px;color:#333">Fecha:</div>' +
+    '<div style="border-bottom:1px solid #999;width:120px;height:18px;display:inline-block;margin-bottom:4px"></div><br>' +
+    '<div style="font-weight:700;font-size:10px;color:#333">Hora:</div>' +
+    '<div style="border-bottom:1px solid #999;width:120px;height:18px;display:inline-block"></div>' +
+    '</div></div>';
+
+  var normaBar = '<div style="background:' + c2 + '12;border-left:4px solid ' + c2 + ';padding:7px 12px;font-size:9px;color:#444;margin-bottom:14px;font-weight:600">' + normas[tipo] + '</div>';
+
+  var seccion = function(titulo, contenido) {
+    return '<div style="margin:14px 0 8px"><div style="font-size:10px;font-weight:800;color:#fff;background:' + c2 + ';padding:5px 10px;border-radius:3px;text-transform:uppercase;letter-spacing:0.04em">' + titulo + '</div><div style="padding:10px 0">' + contenido + '</div></div>';
+  };
+
+  var cuerpo = '';
+
+  if (tipo === 'telemed') {
+    cuerpo =
+      seccion('Datos del paciente',
+        '<div style="display:grid;grid-template-columns:1fr 1fr;gap:14px">' +
+        campo('Nombre completo del paciente') + campo('Documento de identidad (C.C. / T.I. / C.E.)') + '</div>' +
+        '<div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:14px">' +
+        campo('Fecha de nacimiento') + campo('Edad') + campo('Sexo') + '</div>' +
+        '<div style="display:grid;grid-template-columns:1fr 1fr;gap:14px">' +
+        campo('Teléfono') + campo('Correo electrónico') + '</div>') +
+      seccion('Médico tratante',
+        '<div style="display:grid;grid-template-columns:1fr 1fr;gap:14px">' +
+        campo('Nombre del médico tratante') + campo('Registro médico (RM / RETHUS)') + '</div>' +
+        campo('Especialidad / Servicio')) +
+      seccion('Motivo de consulta', campo('Descripción del motivo de la consulta por telemedicina', 2)) +
+      seccion('Declaraciones — El paciente declara haber sido informado sobre:',
+        check('La naturaleza de la consulta por telemedicina, sus beneficios y limitaciones técnicas.') +
+        check('Que el médico no puede realizar examen físico directo; algunos diagnósticos requieren atención presencial posterior.') +
+        check('Que la consulta puede interrumpirse por problemas de conectividad y en tal caso se reprogramará sin costo.') +
+        check('Que la telemedicina NO aplica para emergencias o urgencias con riesgo vital inmediato.') +
+        check('Que la información de la consulta será almacenada en historia clínica electrónica conforme a Res. 1995/1999.') +
+        check('Sus derechos como paciente conforme a la Ley 1438/2011 y la Ley 100/1993.')) +
+      seccion('Plataforma y privacidad',
+        '<p style="font-size:11px;line-height:1.7">La consulta se realiza mediante plataforma tecnológica con protocolos de seguridad. La información es confidencial y está protegida bajo la Ley 1581/2012 (Habeas Data) y la Res. 1995/1999 de historia clínica. Duración de conservación: mínimo 30 años.</p>') +
+      (tipo === 'telemed' ? seccion('Datos del acudiente (diligenciar SOLO si el paciente es menor de edad)',
+        '<div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:14px">' +
+        campo('Nombre del acudiente / representante legal') + campo('Documento de identidad (C.C.)') + campo('Parentesco') + '</div>') : '');
+  } else if (tipo === 'general') {
+    cuerpo =
+      seccion('Datos del paciente',
+        '<div style="display:grid;grid-template-columns:1fr 1fr;gap:14px">' +
+        campo('Nombre completo del paciente') + campo('Documento de identidad (C.C. / T.I. / C.E.)') + '</div>' +
+        '<div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:14px">' +
+        campo('Fecha de nacimiento') + campo('Edad') + campo('Sexo') + '</div>' +
+        '<div style="display:grid;grid-template-columns:1fr 1fr;gap:14px">' +
+        campo('EPS / Aseguradora') + campo('Tipo de vinculación') + '</div>') +
+      seccion('Médico tratante',
+        '<div style="display:grid;grid-template-columns:1fr 1fr;gap:14px">' +
+        campo('Nombre del médico tratante') + campo('Registro médico (RM / RETHUS)') + '</div>') +
+      seccion('Diagnóstico presuntivo / Motivo de consulta', campo('', 2)) +
+      seccion('Autorizo expresamente:',
+        check('La realización de consulta médica general, valoración clínica, diagnóstico y prescripción de tratamiento.') +
+        check('La realización de procedimientos diagnósticos no invasivos que el médico tratante considere necesarios.') +
+        check('La apertura y manejo de mi historia clínica según Resolución 1995/1999 del Min. Salud.') +
+        check('El tratamiento de mis datos personales de salud conforme a la Ley 1581/2012.') +
+        check('La comunicación de mi información médica a los profesionales de salud involucrados en mi atención.')) +
+      seccion('Declaro haber sido informado(a) sobre:',
+        check('El diagnóstico presuntivo, alternativas de tratamiento disponibles y pronóstico esperado.') +
+        check('Los posibles riesgos, beneficios y complicaciones del procedimiento o tratamiento propuesto.') +
+        check('Mi derecho a aceptar, rechazar o revocar este consentimiento en cualquier momento antes del procedimiento.') +
+        check('El manejo confidencial de mi información médica y mis derechos como titular de datos (Ley 1581/2012).'));
+  } else if (tipo === 'menor') {
+    cuerpo =
+      seccion('Datos del menor de edad',
+        '<div style="display:grid;grid-template-columns:1fr 1fr;gap:14px">' +
+        campo('Nombre completo del menor') + campo('Tarjeta de identidad / Registro civil') + '</div>' +
+        '<div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:14px">' +
+        campo('Fecha de nacimiento') + campo('Edad') + campo('Sexo') + '</div>') +
+      seccion('Datos del acudiente / representante legal',
+        '<div style="display:grid;grid-template-columns:1fr 1fr;gap:14px">' +
+        campo('Nombre completo del acudiente') + campo('Documento de identidad (C.C.)') + '</div>' +
+        '<div style="display:grid;grid-template-columns:1fr 1fr;gap:14px">' +
+        campo('Parentesco con el menor') + campo('Teléfono de contacto') + '</div>') +
+      seccion('Médico tratante',
+        '<div style="display:grid;grid-template-columns:1fr 1fr;gap:14px">' +
+        campo('Nombre del médico tratante') + campo('Registro médico (RM / RETHUS)') + '</div>') +
+      seccion('Motivo de consulta del menor', campo('Descripción del motivo de atención', 2)) +
+      seccion('El acudiente autoriza y declara:',
+        check('Que tiene autoridad legal, patria potestad o convivencia demostrable con el menor.') +
+        check('La realización de consulta médica, valoración clínica, diagnóstico y tratamiento del menor.') +
+        check('La apertura y manejo de la historia clínica del menor (Res. 1995/1999).') +
+        check('El tratamiento de los datos personales del menor conforme a la Ley 1581/2012.') +
+        check('Que la información suministrada es veraz y actúa en los mejores intereses del menor (Código Civil Art. 253).'));
+  } else if (tipo === 'habeas') {
+    cuerpo =
+      seccion('Datos del titular',
+        '<div style="display:grid;grid-template-columns:1fr 1fr;gap:14px">' +
+        campo('Nombre completo del titular') + campo('Documento de identidad (C.C. / T.I. / C.E.)') + '</div>' +
+        '<div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:14px">' +
+        campo('Fecha de nacimiento') + campo('Teléfono') + campo('Correo electrónico') + '</div>') +
+      seccion('Autorizo el tratamiento de los siguientes datos:',
+        check('Datos de identificación personal (nombre, documento, fecha de nacimiento, sexo, estado civil).') +
+        check('Datos de contacto (dirección, teléfono, correo electrónico, ciudad de residencia).') +
+        check('Datos sensibles de salud: historia clínica, diagnósticos, tratamientos, resultados de laboratorio.') +
+        check('Datos de facturación y pagos para efectos de facturación de servicios de salud.') +
+        check('Datos necesarios para reportes ante entidades de salud, EPS, ADRES y entes de control.')) +
+      seccion('Finalidades del tratamiento:',
+        check('Prestación integral de servicios médicos y de salud por parte de ' + empresa + '.') +
+        check('Gestión y custodia de historia clínica conforme a la Resolución 1995/1999 (conservación mínima 30 años).') +
+        check('Comunicación de resultados, citas médicas, recordatorios y seguimiento clínico.') +
+        check('Cumplimiento de obligaciones legales ante entidades de salud y entes gubernamentales.') +
+        check('Mejoramiento de la calidad de los servicios y programas de salud pública.')) +
+      seccion('Derechos del titular (Ley 1581/2012)',
+        '<p style="font-size:11px;line-height:1.7">Tiene derecho a <strong>Conocer, Actualizar, Rectificar</strong> y <strong>Suprimir</strong> sus datos personales. Puede <strong>revocar</strong> esta autorización en cualquier momento. Para ejercer sus derechos comuníquese con <strong>' + empresa + '</strong> o presente queja ante la <strong>Superintendencia de Industria y Comercio (SIC)</strong> — www.sic.gov.co</p>');
+  }
+
+  // Firma grid
+  var sigCols = (tipo === 'menor' || tipo === 'telemed') ? '1fr 1fr 1fr' : '1fr 1fr';
+  var sigs = '<div style="display:grid;grid-template-columns:' + sigCols + ';gap:24px;margin-top:36px">' +
+    '<div style="text-align:center">' +
+    '<div style="height:70px;border-bottom:2px solid #333;margin-bottom:8px"></div>' +
+    '<div style="font-size:10px;font-weight:700;text-transform:uppercase">Paciente / Titular</div>' +
+    '<div style="font-size:9px;color:#666;margin-top:2px">Nombre y firma · C.C.</div></div>' +
+    '<div style="text-align:center">' +
+    '<div style="height:70px;border-bottom:2px solid #333;margin-bottom:8px"></div>' +
+    '<div style="font-size:10px;font-weight:700;text-transform:uppercase">Médico tratante</div>' +
+    '<div style="font-size:9px;color:#666;margin-top:2px">Nombre, firma y registro médico</div></div>' +
+    ((tipo === 'menor' || tipo === 'telemed') ?
+      '<div style="text-align:center">' +
+      '<div style="height:70px;border-bottom:2px solid #333;margin-bottom:8px"></div>' +
+      '<div style="font-size:10px;font-weight:700;text-transform:uppercase">Acudiente / Rep. legal</div>' +
+      '<div style="font-size:9px;color:#666;margin-top:2px">Nombre, firma y documento</div></div>' : '') +
+    '</div>';
+
+  var footerNote = '<div style="margin-top:28px;padding-top:10px;border-top:1px solid #ddd;font-size:9px;color:#888;line-height:1.7;text-align:center">' +
+    'Documento oficial de ' + empresa + ' · ' + normas[tipo] + '<br>' +
+    'Este consentimiento hace parte de la historia clínica y debe conservarse por mínimo <strong>30 años</strong> (Res. 1995/1999) · Generado por <strong>BIOAuditoria®</strong></div>';
+
+  var html = '<!DOCTYPE html><html lang="es"><head><meta charset="UTF-8">' +
+    '<title>' + titulos[tipo] + ' — Formato en blanco</title>' +
+    '<style>' +
+    '*{box-sizing:border-box}' +
+    'body{font-family:"Segoe UI",Helvetica,Arial,sans-serif;font-size:11px;color:#111;max-width:800px;margin:0 auto;padding:28px 32px;line-height:1.6}' +
+    'h1{font-size:13px;font-weight:900;text-align:center;color:#0A3D55;text-transform:uppercase;letter-spacing:0.05em;margin:16px 0 4px;border-bottom:2px solid ' + c2 + ';padding-bottom:10px}' +
+    'p{margin:0 0 8px;text-align:justify}' +
+    '.wm{position:fixed;top:50%;left:50%;transform:translate(-50%,-50%) rotate(-35deg);font-size:90px;color:rgba(0,0,0,0.025);font-weight:900;white-space:nowrap;pointer-events:none;z-index:0}' +
+    '.print-bar{position:fixed;bottom:0;left:0;right:0;background:#fff;border-top:1px solid #ddd;padding:10px 20px;display:flex;gap:10px;justify-content:center;z-index:100}' +
+    '@media print{.print-bar{display:none!important}.wm{-webkit-print-color-adjust:exact;print-color-adjust:exact}}' +
+    '</style></head><body>' +
+    '<div class="wm">FORMATO EN BLANCO</div>' +
+    header + normaBar +
+    '<h1>' + titulos[tipo] + '</h1>' +
+    cuerpo + sigs + footerNote +
+    '<div class="print-bar">' +
+    '<button onclick="window.print()" style="padding:10px 28px;background:linear-gradient(135deg,' + c1 + ',' + c2 + ');color:#fff;border:none;border-radius:8px;font-size:13px;font-weight:800;cursor:pointer">🖨️ Imprimir / Guardar como PDF</button>' +
+    '<button onclick="window.close()" style="padding:10px 20px;border:1px solid #ccc;border-radius:8px;font-size:13px;font-weight:600;cursor:pointer;background:#fff">Cerrar</button>' +
+    '</div></body></html>';
+
+  w.document.write(html);
+  w.document.close();
 }
 
 // ─── PROGRAMAS ───
