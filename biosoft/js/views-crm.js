@@ -76,6 +76,26 @@
     var dias = diasHasta(c.proximaFechaCobro);
     return dias !== null && dias < 0;
   }
+  // Mismo umbral (5 días) y misma fuente de verdad que badgeCobro() de
+  // arriba, pero devuelto como un valor único para poder filtrar la lista
+  // por "Al día" / "Por vencer" / "En mora" — un cliente sin cobro activo
+  // todavía (nuevo, contrato enviado, etc.) no entra en ninguno de los tres.
+  function estadoCobroCliente(c) {
+    var tenant = c.tenantId ? tenantsById[c.tenantId] : null;
+    if (tenant) {
+      var estadoTenant = BIO_PLANES.estadoCuenta(tenant);
+      if (estadoTenant === "vencido") return "en_mora";
+      if (estadoTenant === "por_vencer") return "por_vencer";
+      if (estadoTenant === "activo") return "al_dia";
+      return null;
+    }
+    if (["nuevo", "contrato_enviado", "pagado", "bloqueado", "cancelado"].indexOf(c.estado) !== -1) return null;
+    var dias = diasHasta(c.proximaFechaCobro);
+    if (dias === null) return null;
+    if (dias < 0) return "en_mora";
+    if (dias <= 5) return "por_vencer";
+    return "al_dia";
+  }
   function badgeOrigen(c) {
     var od = c.origenDetalle || {};
     if (od.utmSource && /meta|facebook|instagram|^fb$|^ig$/i.test(od.utmSource)) return '<span class="badge badge-preliminar">📣 Meta Ads</span>';
@@ -102,6 +122,7 @@
     var cargando = true;
     var vista = "tabla";
     var seleccionados = {};
+    var filtroCobro = ""; // "" | "al_dia" | "por_vencer" | "en_mora"
     var unsubClientes = null, unsubPlantillas = null;
 
     function cargar() {
@@ -141,6 +162,13 @@
     function build() {
       if (cargando) { root.innerHTML = '<div class="card"><p class="text-muted">Cargando clientes…</p></div>'; return; }
       var nSel = Object.keys(seleccionados).filter(function (k) { return seleccionados[k]; }).length;
+      var clientesVisibles = filtroCobro ? clientes.filter(function (c) { return estadoCobroCliente(c) === filtroCobro; }) : clientes;
+      var FILTROS_COBRO = [
+        { key: "", label: "Todos" },
+        { key: "al_dia", label: "🟢 Al día" },
+        { key: "por_vencer", label: "🟡 Por vencer" },
+        { key: "en_mora", label: "🔴 En mora" }
+      ];
       root.innerHTML =
         '<div class="kpi-grid">' +
           kpi(clientes.length, "Clientes / Leads") +
@@ -148,7 +176,7 @@
           kpi(clientes.filter(enMora).length, "En Mora") +
           kpi(clientes.filter(function (c) { return c.estado === "nuevo" || c.estado === "contrato_enviado"; }).length, "Por Cerrar") +
         "</div>" +
-        '<div class="card"><div class="card-header"><h3 class="card-title">Clientes y Leads (' + clientes.length + ')</h3>' +
+        '<div class="card"><div class="card-header"><h3 class="card-title">Clientes y Leads (' + clientesVisibles.length + (filtroCobro ? " de " + clientes.length : "") + ')</h3>' +
         '<div class="flex gap-2 wrap">' +
         '<div class="crm-view-toggle"><button type="button" class="' + (vista === "tabla" ? "active" : "") + '" data-vista="tabla">☰ Tabla</button><button type="button" class="' + (vista === "kanban" ? "active" : "") + '" data-vista="kanban">🗂️ Kanban</button></div>' +
         '<button class="btn btn-outline btn-sm" id="btn-plantillas">📝 Plantillas</button>' +
@@ -158,7 +186,11 @@
         (nSel ? '<button class="btn btn-outline btn-sm" id="btn-eliminar-seleccion" title="Para borrar leads duplicados de una vez">' + U.icon("trash") + ' Eliminar (' + nSel + ')</button>' : "") +
         '<button class="btn btn-primary btn-sm" id="btn-new-crm">' + U.icon("plus") + ' Nuevo Cliente</button>' +
         "</div></div>" +
-        (vista === "tabla" ? buildTablaHtml() : buildKanbanHtml()) +
+        '<div class="flex gap-2 wrap" style="margin-bottom:14px"><span class="text-muted" style="font-size:12.5px;align-self:center;font-weight:600">Estado de cobro:</span>' +
+        '<div class="crm-view-toggle" id="crm-filtro-cobro">' + FILTROS_COBRO.map(function (f) {
+          return '<button type="button" class="' + (filtroCobro === f.key ? "active" : "") + '" data-filtro-cobro="' + f.key + '">' + f.label + "</button>";
+        }).join("") + "</div></div>" +
+        (vista === "tabla" ? buildTablaHtml(clientesVisibles) : buildKanbanHtml(clientesVisibles)) +
         "</div>";
       document.getElementById("btn-new-crm").addEventListener("click", function () { openForm(null); });
       document.getElementById("btn-plantillas").addEventListener("click", abrirPlantillas);
@@ -171,12 +203,15 @@
       root.querySelectorAll("[data-vista]").forEach(function (b) {
         b.addEventListener("click", function () { vista = b.dataset.vista; build(); });
       });
+      root.querySelectorAll("[data-filtro-cobro]").forEach(function (b) {
+        b.addEventListener("click", function () { filtroCobro = b.dataset.filtroCobro; build(); });
+      });
       if (vista === "tabla") { wireRowActions(); wireSeleccion(); } else { wireKanbanDnD(); }
     }
 
-    function buildTablaHtml() {
+    function buildTablaHtml(lista) {
       return '<div class="table-wrap"><table><thead><tr><th></th><th>Laboratorio</th><th>Contacto</th><th>Origen</th><th>Plan</th><th>Estado</th><th>Próximo cobro</th><th></th></tr></thead><tbody>' +
-        (clientes.length ? clientes.map(rowHtml).join("") : '<tr><td colspan="8" class="text-muted">Aún no hay clientes registrados. Usa "Nuevo Cliente" para agregar el primero.</td></tr>') +
+        (lista.length ? lista.map(rowHtml).join("") : '<tr><td colspan="8" class="text-muted">' + (filtroCobro ? "Ningún cliente coincide con este estado de cobro." : 'Aún no hay clientes registrados. Usa "Nuevo Cliente" para agregar el primero.') + "</td></tr>") +
         "</tbody></table></div>";
     }
 
@@ -202,9 +237,9 @@
         "</div></td></tr>";
     }
 
-    function buildKanbanHtml() {
+    function buildKanbanHtml(lista) {
       return '<div class="kanban-board">' + KANBAN_COLS.map(function (col) {
-        var items = clientes.filter(function (c) { return col.estados.indexOf(c.estado) !== -1; });
+        var items = lista.filter(function (c) { return col.estados.indexOf(c.estado) !== -1; });
         return '<div class="kanban-col"><div class="kanban-col-head">' + col.label + " (" + items.length + ')</div><div class="kanban-col-body" data-kanban-drop="' + col.key + '">' +
           (items.length ? items.map(kanbanCardHtml).join("") : '<div class="kanban-empty text-muted">Sin leads aquí</div>') +
           "</div></div>";
