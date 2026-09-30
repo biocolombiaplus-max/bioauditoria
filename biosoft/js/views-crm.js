@@ -18,10 +18,18 @@
   ];
   var PLANTILLAS_EJEMPLO = [
     { nombre: "Primer contacto", mensaje: "Hola {nombre} 👋 Soy del equipo de BIOsoft, el software de laboratorio clínico. Vi tu interés y quiero ayudarte a personalizar tu sistema para {laboratorio}. ¿Tienes unos minutos para contarte cómo funciona?" },
-    { nombre: "Recordatorio de pago", mensaje: "Hola {nombre} 👋 Te escribimos de BIOsoft: la mensualidad del Plan {plan} de {laboratorio} vence el {fecha_cobro}. Puedes pagarla aquí: {link_pago}. Cualquier duda, quedamos atentos." },
+    { nombre: "Recordatorio de pago (por vencer)", mensaje: "Hola {nombre} 👋 Te escribimos de BIOsoft: la mensualidad del Plan {plan} de {laboratorio} vence el {fecha_cobro}. Puedes pagarla aquí: {link_pago}. Cualquier duda, quedamos atentos." },
+    { nombre: "Recordatorio de mora (vencido)", mensaje: "Hola {nombre} 👋 Te escribimos de BIOsoft: la mensualidad del Plan {plan} de {laboratorio} venció el {fecha_cobro} y aún no registra el pago. Para evitar la suspensión del servicio, por favor realiza el pago aquí: {link_pago}. Cualquier duda, quedamos atentos." },
     { nombre: "Bienvenida - contrato enviado", mensaje: "¡Bienvenido a BIOsoft, {laboratorio}! 🎉 Te acabamos de enviar el contrato. Ya puedes empezar a usar el sistema, y te vamos entregando la personalización (logo, catálogo, firmas) en los próximos días. Cualquier duda, aquí estamos." },
     { nombre: "Recordatorio 2da cuota de implementación", mensaje: "Hola {nombre} 👋 Te escribimos de BIOsoft: este mes corresponde tu 2da y última cuota de implementación ($60 USD) junto con la mensualidad del Plan {plan} de {laboratorio}. A partir del próximo mes, solo pagas tu mensualidad. ¿Te ayudamos a coordinar el pago?" }
   ];
+  // Palabra clave para reconocer, por nombre, cuál plantilla corresponde a
+  // cada estado de cobro (ver abrirMensajeConPlantilla). "pago" (no
+  // "vencer") es a propósito para el caso "por_vencer": así sigue
+  // reconociendo el nombre viejo "Recordatorio de pago" de las cuentas que
+  // ya habían sembrado sus plantillas antes de que existiera la de mora,
+  // sin obligarlas a renombrar nada.
+  var PALABRA_CLAVE_PLANTILLA_COBRO = { en_mora: "mora", por_vencer: "pago" };
   var WA_NUMBER = "573505457420";
   function waLinkTo(numero, mensaje) { return "https://wa.me/" + ((numero || "").replace(/\D/g, "") || WA_NUMBER) + "?text=" + encodeURIComponent(mensaje); }
 
@@ -104,15 +112,24 @@
     return '<span class="badge badge-rutina">✋ Manual</span>';
   }
 
+  // Cuando el cliente ya tiene un laboratorio real vinculado (c.tenantId),
+  // la fecha y el plan que de verdad importan para cobrarle son los del
+  // TENANT (fuente única de verdad, la misma que usa "Laboratorios
+  // Cliente" y el badge de cobro de esta tabla) — no la copia propia del
+  // CRM, que puede quedar desactualizada si el plan/ciclo se ajustó desde
+  // allá. Antes siempre se usaba la copia del CRM, así que un recordatorio
+  // de pago podía citarle al cliente una fecha o un plan viejo.
   function llenarPlantilla(texto, c, plantillasCtx) {
     var lab = c.laboratorio || {}, contacto = c.contacto || {};
-    var plan = BIO_PLANES.porId(c.planId) || {};
+    var tenant = c.tenantId ? tenantsById[c.tenantId] : null;
+    var plan = BIO_PLANES.porId(tenant ? tenant.planId : c.planId) || {};
+    var fechaCobro = tenant ? tenant.fechaProximoPago : c.proximaFechaCobro;
     var primerNombre = contacto.nombre ? contacto.nombre.split(" ")[0] : "";
     return (texto || "")
       .replace(/\{nombre\}/g, primerNombre)
       .replace(/\{laboratorio\}/g, lab.nombre || "")
       .replace(/\{plan\}/g, plan.nombre || "")
-      .replace(/\{fecha_cobro\}/g, fmtFechaCorta(c.proximaFechaCobro))
+      .replace(/\{fecha_cobro\}/g, fmtFechaCorta(fechaCobro))
       .replace(/\{link_pago\}/g, plan.wompiLink || "");
   }
 
@@ -894,7 +911,7 @@
 
     function emptyPlantillasHtml() {
       return '<div class="card" style="background:var(--surface-2);margin-bottom:10px"><p class="text-muted" style="margin-top:0">Aún no tienes plantillas.</p>' +
-        '<button type="button" class="btn btn-outline btn-sm" id="tpl-ejemplo">✨ Usar 3 plantillas de ejemplo</button></div>';
+        '<button type="button" class="btn btn-outline btn-sm" id="tpl-ejemplo">✨ Usar ' + PLANTILLAS_EJEMPLO.length + ' plantillas de ejemplo</button></div>';
     }
 
     function plantillaFormHtml(t) {
@@ -958,29 +975,72 @@
     // ---------------------------------------------------------------------
     // Mensaje con plantilla (individual) y Difusión guiada (múltiples)
     // ---------------------------------------------------------------------
+    // Encuentra, por palabra clave en el NOMBRE, la plantilla que
+    // corresponde al estado de cobro real del cliente (ver
+    // estadoCobroCliente/PALABRA_CLAVE_PLANTILLA_COBRO) — para que al
+    // abrir "Mensaje" a alguien en mora o por vencer, ya venga
+    // seleccionado el recordatorio correcto (con su fecha real) en vez de
+    // depender de que el superadmin recuerde elegirlo a mano cada vez.
+    function plantillaParaEstadoCobro(estado) {
+      var palabra = PALABRA_CLAVE_PLANTILLA_COBRO[estado];
+      if (!palabra) return null;
+      return plantillas.filter(function (t) { return t.nombre.toLowerCase().indexOf(palabra) !== -1; })[0] || null;
+    }
+
     function abrirMensajeConPlantilla(c) {
       if (!plantillas.length) { U.toast('Primero crea una plantilla en "📝 Plantillas".', "error"); return; }
-      var opciones = plantillas.map(function (t) { return "<option value='" + t.id + "'>" + U.esc(t.nombre) + "</option>"; }).join("");
-      var wrap = U.openModal(
-        '<h3 class="modal-title">Enviar mensaje — ' + U.esc(c.laboratorio.nombre || "") + '</h3>' +
-        '<div class="field"><label>Plantilla</label><select id="msg-plantilla">' + opciones + "</select></div>" +
-        '<div class="field"><label>Mensaje (puedes editarlo antes de enviar)</label><textarea id="msg-texto" rows="5"></textarea></div>' +
-        '<div class="flex gap-2 justify-between"><button class="btn btn-ghost" data-modal-close>Cancelar</button><button class="btn btn-whatsapp" id="msg-enviar">' + U.icon("send") + " Enviar por WhatsApp</button></div>"
-      );
-      function refrescarTexto() {
-        var t = plantillas.filter(function (x) { return x.id === wrap.querySelector("#msg-plantilla").value; })[0];
-        wrap.querySelector("#msg-texto").value = llenarPlantilla(t ? t.mensaje : "", c);
+      var estado = estadoCobroCliente(c);
+      var tenant = c.tenantId ? tenantsById[c.tenantId] : null;
+      var fechaCobro = tenant ? tenant.fechaProximoPago : c.proximaFechaCobro;
+
+      function abrirModalCon(plantillaSugerida) {
+        var opciones = plantillas.map(function (t) {
+          return "<option value='" + t.id + "' " + (plantillaSugerida && t.id === plantillaSugerida.id ? "selected" : "") + ">" + U.esc(t.nombre) + "</option>";
+        }).join("");
+        var avisoCobro = "";
+        if (estado === "en_mora") {
+          avisoCobro = '<p class="text-muted" style="margin:0 0 10px;font-size:12.5px;color:var(--danger,#dc2626)">🔴 Este cliente está EN MORA — venció el ' + U.esc(fmtFechaCorta(fechaCobro)) + ". Se preseleccionó el recordatorio de mora, con la fecha ya puesta.</p>";
+        } else if (estado === "por_vencer") {
+          avisoCobro = '<p class="text-muted" style="margin:0 0 10px;font-size:12.5px;color:#b45309">🟡 Este cliente está POR VENCER — vence el ' + U.esc(fmtFechaCorta(fechaCobro)) + ". Se preseleccionó el recordatorio de pago, con la fecha ya puesta.</p>";
+        }
+        var wrap = U.openModal(
+          '<h3 class="modal-title">Enviar mensaje — ' + U.esc(c.laboratorio.nombre || "") + '</h3>' +
+          avisoCobro +
+          '<div class="field"><label>Plantilla</label><select id="msg-plantilla">' + opciones + "</select></div>" +
+          '<div class="field"><label>Mensaje (puedes editarlo antes de enviar)</label><textarea id="msg-texto" rows="5"></textarea></div>' +
+          '<div class="flex gap-2 justify-between"><button class="btn btn-ghost" data-modal-close>Cancelar</button><button class="btn btn-whatsapp" id="msg-enviar">' + U.icon("send") + " Enviar por WhatsApp</button></div>"
+        );
+        function refrescarTexto() {
+          var t = plantillas.filter(function (x) { return x.id === wrap.querySelector("#msg-plantilla").value; })[0];
+          wrap.querySelector("#msg-texto").value = llenarPlantilla(t ? t.mensaje : "", c);
+        }
+        wrap.querySelector("#msg-plantilla").addEventListener("change", refrescarTexto);
+        refrescarTexto();
+        wrap.querySelector("#msg-enviar").addEventListener("click", function () {
+          var texto = wrap.querySelector("#msg-texto").value;
+          var t = plantillas.filter(function (x) { return x.id === wrap.querySelector("#msg-plantilla").value; })[0];
+          if (!c.contacto || !c.contacto.whatsapp) { U.toast("Este lead no tiene WhatsApp registrado.", "error"); return; }
+          window.open(waLinkTo(c.contacto.whatsapp, texto), "_blank");
+          agregarActividad(c, "mensaje_wa", "Mensaje de WhatsApp enviado (plantilla: " + (t ? t.nombre : "personalizado") + ").").then(cargar);
+          U.closeModal(wrap);
+        });
       }
-      wrap.querySelector("#msg-plantilla").addEventListener("change", refrescarTexto);
-      refrescarTexto();
-      wrap.querySelector("#msg-enviar").addEventListener("click", function () {
-        var texto = wrap.querySelector("#msg-texto").value;
-        var t = plantillas.filter(function (x) { return x.id === wrap.querySelector("#msg-plantilla").value; })[0];
-        if (!c.contacto || !c.contacto.whatsapp) { U.toast("Este lead no tiene WhatsApp registrado.", "error"); return; }
-        window.open(waLinkTo(c.contacto.whatsapp, texto), "_blank");
-        agregarActividad(c, "mensaje_wa", "Mensaje de WhatsApp enviado (plantilla: " + (t ? t.nombre : "personalizado") + ").").then(cargar);
-        U.closeModal(wrap);
-      });
+
+      var sugerida = plantillaParaEstadoCobro(estado);
+      // "En mora" es la más nueva de las plantillas — una cuenta que ya
+      // había sembrado sus plantillas ANTES de que existiera puede no
+      // tenerla todavía. Se crea sola aquí, una única vez, en vez de
+      // obligar al superadmin a ir a "Plantillas" a agregarla a mano antes
+      // de poder cobrarle a un cliente en mora con el mensaje correcto.
+      if (estado === "en_mora" && !sugerida) {
+        var plantillaMora = PLANTILLAS_EJEMPLO.filter(function (t) { return t.nombre.toLowerCase().indexOf("mora") !== -1; })[0];
+        S.plantillas.create(plantillaMora).then(function () { return S.plantillas.list(); }).then(function (list) {
+          plantillas = list;
+          abrirModalCon(plantillaParaEstadoCobro(estado));
+        }).catch(function () { abrirModalCon(null); });
+        return;
+      }
+      abrirModalCon(sugerida);
     }
 
     // Pensado sobre todo para limpiar leads duplicados de un solo golpe
