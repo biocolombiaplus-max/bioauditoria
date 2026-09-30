@@ -85,6 +85,31 @@ function agruparPorExamen(resultadoMapeo, examIdLegacy) {
   return { [examIdLegacy]: resultadoMapeo.valores || {} };
 }
 
+// Deduplicación de mensajes — a diferencia de HL7 (que trae un Message
+// Control ID explícito en MSH-10), un mensaje ASTM no tiene un identificador
+// persistente de este tipo cuya posición exacta se pueda dar por segura sin
+// validarla contra el equipo físico (el registro H varía entre marcas), así
+// que aquí se usa una huella (fingerprint) del propio contenido — número de
+// orden + los registros de resultado (R) tal cual — como clave equivalente.
+// Protege contra la misma situación que en index-hl7.js: un equipo que
+// retransmite el mismo mensaje (ej. tras no recibir el ACK a tiempo) no
+// debe generar otra escritura ni otra línea de Auditoría idénticas. Se
+// guarda solo en memoria (se reinicia si se reinicia el proceso) a
+// propósito: no amerita una colección nueva de Firestore solo para esto.
+const MENSAJES_VISTOS_MAX = 500;
+const mensajesVistos = [];
+const mensajesVistosSet = new Set();
+function huellaMensaje(numeroOrden, registrosR) {
+  return numeroOrden + "|" + JSON.stringify(registrosR.map((r) => r.campos));
+}
+function yaFueProcesado(huella) { return mensajesVistosSet.has(huella); }
+function marcarProcesado(huella) {
+  if (mensajesVistosSet.has(huella)) return;
+  mensajesVistosSet.add(huella);
+  mensajesVistos.push(huella);
+  if (mensajesVistos.length > MENSAJES_VISTOS_MAX) mensajesVistosSet.delete(mensajesVistos.shift());
+}
+
 async function procesarMensaje(config, mapeo, db, registros) {
   const numeroOrden = extraerNumeroOrden(registros);
   if (!numeroOrden) {
@@ -92,6 +117,16 @@ async function procesarMensaje(config, mapeo, db, registros) {
     return;
   }
   const registrosR = registros.filter((r) => r.tipo === "R");
+
+  // Igual que en index-hl7.js: se marca ANTES de procesar, para cubrir
+  // también una ráfaga de reintentos que lleguen casi al mismo tiempo,
+  // mientras el primero todavía se está escribiendo en Firestore.
+  const huella = huellaMensaje(numeroOrden, registrosR);
+  if (yaFueProcesado(huella)) {
+    console.warn(`[BIOsoft-LIS] Orden ${numeroOrden}: mensaje idéntico ya se procesó antes en esta sesión — se ignora para no duplicar el resultado.`);
+    return;
+  }
+  marcarProcesado(huella);
   const resultadoMapeo = mapeo.mapearResultados(registrosR);
   const ignorados = resultadoMapeo.ignorados || [];
   if (ignorados.length) {

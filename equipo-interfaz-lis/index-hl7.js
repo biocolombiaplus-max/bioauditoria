@@ -89,11 +89,43 @@ function agruparPorExamen(resultadoMapeo, examIdLegacy) {
   return { [examIdLegacy]: resultadoMapeo.valores || {} };
 }
 
+// Deduplicación por MSH-10 (Message Control ID) — un equipo que no recibe
+// el ACK a tiempo (ej. una pausa de red) suele reintentar el MISMO mensaje;
+// sin esto, cada reintento generaría otra escritura y otra línea de
+// Auditoría idénticas. Es una protección adicional a los resguardos de
+// recibirResultadoEquipo() (estado cerrado / orden vieja) — esos cubren
+// una orden ya resultada hace tiempo, esto cubre un reintento inmediato
+// del mismo mensaje en la MISMA sesión de este middleware. Se guarda solo
+// en memoria (se reinicia si se reinicia el proceso) a propósito: no
+// amerita una colección nueva de Firestore solo para esto.
+const CONTROL_IDS_VISTOS_MAX = 500;
+const controlIdsVistos = [];
+const controlIdsVistosSet = new Set();
+function yaFueProcesado(controlId) {
+  return !!controlId && controlIdsVistosSet.has(controlId);
+}
+function marcarProcesado(controlId) {
+  if (!controlId || controlIdsVistosSet.has(controlId)) return;
+  controlIdsVistosSet.add(controlId);
+  controlIdsVistos.push(controlId);
+  if (controlIdsVistos.length > CONTROL_IDS_VISTOS_MAX) controlIdsVistosSet.delete(controlIdsVistos.shift());
+}
+
 async function procesarMensaje(config, mapeo, db, texto) {
   const segmentos = texto.split(/[\r\n]+/).filter(Boolean).map((s) => s.split("|"));
   let controlId = "";
   const msh = segmentos.find((s) => s[0] === "MSH");
   if (msh && msh[9]) controlId = msh[9];
+
+  // Se marca ANTES de procesar (no después de que termine con éxito): así
+  // una ráfaga de reintentos que lleguen casi al mismo tiempo, mientras el
+  // primero todavía se está escribiendo en Firestore, también queda
+  // cubierta — no solo los reintentos que llegan después de terminar.
+  if (yaFueProcesado(controlId)) {
+    console.warn(`[BIOsoft-HL7] Mensaje con control ID "${controlId}" ya se procesó antes en esta sesión — se ignora para no duplicar el resultado (se responde con ACK de todos modos, para que el equipo no siga reintentando).`);
+    return controlId;
+  }
+  marcarProcesado(controlId);
 
   const numeroOrden = extraerNumeroOrden(segmentos);
   if (!numeroOrden) {

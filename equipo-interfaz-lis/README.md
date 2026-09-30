@@ -185,6 +185,20 @@ no está probado:
   lo revise y confirme desde BIOsoft. Esto es intencional y **no debe
   cambiarse** — un dato mal recibido no debe poder llegarle a un paciente
   sin que una persona lo haya visto. Esto tampoco cambia según el equipo.
+- **Deduplicación y control de antigüedad** (`test/dedup-y-antiguedad.test.js`,
+  `test/resguardos-firestore-writer.test.js`): un mismo mensaje reenviado
+  por el equipo (ej. el ACK no llegó a tiempo y reintenta) no se vuelve a
+  procesar — en HL7 se detecta por el Message Control ID (MSH-10); en ASTM,
+  que no trae un identificador de este tipo confiable entre marcas, por una
+  huella del propio contenido del mensaje. Además, `recibirResultadoEquipo`
+  rechaza (y deja registrado en Trazabilidad, visible desde BIOsoft) un
+  resultado para un examen ya "preliminar", "validado" o "remitido", y una
+  orden de más de 96 horas de antigüedad — para que un mensaje repetido o
+  atascado en el buffer del equipo nunca pueda reescribir en silencio una
+  orden que el paciente ya recibió. Es el resguardo equivalente, sin
+  interfaz bidireccional (host query), a lo que los LIS grandes logran
+  dejando que el propio equipo solo pueda resultar lo que el LIS le
+  confirmó como pendiente del día.
 
 ### ❌ NO validado — requiere el equipo real, uno por uno
 1. **Formato exacto de los mensajes de CADA equipo.** El estándar ASTM

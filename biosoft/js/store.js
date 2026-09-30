@@ -1142,19 +1142,43 @@
     var db = loadDB();
     return db.orders.filter(function (o) { return o.tenantId === tenantId && o.numeroOrden === String(numeroOrden); })[0];
   }
-  /* Punto de entrada para resultados que llegan automáticamente desde un
-     equipo conectado (ver agregarEquipoConectado y equipo-interfaz-lis/).
-     A propósito NUNCA deja el examen en "preliminar" ni "validado" — siempre
-     "en_proceso" (borrador), para que un bacteriólogo humano revise y
-     confirme antes de que el resultado se pueda enviar al paciente. Si el
-     examen ya fue validado manualmente, no lo sobrescribe. */
+  // Estados que ya se consideran "entregados" en algún grado (preliminar
+  // cuenta: ya se le pudo haber enviado al paciente como anticipo) — un
+  // resultado automático del equipo NUNCA los sobrescribe en silencio,
+  // igual que hacen las interfaces LIS bidireccionales de laboratorios
+  // grandes: solo un bacteriólogo humano puede corregir un resultado ya
+  // reportado, nunca una retransmisión del equipo.
+  var EXAMEN_ESTADOS_CERRADOS_A_EQUIPO = ["preliminar", "validado", "remitido"];
+  // Ventana de antigüedad máxima de una orden para aceptarle un resultado
+  // automático del equipo. Sin este control, un mensaje repetido o
+  // atascado en el buffer del equipo (ej. tras un apagón, un reinicio, o
+  // una cubeta vieja que quedó en cola) podría reescribir silenciosamente
+  // una orden de hace semanas que ya se le entregó al paciente — el mismo
+  // riesgo que las interfaces bidireccionales de los LIS grandes evitan
+  // haciendo que el equipo solo pueda resultar órdenes que el propio LIS
+  // le confirmó como pendientes DEL DÍA (host query). Aquí, sin query
+  // bidireccional, el resguardo equivalente es rechazar por antigüedad y
+  // dejarlo trazado para que un humano lo revise, en vez de aplicarlo
+  // solo o perderlo en silencio.
+  var HORAS_MAX_ANTIGUEDAD_ORDEN_EQUIPO = 96; // 4 días — cubre fines de semana/festivos sin ser tan laxo que pierda su propósito.
+
   function recibirResultadoEquipo(tenantId, numeroOrden, examId, valoresPorCodigo, equipoNombre) {
     var order = getOrderByNumero(tenantId, numeroOrden);
     if (!order) return { ok: false, error: "No se encontró la orden " + numeroOrden + " en este laboratorio." };
     var ex = order.examenes.filter(function (e) { return e.examId === examId; })[0];
     if (!ex) return { ok: false, error: "La orden " + numeroOrden + " no tiene el examen " + examId + "." };
-    if (ex.estado === "validado" || ex.estado === "remitido") {
-      return { ok: false, error: "El examen ya está " + ex.estado + "; no se sobrescribe automáticamente." };
+    if (EXAMEN_ESTADOS_CERRADOS_A_EQUIPO.indexOf(ex.estado) !== -1) {
+      var msg1 = "El examen ya está " + ex.estado + "; no se sobrescribe automáticamente.";
+      addAudit(tenantId, equipoNombre || "Interfaz de equipo", "equipo", "REJECT_DEVICE_RESULT", "resultado", order.id + ":" + examId,
+        "Rechazó un resultado automático del equipo " + (equipoNombre || "conectado") + " para la orden " + numeroOrden + " — " + msg1);
+      return { ok: false, error: msg1 };
+    }
+    var horasDesdeOrden = (Date.parse(nowISO()) - Date.parse(order.fechaOrden)) / 36e5;
+    if (horasDesdeOrden > HORAS_MAX_ANTIGUEDAD_ORDEN_EQUIPO) {
+      var msg2 = "La orden " + numeroOrden + " tiene más de " + HORAS_MAX_ANTIGUEDAD_ORDEN_EQUIPO + " horas (creada el " + order.fechaOrden.slice(0, 10) +
+        ") — se rechaza por seguridad, para evitar sobrescribir una orden vieja por un mensaje repetido o atascado del equipo. Si el resultado sí es válido, captúralo manualmente en BIOsoft.";
+      addAudit(tenantId, equipoNombre || "Interfaz de equipo", "equipo", "REJECT_DEVICE_RESULT", "resultado", order.id + ":" + examId, msg2);
+      return { ok: false, error: msg2 };
     }
     ex.valores = Object.keys(valoresPorCodigo).map(function (codigo) { return { codigo: codigo, valor: String(valoresPorCodigo[codigo]) }; });
     ex.estado = "en_proceso";

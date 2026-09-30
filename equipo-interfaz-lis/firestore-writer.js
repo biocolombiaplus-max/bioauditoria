@@ -50,12 +50,43 @@ async function buscarOrdenPorNumero(db, tenantId, numeroOrden) {
 
 function nowISO() { return new Date().toISOString(); }
 
+// Mismo formato de id que BIO_STORE.uid("log") en store.js, para que la
+// pantalla de Trazabilidad de BIOsoft lo muestre igual que un registro
+// generado desde el navegador (ahí sí espera un campo "id" en los datos,
+// no solo la clave del documento de Firestore).
+async function registrarAuditoria(db, tenantId, { usuario, accion, entidadId, detalle }) {
+  const auditId = "log_" + Date.now().toString(36) + "_" + Math.random().toString(36).slice(2, 8);
+  await setDoc(doc(db, "tenants", tenantId, "auditLog", auditId), {
+    id: auditId, tenantId, fecha: nowISO(), usuario: usuario || "Interfaz de equipo", rol: "equipo",
+    accion, entidad: "resultado", entidadId, detalle
+  });
+}
+
+// Estados que ya se consideran "entregados" en algún grado — un resultado
+// automático del equipo NUNCA los sobrescribe en silencio. "preliminar"
+// cuenta porque ese resultado ya se le pudo haber enviado al paciente como
+// anticipo; solo un bacteriólogo humano puede corregirlo desde BIOsoft,
+// nunca una retransmisión del equipo.
+const ESTADOS_CERRADOS_A_EQUIPO = ["preliminar", "validado", "remitido"];
+// Ventana de antigüedad máxima de una orden para aceptarle un resultado
+// automático. Sin esto, un mensaje repetido o atascado en el buffer del
+// equipo (ej. tras un apagón, reinicio, o una cubeta vieja en cola) podría
+// reescribir en silencio una orden de hace semanas que ya se entregó al
+// paciente — el mismo riesgo que las interfaces bidireccionales de los LIS
+// grandes evitan con "host query" (el equipo solo puede resultar lo que el
+// LIS le confirmó como pendiente DEL DÍA). Sin ese query bidireccional
+// aquí, el resguardo equivalente es rechazar por antigüedad y dejarlo
+// trazado en Auditoría para que un humano lo revise, en vez de aplicarlo
+// solo o perderlo en un log de consola que nadie del laboratorio ve.
+const HORAS_MAX_ANTIGUEDAD_ORDEN_EQUIPO = 96; // 4 días — cubre fines de semana/festivos sin ser tan laxo que pierda su propósito.
+
 /**
  * Replica store.js::recibirResultadoEquipo del lado del middleware: busca
  * la orden por número, ubica el examen por examId, y si NO está ya
- * validado/remitido, escribe los valores recibidos dejándolo en estado
- * "en_proceso" (borrador) — NUNCA "preliminar" ni "validado": eso lo
- * decide siempre un bacteriólogo humano desde BIOsoft, con su clic.
+ * cerrada (preliminar/validado/remitido) ni la orden es demasiado vieja,
+ * escribe los valores recibidos dejándolo en estado "en_proceso"
+ * (borrador) — NUNCA "preliminar" ni "validado": eso lo decide siempre un
+ * bacteriólogo humano desde BIOsoft, con su clic.
  */
 async function recibirResultadoEquipo(db, { tenantId, numeroOrden, examId, valoresPorCodigo, equipoNombre }) {
   const encontrada = await buscarOrdenPorNumero(db, tenantId, numeroOrden);
@@ -64,8 +95,21 @@ async function recibirResultadoEquipo(db, { tenantId, numeroOrden, examId, valor
   const order = encontrada.data;
   const ex = (order.examenes || []).find((e) => e.examId === examId);
   if (!ex) return { ok: false, error: `La orden ${numeroOrden} no tiene el examen ${examId}.` };
-  if (ex.estado === "validado" || ex.estado === "remitido") {
-    return { ok: false, error: `El examen ya está "${ex.estado}"; no se sobrescribe automáticamente.` };
+  if (ESTADOS_CERRADOS_A_EQUIPO.includes(ex.estado)) {
+    const error = `El examen ya está "${ex.estado}"; no se sobrescribe automáticamente.`;
+    await registrarAuditoria(db, tenantId, {
+      usuario: equipoNombre, accion: "REJECT_DEVICE_RESULT", entidadId: `${encontrada.id}:${examId}`,
+      detalle: `Rechazó un resultado automático del equipo ${equipoNombre || "conectado"} para la orden ${numeroOrden} — ${error}`
+    });
+    return { ok: false, error };
+  }
+  const horasDesdeOrden = (Date.now() - Date.parse(order.fechaOrden)) / 36e5;
+  if (horasDesdeOrden > HORAS_MAX_ANTIGUEDAD_ORDEN_EQUIPO) {
+    const error = `La orden ${numeroOrden} tiene más de ${HORAS_MAX_ANTIGUEDAD_ORDEN_EQUIPO} horas (creada el ${String(order.fechaOrden).slice(0, 10)}) — se rechaza por seguridad, para evitar sobrescribir una orden vieja por un mensaje repetido o atascado del equipo. Si el resultado sí es válido, captúralo manualmente en BIOsoft.`;
+    await registrarAuditoria(db, tenantId, {
+      usuario: equipoNombre, accion: "REJECT_DEVICE_RESULT", entidadId: `${encontrada.id}:${examId}`, detalle: error
+    });
+    return { ok: false, error };
   }
 
   ex.valores = Object.keys(valoresPorCodigo).map((codigo) => ({ codigo, valor: String(valoresPorCodigo[codigo]) }));
@@ -81,14 +125,8 @@ async function recibirResultadoEquipo(db, { tenantId, numeroOrden, examId, valor
   // modificado, dentro del documento completo de la orden.
   await setDoc(doc(db, "tenants", tenantId, "orders", encontrada.id), order);
 
-  // Mismo formato de id que BIO_STORE.uid("log") en store.js, para que la
-  // pantalla de Trazabilidad de BIOsoft lo muestre igual que un registro
-  // generado desde el navegador (ahí sí espera un campo "id" en los datos,
-  // no solo la clave del documento de Firestore).
-  const auditId = "log_" + Date.now().toString(36) + "_" + Math.random().toString(36).slice(2, 8);
-  await setDoc(doc(db, "tenants", tenantId, "auditLog", auditId), {
-    id: auditId, tenantId, fecha: nowISO(), usuario: equipoNombre || "Interfaz de equipo", rol: "equipo",
-    accion: "RECEIVE_DEVICE_RESULT", entidad: "resultado", entidadId: `${encontrada.id}:${examId}`,
+  await registrarAuditoria(db, tenantId, {
+    usuario: equipoNombre, accion: "RECEIVE_DEVICE_RESULT", entidadId: `${encontrada.id}:${examId}`,
     detalle: `Resultado recibido automáticamente del equipo ${equipoNombre || "conectado"} para la orden ${numeroOrden}. Queda como borrador, pendiente de revisión y validación por un bacteriólogo.`
   });
 
