@@ -1969,8 +1969,15 @@ function copiarLinkAcceso(usuario) {
   if (!cred) { toast('No se encontraron credenciales para este cliente', 'err'); return; }
   var cliData = null;
   try { cliData = JSON.parse(localStorage.getItem('bio_cli_' + usuario) || 'null'); } catch(e) {}
-  // Build setup payload
-  var payload = { u: usuario, p: cred.pass, cli: cliData };
+  // Build slim payload — only essential profile fields, no estandares/docs (too large for WhatsApp)
+  var slim = cliData ? {
+    nombre: cliData.nombre, empresa: cliData.empresa, nit: cliData.nit,
+    ciudad: cliData.ciudad, nivel_atencion: cliData.nivel_atencion || cliData.nivel || 1,
+    especialidad: cliData.especialidad, telefono: cliData.telefono, email: cliData.email,
+    color1: cliData.color1, color2: cliData.color2, usuario: usuario,
+    estado_habilitacion: cliData.estado_habilitacion || 'nuevo'
+  } : null;
+  var payload = { u: usuario, p: cred.pass, cli: slim };
   var encoded = btoa(unescape(encodeURIComponent(JSON.stringify(payload))));
   var link = 'https://bioauditoria.com/?setup=' + encoded;
   // Copy to clipboard
@@ -1993,13 +2000,11 @@ function copiarLinkAcceso(usuario) {
   setTimeout(function() {
     if (confirm('¿Enviar link de acceso por WhatsApp a ' + nombre + '?')) {
       var msg = '¡Hola ' + nombre + '! 👋\n\n' +
-        'Para ingresar a tu portal BIOAuditoria desde cualquier dispositivo, abre este link:\n\n' +
+        'Abre este link para activar tu acceso a BIOAuditoria:\n' +
         link + '\n\n' +
-        'El link configura tu acceso automáticamente. Luego ingresas con:\n' +
-        '👤 Usuario: *' + usuario + '*\n' +
-        '🔑 Contraseña: *' + cred.pass + '*\n\n' +
-        '🔗 Portal: https://bioauditoria.com/cliente/\n\n' +
-        '_BIOAuditoria® — Solo necesitas abrir el link una vez en cada dispositivo._';
+        'Usuario: *' + usuario + '*\n' +
+        'Contraseña: *' + cred.pass + '*\n\n' +
+        '_Solo necesitas abrir el link una vez en cada dispositivo._';
       window.open('https://wa.me/?text=' + encodeURIComponent(msg), '_blank');
     }
   }, 500);
