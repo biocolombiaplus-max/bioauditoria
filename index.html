@@ -113,6 +113,14 @@ function doLogin(){
     sessionStorage.setItem('bio_role',rol);
     window.location.href=found.to;
   } else {
+    // Give a helpful hint when role mismatch detected
+    if(found&&found.pass===p&&found.role!==rol){
+      e.textContent='Perfil incorrecto — selecciona "'+(found.role==='admin'?'Administrador':'Cliente / Prestador')+'" arriba.';
+    } else if(found&&found.pass!==p){
+      e.textContent='Contraseña incorrecta.';
+    } else {
+      e.textContent='Usuario no encontrado. Verifica que estés en el perfil correcto.';
+    }
     e.style.display='block';
     document.getElementById('pass').value='';
   }
