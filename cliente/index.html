@@ -379,6 +379,11 @@ select.fi option{background:var(--s1)}
       <!-- ═══ ESTÁNDARES ═══ -->
       <div class="page" id="page-estandares">
         <div style="font-size:12px;color:var(--t2);margin-bottom:14px;line-height:1.5">Toca cada estándar para expandir los documentos y verificar su estado.</div>
+        <div style="margin-bottom:14px">
+          <button onclick="inicializarDocsTele()" style="width:100%;padding:13px 16px;background:linear-gradient(135deg,#7B2FBE,#A855F7);color:#fff;border:none;border-radius:12px;font-size:13px;font-weight:800;cursor:pointer;font-family:inherit;display:flex;align-items:center;justify-content:center;gap:8px;letter-spacing:0.01em">
+            🚀 Inicializar documentación Telemedicina
+          </button>
+        </div>
         <div id="estandares-list"></div>
       </div>
 
@@ -1214,6 +1219,7 @@ function renderEstandares(){
       +'<div style="display:flex;align-items:center;gap:5px;flex-shrink:0">'
       +sh(d.estado)
       +(d.archivo?'<button class="view-btn" onclick="viewDoc(\''+d.nombre+'\',\''+d.archivo+'\')"><i class="fas fa-eye"></i></button>':'<span style="font-size:10px;color:var(--t2);padding:0 4px">Sin archivo</span>')
+      +(d._tele?'<button class="view-btn" onclick="generarDocTele(\''+d.id+'\')" title="Generar documento editable" style="background:rgba(168,85,247,0.12);border-color:rgba(168,85,247,0.3);color:var(--pu2)">📄</button>':'')
       +'</div>'
       +'</div>'
     ).join('');
