@@ -441,8 +441,22 @@
         (hasPreliminar ? '<option value="preliminar">Informe Preliminar (resultados anticipados)</option>' : "") +
       "</select></div>" +
       '<div class="field"><label>Mensaje</label><textarea id="send-msg">Estimado(a) ' + U.esc(U.nombreCompleto(pac)) + ',\n\nAdjuntamos sus resultados de laboratorio correspondientes a la orden ' + order.numeroOrden + '.\n\n' + U.esc(tenant.nombre) + "</textarea></div>" +
-      '<p class="text-muted" style="margin:0 0 10px;font-size:12.5px">Un solo clic: se descarga el PDF y se abre el menú para compartirlo con el archivo ya adjunto — puedes elegir WhatsApp ahí mismo.</p>' +
-      U.botonCompartirPDFHtml("send-compartir", "btn-whatsapp btn-block") +
+      // "Compartir con PDF Adjunto" (Web Share API) solo existe en los
+      // navegadores/dispositivos que lo soportan — en los que no (ej.
+      // computador de escritorio con Firefox, o Chrome/Edge cuando el
+      // equipo no tiene WhatsApp Desktop instalado para recibirlo desde el
+      // panel de compartir del sistema), antes esta pantalla se quedaba
+      // SIN ningún botón de WhatsApp. "Enviar por WhatsApp" (wa.me, con el
+      // mensaje ya escrito) queda siempre visible como respaldo — el mismo
+      // patrón que ya usan Recibo de Pago, Contrato, Licencia y Cotización
+      // — para que WhatsApp esté disponible sin importar el navegador.
+      (U.soportaCompartirArchivos()
+        ? '<p class="text-muted" style="margin:0 0 10px;font-size:12.5px">Un solo clic: se descarga el PDF y se abre el menú para compartirlo con el archivo ya adjunto — puedes elegir WhatsApp ahí mismo.</p>' +
+          U.botonCompartirPDFHtml("send-compartir", "btn-whatsapp btn-block") +
+          '<button type="button" class="btn btn-outline btn-sm btn-block" id="send-wa" style="margin-top:8px">' + U.icon("send") + " ¿No aparece WhatsApp arriba? Ábrelo tú mismo(a)</button>"
+        : '<p class="text-muted" style="margin:0 0 10px;font-size:12.5px">Se descarga el PDF y se abre WhatsApp con el mensaje ya escrito — solo adjunta el PDF que se acaba de descargar antes de enviar.</p>' +
+          '<button type="button" class="btn btn-whatsapp btn-block" id="send-wa">' + U.icon("send") + " Enviar por WhatsApp</button>"
+      ) +
       '<div class="flex gap-2 wrap" style="margin-top:8px">' +
       '<button type="button" class="btn btn-outline btn-sm" id="send-gmail">📧 Enviar por Gmail</button>' +
       '<button type="button" class="btn btn-outline btn-sm" id="send-outlook">📧 Enviar por Outlook / Hotmail</button>' +
@@ -510,6 +524,30 @@
           return obtenerPdf().then(function (bytes) {
             U.compartirPDF(bytes, pdfFilenameCache, wrap.querySelector("#send-msg").value);
             registrarEnvio("compartir (PDF adjunto)");
+          });
+        });
+      });
+    }
+
+    var btnWa = wrap.querySelector("#send-wa");
+    if (btnWa) {
+      btnWa.addEventListener("click", function (e) {
+        var numero = U.numeroWhatsapp(wrap.querySelector("#send-whatsapp").value, tenant.pais);
+        if (!numero) { U.toast("Ingresa el WhatsApp del paciente.", "error"); return; }
+        // Igual que los botones de correo: se abre la pestaña en blanco DE
+        // UNA VEZ, de forma síncrona con el clic — si se abriera recién
+        // dentro del .then() de obtenerPdf() (que genera el PDF de forma
+        // asíncrona), varios navegadores la bloquean por "popup" al no
+        // verla como resultado directo de la acción del usuario.
+        var pestana = window.open("", "_blank");
+        conBotonOcupado(e.currentTarget, function () {
+          return obtenerPdf().then(function () {
+            var url = "https://wa.me/" + numero + "?text=" + encodeURIComponent(wrap.querySelector("#send-msg").value);
+            if (pestana) pestana.location.href = url; else window.open(url, "_blank");
+            registrarEnvio("WhatsApp (" + numero + ")");
+          }).catch(function (err) {
+            if (pestana) pestana.close();
+            throw err;
           });
         });
       });
