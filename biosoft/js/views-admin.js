@@ -1889,6 +1889,11 @@
         var f = filtro.toLowerCase();
         return (a.usuario || "").toLowerCase().indexOf(f) !== -1 || (a.accion || "").toLowerCase().indexOf(f) !== -1 || (a.detalle || "").toLowerCase().indexOf(f) !== -1;
       });
+      // Del más reciente al más antiguo — listAudit() devuelve las entradas
+      // en el mismo orden en que se fueron guardando (la más vieja primero),
+      // así que sin este ordenamiento había que bajar hasta el final de una
+      // trazabilidad larga para ver lo que acababa de pasar.
+      log = log.slice().sort(function (a, b) { return (b.fecha || "").localeCompare(a.fecha || ""); });
       root.innerHTML =
         '<div class="card"><div class="card-header"><h3 class="card-title">Trazabilidad de Acciones (' + log.length + ')</h3>' +
         '<input id="aud-search" placeholder="Buscar por usuario, acción o detalle…" style="width:280px" value="' + U.esc(filtro) + '"/></div>' +

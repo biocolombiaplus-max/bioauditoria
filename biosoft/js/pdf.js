@@ -386,16 +386,23 @@
         doc.setFontSize(fsNombreLab);
       }
       doc.setTextColor(rgb[0], rgb[1], rgb[2]);
-      doc.text(nombreLab, textX, y + 12);
+      // Los datos del laboratorio (nombre, eslogan, dirección/contacto) se
+      // dibujan 2mm más abajo que el logo (ajuste puntual pedido por un
+      // cliente) — antes ese bloque de texto quedaba visualmente pegado
+      // justo al lado del logo, sin nada de aire entre ambos. Solo se mueve
+      // el TEXTO; el logo, la línea divisoria de abajo y el alto total que
+      // ocupa el membrete quedan exactamente igual que antes.
+      var offsetTextoLab = 5.7;
+      doc.text(nombreLab, textX, y + 12 + offsetTextoLab);
       var metaStartOffset = 25;
       if (tenant.slogan) {
         doc.setFont(fontFam, "italic"); doc.setFontSize(9); doc.setTextColor(rgb[0], rgb[1], rgb[2]);
-        doc.text(lineaSegura(tenant.slogan), textX, y + 23);
+        doc.text(lineaSegura(tenant.slogan), textX, y + 23 + offsetTextoLab);
         metaStartOffset = 35;
       }
       doc.setFont(fontFam, "normal"); doc.setFontSize(8.5);
       if (tenant.datosPacienteEstiloDiscreto) doc.setTextColor(0, 0, 0); else doc.setTextColor(90, 90, 90);
-      metaLines.forEach(function (line, i) { doc.text(line, textX, y + metaStartOffset + i * 10); });
+      metaLines.forEach(function (line, i) { doc.text(line, textX, y + metaStartOffset + offsetTextoLab + i * 10); });
 
       doc.setDrawColor(rgbBanda[0], rgbBanda[1], rgbBanda[2]); doc.setLineWidth(2);
       y += tenant.slogan ? 74 : 64; doc.line(margin, y, pageW - margin, y); y += 12;
@@ -528,16 +535,24 @@
         doc.setFontSize(fsNombreLab);
       }
       doc.setTextColor(rgb[0], rgb[1], rgb[2]);
-      doc.text(nombreLab, textX, y + 12);
+      // Los datos del laboratorio (nombre, eslogan, dirección/contacto) se
+      // dibujan 2mm más abajo que el logo (ajuste puntual pedido por un
+      // cliente, ver mismo cambio en dibujarMembrete) — antes ese bloque de
+      // texto quedaba visualmente pegado justo al lado del logo, sin nada
+      // de aire entre ambos. Solo se mueve el TEXTO; el logo, la línea
+      // divisoria de abajo y el alto total que ocupa el membrete quedan
+      // exactamente igual que antes.
+      var offsetTextoLab = 5.7;
+      doc.text(nombreLab, textX, y + 12 + offsetTextoLab);
       var metaStartOffset = 25;
       if (tenant.slogan) {
         doc.setFont(fontFam, "italic"); doc.setFontSize(9); doc.setTextColor(rgb[0], rgb[1], rgb[2]);
-        doc.text(lineaSegura(tenant.slogan), textX, y + 23);
+        doc.text(lineaSegura(tenant.slogan), textX, y + 23 + offsetTextoLab);
         metaStartOffset = 35;
       }
       doc.setFont(fontFam, "normal"); doc.setFontSize(8.5);
       if (tenant.datosPacienteEstiloDiscreto) doc.setTextColor(0, 0, 0); else doc.setTextColor(90, 90, 90);
-      metaLines.forEach(function (line, i) { doc.text(line, textX, y + metaStartOffset + i * 10); });
+      metaLines.forEach(function (line, i) { doc.text(line, textX, y + metaStartOffset + offsetTextoLab + i * 10); });
 
       doc.setDrawColor(rgbBanda[0], rgbBanda[1], rgbBanda[2]); doc.setLineWidth(2);
       y += tenant.slogan ? 74 : 64; doc.line(margin, y, pageW - margin, y); y += 12;

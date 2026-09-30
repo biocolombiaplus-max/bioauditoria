@@ -135,6 +135,20 @@ input[type="color"] { padding: 3px; height: 42px; }
 .phone-field-wrap { display: flex; gap: 6px; }
 .phone-field-wrap select { flex: 0 0 auto; width: 108px; }
 .phone-field-wrap input { flex: 1; min-width: 0; }
+
+/* Bandeja de Resultados agrupada por día y por orden — cada bloque de día
+   (Hoy / Ayer / fecha) tiene su propio encabezado, y una orden con varios
+   exámenes se ve como una sola fila resumen que se despliega con un clic
+   en vez de repetir el mismo paciente/orden una fila por examen. */
+.bandeja-dia { margin-bottom: 24px; }
+.bandeja-dia:last-child { margin-bottom: 0; }
+.bandeja-dia-header { font-family: 'Poppins', sans-serif; font-weight: 700; font-size: 14.5px; margin: 0 0 8px; color: var(--heading-color, var(--text)); }
+.fila-grupo-resumen { cursor: pointer; }
+.fila-grupo-resumen:hover { background: var(--surface-2); }
+.fila-grupo-chevron { width: 14px; height: 14px; margin-right: 6px; vertical-align: -2px; color: var(--text-muted); transition: transform .15s ease; display: inline-block; }
+.fila-grupo-chevron.abierto { transform: rotate(180deg); }
+.fila-examen-detalle td { background: var(--surface-2); }
+.fila-examen-detalle td:nth-child(4) { padding-left: 28px; }
 input[type="checkbox"], input[type="radio"] { width: auto; flex-shrink: 0; padding: 0; accent-color: var(--brand-primary); }
 textarea { resize: vertical; min-height: 70px; }
 .form-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 14px 18px; }

@@ -36,25 +36,57 @@
     return '<span class="chip" style="background:#fff"><span style="width:10px;height:10px;border-radius:50%;background:' + t.color + ';display:inline-block"></span>' + U.esc(t.nombre) + "</span>";
   }
 
+  // "YYYY-M-D" en hora LOCAL (nunca .toISOString(), que corta en UTC y
+  // puede correr la fecha un día hacia atrás para cualquier laboratorio al
+  // oeste de Greenwich) — se usa solo para agrupar por día calendario, no
+  // para mostrar.
+  function claveDia(d) { return d.getFullYear() + "-" + d.getMonth() + "-" + d.getDate(); }
+
+  function etiquetaDia(fechaOrdenIso) {
+    var d = new Date(fechaOrdenIso);
+    var clave = claveDia(d);
+    if (clave === claveDia(new Date())) return "Hoy";
+    if (clave === claveDia(new Date(Date.now() - 86400000))) return "Ayer";
+    return U.fmtFechaCorta(fechaOrdenIso);
+  }
+
+  var ESTADO_SINGULAR = { pendiente: "pendiente", preliminar: "preliminar", validado: "validado", remitido: "remitido" };
+  var ESTADO_PLURAL = { pendiente: "pendientes", preliminar: "preliminares", validado: "validados", remitido: "remitidos" };
+
   function renderBandeja(root) {
     var session = BIO_AUTH.getSession();
     var tenant = BIO_AUTH.currentTenant();
     var orders = S.listOrders(session.tenantId);
     var filtroEstado = "todos";
     var filtroSeccion = "todas";
+    // Qué órdenes con más de un examen están desplegadas mostrando cada
+    // examen por separado — vive FUERA de build() para que no se vuelvan a
+    // colapsar solas cada vez que se repinta la bandeja (ej. al cambiar un
+    // filtro o al validar un examen).
+    var gruposAbiertos = {};
 
-    // Construye la fila de UN examen, aislada con su propio try/catch: un
-    // dato viejo/corrupto en una sola orden ya no puede tumbar la bandeja
-    // completa (antes un solo undefined en rows.map rompía TODA la tabla,
-    // dejando a todo el laboratorio sin ver ningún examen de ninguna
-    // orden). Si algo puntual falla, esa fila se marca y el resto se sigue
-    // viendo con normalidad.
-    function rowHtmlSeguro(r) {
+    // Construye la fila de UN examen (dentro de un grupo desplegado, o la
+    // fila única de una orden con un solo examen), aislada con su propio
+    // try/catch: un dato viejo/corrupto en una sola orden ya no puede
+    // tumbar la bandeja completa (antes un solo undefined en rows.map
+    // rompía TODA la tabla, dejando a todo el laboratorio sin ver ningún
+    // examen de ninguna orden). Si algo puntual falla, esa fila se marca y
+    // el resto se sigue viendo con normalidad.
+    function filaExamenSegura(r) {
       try {
-        return rowHtml(r);
+        return filaExamen(r);
       } catch (err) {
         console.error("BIOsoft: fallo al mostrar la fila de un examen en la bandeja:", err);
         return "<tr><td colspan='7' class='text-danger'>⚠ No se pudo mostrar un examen de la orden " + U.esc((r.order && r.order.numeroOrden) || "") + " — contacta a soporte.</td></tr>";
+      }
+    }
+
+    function grupoHtmlSeguro(g) {
+      try {
+        return grupoHtml(g);
+      } catch (err) {
+        console.error("BIOsoft: fallo al mostrar una orden en la bandeja:", err);
+        return "<tr><td colspan='7' class='text-danger'>⚠ No se pudo mostrar la orden " + U.esc((g.order && g.order.numeroOrden) || "") + " — contacta a soporte.</td></tr>";
       }
     }
 
@@ -75,10 +107,44 @@
           var okSec = filtroSeccion === "todas" || r.ex.seccion === filtroSeccion;
           return okEstado && okSec;
         });
-        rows.sort(function (a, b) {
+
+        // Agrupa los exámenes filtrados por ORDEN — un laboratorio con
+        // varios exámenes de un mismo paciente el mismo día (ej. un
+        // chequeo con hemograma + perfil lipídico + tiroideo) antes veía
+        // una fila IDÉNTICA repetida por cada examen, con el mismo
+        // paciente y número de orden una y otra vez — fácil de perder de
+        // vista cuál era cuál y qué faltaba. Ahora cada orden es UNA sola
+        // fila resumen (con el conteo de sus exámenes y sus estados) que
+        // se despliega con un clic para ver cada examen por separado.
+        var gruposPorOrden = {};
+        var grupos = [];
+        rows.forEach(function (r) {
+          var g = gruposPorOrden[r.order.id];
+          if (!g) { g = { order: r.order, exams: [] }; gruposPorOrden[r.order.id] = g; grupos.push(g); }
+          g.exams.push(r);
+        });
+        grupos.sort(function (a, b) {
           var pr = { Urgente: 0, Rutina: 1 };
           return (pr[a.order.prioridad] - pr[b.order.prioridad]) || b.order.fechaOrden.localeCompare(a.order.fechaOrden);
         });
+
+        // Agrupa además por DÍA (Hoy / Ayer / fecha) — el problema puntual
+        // que motivó este cambio: en una bandeja larga con semanas de
+        // historial mezcladas, no se sabía a simple vista cuáles eran los
+        // resultados del día de hoy.
+        var diasPorClave = {};
+        var dias = [];
+        grupos.forEach(function (g) {
+          var clave = claveDia(new Date(g.order.fechaOrden));
+          var d = diasPorClave[clave];
+          if (!d) { d = { clave: clave, etiqueta: etiquetaDia(g.order.fechaOrden), grupos: [] }; diasPorClave[clave] = d; dias.push(d); }
+          d.grupos.push(g);
+        });
+        // Los grupos ya venían ordenados por fecha (dentro de cada
+        // prioridad), pero como la prioridad se mezcla primero, un grupo
+        // "Urgente" de ayer podría listarse antes que uno "Rutina" de hoy
+        // sin reordenar los DÍAS en sí (no las órdenes dentro de cada día).
+        dias.sort(function (a, b) { return b.clave.localeCompare(a.clave); });
 
         root.innerHTML =
           '<div class="card"><div class="card-header"><h3 class="card-title">Bandeja de Resultados</h3>' +
@@ -86,15 +152,23 @@
           '<select id="f-estado"><option value="todos">Todos los estados</option><option value="pendiente">Pendientes</option><option value="preliminar">Preliminares</option><option value="validado">Validados</option><option value="remitido">Remitidos</option></select>' +
           '<select id="f-seccion"><option value="todas">Todas las secciones</option>' + C.seccionesEfectivas(tenant).map(function (s) { return '<option value="' + s.id + '">' + s.nombre + "</option>"; }).join("") + "</select>" +
           "</div></div>" +
-          '<div class="table-wrap"><table><thead><tr><th>Prioridad</th><th>N° Orden</th><th>Paciente</th><th>Examen</th><th>Sección</th><th>Estado</th><th></th></tr></thead><tbody>' +
-          (rows.length ? rows.map(rowHtmlSeguro).join("") : '<tr><td colspan="7" class="text-muted">No hay exámenes que coincidan con el filtro.</td></tr>') +
-          "</tbody></table></div></div>";
+          (dias.length ? dias.map(diaHtml).join("") : '<p class="text-muted" style="margin:0">No hay exámenes que coincidan con el filtro.</p>') +
+          "</div>";
 
         document.getElementById("f-estado").value = filtroEstado;
         document.getElementById("f-seccion").value = filtroSeccion;
         document.getElementById("f-estado").addEventListener("change", function (e) { filtroEstado = e.target.value; build(); });
         document.getElementById("f-seccion").addEventListener("change", function (e) { filtroSeccion = e.target.value; build(); });
-        root.querySelectorAll("[data-go]").forEach(function (b) { b.addEventListener("click", function () { location.hash = "#/resultados/" + b.dataset.go; }); });
+        root.querySelectorAll("[data-go]").forEach(function (b) {
+          b.addEventListener("click", function (e) { e.stopPropagation(); location.hash = "#/resultados/" + b.dataset.go; });
+        });
+        root.querySelectorAll("[data-toggle-grupo]").forEach(function (tr) {
+          tr.addEventListener("click", function () {
+            var id = tr.dataset.toggleGrupo;
+            gruposAbiertos[id] = !gruposAbiertos[id];
+            build();
+          });
+        });
       } catch (err) {
         console.error("BIOsoft: fallo al mostrar la Bandeja de Resultados:", err);
         root.innerHTML = '<div class="card"><p class="text-danger" style="margin:0"><b>No se pudo mostrar la Bandeja de Resultados.</b></p>' +
@@ -102,20 +176,64 @@
       }
     }
 
-    function rowHtml(r) {
-      var pac = S.getPatient(r.order.patientId);
-      // Si el examen de esta fila ya no existe en el catálogo (se eliminó o
-      // se renombró después de crear la orden), examenEfectivo() devuelve
-      // undefined — antes esto tumbaba TODA la bandeja (rows.map crashea
-      // por completo con un solo undefined), dejando a todo el laboratorio
-      // sin ver ningún examen de ninguna orden. Ahora esa fila puntual se
-      // marca como no disponible y el resto de la bandeja se sigue viendo
-      // con normalidad.
+    function diaHtml(dia) {
+      return '<div class="bandeja-dia">' +
+        '<div class="bandeja-dia-header">' + U.esc(dia.etiqueta) +
+        '<span class="text-muted" style="font-weight:400;font-size:12.5px"> · ' + dia.grupos.length + (dia.grupos.length === 1 ? " orden" : " órdenes") + "</span></div>" +
+        '<div class="table-wrap"><table><thead><tr><th>Prioridad</th><th>N° Orden</th><th>Paciente</th><th>Exámenes</th><th>Sección</th><th>Estado</th><th></th></tr></thead><tbody>' +
+        dia.grupos.map(grupoHtmlSeguro).join("") +
+        "</tbody></table></div></div>";
+    }
+
+    function nombreExamenDe(r) {
       var exCat = C.examenEfectivo(r.ex.examId, tenant);
-      var nombreExamen = exCat ? U.esc(exCat.nombre) : '<span class="text-danger">⚠ Examen no disponible (código ' + U.esc(r.ex.examId) + ")</span>";
-      return "<tr><td>" + '<span class="badge badge-' + (r.order.prioridad === "Urgente" ? "urgente" : "rutina") + '">' + r.order.prioridad + "</span></td>" +
-        "<td>" + r.order.numeroOrden + "</td><td>" + (pac ? U.esc(U.nombreCompleto(pac)) : "—") + "</td><td>" + nombreExamen + "</td><td>" + C.seccionNombre(r.ex.seccion, tenant) + "</td>" +
-        "<td>" + window.BIO_badgeEstado(r.ex.estado === "en_proceso" ? "pendiente" : r.ex.estado) + '</td><td><button class="btn btn-outline btn-sm" data-go="' + r.order.id + '">Abrir</button></td></tr>';
+      return exCat ? U.esc(exCat.nombre) : '<span class="text-danger">⚠ Examen no disponible (código ' + U.esc(r.ex.examId) + ")</span>";
+    }
+
+    function grupoHtml(g) {
+      var pac = S.getPatient(g.order.patientId);
+      var nombrePac = pac ? U.esc(U.nombreCompleto(pac)) : "—";
+      var prioridadHtml = '<span class="badge badge-' + (g.order.prioridad === "Urgente" ? "urgente" : "rutina") + '">' + g.order.prioridad + "</span>";
+      // Una orden con UN solo examen (el caso más común) se sigue viendo
+      // exactamente como antes: una sola fila con el nombre del examen ya
+      // a la vista — desplegar algo con un solo elemento adentro no aporta
+      // nada, solo un clic de más.
+      if (g.exams.length === 1) {
+        var r = g.exams[0];
+        return "<tr><td>" + prioridadHtml + "</td><td>" + g.order.numeroOrden + "</td><td>" + nombrePac + "</td><td>" + nombreExamenDe(r) + "</td><td>" + C.seccionNombre(r.ex.seccion, tenant) + "</td>" +
+          "<td>" + window.BIO_badgeEstado(r.ex.estado === "en_proceso" ? "pendiente" : r.ex.estado) + '</td><td><button class="btn btn-outline btn-sm" data-go="' + g.order.id + '">Abrir</button></td></tr>';
+      }
+      // Con varios exámenes: una fila RESUMEN (clicable para desplegar) con
+      // el conteo por estado a simple vista, y debajo — solo si está
+      // desplegada — una fila liviana por cada examen individual.
+      var conteos = {};
+      g.exams.forEach(function (r) {
+        var e = r.ex.estado === "en_proceso" ? "pendiente" : r.ex.estado;
+        conteos[e] = (conteos[e] || 0) + 1;
+      });
+      var resumenEstados = ["pendiente", "preliminar", "validado", "remitido"].filter(function (e) { return conteos[e]; })
+        .map(function (e) { return conteos[e] + " " + (conteos[e] === 1 ? ESTADO_SINGULAR[e] : ESTADO_PLURAL[e]); }).join(" · ");
+      var secciones = g.exams.reduce(function (acc, r) { if (acc.indexOf(r.ex.seccion) === -1) acc.push(r.ex.seccion); return acc; }, []);
+      var seccionTexto = secciones.length === 1 ? C.seccionNombre(secciones[0], tenant) : "Varias secciones";
+      var abierto = !!gruposAbiertos[g.order.id];
+      var html = '<tr class="fila-grupo-resumen" data-toggle-grupo="' + g.order.id + '"><td>' + prioridadHtml + "</td><td>" + g.order.numeroOrden + "</td>" +
+        "<td>" + U.icon("chevron-down", "fila-grupo-chevron" + (abierto ? " abierto" : "")) + nombrePac + "</td>" +
+        "<td><b>" + g.exams.length + " exámenes</b><br/><span class=\"text-muted\" style=\"font-size:12px\">" + resumenEstados + "</span></td>" +
+        "<td>" + U.esc(seccionTexto) + "</td>" +
+        "<td>" + window.BIO_badgeEstado(g.order.estadoGeneral) + '</td><td><button class="btn btn-outline btn-sm" data-go="' + g.order.id + '">Abrir</button></td></tr>';
+      if (abierto) {
+        html += g.exams.map(filaExamenSegura).join("");
+      }
+      return html;
+    }
+
+    // Fila de un examen individual DENTRO de un grupo ya desplegado — sin
+    // repetir el paciente ni el N° de orden (ya se ven en la fila resumen
+    // justo arriba), más liviana y con un poco de sangría para que se lea
+    // claramente como "parte de" la orden de encima.
+    function filaExamen(r) {
+      return "<tr class=\"fila-examen-detalle\"><td></td><td></td><td></td><td>" + nombreExamenDe(r) + "</td><td>" + C.seccionNombre(r.ex.seccion, tenant) + "</td>" +
+        "<td>" + window.BIO_badgeEstado(r.ex.estado === "en_proceso" ? "pendiente" : r.ex.estado) + "</td><td></td></tr>";
     }
     build();
   }
