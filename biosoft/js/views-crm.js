@@ -153,6 +153,7 @@
         '<div class="crm-view-toggle"><button type="button" class="' + (vista === "tabla" ? "active" : "") + '" data-vista="tabla">☰ Tabla</button><button type="button" class="' + (vista === "kanban" ? "active" : "") + '" data-vista="kanban">🗂️ Kanban</button></div>' +
         '<button class="btn btn-outline btn-sm" id="btn-plantillas">📝 Plantillas</button>' +
         '<button class="btn btn-outline btn-sm" id="btn-propuesta">📄 Generar Propuesta</button>' +
+        '<button class="btn btn-outline btn-sm" id="btn-cotizacion">📋 Generar Cotización</button>' +
         (nSel ? '<button class="btn btn-whatsapp btn-sm" id="btn-difusion">' + U.icon("send") + ' Difusión (' + nSel + ')</button>' : "") +
         (nSel ? '<button class="btn btn-outline btn-sm" id="btn-eliminar-seleccion" title="Para borrar leads duplicados de una vez">' + U.icon("trash") + ' Eliminar (' + nSel + ')</button>' : "") +
         '<button class="btn btn-primary btn-sm" id="btn-new-crm">' + U.icon("plus") + ' Nuevo Cliente</button>' +
@@ -162,6 +163,7 @@
       document.getElementById("btn-new-crm").addEventListener("click", function () { openForm(null); });
       document.getElementById("btn-plantillas").addEventListener("click", abrirPlantillas);
       document.getElementById("btn-propuesta").addEventListener("click", function () { abrirGenerarPropuesta(); });
+      document.getElementById("btn-cotizacion").addEventListener("click", function () { abrirGenerarCotizacion(); });
       var btnDif = document.getElementById("btn-difusion");
       if (btnDif) btnDif.addEventListener("click", abrirDifusion);
       var btnElimSel = document.getElementById("btn-eliminar-seleccion");
@@ -316,6 +318,75 @@
       });
     }
 
+    // Cotización Comercial FORMAL (numerada, con vigencia y todos los
+    // módulos/planes en tablas) — para enviar a un laboratorio que necesita
+    // un documento serio de soporte (ej. ante su Secretaría de Salud), no
+    // solo una propuesta de venta. Igual que "Generar Propuesta", funciona
+    // con o sin que el cliente ya esté en el CRM: se puede escribir todo a
+    // mano para un prospecto que ni siquiera está registrado todavía.
+    function abrirGenerarCotizacion(clientePrefill) {
+      var conLeads = clientes.filter(function (c) { return c.contacto && c.contacto.nombre; });
+      var wrap = U.openModal(
+        '<h3 class="modal-title">📋 Generar Cotización Formal</h3>' +
+        '<p class="text-muted" style="margin-top:0">Documento numerado y con fecha de vigencia, con todos los módulos incluidos y los planes por usuarios (Colombia) — listo para presentar como soporte formal ante la Secretaría de Salud u otro ente.</p>' +
+        (conLeads.length ? '<div class="field"><label>¿Ya es un cliente o lead? Selecciónalo para traer sus datos</label><select id="cz-cliente"><option value="">— Escribir datos nuevos —</option>' +
+          conLeads.map(function (c) { return '<option value="' + c.id + '" ' + (clientePrefill && clientePrefill.id === c.id ? "selected" : "") + '>' + U.esc((c.laboratorio && c.laboratorio.nombre) || c.contacto.nombre) + " — " + U.esc(c.contacto.nombre) + "</option>"; }).join("") +
+          "</select></div>" : "") +
+        '<form id="cotizacion-form"><div class="form-grid">' +
+        '<div class="field"><label>Laboratorio / Razón Social *</label><input id="cz-empresa" required/></div>' +
+        '<div class="field"><label>NIT / Documento (opcional)</label><input id="cz-nit" placeholder="Déjalo en blanco si aún no lo tienes"/></div>' +
+        '<div class="field"><label>Nombre de contacto *</label><input id="cz-contacto" required/></div>' +
+        '<div class="field"><label>Correo *</label><input id="cz-correo" type="email" required/></div>' +
+        '<div class="field"><label>WhatsApp (opcional, con indicativo)</label><input id="cz-whatsapp" placeholder="573001234567"/></div>' +
+        '<div class="field"><label>Ciudad (opcional)</label><input id="cz-ciudad"/></div>' +
+        '<div class="field"><label>Vigencia de la cotización</label><select id="cz-validez"><option value="8">8 días</option><option value="15" selected>15 días</option><option value="30">30 días</option></select></div>' +
+        '<div class="checkbox-row" style="align-self:end"><input type="checkbox" id="cz-promo" checked/><label style="margin:0">Incluir promoción de lanzamiento vigente ($0 implementación + equipos gratis)</label></div>' +
+        "</div>" +
+        '<div class="flex gap-2 justify-between" style="margin-top:6px">' +
+        '<button type="button" class="btn btn-ghost" data-modal-close>Cancelar</button>' +
+        '<button type="submit" class="btn btn-primary">' + U.icon("check") + " Generar Cotización</button>" +
+        "</div></form>"
+      );
+      function rellenarDesde(cliente) {
+        if (!cliente) return;
+        wrap.querySelector("#cz-empresa").value = (cliente.laboratorio && cliente.laboratorio.nombre) || "";
+        wrap.querySelector("#cz-nit").value = (cliente.laboratorio && cliente.laboratorio.nit) || "";
+        wrap.querySelector("#cz-contacto").value = cliente.contacto.nombre || "";
+        wrap.querySelector("#cz-correo").value = cliente.contacto.correo || "";
+        wrap.querySelector("#cz-whatsapp").value = cliente.contacto.whatsapp || "";
+        wrap.querySelector("#cz-ciudad").value = (cliente.laboratorio && cliente.laboratorio.ciudad) || "";
+      }
+      var selCliente = wrap.querySelector("#cz-cliente");
+      if (selCliente) {
+        selCliente.addEventListener("change", function () {
+          rellenarDesde(conLeads.filter(function (c) { return c.id === selCliente.value; })[0]);
+        });
+      }
+      if (clientePrefill) rellenarDesde(clientePrefill);
+      wrap.querySelector("#cotizacion-form").addEventListener("submit", function (e) {
+        e.preventDefault();
+        var empresa = wrap.querySelector("#cz-empresa").value.trim();
+        var nit = wrap.querySelector("#cz-nit").value.trim();
+        var contactoNombre = wrap.querySelector("#cz-contacto").value.trim();
+        var correo = wrap.querySelector("#cz-correo").value.trim();
+        var whatsapp = wrap.querySelector("#cz-whatsapp").value.trim();
+        var ciudad = wrap.querySelector("#cz-ciudad").value.trim();
+        var validezDias = parseInt(wrap.querySelector("#cz-validez").value, 10);
+        var incluirPromo = wrap.querySelector("#cz-promo").checked;
+        if (!empresa || !contactoNombre || !correo) { U.toast("Completa laboratorio, contacto y correo.", "error"); return; }
+        var bytes = BIO_PDF_CRM.buildCotizacionPDF(
+          { empresa: empresa, nit: nit, contacto: contactoNombre, correo: correo, whatsapp: whatsapp, ciudad: ciudad, pais: "Colombia" },
+          { validezDias: validezDias, incluirPromo: incluirPromo }
+        );
+        U.closeModal(wrap);
+        var mensaje = "Hola " + contactoNombre.split(" ")[0] + " 👋 Te comparto la cotización formal de BIOsoft para " + empresa + ", con todos los módulos y planes detallados. Cualquier duda, quedo atento.";
+        abrirEnviarDocumento({
+          titulo: "Enviar Cotización", bytes: bytes, nombreArchivo: "Cotizacion_BIOsoft_" + empresa.replace(/\s+/g, "_") + ".pdf",
+          contacto: { correo: correo, whatsapp: whatsapp }, mensaje: mensaje, asuntoCorreo: "Cotización Comercial — BIOsoft"
+        });
+      });
+    }
+
     // Igual que abrirEnviarDocumento, pero sin PDF adjunto — para mensajes
     // como el de credenciales de acceso, que se pueden revisar/editar antes
     // de enviarlos (por ejemplo, para no dejar la contraseña mal copiada).
@@ -454,7 +525,8 @@
         { titulo: "Documentos", acciones: [
           { label: "Enviar Contrato", icon: "file", onClick: function () { accionContrato(c); } },
           { label: "Enviar Recibo de Pago", icon: "file", onClick: function () { accionRecibo(c); } },
-          { label: "Generar Propuesta Comercial", icon: "file", onClick: function () { abrirGenerarPropuesta(c); } }
+          { label: "Generar Propuesta Comercial", icon: "file", onClick: function () { abrirGenerarPropuesta(c); } },
+          { label: "Generar Cotización Formal", icon: "file", onClick: function () { abrirGenerarCotizacion(c); } }
         ]},
         { titulo: "Comunicación", acciones: [
           { label: "Enviar Correo", icon: "send", onClick: function () { abrirCorreo(c); } },

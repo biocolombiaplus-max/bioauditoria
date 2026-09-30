@@ -1261,9 +1261,10 @@
   // ------------------------------------------------------------------
   // EQUIPOS CONECTADOS — módulo LIS: interfaz con analizadores (Mindray,
   // Dirui, Dymind, Maglumi, Rayto, u otro compatible con ASTM E1394) que
-  // envían resultados directamente a BIOsoft. Se cobra $10 USD/mes por cada
-  // equipo conectado (los primeros 5 son gratis como oferta de lanzamiento
-  // al activarse, sin importar el plan — ver BIO_PLANES.PROMOCION_LANZAMIENTO).
+  // envían resultados directamente a BIOsoft. Se cobra $10 USD POR EQUIPO,
+  // pago único — solo el primer mes en que se conecta ese equipo, nunca más
+  // (los primeros 5 son gratis como oferta de lanzamiento al activarse, sin
+  // importar el plan — ver BIO_PLANES.PROMOCION_LANZAMIENTO).
   // ------------------------------------------------------------------
   function equiposCardHtml(tenant) {
     var plan = BIO_PLANES.porId(tenant.planId);
@@ -1274,7 +1275,7 @@
       '<p class="text-muted" style="margin-top:0">Conecta analizadores de laboratorio (ej. equipos de hematología) para que envíen resultados directamente a BIOsoft, sin digitarlos a mano. ' +
       (incluido
         ? "Tu plan (" + U.esc(plan.nombre) + ") incluye la conexión de equipos sin costo adicional."
-        : "Cada equipo conectado tiene un costo adicional de $" + costo.costoPorEquipoUsd + " USD/mes (≈ $" + costo.costoPorEquipoCopFmt + " COP) sobre tu plan actual.") +
+        : "Cada equipo conectado tiene un costo adicional de $" + costo.costoPorEquipoUsd + " USD (≈ $" + costo.costoPorEquipoCopFmt + " COP) — pago único, se cobra solo el primer mes en que conectas ese equipo; después no se vuelve a cobrar por él.") +
       "</p>" +
       (equipos.length
         ? '<div class="table-wrap"><table><thead><tr><th>Equipo</th><th>Examen asociado</th><th>Estado</th><th>Clave de interfaz</th><th></th></tr></thead><tbody>' +

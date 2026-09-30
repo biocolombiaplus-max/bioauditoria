@@ -739,7 +739,7 @@
 
     recuadro("Oferta de lanzamiento — gratis al aceptar esta propuesta hoy", [
       "Implementación, adaptación del catálogo y capacitación virtual a la medida de tu laboratorio: normalmente $" + PROMO.implementacionUsd + " USD, HOY sin ningún costo.",
-      "Conexión de hasta " + PROMO.equiposGratis + " equipos de laboratorio por interfaz (LIS): normalmente $" + PROMO.costoPorEquipoUsd + " USD/mes por equipo, HOY sin ningún costo."
+      "Conexión de hasta " + PROMO.equiposGratis + " equipos de laboratorio por interfaz (LIS): normalmente $" + PROMO.costoPorEquipoUsd + " USD por equipo (pago único, solo el primer mes de ese equipo), HOY sin ningún costo."
     ]);
 
     tituloSeccion("Todo lo que incluye tu BIOsoft");
@@ -851,8 +851,176 @@
     return new Uint8Array(doc.output("arraybuffer"));
   }
 
+  // -----------------------------------------------------------------------
+  // COTIZACIÓN COMERCIAL FORMAL — a diferencia de la Propuesta (arriba, con
+  // capturas de pantalla y copy de venta), esta es la versión "documento
+  // formal": numerada, con fecha de emisión y vigencia, identificación de
+  // ambas partes, y todo en tablas itemizadas — pensada para que el cliente
+  // (o su laboratorio) pueda presentarla como soporte de la solución
+  // tecnológica contratada ante la Secretaría de Salud u otro ente de
+  // vigilancia y control. No requiere que el destinatario ya sea un lead
+  // del CRM ni un laboratorio ya creado (ver views-crm.js -> abrirGenerarCotizacion):
+  // basta con escribir sus datos a mano.
+  // -----------------------------------------------------------------------
+  function generarNumeroCotizacion() {
+    return "BIOSOFT-COT-" + new Date().getFullYear() + "-" + String(Math.floor(1000 + Math.random() * 9000));
+  }
+
+  function buildCotizacionPDF(datos, opts) {
+    datos = datos || {};
+    opts = opts || {};
+    var jsPDFCtor = window.jspdf ? window.jspdf.jsPDF : window.jsPDF;
+    var doc = new jsPDFCtor({ unit: "pt", format: "letter" });
+    var pageW = doc.internal.pageSize.getWidth();
+    var margin = 50;
+    var maxW = pageW - margin * 2;
+    var PLANES = (window.BIO_PLANES && window.BIO_PLANES.PLANES) || [];
+    var ITEMS = (PLANES[0] && PLANES[0].items) || [];
+    var IMPL = (window.BIO_PLANES && window.BIO_PLANES.IMPLEMENTACION) || {};
+    var EQUIPOS = (window.BIO_PLANES && window.BIO_PLANES.INTERFAZ_EQUIPOS) || {};
+    var PROMO = (window.BIO_PLANES && window.BIO_PLANES.PROMOCION_LANZAMIENTO) || {};
+    var TARJETAS = (window.BIO_PLANES && window.BIO_PLANES.TARJETAS_TXT) || "";
+    var numero = opts.numero || generarNumeroCotizacion();
+    var fechaEmision = opts.fechaEmision ? new Date(opts.fechaEmision) : new Date();
+    var validezDias = opts.validezDias || 15;
+    var fechaVence = new Date(fechaEmision.getTime() + validezDias * 86400000);
+    var incluirPromo = opts.incluirPromo !== false;
+
+    var y = encabezado(doc, margin, "COTIZACIÓN COMERCIAL", "N.° " + numero);
+
+    function checkPage(minSpace) { if (y > 760 - (minSpace || 40)) { doc.addPage(); y = margin; } }
+    function parrafo(t, o) {
+      o = o || {};
+      doc.setFont("helvetica", o.bold ? "bold" : "normal"); doc.setFontSize(o.size || 9.5); doc.setTextColor.apply(doc, o.color || [40, 40, 40]);
+      var lines = doc.splitTextToSize(t, o.maxW || maxW);
+      checkPage(lines.length * (o.lineH || 13) + 10);
+      doc.text(lines, margin, y);
+      y += lines.length * (o.lineH || 13) + (o.gap != null ? o.gap : 12);
+      return lines.length;
+    }
+    function tituloSeccion(t) {
+      checkPage(34);
+      doc.setFillColor(249, 115, 22); doc.rect(margin, y - 10, 3, 14, "F");
+      doc.setFont("helvetica", "bold"); doc.setFontSize(11); doc.setTextColor(46, 16, 101);
+      doc.text(t.toUpperCase(), margin + 10, y);
+      y += 18;
+    }
+
+    doc.setFont("helvetica", "normal"); doc.setFontSize(9); doc.setTextColor(90, 90, 90);
+    doc.text("Fecha de emisión: " + fechaLarga(fechaEmision) + "   ·   Válida hasta: " + fechaLarga(fechaVence) + " (" + validezDias + " días)", margin, y);
+    y += 24;
+
+    // Identificación de ambas partes, en dos columnas — mismo espíritu que
+    // el bloque de firmas del Contrato y del Recibo de Pago, pero al inicio
+    // del documento (como corresponde a una cotización formal).
+    checkPage(90);
+    var col2 = margin + maxW / 2 + 10;
+    doc.setFont("helvetica", "bold"); doc.setFontSize(9.5); doc.setTextColor(46, 16, 101);
+    doc.text("COTIZADO A", margin, y);
+    doc.text("COTIZADO POR", col2, y);
+    y += 14;
+    doc.setFont("helvetica", "normal"); doc.setFontSize(9); doc.setTextColor(40, 40, 40);
+    var clienteLineas = [
+      datos.empresa || datos.nombre || "—",
+      datos.nit ? "NIT/Documento: " + datos.nit : null,
+      datos.contacto && datos.empresa ? "Contacto: " + datos.contacto : null,
+      datos.ciudad ? datos.ciudad + (datos.pais ? ", " + datos.pais : "") : (datos.pais || null),
+      datos.correo || null,
+      datos.whatsapp ? "WhatsApp: +" + datos.whatsapp : null
+    ].filter(Boolean);
+    var proveedorLineas = [
+      PROVEEDOR.nombre, "NIT " + PROVEEDOR.nit, "Rep. Legal: " + PROVEEDOR.representanteLegal,
+      PROVEEDOR.correo, "WhatsApp: +" + PROVEEDOR.whatsapp
+    ];
+    var maxLineas = Math.max(clienteLineas.length, proveedorLineas.length);
+    for (var li = 0; li < maxLineas; li++) {
+      if (clienteLineas[li]) doc.text(String(clienteLineas[li]), margin, y + li * 13, { maxWidth: maxW / 2 - 20 });
+      if (proveedorLineas[li]) doc.text(String(proveedorLineas[li]), col2, y + li * 13, { maxWidth: maxW / 2 - 20 });
+    }
+    y += maxLineas * 13 + 22;
+
+    tituloSeccion("Objeto de la cotización");
+    parrafo(
+      "Esta cotización tiene por objeto la prestación del servicio de licenciamiento de uso, bajo la modalidad de software como servicio (SaaS, en la nube, sin instalación local), del sistema " + PROVEEDOR.producto +
+      ", para la gestión integral del laboratorio clínico de " + (datos.empresa || datos.nombre || "EL CLIENTE") +
+      ", incluyendo los módulos y funcionalidades detallados a continuación. Este documento puede presentarse como soporte de la solución tecnológica adoptada ante la Secretaría de Salud u otro ente de vigilancia y control, sin perjuicio de la suscripción del Contrato de Prestación de Servicios correspondiente, previo a la activación del servicio."
+    );
+
+    tituloSeccion("Módulos y funcionalidades incluidas en la licencia");
+    parrafo("Los módulos de abajo se incluyen COMPLETOS en cualquiera de los planes de abajo — no hay módulos “premium” aparte ni cobros ocultos por función.", { size: 9, color: [90, 90, 90], gap: 10 });
+    var mitad = Math.ceil(ITEMS.length / 2);
+    var filasItems = [];
+    for (var fi = 0; fi < mitad; fi++) filasItems.push(["- " + ITEMS[fi], ITEMS[mitad + fi] ? "- " + ITEMS[mitad + fi] : ""]);
+    checkPage(filasItems.length * 16 + 20);
+    doc.autoTable({
+      startY: y, margin: { left: margin, right: margin },
+      body: filasItems, theme: "plain",
+      styles: { fontSize: 9.3, textColor: [40, 40, 40], cellPadding: { top: 2.5, bottom: 2.5, left: 0, right: 10 } },
+      columnStyles: { 0: { cellWidth: maxW / 2 }, 1: { cellWidth: maxW / 2 } }
+    });
+    y = doc.lastAutoTable.finalY + 18;
+
+    tituloSeccion("Planes disponibles por usuarios (Colombia)");
+    checkPage(120);
+    doc.autoTable({
+      startY: y, margin: { left: margin, right: margin },
+      head: [["Plan", "Usuarios simultáneos", "Valor mensual"]],
+      body: PLANES.map(function (p) {
+        return [p.nombre + (p.destacado ? " (recomendado)" : ""), p.usuarios, "$" + p.precioFmt + " COP/mes\n(aprox. $" + p.usd + " USD)"];
+      }),
+      theme: "grid",
+      styles: { fontSize: 9.5, cellPadding: 8, valign: "middle" },
+      headStyles: { fillColor: [46, 16, 101], textColor: 255, fontStyle: "bold" },
+      columnStyles: { 2: { fontStyle: "bold", halign: "right" } },
+      didParseCell: function (data) {
+        if (data.section === "body" && PLANES[data.row.index] && PLANES[data.row.index].destacado) {
+          data.cell.styles.fillColor = [255, 247, 237];
+        }
+      }
+    });
+    y = doc.lastAutoTable.finalY + 18;
+
+    tituloSeccion("Costos adicionales — pago único");
+    checkPage(110);
+    var filasCostos = [
+      ["Implementación, configuración del catálogo y capacitación inicial", "$" + IMPL.copFmt + " COP\n(aprox. $" + IMPL.usd + " USD)",
+        "Pago único — se cobra una sola vez, al activarse" + (incluirPromo ? ". SIN COSTO si te activas dentro de la vigencia de esta cotización." : ".")],
+      ["Conexión de equipo de laboratorio (interfaz LIS), por cada equipo", "$" + EQUIPOS.costoPorEquipoCopFmt + " COP\n(aprox. $" + EQUIPOS.costoPorEquipoUsd + " USD)",
+        "Pago único — se cobra SOLO el primer mes en que se conecta ese equipo; nunca se vuelve a cobrar por él después." + (incluirPromo ? " Los primeros " + (PROMO.equiposGratis || 5) + " equipos son gratis si te activas dentro de la vigencia de esta cotización." : "")]
+    ];
+    doc.autoTable({
+      startY: y, margin: { left: margin, right: margin },
+      head: [["Concepto", "Valor", "Condición de cobro"]],
+      body: filasCostos, theme: "grid",
+      styles: { fontSize: 8.7, cellPadding: 7, valign: "top" },
+      headStyles: { fillColor: [46, 16, 101], textColor: 255, fontStyle: "bold" },
+      columnStyles: { 0: { cellWidth: maxW * 0.3 }, 1: { cellWidth: maxW * 0.16, fontStyle: "bold" }, 2: { cellWidth: maxW * 0.54 } }
+    });
+    y = doc.lastAutoTable.finalY + 20;
+
+    tituloSeccion("Condiciones comerciales");
+    parrafo("- Vigencia de esta cotización: " + validezDias + " días calendario a partir de la fecha de emisión. Vencido este plazo, los valores pueden actualizarse sin previo aviso.", { gap: 6 });
+    parrafo("- Modalidad de pago: mensualidad por adelantado, sin permanencia mínima obligatoria — el Contrato de Prestación de Servicios tiene vigencia indefinida y cualquiera de las partes puede terminarlo con treinta (30) días de aviso previo.", { gap: 6 });
+    // TARJETAS_TXT trae un emoji 💳 al inicio (pensado para pantalla) que
+    // jsPDF/Helvetica no puede renderizar (bug real detectado al generar
+    // esta cotización: salía como "Ø=Ü³" y descuadraba la línea) — se quita
+    // aquí, solo para el PDF.
+    parrafo("- Medios de pago aceptados: " + TARJETAS.replace(/^💳\s*/, ""), { gap: 6 });
+    parrafo("- Este documento es una cotización informativa y no constituye una factura de venta ni el Contrato de Prestación de Servicios. La relación contractual se formaliza mediante la suscripción del Contrato de Prestación de Servicios de Software y Licencia de Uso correspondiente, previo a la activación del servicio.", { gap: 6 });
+
+    checkPage(60);
+    parrafo(
+      "¿Deseas activar tu BIOsoft o tienes dudas sobre esta cotización? Escríbenos por WhatsApp al +" + PROVEEDOR.whatsapp + " o respóndenos a " + PROVEEDOR.correo + ".",
+      { bold: true, color: [20, 20, 20] }
+    );
+
+    piePagina(doc, margin);
+    return new Uint8Array(doc.output("arraybuffer"));
+  }
+
   global.BIO_PDF_CRM = {
     buildContratoPDF: buildContratoPDF, buildReciboPDF: buildReciboPDF, buildPropuestaPDF: buildPropuestaPDF,
-    buildLicenciaPDF: buildLicenciaPDF, generarNumeroLicencia: generarNumeroLicencia, PROVEEDOR: PROVEEDOR
+    buildLicenciaPDF: buildLicenciaPDF, generarNumeroLicencia: generarNumeroLicencia, PROVEEDOR: PROVEEDOR,
+    buildCotizacionPDF: buildCotizacionPDF, generarNumeroCotizacion: generarNumeroCotizacion
   };
 })(window);

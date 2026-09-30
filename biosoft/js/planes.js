@@ -7,10 +7,13 @@
   var IMPLEMENTACION = { cop: 380000, copFmt: "380.000", usd: 120, cuotaCop: 190000, cuotaCopFmt: "190.000", cuotaUsd: 60 };
 
   /* Conexión de equipos (interfaz con analizadores, ej. hematología,
-     química) — se cobra por equipo conectado como ingreso adicional
-     recurrente, salvo la oferta de lanzamiento (ver PROMOCION_LANZAMIENTO
-     abajo), que regala los primeros equipos al activarse. */
-  var INTERFAZ_EQUIPOS = { costoPorEquipoUsd: 10, costoPorEquipoCop: 40000, costoPorEquipoCopFmt: "40.000" };
+     química) — PAGO ÚNICO por equipo conectado, cobrado solo el mes en que
+     se conecta ese equipo; nunca se vuelve a cobrar por él después (NO es
+     una cuota mensual recurrente). La oferta de lanzamiento (ver
+     PROMOCION_LANZAMIENTO abajo) regala además los primeros equipos al
+     activarse. */
+  var INTERFAZ_EQUIPOS = { costoPorEquipoUsd: 10, costoPorEquipoCop: 40000, costoPorEquipoCopFmt: "40.000", pagoUnico: true,
+    descripcionCobro: "Pago único por equipo — se cobra solo el primer mes en que se conecta ese equipo; después no se vuelve a cobrar por él." };
 
   /* Política de precios vigente (agosto 2026): los 4 planes incluyen
      EXACTAMENTE lo mismo — todos los módulos, con inteligencia artificial
