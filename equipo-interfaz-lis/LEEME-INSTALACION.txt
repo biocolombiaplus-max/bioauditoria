@@ -121,7 +121,10 @@ ni sigas al siguiente paso sin avisarnos primero)
 
        node capturar-hl7.js servidor 5150
 
-   y presiona Enter.
+   y presiona Enter. (Atajo: en vez de escribir esto, también puedes
+   hacer doble clic en el archivo "Iniciar-Captura-Prueba.bat" que está
+   dentro de "la carpeta" — hace exactamente lo mismo, sin tener que
+   escribir nada.)
 2. Va a aparecer un mensaje con una o varias direcciones IP de esta
    computadora — se ven como 4 números separados por puntos, por ejemplo
    "192.168.1.45". ANOTA esa dirección en un papel o en el celular
@@ -175,9 +178,13 @@ Cuando te confirmemos que todo coincide, te vamos a dar:
 - Los datos exactos para completar un archivo llamado "config-bs220.json"
   (te diremos exactamente qué escribir y dónde, con el mismo nivel de
   detalle que este instructivo).
-- El comando final para dejar el programa funcionando todos los días
-  (será algo como "node index-hl7.js config-bs220.json", escrito en la
-  ventana negra igual que en los pasos anteriores).
+- Para el día a día, ya no hace falta escribir ningún comando: dentro
+  de "la carpeta" hay un archivo llamado "Iniciar-Interfaz-BS220.bat" —
+  cada mañana, solo hay que hacer DOBLE CLIC sobre él y esperar a que
+  diga "Escuchando en el puerto" y "Sesión iniciada". Lee el archivo
+  "USO-DIARIO-Y-EVITAR-FALLOS.txt" (está en la misma carpeta) para ver
+  esto paso a paso, además de un ajuste de una sola vez que evita que
+  la conexión se "pierda" al apagar y prender la computadora.
 
 No hace falta que hagas nada de esto todavía — espera nuestra
 confirmación después de enviarnos el archivo del Paso 5.
@@ -206,6 +213,15 @@ confirmación después de enviarnos el archivo del Paso 5.
        instaló el internet del laboratorio si tienes dudas.
     4. Vuelve a correr la muestra de control en el equipo una vez más,
        con la ventana negra ya abierta y visible ANTES de correrla.
+- Si esto YA HABÍA FUNCIONADO ANTES (otro día sí transmitió) y de
+  repente dejó de hacerlo después de apagar y prender la computadora o
+  el equipo: lo más probable es que la IP de la computadora cambió sola
+  al reconectarse a la red. Compara la IP que muestra la ventana negra
+  ahora contra la que está escrita en "IP host LIS" en el equipo — si
+  son distintas, actualiza el equipo con la nueva. Para que esto NO
+  vuelva a pasar nunca más, sigue la Parte B de
+  "USO-DIARIO-Y-EVITAR-FALLOS.txt" (fijar la IP de la computadora una
+  sola vez).
 - Cualquier duda en cualquier paso: toma una foto o captura de pantalla
   de lo que ves (la ventana negra, la pantalla del equipo) y envíala —
   es más fácil ayudarte viendo exactamente qué pasa.

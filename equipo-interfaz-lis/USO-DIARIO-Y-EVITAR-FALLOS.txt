@@ -1,0 +1,127 @@
+========================================================================
+ BIOsoft — Uso de cada día + cómo evitar que la conexión falle al
+ apagar/prender la computadora o el equipo
+========================================================================
+
+Este documento tiene DOS partes:
+  PARTE A: lo que se hace CADA DÍA (toma 10 segundos).
+  PARTE B: un ajuste que se hace UNA SOLA VEZ y evita el problema más
+           común (que deje de transmitir después de apagar y prender).
+
+------------------------------------------------------------------------
+PARTE A — Uso de cada día (después de que ya quedó instalado y probado)
+------------------------------------------------------------------------
+1. Prende la computadora y el equipo, como siempre.
+2. Abre "la carpeta" (la misma del instructivo de instalación) y haz
+   DOBLE CLIC sobre el archivo:
+
+       Iniciar-Interfaz-BS220.bat
+
+3. Se abre la ventana negra sola, con el comando ya escrito y corriendo
+   — no hay que escribir nada. Espera a que diga:
+
+       Escuchando en el puerto 5150...
+       Sesión iniciada como ...
+
+   Cuando veas esas dos líneas, ya puedes correr tus muestras en el
+   equipo con toda normalidad.
+4. Deja esa ventana negra abierta (minimizada está bien) mientras
+   trabajes con el equipo. Ciérrala solo al final del día si quieres
+   (clic dentro de ella y Ctrl + C), o simplemente déjala abierta.
+
+Si en vez de esas dos líneas ves algo en rojo, o la ventana se cierra
+sola: NO borres nada, toma una foto de la ventana completa y envíasela
+a soporte de BIOsoft.
+
+(Nota para quien instala esto: "Iniciar-Captura-Prueba.bat" es el mismo
+tipo de acceso directo, pero para el modo de SOLO PRUEBA de la Parte 5
+del instructivo de instalación — el que se usa antes de tener el
+"config-bs220.json" configurado. Para el día a día real, una vez
+BIOsoft ya confirmó que todo coincide, siempre se usa
+"Iniciar-Interfaz-BS220.bat".)
+
+------------------------------------------------------------------------
+PARTE B — Evitar que esto falle al apagar/prender (SE HACE UNA SOLA VEZ)
+------------------------------------------------------------------------
+La causa más común de que la interfaz "deje de andar" de un día para
+otro es esta: la computadora recibe una IP (una dirección como
+"192.168.1.45") automáticamente cada vez que se conecta a la red, y a
+veces esa IP CAMBIA al apagar y prender. El equipo Mindray, sin
+embargo, se quedó guardado con la IP VIEJA en su campo "IP host LIS" —
+como si le hubieran cambiado la dirección a alguien sin avisarle, la
+carta nunca llega.
+
+La solución es "fijar" esa IP para que NUNCA vuelva a cambiar sola.
+Esto se hace UNA VEZ en la computadora que corre la interfaz, y no hay
+que volver a tocarlo.
+
+1. Con la computadora conectada normalmente a la red (WiFi o cable,
+   como está funcionando ahora), abre una ventana negra (ver Paso 3 del
+   instructivo de instalación, o simplemente busca "cmd" en el menú de
+   Inicio de Windows y ábrelo).
+2. Escribe:
+
+       ipconfig
+
+   y presiona Enter. Vas a ver varios bloques de texto — busca el que
+   corresponde a la conexión que SÍ está usando ahora (dice "Adaptador
+   de Ethernet" si es cable, o "Adaptador de LAN inalámbrica Wi-Fi" si
+   es WiFi). ANOTA estos 3 datos de ESE bloque, tal cual aparecen:
+     - "Dirección IPv4" (ej. 192.168.1.45)
+     - "Máscara de subred" (ej. 255.255.255.0)
+     - "Puerta de enlace predeterminada" (ej. 192.168.1.1)
+
+3. Ve a la configuración de red de Windows:
+   - Windows 10/11: clic derecho sobre el ícono de WiFi/red (abajo a la
+     derecha, junto al reloj) -> "Abrir configuración de Red e
+     Internet" -> "Cambiar opciones del adaptador" (puede estar más
+     abajo en la misma pantalla, o buscarlo escribiendo "Ver conexiones
+     de red" en el buscador de Windows).
+   - Se abre una ventana con íconos de las conexiones (Ethernet, WiFi).
+     Haz CLIC DERECHO sobre la que está conectada ahora mismo (la misma
+     del punto 2) y elige "Propiedades".
+4. En la lista que aparece, busca "Protocolo de Internet versión 4
+   (TCP/IPv4)", haz doble clic sobre esa línea (o selecciónala y clic
+   en "Propiedades").
+5. Va a estar marcada la opción "Obtener una dirección IP
+   automáticamente". Cámbiala a "Usar la siguiente dirección IP" y
+   completa EXACTAMENTE con lo que anotaste en el punto 2:
+     - Dirección IP: (la misma IPv4 que anotaste)
+     - Máscara de subred: (la misma que anotaste — normalmente se
+       autocompleta sola a 255.255.255.0)
+     - Puerta de enlace predeterminada: (la misma que anotaste)
+   Más abajo, en "Servidor DNS preferido", escribe la misma "Puerta de
+   enlace predeterminada" (o, si prefieres, 8.8.8.8 — cualquiera de
+   las dos funciona para esto).
+6. Haz clic en "Aceptar" en ambas ventanas para guardar.
+7. Reinicia la computadora una vez, para confirmar que todo sigue
+   funcionando igual (abre "Iniciar-Interfaz-BS220.bat" de nuevo y
+   verifica que diga "Escuchando..." como siempre).
+
+Con esto, la IP de esta computadora YA NO va a cambiar nunca más sola,
+así que el campo "IP host LIS" del equipo Mindray queda bien PARA
+SIEMPRE — no hay que volver a revisarlo cada vez que se apague y
+prenda todo.
+
+------------------------------------------------------------------------
+EXTRA — Que ni siquiera haga falta hacer doble clic (opcional)
+------------------------------------------------------------------------
+Si quieres que la ventana de la interfaz se abra SOLA cada vez que se
+prenda la computadora (sin que nadie tenga que hacer doble clic en el
+.bat):
+
+1. Presiona al mismo tiempo la tecla de Windows (⊞) y la letra R.
+2. Escribe: shell:startup
+   y presiona Enter. Se abre una carpeta especial de Windows.
+3. Ve a "la carpeta" de la interfaz (donde está Iniciar-Interfaz-
+   BS220.bat), haz CLIC DERECHO sobre ese archivo y elige "Crear
+   acceso directo" (o "Enviar a" -> "Escritorio (crear acceso
+   directo)" y luego arrastra ese acceso directo a la carpeta que
+   se abrió en el paso 2).
+4. A partir de ahora, cada vez que se prenda esta computadora y alguien
+   inicie sesión en Windows, la ventana de la interfaz se va a abrir
+   sola. Solo falta prender el equipo Mindray y correr las muestras.
+
+Si en algún momento algo deja de funcionar después de todo esto, sigue
+la sección "¿Algo no funciona?" al final de LEEME-INSTALACION.txt, o
+escríbenos con una foto de la ventana negra.
