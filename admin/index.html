@@ -1789,6 +1789,9 @@ function guardarCliente() {
   usersDb[user] = { pass: pass, role: 'cliente', to: 'cliente/index.html' };
   localStorage.setItem('bio_users_db', JSON.stringify(usersDb));
 
+  // Store client data under direct key for instant lookup in portal
+  localStorage.setItem('bio_cli_' + user, JSON.stringify(cliente));
+
   // Save logo (compress if too large)
   if (logoDataUrl) {
     try {
@@ -1959,6 +1962,54 @@ function renderPendientes() {
   }).join('');
 }
 
+function copiarLinkAcceso(usuario) {
+  // Find client data
+  var usersDb = JSON.parse(localStorage.getItem('bio_users_db') || '{}');
+  var cred = usersDb[usuario];
+  if (!cred) { toast('No se encontraron credenciales para este cliente', 'err'); return; }
+  var cliData = null;
+  try { cliData = JSON.parse(localStorage.getItem('bio_cli_' + usuario) || 'null'); } catch(e) {}
+  // Build slim payload — only essential profile fields, no estandares/docs (too large for WhatsApp)
+  var slim = cliData ? {
+    nombre: cliData.nombre, empresa: cliData.empresa, nit: cliData.nit,
+    ciudad: cliData.ciudad, nivel_atencion: cliData.nivel_atencion || cliData.nivel || 1,
+    especialidad: cliData.especialidad, telefono: cliData.telefono, email: cliData.email,
+    color1: cliData.color1, color2: cliData.color2, usuario: usuario,
+    estado_habilitacion: cliData.estado_habilitacion || 'nuevo'
+  } : null;
+  var payload = { u: usuario, p: cred.pass, cli: slim };
+  var encoded = btoa(unescape(encodeURIComponent(JSON.stringify(payload))));
+  var link = 'https://bioauditoria.com/?setup=' + encoded;
+  // Copy to clipboard
+  if (navigator.clipboard) {
+    navigator.clipboard.writeText(link).then(function() {
+      toast('✅ Link copiado — envíalo al cliente por WhatsApp', 'ok');
+    });
+  } else {
+    // Fallback
+    var ta = document.createElement('textarea');
+    ta.value = link;
+    document.body.appendChild(ta);
+    ta.select();
+    document.execCommand('copy');
+    document.body.removeChild(ta);
+    toast('✅ Link copiado — envíalo al cliente por WhatsApp', 'ok');
+  }
+  // Also offer WhatsApp send
+  var nombre = cliData ? (cliData.nombre || usuario) : usuario;
+  setTimeout(function() {
+    if (confirm('¿Enviar link de acceso por WhatsApp a ' + nombre + '?')) {
+      var msg = '¡Hola ' + nombre + '! 👋\n\n' +
+        'Abre este link para activar tu acceso a BIOAuditoria:\n' +
+        link + '\n\n' +
+        'Usuario: *' + usuario + '*\n' +
+        'Contraseña: *' + cred.pass + '*\n\n' +
+        '_Solo necesitas abrir el link una vez en cada dispositivo._';
+      window.open('https://wa.me/?text=' + encodeURIComponent(msg), '_blank');
+    }
+  }, 500);
+}
+
 function eliminarCliente(idx, nombre) {
   if (!confirm('¿Eliminar a ' + nombre + '? Esta acción no se puede deshacer.')) return;
   var clientes = JSON.parse(localStorage.getItem('bio_clientes_list') || '[]');
@@ -1966,7 +2017,10 @@ function eliminarCliente(idx, nombre) {
   if (!cli) return;
   // Remove credentials from users db
   var usersDb = JSON.parse(localStorage.getItem('bio_users_db') || '{}');
-  if (cli.usuario) delete usersDb[cli.usuario];
+  if (cli.usuario) {
+    delete usersDb[cli.usuario];
+    localStorage.removeItem('bio_cli_' + cli.usuario);
+  }
   localStorage.setItem('bio_users_db', JSON.stringify(usersDb));
   clientes.splice(idx, 1);
   localStorage.setItem('bio_clientes_list', JSON.stringify(clientes));
@@ -2046,6 +2100,9 @@ function guardarEdicion() {
   cli.usuario = newUser;
   clientes[_editIdx] = cli;
   localStorage.setItem('bio_clientes_list', JSON.stringify(clientes));
+  // Update direct lookup key (rename if username changed)
+  if (oldUser !== newUser) localStorage.removeItem('bio_cli_' + oldUser);
+  localStorage.setItem('bio_cli_' + newUser, JSON.stringify(cli));
 
   // Update credentials in users db
   var usersDb = JSON.parse(localStorage.getItem('bio_users_db') || '{}');
@@ -2146,7 +2203,8 @@ function renderCli() {
     var idx = cli._base ? -1 : savedClientes.indexOf(cli);
     var actions = cli._base
       ? '<span class="status sv">Base</span>'
-      : '<div style="display:flex;gap:6px;align-items:center">' +
+      : '<div style="display:flex;gap:6px;align-items:center;flex-wrap:wrap">' +
+        '<button onclick="copiarLinkAcceso(\'' + (cli.usuario||'') + '\')" style="padding:5px 11px;border:1px solid rgba(34,197,94,0.4);border-radius:7px;background:rgba(34,197,94,0.08);color:#22C55E;font-size:11px;font-weight:600;cursor:pointer;font-family:inherit;display:flex;align-items:center;gap:4px"><i class="fas fa-link" style="font-size:10px"></i> Link acceso</button>' +
         '<button onclick="editarCliente(' + idx + ')" style="padding:5px 11px;border:1px solid var(--bd2);border-radius:7px;background:var(--dark4);color:var(--text2);font-size:11px;font-weight:600;cursor:pointer;font-family:inherit;display:flex;align-items:center;gap:4px"><i class="fas fa-pen" style="font-size:10px"></i> Editar</button>' +
         '<button onclick="eliminarCliente(' + idx + ',\'' + (cli.nombre||'').replace(/'/g,"\\'") + '\')" style="padding:5px 11px;border:1px solid var(--rb);border-radius:7px;background:var(--rbg);color:var(--red);font-size:11px;font-weight:600;cursor:pointer;font-family:inherit;display:flex;align-items:center;gap:4px"><i class="fas fa-trash" style="font-size:10px"></i> Eliminar</button>' +
         '<span class="status sv">Activo</span></div>';
