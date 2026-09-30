@@ -200,7 +200,13 @@
       // nada, solo un clic de más.
       if (g.exams.length === 1) {
         var r = g.exams[0];
-        return "<tr><td>" + prioridadHtml + "</td><td>" + g.order.numeroOrden + "</td><td>" + nombrePac + "</td><td>" + nombreExamenDe(r) + "</td><td>" + C.seccionNombre(r.ex.seccion, tenant) + "</td>" +
+        // El mismo espacio reservado del chevron de una fila desplegable
+        // (invisible aquí, ver .fila-grupo-chevron.invisible) — para que el
+        // nombre del paciente arranque siempre en la MISMA posición sin
+        // importar si esa orden tiene uno o varios exámenes; antes, sin
+        // este espacio, la columna se veía despareja (unos nombres más a
+        // la izquierda que otros).
+        return "<tr><td>" + prioridadHtml + "</td><td>" + g.order.numeroOrden + "</td><td>" + U.icon("chevron-down", "fila-grupo-chevron invisible") + nombrePac + "</td><td>" + nombreExamenDe(r) + "</td><td>" + C.seccionNombre(r.ex.seccion, tenant) + "</td>" +
           "<td>" + window.BIO_badgeEstado(r.ex.estado === "en_proceso" ? "pendiente" : r.ex.estado) + '</td><td><button class="btn btn-outline btn-sm" data-go="' + g.order.id + '">Abrir</button></td></tr>';
       }
       // Con varios exámenes: una fila RESUMEN (clicable para desplegar) con

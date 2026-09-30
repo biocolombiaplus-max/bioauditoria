@@ -147,6 +147,7 @@ input[type="color"] { padding: 3px; height: 42px; }
 .fila-grupo-resumen:hover { background: var(--surface-2); }
 .fila-grupo-chevron { width: 14px; height: 14px; margin-right: 6px; vertical-align: -2px; color: var(--text-muted); transition: transform .15s ease; display: inline-block; }
 .fila-grupo-chevron.abierto { transform: rotate(180deg); }
+.fila-grupo-chevron.invisible { visibility: hidden; }
 .fila-examen-detalle td { background: var(--surface-2); }
 .fila-examen-detalle td:nth-child(4) { padding-left: 28px; }
 input[type="checkbox"], input[type="radio"] { width: auto; flex-shrink: 0; padding: 0; accent-color: var(--brand-primary); }
