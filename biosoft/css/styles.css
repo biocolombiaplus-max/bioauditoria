@@ -156,6 +156,16 @@ input[type="color"] { padding: 3px; height: 42px; }
 .fila-grupo-chevron.invisible { visibility: hidden; }
 .fila-examen-detalle td { background: var(--surface-2); }
 .fila-examen-detalle td:nth-child(4) { padding-left: 28px; }
+/* Órdenes de Laboratorio: clic en el paciente despliega los exámenes de su
+   orden sin salir de la lista ni navegar al detalle completo — útil sobre
+   todo en celular, donde la tabla no muestra todas las columnas a la vez. */
+.orden-paciente-toggle { cursor: pointer; display: inline-flex; align-items: center; }
+.orden-paciente-toggle:hover { color: var(--brand-primary); text-decoration: underline; }
+.orden-examenes-lista { display: flex; flex-direction: column; gap: 6px; padding: 4px 0 4px 24px; }
+/* Nombre y estado van pegados (no space-between) para que el estado nunca
+   quede fuera de la pantalla en celular, donde la tabla ya necesita scroll
+   horizontal — justo la molestia que este despliegue busca evitar. */
+.orden-examen-item { display: flex; align-items: center; flex-wrap: wrap; gap: 10px; font-size: 13px; }
 input[type="checkbox"], input[type="radio"] { width: auto; flex-shrink: 0; padding: 0; accent-color: var(--brand-primary); }
 textarea { resize: vertical; min-height: 70px; }
 .form-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 14px 18px; }

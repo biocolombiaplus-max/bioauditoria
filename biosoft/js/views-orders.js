@@ -31,6 +31,11 @@
   // registrar un pago desde la misma lista) — mismo patrón que el
   // buscador del catálogo en views-admin.js.
   var ordenesSearchTerm = "";
+  // Igual que en la Bandeja de Resultados: qué filas de orden están
+  // desplegadas mostrando sus exámenes, a nivel de módulo para que no se
+  // cierren solas al registrar un pago u otra acción que vuelva a pintar
+  // la lista.
+  var ordenesExpandidas = {};
 
   window.BIO_VIEWS.ordenes = function (root, param) {
     if (param && (param === "nueva" || param.indexOf("nueva-") === 0)) {
@@ -73,6 +78,13 @@
       '<div class="table-wrap"><table><thead><tr><th>N° Orden</th><th>Paciente</th><th>Fecha</th><th>Prioridad</th><th># Exámenes</th>' + (conPrecio ? "<th>Valor a Cobrar</th>" : "") + (conEstadoPago ? "<th>Pago</th>" : "") + '<th>Estado</th><th></th></tr></thead><tbody>' +
       (orders.length ? orders.map(function (o) { return rowOrder(o, conPrecio, conEstadoPago, tenant); }).join("") : '<tr><td colspan="' + (7 + (conPrecio ? 1 : 0) + (conEstadoPago ? 1 : 0)) + '" class="text-muted">' + (term ? "Ningún paciente u orden coincide con “" + U.esc(ordenesSearchTerm) + "”." : "No hay órdenes registradas.") + "</td></tr>") +
       "</tbody></table></div></div>";
+    root.querySelectorAll("[data-toggle-orden]").forEach(function (el) {
+      el.addEventListener("click", function () {
+        var id = el.dataset.toggleOrden;
+        ordenesExpandidas[id] = !ordenesExpandidas[id];
+        renderList(root);
+      });
+    });
     document.getElementById("btn-new-ord").addEventListener("click", function () { location.hash = "#/ordenes/nueva"; });
     var inputBuscar = document.getElementById("ord-buscar");
     inputBuscar.addEventListener("input", function (e) {
@@ -140,11 +152,20 @@
         celdaPago = '<td><span class="badge badge-pendiente">Pago pendiente</span> <button class="btn btn-outline btn-sm" style="margin-top:4px" data-registrar-pago-orden="' + o.id + '">' + U.icon("check") + " Registrar Pago</button></td>";
       }
     }
-    return "<tr><td><b>" + o.numeroOrden + "</b>" + (o.convenioNombre ? '<div class="text-muted" style="font-size:11px">🤝 ' + U.esc(o.convenioNombre) + "</div>" : "") + "</td><td>" + (pac ? U.esc(U.nombreCompleto(pac)) : "—") + "</td><td>" + U.fmtFecha(o.fechaOrden) + "</td>" +
+    var abierto = !!ordenesExpandidas[o.id];
+    var colspanTotal = 7 + (conPrecio ? 1 : 0) + (conEstadoPago ? 1 : 0);
+    var filaPrincipal = "<tr><td><b>" + o.numeroOrden + "</b>" + (o.convenioNombre ? '<div class="text-muted" style="font-size:11px">🤝 ' + U.esc(o.convenioNombre) + "</div>" : "") + "</td><td><span class=\"orden-paciente-toggle\" data-toggle-orden=\"" + o.id + "\">" + U.icon("chevron-down", "fila-grupo-chevron" + (abierto ? " abierto" : "")) + " " + (pac ? U.esc(U.nombreCompleto(pac)) : "—") + "</span></td><td>" + U.fmtFecha(o.fechaOrden) + "</td>" +
       '<td><span class="badge badge-' + (o.prioridad === "Urgente" ? "urgente" : "rutina") + '">' + o.prioridad + "</span></td>" +
       "<td>" + o.examenes.length + "</td>" + (conPrecio ? "<td>" + (o.valorCobrar ? fmtMoneda(o.valorCobrar) + fmtMonedaEquiv(tenant, o.valorCobrar) + (o.monedaPago ? ' <span class="text-muted" style="font-size:11px">· ' + o.monedaPago + "</span>" : "") : "—") + "</td>" : "") + celdaPago +
       "<td>" + window.BIO_badgeEstado(o.estadoGeneral) + '</td><td class="flex gap-2 wrap"><button class="btn btn-outline btn-sm" data-view="' + o.id + '">Ver</button>' +
       '<button class="btn btn-ghost btn-sm" data-eliminar-orden="' + o.id + '" title="Eliminar esta orden (ej. se creó de más por error)">' + U.icon("trash") + "</button></td></tr>";
+    if (!abierto) return filaPrincipal;
+    return filaPrincipal + '<tr class="fila-examen-detalle"><td colspan="' + colspanTotal + '"><div class="orden-examenes-lista">' +
+      o.examenes.map(function (ex) {
+        var exCat = C.examenEfectivo(ex.examId, tenant);
+        return '<div class="orden-examen-item"><span>' + U.esc(exCat.nombre) + "</span>" + window.BIO_badgeEstado(ex.estado === "en_proceso" ? "pendiente" : ex.estado) + "</div>";
+      }).join("") +
+      "</div></td></tr>";
   }
 
   // Paquetes de exámenes (ej. "Perfil Lipídico"): se crean en Cotizaciones
