@@ -11,6 +11,7 @@
   --surface: #ffffff;
   --surface-2: #f8fafc;
   --border: #e4e9ee;
+  --field-border: #aab6c2;
   --text: #172433;
   --text-muted: #64748b;
   --danger: #d64545;
@@ -105,8 +106,13 @@ button { font-family: inherit; }
 /* ---------------- Formularios ---------------- */
 label { font-size: 12.5px; font-weight: 600; color: var(--text-muted); display: block; margin-bottom: 5px; }
 .field { margin-bottom: 14px; }
+/* Borde de los campos de formulario más oscuro que el borde genérico de
+   tarjetas/tablas (--border) — a propósito distinto: un campo en el que
+   hay que hacer clic para escribir necesita un borde bien visible para
+   que nunca se confunda con simple texto o se pierda de vista dónde
+   completar, mientras que separadores y tarjetas se ven mejor sutiles. */
 input, select, textarea {
-  width: 100%; padding: 10px 12px; border: 1.5px solid var(--border); border-radius: 9px;
+  width: 100%; padding: 10px 12px; border: 1.5px solid var(--field-border); border-radius: 9px;
   font-size: 14px; font-family: inherit; background: #fff; color: var(--text); outline: none;
   transition: border-color .15s ease, box-shadow .15s ease;
 }
