@@ -1789,6 +1789,9 @@ function guardarCliente() {
   usersDb[user] = { pass: pass, role: 'cliente', to: 'cliente/index.html' };
   localStorage.setItem('bio_users_db', JSON.stringify(usersDb));
 
+  // Store client data under direct key for instant lookup in portal
+  localStorage.setItem('bio_cli_' + user, JSON.stringify(cliente));
+
   // Save logo (compress if too large)
   if (logoDataUrl) {
     try {
@@ -1966,7 +1969,10 @@ function eliminarCliente(idx, nombre) {
   if (!cli) return;
   // Remove credentials from users db
   var usersDb = JSON.parse(localStorage.getItem('bio_users_db') || '{}');
-  if (cli.usuario) delete usersDb[cli.usuario];
+  if (cli.usuario) {
+    delete usersDb[cli.usuario];
+    localStorage.removeItem('bio_cli_' + cli.usuario);
+  }
   localStorage.setItem('bio_users_db', JSON.stringify(usersDb));
   clientes.splice(idx, 1);
   localStorage.setItem('bio_clientes_list', JSON.stringify(clientes));
@@ -2046,6 +2052,9 @@ function guardarEdicion() {
   cli.usuario = newUser;
   clientes[_editIdx] = cli;
   localStorage.setItem('bio_clientes_list', JSON.stringify(clientes));
+  // Update direct lookup key (rename if username changed)
+  if (oldUser !== newUser) localStorage.removeItem('bio_cli_' + oldUser);
+  localStorage.setItem('bio_cli_' + newUser, JSON.stringify(cli));
 
   // Update credentials in users db
   var usersDb = JSON.parse(localStorage.getItem('bio_users_db') || '{}');
