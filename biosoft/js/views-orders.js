@@ -1110,6 +1110,7 @@
         '<div class="card">' +
           '<div class="card-header"><h3 class="card-title">Orden ' + order.numeroOrden + " — " + window.BIO_badgeEstado(order.estadoGeneral) + '</h3>' +
           '<div class="flex gap-2 wrap"><a class="btn btn-ghost btn-sm" id="btn-back">Volver</a>' +
+          '<button class="btn btn-outline btn-sm" id="btn-editar-orden">' + U.icon("edit") + " Editar Orden</button>" +
           '<button class="btn btn-primary btn-sm" id="btn-agregar-examenes">' + U.icon("plus") + " Agregar Exámenes</button>" +
           '<button class="btn btn-outline btn-sm" id="btn-stickers">' + U.icon("printer") + " Imprimir Stickers</button>" +
           '<button class="btn btn-ghost btn-sm" id="btn-stickers-preview" title="Ver antes de imprimir o elegir otra impresora">Vista previa de stickers</button>' +
@@ -1131,6 +1132,7 @@
             field("Prioridad", order.prioridad) +
             field("Fecha de Orden", U.fmtFecha(order.fechaOrden)) +
             field("Diagnóstico", order.diagnostico || "—") +
+            field("Convenio / Empresa Aliada", order.convenioNombre || "Sin convenio (particular)") +
             (tenant.mostrarPrecioOrden ? fieldHtml("Valor a Cobrar", order.valorCobrar ? U.esc(fmtMoneda(order.valorCobrar)) + fmtMonedaEquiv(tenant, order.valorCobrar) : "—") : "") +
             (order.monedaPago ? field("Moneda de Pago", C.monedaPagoLabel(order.monedaPago)) : "") +
             (puedeReciboOrden(tenant) ? field("Estado de Pago", !order.pago ? "Pendiente de confirmar"
@@ -1164,6 +1166,7 @@
           }).join("") + "</tbody></table></div></div>" : "");
 
       document.getElementById("btn-back").addEventListener("click", function () { location.hash = "#/ordenes"; });
+      document.getElementById("btn-editar-orden").addEventListener("click", function () { abrirEditarOrden(order, tenant, build); });
       document.getElementById("btn-agregar-examenes").addEventListener("click", function () { abrirAgregarExamenesOrden(order, pac, tenant, build); });
       document.getElementById("btn-preview").addEventListener("click", function () { window.BIO_PDF.previewOrModal(order, pac, tenant); });
       document.getElementById("btn-stickers").addEventListener("click", function () { window.BIO_PDF.imprimirStickersRapido(order, pac, tenant); });
@@ -1439,6 +1442,76 @@
       var btnCompartirRem = wrap.querySelector("#rem-compartir");
       if (btnCompartirRem) btnCompartirRem.addEventListener("click", function () { U.compartirPDF(bytes, "Hoja_Remision_" + numero + ".pdf", mensaje); });
       U.toast("Hoja de Remisión generada y descargada.", "success");
+      onDone();
+    });
+  }
+
+  // -------------------------------------------------------------------
+  // EDITAR ORDEN — para corregir o completar datos después de creada (ej.
+  // asignarle un convenio que no se eligió al momento de crearla, corregir
+  // el médico remitente, la procedencia, el diagnóstico, etc.). A
+  // propósito NO toca los exámenes de la orden (eso ya lo resuelven
+  // "Agregar Exámenes" / el botón de quitar examen) ni el pago ya
+  // registrado (eso lo resuelve "Corregir Monto de Pago") — así cada botón
+  // sigue siendo responsable de una sola cosa, sin pisarse entre sí.
+  // -------------------------------------------------------------------
+  function abrirEditarOrden(order, tenant, onDone) {
+    var session = BIO_AUTH.getSession();
+    var medicosRemitentes = S.medicos.list(session.tenantId).filter(function (m) { return m.activo !== false; });
+    var convenios = S.cotizador.listConvenios(session.tenantId).filter(function (c) { return c.activo; });
+    var tienePago = !!order.pago;
+    var wrap = U.openModal(
+      '<h3 class="modal-title">Editar Orden ' + order.numeroOrden + '</h3>' +
+      '<form id="edit-orden-form"><div class="form-grid">' +
+        F.sel("eo_prioridad", "Prioridad", C.PRIORIDADES.map(function (p) { return "<option " + (p === order.prioridad ? "selected" : "") + ">" + p + "</option>"; }).join("")) +
+        '<div class="field"><label>Médico Remitente</label><select id="eo_medicoRemitenteId">' +
+          '<option value="">✏️ Escribir un nombre (no registrado)</option>' +
+          medicosRemitentes.map(function (m) { return '<option value="' + m.id + '" ' + (m.id === order.medicoRemitenteId ? "selected" : "") + '>' + U.esc(m.nombre) + "</option>"; }).join("") +
+          "</select>" +
+          '<input id="eo_medicoRemitenteTexto" placeholder="Nombre del médico" value="' + U.esc(order.medicoRemitenteId ? "" : (order.medicoRemitente || "")) + '" style="margin-top:6px' + (order.medicoRemitenteId ? ";display:none" : "") + '"/></div>' +
+        F.sel("eo_procedencia", "Procedencia", C.PROCEDENCIAS.map(function (p) { return "<option " + (p === order.procedencia ? "selected" : "") + ">" + p + "</option>"; }).join("")) +
+        F.inp("eo_diagnostico", "Diagnóstico / Motivo", order.diagnostico || "") +
+        (tenant.pais === "CO" ? F.inp("eo_numAutorizacion", "N° de Autorización (si aplica, para RIPS)", order.numAutorizacion || "") + F.inp("eo_diagnosticoCIE10", "Código CIE-10 (opcional, para RIPS)", order.diagnosticoCIE10 || "") : "") +
+        '<div class="field"><label>Convenio / Empresa Aliada</label><select id="eo_convenio"><option value="">Sin convenio (particular)</option>' +
+          convenios.map(function (c) { return '<option value="' + c.id + '" ' + (c.id === order.convenioId ? "selected" : "") + '>' + U.esc(c.nombre) + "</option>"; }).join("") + "</select>" +
+          '<span class="text-muted" style="font-size:11px">Cambiar el convenio NO recalcula el valor a cobrar — ajústalo abajo si hace falta.</span></div>' +
+        (tenant.mostrarPrecioOrden ? (tienePago
+          ? '<div class="field"><label>Valor a Cobrar</label><div style="padding:9px 0;font-weight:600">' + fmtMoneda(order.valorCobrar || 0) + '</div><span class="text-muted" style="font-size:11px">Esta orden ya tiene un pago registrado — usa "Corregir Monto de Pago" desde la orden para cambiarlo.</span></div>'
+          : '<div class="field"><label>Valor a Cobrar</label><input id="eo_valorCobrar" type="text" inputmode="decimal" value="' + (order.valorCobrar || "") + '"/></div>') : "") +
+      "</div>" +
+      '<div class="flex gap-2 justify-between" style="margin-top:6px"><button type="button" class="btn btn-ghost" data-modal-close>Cancelar</button><button type="submit" class="btn btn-primary">' + U.icon("check") + " Guardar Cambios</button></div>" +
+      "</form>",
+      { lg: true }
+    );
+    var selMedico = wrap.querySelector("#eo_medicoRemitenteId");
+    var inpMedicoTexto = wrap.querySelector("#eo_medicoRemitenteTexto");
+    selMedico.addEventListener("change", function () { inpMedicoTexto.style.display = selMedico.value ? "none" : ""; });
+    wrap.querySelector("#edit-orden-form").addEventListener("submit", function (e) {
+      e.preventDefault();
+      var medicoSel = selMedico.value ? medicosRemitentes.filter(function (m) { return m.id === selMedico.value; })[0] : null;
+      var convenioIdNuevo = wrap.querySelector("#eo_convenio").value;
+      var convenioSel = convenioIdNuevo ? convenios.filter(function (c) { return c.id === convenioIdNuevo; })[0] : null;
+      var cambios = {
+        prioridad: wrap.querySelector("#f_eo_prioridad").value,
+        procedencia: wrap.querySelector("#f_eo_procedencia").value,
+        medicoRemitente: medicoSel ? medicoSel.nombre : inpMedicoTexto.value.trim(),
+        medicoRemitenteId: selMedico.value || "",
+        diagnostico: wrap.querySelector("#f_eo_diagnostico").value,
+        convenioId: convenioIdNuevo || "",
+        convenioNombre: convenioSel ? convenioSel.nombre : ""
+      };
+      if (tenant.pais === "CO") {
+        cambios.numAutorizacion = wrap.querySelector("#f_eo_numAutorizacion").value;
+        cambios.diagnosticoCIE10 = wrap.querySelector("#f_eo_diagnosticoCIE10").value;
+      }
+      var inpValor = wrap.querySelector("#eo_valorCobrar");
+      if (inpValor) cambios.valorCobrar = U.parseMonto(inpValor.value);
+      Object.assign(order, cambios);
+      S.saveOrder(order);
+      S.addAudit(session.tenantId, session.nombre, session.rol, "EDIT_ORDER", "orden", order.id,
+        "Editó datos de la orden " + order.numeroOrden + (convenioSel ? " — asignó el convenio " + convenioSel.nombre : (!convenioIdNuevo && order.convenioId ? " — quitó el convenio" : "")) + ".");
+      U.toast("Orden actualizada.", "success");
+      U.closeModal(wrap);
       onDone();
     });
   }
