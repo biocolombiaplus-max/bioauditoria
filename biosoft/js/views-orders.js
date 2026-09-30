@@ -85,6 +85,26 @@
         renderList(root);
       });
     });
+    // Marcar/quitar "muestra pendiente" por examen — para exámenes donde el
+    // paciente debe traer la muestra después (ej. orina, coprológico,
+    // esputo, semen): un botón simple para quien recibe muestras, sin clave
+    // ni confirmación, porque no borra ni cambia ningún resultado.
+    root.querySelectorAll("[data-toggle-muestra]").forEach(function (btn) {
+      btn.addEventListener("click", function () {
+        var partes = btn.dataset.toggleMuestra.split("|");
+        var o = orders.filter(function (x) { return x.id === partes[0]; })[0];
+        var ex = o && o.examenes[parseInt(partes[1], 10)];
+        if (!ex) return;
+        var exCat = C.examenEfectivo(ex.examId, tenant);
+        ex.muestraPendiente = !ex.muestraPendiente;
+        S.saveOrder(o);
+        var session2 = BIO_AUTH.getSession();
+        S.addAudit(session2.tenantId, session2.nombre, session2.rol, ex.muestraPendiente ? "MARK_SAMPLE_PENDING" : "CLEAR_SAMPLE_PENDING", "orden", o.id,
+          (ex.muestraPendiente ? "Marcó como pendiente la muestra de " : "Registró que ya llegó la muestra de ") + exCat.nombre + " en la orden " + o.numeroOrden + ".");
+        U.toast(ex.muestraPendiente ? "Muestra marcada como pendiente." : "Muestra registrada — ya no aparece como pendiente.", "success");
+        renderList(root);
+      });
+    });
     document.getElementById("btn-new-ord").addEventListener("click", function () { location.hash = "#/ordenes/nueva"; });
     var inputBuscar = document.getElementById("ord-buscar");
     inputBuscar.addEventListener("input", function (e) {
@@ -153,17 +173,27 @@
       }
     }
     var abierto = !!ordenesExpandidas[o.id];
+    var muestrasPendientes = o.examenes.filter(function (ex) { return ex.muestraPendiente; }).length;
     var colspanTotal = 7 + (conPrecio ? 1 : 0) + (conEstadoPago ? 1 : 0);
-    var filaPrincipal = "<tr><td><b>" + o.numeroOrden + "</b>" + (o.convenioNombre ? '<div class="text-muted" style="font-size:11px">🤝 ' + U.esc(o.convenioNombre) + "</div>" : "") + "</td><td><span class=\"orden-paciente-toggle\" data-toggle-orden=\"" + o.id + "\">" + U.icon("chevron-down", "fila-grupo-chevron" + (abierto ? " abierto" : "")) + " " + (pac ? U.esc(U.nombreCompleto(pac)) : "—") + "</span></td><td>" + U.fmtFecha(o.fechaOrden) + "</td>" +
+    var filaPrincipal = "<tr><td><b>" + o.numeroOrden + "</b>" + (o.convenioNombre ? '<div class="text-muted" style="font-size:11px">🤝 ' + U.esc(o.convenioNombre) + "</div>" : "") +
+      (muestrasPendientes ? '<div class="badge-muestra-pendiente-mini">🧪 Muestra pendiente' + (muestrasPendientes > 1 ? " (" + muestrasPendientes + ")" : "") + "</div>" : "") +
+      "</td><td><span class=\"orden-paciente-toggle\" data-toggle-orden=\"" + o.id + "\">" + U.icon("chevron-down", "fila-grupo-chevron" + (abierto ? " abierto" : "")) + " " + (pac ? U.esc(U.nombreCompleto(pac)) : "—") + "</span></td><td>" + U.fmtFecha(o.fechaOrden) + "</td>" +
       '<td><span class="badge badge-' + (o.prioridad === "Urgente" ? "urgente" : "rutina") + '">' + o.prioridad + "</span></td>" +
       "<td>" + o.examenes.length + "</td>" + (conPrecio ? "<td>" + (o.valorCobrar ? fmtMoneda(o.valorCobrar) + fmtMonedaEquiv(tenant, o.valorCobrar) + (o.monedaPago ? ' <span class="text-muted" style="font-size:11px">· ' + o.monedaPago + "</span>" : "") : "—") + "</td>" : "") + celdaPago +
       "<td>" + window.BIO_badgeEstado(o.estadoGeneral) + '</td><td class="flex gap-2 wrap"><button class="btn btn-outline btn-sm" data-view="' + o.id + '">Ver</button>' +
       '<button class="btn btn-ghost btn-sm" data-eliminar-orden="' + o.id + '" title="Eliminar esta orden (ej. se creó de más por error)">' + U.icon("trash") + "</button></td></tr>";
     if (!abierto) return filaPrincipal;
     return filaPrincipal + '<tr class="fila-examen-detalle"><td colspan="' + colspanTotal + '"><div class="orden-examenes-lista">' +
-      o.examenes.map(function (ex) {
+      o.examenes.map(function (ex, idx) {
         var exCat = C.examenEfectivo(ex.examId, tenant);
-        return '<div class="orden-examen-item"><span>' + U.esc(exCat.nombre) + "</span>" + window.BIO_badgeEstado(ex.estado === "en_proceso" ? "pendiente" : ex.estado) + "</div>";
+        var pendiente = !!ex.muestraPendiente;
+        return '<div class="orden-examen-item">' +
+          '<div class="orden-examen-info"><span class="orden-examen-nombre">' + U.esc(exCat.nombre) + "</span>" + window.BIO_badgeEstado(ex.estado === "en_proceso" ? "pendiente" : ex.estado) +
+          (pendiente ? ' <span class="badge badge-muestra-pendiente">🧪 Muestra Pendiente</span>' : "") + "</div>" +
+          '<div class="orden-examen-acciones">' + (pendiente
+            ? '<button class="btn btn-primary btn-sm" data-toggle-muestra="' + o.id + "|" + idx + '">' + U.icon("check") + " Ya trajo la muestra</button>"
+            : '<button class="btn btn-ghost btn-sm" data-toggle-muestra="' + o.id + "|" + idx + '" title="Márcalo si el paciente aún debe traer esta muestra (ej. orina, coprológico, esputo, semen)">🧪 Marcar muestra pendiente</button>') +
+          "</div></div>";
       }).join("") +
       "</div></td></tr>";
   }

@@ -161,11 +161,17 @@ input[type="color"] { padding: 3px; height: 42px; }
    todo en celular, donde la tabla no muestra todas las columnas a la vez. */
 .orden-paciente-toggle { cursor: pointer; display: inline-flex; align-items: center; }
 .orden-paciente-toggle:hover { color: var(--brand-primary); text-decoration: underline; }
-.orden-examenes-lista { display: flex; flex-direction: column; gap: 6px; padding: 4px 0 4px 24px; }
-/* Nombre y estado van pegados (no space-between) para que el estado nunca
-   quede fuera de la pantalla en celular, donde la tabla ya necesita scroll
-   horizontal — justo la molestia que este despliegue busca evitar. */
-.orden-examen-item { display: flex; align-items: center; flex-wrap: wrap; gap: 10px; font-size: 13px; }
+/* align-items:flex-start evita que cada tarjetita se estire hasta el ancho
+   completo de la fila de la tabla (que en celular es mucho más ancha que
+   la pantalla, de ahí el scroll horizontal) — así el botón de la muestra
+   siempre queda visible junto al nombre, sin necesidad de deslizar. */
+.orden-examenes-lista { display: flex; flex-direction: column; align-items: flex-start; gap: 8px; padding: 10px 0 10px 24px; }
+.orden-examen-item { display: flex; align-items: center; flex-wrap: wrap; gap: 10px; font-size: 13px; padding: 9px 12px; background: #fff; border: 1px solid var(--border); border-radius: 9px; max-width: calc(100vw - 60px); }
+.orden-examen-info { display: flex; align-items: center; flex-wrap: wrap; gap: 8px; }
+.orden-examen-nombre { font-weight: 600; }
+.orden-examen-acciones { display: flex; align-items: center; flex-wrap: wrap; gap: 8px; }
+.badge-muestra-pendiente { background: #fef3c7; color: #92400e; }
+.badge-muestra-pendiente-mini { font-size: 10.5px; font-weight: 700; color: #92400e; margin-top: 3px; display: inline-flex; align-items: center; gap: 3px; }
 input[type="checkbox"], input[type="radio"] { width: auto; flex-shrink: 0; padding: 0; accent-color: var(--brand-primary); }
 textarea { resize: vertical; min-height: 70px; }
 .form-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 14px 18px; }
