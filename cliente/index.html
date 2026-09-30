@@ -1021,10 +1021,41 @@ if(!sessionStorage.getItem('bio_user')||sessionStorage.getItem('bio_role')!=='cl
 document.addEventListener('contextmenu',e=>e.preventDefault());
 document.addEventListener('keydown',e=>{if((e.ctrlKey||e.metaKey)&&['s','a','c','p','u'].includes(e.key.toLowerCase()))e.preventDefault()});
 
-const C = VESGA;
 const ES = ESTANDARES_3100;
 let hallazgos = [];
 let actas = [];
+
+// ─── LOAD CORRECT CLIENT ───
+function loadClienteActual() {
+  var loggedUser = sessionStorage.getItem('bio_user') || '';
+  // 1. Base client (dra.vesga)
+  if (loggedUser === 'dra.vesga') return VESGA;
+  // 2. Saved clients from admin
+  try {
+    var lista = JSON.parse(localStorage.getItem('bio_clientes_list') || '[]');
+    var found = lista.find(function(c){ return c.usuario === loggedUser; });
+    if (found) {
+      // Restore saved logo/customization
+      var savedLogo = localStorage.getItem('bio_logo_' + loggedUser);
+      if (savedLogo && !found.logo_url) found.logo_url = savedLogo;
+      var custom = JSON.parse(localStorage.getItem('bio_custom_' + loggedUser) || '{}');
+      if (custom.color1) found.color1 = custom.color1;
+      if (custom.color2) found.color2 = custom.color2;
+      if (custom.drive_url) found.drive_url = custom.drive_url;
+      // Ensure estandares exist (new client may not have them yet)
+      if (!found.estandares || !found.estandares.length) {
+        found.estandares = ES.map(function(e){
+          return { id: e.id, estandar_num: e.num, documentos: [] };
+        });
+      }
+      if (!found.nivel_atencion) found.nivel_atencion = found.nivel || 1;
+      return found;
+    }
+  } catch(e) {}
+  // Fallback
+  return VESGA;
+}
+const C = loadClienteActual();
 
 // ─── INIT UI ───
 function initUI(){
@@ -1040,7 +1071,7 @@ function initUI(){
 
   // stats
   var docs = C.estandares.flatMap(e=>e.documentos);
-  var total = docs.length;
+  var total = docs.length || 1;
   var ok = docs.filter(d=>d.estado==='vigente').length;
   var pen = docs.filter(d=>d.estado==='pendiente').length;
   var req = docs.filter(d=>d.estado==='requerido').length;

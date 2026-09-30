@@ -725,7 +725,7 @@ select.fi option{background:var(--dark2)}
       <div class="alert ai" style="margin-bottom:14px"><i class="fas fa-key" style="flex-shrink:0"></i><div><strong>Acceso al sistema y Google Drive</strong> — Configura las credenciales del cliente para ingresar a su portal y la carpeta de Drive donde se almacenarán los documentos.</div></div>
       <div class="fgrid">
         <div class="fg"><label class="fl">Usuario de acceso *</label><input class="fi" id="nc-user" placeholder="ej: dra.garcia" autocapitalize="none"></div>
-        <div class="fg"><label class="fl">Contraseña inicial *</label><input class="fi" type="password" id="nc-pass" placeholder="Mínimo 8 caracteres"></div>
+        <div class="fg"><label class="fl">Contraseña inicial *</label><input class="fi" type="password" id="nc-pass" placeholder="Crea una contraseña"></div>
       </div>
       <div class="fg">
         <label class="fl">URL carpeta Google Drive del cliente</label>
@@ -1751,7 +1751,7 @@ function guardarCliente() {
   var pass = document.getElementById('nc-pass').value;
   var nombre = document.getElementById('nc-nombre').value.trim();
   if (!user || !pass) { toast('Ingresa usuario y contraseña', 'err'); return; }
-  if (pass.length < 8) { toast('La contraseña debe tener mínimo 8 caracteres', 'err'); return; }
+  if (pass.length < 4) { toast('La contraseña debe tener mínimo 4 caracteres', 'err'); return; }
 
   var cliente = {
     nombre: nombre,
