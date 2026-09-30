@@ -4,15 +4,36 @@
   var U = BIO_UI, C = BIO_CATALOG, S = BIO_STORE;
 
   // La fuente estándar que usa jsPDF (Helvetica, sin incrustar un archivo de
-  // fuente aparte) no sabe dibujar "≥"/"≤" — caso real reportado: un rango
-  // de referencia escrito como "Alto: ≥190 mg/dL" salía en el PDF como
+  // fuente aparte) solo sabe dibujar los caracteres de Windows-1252 — fuera
+  // de esa lista, cualquier símbolo matemático de comparación (≥, ≤ y sus
+  // variantes visualmente idénticas ≧, ≦, ⩾, ⩽, ≠, ≈, además de flechas
+  // como → y ←) sale convertido en un carácter sin sentido en vez de
+  // dibujarse o simplemente omitirse. Caso real reportado: un rango de
+  // referencia escrito como "Alto: ≥190 mg/dL" salía en el PDF como
   // 'Alto: "e190 mg/dL', un texto ilegible para el médico que lee el
-  // informe. Se reemplazan por su equivalente en texto plano (">="/"<="),
-  // que sí existe en cualquier fuente, ANTES de que jsPDF los reciba — se
+  // informe — comprobado dibujando cada símbolo por separado y viendo
+  // exactamente en qué se convierte cada uno. ± ° µ ³ × ÷ • – — y las
+  // comillas tipográficas SÍ están en Windows-1252 y se dibujan bien, así
+  // que esos se dejan tal cual. Se reemplazan los símbolos problemáticos
+  // por su equivalente en texto plano ANTES de que jsPDF los reciba — se
   // usa en cualquier texto libre que un laboratorio haya escrito a mano
   // (rangos de referencia, nombres de examen/parámetro, observaciones).
+  var REEMPLAZOS_TEXTO_PDF = [
+    [/[≥≧⩾]/g, ">="], [/[≤≦⩽]/g, "<="], [/≠/g, "!="], [/≈/g, "~"],
+    [/→/g, "->"], [/←/g, "<-"], [/↔/g, "<->"]
+  ];
+  // Seguro final: además de los símbolos ya nombrados arriba, CUALQUIER
+  // variante menos común de flecha u operador matemático (rangos Unicode
+  // "Arrows" 2190-21FF, "Mathematical Operators" 2200-22FF y "Supplemental
+  // Mathematical Operators" 2A00-2AFF — TODOS fuera de Windows-1252, todos
+  // con el mismo problema) se elimina en vez de dejar pasar un carácter sin
+  // sentido — un símbolo raro desaparecido se nota menos que uno mostrado
+  // como basura ilegible justo en el dato clínico más importante.
+  var RANGO_SIMBOLOS_NO_SOPORTADOS = /[←-⇿∀-⋿⨀-⫿]/g;
   function sanitizarTextoPDF(s) {
-    return String(s || "").replace(/≥/g, ">=").replace(/≤/g, "<=");
+    var texto = String(s || "");
+    REEMPLAZOS_TEXTO_PDF.forEach(function (par) { texto = texto.replace(par[0], par[1]); });
+    return texto.replace(RANGO_SIMBOLOS_NO_SOPORTADOS, "");
   }
 
   /* Cuando un parámetro tiene varios rangos de interpretación (ej. un perfil
