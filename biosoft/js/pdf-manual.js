@@ -226,6 +226,22 @@
         "Consulta el “Kardex” para ver cada movimiento de entrada/salida, y descarga los reportes de gasto de reactivos e inventario valorizado en PDF.",
         "Si un insumo ya no lo usas, elimínalo con el botón de eliminar (ícono de basurero) de su fila — el sistema te avisa si tiene stock o si está en uso en alguna receta de examen antes de confirmarlo."
       ]
+    },
+    {
+      titulo: "16. Herramientas de Banco de Trabajo",
+      imagenes: [],
+      intro: "Dos herramientas premium en el Panel Principal, pensadas para bacteriólogos(as), bioanalistas, auxiliares y asistentes mientras trabajan en el banco — no quedan guardadas en ninguna orden, son de apoyo mientras se trabaja, igual que tener estos aparatos físicos sobre el mesón.",
+      pasos: [
+        "Contador de Células: haz clic en la tarjeta morada “Contador de Células” del Panel Principal para abrir el conteo diferencial hematológico a pantalla completa (Neutrófilos Segmentados, Bandas, Linfocitos, Monocitos, Eosinófilos, Basófilos y Otras/Atípicas).",
+        "Cuenta sin soltar la vista del microscopio: usa el teclado numérico (una tecla, 1 al 7, por cada tipo de célula — se ve marcada como un keycap de color sobre cada ficha) o, si tu teclado no tiene numérico, las flechas de dirección (arriba/abajo) para elegir y Enter para sumar.",
+        "Cada célula contada suena con un clic; al llegar a las 100 células (el conteo diferencial completo) suena un acorde más fuerte y ya no se puede sumar ninguna más — una tecla de más suena como una alerta distinta, para dejarte claro que ese clic no se contó.",
+        "Si te equivocaste, “Deshacer” quita la última célula contada (también con la tecla Retroceso); “Reiniciar Conteo” borra todo para empezar de nuevo.",
+        "El botón “¿Dudas con una célula? Identifícala con IA” permite tomar o cargar una foto de la célula vista en el microscopio — hace parte del paquete IA Premium de BIOsoft (con costo adicional); al usarlo te muestra cómo activarlo para tu laboratorio.",
+        "Cronómetro de Laboratorio: haz clic en la tarjeta turquesa del Panel Principal para abrir el cronómetro flotante — puedes seguir trabajando en cualquier pantalla de BIOsoft mientras cuenta.",
+        "Elige un tiempo rápido (30 segundos a 10 minutos) o escribe minutos/segundos a la medida y presiona “Fijar”; agrégale una nota (ej. “Lectura de VDRL”) para saber de qué se trata cuando suene.",
+        "Con “Iniciar”/“Pausar” controlas la cuenta regresiva; el botón de minimizar lo reduce a una pastilla turquesa chica en la parte superior de la pantalla, lejos del menú y de las tablas, para que estorbe lo menos posible mientras trabajas — un clic sobre la pastilla lo vuelve a abrir completo.",
+        "Cuando el tiempo se cumple, la alarma suena SIN PARAR (y se abre sola aunque estuviera minimizada o cerrada) hasta que presiones “Detener Alarma” — así nunca pasa desapercibida, incluso si estás atendiendo a un paciente en ese momento."
+      ]
     }
   ];
 
