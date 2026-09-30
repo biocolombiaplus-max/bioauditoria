@@ -3,6 +3,18 @@
   "use strict";
   var U = BIO_UI, C = BIO_CATALOG, S = BIO_STORE;
 
+  // La fuente estándar que usa jsPDF (Helvetica, sin incrustar un archivo de
+  // fuente aparte) no sabe dibujar "≥"/"≤" — caso real reportado: un rango
+  // de referencia escrito como "Alto: ≥190 mg/dL" salía en el PDF como
+  // 'Alto: "e190 mg/dL', un texto ilegible para el médico que lee el
+  // informe. Se reemplazan por su equivalente en texto plano (">="/"<="),
+  // que sí existe en cualquier fuente, ANTES de que jsPDF los reciba — se
+  // usa en cualquier texto libre que un laboratorio haya escrito a mano
+  // (rangos de referencia, nombres de examen/parámetro, observaciones).
+  function sanitizarTextoPDF(s) {
+    return String(s || "").replace(/≥/g, ">=").replace(/≤/g, "<=");
+  }
+
   /* Cuando un parámetro tiene varios rangos de interpretación (ej. un perfil
      lipídico con Óptimo/Intermedio/Alto/Muy Alto, o valores distintos para
      niños), C.textoReferenciaRangos() los junta en un solo texto separado
@@ -11,7 +23,7 @@
      se distingue un rango de otro — aquí se parte cada rango en su propia
      línea dentro de la celda para que se lea como una lista clara. */
   function formatearValorReferencia(refText) {
-    return (refText || "").split(" · ").join("\n");
+    return sanitizarTextoPDF(refText).split(" · ").join("\n");
   }
 
   // Nombre del paciente listo para usarse en el nombre de un archivo
@@ -947,7 +959,7 @@
           // para el paciente) — la columna sigue existiendo para los demás
           // parámetros del informe.
           var ocultarInterpParametro = !!p.ocultarInterpretacionEnInforme;
-          var fila = [p.nombre + (p.calculado ? " (calculado)" : ""), val + (p.unidad ? " " + p.unidad : "")];
+          var fila = [sanitizarTextoPDF(p.nombre) + (p.calculado ? " (calculado)" : ""), val + (p.unidad ? " " + p.unidad : "")];
           if (!ocultarValorReferencia) fila.push(refFormateado);
           if (!ocultarInterpretacion) fila.push(ocultarInterpParametro ? "" : (flag.texto || ""));
           filas.push({
@@ -966,7 +978,7 @@
             lineas: ocultarValorReferencia ? 1 : Math.max(1, refFormateado.split("\n").length)
           });
         });
-        if (filas.length) { grupos.push({ nombre: exCat.nombre, metodo: metodoTexto, filas: filas }); examIdsConGrupo[ex.examId] = true; }
+        if (filas.length) { grupos.push({ nombre: sanitizarTextoPDF(exCat.nombre), metodo: sanitizarTextoPDF(metodoTexto), filas: filas }); examIdsConGrupo[ex.examId] = true; }
       });
 
       // Alto estimado de un grupo: su fila-título + (opcional) su fila de
@@ -1237,7 +1249,7 @@
         if (estiloDiscreto) doc.setTextColor(0, 0, 0); else doc.setTextColor(80, 80, 80);
         obsExams.forEach(function (ex) {
           var exCat = C.examenEfectivo(ex.examId, tenant);
-          var texto = (obsExams.length > 1 ? exCat.nombre + " — " : "") + "Observaciones: " + ex.observaciones;
+          var texto = (obsExams.length > 1 ? sanitizarTextoPDF(exCat.nombre) + " — " : "") + "Observaciones: " + sanitizarTextoPDF(ex.observaciones);
           var lineas = doc.splitTextToSize(texto, pageW - margin * 2);
           if (y + lineas.length * 10 > 750) { y = nuevaPagina(); }
           doc.text(lineas, margin, y);
