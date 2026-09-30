@@ -46,6 +46,9 @@
     var list = [];
     list.push({ tipo: "modal", titulo: "👋 ¡Bienvenido a BIOsoft!", texto: "Te mostramos en menos de un minuto cómo funciona todo. ¿Empezamos?", boton: "Comenzar Tour 🚀" });
     list.push({ tipo: "spot", target: "#content", titulo: "Panel Principal", texto: DESCRIPCIONES.dashboard, mobile: false });
+    if (document.querySelector(".lab-tools-row")) {
+      list.push({ tipo: "spot", target: ".lab-tools-row", titulo: "🔬 Herramientas de Banco Premium", texto: "Contador de Células para tu diferencial hematológico (teclado y sonido) y un Cronómetro de Laboratorio que se puede minimizar — sin dejar de trabajar mientras cuentan.", mobile: false });
+    }
     document.querySelectorAll(".sidebar-nav .nav-link").forEach(function (a) {
       var route = a.dataset.route;
       var label = a.querySelector("span") ? a.querySelector("span").textContent.trim() : a.textContent.trim();

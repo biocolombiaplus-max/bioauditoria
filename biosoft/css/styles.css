@@ -616,8 +616,28 @@ tbody tr:hover { background: var(--surface-2); }
   padding: 14px 16px 16px; color: var(--text);
 }
 .timer-float-header { display: flex; align-items: center; justify-content: space-between; font-weight: 700; font-size: 13px; margin-bottom: 8px; }
-.timer-float-header button { background: transparent; border: none; cursor: pointer; color: var(--text-muted); padding: 2px; display: flex; }
+.timer-float-header-actions { display: flex; align-items: center; gap: 2px; }
+.timer-float-header button { background: transparent; border: none; cursor: pointer; color: var(--text-muted); padding: 4px; border-radius: 6px; display: flex; }
+.timer-float-header button:hover { background: var(--surface-2); color: var(--text); }
 .timer-float-header button .ic { width: 16px; height: 16px; }
+/* Cronómetro minimizado: una pastilla chica y llamativa arriba de la
+   pantalla (lejos del menú lateral y de las tablas donde de verdad se
+   trabaja) en vez de la tarjeta completa — para bacteriólogos(as),
+   bioanalistas, auxiliares y asistentes que necesitan seguir viendo el
+   tiempo sin que estorbe. Reemplaza el posicionamiento normal de
+   .timer-float por completo (ver especificidad: mismas reglas, valores
+   distintos). */
+.timer-float.timer-float-mini {
+  top: 10px; right: auto; bottom: auto; left: 50%; transform: translateX(-50%);
+  width: auto; padding: 0; border: none; border-radius: 999px; background: transparent; box-shadow: none;
+}
+.timer-mini-btn {
+  display: flex; align-items: center; gap: 6px; border: none; cursor: pointer;
+  background: linear-gradient(135deg, #0891b2, #06b6d4); color: #fff; font-family: 'Poppins', sans-serif;
+  font-weight: 800; font-size: 14px; padding: 8px 18px; border-radius: 999px; box-shadow: 0 6px 16px rgba(8,145,178,.45);
+  letter-spacing: .3px;
+}
+.timer-mini-btn:hover { filter: brightness(1.08); }
 .timer-display { font-family: 'Poppins', sans-serif; font-weight: 800; font-size: 40px; text-align: center; color: #0e4f5c; letter-spacing: 1px; }
 .timer-display-fin { color: var(--danger); }
 .timer-shake { animation: timerShake .4s ease 3; }

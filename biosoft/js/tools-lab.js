@@ -247,7 +247,7 @@
   // la ventanita, y para poder RECREARLA sola si la alarma suena estando
   // cerrada (ver dispararAlarma más abajo) — nunca debe sonar sin que
   // quede a la vista un botón con el que apagarla.
-  var timerState = { restante: 300, total: 300, intervalId: null, corriendo: false, nota: "", sonando: false, alarmaIntervalId: null };
+  var timerState = { restante: 300, total: 300, intervalId: null, corriendo: false, nota: "", sonando: false, alarmaIntervalId: null, minimizado: false };
 
   function fmtTiempo(seg) {
     seg = Math.max(0, seg);
@@ -266,11 +266,14 @@
   function renderCronometro() {
     var wrap = document.getElementById("timer-float");
     if (!wrap) return;
+    wrap.classList.remove("timer-float-sonando", "timer-float-mini");
     if (timerState.sonando) {
       // Estado de alarma: ocupa toda la ventanita con el aviso, la nota
       // del examen/lectura (si se escribió) bien grande, y UN SOLO botón
       // para apagarla — nada de temporizador nuevo ni presets mientras
-      // sigue sonando, para que sea imposible no verlo.
+      // sigue sonando, para que sea imposible no verlo. Si estaba
+      // minimizado, se expande solo: una alarma nunca debe quedar
+      // reducida a una pastillita chica donde es fácil no verla.
       wrap.innerHTML =
         '<div class="timer-float-header timer-float-header-alarma">' +
         '<span>🔔 ¡Tiempo cumplido!</span>' +
@@ -282,11 +285,30 @@
       wrap.classList.add("timer-float-sonando");
       return;
     }
-    wrap.classList.remove("timer-float-sonando");
+    if (timerState.minimizado) {
+      // Minimizado: una pastilla chica y llamativa arriba de la pantalla,
+      // lejos del menú y de la bandeja de resultados donde de verdad
+      // trabajan bacteriólogos/bioanalistas/auxiliares — solo el tiempo
+      // restante, y un clic la vuelve a abrir completa.
+      wrap.classList.add("timer-float-mini");
+      wrap.innerHTML =
+        '<button type="button" class="timer-mini-btn" id="timer-restaurar" title="Abrir cronómetro">' +
+        "⏱ " + fmtTiempo(timerState.restante) +
+        (timerState.corriendo ? "" : " ⏸") +
+        "</button>";
+      wrap.querySelector("#timer-restaurar").addEventListener("click", function () {
+        timerState.minimizado = false;
+        renderCronometro();
+      });
+      return;
+    }
     wrap.innerHTML =
       '<div class="timer-float-header">' +
       '<span>⏱ Cronómetro de Laboratorio</span>' +
+      '<span class="timer-float-header-actions">' +
+      '<button type="button" id="timer-minimizar" aria-label="Minimizar" title="Minimizar">' + U.icon("chevron-down") + "</button>" +
       '<button type="button" id="timer-cerrar" aria-label="Cerrar">' + U.icon("x") + "</button>" +
+      "</span>" +
       "</div>" +
       '<div class="timer-display">' + fmtTiempo(timerState.restante) + "</div>" +
       '<div class="timer-presets">' +
@@ -306,6 +328,10 @@
       "</div>";
 
     wrap.querySelector("#timer-cerrar").addEventListener("click", cerrarFlotanteCronometro);
+    wrap.querySelector("#timer-minimizar").addEventListener("click", function () {
+      timerState.minimizado = true;
+      renderCronometro();
+    });
     wrap.querySelectorAll("[data-timer-preset]").forEach(function (b) {
       b.addEventListener("click", function () { fijarTiempo(parseInt(b.dataset.timerPreset, 10)); });
     });
@@ -359,6 +385,7 @@
   // debe quedar sonando sin ningún control visible en pantalla.
   function dispararAlarma() {
     timerState.sonando = true;
+    timerState.minimizado = false;
     if (!document.getElementById("timer-float")) crearWidgetCronometro();
     renderCronometro();
     sonidoAlarma();
@@ -382,7 +409,13 @@
   }
 
   function abrirCronometro() {
-    if (document.getElementById("timer-float")) return; // ya está abierto
+    if (document.getElementById("timer-float")) {
+      // Ya está abierto — si estaba minimizado (la pastillita chica de
+      // arriba), volver a pulsar "Cronómetro de Laboratorio" en el panel
+      // lo expande de nuevo, en vez de no hacer nada.
+      if (timerState.minimizado) { timerState.minimizado = false; renderCronometro(); }
+      return;
+    }
     crearWidgetCronometro();
     renderCronometro();
   }
