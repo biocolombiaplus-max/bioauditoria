@@ -31,11 +31,45 @@
   // registrar un pago desde la misma lista) — mismo patrón que el
   // buscador del catálogo en views-admin.js.
   var ordenesSearchTerm = "";
+  // Mismo criterio que ordenesSearchTerm: a nivel de módulo para que el
+  // filtro elegido (convenio y/o fecha) se mantenga al registrar un pago,
+  // expandir una orden, o cualquier otra acción que vuelva a pintar la
+  // lista — nadie quiere perder el filtro de "Convenio X, hoy" por hacer
+  // clic en "Registrar Pago" de una fila.
+  var ordenesFiltroConvenio = "";
+  var ordenesFiltroFecha = "";
   // Igual que en la Bandeja de Resultados: qué filas de orden están
   // desplegadas mostrando sus exámenes, a nivel de módulo para que no se
   // cierren solas al registrar un pago u otra acción que vuelva a pintar
   // la lista.
   var ordenesExpandidas = {};
+
+  // Fecha de la orden en formato "YYYY-MM-DD" EN HORA LOCAL del navegador
+  // (igual que el valor que entrega un <input type="date">), para poder
+  // comparar directo contra el filtro de fecha sin líos de zona horaria —
+  // mismo criterio de "día" que ya usa la Bandeja de Resultados (claveDia).
+  function fechaInputDe(fechaIso) {
+    var d = new Date(fechaIso);
+    var mm = String(d.getMonth() + 1).padStart(2, "0");
+    var dd = String(d.getDate()).padStart(2, "0");
+    return d.getFullYear() + "-" + mm + "-" + dd;
+  }
+
+  // Convenios para el filtro: se arman a partir de las órdenes que YA
+  // existen (no del catálogo vigente de convenios activos) para que un
+  // convenio desactivado o renombrado después siga apareciendo y
+  // filtrando bien las órdenes viejas que quedaron con su nombre.
+  function conveniosParaFiltro(ordenes) {
+    var vistos = {};
+    var lista = [];
+    ordenes.forEach(function (o) {
+      if (!o.convenioId || vistos[o.convenioId]) return;
+      vistos[o.convenioId] = true;
+      lista.push({ id: o.convenioId, nombre: o.convenioNombre || "Convenio" });
+    });
+    lista.sort(function (a, b) { return a.nombre.localeCompare(b.nombre); });
+    return lista;
+  }
 
   window.BIO_VIEWS.ordenes = function (root, param) {
     if (param && (param === "nueva" || param.indexOf("nueva-") === 0)) {
@@ -65,19 +99,44 @@
     var pacientesPorId = {};
     S.listPatients(session.tenantId).forEach(function (p) { pacientesPorId[p.id] = p; });
     var term = U.normalizar(ordenesSearchTerm.trim());
-    var orders = !term ? todasLasOrdenes : todasLasOrdenes.filter(function (o) {
-      var pac = pacientesPorId[o.patientId];
-      var nombre = pac ? U.normalizar(U.nombreCompleto(pac)) : "";
-      var documento = pac ? U.normalizar(String(pac.numeroDocumento || "")) : "";
-      return nombre.indexOf(term) !== -1 || documento.indexOf(term) !== -1 || U.normalizar(o.numeroOrden || "").indexOf(term) !== -1;
+    var convenios = conveniosParaFiltro(todasLasOrdenes);
+    var hayFiltrosActivos = !!(term || ordenesFiltroConvenio || ordenesFiltroFecha);
+    var orders = todasLasOrdenes.filter(function (o) {
+      if (term) {
+        var pac = pacientesPorId[o.patientId];
+        var nombre = pac ? U.normalizar(U.nombreCompleto(pac)) : "";
+        var documento = pac ? U.normalizar(String(pac.numeroDocumento || "")) : "";
+        if (nombre.indexOf(term) === -1 && documento.indexOf(term) === -1 && U.normalizar(o.numeroOrden || "").indexOf(term) === -1) return false;
+      }
+      if (ordenesFiltroConvenio === "__particular" ? !!o.convenioId : (ordenesFiltroConvenio && o.convenioId !== ordenesFiltroConvenio)) return false;
+      if (ordenesFiltroFecha && fechaInputDe(o.fechaOrden) !== ordenesFiltroFecha) return false;
+      return true;
     });
+    var colspanVacio = 7 + (conPrecio ? 1 : 0) + (conEstadoPago ? 1 : 0);
     root.innerHTML =
-      '<div class="card"><div class="card-header"><h3 class="card-title">Órdenes de Laboratorio (' + orders.length + (term ? " de " + todasLasOrdenes.length : "") + ')</h3>' +
+      '<div class="card"><div class="card-header"><h3 class="card-title">Órdenes de Laboratorio (' + orders.length + (hayFiltrosActivos ? " de " + todasLasOrdenes.length : "") + ')</h3>' +
       '<button class="btn btn-primary" id="btn-new-ord">' + U.icon("plus") + ' Nueva Orden</button></div>' +
-      '<div class="field" style="max-width:380px;margin-bottom:14px"><input type="text" id="ord-buscar" placeholder="🔎 Buscar por nombre o cédula del paciente…" value="' + U.esc(ordenesSearchTerm) + '"/></div>' +
+      '<div class="flex gap-2 wrap items-center" style="margin-bottom:14px">' +
+        '<div class="field" style="max-width:320px;margin-bottom:0"><input type="text" id="ord-buscar" placeholder="🔎 Buscar por nombre o cédula del paciente…" value="' + U.esc(ordenesSearchTerm) + '"/></div>' +
+        '<div class="field" style="max-width:260px;margin-bottom:0"><select id="ord-filtro-convenio">' +
+          '<option value="">🤝 Todos los convenios</option>' +
+          '<option value="__particular">Particular (sin convenio)</option>' +
+          convenios.map(function (c) { return '<option value="' + c.id + '">' + U.esc(c.nombre) + "</option>"; }).join("") +
+        "</select></div>" +
+        '<div class="field" style="margin-bottom:0"><input type="date" id="ord-filtro-fecha" title="Filtrar por fecha de la orden" value="' + U.esc(ordenesFiltroFecha) + '"/></div>' +
+        (hayFiltrosActivos ? '<button type="button" class="btn btn-ghost btn-sm" id="ord-limpiar-filtros">' + U.icon("x") + " Limpiar filtros</button>" : "") +
+      "</div>" +
       '<div class="table-wrap"><table><thead><tr><th>N° Orden</th><th>Paciente</th><th>Fecha</th><th>Prioridad</th><th># Exámenes</th>' + (conPrecio ? "<th>Valor a Cobrar</th>" : "") + (conEstadoPago ? "<th>Pago</th>" : "") + '<th>Estado</th><th></th></tr></thead><tbody>' +
-      (orders.length ? orders.map(function (o) { return rowOrder(o, conPrecio, conEstadoPago, tenant); }).join("") : '<tr><td colspan="' + (7 + (conPrecio ? 1 : 0) + (conEstadoPago ? 1 : 0)) + '" class="text-muted">' + (term ? "Ningún paciente u orden coincide con “" + U.esc(ordenesSearchTerm) + "”." : "No hay órdenes registradas.") + "</td></tr>") +
+      (orders.length ? orders.map(function (o) { return rowOrder(o, conPrecio, conEstadoPago, tenant); }).join("") : '<tr><td colspan="' + colspanVacio + '" class="text-muted">' + (hayFiltrosActivos ? "Ninguna orden coincide con los filtros aplicados." : "No hay órdenes registradas.") + "</td></tr>") +
       "</tbody></table></div></div>";
+    document.getElementById("ord-filtro-convenio").value = ordenesFiltroConvenio;
+    document.getElementById("ord-filtro-convenio").addEventListener("change", function (e) { ordenesFiltroConvenio = e.target.value; renderList(root); });
+    document.getElementById("ord-filtro-fecha").addEventListener("change", function (e) { ordenesFiltroFecha = e.target.value; renderList(root); });
+    var btnLimpiarFiltros = document.getElementById("ord-limpiar-filtros");
+    if (btnLimpiarFiltros) btnLimpiarFiltros.addEventListener("click", function () {
+      ordenesSearchTerm = ""; ordenesFiltroConvenio = ""; ordenesFiltroFecha = "";
+      renderList(root);
+    });
     root.querySelectorAll("[data-toggle-orden]").forEach(function (el) {
       el.addEventListener("click", function () {
         var id = el.dataset.toggleOrden;
