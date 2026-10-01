@@ -37,11 +37,12 @@
     // grande en Configuración lo ve igual en todos sus documentos impresos.
     var y = await window.BIO_PDF.dibujarMembrete(doc, tenant, margin);
 
-    doc.setFont("helvetica", "bold"); doc.setFontSize(13); doc.setTextColor(20, 20, 20);
-    doc.text("RECIBO DE PAGO", margin, y);
+    doc.setFont("helvetica", "bold"); doc.setFontSize(14); doc.setTextColor(20, 20, 20);
+    doc.text("RECIBO DE PAGO", pageW / 2, y, { align: "center" });
+    y += 15;
     doc.setFont("helvetica", "bold"); doc.setFontSize(10); doc.setTextColor(rgb[0], rgb[1], rgb[2]);
-    doc.text("N° " + numeroRecibo(cotizacion), pageW - margin, y, { align: "right" });
-    y += 20;
+    doc.text("N° " + numeroRecibo(cotizacion), pageW / 2, y, { align: "center" });
+    y += 18;
 
     doc.setFontSize(9); doc.setTextColor(30, 30, 30); doc.setFont("helvetica", "normal");
     var col1 = margin, col2 = pageW / 2 + 10;

@@ -61,12 +61,13 @@
     // impresos.
     var y = await window.BIO_PDF.dibujarMembrete(doc, tenant, margin);
 
-    // ---- Título + número, con línea divisoria de color debajo -----------
-    doc.setFont("helvetica", "bold"); doc.setFontSize(16); doc.setTextColor(20, 20, 20);
-    doc.text("RECIBO DE PAGO", margin, y);
+    // ---- Título + número, centrados, con línea divisoria de color debajo -
+    doc.setFont("helvetica", "bold"); doc.setFontSize(17); doc.setTextColor(20, 20, 20);
+    doc.text("RECIBO DE PAGO", pageW / 2, y, { align: "center" });
+    y += 17;
     doc.setFont("helvetica", "bold"); doc.setFontSize(10.5); doc.setTextColor(rgb[0], rgb[1], rgb[2]);
-    doc.text("N° " + numeroRecibo(order), pageW - margin, y, { align: "right" });
-    y += 10;
+    doc.text("N° " + numeroRecibo(order), pageW / 2, y, { align: "center" });
+    y += 14;
     doc.setDrawColor(rgb[0], rgb[1], rgb[2]); doc.setLineWidth(1.3);
     doc.line(margin, y, pageW - margin, y);
     y += 26;
