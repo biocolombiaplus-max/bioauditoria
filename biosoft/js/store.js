@@ -1180,7 +1180,18 @@
       addAudit(tenantId, equipoNombre || "Interfaz de equipo", "equipo", "REJECT_DEVICE_RESULT", "resultado", order.id + ":" + examId, msg2);
       return { ok: false, error: msg2 };
     }
-    ex.valores = Object.keys(valoresPorCodigo).map(function (codigo) { return { codigo: codigo, valor: String(valoresPorCodigo[codigo]) }; });
+    // MEZCLA (upsert) los valores nuevos sobre los que ya tenía el examen,
+    // en vez de reemplazar el arreglo completo — bug real detectado: un
+    // panel como Electrolitos (Na/K/Cl) puede llegar en VARIOS mensajes
+    // separados, uno por parámetro (el equipo reabre la conexión para
+    // cada uno). Reemplazar ex.valores entero en cada mensaje BORRABA los
+    // parámetros ya recibidos (ej. llega K, luego llega Cl y el K
+    // desaparece) — el bacteriólogo terminaba viendo el panel incompleto
+    // sin ninguna forma de saber que ya había llegado y se perdió.
+    var valoresPrevios = {};
+    (ex.valores || []).forEach(function (v) { valoresPrevios[v.codigo] = v.valor; });
+    Object.keys(valoresPorCodigo).forEach(function (codigo) { valoresPrevios[codigo] = String(valoresPorCodigo[codigo]); });
+    ex.valores = Object.keys(valoresPrevios).map(function (codigo) { return { codigo: codigo, valor: valoresPrevios[codigo] }; });
     ex.estado = "en_proceso";
     ex.recibidoDeEquipo = true;
     ex.equipoOrigen = equipoNombre || "Equipo conectado";

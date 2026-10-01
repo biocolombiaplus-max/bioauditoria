@@ -111,6 +111,48 @@ function cargarFirestoreWriterConFake(fake) {
     assert.strictEqual(fake.docs["tenants/demo/orders/ord3"].examenes[0].valores[0].valor, "95");
   });
 
+  await correr("un panel que llega en VARIOS mensajes separados (ej. Electrolitos: Na, luego K, luego Cl) no se borra entre sí", async () => {
+    const fake = crearFirestoreFalso({
+      ord4: { numeroOrden: "2026100101", fechaOrden: new Date().toISOString(), examenes: [{ examId: "GAS-002", estado: "en_proceso" }] }
+    });
+    const fw = cargarFirestoreWriterConFake(fake);
+    await fw.recibirResultadoEquipo(fw.crearClienteBiosoft().db, {
+      tenantId: "demo", numeroOrden: "2026100101", examId: "GAS-002", valoresPorCodigo: { NA: "140" }, equipoNombre: "Test"
+    });
+    await fw.recibirResultadoEquipo(fw.crearClienteBiosoft().db, {
+      tenantId: "demo", numeroOrden: "2026100101", examId: "GAS-002", valoresPorCodigo: { K: "4.00" }, equipoNombre: "Test"
+    });
+    const r3 = await fw.recibirResultadoEquipo(fw.crearClienteBiosoft().db, {
+      tenantId: "demo", numeroOrden: "2026100101", examId: "GAS-002", valoresPorCodigo: { CL: "104.00" }, equipoNombre: "Test"
+    });
+    assert.strictEqual(r3.ok, true);
+    const valoresFinales = fake.docs["tenants/demo/orders/ord4"].examenes[0].valores;
+    const mapa = {};
+    valoresFinales.forEach((v) => { mapa[v.codigo] = v.valor; });
+    assert.deepStrictEqual(mapa, { NA: "140", K: "4.00", CL: "104.00" }, "los 3 parámetros deben quedar presentes — ninguno se debió borrar al llegar el siguiente");
+  });
+
+  await correr("un parámetro reenviado CORRIGE solo ese valor, sin tocar los demás del mismo panel", async () => {
+    const fake = crearFirestoreFalso({
+      ord5: { numeroOrden: "2026100102", fechaOrden: new Date().toISOString(), examenes: [{ examId: "GAS-002", estado: "en_proceso" }] }
+    });
+    const fw = cargarFirestoreWriterConFake(fake);
+    await fw.recibirResultadoEquipo(fw.crearClienteBiosoft().db, {
+      tenantId: "demo", numeroOrden: "2026100102", examId: "GAS-002", valoresPorCodigo: { NA: "140" }, equipoNombre: "Test"
+    });
+    await fw.recibirResultadoEquipo(fw.crearClienteBiosoft().db, {
+      tenantId: "demo", numeroOrden: "2026100102", examId: "GAS-002", valoresPorCodigo: { K: "4.00" }, equipoNombre: "Test"
+    });
+    // El equipo reenvía K corregido (ej. repitió la lectura)
+    await fw.recibirResultadoEquipo(fw.crearClienteBiosoft().db, {
+      tenantId: "demo", numeroOrden: "2026100102", examId: "GAS-002", valoresPorCodigo: { K: "4.20" }, equipoNombre: "Test"
+    });
+    const valoresFinales = fake.docs["tenants/demo/orders/ord5"].examenes[0].valores;
+    const mapa = {};
+    valoresFinales.forEach((v) => { mapa[v.codigo] = v.valor; });
+    assert.deepStrictEqual(mapa, { NA: "140", K: "4.20" }, "K debe quedar con el valor corregido, NA no debió tocarse, y no debe haber un K duplicado");
+  });
+
   if (process.exitCode) { console.error("\nHay pruebas fallidas."); process.exit(1); }
   else console.log("\nPruebas de resguardos de firestore-writer.js OK.");
 })();

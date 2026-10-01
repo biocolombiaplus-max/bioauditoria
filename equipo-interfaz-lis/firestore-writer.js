@@ -112,7 +112,18 @@ async function recibirResultadoEquipo(db, { tenantId, numeroOrden, examId, valor
     return { ok: false, error };
   }
 
-  ex.valores = Object.keys(valoresPorCodigo).map((codigo) => ({ codigo, valor: String(valoresPorCodigo[codigo]) }));
+  // MEZCLA (upsert) los valores nuevos sobre los que ya tenía el examen, en
+  // vez de reemplazar el arreglo completo — bug real detectado: un panel
+  // como Electrolitos (Na/K/Cl) puede llegar en VARIOS mensajes separados,
+  // uno por parámetro (el equipo reabre la conexión para cada uno).
+  // Reemplazar ex.valores entero en cada mensaje BORRABA los parámetros ya
+  // recibidos (ej. llega K, luego llega Cl y el K desaparece) — el
+  // bacteriólogo terminaba viendo el panel incompleto sin ninguna forma de
+  // saber que ya había llegado y se perdió.
+  const valoresPrevios = {};
+  (ex.valores || []).forEach((v) => { valoresPrevios[v.codigo] = v.valor; });
+  Object.keys(valoresPorCodigo).forEach((codigo) => { valoresPrevios[codigo] = String(valoresPorCodigo[codigo]); });
+  ex.valores = Object.keys(valoresPrevios).map((codigo) => ({ codigo, valor: valoresPrevios[codigo] }));
   ex.estado = "en_proceso";
   ex.recibidoDeEquipo = true;
   ex.equipoOrigen = equipoNombre || "Equipo conectado";
