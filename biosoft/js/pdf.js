@@ -714,6 +714,11 @@
       doc.setFont(fontFam, "normal"); doc.setFontSize(7.5);
       if (estiloDiscreto) doc.setTextColor(0, 0, 0); else doc.setTextColor(90, 90, 90);
       doc.text(C.tituloFirmaProfesional(tenant.pais), margin, yy + 29);
+      // La Universidad va en su propia línea, debajo del Registro
+      // Profesional (antes iban juntas en una sola línea separadas por
+      // "·" — con nombres largos de universidad quedaba apretado y poco
+      // prolijo). Cada credencial presente sube el alto del bloque para
+      // que la firma del siguiente firmante nunca quede encima.
       var credenciales = [];
       if (f.registroProfesional) credenciales.push("Registro Profesional: " + f.registroProfesional);
       if (f.universidad) credenciales.push("Universidad: " + f.universidad);
@@ -721,8 +726,8 @@
       if (credenciales.length) {
         doc.setFont(fontFam, "italic"); doc.setFontSize(7);
         if (estiloDiscreto) doc.setTextColor(0, 0, 0); else doc.setTextColor(120, 120, 120);
-        doc.text(credenciales.join("   ·   "), margin, yy + 39);
-        alto = 52;
+        credenciales.forEach(function (linea, i) { doc.text(linea, margin, yy + 39 + i * 9); });
+        alto = 42 + credenciales.length * 9;
       }
       return yy + alto;
     }
@@ -1292,7 +1297,7 @@
       if (validadosSeccion.length && !firmaUnicaAlFinal) {
         var firmantesSeccion = firmantesDe(order, tenant, validadosSeccion);
         for (var vsi = 0; vsi < firmantesSeccion.length; vsi++) {
-          if (y > pageBottom - 65) { y = nuevaPagina(); }
+          if (y > pageBottom - 74) { y = nuevaPagina(); }
           y = await dibujarBloqueFirmaSeccion(firmantesSeccion[vsi], y);
           huboFirmaPorSeccion = true;
         }
@@ -1331,7 +1336,7 @@
       var firmantes = firmantesDe(order, tenant, examsToShow);
       y += 16;
       for (var fi = 0; fi < firmantes.length; fi++) {
-        if (y > pageBottom - 65) { y = nuevaPagina(); }
+        if (y > pageBottom - 74) { y = nuevaPagina(); }
         y = await dibujarBloqueFirmaSeccion(firmantes[fi], y);
       }
     }
