@@ -303,6 +303,9 @@
           F.sel("procedencia", "Procedencia", C.PROCEDENCIAS.map(function (p) { return "<option>" + p + "</option>"; }).join("")) +
           F.inp("diagnostico", "Diagnóstico / Motivo", "") +
           (tenant.pais === "CO" ? F.inp("numAutorizacion", "N° de Autorización (si aplica, para RIPS)", "") + F.inp("diagnosticoCIE10", "Código CIE-10 (opcional, para RIPS)", "") : "") +
+          '<div class="field" style="grid-column:1/-1"><label>Observaciones Clínicas (opcional)</label>' +
+            '<textarea id="f_observacionesClinicas" rows="2" placeholder="Ej: Paciente en ayuno de 10h, antecedente de diabetes, sospecha de…"></textarea>' +
+            '<span class="text-muted" style="font-size:11px">El bioanalista las verá al ingresar los resultados — útil para orientar el resultado sin tener que llamar al médico.</span></div>' +
           (convenios.length ? '<div class="field"><label>Convenio / Empresa Aliada (opcional)</label><select id="f_convenio"><option value="">Sin convenio (particular)</option>' +
             convenios.map(function (c) { return '<option value="' + c.id + '">' + U.esc(c.nombre) + "</option>"; }).join("") + "</select></div>" : "") +
           // Solo tiene sentido para una orden de convenio: si el paciente
@@ -575,6 +578,7 @@
         medicoRemitente: medicoRemitenteSel ? medicoRemitenteSel.nombre : document.getElementById("f_medicoRemitenteTexto").value.trim(),
         medicoRemitenteId: selMedicoRemitente.value || "",
         diagnostico: document.getElementById("f_diagnostico").value,
+        observacionesClinicas: document.getElementById("f_observacionesClinicas").value.trim(),
         numAutorizacion: tenant.pais === "CO" ? document.getElementById("f_numAutorizacion").value : "",
         diagnosticoCIE10: tenant.pais === "CO" ? document.getElementById("f_diagnosticoCIE10").value : "",
         valorCobrar: tenant.mostrarPrecioOrden ? U.parseMonto(document.getElementById("f_valorCobrar").value) : null,
@@ -1132,6 +1136,7 @@
             field("Prioridad", order.prioridad) +
             field("Fecha de Orden", U.fmtFecha(order.fechaOrden)) +
             field("Diagnóstico", order.diagnostico || "—") +
+            field("Observaciones Clínicas", order.observacionesClinicas || "—") +
             field("Convenio / Empresa Aliada", order.convenioNombre || "Sin convenio (particular)") +
             (tenant.mostrarPrecioOrden ? fieldHtml("Valor a Cobrar", order.valorCobrar ? U.esc(fmtMoneda(order.valorCobrar)) + fmtMonedaEquiv(tenant, order.valorCobrar) : "—") : "") +
             (order.monedaPago ? field("Moneda de Pago", C.monedaPagoLabel(order.monedaPago)) : "") +
@@ -1472,6 +1477,9 @@
         F.sel("eo_procedencia", "Procedencia", C.PROCEDENCIAS.map(function (p) { return "<option " + (p === order.procedencia ? "selected" : "") + ">" + p + "</option>"; }).join("")) +
         F.inp("eo_diagnostico", "Diagnóstico / Motivo", order.diagnostico || "") +
         (tenant.pais === "CO" ? F.inp("eo_numAutorizacion", "N° de Autorización (si aplica, para RIPS)", order.numAutorizacion || "") + F.inp("eo_diagnosticoCIE10", "Código CIE-10 (opcional, para RIPS)", order.diagnosticoCIE10 || "") : "") +
+        '<div class="field" style="grid-column:1/-1"><label>Observaciones Clínicas (opcional)</label>' +
+          '<textarea id="f_eo_observacionesClinicas" rows="2" placeholder="Ej: Paciente en ayuno de 10h, antecedente de diabetes, sospecha de…">' + U.esc(order.observacionesClinicas || "") + "</textarea>" +
+          '<span class="text-muted" style="font-size:11px">El bioanalista las verá al ingresar los resultados.</span></div>' +
         '<div class="field"><label>Convenio / Empresa Aliada</label><select id="eo_convenio"><option value="">Sin convenio (particular)</option>' +
           convenios.map(function (c) { return '<option value="' + c.id + '" ' + (c.id === order.convenioId ? "selected" : "") + '>' + U.esc(c.nombre) + "</option>"; }).join("") + "</select>" +
           '<span class="text-muted" style="font-size:11px">Cambiar el convenio NO recalcula el valor a cobrar — ajústalo abajo si hace falta.</span></div>' +
@@ -1497,6 +1505,7 @@
         medicoRemitente: medicoSel ? medicoSel.nombre : inpMedicoTexto.value.trim(),
         medicoRemitenteId: selMedico.value || "",
         diagnostico: wrap.querySelector("#f_eo_diagnostico").value,
+        observacionesClinicas: wrap.querySelector("#f_eo_observacionesClinicas").value.trim(),
         convenioId: convenioIdNuevo || "",
         convenioNombre: convenioSel ? convenioSel.nombre : ""
       };
