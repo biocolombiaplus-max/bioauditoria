@@ -1960,119 +1960,478 @@ function generarFormato(id){
 }
 
 // ── Generador genérico enriquecido para Mediclic ──────────────
+// Ahora enruta a _docRicoOpen con secciones específicas por tipo de documento
 function generarDocGenericoRico(id, titulo, norma){
-  var c1=C.color1||'#FF6B00', c2=C.color2||'#7B2FBE';
   var e=C.empresa||'MEDICLIC IPS SAS', n=C.nombre||'Liseth Nathaly Durán Escalante';
   var nit=C.nit||'902104711-8', cd=C.ciudad||'Cúcuta, Norte de Santander';
+  var tel=C.telefono||'', em=C.email||'mediclicconsultoriaensalud@gmail.com';
   var yr=new Date().getFullYear(), fecha=new Date().toLocaleDateString('es-CO',{year:'numeric',month:'long',day:'numeric'});
-  var logo=C.logo_url?'<img src="'+C.logo_url+'" style="max-height:52px;max-width:140px;object-fit:contain">':'<div style="font-size:22px;font-weight:900;color:'+c1+'">MED<span style="color:'+c2+'">CLIC</span></div>';
-  var user=sessionStorage.getItem('bio_user')||'mediclic';
-  var sk='bio_docgr_'+id+'_'+user;
-  var w=window.open('','_blank');
-  if(!w) return;
 
-  // Template HTML para el documento
-  var html='<!DOCTYPE html><html lang="es"><head><meta charset="UTF-8">'
-    +'<title>'+titulo+'</title>'
-    +'<style>*{box-sizing:border-box;margin:0;padding:0}'
-    +'body{font-family:"Segoe UI",Arial,sans-serif;font-size:11.5px;color:#111;max-width:820px;margin:0 auto;padding:24px 32px 80px;line-height:1.7}'
-    +'.hdr{display:flex;justify-content:space-between;align-items:flex-start;border-bottom:4px solid '+c1+';padding-bottom:14px;margin-bottom:16px}'
-    +'.hdr-r{text-align:right;font-size:9px;color:#666;line-height:1.8}'
-    +'.hdr-r strong{color:'+c1+';font-size:10px}'
-    +'h1{font-size:13px;font-weight:900;text-align:center;color:#0A2540;text-transform:uppercase;letter-spacing:.06em;padding:10px 0;border-bottom:2px solid '+c2+';margin-bottom:14px}'
-    +'h2{font-size:10px;font-weight:800;color:'+c2+';border-left:3px solid '+c1+';padding-left:8px;margin:16px 0 7px;text-transform:uppercase;letter-spacing:.04em}'
-    +'h3{font-size:10px;font-weight:700;color:#333;margin:10px 0 4px}'
-    +'.meta-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin:14px 0;border:1px solid #e0e0e0;border-radius:6px;overflow:hidden}'
-    +'.mg-cell{padding:8px 10px;border-right:1px solid #eee}'
-    +'.mg-cell:last-child{border-right:none}'
-    +'.mg-lbl{font-size:8.5px;font-weight:700;color:#888;text-transform:uppercase;letter-spacing:.05em;margin-bottom:3px}'
-    +'.mg-val{font-size:10px;color:#111;font-weight:600;outline:none;min-width:60px;display:block}'
-    +'.mg-val:focus{background:#fffbf0}'
-    +'.sig-row{display:grid;grid-template-columns:1fr 1fr 1fr;gap:16px;margin-top:24px}'
-    +'.sig-box{border-top:2px solid #333;padding-top:8px;text-align:center}'
-    +'.sig-nm{font-size:9px;font-weight:700;color:#333;text-transform:uppercase;letter-spacing:.04em}'
-    +'.sig-car{font-size:9px;color:#666;margin-top:2px}'
-    +'table{width:100%;border-collapse:collapse;font-size:10.5px;margin:8px 0}'
-    +'th{background:#0A2540;color:#fff;padding:7px 10px;text-align:left;font-size:9.5px;font-weight:700;letter-spacing:.03em}'
-    +'td{padding:7px 10px;border-bottom:1px solid #eee;vertical-align:top}'
-    +'tr:nth-child(even) td{background:#fafafa}'
-    +'.ef{outline:none;min-height:16px;display:block}'
-    +'.ef:focus{background:#fffbf0;border-radius:2px}'
-    +'.sec{padding:12px 14px;background:#f8f8f8;border-radius:6px;border-left:3px solid '+c1+';margin:8px 0;font-size:11px;line-height:1.7}'
-    +'.sec.edit{border:1px dashed '+c1+';background:#fffbf5}'
-    +'.wm{position:fixed;top:50%;left:50%;transform:translate(-50%,-50%) rotate(-35deg);font-size:100px;color:rgba(0,0,0,0.022);font-weight:900;white-space:nowrap;pointer-events:none;z-index:0}'
-    +'.bar{position:fixed;bottom:0;left:0;right:0;background:#fff;border-top:1px solid #ddd;padding:10px 24px;display:flex;gap:10px;align-items:center;z-index:100;box-shadow:0 -4px 20px rgba(0,0,0,0.08)}'
-    +'.bar-l{flex:1;font-size:10px;color:#888}'
-    +'@media print{.bar,.wm{display:none!important}body{padding:0 20px}}'
-    +'</style></head><body>'
-    +'<div class="wm">BIOAuditoria®</div>'
-    +'<div class="hdr">'
-    +'<div>'+logo+'<div style="font-size:10px;color:#555;margin-top:6px;font-weight:600">'+e+'</div>'
-    +'<div style="font-size:9.5px;color:#777">NIT '+nit+' · '+cd+'</div></div>'
-    +'<div class="hdr-r"><strong>'+norma+'</strong><br>Código: MED-'+id.replace('fmt-','').toUpperCase().substr(0,8)+'<br>Versión: v1.0<br>Páginas: —</div>'
-    +'</div>'
-    +'<h1>'+titulo+'</h1>'
-    +'<div class="meta-grid">'
-    +['Versión','Fecha elaboración','Próxima revisión','Código'].map(function(l,i){
-      return '<div class="mg-cell"><div class="mg-lbl">'+l+'</div><span contenteditable="true" class="ef mg-val" data-f="m'+i+'">'+(i===0?'v1.0':i===1?fecha:i===2?(yr+1)+'':'MED-'+id.replace('fmt-','').toUpperCase().substr(0,6))+'</span></div>';
-    }).join('')+'</div>'
-    +'<div class="meta-grid" style="margin-top:6px">'
-    +['Elaboró','Revisó','Aprobó','Cargo'].map(function(l,i){
-      return '<div class="mg-cell"><div class="mg-lbl">'+l+'</div><span contenteditable="true" class="ef mg-val" data-f="m4'+i+'">'+(i===0?n:i===3?'Directora Médica':'')+'</span></div>';
-    }).join('')+'</div>'
-    +'<h2>1. Objeto y alcance</h2>'
-    +'<div class="sec edit" contenteditable="true" data-f="s1">Establecer los lineamientos, procedimientos y controles necesarios para el cumplimiento de la normatividad vigente en Colombia en materia de habilitación de servicios de salud, en concordancia con la <strong>Resolución 3100 de 2019</strong> del Ministerio de Salud y Protección Social, la Resolución 2654 de 2019 (Telemedicina) y demás normas concordantes, en el marco de la prestación de servicios de salud de <strong>'+e+'</strong> en la ciudad de '+cd+'.</div>'
-    +'<h2>2. Marco normativo y legal</h2>'
-    +'<div class="sec" style="background:#f0f4ff;border-left-color:'+c2+'">'
-    +'<strong>Resolución 3100 de 2019</strong> — Habilitación de prestadores de salud (8 estándares)<br>'
-    +'<strong>Resolución 2654 de 2019</strong> — Requisitos para la prestación de servicios de telemedicina en Colombia<br>'
-    +'<strong>Resolución 1995 de 1999</strong> — Historia clínica y archivo<br>'
-    +'<strong>Ley 1581 de 2012</strong> — Protección de datos personales<br>'
-    +'<strong>Ley 1751 de 2015</strong> — Derecho fundamental a la salud<br>'
-    +'<strong>'+norma+'</strong></div>'
-    +'<h2>3. Definiciones y términos clave</h2>'
-    +'<div class="sec edit" contenteditable="true" data-f="s3"><strong>Telemedicina:</strong> Prestación de servicios de salud a distancia utilizando tecnologías de la información y las comunicaciones (TIC), conforme a la Res. 2654/2019.<br><strong>'+e+':</strong> Institución Prestadora de Servicios de Salud habilitada, NIT '+nit+', con sede en '+cd+'.<br><strong>Habilitación:</strong> Proceso de verificación del cumplimiento de condiciones de capacidad tecnológica y científica establecidas por el Estado.<br><strong>Historia Clínica Electrónica:</strong> Conjunto de documentos en formato digital que contienen los datos, valoraciones y registros de la atención prestada a los usuarios.</div>'
-    +'<h2>4. Desarrollo del documento</h2>'
-    +'<div class="sec edit" contenteditable="true" data-f="s4" style="min-height:120px">Desarrolle aquí el contenido principal del documento. Incluya procedimientos paso a paso, flujogramas descriptivos, tablas de responsabilidades, registros, controles y demás elementos requeridos por la norma de referencia. Este contenido debe ser suficientemente detallado para demostrar ante la Secretaría de Salud el cumplimiento del estándar correspondiente.</div>'
-    +'<h2>5. Procedimiento / Pasos a seguir</h2>'
-    +'<table><tr><th>#</th><th>Actividad</th><th>Responsable</th><th>Registro / Evidencia</th><th>Norma</th></tr>'
-    +'<tr><td contenteditable="true" class="ef" data-f="p1">1</td><td contenteditable="true" class="ef" data-f="pa1">Describe la primera actividad del procedimiento</td><td contenteditable="true" class="ef" data-f="pr1">'+n+'</td><td contenteditable="true" class="ef" data-f="pe1">Registro interno</td><td contenteditable="true" class="ef" data-f="pn1">'+norma.split('·')[0].trim()+'</td></tr>'
-    +'<tr><td contenteditable="true" class="ef" data-f="p2">2</td><td contenteditable="true" class="ef" data-f="pa2">Describe la segunda actividad del procedimiento</td><td contenteditable="true" class="ef" data-f="pr2">'+n+'</td><td contenteditable="true" class="ef" data-f="pe2">Registro interno</td><td contenteditable="true" class="ef" data-f="pn2"></td></tr>'
-    +'<tr><td contenteditable="true" class="ef" data-f="p3">3</td><td contenteditable="true" class="ef" data-f="pa3">Describe la tercera actividad</td><td contenteditable="true" class="ef" data-f="pr3">'+n+'</td><td contenteditable="true" class="ef" data-f="pe3">Registro interno</td><td contenteditable="true" class="ef" data-f="pn3"></td></tr>'
-    +'<tr><td contenteditable="true" class="ef" data-f="p4">4</td><td contenteditable="true" class="ef" data-f="pa4">Agrega más pasos según sea necesario</td><td contenteditable="true" class="ef" data-f="pr4">'+n+'</td><td contenteditable="true" class="ef" data-f="pe4"></td><td contenteditable="true" class="ef" data-f="pn4"></td></tr>'
-    +'</table>'
-    +'<h2>6. Responsables y roles</h2>'
-    +'<table><tr><th>Rol / Cargo</th><th>Responsabilidad en este documento</th><th>Nombre</th></tr>'
-    +'<tr><td>Directora Médica / Responsable del servicio</td><td contenteditable="true" class="ef">Elaboración, aprobación y socialización del documento</td><td>'+n+'</td></tr>'
-    +'<tr><td contenteditable="true" class="ef">Coordinador/a de Calidad</td><td contenteditable="true" class="ef">Revisión y control de cambios</td><td contenteditable="true" class="ef"></td></tr>'
-    +'<tr><td contenteditable="true" class="ef">Personal asistencial</td><td contenteditable="true" class="ef">Aplicación del procedimiento en la práctica</td><td>'+n+'</td></tr>'
-    +'</table>'
-    +'<h2>7. Control de cambios y versiones</h2>'
-    +'<table><tr><th>Versión</th><th>Fecha</th><th>Descripción del cambio</th><th>Aprobado por</th></tr>'
-    +'<tr><td>v1.0</td><td>'+fecha+'</td><td contenteditable="true" class="ef">Elaboración inicial del documento</td><td>'+n+'</td></tr>'
-    +'<tr><td contenteditable="true" class="ef">v1.1</td><td contenteditable="true" class="ef"></td><td contenteditable="true" class="ef"></td><td contenteditable="true" class="ef"></td></tr>'
-    +'</table>'
-    +'<div class="sig-row" style="margin-top:36px">'
-    +'<div class="sig-box"><div style="height:50px"></div><div class="sig-nm">'+n+'</div><div class="sig-car">Directora Médica · '+e+'</div></div>'
-    +'<div class="sig-box"><div style="height:50px"></div><div class="sig-nm" contenteditable="true">Nombre Revisor</div><div class="sig-car">Coordinador/a de Calidad</div></div>'
-    +'<div class="sig-box"><div style="height:50px"></div><div class="sig-nm" contenteditable="true">Nombre Aprobador</div><div class="sig-car">Representante Legal</div></div>'
-    +'</div>'
-    +'<div style="margin-top:28px;padding-top:10px;border-top:1px solid #ddd;font-size:8.5px;color:#aaa;text-align:center">'+e+' · NIT '+nit+' · '+norma+' · BIOAuditoria® · '+fecha+'</div>'
-    +'<div class="bar">'
-    +'<div class="bar-l">📝 Haz clic en cualquier campo para editar · Ctrl+S = Guardar · Ctrl+P = Imprimir / PDF</div>'
-    +'<button onclick="guardar()" style="padding:9px 20px;background:linear-gradient(135deg,'+c1+','+c2+');color:#fff;border:none;border-radius:8px;font-size:12px;font-weight:800;cursor:pointer;display:flex;align-items:center;gap:6px">💾 Guardar</button>'
-    +'<button onclick="window.print()" style="padding:9px 16px;border:1px solid #ccc;border-radius:8px;font-size:12px;cursor:pointer;background:#fff">🖨️ Imprimir / PDF</button>'
-    +'<button onclick="window.close()" style="padding:9px 14px;border:1px solid #eee;border-radius:8px;font-size:12px;cursor:pointer;background:#f8f8f8;color:#888">Cerrar</button>'
-    +'</div>'
-    +'<script>'
-    +'var _sk="'+sk+'";'
-    +'(function(){ try{ var d=JSON.parse(localStorage.getItem(_sk)||"null"); if(!d)return; document.querySelectorAll("[data-f]").forEach(function(el){ var v=d[el.dataset.f]; if(v!==undefined){el.innerHTML=v;} }); }catch(e){} })();'
-    +'document.addEventListener("keydown",function(e){ if((e.ctrlKey||e.metaKey)&&e.key==="s"){e.preventDefault();guardar();} });'
-    +'function guardar(){ try{ var d={}; document.querySelectorAll("[data-f]").forEach(function(el){ d[el.dataset.f]=el.innerHTML; }); localStorage.setItem(_sk,JSON.stringify(d)); var btn=document.querySelector(".bar button"); btn.innerHTML="✅ Guardado"; setTimeout(function(){btn.innerHTML="💾 Guardar"},2000); }catch(e){alert("Error al guardar: "+e.message);} }'
-    +'<\/script></body></html>';
+  // ── Mapa de secciones específicas por documento ──────────────
+  var secMap = {
 
-  w.document.write(html);
-  w.document.close();
+  'fmt-infra': [
+    { titulo:'Descripción general del área de trabajo', contenido:'<p>'+e+' presta servicios de salud mediante teleconsulta (telemedicina) desde un espacio físico acondicionado según los estándares de la Resolución 2654/2019 Art. 5 y la Resolución 3100/2019 Estándar 2. El área de trabajo se ubica en: <strong contenteditable="true" class="ef" data-f="infra-dir">Dirección exacta — '+cd+'</strong>.</p>'
+      +'<table class="doc-table"><tr><th>Característica</th><th>Descripción</th><th>Cumple Res. 2654</th></tr>'
+      +'<tr><td>Área mínima</td><td contenteditable="true" class="ef" data-f="infra-area">≥ 9 m² exclusivos para teleconsulta</td><td>☑ Sí</td></tr>'
+      +'<tr><td>Iluminación</td><td contenteditable="true" class="ef" data-f="infra-luz">Luz natural + LED de 500 lux mínimo. Sin reflejos en pantalla.</td><td>☑ Sí</td></tr>'
+      +'<tr><td>Privacidad</td><td contenteditable="true" class="ef" data-f="infra-priv">Puerta con cerradura. Sin acceso de terceros durante la consulta. Sin ventanas sin cortina hacia zonas de paso.</td><td>☑ Sí</td></tr>'
+      +'<tr><td>Ventilación</td><td contenteditable="true" class="ef" data-f="infra-vent">Ventilación natural o aire acondicionado. Temperatura entre 18–24 °C.</td><td>☑ Sí</td></tr>'
+      +'<tr><td>Fondo de video</td><td contenteditable="true" class="ef" data-f="infra-fondo">Fondo neutro (pared lisa de color claro). Sin elementos que distraigan o revelen información de terceros.</td><td>☑ Sí</td></tr>'
+      +'<tr><td>Sonido / ruido</td><td contenteditable="true" class="ef" data-f="infra-ruido">Nivel de ruido ≤ 45 dB durante la consulta. Micrófono con cancelación de ruido.</td><td>☑ Sí</td></tr>'
+      +'</table>' },
+    { titulo:'Equipos tecnológicos de teleconsulta', contenido:'<table class="doc-table"><tr><th>Equipo</th><th>Marca/Modelo</th><th>Serial</th><th>Especificaciones mínimas requeridas (Res. 2654)</th><th>Cumple</th></tr>'
+      +'<tr><td>Computador / equipo principal</td><td contenteditable="true" class="ef" data-f="eq-pc-marca"></td><td contenteditable="true" class="ef" data-f="eq-pc-ser"></td><td>CPU ≥ 4 núcleos, RAM ≥ 8 GB, SSD ≥ 256 GB, pantalla ≥ 15"</td><td contenteditable="true" class="ef" data-f="eq-pc-c">☑ Sí</td></tr>'
+      +'<tr><td>Cámara web</td><td contenteditable="true" class="ef" data-f="eq-cam-marca"></td><td contenteditable="true" class="ef" data-f="eq-cam-ser"></td><td>Resolución ≥ 720p HD, 30 fps mínimo, autofocus</td><td contenteditable="true" class="ef" data-f="eq-cam-c">☑ Sí</td></tr>'
+      +'<tr><td>Micrófono / auriculares</td><td contenteditable="true" class="ef" data-f="eq-mic-marca"></td><td contenteditable="true" class="ef" data-f="eq-mic-ser"></td><td>Cancelación de ruido activa, frecuencia 100 Hz – 8 kHz</td><td contenteditable="true" class="ef" data-f="eq-mic-c">☑ Sí</td></tr>'
+      +'<tr><td>Conexión a internet</td><td contenteditable="true" class="ef" data-f="eq-int-prov">ISP: </td><td contenteditable="true" class="ef" data-f="eq-int-tipo">Fibra óptica</td><td>Velocidad ≥ 10 Mbps bajada / ≥ 5 Mbps subida. Latencia ≤ 150 ms. Conexión cableada (UTP cat. 6 preferiblemente)</td><td contenteditable="true" class="ef" data-f="eq-int-c">☑ Sí</td></tr>'
+      +'<tr><td>UPS / respaldo eléctrico</td><td contenteditable="true" class="ef" data-f="eq-ups-marca"></td><td contenteditable="true" class="ef" data-f="eq-ups-ser"></td><td>Autonomía ≥ 15 minutos para cierre ordenado de sesión</td><td contenteditable="true" class="ef" data-f="eq-ups-c">☑ Sí</td></tr>'
+      +'<tr><td>Plataforma de teleconsulta</td><td contenteditable="true" class="ef" data-f="eq-plat">Microsoft Teams / Zoom / </td><td contenteditable="true" class="ef" data-f="eq-plat-v">Versión: </td><td>Cifrado extremo a extremo (E2EE). Cumple Ley 1581/2012. No grabación sin consentimiento.</td><td contenteditable="true" class="ef" data-f="eq-plat-c">☑ Sí</td></tr>'
+      +'<tr><td>Software HCE</td><td contenteditable="true" class="ef" data-f="eq-hce"></td><td contenteditable="true" class="ef" data-f="eq-hce-v">Versión: </td><td>Historia clínica electrónica certificada. Backup automático. Acceso por contraseña.</td><td contenteditable="true" class="ef" data-f="eq-hce-c">☑ Sí</td></tr>'
+      +'</table>' },
+    { titulo:'Plan de contingencia tecnológica', contenido:'<p>Ante falla del sistema de teleconsulta, se activará el siguiente protocolo:</p>'
+      +'<ol style="margin:8px 0 0 18px;line-height:2"><li>Notificar al paciente dentro de los <strong>5 minutos</strong> siguientes a la caída del servicio.</li><li>Reprogramar la consulta por WhatsApp o llamada telefónica al número <span contenteditable="true" class="ef" data-f="cont-tel">___________</span>.</li><li>En caso de falla eléctrica, usar el plan de datos del celular (hotspot) como conexión de respaldo (mínimo 4G LTE).</li><li>Registrar el incidente en la bitácora de eventualidades tecnológicas.</li><li>Si la falla persiste más de 24 horas, reportar al responsable de TI y al área de calidad.</li></ol>' }
+  ],
+
+  'fmt-riesgo': [
+    { titulo:'Identificación de amenazas y vulnerabilidades', contenido:'<p>Conforme a la Ley 1523/2012 (Art. 32) y la Resolución 3100/2019 Estándar 2, '+e+' identifica las siguientes amenazas para la continuidad del servicio de telemedicina:</p>'
+      +'<table class="doc-table"><tr><th>Amenaza</th><th>Tipo</th><th>Probabilidad</th><th>Impacto</th><th>Nivel de riesgo</th></tr>'
+      +'<tr><td>Corte prolongado del servicio de internet</td><td>Tecnológica</td><td>Alta</td><td>Alto</td><td style="color:red;font-weight:700">ALTO</td></tr>'
+      +'<tr><td>Falla eléctrica / apagón</td><td>Natural/infraestructura</td><td>Media</td><td>Alto</td><td style="color:orange;font-weight:700">MEDIO</td></tr>'
+      +'<tr><td>Fallo de hardware (PC, cámara)</td><td>Tecnológica</td><td>Media</td><td>Medio</td><td style="color:orange;font-weight:700">MEDIO</td></tr>'
+      +'<tr><td>Brecha de seguridad / ransomware</td><td>Ciberseguridad</td><td>Baja</td><td>Muy alto</td><td style="color:orange;font-weight:700">MEDIO</td></tr>'
+      +'<tr><td>Terremoto / sismo</td><td>Natural</td><td>Muy baja</td><td>Alto</td><td style="color:green;font-weight:700">BAJO</td></tr>'
+      +'<tr><td>Incendio</td><td>Tecnológica/Natural</td><td>Muy baja</td><td>Muy alto</td><td style="color:green;font-weight:700">BAJO</td></tr>'
+      +'<tr><td>Hurto de equipos o datos</td><td>Social</td><td>Baja</td><td>Alto</td><td style="color:green;font-weight:700">BAJO</td></tr>'
+      +'</table>' },
+    { titulo:'Plan de acción por riesgo', contenido:'<table class="doc-table"><tr><th>Riesgo</th><th>Medida preventiva</th><th>Medida correctiva (evento)</th><th>Responsable</th><th>Recursos</th></tr>'
+      +'<tr><td>Corte de internet</td><td>Contrato con ISP secundario (datos móvil 4G)</td><td>Activar hotspot móvil. Notificar paciente. Reprogramar.</td><td>'+n+'</td><td>Celular con plan datos</td></tr>'
+      +'<tr><td>Falla eléctrica</td><td>UPS instalada. Revisión mensual de carga.</td><td>Usar UPS. Guardar HC. Cierre ordenado de sesión. Notificar paciente.</td><td>'+n+'</td><td>UPS, generador (si aplica)</td></tr>'
+      +'<tr><td>Fallo de hardware</td><td>Mantenimiento preventivo semestral. Copia de seguridad diaria.</td><td>Usar equipo de respaldo. Contactar soporte técnico. Reprogramar citas afectadas.</td><td>'+n+'</td><td>PC de respaldo, técnico de confianza</td></tr>'
+      +'<tr><td>Brecha de seguridad</td><td>Antivirus actualizado. Contraseñas fuertes. No abrir correos sospechosos.</td><td>Aislar equipo. Notificar a pacientes afectados. Reportar a SIC (Ley 1581/2012). Restaurar backup.</td><td>'+n+'</td><td>Software antivirus, backup cifrado</td></tr>'
+      +'</table>' },
+    { titulo:'Simulacros y revisión del plan', contenido:'<p>El plan de gestión del riesgo será revisado anualmente y cada vez que se incorpore un nuevo equipo o se identifique un nuevo riesgo. Se realizará al menos un simulacro semestral de falla tecnológica para verificar los tiempos de respuesta y la efectividad de las medidas de contingencia.</p>'
+      +'<table class="doc-table"><tr><th>Actividad</th><th>Frecuencia</th><th>Responsable</th><th>Fecha programada</th><th>Evidencia</th></tr>'
+      +'<tr><td>Revisión del plan de riesgo</td><td>Anual</td><td>'+n+'</td><td contenteditable="true" class="ef" data-f="riesgo-rev1"></td><td>Acta de revisión</td></tr>'
+      +'<tr><td>Simulacro de falla de internet</td><td>Semestral</td><td>'+n+'</td><td contenteditable="true" class="ef" data-f="riesgo-rev2"></td><td>Registro de simulacro</td></tr>'
+      +'<tr><td>Prueba de backup y restauración</td><td>Trimestral</td><td>'+n+'</td><td contenteditable="true" class="ef" data-f="riesgo-rev3"></td><td>Acta de prueba de backup</td></tr>'
+      +'</table>' }
+  ],
+
+  'fmt-inv-tech': [
+    { titulo:'Inventario de equipos tecnológicos para teleconsulta', contenido:'<p>Conforme a la Resolución 2654/2019 Art. 5 y la Resolución 3100/2019 Estándar 3, se relacionan a continuación todos los equipos tecnológicos destinados a la prestación de servicios de telemedicina en '+e+':</p>'
+      +'<table class="doc-table"><tr><th>No.</th><th>Equipo</th><th>Marca</th><th>Modelo</th><th>Serial</th><th>Año adq.</th><th>Estado</th><th>Ubicación</th></tr>'
+      +'<tr><td>1</td><td>Computador portátil</td><td contenteditable="true" class="ef" data-f="inv1-m"></td><td contenteditable="true" class="ef" data-f="inv1-mod"></td><td contenteditable="true" class="ef" data-f="inv1-s"></td><td contenteditable="true" class="ef" data-f="inv1-a">'+yr+'</td><td contenteditable="true" class="ef" data-f="inv1-e">Bueno</td><td contenteditable="true" class="ef" data-f="inv1-u">Consultorio telemedicina</td></tr>'
+      +'<tr><td>2</td><td>Cámara web HD</td><td contenteditable="true" class="ef" data-f="inv2-m"></td><td contenteditable="true" class="ef" data-f="inv2-mod"></td><td contenteditable="true" class="ef" data-f="inv2-s"></td><td contenteditable="true" class="ef" data-f="inv2-a">'+yr+'</td><td contenteditable="true" class="ef" data-f="inv2-e">Bueno</td><td contenteditable="true" class="ef" data-f="inv2-u">Consultorio telemedicina</td></tr>'
+      +'<tr><td>3</td><td>Auriculares con micrófono</td><td contenteditable="true" class="ef" data-f="inv3-m"></td><td contenteditable="true" class="ef" data-f="inv3-mod"></td><td contenteditable="true" class="ef" data-f="inv3-s"></td><td contenteditable="true" class="ef" data-f="inv3-a">'+yr+'</td><td contenteditable="true" class="ef" data-f="inv3-e">Bueno</td><td contenteditable="true" class="ef" data-f="inv3-u">Consultorio telemedicina</td></tr>'
+      +'<tr><td>4</td><td>Router / módem internet</td><td contenteditable="true" class="ef" data-f="inv4-m"></td><td contenteditable="true" class="ef" data-f="inv4-mod"></td><td contenteditable="true" class="ef" data-f="inv4-s"></td><td contenteditable="true" class="ef" data-f="inv4-a">'+yr+'</td><td contenteditable="true" class="ef" data-f="inv4-e">Bueno</td><td contenteditable="true" class="ef" data-f="inv4-u">Consultorio telemedicina</td></tr>'
+      +'<tr><td>5</td><td>UPS / respaldo eléctrico</td><td contenteditable="true" class="ef" data-f="inv5-m"></td><td contenteditable="true" class="ef" data-f="inv5-mod"></td><td contenteditable="true" class="ef" data-f="inv5-s"></td><td contenteditable="true" class="ef" data-f="inv5-a">'+yr+'</td><td contenteditable="true" class="ef" data-f="inv5-e">Bueno</td><td contenteditable="true" class="ef" data-f="inv5-u">Consultorio telemedicina</td></tr>'
+      +'<tr><td>6</td><td>Impresora / escáner</td><td contenteditable="true" class="ef" data-f="inv6-m"></td><td contenteditable="true" class="ef" data-f="inv6-mod"></td><td contenteditable="true" class="ef" data-f="inv6-s"></td><td contenteditable="true" class="ef" data-f="inv6-a">'+yr+'</td><td contenteditable="true" class="ef" data-f="inv6-e">Bueno</td><td contenteditable="true" class="ef" data-f="inv6-u">Consultorio telemedicina</td></tr>'
+      +'</table>' },
+    { titulo:'Licencias de software y plataformas', contenido:'<table class="doc-table"><tr><th>Software</th><th>Versión</th><th>Tipo licencia</th><th>Vencimiento</th><th>Función</th></tr>'
+      +'<tr><td contenteditable="true" class="ef" data-f="sw1-n">Sistema operativo</td><td contenteditable="true" class="ef" data-f="sw1-v">Windows 11 Pro</td><td contenteditable="true" class="ef" data-f="sw1-t">OEM/Retail</td><td contenteditable="true" class="ef" data-f="sw1-vc">Permanente</td><td>Sistema operativo principal</td></tr>'
+      +'<tr><td contenteditable="true" class="ef" data-f="sw2-n">Plataforma teleconsulta</td><td contenteditable="true" class="ef" data-f="sw2-v">Teams/Zoom</td><td contenteditable="true" class="ef" data-f="sw2-t">Empresarial</td><td contenteditable="true" class="ef" data-f="sw2-vc">Anual</td><td>Videoconsulta cifrada</td></tr>'
+      +'<tr><td contenteditable="true" class="ef" data-f="sw3-n">HCE — Historia Clínica</td><td contenteditable="true" class="ef" data-f="sw3-v"></td><td contenteditable="true" class="ef" data-f="sw3-t">SaaS</td><td contenteditable="true" class="ef" data-f="sw3-vc">Anual</td><td>Registro y gestión de HC</td></tr>'
+      +'<tr><td contenteditable="true" class="ef" data-f="sw4-n">Antivirus</td><td contenteditable="true" class="ef" data-f="sw4-v"></td><td contenteditable="true" class="ef" data-f="sw4-t">Comercial</td><td contenteditable="true" class="ef" data-f="sw4-vc">Anual</td><td>Seguridad informática</td></tr>'
+      +'<tr><td contenteditable="true" class="ef" data-f="sw5-n">Backup en nube</td><td contenteditable="true" class="ef" data-f="sw5-v">OneDrive / Google Drive</td><td contenteditable="true" class="ef" data-f="sw5-t">Suscripción</td><td contenteditable="true" class="ef" data-f="sw5-vc">Anual</td><td>Copia de seguridad HC y docs</td></tr>'
+      +'</table>' }
+  ],
+
+  'fmt-privacidad-espacio': [
+    { titulo:'Lista de verificación — Privacidad del espacio de teleconsulta', contenido:'<p>Conforme a la Resolución 2654/2019 Art. 6, se verifican las siguientes condiciones del espacio físico de teleconsulta antes de cada jornada de atención:</p>'
+      +'<table class="doc-table"><tr><th>Criterio</th><th>Descripción / Estándar</th><th>Cumple</th><th>Observaciones</th></tr>'
+      +'<tr><td>Privacidad visual</td><td>El espacio no permite que terceros vean la pantalla donde se muestra el paciente</td><td contenteditable="true" class="ef" data-f="priv1">☑ Sí &nbsp; ☐ No</td><td contenteditable="true" class="ef" data-f="priv1o"></td></tr>'
+      +'<tr><td>Privacidad auditiva</td><td>No se pueden escuchar las conversaciones desde el exterior del espacio</td><td contenteditable="true" class="ef" data-f="priv2">☑ Sí &nbsp; ☐ No</td><td contenteditable="true" class="ef" data-f="priv2o"></td></tr>'
+      +'<tr><td>Fondo de video neutro</td><td>El fondo visible en cámara es neutro y no revela información de terceros</td><td contenteditable="true" class="ef" data-f="priv3">☑ Sí &nbsp; ☐ No</td><td contenteditable="true" class="ef" data-f="priv3o"></td></tr>'
+      +'<tr><td>Acceso controlado</td><td>Durante la consulta, el acceso al espacio está restringido a personas no autorizadas</td><td contenteditable="true" class="ef" data-f="priv4">☑ Sí &nbsp; ☐ No</td><td contenteditable="true" class="ef" data-f="priv4o"></td></tr>'
+      +'<tr><td>Pantalla no visible a terceros</td><td>La pantalla del computador no es visible desde zonas de paso o ventanas</td><td contenteditable="true" class="ef" data-f="priv5">☑ Sí &nbsp; ☐ No</td><td contenteditable="true" class="ef" data-f="priv5o"></td></tr>'
+      +'<tr><td>Dispositivos con contraseña</td><td>El PC y el teléfono tienen contraseña/PIN y bloqueo automático ≤ 5 min</td><td contenteditable="true" class="ef" data-f="priv6">☑ Sí &nbsp; ☐ No</td><td contenteditable="true" class="ef" data-f="priv6o"></td></tr>'
+      +'<tr><td>Sin grabación sin consentimiento</td><td>Las sesiones NO son grabadas sin autorización expresa del paciente</td><td contenteditable="true" class="ef" data-f="priv7">☑ Sí &nbsp; ☐ No</td><td contenteditable="true" class="ef" data-f="priv7o"></td></tr>'
+      +'</table>' },
+    { titulo:'Registro diario de verificación', contenido:'<table class="doc-table"><tr><th>Fecha</th><th>Jornada</th><th>Verificó</th><th>Observaciones</th><th>Firma</th></tr>'
+      +'<tr><td contenteditable="true" class="ef" data-f="vd1-f"></td><td contenteditable="true" class="ef" data-f="vd1-j">Mañana</td><td>'+n+'</td><td contenteditable="true" class="ef" data-f="vd1-o">Sin novedades</td><td contenteditable="true" class="ef" data-f="vd1-s">_______</td></tr>'
+      +'<tr><td contenteditable="true" class="ef" data-f="vd2-f"></td><td contenteditable="true" class="ef" data-f="vd2-j">Tarde</td><td>'+n+'</td><td contenteditable="true" class="ef" data-f="vd2-o">Sin novedades</td><td contenteditable="true" class="ef" data-f="vd2-s">_______</td></tr>'
+      +'<tr><td contenteditable="true" class="ef" data-f="vd3-f"></td><td contenteditable="true" class="ef" data-f="vd3-j">Mañana</td><td>'+n+'</td><td contenteditable="true" class="ef" data-f="vd3-o"></td><td contenteditable="true" class="ef" data-f="vd3-s">_______</td></tr>'
+      +'</table>' }
+  ],
+
+  'fmt-dotacion': [
+    { titulo:'Inventario de dotación — equipos y periféricos de teleconsulta', contenido:'<p>Conforme a la Resolución 3100/2019 Estándar 3, se relaciona la totalidad de equipos, dotación e insumos disponibles para la prestación de servicios de telemedicina:</p>'
+      +'<table class="doc-table"><tr><th>No.</th><th>Ítem</th><th>Cantidad</th><th>Unidad</th><th>Estado</th><th>Fecha adq.</th><th>Próxima revisión</th></tr>'
+      +'<tr><td>1</td><td>Computador portátil / desktop</td><td contenteditable="true" class="ef" data-f="dot1-q">1</td><td>Unidad</td><td contenteditable="true" class="ef" data-f="dot1-e">Bueno</td><td contenteditable="true" class="ef" data-f="dot1-f">'+yr+'</td><td contenteditable="true" class="ef" data-f="dot1-r">'+(yr+1)+'</td></tr>'
+      +'<tr><td>2</td><td>Monitor externo (≥ 21")</td><td contenteditable="true" class="ef" data-f="dot2-q">1</td><td>Unidad</td><td contenteditable="true" class="ef" data-f="dot2-e">Bueno</td><td contenteditable="true" class="ef" data-f="dot2-f">'+yr+'</td><td contenteditable="true" class="ef" data-f="dot2-r">'+(yr+1)+'</td></tr>'
+      +'<tr><td>3</td><td>Cámara web HD ≥ 720p</td><td contenteditable="true" class="ef" data-f="dot3-q">1</td><td>Unidad</td><td contenteditable="true" class="ef" data-f="dot3-e">Bueno</td><td contenteditable="true" class="ef" data-f="dot3-f">'+yr+'</td><td contenteditable="true" class="ef" data-f="dot3-r">'+(yr+1)+'</td></tr>'
+      +'<tr><td>4</td><td>Auriculares con micrófono</td><td contenteditable="true" class="ef" data-f="dot4-q">1</td><td>Unidad</td><td contenteditable="true" class="ef" data-f="dot4-e">Bueno</td><td contenteditable="true" class="ef" data-f="dot4-f">'+yr+'</td><td contenteditable="true" class="ef" data-f="dot4-r">'+(yr+1)+'</td></tr>'
+      +'<tr><td>5</td><td>UPS/regulador eléctrico</td><td contenteditable="true" class="ef" data-f="dot5-q">1</td><td>Unidad</td><td contenteditable="true" class="ef" data-f="dot5-e">Bueno</td><td contenteditable="true" class="ef" data-f="dot5-f">'+yr+'</td><td contenteditable="true" class="ef" data-f="dot5-r">'+(yr+1)+'</td></tr>'
+      +'<tr><td>6</td><td>Impresora multifuncional</td><td contenteditable="true" class="ef" data-f="dot6-q">1</td><td>Unidad</td><td contenteditable="true" class="ef" data-f="dot6-e">Bueno</td><td contenteditable="true" class="ef" data-f="dot6-f">'+yr+'</td><td contenteditable="true" class="ef" data-f="dot6-r">'+(yr+1)+'</td></tr>'
+      +'<tr><td>7</td><td>Teléfono (celular respaldo)</td><td contenteditable="true" class="ef" data-f="dot7-q">1</td><td>Unidad</td><td contenteditable="true" class="ef" data-f="dot7-e">Bueno</td><td contenteditable="true" class="ef" data-f="dot7-f">'+yr+'</td><td contenteditable="true" class="ef" data-f="dot7-r">'+(yr+1)+'</td></tr>'
+      +'<tr><td>8</td><td>Router / módem internet principal</td><td contenteditable="true" class="ef" data-f="dot8-q">1</td><td>Unidad</td><td contenteditable="true" class="ef" data-f="dot8-e">Bueno</td><td contenteditable="true" class="ef" data-f="dot8-f">'+yr+'</td><td contenteditable="true" class="ef" data-f="dot8-r">'+(yr+1)+'</td></tr>'
+      +'</table>' }
+  ],
+
+  'fmt-hv-equipo': [
+    { titulo:'Identificación del equipo', contenido:'<table class="doc-table"><tr><th>Campo</th><th>Información</th></tr>'
+      +'<tr><td>Nombre del equipo</td><td contenteditable="true" class="ef" data-f="hve-nom"></td></tr>'
+      +'<tr><td>Marca</td><td contenteditable="true" class="ef" data-f="hve-marca"></td></tr>'
+      +'<tr><td>Modelo</td><td contenteditable="true" class="ef" data-f="hve-mod"></td></tr>'
+      +'<tr><td>Número de serie</td><td contenteditable="true" class="ef" data-f="hve-ser"></td></tr>'
+      +'<tr><td>Código interno IPS</td><td contenteditable="true" class="ef" data-f="hve-cod">EQ-'+yr+'-001</td></tr>'
+      +'<tr><td>Año de adquisición</td><td contenteditable="true" class="ef" data-f="hve-adq">'+yr+'</td></tr>'
+      +'<tr><td>Valor de compra (COP)</td><td contenteditable="true" class="ef" data-f="hve-val">$</td></tr>'
+      +'<tr><td>Proveedor</td><td contenteditable="true" class="ef" data-f="hve-prov"></td></tr>'
+      +'<tr><td>Garantía</td><td contenteditable="true" class="ef" data-f="hve-gar">1 año</td></tr>'
+      +'<tr><td>Ubicación</td><td contenteditable="true" class="ef" data-f="hve-ubi">Consultorio de telemedicina — '+e+'</td></tr>'
+      +'<tr><td>Responsable del equipo</td><td>'+n+'</td></tr>'
+      +'<tr><td>Estado actual</td><td contenteditable="true" class="ef" data-f="hve-est">☑ Operativo &nbsp; ☐ En mantenimiento &nbsp; ☐ Fuera de servicio &nbsp; ☐ Dado de baja</td></tr>'
+      +'</table>' },
+    { titulo:'Historial de mantenimiento y reparaciones', contenido:'<table class="doc-table"><tr><th>Fecha</th><th>Tipo</th><th>Actividad realizada</th><th>Técnico / Empresa</th><th>Costo (COP)</th><th>Próximo mant.</th></tr>'
+      +'<tr><td contenteditable="true" class="ef" data-f="mant1-f">'+fecha+'</td><td contenteditable="true" class="ef" data-f="mant1-t">Preventivo</td><td contenteditable="true" class="ef" data-f="mant1-a">Limpieza interna. Actualización de drivers. Verificación de rendimiento.</td><td contenteditable="true" class="ef" data-f="mant1-tec"></td><td contenteditable="true" class="ef" data-f="mant1-c">$0</td><td contenteditable="true" class="ef" data-f="mant1-p">Semestral</td></tr>'
+      +'<tr><td contenteditable="true" class="ef" data-f="mant2-f"></td><td contenteditable="true" class="ef" data-f="mant2-t">Correctivo</td><td contenteditable="true" class="ef" data-f="mant2-a"></td><td contenteditable="true" class="ef" data-f="mant2-tec"></td><td contenteditable="true" class="ef" data-f="mant2-c">$</td><td contenteditable="true" class="ef" data-f="mant2-p"></td></tr>'
+      +'</table>' }
+  ],
+
+  'fmt-mant': [
+    { titulo:'Programa anual de mantenimiento preventivo', contenido:'<p>Conforme a la Resolución 3100/2019 Estándar 3, '+e+' establece el siguiente programa de mantenimiento preventivo para todos sus equipos tecnológicos:</p>'
+      +'<table class="doc-table"><tr><th>Equipo</th><th>Actividad</th><th>Frecuencia</th><th>Meses programados</th><th>Responsable</th><th>Evidencia</th></tr>'
+      +'<tr><td>Computador principal</td><td>Limpieza interna, actualización OS, antivirus, drivers, verificación RAM/disco</td><td>Semestral</td><td contenteditable="true" class="ef" data-f="pm1-m">Ene / Jul</td><td>'+n+' / Técnico TI</td><td>Acta de mantenimiento</td></tr>'
+      +'<tr><td>Cámara web</td><td>Limpieza lente, verificación imagen, calibración exposición</td><td>Semestral</td><td contenteditable="true" class="ef" data-f="pm2-m">Ene / Jul</td><td>'+n+'</td><td>Registro fotográfico</td></tr>'
+      +'<tr><td>Auriculares/micrófono</td><td>Limpieza. Prueba de audio. Verificación cancelación de ruido.</td><td>Semestral</td><td contenteditable="true" class="ef" data-f="pm3-m">Ene / Jul</td><td>'+n+'</td><td>Registro de prueba de audio</td></tr>'
+      +'<tr><td>UPS</td><td>Prueba de autonomía. Medición de voltaje. Cambio de batería si aplica.</td><td>Anual</td><td contenteditable="true" class="ef" data-f="pm4-m">Ene</td><td>'+n+' / Técnico eléctrico</td><td>Informe de prueba UPS</td></tr>'
+      +'<tr><td>Router/módem</td><td>Actualización firmware. Verificación velocidad (≥10 Mbps). Reinicio preventivo.</td><td>Trimestral</td><td contenteditable="true" class="ef" data-f="pm5-m">Ene / Abr / Jul / Oct</td><td>'+n+'</td><td>Captura de pantalla speedtest</td></tr>'
+      +'<tr><td>Impresora</td><td>Limpieza cabezales. Prueba de impresión. Verificación tóner/cartucho.</td><td>Trimestral</td><td contenteditable="true" class="ef" data-f="pm6-m">Ene / Abr / Jul / Oct</td><td>'+n+'</td><td>Página de prueba impresa</td></tr>'
+      +'</table>' },
+    { titulo:'Registro de ejecución de mantenimientos', contenido:'<table class="doc-table"><tr><th>Fecha real</th><th>Equipo</th><th>Actividad realizada</th><th>Ejecutó</th><th>Observaciones</th></tr>'
+      +'<tr><td contenteditable="true" class="ef" data-f="mej1-f">'+fecha+'</td><td contenteditable="true" class="ef" data-f="mej1-eq"></td><td contenteditable="true" class="ef" data-f="mej1-act"></td><td>'+n+'</td><td contenteditable="true" class="ef" data-f="mej1-obs">Sin novedades</td></tr>'
+      +'<tr><td contenteditable="true" class="ef" data-f="mej2-f"></td><td contenteditable="true" class="ef" data-f="mej2-eq"></td><td contenteditable="true" class="ef" data-f="mej2-act"></td><td>'+n+'</td><td contenteditable="true" class="ef" data-f="mej2-obs"></td></tr>'
+      +'</table>' }
+  ],
+
+  'fmt-calibracion': [
+    { titulo:'Registro de calibración y verificación de equipos', contenido:'<p>Aplica a equipos que requieran verificación de funcionamiento periódico (cámara, micrófono, velocidad de internet). Para equipos biomédicos (si aplica), la calibración debe realizarse por laboratorio acreditado (ONAC).</p>'
+      +'<table class="doc-table"><tr><th>Equipo</th><th>Parámetro verificado</th><th>Valor esperado</th><th>Valor medido</th><th>Fecha</th><th>Realizó</th><th>Resultado</th></tr>'
+      +'<tr><td>Cámara web</td><td>Resolución / calidad imagen</td><td>≥ 720p, 30 fps</td><td contenteditable="true" class="ef" data-f="cal1-v"></td><td contenteditable="true" class="ef" data-f="cal1-f">'+fecha+'</td><td>'+n+'</td><td contenteditable="true" class="ef" data-f="cal1-r">☑ Conforme &nbsp; ☐ No conforme</td></tr>'
+      +'<tr><td>Micrófono / audio</td><td>Nivel de captación de voz</td><td>Sin ruido de fondo. Voz clara.</td><td contenteditable="true" class="ef" data-f="cal2-v">OK</td><td contenteditable="true" class="ef" data-f="cal2-f">'+fecha+'</td><td>'+n+'</td><td contenteditable="true" class="ef" data-f="cal2-r">☑ Conforme &nbsp; ☐ No conforme</td></tr>'
+      +'<tr><td>Conexión internet</td><td>Velocidad bajada / subida</td><td>≥ 10 Mbps bajada / ≥ 5 Mbps subida</td><td contenteditable="true" class="ef" data-f="cal3-v">____ / ____  Mbps</td><td contenteditable="true" class="ef" data-f="cal3-f">'+fecha+'</td><td>'+n+'</td><td contenteditable="true" class="ef" data-f="cal3-r">☑ Conforme &nbsp; ☐ No conforme</td></tr>'
+      +'<tr><td>UPS</td><td>Autonomía de batería</td><td>≥ 15 minutos</td><td contenteditable="true" class="ef" data-f="cal4-v">___ min</td><td contenteditable="true" class="ef" data-f="cal4-f">'+fecha+'</td><td>'+n+'</td><td contenteditable="true" class="ef" data-f="cal4-r">☑ Conforme &nbsp; ☐ No conforme</td></tr>'
+      +'</table>' }
+  ],
+
+  'fmt-botiquin': [
+    { titulo:'Inventario del botiquín de primeros auxilios', contenido:'<p>El botiquín de primeros auxilios es un elemento de seguridad requerido conforme a la Resolución 3100/2019 Estándar 3 y el Dec. 1072/2015 (Art. 2.2.4.6.26). Se verifica su contenido mínimo mensualmente.</p>'
+      +'<table class="doc-table"><tr><th>Ítem</th><th>Presentación</th><th>Cantidad mínima</th><th>Cantidad actual</th><th>Fecha venc.</th><th>Estado</th></tr>'
+      +'<tr><td>Guantes desechables de látex/nitrilo</td><td>Par</td><td>5</td><td contenteditable="true" class="ef" data-f="bq1-q"></td><td contenteditable="true" class="ef" data-f="bq1-v"></td><td contenteditable="true" class="ef" data-f="bq1-e">Bueno</td></tr>'
+      +'<tr><td>Gasas estériles</td><td>Paquete x10</td><td>2</td><td contenteditable="true" class="ef" data-f="bq2-q"></td><td contenteditable="true" class="ef" data-f="bq2-v"></td><td contenteditable="true" class="ef" data-f="bq2-e">Bueno</td></tr>'
+      +'<tr><td>Vendaje triangular</td><td>Unidad</td><td>1</td><td contenteditable="true" class="ef" data-f="bq3-q"></td><td contenteditable="true" class="ef" data-f="bq3-v">N/A</td><td contenteditable="true" class="ef" data-f="bq3-e">Bueno</td></tr>'
+      +'<tr><td>Venda de gasa</td><td>Rollo 5cm x 5m</td><td>2</td><td contenteditable="true" class="ef" data-f="bq4-q"></td><td contenteditable="true" class="ef" data-f="bq4-v">N/A</td><td contenteditable="true" class="ef" data-f="bq4-e">Bueno</td></tr>'
+      +'<tr><td>Curas / curitas</td><td>Caja x 20</td><td>1</td><td contenteditable="true" class="ef" data-f="bq5-q"></td><td contenteditable="true" class="ef" data-f="bq5-v"></td><td contenteditable="true" class="ef" data-f="bq5-e">Bueno</td></tr>'
+      +'<tr><td>Alcohol antiséptico 70°</td><td>Frasco 250 mL</td><td>1</td><td contenteditable="true" class="ef" data-f="bq6-q"></td><td contenteditable="true" class="ef" data-f="bq6-v"></td><td contenteditable="true" class="ef" data-f="bq6-e">Bueno</td></tr>'
+      +'<tr><td>Agua oxigenada</td><td>Frasco 120 mL</td><td>1</td><td contenteditable="true" class="ef" data-f="bq7-q"></td><td contenteditable="true" class="ef" data-f="bq7-v"></td><td contenteditable="true" class="ef" data-f="bq7-e">Bueno</td></tr>'
+      +'<tr><td>Esparadrapo</td><td>Rollo 2.5 cm</td><td>1</td><td contenteditable="true" class="ef" data-f="bq8-q"></td><td contenteditable="true" class="ef" data-f="bq8-v">N/A</td><td contenteditable="true" class="ef" data-f="bq8-e">Bueno</td></tr>'
+      +'<tr><td>Tijeras punta roma</td><td>Unidad</td><td>1</td><td contenteditable="true" class="ef" data-f="bq9-q"></td><td contenteditable="true" class="ef" data-f="bq9-v">N/A</td><td contenteditable="true" class="ef" data-f="bq9-e">Bueno</td></tr>'
+      +'<tr><td>Termómetro digital</td><td>Unidad</td><td>1</td><td contenteditable="true" class="ef" data-f="bq10-q"></td><td contenteditable="true" class="ef" data-f="bq10-v">N/A</td><td contenteditable="true" class="ef" data-f="bq10-e">Bueno</td></tr>'
+      +'<tr><td>Manual de primeros auxilios</td><td>Folleto</td><td>1</td><td contenteditable="true" class="ef" data-f="bq11-q"></td><td contenteditable="true" class="ef" data-f="bq11-v">N/A</td><td contenteditable="true" class="ef" data-f="bq11-e">Bueno</td></tr>'
+      +'</table>' },
+    { titulo:'Registro mensual de verificación', contenido:'<table class="doc-table"><tr><th>Mes/Año</th><th>Ítems completos</th><th>Ítems por reponer</th><th>Verificó</th><th>Observaciones</th></tr>'
+      +'<tr><td contenteditable="true" class="ef" data-f="bqv1-m">'+new Date().toLocaleDateString('es-CO',{month:'long',year:'numeric'})+'</td><td contenteditable="true" class="ef" data-f="bqv1-c">__ / 11</td><td contenteditable="true" class="ef" data-f="bqv1-r">Ninguno</td><td>'+n+'</td><td contenteditable="true" class="ef" data-f="bqv1-o">Sin novedades</td></tr>'
+      +'<tr><td contenteditable="true" class="ef" data-f="bqv2-m"></td><td contenteditable="true" class="ef" data-f="bqv2-c"></td><td contenteditable="true" class="ef" data-f="bqv2-r"></td><td>'+n+'</td><td contenteditable="true" class="ef" data-f="bqv2-o"></td></tr>'
+      +'</table>' }
+  ],
+
+  'fmt-med-seguros': [
+    { titulo:'Política de medicamentos seguros — 5 correctos', contenido:'<p>'+e+' adopta la política de medicamentos seguros conforme a la Resolución 3100/2019 Estándar 4 y la Resolución 1403/2007. En el contexto de la telemedicina, la prescripción médica electrónica sigue el principio de los <strong>5 correctos</strong>:</p>'
+      +'<ol style="margin:8px 0 0 18px;line-height:2.2;font-size:11px">'
+      +'<li><strong>Medicamento correcto:</strong> Prescribir el medicamento indicado para el diagnóstico confirmado, según guías de práctica clínica vigentes.</li>'
+      +'<li><strong>Dosis correcta:</strong> Calcular la dosis según peso (cuando aplique), función renal, edad y otras condiciones del paciente.</li>'
+      +'<li><strong>Vía correcta:</strong> Indicar claramente la vía de administración (oral, tópica, inhalatoria, etc.).</li>'
+      +'<li><strong>Hora/frecuencia correcta:</strong> Establecer el intervalo de administración de manera precisa.</li>'
+      +'<li><strong>Paciente correcto:</strong> Verificar la identidad del paciente antes de prescribir (Res. 2654/2019 Art. 4).</li>'
+      +'</ol>' },
+    { titulo:'Medicamentos de alto riesgo y restricciones en telemedicina', contenido:'<p>En la modalidad de telemedicina (teleconsulta), aplican las siguientes restricciones adicionales a la prescripción:</p>'
+      +'<table class="doc-table"><tr><th>Categoría</th><th>Medicamentos</th><th>Restricción</th></tr>'
+      +'<tr><td>Controlados / psicotrópicos</td><td>Benzodiacepinas, opioides, estimulantes del SNC</td><td>NO se prescriben por telemedicina. Requieren consulta presencial.</td></tr>'
+      +'<tr><td>Alto riesgo cardiológico</td><td>Anticoagulantes, antiarrítmicos</td><td>Solo con seguimiento cardiológico previo. Consentimiento informado adicional.</td></tr>'
+      +'<tr><td>Medicamentos teratogénicos</td><td>Isotretinoína, metotrexato, etc.</td><td>Prohibidos en telemedicina. Requieren evaluación presencial y prueba de embarazo negativa.</td></tr>'
+      +'<tr><td>Antibióticos de uso restringido</td><td>Carbapenémicos, vancomicina</td><td>Solo con antibiograma previo. No se prescriben por telemedicina sin hospitalización.</td></tr>'
+      +'</table>' }
+  ],
+
+  'fmt-control-med': [
+    { titulo:'Control mensual de medicamentos y vencimientos', contenido:'<p>Este registro permite controlar el inventario de medicamentos de emergencia o uso inmediato disponibles en el consultorio (botiquín médico). No aplica para dispensación de medicamentos al paciente.</p>'
+      +'<table class="doc-table"><tr><th>Medicamento</th><th>Presentación</th><th>Lote</th><th>Fecha venc.</th><th>Cant.</th><th>Estado</th><th>Acción</th></tr>'
+      +'<tr><td contenteditable="true" class="ef" data-f="cm1-n">Adrenalina (epinefrina) 1 mg/mL</td><td contenteditable="true" class="ef" data-f="cm1-p">Ampolla 1 mL</td><td contenteditable="true" class="ef" data-f="cm1-l"></td><td contenteditable="true" class="ef" data-f="cm1-v"></td><td contenteditable="true" class="ef" data-f="cm1-q">1</td><td contenteditable="true" class="ef" data-f="cm1-e">Vigente</td><td contenteditable="true" class="ef" data-f="cm1-a">Conservar</td></tr>'
+      +'<tr><td contenteditable="true" class="ef" data-f="cm2-n">Dexametasona 4 mg/mL</td><td contenteditable="true" class="ef" data-f="cm2-p">Ampolla 2 mL</td><td contenteditable="true" class="ef" data-f="cm2-l"></td><td contenteditable="true" class="ef" data-f="cm2-v"></td><td contenteditable="true" class="ef" data-f="cm2-q">1</td><td contenteditable="true" class="ef" data-f="cm2-e">Vigente</td><td contenteditable="true" class="ef" data-f="cm2-a">Conservar</td></tr>'
+      +'<tr><td contenteditable="true" class="ef" data-f="cm3-n">Dipirona / Metamizol 500 mg/mL</td><td contenteditable="true" class="ef" data-f="cm3-p">Ampolla 2 mL</td><td contenteditable="true" class="ef" data-f="cm3-l"></td><td contenteditable="true" class="ef" data-f="cm3-v"></td><td contenteditable="true" class="ef" data-f="cm3-q">1</td><td contenteditable="true" class="ef" data-f="cm3-e">Vigente</td><td contenteditable="true" class="ef" data-f="cm3-a">Conservar</td></tr>'
+      +'<tr><td contenteditable="true" class="ef" data-f="cm4-n">Solución salina 0.9% — 500 mL</td><td contenteditable="true" class="ef" data-f="cm4-p">Bolsa 500 mL</td><td contenteditable="true" class="ef" data-f="cm4-l"></td><td contenteditable="true" class="ef" data-f="cm4-v"></td><td contenteditable="true" class="ef" data-f="cm4-q">1</td><td contenteditable="true" class="ef" data-f="cm4-e">Vigente</td><td contenteditable="true" class="ef" data-f="cm4-a">Conservar</td></tr>'
+      +'</table>'
+      +'<p style="margin-top:10px"><strong>Responsable del control:</strong> '+n+' · Frecuencia: Mensual</p>' }
+  ],
+
+  'fmt-prescripcion': [
+    { titulo:'Procedimiento para prescripción electrónica en telemedicina', contenido:'<p>Conforme a la Resolución 1552/2013 y la Resolución 2654/2019, la prescripción médica electrónica en teleconsulta deberá cumplir los siguientes requisitos:</p>'
+      +'<table class="doc-table"><tr><th>Paso</th><th>Actividad</th><th>Requisito normativo</th><th>Registro</th></tr>'
+      +'<tr><td>1</td><td>Verificar identidad del paciente (nombre, documento, fecha de nacimiento)</td><td>Res. 2654/2019 Art. 4</td><td>Historia clínica</td></tr>'
+      +'<tr><td>2</td><td>Obtener consentimiento informado para teleconsulta</td><td>Res. 2654/2019 Art. 7</td><td>Formulario de consentimiento firmado digitalmente</td></tr>'
+      +'<tr><td>3</td><td>Registrar motivo de consulta, anamnesis remota y plan de manejo en HCE</td><td>Res. 1995/1999</td><td>Historia clínica electrónica</td></tr>'
+      +'<tr><td>4</td><td>Prescribir con los 5 correctos: medicamento, dosis, vía, frecuencia, paciente</td><td>Res. 1552/2013 Art. 3 · Res. 1403/2007</td><td>Fórmula médica electrónica</td></tr>'
+      +'<tr><td>5</td><td>Incluir en la fórmula: nombre del médico, TP, registro RETHUS, sello IPS, fecha</td><td>Res. 1552/2013 Art. 4</td><td>Fórmula médica</td></tr>'
+      +'<tr><td>6</td><td>Enviar la fórmula al paciente por correo electrónico o WhatsApp seguro</td><td>Res. 2654/2019 Art. 8</td><td>Constancia de envío (captura de pantalla o log)</td></tr>'
+      +'<tr><td>7</td><td>Registrar la prescripción en la historia clínica electrónica</td><td>Res. 1995/1999 Art. 4</td><td>HCE — campo de prescripción</td></tr>'
+      +'</table>' },
+    { titulo:'Formato de prescripción electrónica', contenido:'<table class="doc-table"><tr><th>Campo</th><th>Información</th></tr>'
+      +'<tr><td>IPS</td><td>'+e+' · NIT '+nit+'</td></tr>'
+      +'<tr><td>Médico</td><td>'+n+' · TP: <span contenteditable="true" class="ef" data-f="rx-tp">___________</span></td></tr>'
+      +'<tr><td>Paciente</td><td contenteditable="true" class="ef" data-f="rx-pac"></td></tr>'
+      +'<tr><td>Documento</td><td contenteditable="true" class="ef" data-f="rx-doc">C.C. No.</td></tr>'
+      +'<tr><td>Diagnóstico CIE-10</td><td contenteditable="true" class="ef" data-f="rx-dx"></td></tr>'
+      +'<tr><td>Rx 1</td><td contenteditable="true" class="ef" data-f="rx-1" style="min-height:40px"></td></tr>'
+      +'<tr><td>Rx 2</td><td contenteditable="true" class="ef" data-f="rx-2" style="min-height:40px"></td></tr>'
+      +'<tr><td>Rx 3</td><td contenteditable="true" class="ef" data-f="rx-3" style="min-height:40px"></td></tr>'
+      +'<tr><td>Indicaciones adicionales</td><td contenteditable="true" class="ef" data-f="rx-ind" style="min-height:40px">Tomar con alimentos. Consultar de urgencias si aparece: ___________</td></tr>'
+      +'<tr><td>Próxima cita</td><td contenteditable="true" class="ef" data-f="rx-cita">Control en ___ días / semanas</td></tr>'
+      +'<tr><td>Fecha y hora de emisión</td><td>'+new Date().toLocaleString('es-CO')+'</td></tr>'
+      +'</table>' }
+  ],
+
+  'fmt-bioseg': [
+    { titulo:'Bioseguridad en telemedicina — principios y medidas', contenido:'<p>Aunque la telemedicina implica atención a distancia, '+e+' adopta medidas de bioseguridad para el espacio físico del médico y para la gestión de información del paciente, conforme a la Resolución 3100/2019 Estándar 5 y el Decreto 1072/2015:</p>'
+      +'<table class="doc-table"><tr><th>Aspecto</th><th>Medida adoptada</th><th>Frecuencia</th><th>Responsable</th></tr>'
+      +'<tr><td>Higiene de manos</td><td>Lavado de manos con agua y jabón (OMS: 6 pasos) antes y después de cada consulta presencial. Uso de alcohol glicerinado en teleconsulta.</td><td>Antes y después de cada atención</td><td>'+n+'</td></tr>'
+      +'<tr><td>Limpieza del espacio físico</td><td>Limpieza superficial con solución de hipoclorito 0.5% o desinfectante de grado hospitalario. Incluye escritorio, teclado, mouse y pantalla.</td><td>Inicio y fin de jornada</td><td>'+n+'</td></tr>'
+      +'<tr><td>EPP en atención presencial</td><td>Uso de tapabocas quirúrgico. Uso de guantes si hay manipulación de materiales biológicos.</td><td>Toda atención presencial</td><td>'+n+'</td></tr>'
+      +'<tr><td>Gestión de residuos</td><td>Clasificación según Dec. 351/2014: bolsa verde (ordinarios), bolsa roja (biosanitarios si aplica).</td><td>Cada atención presencial</td><td>'+n+'</td></tr>'
+      +'<tr><td>Bioseguridad digital</td><td>Contraseñas seguras (≥ 12 caracteres). VPN en conexiones externas. Cifrado de HCE. Antivirus activo.</td><td>Permanente</td><td>'+n+'</td></tr>'
+      +'</table>' },
+    { titulo:'Vacunación del personal de salud', contenido:'<table class="doc-table"><tr><th>Vacuna</th><th>Fecha de aplicación</th><th>Próximo refuerzo</th><th>No. dosis</th><th>Entidad vacunadora</th></tr>'
+      +'<tr><td>Hepatitis B (serie de 3 dosis)</td><td contenteditable="true" class="ef" data-f="vac1-f"></td><td contenteditable="true" class="ef" data-f="vac1-r">Verificar títulos anti-HBs</td><td contenteditable="true" class="ef" data-f="vac1-d">3/3</td><td contenteditable="true" class="ef" data-f="vac1-e"></td></tr>'
+      +'<tr><td>Tétanos-Difteria (Td)</td><td contenteditable="true" class="ef" data-f="vac2-f"></td><td contenteditable="true" class="ef" data-f="vac2-r">Cada 10 años</td><td contenteditable="true" class="ef" data-f="vac2-d">1</td><td contenteditable="true" class="ef" data-f="vac2-e"></td></tr>'
+      +'<tr><td>Influenza</td><td contenteditable="true" class="ef" data-f="vac3-f"></td><td contenteditable="true" class="ef" data-f="vac3-r">Anual</td><td contenteditable="true" class="ef" data-f="vac3-d">1</td><td contenteditable="true" class="ef" data-f="vac3-e"></td></tr>'
+      +'<tr><td>COVID-19</td><td contenteditable="true" class="ef" data-f="vac4-f"></td><td contenteditable="true" class="ef" data-f="vac4-r">Según MinSalud</td><td contenteditable="true" class="ef" data-f="vac4-d">Esquema completo</td><td contenteditable="true" class="ef" data-f="vac4-e"></td></tr>'
+      +'</table>' }
+  ],
+
+  'fmt-seg-pac': [
+    { titulo:'Barreras de seguridad y metas internacionales OMS', contenido:'<p>El Programa de Seguridad del Paciente de '+e+' se enmarca en las Metas Internacionales de Seguridad del Paciente de la OMS (2004) y la Resolución 3100/2019 Estándar 5, adaptadas al contexto de la telemedicina:</p>'
+      +'<table class="doc-table"><tr><th>Meta OMS</th><th>Descripción</th><th>Barrera adoptada en telemedicina</th><th>Indicador de seguimiento</th></tr>'
+      +'<tr><td>Meta 1</td><td>Identificar correctamente a los pacientes</td><td>Verificar nombre completo + documento + fecha de nacimiento al inicio de cada teleconsulta</td><td>% teleconsultas con verificación de identidad registrada en HC</td></tr>'
+      +'<tr><td>Meta 2</td><td>Mejorar la comunicación efectiva</td><td>Resumen de la consulta enviado al paciente por escrito. Instrucciones claras y sencillas.</td><td>% pacientes que reciben resumen por escrito</td></tr>'
+      +'<tr><td>Meta 3</td><td>Mejorar la seguridad en el uso de medicamentos</td><td>Aplicar los 5 correctos. No prescribir medicamentos controlados por telemedicina.</td><td>Incidentes de prescripción insegura por período</td></tr>'
+      +'<tr><td>Meta 4</td><td>Garantizar cirugías en el lugar correcto (N/A telemedicina)</td><td>Verificación de identidad antes de cualquier procedimiento (toma de exámenes dirigidos).</td><td>N/A</td></tr>'
+      +'<tr><td>Meta 5</td><td>Reducir el riesgo de infecciones</td><td>Bioseguridad digital. No compartir credenciales. Sesiones cifradas.</td><td>Incidentes de brecha de datos por período</td></tr>'
+      +'<tr><td>Meta 6</td><td>Reducir riesgo de daños por caídas</td><td>Identificar factores de riesgo de caída durante la anamnesis. Orientar al cuidador.</td><td>Reportes de caídas en pacientes de telemedicina</td></tr>'
+      +'</table>' },
+    { titulo:'Reporte de eventos adversos e incidentes', contenido:'<p>Todo evento adverso, incidente de seguridad, cuasi-falla o evento centinela debe ser reportado conforme a la Resolución 2003/2014 y el PAMEC de '+e+':</p>'
+      +'<table class="doc-table"><tr><th>Tipo de evento</th><th>Definición</th><th>Canal de reporte</th><th>Plazo</th></tr>'
+      +'<tr><td>Evento adverso</td><td>Daño no intencional al paciente durante la atención</td><td>Formato de reporte interno + PAMEC + SIVIGILA (si aplica)</td><td>Inmediato (mismo día)</td></tr>'
+      +'<tr><td>Cuasi-falla (near miss)</td><td>Evento que no causó daño pero podría haberlo causado</td><td>Formato de reporte interno + PAMEC</td><td>Dentro de 24 horas</td></tr>'
+      +'<tr><td>Evento centinela</td><td>Muerte o daño grave inesperado</td><td>Reporte inmediato a Secretaría de Salud + análisis de causa raíz</td><td>Inmediato</td></tr>'
+      +'<tr><td>Incidente tecnológico</td><td>Falla técnica que afecta la atención o la privacidad del paciente</td><td>Bitácora tecnológica + PAMEC + SIC si hay datos comprometidos</td><td>Dentro de 24 horas</td></tr>'
+      +'</table>' }
+  ],
+
+  'fmt-acc-biologico': [
+    { titulo:'Protocolo de atención del accidente de riesgo biológico', contenido:'<p>Aunque la telemedicina implica bajo riesgo biológico directo, '+e+' establece el protocolo para accidentes que pudieran ocurrir (manipulación de muestras, atención presencial eventual):</p>'
+      +'<table class="doc-table"><tr><th>Paso</th><th>Actividad inmediata</th><th>Tiempo</th><th>Responsable</th></tr>'
+      +'<tr><td>1</td><td>Lavar la herida/mucosa con abundante agua y jabón por 10 minutos. No frotar. No exprimir.</td><td>Inmediato (0–2 min)</td><td>Afectado/a</td></tr>'
+      +'<tr><td>2</td><td>Aplicar antiséptico (alcohol 70° o povidona yodada) sobre la zona expuesta.</td><td>2–5 minutos</td><td>Afectado/a</td></tr>'
+      +'<tr><td>3</td><td>Notificar el accidente a la Dirección Médica y al responsable de salud ocupacional.</td><td>Dentro de 1 hora</td><td>Afectado/a · '+n+'</td></tr>'
+      +'<tr><td>4</td><td>Diligenciar el formato de reporte de accidente laboral (AT) y el formulario FURAT.</td><td>Dentro de 24 horas</td><td>'+n+'</td></tr>'
+      +'<tr><td>5</td><td>Acudir a una IPS con capacidad de atención de riesgos biológicos para evaluación médica, serología basal (VIH, Hepatitis B y C) y profilaxis postexposición (PEP) si es indicada.</td><td>Dentro de 2–4 horas</td><td>Afectado/a (urgencias)</td></tr>'
+      +'<tr><td>6</td><td>Seguimiento serológico a los 3, 6 y 12 meses post-exposición.</td><td>Programado</td><td>'+n+'</td></tr>'
+      +'<tr><td>7</td><td>Reportar el accidente a la ARL y a SIVIGILA si cumple criterios de evento de interés en salud pública.</td><td>Dentro de 72 horas</td><td>'+n+'</td></tr>'
+      +'</table>' }
+  ],
+
+  'fmt-manual-hc': [
+    { titulo:'Sistema de historia clínica electrónica (HCE)', contenido:'<p>'+e+' gestiona la historia clínica de sus pacientes mediante un sistema de Historia Clínica Electrónica (HCE), conforme a la Resolución 1995/1999 y la Resolución 2654/2019 Art. 8.</p>'
+      +'<h3 class="subsec">Plataforma HCE utilizada</h3>'
+      +'<table class="doc-table"><tr><th>Parámetro</th><th>Descripción</th></tr>'
+      +'<tr><td>Software HCE</td><td contenteditable="true" class="ef" data-f="hce-sw">Nombre del software</td></tr>'
+      +'<tr><td>Versión</td><td contenteditable="true" class="ef" data-f="hce-ver">v</td></tr>'
+      +'<tr><td>Proveedor</td><td contenteditable="true" class="ef" data-f="hce-prov"></td></tr>'
+      +'<tr><td>Modalidad</td><td contenteditable="true" class="ef" data-f="hce-mod">☑ Nube (SaaS) &nbsp; ☐ Local (on-premise)</td></tr>'
+      +'<tr><td>Backup automático</td><td contenteditable="true" class="ef" data-f="hce-bk">☑ Diario &nbsp; ☐ Semanal &nbsp; ☐ Mensual</td></tr>'
+      +'<tr><td>Cifrado de datos</td><td contenteditable="true" class="ef" data-f="hce-cif">☑ AES-256 &nbsp; ☐ TLS/SSL &nbsp; ☐ Otro</td></tr>'
+      +'<tr><td>Firma electrónica</td><td contenteditable="true" class="ef" data-f="hce-firma">☑ Disponible &nbsp; ☐ No disponible</td></tr>'
+      +'<tr><td>Disponibilidad</td><td contenteditable="true" class="ef" data-f="hce-disp">99.9% (SLA proveedor)</td></tr>'
+      +'</table>' },
+    { titulo:'Políticas de acceso y seguridad de la HCE', contenido:'<p>El acceso a la HCE está restringido mediante credenciales individuales. Conforme a la Ley 1581/2012 y la Res. 1995/1999:</p>'
+      +'<ul style="margin:8px 0 0 18px;line-height:2"><li>Solo el médico tratante y el personal autorizado tienen acceso a la historia clínica de cada paciente.</li><li>Las contraseñas deben tener mínimo 12 caracteres, combinando mayúsculas, minúsculas, números y símbolos.</li><li>El cambio de contraseña es obligatorio cada 90 días.</li><li>El acceso desde equipos de terceros solo se permite mediante VPN corporativa.</li><li>Queda prohibido compartir credenciales de acceso.</li><li>Los registros de acceso se conservan por mínimo 5 años.</li></ul>' }
+  ],
+
+  'fmt-custodia-hc': [
+    { titulo:'Política de custodia y conservación de la historia clínica', contenido:'<p>Conforme a la Resolución 1995/1999 Arts. 14, 15 y 16, y la Resolución 2654/2019 Art. 8, '+e+' adopta la siguiente política de custodia y conservación de historias clínicas:</p>'
+      +'<table class="doc-table"><tr><th>Aspecto</th><th>Política</th><th>Fundamento normativo</th></tr>'
+      +'<tr><td>Tiempo de conservación mínimo</td><td>20 años contados a partir de la última atención del paciente</td><td>Res. 1995/1999 Art. 15</td></tr>'
+      +'<tr><td>Formato de conservación</td><td>Electrónico (HCE cifrada en nube con backup). Copia impresa solo cuando el paciente la solicite.</td><td>Res. 1995/1999 · Res. 2654/2019</td></tr>'
+      +'<tr><td>Responsable de la custodia</td><td>'+n+' — Directora Médica. Suplente: quien designe la Dirección General.</td><td>Res. 1995/1999 Art. 14</td></tr>'
+      +'<tr><td>Acceso a la HC</td><td>Solo el paciente, su representante legal o el médico tratante pueden acceder. Solicitudes de terceros requieren orden judicial.</td><td>Res. 1995/1999 Art. 14 · Ley 1581/2012</td></tr>'
+      +'<tr><td>Confidencialidad</td><td>La HC es un documento de reserva. Su divulgación sin autorización constituye falta ética (Ley 23/1981 Art. 37) y jurídica.</td><td>Ley 23/1981 Art. 37 · Ley 1581/2012</td></tr>'
+      +'<tr><td>Copia de seguridad (backup)</td><td>Backup diario automatizado en nube cifrada (AES-256). Backup mensual en dispositivo local cifrado. Verificación trimestral de restauración.</td><td>Res. 2654/2019 Art. 5 · ISO 22301</td></tr>'
+      +'<tr><td>Cierre por término del servicio</td><td>Si la IPS cierra, los archivos se entregarán a la Dirección Territorial de Salud conforme a la circular del Min. Salud.</td><td>Res. 1995/1999 Art. 16</td></tr>'
+      +'</table>' }
+  ],
+
+  'fmt-prestamo-hc': [
+    { titulo:'Registro de préstamo y acceso a historias clínicas', contenido:'<p>Conforme a la Resolución 1995/1999 Art. 14, se registra todo acceso y préstamo de historia clínica que no sea la consulta rutinaria del médico tratante:</p>'
+      +'<table class="doc-table"><tr><th>No.</th><th>Fecha</th><th>Paciente</th><th>No. HC</th><th>Solicitante</th><th>Motivo</th><th>Autorización</th><th>Devuelto</th></tr>'
+      +'<tr><td>1</td><td contenteditable="true" class="ef" data-f="pr1-f">'+fecha+'</td><td contenteditable="true" class="ef" data-f="pr1-p"></td><td contenteditable="true" class="ef" data-f="pr1-hc"></td><td contenteditable="true" class="ef" data-f="pr1-s"></td><td contenteditable="true" class="ef" data-f="pr1-m">Copia para paciente</td><td contenteditable="true" class="ef" data-f="pr1-a">Autorizado por paciente</td><td contenteditable="true" class="ef" data-f="pr1-d">N/A — Copia</td></tr>'
+      +'<tr><td>2</td><td contenteditable="true" class="ef" data-f="pr2-f"></td><td contenteditable="true" class="ef" data-f="pr2-p"></td><td contenteditable="true" class="ef" data-f="pr2-hc"></td><td contenteditable="true" class="ef" data-f="pr2-s"></td><td contenteditable="true" class="ef" data-f="pr2-m"></td><td contenteditable="true" class="ef" data-f="pr2-a"></td><td contenteditable="true" class="ef" data-f="pr2-d"></td></tr>'
+      +'<tr><td>3</td><td contenteditable="true" class="ef" data-f="pr3-f"></td><td contenteditable="true" class="ef" data-f="pr3-p"></td><td contenteditable="true" class="ef" data-f="pr3-hc"></td><td contenteditable="true" class="ef" data-f="pr3-s"></td><td contenteditable="true" class="ef" data-f="pr3-m"></td><td contenteditable="true" class="ef" data-f="pr3-a"></td><td contenteditable="true" class="ef" data-f="pr3-d"></td></tr>'
+      +'</table>' }
+  ],
+
+  'fmt-directorio': [
+    { titulo:'Directorio de entidades de referencia — Cúcuta y Norte de Santander', contenido:'<p>Conforme a la Resolución 3100/2019 Estándar 7 y la Ley 1438/2011 Art. 60, '+e+' mantiene actualizado el siguiente directorio de entidades de referencia para garantizar la continuidad de la atención cuando el paciente requiera servicios no disponibles en telemedicina:</p>'
+      +'<table class="doc-table"><tr><th>Tipo</th><th>Institución</th><th>Dirección</th><th>Teléfono</th><th>Servicio de referencia</th><th>Horario urgencias</th></tr>'
+      +'<tr><td>Hospital público nivel III</td><td>Hospital Erasmo Meoz</td><td>Av. Libertadores, Cúcuta</td><td>571 5792040</td><td>Urgencias, hospitalización, UCI, cirugía</td><td>24 horas</td></tr>'
+      +'<tr><td>Hospital público nivel II</td><td>Hospital Universitario Jorge Cristo Sahium</td><td>Villa del Rosario, N. de S.</td><td>571 5621010</td><td>Urgencias, hospitalización, ginecología</td><td>24 horas</td></tr>'
+      +'<tr><td>Clínica privada</td><td contenteditable="true" class="ef" data-f="dir3-n">Clínica Norte</td><td contenteditable="true" class="ef" data-f="dir3-d">Cúcuta</td><td contenteditable="true" class="ef" data-f="dir3-t"></td><td contenteditable="true" class="ef" data-f="dir3-s">Urgencias, hospitalización</td><td contenteditable="true" class="ef" data-f="dir3-h">24 horas</td></tr>'
+      +'<tr><td>Servicios de imágenes dx</td><td contenteditable="true" class="ef" data-f="dir4-n"></td><td contenteditable="true" class="ef" data-f="dir4-d">Cúcuta</td><td contenteditable="true" class="ef" data-f="dir4-t"></td><td contenteditable="true" class="ef" data-f="dir4-s">Rx, eco, TAC, RMN</td><td contenteditable="true" class="ef" data-f="dir4-h"></td></tr>'
+      +'<tr><td>Laboratorio clínico</td><td contenteditable="true" class="ef" data-f="dir5-n"></td><td contenteditable="true" class="ef" data-f="dir5-d">Cúcuta</td><td contenteditable="true" class="ef" data-f="dir5-t"></td><td contenteditable="true" class="ef" data-f="dir5-s">Hemograma, uroanálisis, perfil lipídico, etc.</td><td contenteditable="true" class="ef" data-f="dir5-h">Lun–Sáb 7–18h</td></tr>'
+      +'<tr><td>Salud mental</td><td contenteditable="true" class="ef" data-f="dir6-n">Hospital Mental Rudesindo Soto</td><td contenteditable="true" class="ef" data-f="dir6-d">Cúcuta</td><td contenteditable="true" class="ef" data-f="dir6-t">571 571xxxx</td><td>Psiquiatría, salud mental, crisis</td><td contenteditable="true" class="ef" data-f="dir6-h">24 horas</td></tr>'
+      +'<tr><td>Número de emergencias</td><td><strong>NUSE 123</strong></td><td>Nacional</td><td><strong>123</strong></td><td>Ambulancias, bomberos, policía</td><td>24 horas</td></tr>'
+      +'<tr><td>Línea de farmacovigilancia</td><td>INVIMA</td><td>Nacional</td><td><strong>01 8000 912913</strong></td><td>Reporte de eventos adversos a medicamentos</td><td>Horario laboral</td></tr>'
+      +'</table>' }
+  ],
+
+  'fmt-traslado': [
+    { titulo:'Protocolo de traslado seguro de pacientes', contenido:'<p>Conforme a la Resolución 3100/2019 Estándar 7 y el Decreto 4747/2007, cuando durante una teleconsulta se identifique que el paciente requiere traslado a una IPS de mayor complejidad:</p>'
+      +'<table class="doc-table"><tr><th>Paso</th><th>Acción del médico de telemedicina</th><th>Recurso</th><th>Tiempo</th></tr>'
+      +'<tr><td>1</td><td>Identificar la condición de urgencia o necesidad de traslado</td><td>Criterios clínicos de alarma</td><td>Durante la consulta</td></tr>'
+      +'<tr><td>2</td><td>Estabilizar al paciente en lo posible con indicaciones verbales por teleconsulta (posición, respiración, hemostasia básica)</td><td>Teleconsulta activa</td><td>Inmediato</td></tr>'
+      +'<tr><td>3</td><td>Orientar al cuidador o acompañante para llamar al NUSE 123 o al número de urgencias de la IPS de referencia más cercana</td><td>NUSE 123</td><td>Inmediato</td></tr>'
+      +'<tr><td>4</td><td>Elaborar y enviar el resumen de la consulta y el diagnóstico presuntivo al hospital receptor (WhatsApp o correo)</td><td>Formulario de referencia (fmt-referencia)</td><td>Dentro de 15 minutos</td></tr>'
+      +'<tr><td>5</td><td>Mantener contacto con el cuidador hasta que el paciente sea recibido por el sistema de urgencias</td><td>Teléfono / WhatsApp</td><td>Hasta confirmación de llegada</td></tr>'
+      +'<tr><td>6</td><td>Registrar el evento en la historia clínica con hora, diagnóstico presuntivo y acción tomada</td><td>HCE</td><td>Dentro de 1 hora</td></tr>'
+      +'<tr><td>7</td><td>Notificar al PAMEC si el evento constituye un incidente de seguridad</td><td>Formato de reporte PAMEC</td><td>Mismo día</td></tr>'
+      +'</table>' }
+  ],
+
+  'fmt-manual-calidad': [
+    { titulo:'Sistema de Gestión de Calidad — presentación institucional', contenido:'<p>'+e+' implementa su Sistema de Gestión de Calidad (SGC) en consonancia con los principios del Sistema Obligatorio de Garantía de Calidad en Atención en Salud (SOGCS) establecido por el Decreto 1011/2006, la Resolución 3100/2019 y los estándares de la ISO 9001:2015 aplicables al sector salud.</p>'
+      +'<p>El presente Manual de Calidad describe el enfoque estratégico, la política de calidad, los procesos clave y el compromiso institucional con la mejora continua en la prestación de servicios de telemedicina.</p>'
+      +'<h3 class="subsec">Política de calidad de '+e+'</h3>'
+      +'<div contenteditable="true" class="ef" data-f="mc-pol" style="min-height:80px;padding:10px;border-radius:4px;line-height:1.9">'+e+' se compromete a prestar servicios de salud por telemedicina seguros, oportunos, pertinentes, continuos y humanizados, cumpliendo en todo momento los requisitos legales y técnicos de habilitación establecidos por el Ministerio de Salud y Protección Social de Colombia. Nos orientamos por la mejora continua, la innovación tecnológica responsable y el respeto irrestricto por los derechos del paciente, para contribuir al bienestar de las personas y comunidades que atendemos.</div>' },
+    { titulo:'Procesos del SGC — mapa de procesos', contenido:'<p>El SGC de '+e+' se estructura en tres niveles de procesos:</p>'
+      +'<table class="doc-table"><tr><th>Nivel</th><th>Tipo de proceso</th><th>Procesos incluidos</th></tr>'
+      +'<tr><td>Estratégico</td><td>Dirección, planificación y mejora</td><td>Dirección Médica · Gestión de calidad (PAMEC) · Planificación estratégica</td></tr>'
+      +'<tr><td>Misional</td><td>Prestación del servicio asistencial</td><td>Teleconsulta médica · Historia clínica electrónica · Referencia y contrarreferencia · Gestión del paciente</td></tr>'
+      +'<tr><td>Apoyo</td><td>Soporte a los procesos misionales</td><td>Talento humano · Infraestructura tecnológica · Gestión documental · PQRS · Facturación</td></tr>'
+      +'</table>' },
+    { titulo:'Objetivos de calidad', contenido:'<table class="doc-table"><tr><th>Objetivo</th><th>Indicador</th><th>Meta</th><th>Frecuencia de medición</th></tr>'
+      +'<tr><td contenteditable="true" class="ef" data-f="ocal1">Garantizar la oportunidad de la teleconsulta</td><td contenteditable="true" class="ef" data-f="ocal1i">% de teleconsultas realizadas en el tiempo programado (±15 min)</td><td contenteditable="true" class="ef" data-f="ocal1m">≥ 90%</td><td>Mensual</td></tr>'
+      +'<tr><td contenteditable="true" class="ef" data-f="ocal2">Garantizar la satisfacción del usuario</td><td contenteditable="true" class="ef" data-f="ocal2i">Puntaje CSAT encuesta de satisfacción post-consulta</td><td contenteditable="true" class="ef" data-f="ocal2m">≥ 4.0 / 5.0</td><td>Mensual</td></tr>'
+      +'<tr><td contenteditable="true" class="ef" data-f="ocal3">Minimizar incidentes de seguridad del paciente</td><td contenteditable="true" class="ef" data-f="ocal3i">Tasa de eventos adversos por 100 teleconsultas</td><td contenteditable="true" class="ef" data-f="ocal3m">≤ 1%</td><td>Mensual</td></tr>'
+      +'<tr><td contenteditable="true" class="ef" data-f="ocal4">Asegurar la completud de la historia clínica</td><td contenteditable="true" class="ef" data-f="ocal4i">% de HC diligenciadas con todos los campos obligatorios</td><td contenteditable="true" class="ef" data-f="ocal4m">100%</td><td>Mensual</td></tr>'
+      +'</table>' }
+  ],
+
+  'fmt-evento-adverso': [
+    { titulo:'Clasificación y tipología del evento', contenido:'<table class="doc-table"><tr><th>Tipo de evento</th><th>Definición</th><th>Ejemplo en telemedicina</th></tr>'
+      +'<tr><td style="font-weight:700;color:red">Evento adverso grave</td><td>Daño permanente o temporal de moderado a severo al paciente, hospitalización o muerte.</td><td>Prescripción de medicamento contraindicado que causó daño. Error de diagnóstico con consecuencias graves.</td></tr>'
+      +'<tr><td style="font-weight:700;color:orange">Evento adverso leve</td><td>Daño leve temporal al paciente, no requiere hospitalización.</td><td>Reacción adversa menor a medicamento prescrito. Reprogramación por falla técnica prolongada.</td></tr>'
+      +'<tr><td style="font-weight:700;color:#8B6914">Cuasi-falla</td><td>Evento que no causó daño pero podría haberlo causado.</td><td>Error en la dosis identificado antes de que el paciente tomara el medicamento.</td></tr>'
+      +'<tr><td style="font-weight:700;color:darkred">Evento centinela</td><td>Muerte o daño grave inesperado, no relacionado con la evolución natural de la enfermedad.</td><td>Muerte por diagnóstico erróneo evitable.</td></tr>'
+      +'</table>' },
+    { titulo:'Formato de reporte del evento', contenido:'<table class="doc-table"><tr><th>Campo</th><th>Información</th></tr>'
+      +'<tr><td>Fecha y hora del evento</td><td contenteditable="true" class="ef" data-f="ea-fh">'+new Date().toLocaleString('es-CO')+'</td></tr>'
+      +'<tr><td>Paciente afectado</td><td contenteditable="true" class="ef" data-f="ea-pac"></td></tr>'
+      +'<tr><td>Tipo de evento</td><td contenteditable="true" class="ef" data-f="ea-tipo">☐ Evento adverso grave &nbsp; ☐ Evento adverso leve &nbsp; ☐ Cuasi-falla &nbsp; ☐ Evento centinela</td></tr>'
+      +'<tr><td>Descripción detallada del evento</td><td contenteditable="true" class="ef" data-f="ea-desc" style="min-height:80px"></td></tr>'
+      +'<tr><td>Causa probable / raíz</td><td contenteditable="true" class="ef" data-f="ea-causa" style="min-height:60px"></td></tr>'
+      +'<tr><td>Acciones tomadas inmediatamente</td><td contenteditable="true" class="ef" data-f="ea-acc" style="min-height:60px"></td></tr>'
+      +'<tr><td>Plan de mejoramiento</td><td contenteditable="true" class="ef" data-f="ea-plan" style="min-height:60px"></td></tr>'
+      +'<tr><td>Reportó</td><td>'+n+' · Dirección Médica · '+e+'</td></tr>'
+      +'</table>' }
+  ],
+
+  'fmt-humanizacion': [
+    { titulo:'Política de humanización del servicio de telemedicina', contenido:'<p>'+e+' adopta la política de humanización del servicio fundamentada en la Resolución 3100/2019 Estándar 8 y la Ley 1751/2015 (Derecho fundamental a la salud), con los siguientes principios:</p>'
+      +'<table class="doc-table"><tr><th>Principio</th><th>Descripción</th><th>Cómo se implementa en telemedicina</th></tr>'
+      +'<tr><td>Dignidad humana</td><td>Toda persona merece ser tratada con respeto, sin discriminación por condición social, económica, cultural o médica.</td><td>Trato respetuoso y empático en cada teleconsulta. No interrupción durante la consulta.</td></tr>'
+      +'<tr><td>Comunicación efectiva</td><td>El paciente tiene derecho a recibir información clara y en lenguaje accesible sobre su estado de salud.</td><td>Resumen escrito post-consulta. Explicación del diagnóstico y plan de manejo en términos comprensibles.</td></tr>'
+      +'<tr><td>Autonomía del paciente</td><td>El paciente tiene derecho a tomar decisiones informadas sobre su salud.</td><td>Consentimiento informado previo a toda consulta. Explicación de alternativas de tratamiento.</td></tr>'
+      +'<tr><td>Oportunidad</td><td>La atención debe prestarse en el tiempo y lugar requerido por las condiciones del paciente.</td><td>Meta de atención: teleconsulta en ≤ 30 min del horario programado.</td></tr>'
+      +'<tr><td>Equidad</td><td>Atención sin discriminación y según la necesidad de salud de cada persona.</td><td>Política de no rechazo por condición socioeconómica. Pacientes en zonas rurales atendidos por telemedicina.</td></tr>'
+      +'</table>' }
+  ],
+
+  'fmt-registro-atencion': [
+    { titulo:'Registro diario de atenciones en telemedicina', contenido:'<p>Conforme a la Resolución 2654/2019 y la Resolución 1995/1999, se registran diariamente todas las atenciones prestadas mediante teleconsulta:</p>'
+      +'<table class="doc-table"><tr><th>No.</th><th>Fecha y hora</th><th>Paciente</th><th>Doc.</th><th>Edad</th><th>Motivo consulta</th><th>Diagnóstico CIE-10</th><th>Plan</th><th>Duración</th></tr>'
+      +'<tr><td>1</td><td contenteditable="true" class="ef" data-f="reg1-fh"></td><td contenteditable="true" class="ef" data-f="reg1-p"></td><td contenteditable="true" class="ef" data-f="reg1-d"></td><td contenteditable="true" class="ef" data-f="reg1-e"></td><td contenteditable="true" class="ef" data-f="reg1-m"></td><td contenteditable="true" class="ef" data-f="reg1-dx"></td><td contenteditable="true" class="ef" data-f="reg1-pl"></td><td contenteditable="true" class="ef" data-f="reg1-dur">___ min</td></tr>'
+      +'<tr><td>2</td><td contenteditable="true" class="ef" data-f="reg2-fh"></td><td contenteditable="true" class="ef" data-f="reg2-p"></td><td contenteditable="true" class="ef" data-f="reg2-d"></td><td contenteditable="true" class="ef" data-f="reg2-e"></td><td contenteditable="true" class="ef" data-f="reg2-m"></td><td contenteditable="true" class="ef" data-f="reg2-dx"></td><td contenteditable="true" class="ef" data-f="reg2-pl"></td><td contenteditable="true" class="ef" data-f="reg2-dur">___ min</td></tr>'
+      +'<tr><td>3</td><td contenteditable="true" class="ef" data-f="reg3-fh"></td><td contenteditable="true" class="ef" data-f="reg3-p"></td><td contenteditable="true" class="ef" data-f="reg3-d"></td><td contenteditable="true" class="ef" data-f="reg3-e"></td><td contenteditable="true" class="ef" data-f="reg3-m"></td><td contenteditable="true" class="ef" data-f="reg3-dx"></td><td contenteditable="true" class="ef" data-f="reg3-pl"></td><td contenteditable="true" class="ef" data-f="reg3-dur">___ min</td></tr>'
+      +'<tr><td>4</td><td contenteditable="true" class="ef" data-f="reg4-fh"></td><td contenteditable="true" class="ef" data-f="reg4-p"></td><td contenteditable="true" class="ef" data-f="reg4-d"></td><td contenteditable="true" class="ef" data-f="reg4-e"></td><td contenteditable="true" class="ef" data-f="reg4-m"></td><td contenteditable="true" class="ef" data-f="reg4-dx"></td><td contenteditable="true" class="ef" data-f="reg4-pl"></td><td contenteditable="true" class="ef" data-f="reg4-dur">___ min</td></tr>'
+      +'<tr><td>5</td><td contenteditable="true" class="ef" data-f="reg5-fh"></td><td contenteditable="true" class="ef" data-f="reg5-p"></td><td contenteditable="true" class="ef" data-f="reg5-d"></td><td contenteditable="true" class="ef" data-f="reg5-e"></td><td contenteditable="true" class="ef" data-f="reg5-m"></td><td contenteditable="true" class="ef" data-f="reg5-dx"></td><td contenteditable="true" class="ef" data-f="reg5-pl"></td><td contenteditable="true" class="ef" data-f="reg5-dur">___ min</td></tr>'
+      +'</table>'
+      +'<p style="margin-top:8px;font-size:10px"><strong>Médico responsable:</strong> '+n+' · <strong>Fecha:</strong> <span contenteditable="true" class="ef" data-f="reg-fecha">'+fecha+'</span> · <strong>Firma:</strong> _________________________</p>' }
+  ],
+
+  'fmt-lista-hab': [
+    { titulo:'Lista de verificación — Estándares de habilitación', contenido:'<p>Uso este instrumento como simulacro de visita de verificación para la Secretaría de Salud. Marca cada ítem según su estado:</p>'
+      +'<table class="doc-table"><tr><th>Estándar</th><th>Criterio de habilitación</th><th>Evidencia documental requerida</th><th>Estado</th><th>Obs.</th></tr>'
+      +'<tr><td><strong>E1 — Talento humano</strong></td><td>Hoja de vida con título, TP, RETHUS, experiencia</td><td>Hoja de vida (fmt-hv), copia TP, consulta RETHUS</td><td contenteditable="true" class="ef" data-f="lh1">☑ Cumple &nbsp;☐ Pendiente &nbsp;☐ No cumple</td><td contenteditable="true" class="ef" data-f="lh1o"></td></tr>'
+      +'<tr><td><strong>E1 — Talento humano</strong></td><td>Programa de inducción y reinducción ejecutado</td><td>Acta de inducción (fmt-induccion) firmada</td><td contenteditable="true" class="ef" data-f="lh2">☑ Cumple &nbsp;☐ Pendiente &nbsp;☐ No cumple</td><td contenteditable="true" class="ef" data-f="lh2o"></td></tr>'
+      +'<tr><td><strong>E2 — Infraestructura</strong></td><td>Área de trabajo acondicionada y con privacidad</td><td>Descripción de área (fmt-infra), fotos</td><td contenteditable="true" class="ef" data-f="lh3">☑ Cumple &nbsp;☐ Pendiente &nbsp;☐ No cumple</td><td contenteditable="true" class="ef" data-f="lh3o"></td></tr>'
+      +'<tr><td><strong>E2 — Infraestructura</strong></td><td>Plan de gestión del riesgo de desastres</td><td>Formato fmt-riesgo aprobado</td><td contenteditable="true" class="ef" data-f="lh4">☑ Cumple &nbsp;☐ Pendiente &nbsp;☐ No cumple</td><td contenteditable="true" class="ef" data-f="lh4o"></td></tr>'
+      +'<tr><td><strong>E3 — Dotación</strong></td><td>Inventario de equipos tecnológicos actualizado</td><td>Inventario fmt-inv-tech con especificaciones</td><td contenteditable="true" class="ef" data-f="lh5">☑ Cumple &nbsp;☐ Pendiente &nbsp;☐ No cumple</td><td contenteditable="true" class="ef" data-f="lh5o"></td></tr>'
+      +'<tr><td><strong>E3 — Dotación</strong></td><td>Programa de mantenimiento preventivo</td><td>Formato fmt-mant con cronograma</td><td contenteditable="true" class="ef" data-f="lh6">☑ Cumple &nbsp;☐ Pendiente &nbsp;☐ No cumple</td><td contenteditable="true" class="ef" data-f="lh6o"></td></tr>'
+      +'<tr><td><strong>E4 — Medicamentos</strong></td><td>Política de medicamentos seguros — 5 correctos</td><td>Formato fmt-med-seguros aprobado</td><td contenteditable="true" class="ef" data-f="lh7">☑ Cumple &nbsp;☐ Pendiente &nbsp;☐ No cumple</td><td contenteditable="true" class="ef" data-f="lh7o"></td></tr>'
+      +'<tr><td><strong>E5 — Procesos</strong></td><td>Protocolo de atención por telemedicina</td><td>Protocolo fmt-proto-tele aprobado</td><td contenteditable="true" class="ef" data-f="lh8">☑ Cumple &nbsp;☐ Pendiente &nbsp;☐ No cumple</td><td contenteditable="true" class="ef" data-f="lh8o"></td></tr>'
+      +'<tr><td><strong>E5 — Procesos</strong></td><td>Consentimiento informado para telemedicina</td><td>Formato CI-TELE-001</td><td contenteditable="true" class="ef" data-f="lh9">☑ Cumple &nbsp;☐ Pendiente &nbsp;☐ No cumple</td><td contenteditable="true" class="ef" data-f="lh9o"></td></tr>'
+      +'<tr><td><strong>E6 — Historia clínica</strong></td><td>Sistema de HCE con backup y seguridad</td><td>Manual HCE (fmt-manual-hc), política custodia (fmt-custodia-hc)</td><td contenteditable="true" class="ef" data-f="lh10">☑ Cumple &nbsp;☐ Pendiente &nbsp;☐ No cumple</td><td contenteditable="true" class="ef" data-f="lh10o"></td></tr>'
+      +'<tr><td><strong>E7 — Interdependencia</strong></td><td>Directorio de entidades de referencia actualizado</td><td>Formato fmt-directorio actualizado</td><td contenteditable="true" class="ef" data-f="lh11">☑ Cumple &nbsp;☐ Pendiente &nbsp;☐ No cumple</td><td contenteditable="true" class="ef" data-f="lh11o"></td></tr>'
+      +'<tr><td><strong>E8 — Mejoramiento</strong></td><td>PAMEC implementado y en ejecución</td><td>Programa PAMEC (fmt-pamec) con evidencias</td><td contenteditable="true" class="ef" data-f="lh12">☑ Cumple &nbsp;☐ Pendiente &nbsp;☐ No cumple</td><td contenteditable="true" class="ef" data-f="lh12o"></td></tr>'
+      +'<tr><td><strong>E8 — Mejoramiento</strong></td><td>Sistema de PQRS habilitado y documentado</td><td>Formato fmt-pqrs con registros de respuesta</td><td contenteditable="true" class="ef" data-f="lh13">☑ Cumple &nbsp;☐ Pendiente &nbsp;☐ No cumple</td><td contenteditable="true" class="ef" data-f="lh13o"></td></tr>'
+      +'<tr><td><strong>E2 — Telemedicina</strong></td><td>Velocidad de internet ≥ 10 Mbps verificada</td><td>Captura de pantalla speedtest reciente</td><td contenteditable="true" class="ef" data-f="lh14">☑ Cumple &nbsp;☐ Pendiente &nbsp;☐ No cumple</td><td contenteditable="true" class="ef" data-f="lh14o"></td></tr>'
+      +'</table>' },
+    { titulo:'Puntaje de preparación y plan de acción', contenido:'<p><strong>Ítems que cumplen:</strong> <span contenteditable="true" class="ef" data-f="score-c">__ / 14</span> &nbsp;|&nbsp; <strong>Ítems pendientes:</strong> <span contenteditable="true" class="ef" data-f="score-p">__</span> &nbsp;|&nbsp; <strong>Ítems no conformes:</strong> <span contenteditable="true" class="ef" data-f="score-nc">__</span></p>'
+      +'<p style="margin-top:8px"><strong>Nivel de preparación estimado:</strong> <span contenteditable="true" class="ef" data-f="score-nivel">☐ LISTO para visita &nbsp; ☐ Requiere ajustes menores &nbsp; ☐ Requiere ajustes importantes</span></p>'
+      +'<h3 class="subsec">Acciones correctivas pendientes</h3>'
+      +'<table class="doc-table"><tr><th>Hallazgo / Ítem no conforme</th><th>Acción correctiva</th><th>Responsable</th><th>Fecha límite</th></tr>'
+      +'<tr><td contenteditable="true" class="ef" data-f="ac1-h"></td><td contenteditable="true" class="ef" data-f="ac1-a"></td><td contenteditable="true" class="ef" data-f="ac1-r">'+n+'</td><td contenteditable="true" class="ef" data-f="ac1-f"></td></tr>'
+      +'<tr><td contenteditable="true" class="ef" data-f="ac2-h"></td><td contenteditable="true" class="ef" data-f="ac2-a"></td><td contenteditable="true" class="ef" data-f="ac2-r">'+n+'</td><td contenteditable="true" class="ef" data-f="ac2-f"></td></tr>'
+      +'</table>' }
+  ],
+
+  'fmt-pgirh': [
+    { titulo:'Plan de Gestión Integral de Residuos Hospitalarios y Similares (PGIRH)', contenido:'<p>Conforme al Decreto 351/2014 y la Resolución 1164/2002, '+e+' implementa el PGIRH adaptado al contexto de la telemedicina, donde la generación de residuos hospitalarios es mínima.</p>'
+      +'<table class="doc-table"><tr><th>Categoría de residuo</th><th>Color de bolsa</th><th>Tipo de residuo generado en telemedicina</th><th>Cantidad estimada mensual</th></tr>'
+      +'<tr><td>Residuos ordinarios no reciclables</td><td style="background:#D4EDD1">VERDE</td><td>Papel de impresora (recetas, formularios), empaques de insumos</td><td contenteditable="true" class="ef" data-f="pgirh1-q">< 1 kg</td></tr>'
+      +'<tr><td>Residuos reciclables</td><td style="background:#D4EDD1">GRIS / VERDE</td><td>Cartón, plástico PET, papel de archivo para reciclar</td><td contenteditable="true" class="ef" data-f="pgirh2-q">< 0.5 kg</td></tr>'
+      +'<tr><td>Residuos biosanitarios (si aplica atención presencial)</td><td style="background:#FDDCDC">ROJO</td><td>Guantes, gasas, material biopeligroso de primer auxilio</td><td contenteditable="true" class="ef" data-f="pgirh3-q">< 0.1 kg</td></tr>'
+      +'<tr><td>Residuos anatomopatológicos</td><td style="background:#FDDCDC">ROJO</td><td>No aplica a telemedicina</td><td>N/A</td></tr>'
+      +'<tr><td>Residuos cortopunzantes</td><td style="background:#FDDCDC">GUARDIÁN (rígido)</td><td>Agujas si hay actividad de toma de muestras (muy eventual)</td><td contenteditable="true" class="ef" data-f="pgirh5-q">< 10 unidades</td></tr>'
+      +'</table>' },
+    { titulo:'Empresa gestora y rutas de recolección', contenido:'<table class="doc-table"><tr><th>Parámetro</th><th>Descripción</th></tr>'
+      +'<tr><td>Empresa gestora de residuos biosanitarios</td><td contenteditable="true" class="ef" data-f="pgirh-empresa">Nombre de la empresa · NIT</td></tr>'
+      +'<tr><td>Frecuencia de recolección</td><td contenteditable="true" class="ef" data-f="pgirh-frec">Mensual (dada la baja generación)</td></tr>'
+      +'<tr><td>Punto de almacenamiento temporal</td><td contenteditable="true" class="ef" data-f="pgirh-punto">Área designada en el consultorio — señalizada</td></tr>'
+      +'<tr><td>Responsable del PGIRH</td><td>'+n+' · Dirección Médica · '+e+'</td></tr>'
+      +'<tr><td>Registro RH1 (mensual)</td><td>Se diligencia el Formulario RH1 mensualmente y se reporta a la Autoridad Ambiental</td></tr>'
+      +'</table>' }
+  ]
+
+  };
+
+  // Si hay secciones específicas para este documento, usarlas en _docRicoOpen
+  if (secMap[id]) {
+    _docRicoOpen(id, titulo, norma, 'Documento institucional del SGC', secMap[id]);
+    return;
+  }
+
+  // Fallback: documento genérico con secciones vacías para completar
+  var secGenerico = [
+    { titulo:'Generalidades y contexto', contenido:'<p>'+e+' establece el presente documento en cumplimiento de la '+norma+'. Diligencie este campo con el desarrollo específico del documento según los requisitos normativos aplicables.</p><div contenteditable="true" class="ef" data-f="gen-s1" style="min-height:120px;padding:10px;border-radius:4px;line-height:1.85">Desarrolle aquí el contenido principal del documento. Incluya procedimientos, responsabilidades y registros requeridos...</div>' },
+    { titulo:'Procedimiento y pasos', contenido:'<table class="doc-table"><tr><th>#</th><th>Actividad</th><th>Responsable</th><th>Registro</th></tr><tr><td>1</td><td contenteditable="true" class="ef" data-f="gen-pa1">Primera actividad</td><td contenteditable="true" class="ef" data-f="gen-pr1">'+n+'</td><td contenteditable="true" class="ef" data-f="gen-pe1">Registro interno</td></tr><tr><td>2</td><td contenteditable="true" class="ef" data-f="gen-pa2">Segunda actividad</td><td contenteditable="true" class="ef" data-f="gen-pr2">'+n+'</td><td contenteditable="true" class="ef" data-f="gen-pe2"></td></tr><tr><td>3</td><td contenteditable="true" class="ef" data-f="gen-pa3">Tercera actividad</td><td contenteditable="true" class="ef" data-f="gen-pr3">'+n+'</td><td contenteditable="true" class="ef" data-f="gen-pe3"></td></tr></table>' },
+    { titulo:'Registros y evidencias', contenido:'<div contenteditable="true" class="ef" data-f="gen-s3" style="min-height:80px;padding:10px;border-radius:4px;line-height:1.85">Registre aquí los formatos, evidencias y registros que soportan la implementación de este documento.</div>' }
+  ];
+  _docRicoOpen(id, titulo, norma, 'Documento institucional del SGC', secGenerico);
+  // ────────────────────────────────────────────────────────────────
+  // (Legacy fallback kept below — no longer executed)
+  return;
+
 }
 
 // ── Generador de consentimientos informativos — versión premium ──
