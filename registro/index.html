@@ -776,37 +776,45 @@ function toggleRegPass(inputId, iconId) {
 }
 
 function enviarRegistro() {
-  var rawUser = g('r-user');
-  var user = rawUser ? cleanUser(rawUser) : '';
-  if (!user) {
-    user = cleanUser(g('r-nombre') || 'usuario');
-  }
-  var pass = g('r-pass');
-  var pass2 = g('r-pass2');
   var errEl = document.getElementById('r-pass-err');
-  errEl.style.display = 'none';
+  if (errEl) errEl.style.display = 'none';
 
-  // Validations
+  // ── 1. Limpiar usuario ──────────────────────────────────────────
+  var rawUser = document.getElementById('r-user') ? document.getElementById('r-user').value.trim() : '';
+  var user = rawUser ? cleanUser(rawUser) : '';
+  if (!user) user = cleanUser(g('r-nombre') || 'usuario' + Date.now());
+
+  // ── 2. Leer contraseñas directamente del DOM (no usar g() para evitar trim issues) ──
+  var passEl  = document.getElementById('r-pass');
+  var pass2El = document.getElementById('r-pass2');
+  var pass  = passEl  ? passEl.value  : '';
+  var pass2 = pass2El ? pass2El.value : '';
+
+  // ── 3. Validaciones visibles ────────────────────────────────────
   if (!user) {
-    errEl.textContent = 'Por favor ingresa un nombre de usuario.';
-    errEl.style.display = 'block';
-    document.getElementById('r-user').focus();
-    return;
+    errEl.textContent = 'Por favor escribe un nombre de usuario.';
+    errEl.style.display = 'block'; return;
   }
   if (!pass || pass.length < 4) {
     errEl.textContent = 'La contraseña debe tener al menos 4 caracteres.';
     errEl.style.display = 'block';
-    document.getElementById('r-pass').focus();
-    return;
+    if (passEl) passEl.focus(); return;
   }
   if (pass !== pass2) {
     errEl.textContent = 'Las contraseñas no coinciden. Verifica e intenta de nuevo.';
     errEl.style.display = 'block';
-    document.getElementById('r-pass2').focus();
-    return;
+    if (pass2El) pass2El.focus(); return;
   }
 
-  var cliente = {
+  // ── 4. Feedback visual al usuario ──────────────────────────────
+  var btn = document.querySelector('#step-5 .btn-next');
+  if (btn) { btn.disabled = true; btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Guardando...'; }
+
+  // Wrap everything from here in a master try-catch so goStep(6) always fires
+  try {
+
+  // ── 5. Construir objeto cliente (SIN archivos base64 pesados en la lista principal) ──
+  var clienteLite = {
     nombre: g('r-nombre'), cedula: g('r-cedula'), especialidad: getEsp(),
     tarjeta_profesional: g('r-tp'), rethus: g('r-rethus'),
     empresa: g('r-empresa'), nit: g('r-nit'), nivel_atencion: parseInt(g('r-nivel') || '1'),
@@ -819,50 +827,81 @@ function enviarRegistro() {
     usuario: user, pass: pass,
     estado_habilitacion: 'nuevo',
     fecha_registro: new Date().toLocaleDateString('es-CO'),
-    docs_personales: regDocs,
     servicios_reps: regSvcs,
+    docs_count: Object.keys(regDocs).length,
     _desde_formulario: true
   };
 
-  // Save to localStorage (fallback)
-  var pendientes = JSON.parse(localStorage.getItem('bio_reg_pendientes') || '[]');
-  pendientes.push(cliente);
-  localStorage.setItem('bio_reg_pendientes', JSON.stringify(pendientes));
+  // ── 6. Guardar todo en try-catch independientes ─────────────────
+  // 6a. Credenciales de acceso (CRÍTICO — se guarda primero)
+  try {
+    var db = JSON.parse(localStorage.getItem('bio_users_db') || '{}');
+    db[user] = { pass: pass, role: 'cliente', to: 'cliente/index.html' };
+    localStorage.setItem('bio_users_db', JSON.stringify(db));
+  } catch(e) { console.warn('bio_users_db error:', e); }
 
-  // Save to Firebase (shared with admin panel)
-  enviarAFirebase(cliente);
+  // 6b. Datos del cliente para routing directo
+  try {
+    localStorage.setItem('bio_cli_' + user, JSON.stringify(clienteLite));
+  } catch(e) {
+    // Si falla por tamaño, guardar versión mínima
+    try {
+      localStorage.setItem('bio_cli_' + user, JSON.stringify({
+        nombre: clienteLite.nombre, empresa: clienteLite.empresa, nit: clienteLite.nit,
+        ciudad: clienteLite.ciudad, telefono: clienteLite.telefono, email: clienteLite.email,
+        usuario: user, pass: pass, color1: clienteLite.color1, color2: clienteLite.color2,
+        estado_habilitacion: 'nuevo', nivel_atencion: clienteLite.nivel_atencion
+      }));
+    } catch(e2) { console.warn('bio_cli error:', e2); }
+  }
 
-  // Also save as a regular client
-  var clientes = JSON.parse(localStorage.getItem('bio_clientes_list') || '[]');
-  clientes.push(cliente);
-  localStorage.setItem('bio_clientes_list', JSON.stringify(clientes));
+  // 6c. Lista de clientes
+  try {
+    var clientes = JSON.parse(localStorage.getItem('bio_clientes_list') || '[]');
+    // Evitar duplicados
+    clientes = clientes.filter(function(c){ return c.usuario !== user; });
+    clientes.push(clienteLite);
+    localStorage.setItem('bio_clientes_list', JSON.stringify(clientes));
+  } catch(e) { console.warn('bio_clientes_list error:', e); }
 
-  // Save docs
+  // 6d. Pendientes para admin
+  try {
+    var pendientes = JSON.parse(localStorage.getItem('bio_reg_pendientes') || '[]');
+    pendientes.push(clienteLite);
+    localStorage.setItem('bio_reg_pendientes', JSON.stringify(pendientes));
+  } catch(e) { console.warn('bio_reg_pendientes error:', e); }
+
+  // 6e. Documentos (por separado, pueden ser pesados)
   if (Object.keys(regDocs).length > 0) {
-    localStorage.setItem('bio_docs_reg_' + user, JSON.stringify(regDocs));
+    try { localStorage.setItem('bio_docs_reg_' + user, JSON.stringify(regDocs)); }
+    catch(e) { console.warn('docs too large for localStorage:', e); }
   }
 
-  // Save REPS services
+  // 6f. Servicios REPS
   if (regSvcs.length > 0) {
-    var svcData = regSvcs.map(function(k) {
-      var s = SERVICIOS_REPS_REG.find(function(x){ return x.codigo === k; });
-      return s ? {codigo: s.codigo, nombre: s.nombre, nivel: s.nivel, estado: 'en_proceso', fecha_inscripcion: new Date().toLocaleDateString('es-CO')} : null;
-    }).filter(Boolean);
-    localStorage.setItem('bio_servicios_' + user, JSON.stringify(svcData));
+    try {
+      var svcData = regSvcs.map(function(k) {
+        var s = SERVICIOS_REPS_REG.find(function(x){ return x.codigo === k; });
+        return s ? {codigo: s.codigo, nombre: s.nombre, nivel: s.nivel, estado: 'en_proceso', fecha_inscripcion: new Date().toLocaleDateString('es-CO')} : null;
+      }).filter(Boolean);
+      localStorage.setItem('bio_servicios_' + user, JSON.stringify(svcData));
+    } catch(e) { console.warn('bio_servicios error:', e); }
   }
 
-  // AUTO-ACTIVATE: save credentials immediately so client can log in right away
-  var db = JSON.parse(localStorage.getItem('bio_users_db') || '{}');
-  db[user] = { pass: pass, role: 'cliente', to: 'cliente/index.html' };
-  localStorage.setItem('bio_users_db', JSON.stringify(db));
+  // 6g. Firebase (async, no bloquea)
+  try { enviarAFirebase(clienteLite); } catch(e) {}
 
-  // Save client data under direct key for O(1) routing
-  localStorage.setItem('bio_cli_' + user, JSON.stringify(cliente));
+  // ── 7. Mostrar pantalla de éxito ────────────────────────────────
+  try {
+    var suEl = document.getElementById('success-user');
+    var spEl = document.getElementById('success-pass');
+    if (suEl) suEl.textContent = user;
+    if (spEl) spEl.textContent = pass;
+  } catch(e) {}
 
-  // Show credentials in success screen
-  document.getElementById('success-user').textContent = user;
-  document.getElementById('success-pass').textContent = pass;
+  } catch(masterErr) { console.error('enviarRegistro master error:', masterErr); }
 
+  // SIEMPRE avanzar al paso 6
   goStep(6);
 }
 
