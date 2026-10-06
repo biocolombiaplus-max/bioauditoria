@@ -27,6 +27,7 @@
 
   var lastActivity = Date.now();
   var yaMostroAmbiente = false;
+  var yaMostroTelaranas = false;
   var overlayAbierto = false;
 
   ["mousemove", "mousedown", "keydown", "touchstart", "wheel", "scroll"].forEach(function (ev) {
@@ -126,8 +127,71 @@
     "@keyframes hw-pop{0%{transform:scale(1);opacity:1}45%{transform:scale(1.35);opacity:1}100%{transform:scale(.2);opacity:0}}" +
     ".hw-tubo{position:fixed;font-size:25px;opacity:.95;pointer-events:none;z-index:501;transition:transform .24s cubic-bezier(.2,.7,.3,1)}" +
     ".hw-chispa{position:fixed;color:#fde68a;font-weight:800;font-size:14px;transform:translate(-50%,-50%);animation:hw-chispa-float .6s ease forwards;pointer-events:none;z-index:501;text-shadow:0 2px 6px rgba(0,0,0,.55)}" +
-    "@keyframes hw-chispa-float{0%{opacity:1;transform:translate(-50%,-50%)}100%{opacity:0;transform:translate(-50%,-190%)}}";
+    "@keyframes hw-chispa-float{0%{opacity:1;transform:translate(-50%,-50%)}100%{opacity:0;transform:translate(-50%,-190%)}}" +
+    // Telarañas de esquina: quietas en el punto donde se "anclan" (la
+    // esquina real de la pantalla) pero con un vaivén muy leve en el
+    // resto del dibujo, como si las moviera el aire — se quedan puestas
+    // toda la sesión (no son parte de la ráfaga de 40s de la decoración
+    // ambiental), discretas tanto sobre el morado del menú como sobre el
+    // fondo claro del contenido gracias al doble filtro de sombra.
+    ".hw-telarana{position:fixed;top:0;z-index:41;pointer-events:none;width:150px;height:150px}" +
+    ".hw-telarana.hw-tela-izq{left:0}" +
+    ".hw-telarana.hw-tela-der{right:0;transform:scaleX(-1)}" +
+    ".hw-telarana svg{display:block;overflow:visible;width:100%;height:100%}" +
+    ".hw-tela-linea{fill:none;stroke:rgba(226,232,240,.52);stroke-width:1.3;stroke-linecap:round;filter:drop-shadow(0 0 1.5px rgba(255,255,255,.35)) drop-shadow(0 1px 2px rgba(15,23,42,.3))}" +
+    ".hw-tela-grupo{transform-origin:0 0;animation:hw-viento 6s ease-in-out infinite alternate}" +
+    "@keyframes hw-viento{0%{transform:rotate(-1.3deg) skewX(-1deg)}50%{transform:rotate(.5deg) skewX(.7deg)}100%{transform:rotate(1.5deg) skewX(-.3deg)}}" +
+    ".hw-arana-cuerpo{fill:rgba(30,27,45,.75);filter:drop-shadow(0 0 1px rgba(255,255,255,.3))}" +
+    ".hw-arana-pata{stroke:rgba(30,27,45,.7);stroke-width:1;stroke-linecap:round}" +
+    ".hw-arana-hilo{stroke:rgba(226,232,240,.5);stroke-width:.8}" +
+    ".hw-tela-arana{animation:hw-arana-bob 3.4s ease-in-out infinite;transform-origin:60px 66px}" +
+    "@keyframes hw-arana-bob{0%,100%{transform:translateY(0)}50%{transform:translateY(5px)}}";
   document.head.appendChild(style);
+
+  // ------------------------------------------------------------------
+  // Telarañas de esquina (arriba-izquierda y arriba-derecha) — dibujadas
+  // a mano en SVG (sin ninguna imagen que cargar), ancladas en la
+  // esquina real de la pantalla y con un vaivén continuo muy sutil en
+  // el resto del dibujo para que parezca que el aire las mueve. Se
+  // ponen una sola vez y se quedan ahí toda la sesión — a diferencia de
+  // la ráfaga de criaturas, una telaraña de esquina es "mobiliario" fijo
+  // del ambiente, no algo que iría y vendría.
+  // ------------------------------------------------------------------
+  function svgTelarana(conAraña) {
+    var rayos = "M0,0L135,0M0,0L128.4,41.7M0,0L109.2,79.4M0,0L79.4,109.2M0,0L41.7,128.4M0,0L0,135";
+    var anillo1 = "M40,0L38,12.4L32.4,23.5L23.5,32.4L12.4,38L0,40";
+    var anillo2 = "M75,0L71.3,23.2L60.7,44.1L44.1,60.7L23.2,71.3L0,75";
+    var anillo3 = "M110,0L104.6,34L89,64.7L64.7,89L34,104.6L0,110";
+    var arana = conAraña
+      ? '<g class="hw-tela-arana">' +
+          '<line class="hw-arana-hilo" x1="55" y1="63" x2="60" y2="90"/>' +
+          '<g class="hw-arana-pata">' +
+            '<line x1="56" y1="94" x2="50" y2="90"/><line x1="56" y1="97" x2="49" y2="97"/><line x1="56" y1="100" x2="50" y2="104"/>' +
+            '<line x1="64" y1="94" x2="70" y2="90"/><line x1="64" y1="97" x2="71" y2="97"/><line x1="64" y1="100" x2="70" y2="104"/>' +
+          "</g>" +
+          '<ellipse class="hw-arana-cuerpo" cx="60" cy="97" rx="4.2" ry="5.6"/>' +
+        "</g>"
+      : "";
+    return '<svg viewBox="-2 -2 152 152"><g class="hw-tela-grupo">' +
+      '<path class="hw-tela-linea" d="' + rayos + '"/>' +
+      '<path class="hw-tela-linea" d="' + anillo1 + '"/>' +
+      '<path class="hw-tela-linea" d="' + anillo2 + '"/>' +
+      '<path class="hw-tela-linea" d="' + anillo3 + '"/>' +
+      arana +
+      "</g></svg>";
+  }
+  function mostrarTelaranas() {
+    if (yaMostroTelaranas) return;
+    yaMostroTelaranas = true;
+    var izq = document.createElement("div");
+    izq.className = "hw-telarana hw-tela-izq";
+    izq.innerHTML = svgTelarana(false);
+    var der = document.createElement("div");
+    der.className = "hw-telarana hw-tela-der";
+    der.innerHTML = svgTelarana(true);
+    document.body.appendChild(izq);
+    document.body.appendChild(der);
+  }
 
   // ------------------------------------------------------------------
   // Decoración ambiental al abrir (una sola vez por carga de página) —
@@ -319,6 +383,7 @@
   setInterval(function () {
     if (!estaLogueado() || !sesionValida()) return;
     mostrarAmbiente();
+    mostrarTelaranas();
     if (overlayAbierto || hayModalAbierto()) return;
     if (Date.now() - lastActivity >= IDLE_MS) abrirPausa();
   }, 3000);
