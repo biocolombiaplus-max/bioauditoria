@@ -50,39 +50,52 @@
     // ---- Encabezado: logo/nombre a la izquierda, RIF + datos + N° de
     // Factura a la derecha, igual que una factura de imprenta tradicional
     // (nombre grande de la empresa a un lado, caja de identificación
-    // fiscal y número de documento al otro). ------------------------------
+    // fiscal y número de documento al otro). Si el laboratorio desactivó
+    // "Incluir el membrete en la Factura / Recibo" (Configuración →
+    // Operación — pensado para imprimir sobre papel ya membretado de
+    // fábrica), se omite TODO este bloque de identidad del laboratorio
+    // (logo, nombre, eslogan, RIF, dirección, contacto): el documento
+    // arranca directo con el N° de Factura, sin nada del laboratorio
+    // arriba. ---------------------------------------------------------
     var y = margin;
-    var colIzqW = pageW - margin * 2 - 190;
-    if (tenant.logoDataUrl) {
-      try { doc.addImage(tenant.logoDataUrl, "PNG", margin, y - 4, 50, 50); } catch (e) {}
+    var conMembrete = tenant.facturaConMembrete !== false;
+    if (conMembrete) {
+      var colIzqW = pageW - margin * 2 - 190;
+      if (tenant.logoDataUrl) {
+        try { doc.addImage(tenant.logoDataUrl, "PNG", margin, y - 4, 50, 50); } catch (e) {}
+      }
+      var xNombre = margin + (tenant.logoDataUrl ? 62 : 0);
+      doc.setFont("helvetica", "bold"); doc.setFontSize(17); doc.setTextColor(rgb[0], rgb[1], rgb[2]);
+      var lineasNombre = doc.splitTextToSize(tenant.nombre || "", colIzqW - (tenant.logoDataUrl ? 62 : 0));
+      doc.text(lineasNombre, xNombre, y + 14);
+      var yNombre = y + 14 + (lineasNombre.length - 1) * 18;
+      if (tenant.slogan) {
+        doc.setFont("helvetica", "italic"); doc.setFontSize(9); doc.setTextColor(120, 120, 120);
+        doc.text(tenant.slogan, xNombre, yNombre + 14);
+      }
+
+      var xCajaRif = pageW - margin - 190, wCajaRif = 190;
+      doc.setDrawColor(rgb[0], rgb[1], rgb[2]); doc.setLineWidth(1);
+      doc.roundedRect(xCajaRif, y - 4, wCajaRif, 20, 3, 3);
+      doc.setFont("helvetica", "bold"); doc.setFontSize(10); doc.setTextColor(30, 64, 175);
+      doc.text(C.documentoTributarioLabel(tenant.pais) + ": " + (tenant.nit || "—"), xCajaRif + wCajaRif / 2, y + 10, { align: "center" });
+
+      doc.setFont("helvetica", "normal"); doc.setFontSize(8); doc.setTextColor(90, 90, 90);
+      var lineasDireccion = doc.splitTextToSize(tenant.direccion || "", wCajaRif);
+      doc.text(lineasDireccion, xCajaRif + wCajaRif, y + 26, { align: "right" });
+      var yContacto = y + 26 + lineasDireccion.length * 10;
+      var contacto = [tenant.telefonos ? "Telf.: " + tenant.telefonos : "", tenant.email || ""].filter(Boolean).join("  ·  ");
+      if (contacto) { doc.text(contacto, xCajaRif + wCajaRif, yContacto, { align: "right" }); yContacto += 10; }
+
+      doc.setFont("helvetica", "bold"); doc.setFontSize(13); doc.setTextColor(rgbNaranja[0], rgbNaranja[1], rgbNaranja[2]);
+      doc.text("FACTURA Nº " + String(factura.numero).padStart(6, "0"), xCajaRif + wCajaRif, yContacto + 12, { align: "right" });
+
+      y = Math.max(yNombre + 22, yContacto + 24) + 8;
+    } else {
+      doc.setFont("helvetica", "bold"); doc.setFontSize(15); doc.setTextColor(rgbNaranja[0], rgbNaranja[1], rgbNaranja[2]);
+      doc.text("FACTURA Nº " + String(factura.numero).padStart(6, "0"), pageW - margin, y + 12, { align: "right" });
+      y += 30;
     }
-    var xNombre = margin + (tenant.logoDataUrl ? 62 : 0);
-    doc.setFont("helvetica", "bold"); doc.setFontSize(17); doc.setTextColor(rgb[0], rgb[1], rgb[2]);
-    var lineasNombre = doc.splitTextToSize(tenant.nombre || "", colIzqW - (tenant.logoDataUrl ? 62 : 0));
-    doc.text(lineasNombre, xNombre, y + 14);
-    var yNombre = y + 14 + (lineasNombre.length - 1) * 18;
-    if (tenant.slogan) {
-      doc.setFont("helvetica", "italic"); doc.setFontSize(9); doc.setTextColor(120, 120, 120);
-      doc.text(tenant.slogan, xNombre, yNombre + 14);
-    }
-
-    var xCajaRif = pageW - margin - 190, wCajaRif = 190;
-    doc.setDrawColor(rgb[0], rgb[1], rgb[2]); doc.setLineWidth(1);
-    doc.roundedRect(xCajaRif, y - 4, wCajaRif, 20, 3, 3);
-    doc.setFont("helvetica", "bold"); doc.setFontSize(10); doc.setTextColor(30, 64, 175);
-    doc.text(C.documentoTributarioLabel(tenant.pais) + ": " + (tenant.nit || "—"), xCajaRif + wCajaRif / 2, y + 10, { align: "center" });
-
-    doc.setFont("helvetica", "normal"); doc.setFontSize(8); doc.setTextColor(90, 90, 90);
-    var lineasDireccion = doc.splitTextToSize(tenant.direccion || "", wCajaRif);
-    doc.text(lineasDireccion, xCajaRif + wCajaRif, y + 26, { align: "right" });
-    var yContacto = y + 26 + lineasDireccion.length * 10;
-    var contacto = [tenant.telefonos ? "Telf.: " + tenant.telefonos : "", tenant.email || ""].filter(Boolean).join("  ·  ");
-    if (contacto) { doc.text(contacto, xCajaRif + wCajaRif, yContacto, { align: "right" }); yContacto += 10; }
-
-    doc.setFont("helvetica", "bold"); doc.setFontSize(13); doc.setTextColor(rgbNaranja[0], rgbNaranja[1], rgbNaranja[2]);
-    doc.text("FACTURA Nº " + String(factura.numero).padStart(6, "0"), xCajaRif + wCajaRif, yContacto + 12, { align: "right" });
-
-    y = Math.max(yNombre + 22, yContacto + 24) + 8;
     doc.setDrawColor(rgb[0], rgb[1], rgb[2]); doc.setLineWidth(1.4);
     doc.line(margin, y, pageW - margin, y);
     y += 18;

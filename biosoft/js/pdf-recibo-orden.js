@@ -58,8 +58,12 @@
     // Mismo membrete (logo, nombre, datos de contacto) que el informe de
     // resultados, la cotización y su recibo — un laboratorio que activa el
     // membrete grande en Configuración lo ve igual en todos sus documentos
-    // impresos.
-    var y = await window.BIO_PDF.dibujarMembrete(doc, tenant, margin);
+    // impresos. Si el laboratorio desactivó "Incluir el membrete en la
+    // Factura / Recibo" (Configuración → Operación — pensado para
+    // imprimir sobre papel ya membretado de fábrica), se salta por
+    // completo: el documento arranca directo en el margen, sin ningún
+    // logo ni dato del laboratorio arriba.
+    var y = tenant.facturaConMembrete === false ? margin : await window.BIO_PDF.dibujarMembrete(doc, tenant, margin);
 
     // ---- Título + número, centrados, con línea divisoria de color debajo -
     doc.setFont("helvetica", "bold"); doc.setFontSize(17); doc.setTextColor(20, 20, 20);

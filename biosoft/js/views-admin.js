@@ -1552,6 +1552,8 @@
         '<option value="clasica"' + (tenant.formatoFactura === "clasica" ? " selected" : "") + '>Factura Estilo Clásico (código / descripción / precio / cant. / importe, con N° de Factura)</option>' +
         "</select></div>" +
         '<p class="text-muted" style="margin:4px 0 12px;font-size:12.5px">Con "Factura Estilo Clásico", al generar el Recibo de Pago de una orden por primera vez se abre un formulario para revisar el código, precio y cantidad de cada examen (por si necesitas facturar más de una unidad de un mismo examen) y agregar descuento, impuesto y observaciones — igual que una factura de venta tradicional. Solo se pide una vez por orden: al reenviarla, se reutiliza lo que ya se armó.</p>' +
+        '<div class="checkbox-row"><input type="checkbox" id="f_facturaConMembrete" ' + (tenant.facturaConMembrete !== false ? "checked" : "") + '/><label style="margin:0" for="f_facturaConMembrete">Incluir el membrete (logo, nombre y datos del laboratorio) en la Factura / Recibo</label></div>' +
+        '<p class="text-muted" style="margin:4px 0 12px;font-size:12.5px">Desactívalo si prefieres una Factura / Recibo totalmente limpia, sin ningún logo ni dato del laboratorio arriba — pensado para imprimir sobre papel que ya viene membretado de fábrica. Con esta opción apagada, el documento arranca directo con el N° de factura/recibo y los datos de la orden; esto no afecta al Informe de Resultados ni a la Cotización, que tienen su propia opción de membrete más abajo.</p>' +
         '<div class="field" style="max-width:420px"><label>Formato del N° de Orden</label><select id="f_formatoNumeroOrden">' +
         Object.keys(S.FORMATOS_NUMERO_ORDEN).map(function (k) { return '<option value="' + k + '" ' + ((tenant.formatoNumeroOrden || "diario") === k ? "selected" : "") + '>' + U.esc(S.FORMATOS_NUMERO_ORDEN[k].nombre) + "</option>"; }).join("") +
         "</select></div>" +
@@ -1707,6 +1709,7 @@
       tenant.reportarCIM = document.getElementById("f_reportarCIM").checked;
       tenant.reciboConvenioComoCredito = document.getElementById("f_reciboConvenioComoCredito").checked;
       tenant.formatoFactura = document.getElementById("f_formatoFactura").value;
+      tenant.facturaConMembrete = document.getElementById("f_facturaConMembrete").checked;
       tenant.formatoNumeroOrden = document.getElementById("f_formatoNumeroOrden").value;
       tenant.logoGrandeReporte = document.getElementById("f_logoGrandeReporte").checked;
       tenant.logoAnchoCompleto = document.getElementById("f_logoAnchoCompleto").checked;
@@ -1767,7 +1770,7 @@
           telefonos: tenant.telefonos, email: tenant.email, sitioWeb: tenant.sitioWeb,
           resolucionHabilitacion: tenant.resolucionHabilitacion, codigoREPS: tenant.codigoREPS, nivel: tenant.nivel,
           bacteriologoResponsable: tenant.bacteriologoResponsable, mostrarPrecioOrden: tenant.mostrarPrecioOrden, reportarCIM: tenant.reportarCIM,
-          reciboConvenioComoCredito: tenant.reciboConvenioComoCredito, formatoFactura: tenant.formatoFactura, formatoNumeroOrden: tenant.formatoNumeroOrden,
+          reciboConvenioComoCredito: tenant.reciboConvenioComoCredito, formatoFactura: tenant.formatoFactura, facturaConMembrete: tenant.facturaConMembrete, formatoNumeroOrden: tenant.formatoNumeroOrden,
           logoGrandeReporte: tenant.logoGrandeReporte, logoAnchoCompleto: tenant.logoAnchoCompleto, logoAnchoPorcentaje: tenant.logoAnchoPorcentaje, ocultarNombreEncabezado: tenant.ocultarNombreEncabezado,
           colorBandaSeccion: tenant.colorBandaSeccion, bandaSeccionSinColor: tenant.bandaSeccionSinColor, membreteEnTodasLasHojas: tenant.membreteEnTodasLasHojas,
           datosPacienteEstiloDiscreto: tenant.datosPacienteEstiloDiscreto, ocultarInterpretacion: tenant.ocultarInterpretacion, ocultarValorReferencia: tenant.ocultarValorReferencia,
