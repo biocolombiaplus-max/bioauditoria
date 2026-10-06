@@ -112,10 +112,34 @@
     return Math.round((corte - hoy) / 86400000);
   }
 
+  /* Próxima fecha de corte tras registrar un pago — pensada para el caso
+     real y frecuente de laboratorios que NO pagan el mismo día del corte
+     (pagan unos días, o incluso varios ciclos, tarde). En vez de sumarle
+     el ciclo a la fecha en que pagó (lo que iría corriendo el día de corte
+     cada vez que alguien paga tarde, hasta perder el "ancla" original),
+     se sigue sumando el ciclo desde la ÚLTIMA fecha de corte conocida,
+     ciclo por ciclo, hasta llegar a una fecha futura — así el día de corte
+     del laboratorio se mantiene siempre el mismo (ej. "siempre el 5"), sin
+     importar cuántos días o ciclos de atraso traiga. */
+  function proximaFechaCobroTrasPago(tenant, fechaPagoISO) {
+    var ciclo = Math.max(1, (tenant && tenant.cicloCobroDias) || 30);
+    var fechaPago = fechaPagoISO ? fechaPagoISO.slice(0, 10) : new Date().toISOString().slice(0, 10);
+    var ancla = new Date(((tenant && tenant.fechaProximoPago) || fechaPago) + "T00:00:00");
+    var hoy = new Date(); hoy.setHours(0, 0, 0, 0);
+    var limite = new Date(fechaPago + "T00:00:00");
+    if (hoy > limite) limite = hoy;
+    var proxima = new Date(ancla.getTime());
+    do {
+      proxima.setDate(proxima.getDate() + ciclo);
+    } while (proxima <= limite);
+    return proxima.toISOString().slice(0, 10);
+  }
+
   global.BIO_PLANES = {
     IMPLEMENTACION: IMPLEMENTACION, PLANES: PLANES, TARJETAS_TXT: TARJETAS_TXT, porId: porId,
     INTERFAZ_EQUIPOS: INTERFAZ_EQUIPOS, PROMOCION_LANZAMIENTO: PROMOCION_LANZAMIENTO,
     ESTADOS_CUENTA: ESTADOS_CUENTA, DIAS_AVISO_VENCIMIENTO: DIAS_AVISO_VENCIMIENTO, estadoCuenta: estadoCuenta,
-    DIAS_PRUEBA_GRATIS: DIAS_PRUEBA_GRATIS, diasRestantes: diasRestantes
+    DIAS_PRUEBA_GRATIS: DIAS_PRUEBA_GRATIS, diasRestantes: diasRestantes,
+    proximaFechaCobroTrasPago: proximaFechaCobroTrasPago
   };
 })(window);

@@ -1959,6 +1959,7 @@
             "<td>" + (sobreLimite ? '<span class="badge badge-urgente">' + usuariosTxt + '</span>' : usuariosTxt) + "</td>" +
             '<td><div class="flex gap-2 wrap">' +
             '<button class="btn btn-outline btn-sm" data-editar-plan="' + t.id + '">' + U.icon("edit") + " Plan</button>" +
+            (t.planId ? '<button class="btn btn-outline btn-sm" data-registrar-pago-tenant="' + t.id + '" title="Registrar el pago recibido, generar su recibo y activar el siguiente período">' + U.icon("check") + " Registrar Pago</button>" : "") +
             '<button class="btn btn-primary btn-sm" data-mas-acciones="' + t.id + '">' + U.icon("more") + " Más acciones</button>" +
             "</div></td></tr>";
         }).join("") : '<tr><td colspan="7" class="text-muted">Aún no hay laboratorios cliente creados.</td></tr>') + "</tbody></table></div></div>";
@@ -1979,6 +1980,11 @@
       root.querySelectorAll("[data-editar-plan]").forEach(function (b) {
         b.addEventListener("click", function () {
           abrirEditarPlan(tenants.filter(function (t) { return t.id === b.dataset.editarPlan; })[0]);
+        });
+      });
+      root.querySelectorAll("[data-registrar-pago-tenant]").forEach(function (b) {
+        b.addEventListener("click", function () {
+          abrirRegistrarPago(tenants.filter(function (t) { return t.id === b.dataset.registrarPagoTenant; })[0]);
         });
       });
       root.querySelectorAll("[data-mas-acciones]").forEach(function (b) {
@@ -2199,6 +2205,118 @@
         });
         U.toast("Plan actualizado.", "success");
         U.closeModal(wrap);
+      });
+    }
+
+    // Registrar el pago de la mensualidad de un laboratorio: pide la fecha
+    // en que realmente pagó (muchos no pagan justo el día de corte — a
+    // veces unos días tarde, a veces varios ciclos), genera su Recibo de
+    // Pago en PDF listo para enviar, y activa el siguiente período
+    // calculando solo la nueva fecha de corte (BIO_PLANES.
+    // proximaFechaCobroTrasPago — ver planes.js: mantiene siempre el mismo
+    // "día de corte" del laboratorio sin importar el atraso, en vez de
+    // correrlo cada vez que alguien paga tarde). Si el laboratorio estaba
+    // suspendido por falta de pago, este registro lo reactiva de una vez —
+    // mismo flujo de "1. Generar y Descargar" / "2. Elige dónde enviarlo"
+    // que ya usan Contrato y Licencia, para que se sienta igual de
+    // conocido al usarlo.
+    function abrirRegistrarPago(tenant) {
+      var plan = BIO_PLANES.porId(tenant.planId);
+      if (!plan) { U.toast('Asigna primero un plan a este laboratorio (botón "Plan").', "error"); return; }
+      var descuentoPlanActual = tenant.descuentoPlan || 0;
+      var precioEfectivoCop = descuentoPlanActual ? Math.round(plan.precio * (1 - descuentoPlanActual / 100)) : plan.precio;
+      var precioEfectivoUsd = descuentoPlanActual ? Math.round(plan.usd * (1 - descuentoPlanActual / 100)) : plan.usd;
+      var precioEfectivoFmt = precioEfectivoCop.toLocaleString("es-CO");
+      var hoyISO = new Date().toISOString().slice(0, 10);
+      var estadoActual = BIO_PLANES.estadoCuenta(tenant);
+      var fechaCorteActualTxt = tenant.fechaProximoPago ? U.fmtFechaCorta(tenant.fechaProximoPago) : "—";
+      var avisoAtraso = (estadoActual === "vencido" || tenant.suspendido)
+        ? '<p class="text-danger" style="margin:4px 0 0;font-size:12.5px">⚠ Este laboratorio tiene el pago vencido' + (tenant.suspendido ? " y está SUSPENDIDO" : "") + " — al registrar el pago " + (tenant.suspendido ? "se reactivará su acceso y " : "") + "se calculará la próxima fecha de corte respetando su día de corte habitual, no desde hoy.</p>"
+        : "";
+      function construirMensaje(totalFmt, totalUsd, proximaFecha) {
+        return "Hola 👋 Te confirmamos la recepción de tu pago a BIOsoft — Plan " + plan.nombre + " ($" + totalFmt + " COP, aprox. $" + totalUsd + " USD). Adjunto el recibo. Tu próxima fecha de corte es el " + U.fmtFechaCorta(proximaFecha) + ".";
+      }
+      var wrap = U.openModal(
+        '<h3 class="modal-title">Registrar Pago — ' + U.esc(tenant.nombre) + '</h3>' +
+        '<p class="text-muted" style="margin-top:0">Plan: <b>' + U.esc(plan.nombre) + '</b> (' + U.esc(plan.usuarios) + ') · Valor a cobrar: <b>$' + precioEfectivoFmt + ' COP</b> (aprox. $' + precioEfectivoUsd + ' USD)' +
+        (descuentoPlanActual ? ' · incluye descuento adicional del <b>' + descuentoPlanActual + '%</b>' : '') +
+        '</p>' +
+        '<p class="text-muted" style="margin:0 0 10px;font-size:12.5px">Fecha de corte actual (antes de este pago): <b>' + fechaCorteActualTxt + '</b> · Estado: <b>' + U.esc(BIO_PLANES.ESTADOS_CUENTA[estadoActual].label) + '</b></p>' +
+        avisoAtraso +
+        '<div class="form-grid" style="margin-top:10px">' +
+        '<div class="field"><label>Fecha en que pagó</label><input type="date" id="rp-fecha-pago" value="' + hoyISO + '" max="' + hoyISO + '"/></div>' +
+        '<div class="field"><label>Nueva fecha de corte (se calcula sola, pero puedes ajustarla)</label><input type="date" id="rp-nueva-fecha"/></div>' +
+        '<div class="field"><label>Correo del destinatario</label><input id="rp-email" type="email" value="' + U.esc(tenant.email || "") + '"/></div>' +
+        '<div class="field"><label>WhatsApp del destinatario</label><input id="rp-whatsapp" value="' + U.esc(tenant.telefonos || "") + '"/></div>' +
+        "</div>" +
+        '<div class="field"><label>Mensaje</label><textarea id="rp-msg"></textarea></div>' +
+        '<div class="flex gap-2 justify-between"><button class="btn btn-ghost" data-modal-close>Cancelar</button><button class="btn btn-primary" id="rp-go">' + U.icon("download") + " 1. Generar Recibo y Activar Período</button></div>" +
+        '<div id="rp-step2" class="hidden" style="margin-top:16px;border-top:1px solid var(--border);padding-top:14px">' +
+        '<p style="margin:0 0 4px"><b>2. Elige dónde enviarlo</b></p>' +
+        '<p class="text-muted" style="margin:0 0 4px;font-size:12.5px">Se abrirá el correo o WhatsApp ya redactado — solo adjunta el PDF que acabas de descargar antes de darle enviar.</p>' +
+        U.emailProviderButtonsHtml("rp") +
+        '<a class="btn btn-whatsapp btn-block" id="rp-wa" target="_blank" rel="noopener" style="margin-top:8px">' + U.icon("send") + " Enviar por WhatsApp</a>" +
+        "</div>",
+        { lg: true }
+      );
+      var nuevaFechaEditadaManualmente = false;
+      function recalcularNuevaFecha() {
+        if (nuevaFechaEditadaManualmente) return;
+        var fechaPago = wrap.querySelector("#rp-fecha-pago").value || hoyISO;
+        wrap.querySelector("#rp-nueva-fecha").value = BIO_PLANES.proximaFechaCobroTrasPago(tenant, fechaPago);
+      }
+      recalcularNuevaFecha();
+      wrap.querySelector("#rp-msg").value = construirMensaje(precioEfectivoFmt, precioEfectivoUsd, wrap.querySelector("#rp-nueva-fecha").value);
+      wrap.querySelector("#rp-fecha-pago").addEventListener("change", function () {
+        recalcularNuevaFecha();
+        if (!msgEditadoManualmenteRP) wrap.querySelector("#rp-msg").value = construirMensaje(precioEfectivoFmt, precioEfectivoUsd, wrap.querySelector("#rp-nueva-fecha").value);
+      });
+      var msgEditadoManualmenteRP = false;
+      wrap.querySelector("#rp-msg").addEventListener("input", function () { msgEditadoManualmenteRP = true; });
+      wrap.querySelector("#rp-nueva-fecha").addEventListener("change", function () {
+        nuevaFechaEditadaManualmente = true;
+        if (!msgEditadoManualmenteRP) wrap.querySelector("#rp-msg").value = construirMensaje(precioEfectivoFmt, precioEfectivoUsd, wrap.querySelector("#rp-nueva-fecha").value);
+      });
+      wrap.querySelector("#rp-go").addEventListener("click", function (e) {
+        var email = wrap.querySelector("#rp-email").value.trim();
+        var whatsapp = wrap.querySelector("#rp-whatsapp").value.trim();
+        var msg = wrap.querySelector("#rp-msg").value;
+        var fechaPagoElegida = wrap.querySelector("#rp-fecha-pago").value || hoyISO;
+        var nuevaFechaElegida = wrap.querySelector("#rp-nueva-fecha").value;
+        if (!nuevaFechaElegida) { U.toast("La nueva fecha de corte es obligatoria.", "error"); return; }
+        if (!email && !whatsapp) { U.toast("Ingresa un correo o un número de WhatsApp.", "error"); return; }
+        var btn = e.currentTarget;
+        var htmlOriginal = btn.innerHTML;
+        btn.disabled = true; btn.innerHTML = "Generando…";
+        try {
+          var estabaSuspendido = !!tenant.suspendido;
+          var pago = { fecha: fechaPagoElegida, concepto: "Mensualidad", totalFmt: precioEfectivoFmt, totalUSD: precioEfectivoUsd, proximaFecha: nuevaFechaElegida };
+          var bytes = BIO_PDF_CRM.buildReciboPDF(tenantParaDocs(tenant), plan, pago);
+          U.downloadBytes(bytes, "Recibo_BIOsoft_" + (tenant.nombre || "Cliente").replace(/\s+/g, "_") + ".pdf");
+          tenant.fechaProximoPago = nuevaFechaElegida;
+          tenant.suspendido = false;
+          tenant.fechaSuspension = null;
+          S.updateTenant(tenant.id, { fechaProximoPago: tenant.fechaProximoPago, suspendido: false, fechaSuspension: null });
+          var asunto = "Recibo de Pago — BIOsoft (" + plan.nombre + ")";
+          var cuerpo = msg + "\n\n(Adjunte el archivo PDF que se acaba de descargar a su equipo)";
+          wrap.querySelector("#rp-step2").classList.remove("hidden");
+          U.wireEmailProviderButtons(wrap, "rp", email, asunto, cuerpo);
+          var waBtn = wrap.querySelector("#rp-wa");
+          if (whatsapp) {
+            var numero = whatsapp.replace(/\D/g, "");
+            if (numero.length === 10 && numero.charAt(0) === "3") numero = "57" + numero;
+            waBtn.href = "https://wa.me/" + numero + "?text=" + encodeURIComponent(msg + "\n\n(Adjunte el PDF que se acaba de descargar antes de enviar)");
+          } else {
+            waBtn.classList.add("hidden");
+          }
+          U.toast("Pago registrado" + (estabaSuspendido ? " y acceso reactivado" : "") + " — próxima fecha de corte: " + U.fmtFechaCorta(nuevaFechaElegida) + ".", "success");
+          build();
+        } catch (err) {
+          console.error("BIOsoft: no se pudo registrar el pago ->", err);
+          U.toast("No se pudo registrar el pago: " + (err && err.message ? err.message : err) + ". Si el problema sigue, recarga la página (Ctrl+Shift+R) e inténtalo de nuevo.", "error");
+        } finally {
+          btn.disabled = false; btn.innerHTML = htmlOriginal;
+        }
       });
     }
 
