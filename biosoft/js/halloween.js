@@ -95,8 +95,17 @@
   var style = document.createElement("style");
   style.textContent =
     ".hw-ambiente{position:fixed;inset:0;z-index:42;pointer-events:none;overflow:hidden}" +
-    ".hw-ambiente-item{position:absolute;left:-10vw;font-size:22px;opacity:0;animation:hw-drift var(--hw-dur,9s) ease-in-out forwards;filter:drop-shadow(0 2px 4px rgba(0,0,0,.18))}" +
-    "@keyframes hw-drift{0%{transform:translateX(0) translateY(0);opacity:0}8%{opacity:.55}50%{transform:translateY(-10px)}92%{opacity:.5}100%{transform:translateX(120vw) translateY(6px);opacity:0}}" +
+    ".hw-ambiente-item{position:absolute;left:-12vw;opacity:0;animation:hw-flotar var(--hw-dur,20s) ease-in-out forwards;filter:drop-shadow(0 3px 6px rgba(0,0,0,.22))}" +
+    "@keyframes hw-flotar{" +
+      "0%{transform:translate(0,0) scale(.92);opacity:0}" +
+      "6%{opacity:.85}" +
+      "22%{transform:translate(26vw,-22px) scale(1.04)}" +
+      "40%{transform:translate(46vw,10px) scale(.97)}" +
+      "58%{transform:translate(66vw,-16px) scale(1.03)}" +
+      "76%{transform:translate(86vw,8px) scale(.98)}" +
+      "93%{opacity:.8}" +
+      "100%{transform:translate(122vw,-6px) scale(1);opacity:0}" +
+    "}" +
     ".hw-overlay{position:fixed;inset:0;z-index:500;background:rgba(15,23,42,.74);backdrop-filter:blur(10px) saturate(1.15);-webkit-backdrop-filter:blur(10px) saturate(1.15);cursor:crosshair;animation:hw-entra .3s ease;overflow:hidden}" +
     ".hw-overlay.hw-saliendo{animation:hw-sale .22s ease forwards}" +
     "@keyframes hw-entra{from{opacity:0}to{opacity:1}}@keyframes hw-sale{to{opacity:0}}" +
@@ -121,27 +130,35 @@
   document.head.appendChild(style);
 
   // ------------------------------------------------------------------
-  // Decoración ambiental muy sutil al abrir (una sola vez por carga de
-  // página) — figuras pequeñas, semitransparentes, que cruzan la parte
-  // de arriba de la pantalla y desaparecen solas. pointer-events:none en
-  // toda la capa: jamás puede tapar un clic real.
+  // Decoración ambiental al abrir (una sola vez por carga de página) —
+  // varias figuras flotando con un vaivén suave (no una línea recta
+  // apurada) que cruzan la parte de arriba/media de la pantalla y
+  // desaparecen solas. pointer-events:none en toda la capa: jamás puede
+  // tapar un clic real, sin importar cuántas salgan a la vez.
   // ------------------------------------------------------------------
+  var FIGURAS_AMBIENTE = ["🦇", "🎃", "👻", "🧙", "🦇", "👻", "🎃", "🦇", "🧙", "👻", "🦇", "🎃", "👻"];
   function mostrarAmbiente() {
     if (yaMostroAmbiente) return;
     yaMostroAmbiente = true;
     var capa = document.createElement("div");
     capa.className = "hw-ambiente";
     document.body.appendChild(capa);
-    ["🦇", "🎃", "👻", "🦇", "🧙"].forEach(function (ch, i) {
+    var maxDelay = 0, maxDur = 0;
+    FIGURAS_AMBIENTE.forEach(function (ch, i) {
       var el = document.createElement("span");
       el.className = "hw-ambiente-item";
       el.textContent = ch;
-      el.style.top = (6 + Math.random() * 16) + "%";
-      el.style.animationDelay = (i * 1.15) + "s";
-      el.style.setProperty("--hw-dur", (7.5 + Math.random() * 3) + "s");
+      el.style.top = (2 + Math.random() * 30) + "%";
+      el.style.fontSize = (20 + Math.random() * 14) + "px";
+      var delay = i * 0.9 + Math.random() * 0.4;
+      var dur = 17 + Math.random() * 9;
+      el.style.animationDelay = delay + "s";
+      el.style.setProperty("--hw-dur", dur + "s");
       capa.appendChild(el);
+      if (delay > maxDelay) maxDelay = delay;
+      if (dur > maxDur) maxDur = dur;
     });
-    setTimeout(function () { capa.remove(); }, 15000);
+    setTimeout(function () { capa.remove(); }, (maxDelay + maxDur + 1.5) * 1000);
   }
 
   // ------------------------------------------------------------------
