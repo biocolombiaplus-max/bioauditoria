@@ -2270,7 +2270,7 @@ function generarConsentimiento(tipo){
     +'.bar{position:fixed;bottom:0;left:0;right:0;background:rgba(255,255,255,0.97);backdrop-filter:blur(8px);border-top:1px solid #e5e7eb;padding:10px 28px;display:flex;gap:10px;align-items:center;z-index:100;box-shadow:0 -4px 20px rgba(0,0,0,0.08)}'
     +'@media print{.bar{display:none!important}.info-box{background:none;border:1px solid #ddd}}'
     +'</style>'
-    +'<script>function hexToRgb(h){h=h.replace("#","");var r=parseInt(h.substring(0,2),16),g=parseInt(h.substring(2,4),16),b=parseInt(h.substring(4,6),16);return r+","+g+","+b;}</script>'
+    +'<script>function hexToRgb(h){h=h.replace("#","");var r=parseInt(h.substring(0,2),16),g=parseInt(h.substring(2,4),16),b=parseInt(h.substring(4,6),16);return r+","+g+","+b;}<\/script>'
     +'</head><body>'
     +'<div class="hdr"><div>'+logo+'<div style="font-size:10.5px;color:#444;margin-top:7px;font-weight:700">'+e+'</div><div style="font-size:9.5px;color:#777">NIT '+nit+' · '+cd+'</div></div>'
     +'<div style="text-align:right;font-size:9.5px;color:#555;line-height:1.9"><strong style="color:'+c1+'">'+norma+'</strong><br>Código: CI-'+tipo.toUpperCase()+'-001<br>Versión: v1.0 · '+fecha+'<br>Generado por <strong>BIOAuditoria®</strong></div></div>'
