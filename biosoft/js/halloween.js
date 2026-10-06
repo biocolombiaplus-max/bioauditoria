@@ -95,16 +95,16 @@
   var style = document.createElement("style");
   style.textContent =
     ".hw-ambiente{position:fixed;inset:0;z-index:42;pointer-events:none;overflow:hidden}" +
-    ".hw-ambiente-item{position:absolute;left:-12vw;opacity:0;animation:hw-flotar var(--hw-dur,20s) ease-in-out forwards;filter:drop-shadow(0 3px 6px rgba(0,0,0,.22))}" +
+    ".hw-ambiente-item{position:absolute;left:-12vw;opacity:0;animation:hw-flotar var(--hw-dur,20s) ease-in-out forwards;filter:drop-shadow(0 3px 6px rgba(0,0,0,.24))}" +
     "@keyframes hw-flotar{" +
-      "0%{transform:translate(0,0) scale(.92);opacity:0}" +
-      "6%{opacity:.85}" +
-      "22%{transform:translate(26vw,-22px) scale(1.04)}" +
-      "40%{transform:translate(46vw,10px) scale(.97)}" +
-      "58%{transform:translate(66vw,-16px) scale(1.03)}" +
-      "76%{transform:translate(86vw,8px) scale(.98)}" +
-      "93%{opacity:.8}" +
-      "100%{transform:translate(122vw,-6px) scale(1);opacity:0}" +
+      "0%{transform:translate(0,0) rotate(-4deg) scale(.9);opacity:0}" +
+      "6%{opacity:var(--hw-op,.7)}" +
+      "22%{transform:translate(26vw,-26px) rotate(3deg) scale(1.05)}" +
+      "40%{transform:translate(46vw,14px) rotate(-3deg) scale(.96)}" +
+      "58%{transform:translate(66vw,-20px) rotate(4deg) scale(1.04)}" +
+      "76%{transform:translate(86vw,10px) rotate(-2deg) scale(.97)}" +
+      "93%{opacity:var(--hw-op,.7)}" +
+      "100%{transform:translate(122vw,-8px) rotate(2deg) scale(1);opacity:0}" +
     "}" +
     ".hw-overlay{position:fixed;inset:0;z-index:500;background:rgba(15,23,42,.74);backdrop-filter:blur(10px) saturate(1.15);-webkit-backdrop-filter:blur(10px) saturate(1.15);cursor:crosshair;animation:hw-entra .3s ease;overflow:hidden}" +
     ".hw-overlay.hw-saliendo{animation:hw-sale .22s ease forwards}" +
@@ -132,11 +132,16 @@
   // ------------------------------------------------------------------
   // Decoración ambiental al abrir (una sola vez por carga de página) —
   // varias figuras flotando con un vaivén suave (no una línea recta
-  // apurada) que cruzan la parte de arriba/media de la pantalla y
-  // desaparecen solas. pointer-events:none en toda la capa: jamás puede
-  // tapar un clic real, sin importar cuántas salgan a la vez.
+  // apurada) repartidas por TODA la pantalla (de arriba a abajo), con
+  // una pizca de profundidad: las más grandes/cercanas se ven más
+  // nítidas y cruzan un poco más rápido; las más chicas/lejanas se ven
+  // más tenues y cruzan más despacio — un efecto de capas, no todas
+  // iguales, para que se sienta más cuidado. pointer-events:none en
+  // toda la capa: jamás puede tapar un clic real, sin importar cuántas
+  // salgan a la vez ni cuánta pantalla cubran.
   // ------------------------------------------------------------------
-  var FIGURAS_AMBIENTE = ["🦇", "🎃", "👻", "🧙", "🦇", "👻", "🎃", "🦇", "🧙", "👻", "🦇", "🎃", "👻"];
+  var PALETA_AMBIENTE = ["🦇", "🎃", "👻", "🧙"];
+  var NUM_AMBIENTE = 18;
   function mostrarAmbiente() {
     if (yaMostroAmbiente) return;
     yaMostroAmbiente = true;
@@ -144,20 +149,22 @@
     capa.className = "hw-ambiente";
     document.body.appendChild(capa);
     var maxDelay = 0, maxDur = 0;
-    FIGURAS_AMBIENTE.forEach(function (ch, i) {
+    for (var i = 0; i < NUM_AMBIENTE; i++) {
+      var profundidad = Math.random(); // 0 = lejos (chica, tenue, lenta) · 1 = cerca (grande, nítida, rápida)
       var el = document.createElement("span");
       el.className = "hw-ambiente-item";
-      el.textContent = ch;
-      el.style.top = (2 + Math.random() * 30) + "%";
-      el.style.fontSize = (20 + Math.random() * 14) + "px";
-      var delay = i * 0.9 + Math.random() * 0.4;
-      var dur = 17 + Math.random() * 9;
+      el.textContent = PALETA_AMBIENTE[Math.floor(Math.random() * PALETA_AMBIENTE.length)];
+      el.style.top = (2 + Math.random() * 88) + "%";
+      el.style.fontSize = (15 + profundidad * 21) + "px";
+      el.style.setProperty("--hw-op", (0.42 + profundidad * 0.42).toFixed(2));
+      var delay = i * 0.5 + Math.random() * 0.5;
+      var dur = 14 + (1 - profundidad) * 15;
       el.style.animationDelay = delay + "s";
       el.style.setProperty("--hw-dur", dur + "s");
       capa.appendChild(el);
       if (delay > maxDelay) maxDelay = delay;
       if (dur > maxDur) maxDur = dur;
-    });
+    }
     setTimeout(function () { capa.remove(); }, (maxDelay + maxDur + 1.5) * 1000);
   }
 
