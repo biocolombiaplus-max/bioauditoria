@@ -288,15 +288,31 @@
     // Descarga el PDF y deja elegir por dónde enviarlo (WhatsApp o correo),
     // en vez de abrir WhatsApp automáticamente — así también sirve para
     // clientes que prefieren recibir todo por correo.
+    //
+    // "Compartir con PDF Adjunto" (Web Share API): en los navegadores/
+    // dispositivos que lo soportan (celular/tablet, Android e iPhone
+    // recientes), un solo clic comparte el PDF YA ADJUNTO a través del
+    // menú nativo del sistema — ahí aparece WhatsApp, Gmail, etc., sin
+    // tener que ir a buscar el archivo recién descargado y adjuntarlo a
+    // mano. Donde no se soporta, "Enviar por WhatsApp" (wa.me, con el
+    // mensaje ya escrito) sigue siendo el respaldo: un enlace wa.me SOLO
+    // admite texto, nunca un archivo — restricción de WhatsApp/el
+    // navegador, no algo que BIOsoft pueda evitar ahí. Mismo criterio que
+    // ya usa "Enviar Resultados" (ver views-reports.js) y el panel de
+    // Laboratorios Cliente (ver views-admin.js -> bloquePaso2EnviarHtml).
     function abrirEnviarDocumento(opts) {
       U.downloadBytes(opts.bytes, opts.nombreArchivo);
+      var puedeCompartir = U.soportaCompartirArchivos();
       var wrap = U.openModal(
         '<h3 class="modal-title">' + opts.titulo + '</h3>' +
-        '<p class="text-muted" style="margin-top:0">Ya se descargó el PDF. Adjúntalo antes de enviar por el canal que elijas.</p>' +
-        '<button class="btn btn-whatsapp btn-block" id="doc-send-wa">' + U.icon("send") + " Enviar por WhatsApp</button>" +
+        '<p class="text-muted" style="margin-top:0">Ya se descargó el PDF.' + (puedeCompartir ? " Comparte con el archivo ya adjunto, o elige otro canal." : " Adjúntalo antes de enviar por el canal que elijas.") + '</p>' +
+        (puedeCompartir ? U.botonCompartirPDFHtml("doc-compartir", "btn-whatsapp btn-block") : "") +
+        '<button class="btn btn-whatsapp btn-block" id="doc-send-wa" style="' + (puedeCompartir ? "margin-top:8px" : "") + '">' + U.icon("send") + (puedeCompartir ? " ¿No aparece WhatsApp arriba? Ábrelo tú mismo(a)" : " Enviar por WhatsApp") + "</button>" +
         (opts.contacto && opts.contacto.correo ? U.emailProviderButtonsHtml("doc-mail") : "") +
         '<div class="flex justify-between" style="margin-top:16px"><button class="btn btn-ghost" data-modal-close>Cerrar</button></div>'
       );
+      var btnCompartir = wrap.querySelector("#doc-compartir");
+      if (btnCompartir) btnCompartir.addEventListener("click", function () { U.compartirPDF(opts.bytes, opts.nombreArchivo, opts.mensaje); });
       wrap.querySelector("#doc-send-wa").addEventListener("click", function () {
         window.open(waLinkTo(opts.contacto && opts.contacto.whatsapp, opts.mensaje), "_blank");
       });

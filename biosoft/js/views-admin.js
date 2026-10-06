@@ -1833,6 +1833,51 @@
     });
   };
 
+  // "2. Elige dónde enviarlo" — bloque compartido por todos los documentos
+  // que este panel genera y descarga (Manual, Contrato, Licencia, Guía de
+  // Conexión, Recibo de Pago de mensualidad). En los navegadores/
+  // dispositivos que soportan compartir archivos (Web Share API —
+  // celular/tablet, Android e iPhone recientes), el PDF recién generado
+  // se comparte YA ADJUNTO con un solo clic, a través del menú nativo del
+  // sistema (ahí aparece WhatsApp, Gmail, etc.) — sin que quien envía
+  // tenga que ir a buscar el archivo recién descargado y adjuntarlo a
+  // mano. Donde no se soporta (la mayoría de computadores de escritorio),
+  // "Enviar por WhatsApp" (wa.me, con el mensaje ya escrito) sigue siendo
+  // el respaldo de siempre: un enlace wa.me SOLO admite texto, nunca un
+  // archivo — es una restricción de WhatsApp/el navegador, no algo que
+  // BIOsoft pueda evitar ahí. Mismo criterio que ya usa "Enviar
+  // Resultados" (ver views-reports.js).
+  function bloquePaso2EnviarHtml(idPrefix) {
+    return '<div id="' + idPrefix + '-step2" class="hidden" style="margin-top:16px;border-top:1px solid var(--border);padding-top:14px">' +
+      '<p style="margin:0 0 4px"><b>2. Elige dónde enviarlo</b></p>' +
+      (U.soportaCompartirArchivos()
+        ? '<p class="text-muted" style="margin:0 0 8px;font-size:12.5px">Un solo clic: comparte el PDF ya adjunto con el menú del sistema — ahí puedes elegir WhatsApp.</p>' +
+          U.botonCompartirPDFHtml(idPrefix + "-compartir", "btn-whatsapp btn-block") +
+          '<p class="text-muted" style="margin:10px 0 4px;font-size:12.5px">¿No aparece WhatsApp ahí? Ábrelo tú mismo(a) con el mensaje ya escrito (adjunta el PDF descargado a mano):</p>'
+        : '<p class="text-muted" style="margin:0 0 4px;font-size:12.5px">Se abrirá el correo o WhatsApp ya redactado — solo adjunta el PDF que acabas de descargar antes de darle enviar.</p>') +
+      U.emailProviderButtonsHtml(idPrefix) +
+      '<a class="btn btn-whatsapp btn-block" id="' + idPrefix + '-wa" target="_blank" rel="noopener" style="margin-top:8px">' + U.icon("send") + " Enviar por WhatsApp</a>" +
+      "</div>";
+  }
+
+  // Revela y cablea el bloque anterior justo después de generar el PDF.
+  // opts: { bytes, filename, mensaje, email, asunto, whatsapp }.
+  function wirePaso2Enviar(wrap, idPrefix, opts) {
+    wrap.querySelector("#" + idPrefix + "-step2").classList.remove("hidden");
+    var cuerpo = opts.mensaje + "\n\n(Adjunte el archivo PDF que se acaba de descargar a su equipo)";
+    U.wireEmailProviderButtons(wrap, idPrefix, opts.email, opts.asunto, cuerpo);
+    var waBtn = wrap.querySelector("#" + idPrefix + "-wa");
+    if (opts.whatsapp) {
+      var numero = opts.whatsapp.replace(/\D/g, "");
+      if (numero.length === 10 && numero.charAt(0) === "3") numero = "57" + numero;
+      waBtn.href = "https://wa.me/" + numero + "?text=" + encodeURIComponent(opts.mensaje + "\n\n(Adjunte el PDF que se acaba de descargar antes de enviar)");
+    } else {
+      waBtn.classList.add("hidden");
+    }
+    var btnCompartir = wrap.querySelector("#" + idPrefix + "-compartir");
+    if (btnCompartir) btnCompartir.addEventListener("click", function () { U.compartirPDF(opts.bytes, opts.filename, opts.mensaje); });
+  }
+
   function abrirEnviarManual(tenant) {
     var mensajeDefault = "Hola 👋 Te comparto el Manual de Usuario de BIOsoft de " + (tenant.nombre || "nuestro laboratorio") + ". Ahí encuentras el paso a paso de cada módulo del sistema. Cualquier duda, aquí estamos.";
     var wrap = U.openModal(
@@ -1843,12 +1888,7 @@
       "</div>" +
       '<div class="field"><label>Mensaje</label><textarea id="man-msg">' + U.esc(mensajeDefault) + "</textarea></div>" +
       '<div class="flex gap-2 justify-between"><button class="btn btn-ghost" data-modal-close>Cancelar</button><button class="btn btn-primary" id="man-go">' + U.icon("download") + " 1. Descargar PDF</button></div>" +
-      '<div id="man-step2" class="hidden" style="margin-top:16px;border-top:1px solid var(--border);padding-top:14px">' +
-      '<p style="margin:0 0 4px"><b>2. Elige dónde enviarlo</b></p>' +
-      '<p class="text-muted" style="margin:0 0 4px;font-size:12.5px">Se abrirá el correo o WhatsApp ya redactado — solo adjunta el PDF que acabas de descargar antes de darle enviar.</p>' +
-      U.emailProviderButtonsHtml("man") +
-      '<a class="btn btn-whatsapp btn-block" id="man-wa" target="_blank" rel="noopener" style="margin-top:8px">' + U.icon("send") + " Enviar por WhatsApp</a>" +
-      "</div>"
+      bloquePaso2EnviarHtml("man")
     );
     wrap.querySelector("#man-go").addEventListener("click", function (e) {
       var email = wrap.querySelector("#man-email").value.trim();
@@ -1859,19 +1899,9 @@
       var htmlOriginal = btn.innerHTML;
       btn.disabled = true; btn.innerHTML = "Generando…";
       BIO_PDF_MANUAL.buildManualPDF(tenant).then(function (bytes) {
-      U.downloadBytes(bytes, "Manual_de_Usuario_" + (tenant.nombre || "BIOsoft").replace(/\s+/g, "_") + ".pdf");
-      var asunto = "Manual de Usuario — " + (tenant.nombre || "BIOsoft");
-      var cuerpo = msg + "\n\n(Adjunte el archivo PDF que se acaba de descargar a su equipo)";
-      wrap.querySelector("#man-step2").classList.remove("hidden");
-      U.wireEmailProviderButtons(wrap, "man", email, asunto, cuerpo);
-      var waBtn = wrap.querySelector("#man-wa");
-      if (whatsapp) {
-        var numero = whatsapp.replace(/\D/g, "");
-        if (numero.length === 10 && numero.charAt(0) === "3") numero = "57" + numero;
-        waBtn.href = "https://wa.me/" + numero + "?text=" + encodeURIComponent(msg + "\n\n(Adjunte el PDF que se acaba de descargar antes de enviar)");
-      } else {
-        waBtn.classList.add("hidden");
-      }
+      var nombreArchivo = "Manual_de_Usuario_" + (tenant.nombre || "BIOsoft").replace(/\s+/g, "_") + ".pdf";
+      U.downloadBytes(bytes, nombreArchivo);
+      wirePaso2Enviar(wrap, "man", { bytes: bytes, filename: nombreArchivo, mensaje: msg, email: email, asunto: "Manual de Usuario — " + (tenant.nombre || "BIOsoft"), whatsapp: whatsapp });
       U.toast("PDF descargado. Elige por dónde enviarlo.", "success");
       }).finally(function () { btn.disabled = false; btn.innerHTML = htmlOriginal; });
     });
@@ -2251,12 +2281,7 @@
         "</div>" +
         '<div class="field"><label>Mensaje</label><textarea id="rp-msg"></textarea></div>' +
         '<div class="flex gap-2 justify-between"><button class="btn btn-ghost" data-modal-close>Cancelar</button><button class="btn btn-primary" id="rp-go">' + U.icon("download") + " 1. Generar Recibo y Activar Período</button></div>" +
-        '<div id="rp-step2" class="hidden" style="margin-top:16px;border-top:1px solid var(--border);padding-top:14px">' +
-        '<p style="margin:0 0 4px"><b>2. Elige dónde enviarlo</b></p>' +
-        '<p class="text-muted" style="margin:0 0 4px;font-size:12.5px">Se abrirá el correo o WhatsApp ya redactado — solo adjunta el PDF que acabas de descargar antes de darle enviar.</p>' +
-        U.emailProviderButtonsHtml("rp") +
-        '<a class="btn btn-whatsapp btn-block" id="rp-wa" target="_blank" rel="noopener" style="margin-top:8px">' + U.icon("send") + " Enviar por WhatsApp</a>" +
-        "</div>",
+        bloquePaso2EnviarHtml("rp"),
         { lg: true }
       );
       var nuevaFechaEditadaManualmente = false;
@@ -2292,23 +2317,13 @@
           var estabaSuspendido = !!tenant.suspendido;
           var pago = { fecha: fechaPagoElegida, concepto: "Mensualidad", totalFmt: precioEfectivoFmt, totalUSD: precioEfectivoUsd, proximaFecha: nuevaFechaElegida };
           var bytes = BIO_PDF_CRM.buildReciboPDF(tenantParaDocs(tenant), plan, pago);
-          U.downloadBytes(bytes, "Recibo_BIOsoft_" + (tenant.nombre || "Cliente").replace(/\s+/g, "_") + ".pdf");
+          var nombreArchivo = "Recibo_BIOsoft_" + (tenant.nombre || "Cliente").replace(/\s+/g, "_") + ".pdf";
+          U.downloadBytes(bytes, nombreArchivo);
           tenant.fechaProximoPago = nuevaFechaElegida;
           tenant.suspendido = false;
           tenant.fechaSuspension = null;
           S.updateTenant(tenant.id, { fechaProximoPago: tenant.fechaProximoPago, suspendido: false, fechaSuspension: null });
-          var asunto = "Recibo de Pago — BIOsoft (" + plan.nombre + ")";
-          var cuerpo = msg + "\n\n(Adjunte el archivo PDF que se acaba de descargar a su equipo)";
-          wrap.querySelector("#rp-step2").classList.remove("hidden");
-          U.wireEmailProviderButtons(wrap, "rp", email, asunto, cuerpo);
-          var waBtn = wrap.querySelector("#rp-wa");
-          if (whatsapp) {
-            var numero = whatsapp.replace(/\D/g, "");
-            if (numero.length === 10 && numero.charAt(0) === "3") numero = "57" + numero;
-            waBtn.href = "https://wa.me/" + numero + "?text=" + encodeURIComponent(msg + "\n\n(Adjunte el PDF que se acaba de descargar antes de enviar)");
-          } else {
-            waBtn.classList.add("hidden");
-          }
+          wirePaso2Enviar(wrap, "rp", { bytes: bytes, filename: nombreArchivo, mensaje: msg, email: email, asunto: "Recibo de Pago — BIOsoft (" + plan.nombre + ")", whatsapp: whatsapp });
           U.toast("Pago registrado" + (estabaSuspendido ? " y acceso reactivado" : "") + " — próxima fecha de corte: " + U.fmtFechaCorta(nuevaFechaElegida) + ".", "success");
           build();
         } catch (err) {
@@ -2455,12 +2470,7 @@
         '<p class="text-muted" style="margin:2px 0 10px;font-size:12px">La fecha de inicio de cobro no tiene que ser hoy — si la implementación toma unos días, ponla más adelante para que el cliente no pierda esos días de uso gratis. Las "Meses de cortesía" retrasan el primer cobro sin afectar la modalidad elegida.</p>' +
         '<div class="field"><label>Mensaje</label><textarea id="con-msg">' + U.esc(mensajeDefault) + "</textarea></div>" +
         '<div class="flex gap-2 justify-between"><button class="btn btn-ghost" data-modal-close>Cancelar</button><button class="btn btn-primary" id="con-go">' + U.icon("download") + " 1. Generar y Descargar</button></div>" +
-        '<div id="con-step2" class="hidden" style="margin-top:16px;border-top:1px solid var(--border);padding-top:14px">' +
-        '<p style="margin:0 0 4px"><b>2. Elige dónde enviarlo</b></p>' +
-        '<p class="text-muted" style="margin:0 0 4px;font-size:12.5px">Se abrirá el correo o WhatsApp ya redactado — solo adjunta el PDF que acabas de descargar antes de darle enviar.</p>' +
-        U.emailProviderButtonsHtml("con") +
-        '<a class="btn btn-whatsapp btn-block" id="con-wa" target="_blank" rel="noopener" style="margin-top:8px">' + U.icon("send") + " Enviar por WhatsApp</a>" +
-        "</div>",
+        bloquePaso2EnviarHtml("con"),
         { lg: true }
       );
       wrap.querySelector("#con-editar-descuento").addEventListener("click", function (e) {
@@ -2511,7 +2521,8 @@
         try {
           var opts = { cicloCobroDias: cicloElegido, mesesMembresia: mesesElegidos, mesesCortesia: mesesCortesiaElegidos, numeroLicencia: numeroLicenciaDe(tenant), descuentoPlan: descuentoPlanActual };
           var bytes = BIO_PDF_CRM.buildContratoPDF(tenantParaDocs(tenant), plan, modalidadElegida, opts);
-          U.downloadBytes(bytes, "Contrato_BIOsoft_" + (tenant.nombre || "Cliente").replace(/\s+/g, "_") + ".pdf");
+          var nombreArchivo = "Contrato_BIOsoft_" + (tenant.nombre || "Cliente").replace(/\s+/g, "_") + ".pdf";
+          U.downloadBytes(bytes, nombreArchivo);
           var inicio = new Date(fechaInicioElegida + "T12:00:00");
           var diasHastaProximoPago = mesesCortesiaElegidos > 0 ? mesesCortesiaElegidos * 30 : (modalidadElegida === "semestral" ? mesesElegidos * 30 : cicloElegido);
           tenant.fechaInicioPlan = fechaInicioElegida;
@@ -2526,18 +2537,7 @@
           };
           if (modalidadElegida === "semestral") patchContrato.mesesMembresiaGratis = tenant.mesesMembresiaGratis;
           S.updateTenant(tenant.id, patchContrato);
-          var asunto = "Contrato de Servicios — BIOsoft (" + plan.nombre + ")";
-          var cuerpo = msg + "\n\n(Adjunte el archivo PDF que se acaba de descargar a su equipo)";
-          wrap.querySelector("#con-step2").classList.remove("hidden");
-          U.wireEmailProviderButtons(wrap, "con", email, asunto, cuerpo);
-          var waBtn = wrap.querySelector("#con-wa");
-          if (whatsapp) {
-            var numero = whatsapp.replace(/\D/g, "");
-            if (numero.length === 10 && numero.charAt(0) === "3") numero = "57" + numero;
-            waBtn.href = "https://wa.me/" + numero + "?text=" + encodeURIComponent(msg + "\n\n(Adjunte el PDF que se acaba de descargar antes de enviar)");
-          } else {
-            waBtn.classList.add("hidden");
-          }
+          wirePaso2Enviar(wrap, "con", { bytes: bytes, filename: nombreArchivo, mensaje: msg, email: email, asunto: "Contrato de Servicios — BIOsoft (" + plan.nombre + ")", whatsapp: whatsapp });
           U.toast("Contrato generado. Elige por dónde enviarlo.", "success");
         } catch (err) {
           // Antes, cualquier error aquí (ej. un caché viejo del navegador que
@@ -2573,12 +2573,7 @@
         "</div>" +
         '<div class="field"><label>Mensaje</label><textarea id="lic-msg">' + U.esc(mensajeDefault) + "</textarea></div>" +
         '<div class="flex gap-2 justify-between"><button class="btn btn-ghost" data-modal-close>Cancelar</button><button class="btn btn-primary" id="lic-go">' + U.icon("download") + " 1. Generar y Descargar</button></div>" +
-        '<div id="lic-step2" class="hidden" style="margin-top:16px;border-top:1px solid var(--border);padding-top:14px">' +
-        '<p style="margin:0 0 4px"><b>2. Elige dónde enviarla</b></p>' +
-        '<p class="text-muted" style="margin:0 0 4px;font-size:12.5px">Se abrirá el correo o WhatsApp ya redactado — solo adjunta el PDF que acabas de descargar antes de darle enviar.</p>' +
-        U.emailProviderButtonsHtml("lic") +
-        '<a class="btn btn-whatsapp btn-block" id="lic-wa" target="_blank" rel="noopener" style="margin-top:8px">' + U.icon("send") + " Enviar por WhatsApp</a>" +
-        "</div>",
+        bloquePaso2EnviarHtml("lic"),
         { lg: true }
       );
       wrap.querySelector("#lic-go").addEventListener("click", function (e) {
@@ -2592,19 +2587,9 @@
         BIO_PDF_CRM.buildLicenciaPDF(tenantParaDocs(tenant), plan, {
           numero: numeroLicenciaDe(tenant), fechaExpedicion: tenant.licenciaFechaExpedicion, tenantId: tenant.id
         }).then(function (bytes) {
-          U.downloadBytes(bytes, "Licencia_BIOsoft_" + (tenant.nombre || "Cliente").replace(/\s+/g, "_") + ".pdf");
-          var asunto = "Licencia de Funcionamiento de Software — BIOsoft (" + numeroLicenciaDe(tenant) + ")";
-          var cuerpo = msg + "\n\n(Adjunte el archivo PDF que se acaba de descargar a su equipo)";
-          wrap.querySelector("#lic-step2").classList.remove("hidden");
-          U.wireEmailProviderButtons(wrap, "lic", email, asunto, cuerpo);
-          var waBtn = wrap.querySelector("#lic-wa");
-          if (whatsapp) {
-            var numero = whatsapp.replace(/\D/g, "");
-            if (numero.length === 10 && numero.charAt(0) === "3") numero = "57" + numero;
-            waBtn.href = "https://wa.me/" + numero + "?text=" + encodeURIComponent(msg + "\n\n(Adjunte el PDF que se acaba de descargar antes de enviar)");
-          } else {
-            waBtn.classList.add("hidden");
-          }
+          var nombreArchivo = "Licencia_BIOsoft_" + (tenant.nombre || "Cliente").replace(/\s+/g, "_") + ".pdf";
+          U.downloadBytes(bytes, nombreArchivo);
+          wirePaso2Enviar(wrap, "lic", { bytes: bytes, filename: nombreArchivo, mensaje: msg, email: email, asunto: "Licencia de Funcionamiento de Software — BIOsoft (" + numeroLicenciaDe(tenant) + ")", whatsapp: whatsapp });
           U.toast("Licencia generada. Elige por dónde enviarla.", "success");
         }).catch(function (err) {
           console.error("BIOsoft: no se pudo generar la licencia ->", err);
@@ -2638,12 +2623,7 @@
         "</div>" +
         '<div class="field"><label>Mensaje</label><textarea id="gc-msg">' + U.esc(mensajeDefault) + "</textarea></div>" +
         '<div class="flex gap-2 justify-between"><button class="btn btn-ghost" data-modal-close>Cancelar</button><button class="btn btn-primary" id="gc-go">' + U.icon("download") + " 1. Generar y Descargar</button></div>" +
-        '<div id="gc-step2" class="hidden" style="margin-top:16px;border-top:1px solid var(--border);padding-top:14px">' +
-        '<p style="margin:0 0 4px"><b>2. Elige dónde enviarla</b></p>' +
-        '<p class="text-muted" style="margin:0 0 4px;font-size:12.5px">Se abrirá el correo o WhatsApp ya redactado — solo adjunta el PDF que acabas de descargar antes de darle enviar.</p>' +
-        U.emailProviderButtonsHtml("gc") +
-        '<a class="btn btn-whatsapp btn-block" id="gc-wa" target="_blank" rel="noopener" style="margin-top:8px">' + U.icon("send") + " Enviar por WhatsApp</a>" +
-        "</div>",
+        bloquePaso2EnviarHtml("gc"),
         { lg: true }
       );
       wrap.querySelector("#gc-go").addEventListener("click", function (e) {
@@ -2659,19 +2639,9 @@
         btn.disabled = true; btn.innerHTML = "Generando…";
         try {
           var bytes = BIO_PDF_CRM.buildGuiaConexionPDF(tenantParaDocs(tenant), { nombreEquipo: nombreEquipo, tipoConexion: tipoConexion });
-          U.downloadBytes(bytes, "Guia_Conexion_Equipo_" + (tenant.nombre || "Cliente").replace(/\s+/g, "_") + ".pdf");
-          var asunto = "Guía de Conexión de tu Equipo — BIOsoft";
-          var cuerpo = msg + "\n\n(Adjunte el archivo PDF que se acaba de descargar a su equipo)";
-          wrap.querySelector("#gc-step2").classList.remove("hidden");
-          U.wireEmailProviderButtons(wrap, "gc", email, asunto, cuerpo);
-          var waBtn = wrap.querySelector("#gc-wa");
-          if (whatsapp) {
-            var numero = whatsapp.replace(/\D/g, "");
-            if (numero.length === 10 && numero.charAt(0) === "3") numero = "57" + numero;
-            waBtn.href = "https://wa.me/" + numero + "?text=" + encodeURIComponent(msg + "\n\n(Adjunte el PDF que se acaba de descargar antes de enviar)");
-          } else {
-            waBtn.classList.add("hidden");
-          }
+          var nombreArchivo = "Guia_Conexion_Equipo_" + (tenant.nombre || "Cliente").replace(/\s+/g, "_") + ".pdf";
+          U.downloadBytes(bytes, nombreArchivo);
+          wirePaso2Enviar(wrap, "gc", { bytes: bytes, filename: nombreArchivo, mensaje: msg, email: email, asunto: "Guía de Conexión de tu Equipo — BIOsoft", whatsapp: whatsapp });
           U.toast("Guía generada. Elige por dónde enviarla.", "success");
         } catch (err) {
           console.error("BIOsoft: no se pudo generar la guía de conexión ->", err);
