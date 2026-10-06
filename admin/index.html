@@ -776,6 +776,66 @@ select.fi option{background:var(--dark2)}
   </div>
 </div>
 
+<!-- ============ MODAL: DETALLE CLIENTE ============ -->
+<div class="modal" id="modal-cli-detail" style="align-items:flex-start;padding:0;overflow-y:auto">
+  <div style="width:100%;max-width:860px;margin:0 auto;min-height:100vh;background:var(--dark2);padding:0 0 60px">
+    <!-- Header -->
+    <div style="background:var(--dark);border-bottom:1px solid var(--bd);padding:16px 20px;display:flex;align-items:center;gap:14px;position:sticky;top:0;z-index:10">
+      <div id="mcd-logo" style="width:44px;height:44px;border-radius:12px;background:linear-gradient(135deg,var(--or),var(--pu));display:flex;align-items:center;justify-content:center;font-size:18px;font-weight:800;flex-shrink:0"></div>
+      <div style="flex:1;min-width:0">
+        <div id="mcd-nombre" style="font-size:16px;font-weight:800;white-space:nowrap;overflow:hidden;text-overflow:ellipsis"></div>
+        <div id="mcd-empresa" style="font-size:11px;color:var(--text3)"></div>
+      </div>
+      <button onclick="switchClienteActivo()" style="padding:8px 14px;border:1px solid rgba(255,107,0,0.4);border-radius:9px;background:rgba(255,107,0,0.1);color:var(--or2);font-size:11px;font-weight:700;cursor:pointer;font-family:inherit;display:flex;align-items:center;gap:5px"><i class="fas fa-exchange-alt"></i> Activar cliente</button>
+      <div onclick="document.getElementById('modal-cli-detail').classList.remove('open')" style="width:36px;height:36px;border-radius:9px;background:var(--dark3);border:1px solid var(--bd2);display:flex;align-items:center;justify-content:center;cursor:pointer;font-size:16px;color:var(--text2)"><i class="fas fa-times"></i></div>
+    </div>
+
+    <!-- Stats bar -->
+    <div id="mcd-stats" style="display:flex;gap:0;border-bottom:1px solid var(--bd)"></div>
+
+    <!-- Tabs -->
+    <div style="display:flex;gap:0;border-bottom:1px solid var(--bd);padding:0 16px;overflow-x:auto">
+      <div class="mcd-tab act" id="mcd-tab-docs" onclick="mcdTab('docs')">📋 Documentos</div>
+      <div class="mcd-tab" id="mcd-tab-info" onclick="mcdTab('info')">👤 Información</div>
+      <div class="mcd-tab" id="mcd-tab-servicios" onclick="mcdTab('servicios')">🏥 Servicios</div>
+    </div>
+
+    <!-- Content -->
+    <div style="padding:16px">
+      <!-- DOCS TAB -->
+      <div id="mcd-pane-docs">
+        <div id="mcd-estd-tabs" style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:16px"></div>
+        <div id="mcd-docs-content"></div>
+      </div>
+      <!-- INFO TAB -->
+      <div id="mcd-pane-info" style="display:none"></div>
+      <!-- SERVICIOS TAB -->
+      <div id="mcd-pane-servicios" style="display:none"></div>
+    </div>
+  </div>
+</div>
+
+<style>
+.mcd-tab{padding:11px 16px;font-size:12px;font-weight:700;color:var(--text3);cursor:pointer;border-bottom:2px solid transparent;white-space:nowrap;transition:all 0.15s;text-transform:uppercase;letter-spacing:0.04em}
+.mcd-tab.act{color:var(--or2);border-bottom-color:var(--or)}
+.mcd-stat-box{flex:1;padding:14px 16px;border-right:1px solid var(--bd);text-align:center;min-width:80px}
+.mcd-stat-box:last-child{border-right:none}
+.mcd-stat-n{font-size:22px;font-weight:900;line-height:1}
+.mcd-stat-l{font-size:10px;color:var(--text3);text-transform:uppercase;letter-spacing:0.04em;margin-top:4px;font-weight:700}
+.mcd-estd-btn{padding:8px 12px;border-radius:9px;border:1.5px solid var(--bd2);background:var(--dark3);cursor:pointer;font-size:11px;font-weight:700;color:var(--text2);transition:all 0.15s;display:flex;align-items:center;gap:5px}
+.mcd-estd-btn.act{background:rgba(255,107,0,0.1);border-color:rgba(255,107,0,0.45);color:var(--or2)}
+.mcd-estd-btn .mcd-dot{width:7px;height:7px;border-radius:50%}
+.mcd-doc-row{background:var(--dark3);border:1px solid var(--bd);border-radius:11px;padding:12px 14px;margin-bottom:8px;display:flex;align-items:center;gap:12px}
+.mcd-doc-row.vig{border-color:rgba(34,197,94,0.25)}
+.mcd-doc-row.req{border-color:rgba(239,68,68,0.25)}
+.mcd-doc-ico{width:34px;height:34px;border-radius:9px;display:flex;align-items:center;justify-content:center;font-size:15px;flex-shrink:0}
+.mcd-doc-nm{font-size:13px;font-weight:700;line-height:1.3}
+.mcd-doc-sub{font-size:10px;color:var(--text3);margin-top:2px}
+.mcd-info-row{display:flex;align-items:flex-start;gap:10px;padding:9px 0;border-bottom:1px solid var(--bd);font-size:13px}
+.mcd-info-row:last-child{border-bottom:none}
+.mcd-info-lbl{font-size:10px;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:0.04em;min-width:140px;flex-shrink:0;margin-top:1px}
+</style>
+
 <script>
 // ================================================================
 // DATOS BASE — Medical Center Siloé SAS
@@ -2202,9 +2262,10 @@ function renderCli() {
       : '<div style="width:40px;height:40px;border-radius:50%;background:linear-gradient(135deg,var(--or),var(--pu));display:flex;align-items:center;justify-content:center;font-size:14px;font-weight:800;flex-shrink:0">' + initials + '</div>';
     var idx = cli._base ? -1 : savedClientes.indexOf(cli);
     var actions = cli._base
-      ? '<span class="status sv">Base</span>'
+      ? '<div style="display:flex;gap:6px;align-items:center;flex-wrap:wrap"><button onclick="abrirDetalleCliente(\'dra.vesga\')" style="padding:5px 11px;border:1px solid rgba(168,85,247,0.4);border-radius:7px;background:rgba(168,85,247,0.08);color:var(--pu2);font-size:11px;font-weight:600;cursor:pointer;font-family:inherit;display:flex;align-items:center;gap:4px"><i class="fas fa-folder-open" style="font-size:10px"></i> Ver documentos</button><span class="status sv">Base</span></div>'
       : '<div style="display:flex;gap:6px;align-items:center;flex-wrap:wrap">' +
-        '<button onclick="copiarLinkAcceso(\'' + (cli.usuario||'') + '\')" style="padding:5px 11px;border:1px solid rgba(34,197,94,0.4);border-radius:7px;background:rgba(34,197,94,0.08);color:#22C55E;font-size:11px;font-weight:600;cursor:pointer;font-family:inherit;display:flex;align-items:center;gap:4px"><i class="fas fa-link" style="font-size:10px"></i> Link acceso</button>' +
+        '<button onclick="abrirDetalleCliente(\'' + (cli.usuario||'') + '\')" style="padding:5px 11px;border:1px solid rgba(168,85,247,0.4);border-radius:7px;background:rgba(168,85,247,0.08);color:var(--pu2);font-size:11px;font-weight:600;cursor:pointer;font-family:inherit;display:flex;align-items:center;gap:4px"><i class="fas fa-folder-open" style="font-size:10px"></i> Ver docs</button>' +
+        '<button onclick="copiarLinkAcceso(\'' + (cli.usuario||'') + '\')" style="padding:5px 11px;border:1px solid rgba(34,197,94,0.4);border-radius:7px;background:rgba(34,197,94,0.08);color:#22C55E;font-size:11px;font-weight:600;cursor:pointer;font-family:inherit;display:flex;align-items:center;gap:4px"><i class="fas fa-link" style="font-size:10px"></i> Link</button>' +
         '<button onclick="editarCliente(' + idx + ')" style="padding:5px 11px;border:1px solid var(--bd2);border-radius:7px;background:var(--dark4);color:var(--text2);font-size:11px;font-weight:600;cursor:pointer;font-family:inherit;display:flex;align-items:center;gap:4px"><i class="fas fa-pen" style="font-size:10px"></i> Editar</button>' +
         '<button onclick="eliminarCliente(' + idx + ',\'' + (cli.nombre||'').replace(/'/g,"\\'") + '\')" style="padding:5px 11px;border:1px solid var(--rb);border-radius:7px;background:var(--rbg);color:var(--red);font-size:11px;font-weight:600;cursor:pointer;font-family:inherit;display:flex;align-items:center;gap:4px"><i class="fas fa-trash" style="font-size:10px"></i> Eliminar</button>' +
         '<span class="status sv">Activo</span></div>';
@@ -3127,6 +3188,229 @@ function generarActaRadicacion() {
   w.document.close();
   addTraz('Generó Carta de Radicación', C.empresa + ' — ' + fecha);
   toast('Carta de radicación generada ✓');
+}
+
+// ================================================================
+// DETALLE CLIENTE MODAL
+// ================================================================
+var _mcdUser = null;
+var _mcdEstd = null;
+var _mcdCli = null;
+
+function abrirDetalleCliente(usuario) {
+  _mcdUser = usuario;
+  // Load client data
+  var cli = null;
+  if (usuario === 'dra.vesga') {
+    cli = JSON.parse(JSON.stringify(C));
+    cli.usuario = 'dra.vesga';
+  } else {
+    cli = JSON.parse(localStorage.getItem('bio_cli_' + usuario) || 'null');
+    if (!cli) {
+      var list = JSON.parse(localStorage.getItem('bio_clientes_list') || '[]');
+      cli = list.find(function(x){ return x.usuario === usuario; }) || null;
+    }
+  }
+  if (!cli) { toast('No se encontraron datos para este cliente'); return; }
+  _mcdCli = cli;
+
+  // Header
+  var initials = (cli.nombre || '').split(' ').map(function(x){ return x[0]||''; }).join('').substr(0,2).toUpperCase();
+  var logoEl = document.getElementById('mcd-logo');
+  if (cli.logo_url) {
+    logoEl.innerHTML = '<img src="'+cli.logo_url+'" style="width:44px;height:44px;border-radius:12px;object-fit:contain">';
+    logoEl.style.background = 'var(--dark3)';
+  } else {
+    logoEl.textContent = initials;
+    logoEl.style.background = 'linear-gradient(135deg,'+(cli.color1||'#FF6B00')+','+(cli.color2||'#7B2FBE')+')';
+  }
+  document.getElementById('mcd-nombre').textContent = cli.nombre || usuario;
+  document.getElementById('mcd-empresa').textContent = (cli.empresa||'') + (cli.nit ? ' · NIT '+cli.nit : '') + (cli.ciudad ? ' · '+cli.ciudad : '');
+
+  // Stats
+  var estandares = cli.estandares || [];
+  var totalDocs = 0, vigentes = 0, pendientes = 0, requeridos = 0;
+  estandares.forEach(function(e){
+    (e.documentos||[]).forEach(function(d){
+      totalDocs++;
+      if (d.estado === 'vigente') vigentes++;
+      else if (d.estado === 'pendiente') pendientes++;
+      else if (d.estado === 'requerido') requeridos++;
+    });
+  });
+  var pct = totalDocs > 0 ? Math.round(vigentes/totalDocs*100) : 0;
+  var pctColor = pct >= 80 ? '#22C55E' : pct >= 50 ? '#F59E0B' : '#EF4444';
+  document.getElementById('mcd-stats').innerHTML =
+    statBox(pct+'%', 'Completado', pctColor) +
+    statBox(vigentes, 'Vigentes', '#22C55E') +
+    statBox(pendientes, 'Pendientes', '#F59E0B') +
+    statBox(requeridos, 'Críticos', '#EF4444') +
+    statBox(totalDocs, 'Total docs', 'var(--text2)');
+
+  mcdTab('docs');
+  document.getElementById('modal-cli-detail').classList.add('open');
+  document.getElementById('modal-cli-detail').scrollTop = 0;
+}
+
+function statBox(n, lbl, color) {
+  return '<div class="mcd-stat-box"><div class="mcd-stat-n" style="color:'+color+'">'+n+'</div><div class="mcd-stat-l">'+lbl+'</div></div>';
+}
+
+function mcdTab(tab) {
+  ['docs','info','servicios'].forEach(function(t){
+    document.getElementById('mcd-tab-'+t).classList.toggle('act', t===tab);
+    document.getElementById('mcd-pane-'+t).style.display = t===tab ? '' : 'none';
+  });
+  if (tab === 'docs') mcdRenderDocs();
+  else if (tab === 'info') mcdRenderInfo();
+  else if (tab === 'servicios') mcdRenderServicios();
+}
+
+function mcdRenderDocs() {
+  var cli = _mcdCli;
+  var estandares = cli.estandares || [];
+  if (!estandares.length) {
+    document.getElementById('mcd-estd-tabs').innerHTML = '';
+    document.getElementById('mcd-docs-content').innerHTML = '<div style="text-align:center;padding:40px;color:var(--text3);font-size:13px">Sin estándares cargados para este cliente</div>';
+    return;
+  }
+  if (!_mcdEstd) _mcdEstd = estandares[0].id;
+  var tabsHtml = estandares.map(function(e){
+    var info = ES.find(function(x){ return x.id===e.id; }) || {};
+    var vig = (e.documentos||[]).filter(function(d){ return d.estado==='vigente'; }).length;
+    var req = (e.documentos||[]).filter(function(d){ return d.estado==='requerido'; }).length;
+    var dotColor = req > 0 ? '#EF4444' : vig === (e.documentos||[]).length && vig > 0 ? '#22C55E' : '#F59E0B';
+    return '<button class="mcd-estd-btn'+(e.id===_mcdEstd?' act':'')+'" onclick="mcdSelEstd(\''+e.id+'\')">' +
+      '<span class="mcd-dot" style="background:'+dotColor+'"></span>' +
+      (info.icono||'📄')+' E'+(info.num||'')+': '+(info.nombre||e.id) +
+      (req > 0 ? ' <span style="background:rgba(239,68,68,0.2);color:#EF4444;padding:1px 5px;border-radius:4px;font-size:9px;font-weight:800">'+req+'!</span>' : '') +
+      '</button>';
+  }).join('');
+  document.getElementById('mcd-estd-tabs').innerHTML = tabsHtml;
+  mcdRenderEstdDocs(_mcdEstd);
+}
+
+function mcdSelEstd(eid) {
+  _mcdEstd = eid;
+  document.querySelectorAll('.mcd-estd-btn').forEach(function(b){ b.classList.remove('act'); });
+  var found = document.querySelector('.mcd-estd-btn[onclick*="\''+eid+'\'"]');
+  if (found) found.classList.add('act');
+  mcdRenderEstdDocs(eid);
+}
+
+function mcdRenderEstdDocs(eid) {
+  var cli = _mcdCli;
+  var estd = (cli.estandares||[]).find(function(e){ return e.id===eid; });
+  var info = ES.find(function(x){ return x.id===eid; }) || {};
+  if (!estd) { document.getElementById('mcd-docs-content').innerHTML=''; return; }
+  var docs = estd.documentos || [];
+  var html = '<div style="background:linear-gradient(135deg,rgba(255,107,0,0.07),rgba(123,47,190,0.07));border:1px solid rgba(255,107,0,0.2);border-radius:12px;padding:14px 16px;margin-bottom:14px">' +
+    '<div style="font-size:14px;font-weight:800;margin-bottom:3px">'+(info.icono||'')+'  Estándar '+(info.num||'')+': '+(info.nombre||eid)+'</div>' +
+    '<div style="font-size:11px;color:var(--text3)">'+(info.descripcion||'')+'</div>' +
+    (info.norma ? '<span style="background:rgba(168,85,247,0.1);border:1px solid rgba(168,85,247,0.25);border-radius:4px;padding:2px 8px;font-size:10px;color:var(--pu2);font-weight:700;margin-top:6px;display:inline-block">'+info.norma+'</span>' : '') +
+    '</div>';
+  if (!docs.length) {
+    html += '<div style="text-align:center;padding:30px;color:var(--text3);font-size:12px;border:2px dashed var(--bd);border-radius:12px">Sin documentos en este estándar</div>';
+  } else {
+    html += docs.map(function(d){
+      var stateColor = d.estado==='vigente' ? '#22C55E' : d.estado==='requerido' ? '#EF4444' : '#F59E0B';
+      var stateTxt = d.estado==='vigente' ? '✅ Vigente' : d.estado==='requerido' ? '🚨 Crítico' : '⚠️ Pendiente';
+      var stateClass = d.estado==='vigente' ? 'vig' : d.estado==='requerido' ? 'req' : '';
+      var hasFile = d.archivo || d.drive_url || d.url || d.github_url;
+      var linkBtn = hasFile
+        ? '<a href="'+(d.drive_url||d.url||d.github_url||'#')+'" target="_blank" style="padding:5px 10px;border:1px solid rgba(168,85,247,0.35);border-radius:7px;background:rgba(168,85,247,0.08);color:var(--pu2);font-size:11px;font-weight:600;text-decoration:none;display:inline-flex;align-items:center;gap:4px"><i class="fas fa-external-link-alt" style="font-size:9px"></i> Ver</a>'
+        : '';
+      return '<div class="mcd-doc-row '+stateClass+'">' +
+        '<div class="mcd-doc-ico" style="background:'+stateColor+'22"><span>📄</span></div>' +
+        '<div style="flex:1;min-width:0">' +
+        '<div class="mcd-doc-nm">'+(d.nombre||d.id)+'</div>' +
+        '<div class="mcd-doc-sub">'+(d.version||d.tipo||'')+(d.fuente?' · '+d.fuente:'')+'</div>' +
+        '</div>' +
+        '<div style="display:flex;align-items:center;gap:8px;flex-shrink:0">' +
+        linkBtn +
+        '<span style="padding:4px 9px;border-radius:6px;font-size:10px;font-weight:700;background:'+stateColor+'18;color:'+stateColor+';border:1px solid '+stateColor+'30">'+stateTxt+'</span>' +
+        '</div></div>';
+    }).join('');
+  }
+  // Action button to load docs for this standard
+  html += '<div style="margin-top:12px;padding:10px;background:var(--dark3);border:1px solid var(--bd);border-radius:10px;font-size:11px;color:var(--text3);display:flex;align-items:center;justify-content:space-between">' +
+    '<span>'+docs.length+' documento(s) en este estándar</span>' +
+    '<button onclick="cargarDocEstdDesdeAdmin(\''+eid+'\')" style="padding:6px 12px;border:1px solid var(--bd2);border-radius:7px;background:var(--dark2);color:var(--text2);font-size:11px;font-weight:600;cursor:pointer;font-family:inherit;display:flex;align-items:center;gap:5px"><i class="fas fa-upload" style="font-size:10px"></i> Cargar doc</button>' +
+    '</div>';
+  document.getElementById('mcd-docs-content').innerHTML = html;
+}
+
+function mcdRenderInfo() {
+  var cli = _mcdCli;
+  var fields = [
+    ['Nombre completo', cli.nombre],
+    ['Especialidad / Profesión', cli.especialidad],
+    ['Cédula', cli.cedula],
+    ['Tarjeta profesional', cli.tarjeta_profesional],
+    ['RETHUS', cli.rethus || '—'],
+    ['Empresa / Razón social', cli.empresa],
+    ['NIT', cli.nit],
+    ['Nivel de atención', 'Nivel ' + (cli.nivel_atencion || cli.nivel || '1')],
+    ['Ciudad', cli.ciudad],
+    ['Dirección', cli.direccion || cli.dir || '—'],
+    ['Teléfono', cli.telefono],
+    ['Correo electrónico', cli.email],
+    ['Secretaría de Salud', cli.secretaria || '—'],
+    ['Código habilitación', cli.codigo_hab || '—'],
+    ['Estado habilitación', cli.estado_habilitacion || '—'],
+    ['Fecha registro', cli.fecha_registro || '—'],
+    ['Usuario sistema', '@' + (cli.usuario || '—')],
+    ['Google Drive', cli.drive_url ? '<a href="'+cli.drive_url+'" target="_blank" style="color:var(--pu2)">Abrir carpeta</a>' : '—'],
+  ];
+  document.getElementById('mcd-pane-info').innerHTML =
+    '<div style="background:var(--dark3);border:1px solid var(--bd);border-radius:12px;padding:16px">' +
+    fields.map(function(f){
+      return '<div class="mcd-info-row"><div class="mcd-info-lbl">'+f[0]+'</div><div style="flex:1;word-break:break-word">'+( f[1] || '<span style="color:var(--text3)">—</span>')+'</div></div>';
+    }).join('') + '</div>';
+}
+
+function mcdRenderServicios() {
+  var cli = _mcdCli;
+  var svcData = JSON.parse(localStorage.getItem('bio_servicios_' + cli.usuario) || '[]');
+  var html = '';
+  if (!svcData.length) {
+    html = '<div style="text-align:center;padding:40px;color:var(--text3);font-size:13px">Sin servicios REPS registrados</div>';
+  } else {
+    html = svcData.map(function(s){
+      var stateColor = s.estado==='habilitado' ? '#22C55E' : s.estado==='en_proceso' ? '#F59E0B' : '#9090B8';
+      return '<div style="background:var(--dark3);border:1px solid var(--bd);border-radius:11px;padding:13px 15px;margin-bottom:8px;display:flex;align-items:center;gap:12px">' +
+        '<div style="flex:1"><div style="font-size:13px;font-weight:700">'+s.nombre+'</div>' +
+        '<div style="font-size:10px;color:var(--text3);margin-top:2px">Código: '+s.codigo+' · Nivel '+s.nivel+' · '+s.fecha_inscripcion+'</div></div>' +
+        '<span style="padding:4px 10px;border-radius:6px;font-size:11px;font-weight:700;background:'+stateColor+'18;color:'+stateColor+'">'+s.estado+'</span>' +
+        '</div>';
+    }).join('');
+  }
+  document.getElementById('mcd-pane-servicios').innerHTML = html;
+}
+
+function cargarDocEstdDesdeAdmin(eid) {
+  // Switch to this client and open the doc loader
+  document.getElementById('modal-cli-detail').classList.remove('open');
+  setTimeout(function(){
+    openAddDoc(eid);
+  }, 200);
+}
+
+function switchClienteActivo() {
+  if (!_mcdUser) return;
+  // Open the client's own portal in a new tab so admin sees exactly what the client sees
+  document.getElementById('modal-cli-detail').classList.remove('open');
+  // Set session so portal loads this client
+  var prev = sessionStorage.getItem('bio_user');
+  sessionStorage.setItem('bio_user', _mcdUser);
+  sessionStorage.setItem('bio_role', 'cliente');
+  var w = window.open('../cliente/index.html', '_blank');
+  // Restore admin session
+  setTimeout(function(){
+    sessionStorage.setItem('bio_user', prev || 'admin');
+    sessionStorage.setItem('bio_role', 'admin');
+  }, 500);
+  toast('Abriendo portal del cliente en nueva pestaña...');
 }
 
 // INIT
