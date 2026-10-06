@@ -186,22 +186,45 @@ select.fi option{background:var(--s1);color:var(--t1)}
     </div>
     <div class="fgrid">
       <div class="fg"><label class="fl">Especialidad / Profesión <span class="req-star">*</span></label>
-        <select class="fi" id="r-esp">
+        <select class="fi" id="r-esp" onchange="toggleOtraEsp()">
           <option value="">Seleccionar...</option>
-          <option>Médico General</option>
-          <option>Médico Especialista</option>
-          <option>Odontólogo General</option>
-          <option>Odontólogo Especialista</option>
-          <option>Enfermero(a)</option>
-          <option>Psicólogo(a)</option>
-          <option>Fisioterapeuta</option>
-          <option>Nutricionista</option>
-          <option>Bacteriólogo(a)</option>
-          <option>Fonoaudiólogo(a)</option>
-          <option>Terapeuta Ocupacional</option>
-          <option>Optómetra</option>
-          <option>Otro profesional de salud</option>
+          <optgroup label="── Medicina">
+            <option>Médico General</option>
+            <option>Médico Especialista</option>
+            <option>Médico Internista</option>
+            <option>Médico Cirujano</option>
+          </optgroup>
+          <optgroup label="── Odontología">
+            <option>Odontólogo(a) General</option>
+            <option>Odontólogo(a) Especialista</option>
+          </optgroup>
+          <optgroup label="── Enfermería y auxiliares">
+            <option>Enfermero(a) Profesional</option>
+            <option>Auxiliar de Enfermería</option>
+          </optgroup>
+          <optgroup label="── Terapias y rehabilitación">
+            <option>Fisioterapeuta</option>
+            <option>Fonoaudiólogo(a)</option>
+            <option>Terapeuta Ocupacional</option>
+            <option>Psicólogo(a)</option>
+          </optgroup>
+          <optgroup label="── Nutrición y farmacia">
+            <option>Nutricionista Dietista</option>
+            <option>Regente de Farmacia</option>
+            <option>Químico Farmacéutico</option>
+          </optgroup>
+          <optgroup label="── Diagnóstico">
+            <option>Bacteriólogo(a)</option>
+            <option>Optómetra</option>
+            <option>Tecnólogo en Radiología e Imágenes</option>
+          </optgroup>
+          <optgroup label="── Otro">
+            <option value="otro">Otro profesional de salud — especificar</option>
+          </optgroup>
         </select>
+        <div id="r-esp-otro-wrap" style="display:none;margin-top:8px">
+          <input class="fi" id="r-esp-otro" placeholder="Escribe tu profesión / especialidad">
+        </div>
       </div>
       <div class="fg"><label class="fl">No. Tarjeta profesional <span class="req-star">*</span></label><input class="fi" id="r-tp" placeholder="Ej: TP-12345"></div>
     </div>
@@ -616,6 +639,7 @@ function goStep(n) {
     if (!v('r-nombre')) return;
     if (!v('r-cedula')) return;
     if (!v('r-esp')) return;
+    if (document.getElementById('r-esp').value === 'otro' && !v('r-esp-otro')) return;
     if (!v('r-tp')) return;
     if (!v('r-email')) return;
     if (!v('r-tel')) return;
@@ -665,7 +689,7 @@ function buildResumen() {
 
   document.getElementById('resumen-datos').innerHTML =
     row('Nombre', g('r-nombre')) + row('Cédula', g('r-cedula')) +
-    row('Especialidad', g('r-esp')) + row('Tarjeta Prof.', g('r-tp')) +
+    row('Especialidad', getEsp()) + row('Tarjeta Prof.', g('r-tp')) +
     row('Empresa', g('r-empresa')) + row('NIT', g('r-nit')) +
     row('Ciudad', g('r-ciudad')) + row('Dirección', g('r-dir')) +
     row('Secretaría', g('r-secretaria') || '—') +
@@ -677,6 +701,19 @@ function row(lbl, val) {
   return '<div class="res-row"><div class="res-lbl">' + lbl + '</div><div class="res-val">' + val + '</div></div>';
 }
 function g(id) { var el = document.getElementById(id); return el ? el.value.trim() : ''; }
+
+function toggleOtraEsp() {
+  var sel = document.getElementById('r-esp');
+  var wrap = document.getElementById('r-esp-otro-wrap');
+  if (sel.value === 'otro') { wrap.style.display = 'block'; document.getElementById('r-esp-otro').focus(); }
+  else wrap.style.display = 'none';
+}
+
+function getEsp() {
+  var sel = document.getElementById('r-esp');
+  if (sel.value === 'otro') return document.getElementById('r-esp-otro').value.trim() || 'Otro';
+  return sel.value;
+}
 
 function toggleRegPass(inputId, iconId) {
   var inp = document.getElementById(inputId);
@@ -703,7 +740,7 @@ function enviarRegistro() {
   errEl.style.display = 'none';
 
   var cliente = {
-    nombre: g('r-nombre'), cedula: g('r-cedula'), especialidad: g('r-esp'),
+    nombre: g('r-nombre'), cedula: g('r-cedula'), especialidad: getEsp(),
     tarjeta_profesional: g('r-tp'), rethus: g('r-rethus'),
     empresa: g('r-empresa'), nit: g('r-nit'), nivel_atencion: parseInt(g('r-nivel') || '1'),
     ciudad: g('r-ciudad'), municipio: g('r-municipio'),
