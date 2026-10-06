@@ -141,11 +141,12 @@
     ".hw-tela-linea{fill:none;stroke:rgba(226,232,240,.52);stroke-width:1.3;stroke-linecap:round;filter:drop-shadow(0 0 1.5px rgba(255,255,255,.35)) drop-shadow(0 1px 2px rgba(15,23,42,.3))}" +
     ".hw-tela-grupo{transform-origin:0 0;animation:hw-viento 6s ease-in-out infinite alternate}" +
     "@keyframes hw-viento{0%{transform:rotate(-1.3deg) skewX(-1deg)}50%{transform:rotate(.5deg) skewX(.7deg)}100%{transform:rotate(1.5deg) skewX(-.3deg)}}" +
-    ".hw-arana-cuerpo{fill:rgba(30,27,45,.75);filter:drop-shadow(0 0 1px rgba(255,255,255,.3))}" +
-    ".hw-arana-pata{stroke:rgba(30,27,45,.7);stroke-width:1;stroke-linecap:round}" +
-    ".hw-arana-hilo{stroke:rgba(226,232,240,.5);stroke-width:.8}" +
-    ".hw-tela-arana{animation:hw-arana-bob 3.4s ease-in-out infinite;transform-origin:60px 66px}" +
-    "@keyframes hw-arana-bob{0%,100%{transform:translateY(0)}50%{transform:translateY(5px)}}";
+    ".hw-arana-cuerpo{fill:url(#hwAranaGrad);filter:drop-shadow(0 1px 1.5px rgba(0,0,0,.4))}" +
+    ".hw-arana-ojo{fill:rgba(244,248,255,.9)}" +
+    ".hw-arana-pata{fill:none;stroke:rgba(32,28,46,.82);stroke-width:1.15;stroke-linecap:round;stroke-linejoin:round}" +
+    ".hw-arana-hilo{stroke:rgba(226,232,240,.55);stroke-width:.8}" +
+    ".hw-tela-arana{animation:hw-arana-bob 3.4s ease-in-out infinite;transform-origin:58px 63px}" +
+    "@keyframes hw-arana-bob{0%,100%{transform:translateY(0) rotate(0deg)}50%{transform:translateY(5px) rotate(1.2deg)}}";
   document.head.appendChild(style);
 
   // ------------------------------------------------------------------
@@ -162,17 +163,31 @@
     var anillo1 = "M40,0L38,12.4L32.4,23.5L23.5,32.4L12.4,38L0,40";
     var anillo2 = "M75,0L71.3,23.2L60.7,44.1L44.1,60.7L23.2,71.3L0,75";
     var anillo3 = "M110,0L104.6,34L89,64.7L64.7,89L34,104.6L0,110";
+    // Araña con cuerpo en dos partes (abdomen + cefalotórax, con un
+    // degradado radial para que se vea con volumen, no plana), ojitos, y
+    // 8 patas de verdad en vez de líneas sueltas — cada pata con un
+    // quiebre (cadera -> rodilla -> pie) para que se note la "rodilla"
+    // como en una araña real, no palitos rectos.
+    var defsAraña = conAraña
+      ? '<defs><radialGradient id="hwAranaGrad" cx="35%" cy="28%" r="75%">' +
+          '<stop offset="0%" stop-color="#524a74"/><stop offset="100%" stop-color="#1c1930"/>' +
+        "</radialGradient></defs>"
+      : "";
+    var patas = "M2,-3L9,-7L15,-10M2.5,-1L10,-3L17,-4M2.5,1L10,3L17,5M2,3L9,7L14,11" +
+      "M-2,-3L-9,-7L-15,-10M-2.5,-1L-10,-3L-17,-4M-2.5,1L-10,3L-17,5M-2,3L-9,7L-14,11";
     var arana = conAraña
       ? '<g class="hw-tela-arana">' +
-          '<line class="hw-arana-hilo" x1="55" y1="63" x2="60" y2="90"/>' +
-          '<g class="hw-arana-pata">' +
-            '<line x1="56" y1="94" x2="50" y2="90"/><line x1="56" y1="97" x2="49" y2="97"/><line x1="56" y1="100" x2="50" y2="104"/>' +
-            '<line x1="64" y1="94" x2="70" y2="90"/><line x1="64" y1="97" x2="71" y2="97"/><line x1="64" y1="100" x2="70" y2="104"/>' +
+          '<line class="hw-arana-hilo" x1="55" y1="63" x2="58" y2="82"/>' +
+          '<g transform="translate(58,91) scale(1.25)">' +
+            '<path class="hw-arana-pata" d="' + patas + '"/>' +
+            '<ellipse class="hw-arana-cuerpo" cx="0" cy="6" rx="5.5" ry="7"/>' +
+            '<ellipse class="hw-arana-cuerpo" cx="0" cy="-4" rx="3.2" ry="3.6"/>' +
+            '<circle class="hw-arana-ojo" cx="-1.1" cy="-4.8" r=".55"/>' +
+            '<circle class="hw-arana-ojo" cx="1.1" cy="-4.8" r=".55"/>' +
           "</g>" +
-          '<ellipse class="hw-arana-cuerpo" cx="60" cy="97" rx="4.2" ry="5.6"/>' +
         "</g>"
       : "";
-    return '<svg viewBox="-2 -2 152 152"><g class="hw-tela-grupo">' +
+    return '<svg viewBox="-2 -2 152 152">' + defsAraña + '<g class="hw-tela-grupo">' +
       '<path class="hw-tela-linea" d="' + rayos + '"/>' +
       '<path class="hw-tela-linea" d="' + anillo1 + '"/>' +
       '<path class="hw-tela-linea" d="' + anillo2 + '"/>' +
