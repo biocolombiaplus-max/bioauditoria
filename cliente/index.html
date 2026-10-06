@@ -250,6 +250,46 @@ select.fi option{background:var(--s1)}
 .prog-btn.prim{background:var(--or-bg);border-color:var(--orb);color:var(--or2)}
 .prog-btn.sec{background:var(--pu-bg);border-color:var(--pub);color:var(--pu2)}
 
+/* ─── DOC MANAGER ACTIONS ─── */
+.doc-actions{display:flex;align-items:center;gap:4px;flex-shrink:0}
+.dab{width:30px;height:30px;border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:12px;cursor:pointer;border:none;font-family:inherit;transition:all 0.15s}
+.dab-up{background:rgba(34,197,94,0.1);color:var(--green);border:1px solid rgba(34,197,94,0.25)}
+.dab-up:hover{background:rgba(34,197,94,0.2)}
+.dab-ed{background:rgba(168,85,247,0.1);color:var(--pu2);border:1px solid rgba(168,85,247,0.25)}
+.dab-ed:hover{background:rgba(168,85,247,0.2)}
+.dab-del{background:rgba(239,68,68,0.1);color:var(--red);border:1px solid rgba(239,68,68,0.25)}
+.dab-del:hover{background:rgba(239,68,68,0.2)}
+.dab-view{background:rgba(255,107,0,0.1);color:var(--or2);border:1px solid rgba(255,107,0,0.25)}
+.dab-view:hover{background:rgba(255,107,0,0.2)}
+.doc-add-btn{display:flex;align-items:center;gap:7px;padding:9px 14px;border-radius:var(--r3);background:rgba(34,197,94,0.07);border:1px dashed rgba(34,197,94,0.3);color:var(--green);font-size:12px;font-weight:700;cursor:pointer;font-family:inherit;width:100%;margin-top:8px;justify-content:center;transition:all 0.15s}
+.doc-add-btn:hover{background:rgba(34,197,94,0.13)}
+
+/* ─── MODAL GESTIÓN DOC ─── */
+.docm-overlay{display:none;position:fixed;inset:0;z-index:500;background:rgba(0,0,0,0.7);backdrop-filter:blur(12px);align-items:flex-end;justify-content:center}
+.docm-overlay.open{display:flex}
+.docm-box{background:var(--s1);border:1px solid var(--bd2);border-radius:22px 22px 0 0;width:100%;max-width:600px;max-height:90vh;display:flex;flex-direction:column;overflow:hidden}
+.docm-head{display:flex;align-items:center;justify-content:space-between;padding:16px 18px;border-bottom:1px solid var(--bd);flex-shrink:0}
+.docm-title{font-size:14px;font-weight:800;color:var(--t1)}
+.docm-close{width:30px;height:30px;border-radius:50%;background:var(--s3);border:1px solid var(--bd);color:var(--t2);cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:13px;font-family:inherit}
+.docm-body{padding:16px 18px;overflow-y:auto;flex:1}
+.dm-fl{font-size:11px;font-weight:700;color:var(--t2);text-transform:uppercase;letter-spacing:0.06em;margin-bottom:5px;display:block}
+.dm-fi{width:100%;padding:11px 14px;background:var(--s3);border:1px solid var(--bd2);border-radius:var(--r3);color:var(--t1);font-size:13px;font-family:inherit;outline:none;transition:border-color 0.2s;margin-bottom:14px;-webkit-appearance:none}
+.dm-fi:focus{border-color:var(--or)}
+.dm-fi option{background:var(--s1)}
+.docm-foot{padding:14px 18px;border-top:1px solid var(--bd);flex-shrink:0;display:flex;gap:8px}
+.dm-save{flex:1;padding:13px;border-radius:var(--r3);background:linear-gradient(135deg,var(--or),var(--pu));color:#fff;border:none;font-size:13px;font-weight:800;cursor:pointer;font-family:inherit}
+.dm-cancel{padding:13px 18px;border-radius:var(--r3);background:var(--s3);border:1px solid var(--bd);color:var(--t2);font-size:13px;font-weight:700;cursor:pointer;font-family:inherit}
+.upload-zone{border:2px dashed rgba(255,107,0,0.35);border-radius:var(--r2);padding:18px;text-align:center;cursor:pointer;transition:all 0.2s;margin-bottom:14px;position:relative}
+.upload-zone:hover,.upload-zone.drag{border-color:var(--or);background:rgba(255,107,0,0.05)}
+.upload-zone input[type=file]{position:absolute;inset:0;opacity:0;cursor:pointer;width:100%;height:100%}
+.uz-ico{font-size:24px;margin-bottom:6px}
+.uz-txt{font-size:12px;color:var(--t2);line-height:1.5}
+.uz-txt strong{color:var(--or2)}
+.file-preview{display:none;background:rgba(34,197,94,0.07);border:1px solid rgba(34,197,94,0.25);border-radius:var(--r3);padding:10px 14px;margin-bottom:14px;font-size:12px;color:var(--green);display:flex;align-items:center;gap:8px}
+.fp-name{flex:1;font-weight:700;word-break:break-all}
+.fp-size{color:var(--t2);font-size:11px;white-space:nowrap}
+.fp-del{background:none;border:none;color:var(--red);cursor:pointer;font-size:14px;font-family:inherit;padding:0}
+
 /* ─── SIDEBAR (desktop only) ─── */
 .sidebar{display:none}
 
@@ -843,6 +883,89 @@ select.fi option{background:var(--s1)}
   </div>
 </div>
 
+<!-- ══════════════════════════════════════════════════════════
+     MODAL GESTIÓN DE DOCUMENTOS
+════════════════════════════════════════════════════════════ -->
+<div class="docm-overlay" id="docm-overlay">
+  <div class="docm-box">
+    <div class="docm-head">
+      <div>
+        <div class="docm-title" id="docm-title">Gestionar documento</div>
+        <div style="font-size:11px;color:var(--t2);margin-top:2px" id="docm-estandar"></div>
+      </div>
+      <button class="docm-close" onclick="closeDm()"><i class="fas fa-times"></i></button>
+    </div>
+    <div class="docm-body">
+      <!-- Upload zone -->
+      <div style="margin-bottom:6px">
+        <label class="dm-fl">Archivo del documento</label>
+        <div class="upload-zone" id="docm-upload-zone" ondragover="dmDragOver(event)" ondragleave="dmDragLeave()" ondrop="dmDrop(event)">
+          <input type="file" id="docm-file-input" accept=".pdf,.doc,.docx,.xls,.xlsx,.jpg,.jpeg,.png,.txt" onchange="dmFileSelected(this)">
+          <div class="uz-ico">📎</div>
+          <div class="uz-txt"><strong>Toca para subir un archivo</strong><br>PDF, Word, Excel, imágenes — máx. 5MB</div>
+        </div>
+        <div class="file-preview" id="docm-file-preview" style="display:none">
+          <i class="fas fa-file-check" style="color:var(--green);font-size:16px"></i>
+          <span class="fp-name" id="docm-fp-name"></span>
+          <span class="fp-size" id="docm-fp-size"></span>
+          <button class="fp-del" onclick="dmClearFile()" title="Quitar archivo">✕</button>
+        </div>
+        <div id="docm-file-current" style="display:none;font-size:11px;color:var(--t2);margin-bottom:14px;padding:8px 12px;background:var(--s2);border-radius:var(--r3);border:1px solid var(--bd)">
+          📁 Archivo actual: <span id="docm-fc-name" style="color:var(--or2);font-weight:700"></span>
+        </div>
+      </div>
+
+      <label class="dm-fl">Nombre del documento</label>
+      <input class="dm-fi" type="text" id="docm-nombre" placeholder="Ej: Manual de Talento Humano v2">
+
+      <label class="dm-fl">Estado</label>
+      <select class="dm-fi" id="docm-estado">
+        <option value="vigente">✅ Vigente</option>
+        <option value="pendiente">⚠️ Pendiente</option>
+        <option value="requerido">🚨 Requerido / Crítico</option>
+        <option value="vencido">🔴 Vencido</option>
+        <option value="en_revision">🔵 En revisión</option>
+      </select>
+
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
+        <div>
+          <label class="dm-fl">Versión</label>
+          <input class="dm-fi" type="text" id="docm-version" placeholder="v1.0 · 2025">
+        </div>
+        <div>
+          <label class="dm-fl">Tipo</label>
+          <select class="dm-fi" id="docm-tipo">
+            <option value="documento">Documento</option>
+            <option value="manual">Manual</option>
+            <option value="protocolo">Protocolo</option>
+            <option value="formato">Formato</option>
+            <option value="programa">Programa</option>
+            <option value="politica">Política</option>
+            <option value="plan">Plan</option>
+            <option value="contrato">Contrato</option>
+            <option value="soporte">Soporte</option>
+            <option value="inventario">Inventario</option>
+            <option value="registro">Registro</option>
+            <option value="listado">Listado</option>
+            <option value="plano">Plano</option>
+            <option value="acta">Acta</option>
+          </select>
+        </div>
+      </div>
+
+      <label class="dm-fl">Fecha de vencimiento (opcional)</label>
+      <input class="dm-fi" type="date" id="docm-vencimiento">
+
+      <label class="dm-fl">Notas / Observaciones</label>
+      <textarea class="dm-fi" id="docm-notas" rows="2" placeholder="Observaciones, pendientes, notas del auditor..." style="resize:vertical"></textarea>
+    </div>
+    <div class="docm-foot">
+      <button class="dm-cancel" onclick="closeDm()">Cancelar</button>
+      <button class="dm-save" id="docm-save-btn" onclick="dmGuardar()"><i class="fas fa-save"></i> Guardar documento</button>
+    </div>
+  </div>
+</div>
+
 <script>
 var GITHUB_URL = 'https://raw.githubusercontent.com/biocolombiaplus-max/bioauditoria/main/docs/';
 
@@ -1198,30 +1321,40 @@ function renderEstandares(){
   document.getElementById('estandares-list').innerHTML = C.estandares.map(e=>{
     var ei = ES.find(x=>x.id===e.id);
     var ok = e.documentos.filter(d=>d.estado==='vigente').length;
-    var pen = e.documentos.filter(d=>d.estado==='pendiente').length;
-    var req = e.documentos.filter(d=>d.estado==='requerido').length;
+    var pen = e.documentos.filter(d=>d.estado==='pendiente'||d.estado==='en_revision').length;
+    var req = e.documentos.filter(d=>d.estado==='requerido'||d.estado==='vencido').length;
     var total = e.documentos.length;
-    var pct = Math.round(ok/total*100);
+    var pct = total>0?Math.round(ok/total*100):0;
     var pcolor = pct>=80?'var(--green)':pct>=50?'var(--yellow)':'var(--red)';
 
     var reqRows = ei.requisitos.map(r=>
       '<div class="req-row"><div class="req-dot"><i class="fas fa-check"></i></div>'+r+'</div>'
     ).join('');
 
-    var docRows = e.documentos.map(d=>
-      '<div class="doc-row">'
-      +'<div class="doc-ico" style="'+docIcoBg(d.estado)+'">📄</div>'
-      +'<div class="doc-info">'
-      +'<div class="doc-name">'+d.nombre+'</div>'
-      +'<div class="doc-meta">'+d.version+' &nbsp;·&nbsp; <span class="tipo-pill">'+d.tipo+'</span></div>'
-      +'</div>'
-      +'<div style="display:flex;align-items:center;gap:5px;flex-shrink:0">'
-      +sh(d.estado)
-      +(d.archivo?'<button class="view-btn" onclick="viewDoc(\''+d.nombre+'\',\''+d.archivo+'\')"><i class="fas fa-eye"></i></button>':'<span style="font-size:10px;color:var(--t2);padding:0 4px">Sin archivo</span>')
-      +(d._tele?'<button class="view-btn" onclick="generarDocTele(\''+d.id+'\')" title="Generar documento editable" style="background:rgba(168,85,247,0.12);border-color:rgba(168,85,247,0.3);color:var(--pu2)">📄</button>':'')
-      +'</div>'
-      +'</div>'
-    ).join('');
+    var docRows = e.documentos.map(function(d){
+      var safeId = d.id.replace(/'/g,"\\'");
+      var safeEid = e.id.replace(/'/g,"\\'");
+      var hasFile = d._file_data || d.archivo;
+      var vencHtml = d.vencimiento?'<span style="font-size:9px;color:var(--yellow);margin-left:4px">⏰ '+d.vencimiento+'</span>':'';
+      var notasHtml = d.notas?'<div style="font-size:10px;color:var(--t2);margin-top:3px;line-height:1.4;font-style:italic">💬 '+d.notas+'</div>':'';
+      var statusBadge = sh(d.estado);
+      var fileIcon = hasFile?'<i class="fas fa-paperclip" style="color:var(--green);font-size:10px;margin-left:4px" title="Tiene archivo adjunto"></i>':'';
+      return '<div class="doc-row" id="doc-row-'+safeId+'">'
+        +'<div class="doc-ico" style="'+docIcoBg(d.estado)+'">'+docEmoji(d.tipo)+'</div>'
+        +'<div class="doc-info">'
+        +'<div class="doc-name">'+d.nombre+fileIcon+'</div>'
+        +'<div class="doc-meta">'+d.version+' &nbsp;·&nbsp; <span class="tipo-pill">'+d.tipo+'</span>'+vencHtml+'</div>'
+        +notasHtml
+        +'</div>'
+        +'<div class="doc-actions">'
+        +statusBadge
+        +(hasFile?'<button class="dab dab-view" onclick="dmViewFile(\''+safeId+'\')" title="Ver archivo"><i class="fas fa-eye"></i></button>':'')
+        +'<button class="dab dab-up" onclick="openDm(\''+safeEid+'\',\''+safeId+'\')" title="Subir / reemplazar archivo"><i class="fas fa-upload"></i></button>'
+        +'<button class="dab dab-ed" onclick="openDm(\''+safeEid+'\',\''+safeId+'\')" title="Editar documento"><i class="fas fa-pen"></i></button>'
+        +'<button class="dab dab-del" onclick="dmEliminar(\''+safeEid+'\',\''+safeId+'\')" title="Eliminar documento"><i class="fas fa-trash"></i></button>'
+        +'</div>'
+        +'</div>';
+    }).join('');
 
     var tagHtml = (req?'<span class="tag tr">'+req+' 🚨</span>':'')
                 + (pen?'<span class="tag tp">'+pen+' ⚠️</span>':'')
@@ -1247,11 +1380,20 @@ function renderEstandares(){
       +'<div class="ec-desc">'+ei.descripcion+'</div>'
       +'<div class="ec-section-lbl"><i class="fas fa-list-check"></i>Requisitos normativos</div>'
       +'<div class="req-list">'+reqRows+'</div>'
-      +'<div class="ec-section-lbl" style="color:var(--or2)"><i class="fas fa-file-alt"></i>Documentos del estándar ('+total+')</div>'
+      +'<div class="ec-section-lbl" style="color:var(--or2)"><i class="fas fa-file-alt"></i>Documentos del estándar ('+total+') <span style="font-size:9px;color:var(--t2);font-weight:500;text-transform:none;letter-spacing:0">— <i class="fas fa-upload"></i> subir &nbsp;<i class="fas fa-pen"></i> editar &nbsp;<i class="fas fa-trash"></i> eliminar</span></div>'
       +docRows
+      +'<button class="doc-add-btn" onclick="openDmNew(\''+e.id+'\')"><i class="fas fa-plus-circle"></i> Agregar documento a este estándar</button>'
       +'</div>'
       +'</div>';
   }).join('');
+}
+
+// ── helper: icono por tipo ───────────────────────────────────────
+function docEmoji(tipo){
+  var m={manual:'📘',protocolo:'📋',formato:'📝',programa:'⚙️',politica:'🛡️',
+         plan:'🗺️',contrato:'🤝',soporte:'📎',inventario:'📦',registro:'📊',
+         listado:'📃',plano:'🏗️',acta:'✅',documento:'📄'};
+  return m[tipo]||'📄';
 }
 
 function toggleEstd(eid){
@@ -1266,6 +1408,269 @@ function toggleEstd(eid){
 function openEstd(eid){
   var body = document.getElementById('ec-body-'+eid);
   if(!body.classList.contains('open')) toggleEstd(eid);
+}
+
+// ═══════════════════════════════════════════════════════════════
+// GESTIÓN DOCUMENTAL — subir · editar · eliminar
+// ═══════════════════════════════════════════════════════════════
+var _dmEid = null;  // estándar actual en el modal
+var _dmDid = null;  // doc id actual (null = nuevo)
+var _dmFileData = null; // {name, size, type, data (base64)}
+
+// ── Cargar modificaciones guardadas en localStorage ────────────
+function loadDocMods(){
+  var user = sessionStorage.getItem('bio_user') || 'guest';
+  try {
+    var mods = JSON.parse(localStorage.getItem('bio_docmods_' + user) || '{}');
+    // Aplicar modificaciones a C.estandares
+    Object.keys(mods).forEach(function(eid){
+      var est = C.estandares.find(function(e){ return e.id === eid; });
+      if(!est) return;
+      est.documentos = mods[eid];
+    });
+  } catch(e) {}
+}
+
+// ── Guardar estado de C.estandares en localStorage ─────────────
+function saveDocMods(){
+  var user = sessionStorage.getItem('bio_user') || 'guest';
+  var mods = {};
+  C.estandares.forEach(function(e){ mods[e.id] = e.documentos; });
+  // Separar archivos pesados en clave independiente para no agotar quota
+  var modsLite = {};
+  var fileStore = {};
+  C.estandares.forEach(function(e){
+    modsLite[e.id] = e.documentos.map(function(d){
+      var lite = Object.assign({}, d);
+      if(lite._file_data){
+        fileStore[d.id] = lite._file_data;
+        delete lite._file_data; // no guardar en objeto principal
+        lite._has_file = true;
+      }
+      return lite;
+    });
+  });
+  try { localStorage.setItem('bio_docmods_' + user, JSON.stringify(modsLite)); } catch(e){}
+  // Guardar archivos individualmente
+  Object.keys(fileStore).forEach(function(did){
+    try { localStorage.setItem('bio_docfile_' + user + '_' + did, fileStore[did]); } catch(e){}
+  });
+  // También actualizar bio_cli para que admin vea cambios
+  try {
+    var cli = JSON.parse(localStorage.getItem('bio_cli_' + user) || '{}');
+    cli.estandares = modsLite;
+    cli._docs_updated = new Date().toISOString();
+    localStorage.setItem('bio_cli_' + user, JSON.stringify(cli));
+  } catch(e){}
+}
+
+// ── Obtener archivo de un documento ────────────────────────────
+function getDocFile(did){
+  var user = sessionStorage.getItem('bio_user') || 'guest';
+  // Primero buscar en memoria (si recién subido)
+  var est = null, doc = null;
+  C.estandares.forEach(function(e){ var d=e.documentos.find(function(x){return x.id===did;}); if(d){est=e;doc=d;} });
+  if(doc && doc._file_data) return doc._file_data;
+  // Luego en localStorage
+  try { return localStorage.getItem('bio_docfile_' + user + '_' + did) || null; } catch(e){ return null; }
+}
+
+// ── Abrir modal para doc existente ─────────────────────────────
+function openDm(eid, did){
+  _dmEid = eid; _dmDid = did; _dmFileData = null;
+  var est = C.estandares.find(function(e){ return e.id === eid; });
+  var doc = est ? est.documentos.find(function(d){ return d.id === did; }) : null;
+  var ei = ES.find(function(x){ return x.id === eid; });
+  document.getElementById('docm-title').textContent = doc ? 'Editar documento' : 'Nuevo documento';
+  document.getElementById('docm-estandar').textContent = ei ? 'Estándar '+ei.num+' — '+ei.nombre : '';
+  document.getElementById('docm-nombre').value = doc ? doc.nombre : '';
+  document.getElementById('docm-estado').value = doc ? (doc.estado||'pendiente') : 'pendiente';
+  document.getElementById('docm-version').value = doc ? (doc.version||'v1.0 · '+new Date().getFullYear()) : 'v1.0 · '+new Date().getFullYear();
+  document.getElementById('docm-tipo').value = doc ? (doc.tipo||'documento') : 'documento';
+  document.getElementById('docm-vencimiento').value = doc ? (doc.vencimiento||'') : '';
+  document.getElementById('docm-notas').value = doc ? (doc.notas||'') : '';
+  dmClearFile();
+  // Mostrar archivo actual
+  var curEl = document.getElementById('docm-file-current');
+  var curNm = document.getElementById('docm-fc-name');
+  var hasFile = doc && (doc._has_file || doc._file_data || doc.archivo);
+  if(hasFile){
+    curEl.style.display = 'block';
+    curNm.textContent = doc.archivo || (doc._has_file ? '(archivo guardado)' : '');
+  } else { curEl.style.display = 'none'; }
+  document.getElementById('docm-overlay').classList.add('open');
+  document.body.style.overflow = 'hidden';
+}
+
+// ── Abrir modal para nuevo documento ──────────────────────────
+function openDmNew(eid){
+  _dmEid = eid; _dmDid = null; _dmFileData = null;
+  var ei = ES.find(function(x){ return x.id === eid; });
+  document.getElementById('docm-title').textContent = 'Agregar documento';
+  document.getElementById('docm-estandar').textContent = ei ? 'Estándar '+ei.num+' — '+ei.nombre : '';
+  document.getElementById('docm-nombre').value = '';
+  document.getElementById('docm-estado').value = 'pendiente';
+  document.getElementById('docm-version').value = 'v1.0 · '+new Date().getFullYear();
+  document.getElementById('docm-tipo').value = 'documento';
+  document.getElementById('docm-vencimiento').value = '';
+  document.getElementById('docm-notas').value = '';
+  dmClearFile();
+  document.getElementById('docm-file-current').style.display = 'none';
+  document.getElementById('docm-overlay').classList.add('open');
+  document.body.style.overflow = 'hidden';
+}
+
+function closeDm(){
+  document.getElementById('docm-overlay').classList.remove('open');
+  document.body.style.overflow = '';
+  _dmFileData = null;
+}
+
+// ── Selección de archivo ───────────────────────────────────────
+function dmFileSelected(input){
+  var file = input.files[0];
+  if(!file) return;
+  if(file.size > 5 * 1024 * 1024){
+    alert('El archivo es demasiado grande. Máximo 5MB.');
+    input.value = ''; return;
+  }
+  var reader = new FileReader();
+  reader.onload = function(e){
+    _dmFileData = { name: file.name, size: file.size, type: file.type, data: e.target.result };
+    document.getElementById('docm-fp-name').textContent = file.name;
+    document.getElementById('docm-fp-size').textContent = (file.size/1024).toFixed(0)+' KB';
+    document.getElementById('docm-file-preview').style.display = 'flex';
+    document.getElementById('docm-upload-zone').style.display = 'none';
+  };
+  reader.readAsDataURL(file);
+}
+
+function dmClearFile(){
+  _dmFileData = null;
+  document.getElementById('docm-file-preview').style.display = 'none';
+  document.getElementById('docm-upload-zone').style.display = 'block';
+  var inp = document.getElementById('docm-file-input');
+  if(inp) inp.value = '';
+}
+
+function dmDragOver(e){ e.preventDefault(); document.getElementById('docm-upload-zone').classList.add('drag'); }
+function dmDragLeave(){ document.getElementById('docm-upload-zone').classList.remove('drag'); }
+function dmDrop(e){
+  e.preventDefault();
+  document.getElementById('docm-upload-zone').classList.remove('drag');
+  var file = e.dataTransfer.files[0];
+  if(file){ var inp = document.getElementById('docm-file-input'); /* simulate selection */
+    var dt = new DataTransfer(); dt.items.add(file);
+    inp.files = dt.files; dmFileSelected(inp);
+  }
+}
+
+// ── Guardar ────────────────────────────────────────────────────
+function dmGuardar(){
+  var nombre = document.getElementById('docm-nombre').value.trim();
+  if(!nombre){ document.getElementById('docm-nombre').focus(); document.getElementById('docm-nombre').style.borderColor='var(--red)'; setTimeout(function(){document.getElementById('docm-nombre').style.borderColor='';},2000); return; }
+  var btn = document.getElementById('docm-save-btn');
+  btn.disabled = true; btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Guardando...';
+
+  var est = C.estandares.find(function(e){ return e.id === _dmEid; });
+  if(!est){ btn.disabled=false; btn.innerHTML='<i class="fas fa-save"></i> Guardar documento'; return; }
+
+  var now = new Date().toLocaleDateString('es-CO');
+  if(_dmDid){
+    // Editar existente
+    var doc = est.documentos.find(function(d){ return d.id === _dmDid; });
+    if(doc){
+      doc.nombre = nombre;
+      doc.estado = document.getElementById('docm-estado').value;
+      doc.version = document.getElementById('docm-version').value || 'v1.0 · '+new Date().getFullYear();
+      doc.tipo = document.getElementById('docm-tipo').value;
+      doc.vencimiento = document.getElementById('docm-vencimiento').value || '';
+      doc.notas = document.getElementById('docm-notas').value.trim();
+      doc._modified = now;
+      if(_dmFileData){
+        doc._file_data = _dmFileData.data;
+        doc.archivo = _dmFileData.name;
+        doc._has_file = true;
+        doc._file_type = _dmFileData.type;
+      }
+    }
+  } else {
+    // Nuevo documento
+    var newId = _dmEid + '-u' + Date.now();
+    var newDoc = {
+      id: newId,
+      nombre: nombre,
+      estado: document.getElementById('docm-estado').value,
+      version: document.getElementById('docm-version').value || 'v1.0 · '+new Date().getFullYear(),
+      tipo: document.getElementById('docm-tipo').value,
+      vencimiento: document.getElementById('docm-vencimiento').value || '',
+      notas: document.getElementById('docm-notas').value.trim(),
+      archivo: '',
+      _created: now,
+      _modified: now
+    };
+    if(_dmFileData){
+      newDoc._file_data = _dmFileData.data;
+      newDoc.archivo = _dmFileData.name;
+      newDoc._has_file = true;
+      newDoc._file_type = _dmFileData.type;
+    }
+    est.documentos.push(newDoc);
+  }
+
+  saveDocMods();
+  setTimeout(function(){
+    closeDm();
+    renderEstandares();
+    // Reabrir el estándar activo
+    if(_dmEid) setTimeout(function(){ openEstd(_dmEid); },50);
+    btn.disabled=false; btn.innerHTML='<i class="fas fa-save"></i> Guardar documento';
+    // Toast
+    showToast('Documento guardado correctamente ✅');
+  }, 300);
+}
+
+// ── Eliminar ───────────────────────────────────────────────────
+function dmEliminar(eid, did){
+  var est = C.estandares.find(function(e){ return e.id === eid; });
+  var doc = est ? est.documentos.find(function(d){ return d.id === did; }) : null;
+  if(!doc) return;
+  if(!confirm('¿Eliminar "'+doc.nombre+'"?\nEsta acción no se puede deshacer.')) return;
+  var user = sessionStorage.getItem('bio_user') || 'guest';
+  est.documentos = est.documentos.filter(function(d){ return d.id !== did; });
+  // Limpiar archivo
+  try { localStorage.removeItem('bio_docfile_'+user+'_'+did); } catch(e){}
+  saveDocMods();
+  renderEstandares();
+  setTimeout(function(){ openEstd(eid); }, 50);
+  showToast('Documento eliminado');
+}
+
+// ── Ver archivo adjunto ────────────────────────────────────────
+function dmViewFile(did){
+  var fileData = getDocFile(did);
+  if(!fileData){ alert('No hay archivo disponible para este documento.'); return; }
+  // Para imágenes y PDFs, abrir en nueva pestaña
+  var win = window.open('', '_blank');
+  if(!win){ return; }
+  win.document.write('<html><body style="margin:0;background:#111">'
+    +'<iframe src="'+fileData+'" style="width:100vw;height:100vh;border:none"></iframe>'
+    +'</body></html>');
+  win.document.close();
+}
+
+// ── Toast ──────────────────────────────────────────────────────
+function showToast(msg){
+  var t = document.getElementById('toast-notif');
+  if(!t){
+    t = document.createElement('div');
+    t.id = 'toast-notif';
+    t.style.cssText = 'position:fixed;bottom:calc(var(--bn)+16px);left:50%;transform:translateX(-50%);background:#22C55E;color:#fff;padding:10px 18px;border-radius:30px;font-size:13px;font-weight:700;z-index:9999;box-shadow:0 4px 24px rgba(0,0,0,0.4);pointer-events:none;transition:opacity 0.3s';
+    document.body.appendChild(t);
+  }
+  t.textContent = msg; t.style.opacity = '1';
+  clearTimeout(t._tmr);
+  t._tmr = setTimeout(function(){ t.style.opacity = '0'; }, 2500);
 }
 
 // ─── FORMATOS ───
@@ -3032,6 +3437,7 @@ function _tele_PQRS(c1,c2,empresa,ciudad){
 }
 
 // ─── INIT ───
+try { loadDocMods(); } catch(e){}
 initUI();
 renderInicioEstandares();
 renderEstandares();
