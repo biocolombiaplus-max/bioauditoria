@@ -44,15 +44,10 @@ body{display:flex;align-items:center;justify-content:center;min-height:100vh;pad
 /* ── CARD ── */
 .card{background:rgba(15,15,36,0.9);backdrop-filter:blur(30px);-webkit-backdrop-filter:blur(30px);border:1px solid var(--bd2);border-radius:24px;padding:28px 26px;box-shadow:0 40px 80px rgba(0,0,0,0.6),0 0 0 1px rgba(255,255,255,0.04) inset}
 
-/* ── ROLE SELECTOR ── */
-.role-label{font-size:11px;font-weight:700;color:var(--t3);text-transform:uppercase;letter-spacing:0.07em;margin-bottom:10px}
-.role-pills{display:flex;gap:8px;background:rgba(255,255,255,0.04);border:1px solid var(--bd);border-radius:12px;padding:4px;margin-bottom:22px}
-.rpill{flex:1;padding:9px 8px;border-radius:9px;cursor:pointer;text-align:center;transition:all 0.2s;border:1.5px solid transparent}
-.rpill .rp-ico{font-size:18px;display:block;margin-bottom:3px;transition:transform 0.2s}
-.rpill .rp-nm{font-size:11px;font-weight:700;color:var(--t3);transition:color 0.2s;line-height:1.2}
-.rpill.on{background:linear-gradient(135deg,rgba(255,107,0,0.15),rgba(123,47,190,0.12));border-color:rgba(255,107,0,0.4);box-shadow:0 4px 16px rgba(255,107,0,0.12)}
-.rpill.on .rp-nm{color:var(--or2)}
-.rpill.on .rp-ico{transform:scale(1.12)}
+/* ── ADMIN BADGE (oculto por defecto) ── */
+.admin-badge{display:none;align-items:center;gap:8px;background:rgba(255,107,0,0.08);border:1px solid rgba(255,107,0,0.25);border-radius:10px;padding:9px 13px;margin-bottom:16px;font-size:12px;color:var(--or2);font-weight:700}
+.admin-badge i{font-size:14px}
+.admin-badge.show{display:flex}
 
 /* ── FORM ── */
 .fg{margin-bottom:14px}
@@ -104,16 +99,8 @@ body{display:flex;align-items:center;justify-content:center;min-height:100vh;pad
   <div class="card">
     <div id="setup-msg"></div>
 
-    <div class="role-label">Perfil de acceso</div>
-    <div class="role-pills">
-      <div class="rpill on" id="r-admin" onclick="setRole('admin')">
-        <span class="rp-ico">⚙️</span>
-        <span class="rp-nm">Admin</span>
-      </div>
-      <div class="rpill" id="r-cliente" onclick="setRole('cliente')">
-        <span class="rp-ico">👩‍⚕️</span>
-        <span class="rp-nm">Prestador</span>
-      </div>
+    <div class="admin-badge" id="admin-badge">
+      <i class="fas fa-shield-alt"></i> Modo administrador activo
     </div>
 
     <div class="err" id="err"></div>
@@ -141,7 +128,7 @@ body{display:flex;align-items:center;justify-content:center;min-height:100vh;pad
   </div>
 
   <div class="footer">
-    <div class="footer-brand">Powered by <strong>BIOMarketing</strong> · ventasbio.com</div>
+    <div class="footer-brand">Powered by <strong>BIOMarketing</strong> · <span id="admin-trigger" onclick="adminTap()" style="cursor:default;user-select:none">ventasbio.com</span></div>
     <div class="norms">
       <span class="norm">📋 Res. 3100/2019</span>
       <span class="norm">♻️ Res. 1164/2002</span>
@@ -156,12 +143,23 @@ const USERS = {
   'admin':     {pass:'Bio@Admin2025!', role:'admin',    to:'admin/index.html'},
   'dra.vesga': {pass:'Vesga@2025',     role:'cliente',  to:'cliente/index.html'},
 };
-let rol = 'admin';
+let rol = 'cliente'; // default: prestador mode
+let adminTaps = 0, adminTimer = null;
 
 function setRole(r){
   rol = r;
-  document.querySelectorAll('.rpill').forEach(b => b.classList.remove('on'));
-  document.getElementById('r-' + r).classList.add('on');
+  document.getElementById('admin-badge').classList.toggle('show', r === 'admin');
+}
+
+function adminTap(){
+  adminTaps++;
+  clearTimeout(adminTimer);
+  adminTimer = setTimeout(function(){ adminTaps = 0; }, 1500);
+  if(adminTaps >= 5){
+    adminTaps = 0;
+    setRole('admin');
+    document.getElementById('user').focus();
+  }
 }
 
 function getUser(u){
@@ -221,7 +219,7 @@ document.addEventListener('keypress', e => { if(e.key === 'Enter') doLogin(); })
     msg.innerHTML = '<div style="background:rgba(34,197,94,0.1);border:1px solid rgba(34,197,94,0.3);border-radius:10px;padding:11px 14px;font-size:13px;color:#22C55E;font-weight:700;margin-bottom:16px;text-align:center;display:flex;align-items:center;justify-content:center;gap:8px"><i class="fas fa-check-circle"></i> Acceso configurado — ya puedes ingresar</div>';
     var uInp = document.getElementById('user');
     if(uInp) uInp.value = data.u;
-    setRole('cliente');
+    rol = 'cliente';
   } catch(ex){
     console.warn('Setup link error:', ex);
   }
