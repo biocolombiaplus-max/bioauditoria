@@ -442,11 +442,34 @@ select.fi option{background:var(--s1);color:var(--t1)}
     <div class="res-card" id="resumen-datos"></div>
 
     <div class="fg"><label class="fl">Observaciones adicionales</label><textarea class="fi fta" id="r-notas" placeholder="Información adicional, estado del proceso, consultas..."></textarea></div>
-    <div class="fg"><label class="fl">Usuario deseado para el sistema</label><input class="fi" id="r-user" placeholder="Ej: dra.garcia, dr.perez (sin espacios)" autocapitalize="none"></div>
+
+    <div class="sec-div"><span>🔐 Credenciales de acceso</span></div>
+    <div style="background:rgba(255,107,0,0.06);border:1px solid rgba(255,107,0,0.2);border-radius:var(--r2);padding:12px 14px;margin-bottom:14px;font-size:12px;color:var(--t2);line-height:1.7">
+      <strong style="color:var(--or2)">Crea tu usuario y contraseña</strong> — los usarás cada vez que ingreses al portal BIOAuditoria. Guárdalos en un lugar seguro.
+    </div>
+    <div class="fg"><label class="fl">Usuario <span class="req-star">*</span></label>
+      <input class="fi" id="r-user" placeholder="Ej: dra.garcia, dr.perez (sin espacios ni tildes)" autocapitalize="none" autocomplete="off" spellcheck="false">
+      <div class="fi-hint"><i class="fas fa-info-circle"></i>Solo letras minúsculas, números y puntos. Sin espacios.</div>
+    </div>
+    <div class="fgrid">
+      <div class="fg"><label class="fl">Contraseña <span class="req-star">*</span></label>
+        <div style="position:relative">
+          <input class="fi" type="password" id="r-pass" placeholder="Mínimo 6 caracteres" autocomplete="new-password" style="padding-right:44px">
+          <button type="button" onclick="toggleRegPass('r-pass','r-eye1')" style="position:absolute;right:0;top:0;bottom:0;width:44px;background:none;border:none;cursor:pointer;color:#9090B8;font-size:16px;display:flex;align-items:center;justify-content:center"><i class="fas fa-eye" id="r-eye1"></i></button>
+        </div>
+      </div>
+      <div class="fg"><label class="fl">Confirmar contraseña <span class="req-star">*</span></label>
+        <div style="position:relative">
+          <input class="fi" type="password" id="r-pass2" placeholder="Repite la contraseña" autocomplete="new-password" style="padding-right:44px">
+          <button type="button" onclick="toggleRegPass('r-pass2','r-eye2')" style="position:absolute;right:0;top:0;bottom:0;width:44px;background:none;border:none;cursor:pointer;color:#9090B8;font-size:16px;display:flex;align-items:center;justify-content:center"><i class="fas fa-eye" id="r-eye2"></i></button>
+        </div>
+      </div>
+    </div>
+    <div id="r-pass-err" style="display:none;background:rgba(239,68,68,0.1);border:1px solid rgba(239,68,68,0.3);border-radius:var(--r3);padding:9px 12px;font-size:12px;color:#ff7b87;margin-bottom:10px"></div>
 
     <div class="btn-nav">
       <button class="btn-prev" onclick="goStep(4)"><i class="fas fa-arrow-left"></i></button>
-      <button class="btn-next" onclick="enviarRegistro()"><i class="fas fa-paper-plane"></i> Enviar registro</button>
+      <button class="btn-next" onclick="enviarRegistro()"><i class="fas fa-paper-plane"></i> Crear cuenta y enviar</button>
     </div>
   </div>
 
@@ -454,26 +477,35 @@ select.fi option{background:var(--s1);color:var(--t1)}
   <div class="step" id="step-6">
     <div class="success-screen">
       <div class="success-icon">✅</div>
-      <div class="success-title">¡Registro enviado!</div>
-      <div class="success-sub">Tu información fue guardada correctamente. El administrador de BIOAuditoria configurará tu acceso al portal y recibirás tus credenciales pronto.</div>
+      <div class="success-title">¡Cuenta creada!</div>
+      <div class="success-sub">Tu información fue guardada y tu acceso está listo. Ya puedes ingresar al portal BIOAuditoria con las credenciales que creaste.</div>
 
       <div class="code-box">
-        <div class="code-lbl">⚙️ Código de configuración (para el admin)</div>
-        <div class="code-mono" id="success-code"></div>
-        <button class="code-copy" id="copy-reg-btn" onclick="copyRegCode()">📋 Copiar código</button>
+        <div class="code-lbl">🔐 Tus credenciales de acceso</div>
+        <div style="display:flex;flex-direction:column;gap:8px">
+          <div style="background:var(--s3);border-radius:8px;padding:10px 14px;display:flex;justify-content:space-between;align-items:center">
+            <span style="font-size:11px;color:var(--t2);text-transform:uppercase;font-weight:700">Usuario</span>
+            <span class="code-mono" id="success-user" style="background:none;border:none;padding:0;font-size:14px;font-weight:800;color:var(--or2)"></span>
+          </div>
+          <div style="background:var(--s3);border-radius:8px;padding:10px 14px;display:flex;justify-content:space-between;align-items:center">
+            <span style="font-size:11px;color:var(--t2);text-transform:uppercase;font-weight:700">Contraseña</span>
+            <span class="code-mono" id="success-pass" style="background:none;border:none;padding:0;font-size:14px;font-weight:800;color:var(--pu2)"></span>
+          </div>
+        </div>
+        <p style="font-size:11px;color:var(--t2);margin-top:8px;line-height:1.6">📱 Guarda estos datos. Los necesitarás cada vez que ingreses.</p>
       </div>
 
       <div class="next-steps">
         <div class="ns-title">📋 Próximos pasos para tu proceso de habilitación</div>
-        <div class="ns-item"><div class="ns-num">1</div><div>El admin crea tu cuenta en el sistema y te envía usuario y contraseña por correo.</div></div>
-        <div class="ns-item"><div class="ns-num">2</div><div>Accedes al portal BIOAuditoria con tu usuario y completas los documentos faltantes en cada estándar.</div></div>
-        <div class="ns-item"><div class="ns-num">3</div><div>El admin genera tu lista de chequeo Res. 3100/2019 y la carta de radicación ante la Secretaría de Salud.</div></div>
+        <div class="ns-item"><div class="ns-num">1</div><div>Ingresa al portal con tu usuario y contraseña para acceder a todos tus documentos.</div></div>
+        <div class="ns-item"><div class="ns-num">2</div><div>Completa los documentos faltantes en cada estándar de la Res. 3100/2019.</div></div>
+        <div class="ns-item"><div class="ns-num">3</div><div>El admin revisará tu solicitud y generará tu lista de chequeo y carta de radicación ante la Secretaría de Salud.</div></div>
         <div class="ns-item"><div class="ns-num">4</div><div>Radicas el formulario REPS en línea en <a href="https://prestadores.minsalud.gov.co" target="_blank" style="color:var(--pu2)">prestadores.minsalud.gov.co</a> con todos los documentos completos.</div></div>
         <div class="ns-item"><div class="ns-num">5</div><div>La Secretaría de Salud realiza la visita de verificación. Usa el módulo de auditoría para registrar los hallazgos.</div></div>
       </div>
 
-      <button onclick="window.location.href='../'" style="width:100%;margin-top:16px;padding:13px;background:linear-gradient(135deg,var(--or),var(--pu));color:#fff;border:none;border-radius:var(--r2);font-size:14px;font-weight:800;cursor:pointer;font-family:inherit">
-        <i class="fas fa-home"></i> Ir al inicio de BIOAuditoria
+      <button onclick="irAlPortal()" style="width:100%;margin-top:16px;padding:14px;background:linear-gradient(135deg,var(--or),var(--pu));color:#fff;border:none;border-radius:var(--r2);font-size:14px;font-weight:800;cursor:pointer;font-family:inherit;display:flex;align-items:center;justify-content:center;gap:8px">
+        <i class="fas fa-sign-in-alt"></i> Ingresar al portal ahora
       </button>
     </div>
   </div>
@@ -646,9 +678,30 @@ function row(lbl, val) {
 }
 function g(id) { var el = document.getElementById(id); return el ? el.value.trim() : ''; }
 
+function toggleRegPass(inputId, iconId) {
+  var inp = document.getElementById(inputId);
+  var icon = document.getElementById(iconId);
+  if (inp.type === 'password') { inp.type = 'text'; icon.className = 'fas fa-eye-slash'; }
+  else { inp.type = 'password'; icon.className = 'fas fa-eye'; }
+}
+
 function enviarRegistro() {
-  var user = g('r-user') || g('r-nombre').toLowerCase().replace(/\s+/g,'.').replace(/[^a-z0-9.]/g,'').substring(0,20);
-  var pass = Math.random().toString(36).slice(2, 10);
+  var user = g('r-user').toLowerCase().replace(/\s+/g,'').replace(/[^a-z0-9.]/g,'').substring(0,20);
+  if (!user) {
+    var autoUser = g('r-nombre').toLowerCase().replace(/\s+/g,'.').replace(/[^a-z0-9.]/g,'').substring(0,20);
+    document.getElementById('r-user').value = autoUser;
+    user = autoUser;
+  }
+  var pass = g('r-pass');
+  var pass2 = g('r-pass2');
+  var errEl = document.getElementById('r-pass-err');
+
+  // Validations
+  if (!user) { var el = document.getElementById('r-user'); el.focus(); el.style.borderColor='var(--red)'; setTimeout(function(){el.style.borderColor='';},2000); return; }
+  if (pass.length < 6) { errEl.textContent = 'La contraseña debe tener al menos 6 caracteres.'; errEl.style.display='block'; document.getElementById('r-pass').focus(); return; }
+  if (pass !== pass2) { errEl.textContent = 'Las contraseñas no coinciden. Verifica e intenta de nuevo.'; errEl.style.display='block'; document.getElementById('r-pass2').focus(); return; }
+  errEl.style.display = 'none';
+
   var cliente = {
     nombre: g('r-nombre'), cedula: g('r-cedula'), especialidad: g('r-esp'),
     tarjeta_profesional: g('r-tp'), rethus: g('r-rethus'),
@@ -694,8 +747,17 @@ function enviarRegistro() {
     localStorage.setItem('bio_servicios_' + user, JSON.stringify(svcData));
   }
 
-  var linea = "'" + user + "': {pass:'" + pass + "', role:'cliente', to:'cliente/index.html'},";
-  document.getElementById('success-code').textContent = linea;
+  // AUTO-ACTIVATE: save credentials immediately so client can log in right away
+  var db = JSON.parse(localStorage.getItem('bio_users_db') || '{}');
+  db[user] = { pass: pass, role: 'cliente', to: 'cliente/index.html' };
+  localStorage.setItem('bio_users_db', JSON.stringify(db));
+
+  // Save client data under direct key for O(1) routing
+  localStorage.setItem('bio_cli_' + user, JSON.stringify(cliente));
+
+  // Show credentials in success screen
+  document.getElementById('success-user').textContent = user;
+  document.getElementById('success-pass').textContent = pass;
 
   goStep(6);
 }
@@ -721,6 +783,18 @@ function enviarAFirebase(data) {
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(data)
   }).catch(function(e){ console.warn('Firebase write failed:', e); });
+}
+
+function irAlPortal() {
+  // Log the user in directly
+  var user = document.getElementById('success-user').textContent;
+  if (user) {
+    sessionStorage.setItem('bio_user', user);
+    sessionStorage.setItem('bio_role', 'cliente');
+    window.location.href = '../cliente/index.html';
+  } else {
+    window.location.href = '../';
+  }
 }
 
 // Init
