@@ -290,6 +290,16 @@ select.fi option{background:var(--s1)}
 .fp-name{flex:1;font-weight:700;word-break:break-all}
 .fp-size{color:var(--t2);font-size:11px;white-space:nowrap}
 .fp-del{background:none;border:none;color:var(--red);cursor:pointer;font-size:14px;font-family:inherit;padding:0}
+/* ─── Multi-file list ─── */
+.mf-item{display:flex;align-items:center;gap:8px;background:rgba(34,197,94,0.07);border:1px solid rgba(34,197,94,0.2);border-radius:var(--r3);padding:8px 12px;font-size:11px;animation:fadeIn 0.2s ease}
+.mf-ico{font-size:16px;flex-shrink:0}
+.mf-info{flex:1;min-width:0}
+.mf-name{font-weight:700;color:var(--t1);word-break:break-all;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:220px}
+.mf-meta{font-size:10px;color:var(--t2);margin-top:1px}
+.mf-view{background:rgba(255,107,0,0.1);border:1px solid rgba(255,107,0,0.3);color:var(--or2);border-radius:6px;padding:3px 8px;font-size:10px;font-weight:700;cursor:pointer;font-family:inherit}
+.mf-del{background:rgba(239,68,68,0.08);border:1px solid rgba(239,68,68,0.2);color:var(--red);border-radius:6px;padding:3px 8px;font-size:10px;font-weight:700;cursor:pointer;font-family:inherit}
+.mf-add-btn{display:flex;align-items:center;gap:6px;padding:7px 12px;border-radius:var(--r3);background:rgba(255,107,0,0.06);border:1px dashed rgba(255,107,0,0.3);color:var(--or2);font-size:11px;font-weight:700;cursor:pointer;font-family:inherit;width:100%;justify-content:center;margin-top:6px;transition:all 0.15s}
+.mf-add-btn:hover{background:rgba(255,107,0,0.12)}
 
 /* ─── SIDEBAR (desktop only) ─── */
 .sidebar{display:none}
@@ -897,22 +907,22 @@ select.fi option{background:var(--s1)}
       <button class="docm-close" onclick="closeDm()"><i class="fas fa-times"></i></button>
     </div>
     <div class="docm-body">
-      <!-- Upload zone -->
+      <!-- Upload zone — múltiples archivos -->
       <div style="margin-bottom:6px">
-        <label class="dm-fl">Archivo del documento</label>
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:6px">
+          <label class="dm-fl" style="margin:0">Archivos del documento</label>
+          <span id="docm-file-count" style="font-size:10px;color:var(--t2);font-weight:700"></span>
+        </div>
         <div class="upload-zone" id="docm-upload-zone" ondragover="dmDragOver(event)" ondragleave="dmDragLeave()" ondrop="dmDrop(event)">
-          <input type="file" id="docm-file-input" accept=".pdf,.doc,.docx,.xls,.xlsx,.jpg,.jpeg,.png,.txt" onchange="dmFileSelected(this)">
+          <input type="file" id="docm-file-input" accept=".pdf,.doc,.docx,.xls,.xlsx,.jpg,.jpeg,.png,.txt" onchange="dmFileSelected(this)" multiple>
           <div class="uz-ico">📎</div>
-          <div class="uz-txt"><strong>Toca para subir un archivo</strong><br>PDF, Word, Excel, imágenes — máx. 5MB</div>
+          <div class="uz-txt"><strong>Toca para subir archivos</strong><br>PDF, Word, Excel, imágenes · Puedes seleccionar varios a la vez · máx. 5MB c/u</div>
         </div>
-        <div class="file-preview" id="docm-file-preview" style="display:none;">
-          <i class="fas fa-file-check" style="color:var(--green);font-size:16px"></i>
-          <span class="fp-name" id="docm-fp-name"></span>
-          <span class="fp-size" id="docm-fp-size"></span>
-          <button class="fp-del" onclick="dmClearFile()" title="Quitar archivo">✕</button>
-        </div>
-        <div id="docm-file-current" style="display:none;font-size:11px;color:var(--t2);margin-bottom:14px;padding:8px 12px;background:var(--s2);border-radius:var(--r3);border:1px solid var(--bd)">
-          📁 Archivo actual: <span id="docm-fc-name" style="color:var(--or2);font-weight:700"></span>
+        <!-- Lista de archivos cargados -->
+        <div id="docm-files-list" style="display:none;margin-top:8px;display:flex;flex-direction:column;gap:6px"></div>
+        <!-- Archivo único ya guardado (retrocompatible) -->
+        <div id="docm-file-current" style="display:none;font-size:11px;color:var(--t2);margin-top:8px;padding:8px 12px;background:var(--s2);border-radius:var(--r3);border:1px solid var(--bd)">
+          📁 Archivo guardado: <span id="docm-fc-name" style="color:var(--or2);font-weight:700"></span>
         </div>
       </div>
 
@@ -1484,11 +1494,12 @@ function renderEstandares(){
       var safeId = d.id.replace(/'/g,"\\'");
       var safeEid = e.id.replace(/'/g,"\\'");
       var safeGen = (d._gen||'').replace(/'/g,"\\'");
-      var hasFile = d._file_data || d.archivo;
+      var hasFile = d._file_data || d.archivo || d._has_file;
+      var fileCount = d._file_count || (hasFile ? 1 : 0);
       var vencHtml = d.vencimiento?'<span style="font-size:9px;color:var(--yellow);margin-left:4px">⏰ '+d.vencimiento+'</span>':'';
       var notasHtml = d.notas?'<div style="font-size:10px;color:var(--t2);margin-top:3px;line-height:1.4;font-style:italic">💬 '+d.notas+'</div>':'';
       var statusBadge = sh(d.estado);
-      var fileIcon = hasFile?'<i class="fas fa-paperclip" style="color:var(--green);font-size:10px;margin-left:4px" title="Tiene archivo adjunto"></i>':'';
+      var fileIcon = hasFile?(fileCount>1?'<span style="display:inline-flex;align-items:center;gap:2px;background:rgba(34,197,94,0.15);border:1px solid rgba(34,197,94,0.3);border-radius:4px;padding:0 4px;font-size:9px;color:var(--green);font-weight:800;margin-left:5px;vertical-align:middle">📎 '+fileCount+'</span>':'<i class="fas fa-paperclip" style="color:var(--green);font-size:10px;margin-left:4px" title="Tiene archivo adjunto"></i>'):'';
       var genBtn = safeGen?'<button class="dab" onclick="generarFormato(\''+safeGen+'\')" title="Generar / editar documento" style="background:linear-gradient(135deg,rgba(255,107,0,0.15),rgba(123,47,190,0.15));border:1px solid rgba(255,107,0,0.35);color:var(--or2);font-size:11px;width:auto;padding:0 8px;gap:4px"><i class="fas fa-file-alt"></i><span style="font-size:10px;font-weight:800">Generar</span></button>':'';
       return '<div class="doc-row" id="doc-row-'+safeId+'">'
         +'<div class="doc-ico" style="'+docIcoBg(d.estado)+'">'+docEmoji(d.tipo)+'</div>'
@@ -1629,7 +1640,7 @@ function getDocFile(did){
 
 // ── Abrir modal para doc existente ─────────────────────────────
 function openDm(eid, did){
-  _dmEid = eid; _dmDid = did; _dmFileData = null;
+  _dmEid = eid; _dmDid = did; _dmFileData = null; _dmFiles = [];
   var est = C.estandares.find(function(e){ return e.id === eid; });
   var doc = est ? est.documentos.find(function(d){ return d.id === did; }) : null;
   var ei = ES.find(function(x){ return x.id === eid; });
@@ -1641,15 +1652,22 @@ function openDm(eid, did){
   document.getElementById('docm-tipo').value = doc ? (doc.tipo||'documento') : 'documento';
   document.getElementById('docm-vencimiento').value = doc ? (doc.vencimiento||'') : '';
   document.getElementById('docm-notas').value = doc ? (doc.notas||'') : '';
-  dmClearFile();
-  // Mostrar archivo actual
+  // Restaurar archivos múltiples guardados
+  if(doc){
+    var user = sessionStorage.getItem('bio_user') || 'guest';
+    try {
+      var saved = localStorage.getItem('bio_docfiles_'+user+'_'+did);
+      if(saved){ _dmFiles = JSON.parse(saved); }
+      else if(doc._has_file || doc._file_data){
+        // Compatibilidad: convertir archivo único a lista
+        var fd = doc._file_data || localStorage.getItem('bio_docfile_'+user+'_'+did);
+        if(fd) _dmFiles = [{ name: doc.archivo||'archivo', size: 0, type: doc._file_type||'', data: fd }];
+      }
+    } catch(e){ _dmFiles = []; }
+  }
+  _dmRenderFileList();
   var curEl = document.getElementById('docm-file-current');
-  var curNm = document.getElementById('docm-fc-name');
-  var hasFile = doc && (doc._has_file || doc._file_data || doc.archivo);
-  if(hasFile){
-    curEl.style.display = 'block';
-    curNm.textContent = doc.archivo || (doc._has_file ? '(archivo guardado)' : '');
-  } else { curEl.style.display = 'none'; }
+  if(curEl) curEl.style.display = 'none';
   document.getElementById('docm-overlay').classList.add('open');
   document.body.style.overflow = 'hidden';
 }
@@ -1666,7 +1684,7 @@ function openDmUpload(eid, did){
 
 // ── Abrir modal para nuevo documento ──────────────────────────
 function openDmNew(eid){
-  _dmEid = eid; _dmDid = null; _dmFileData = null;
+  _dmEid = eid; _dmDid = null; _dmFileData = null; _dmFiles = [];
   var ei = ES.find(function(x){ return x.id === eid; });
   document.getElementById('docm-title').textContent = 'Agregar documento';
   document.getElementById('docm-estandar').textContent = ei ? 'Estándar '+ei.num+' — '+ei.nombre : '';
@@ -1685,34 +1703,75 @@ function openDmNew(eid){
 function closeDm(){
   document.getElementById('docm-overlay').classList.remove('open');
   document.body.style.overflow = '';
-  _dmFileData = null;
+  _dmFileData = null; _dmFiles = [];
 }
 
-// ── Selección de archivo ───────────────────────────────────────
+// ── Lista de archivos en memoria (múltiples) ───────────────────
+var _dmFiles = []; // [{name, size, type, data}]
+
+function _dmRenderFileList(){
+  var list = document.getElementById('docm-files-list');
+  var countEl = document.getElementById('docm-file-count');
+  if(!list) return;
+  if(_dmFiles.length === 0){ list.style.display = 'none'; countEl.textContent = ''; return; }
+  list.style.display = 'flex';
+  countEl.textContent = _dmFiles.length + ' archivo' + (_dmFiles.length>1?'s':'') + ' cargado' + (_dmFiles.length>1?'s':'');
+  list.innerHTML = _dmFiles.map(function(f, i){
+    var ext = (f.name.split('.').pop()||'').toLowerCase();
+    var ico = ext==='pdf'?'📄':ext==='doc'||ext==='docx'?'📝':ext==='xls'||ext==='xlsx'?'📊':ext==='jpg'||ext==='jpeg'||ext==='png'?'🖼️':'📎';
+    return '<div class="mf-item" id="mf-item-'+i+'">'
+      +'<span class="mf-ico">'+ico+'</span>'
+      +'<div class="mf-info"><div class="mf-name" title="'+f.name+'">'+f.name+'</div>'
+      +'<div class="mf-meta">'+(f.size/1024).toFixed(0)+' KB · '+ext.toUpperCase()+'</div></div>'
+      +'<button class="mf-view" onclick="dmViewFileIdx('+i+')" title="Ver archivo">👁 Ver</button>'
+      +'<button class="mf-del" onclick="dmRemoveFile('+i+')" title="Eliminar">✕</button>'
+      +'</div>';
+  }).join('')
+  + '<button class="mf-add-btn" onclick="document.getElementById(\'docm-file-input\').click()"><i class="fas fa-plus"></i> Agregar más archivos</button>';
+}
+
 function dmFileSelected(input){
-  var file = input.files[0];
-  if(!file) return;
-  if(file.size > 5 * 1024 * 1024){
-    alert('El archivo es demasiado grande. Máximo 5MB.');
-    input.value = ''; return;
+  var files = Array.from(input.files||[]);
+  if(!files.length) return;
+  var tooBig = files.filter(function(f){ return f.size > 5*1024*1024; });
+  if(tooBig.length){
+    showToast('⚠ Archivos muy grandes (máx 5MB): '+tooBig.map(function(f){return f.name;}).join(', '));
+    files = files.filter(function(f){ return f.size <= 5*1024*1024; });
   }
-  var reader = new FileReader();
-  reader.onload = function(e){
-    _dmFileData = { name: file.name, size: file.size, type: file.type, data: e.target.result };
-    document.getElementById('docm-fp-name').textContent = file.name;
-    document.getElementById('docm-fp-size').textContent = (file.size/1024).toFixed(0)+' KB';
-    var fp = document.getElementById('docm-file-preview');
-    fp.style.display = 'flex'; fp.classList.add('show');
-    document.getElementById('docm-upload-zone').style.display = 'none';
-  };
-  reader.readAsDataURL(file);
+  if(!files.length){ input.value=''; return; }
+  var done = 0;
+  files.forEach(function(file){
+    var reader = new FileReader();
+    reader.onload = function(e){
+      _dmFiles.push({ name: file.name, size: file.size, type: file.type, data: e.target.result });
+      done++;
+      if(done === files.length){ input.value=''; _dmRenderFileList(); }
+    };
+    reader.readAsDataURL(file);
+  });
+}
+
+function dmRemoveFile(idx){
+  _dmFiles.splice(idx, 1);
+  _dmRenderFileList();
+}
+
+function dmViewFileIdx(idx){
+  var f = _dmFiles[idx]; if(!f) return;
+  var w = window.open('','_blank');
+  if(!w) return;
+  if(f.type && f.type.indexOf('image')>=0){
+    w.document.write('<html><body style="margin:0;background:#111;display:flex;align-items:center;justify-content:center;min-height:100vh"><img src="'+f.data+'" style="max-width:100%;max-height:100vh;object-fit:contain"></body></html>');
+  } else {
+    w.document.write('<html><body style="margin:0"><embed src="'+f.data+'" width="100%" height="100%" style="position:fixed;inset:0"></body></html>');
+  }
+  w.document.close();
 }
 
 function dmClearFile(){
+  _dmFiles = [];
   _dmFileData = null;
-  var fp2 = document.getElementById('docm-file-preview');
-  fp2.style.display = 'none'; fp2.classList.remove('show');
-  document.getElementById('docm-upload-zone').style.display = 'block';
+  _dmRenderFileList();
   var inp = document.getElementById('docm-file-input');
   if(inp) inp.value = '';
 }
@@ -1722,11 +1781,13 @@ function dmDragLeave(){ document.getElementById('docm-upload-zone').classList.re
 function dmDrop(e){
   e.preventDefault();
   document.getElementById('docm-upload-zone').classList.remove('drag');
-  var file = e.dataTransfer.files[0];
-  if(file){ var inp = document.getElementById('docm-file-input'); /* simulate selection */
-    var dt = new DataTransfer(); dt.items.add(file);
-    inp.files = dt.files; dmFileSelected(inp);
-  }
+  var droppedFiles = e.dataTransfer.files;
+  if(!droppedFiles || !droppedFiles.length) return;
+  var inp = document.getElementById('docm-file-input');
+  var dt = new DataTransfer();
+  Array.from(droppedFiles).forEach(function(f){ dt.items.add(f); });
+  inp.files = dt.files;
+  dmFileSelected(inp);
 }
 
 // ── Guardar ────────────────────────────────────────────────────
@@ -1751,11 +1812,13 @@ function dmGuardar(){
       doc.vencimiento = document.getElementById('docm-vencimiento').value || '';
       doc.notas = document.getElementById('docm-notas').value.trim();
       doc._modified = now;
-      if(_dmFileData){
-        doc._file_data = _dmFileData.data;
-        doc.archivo = _dmFileData.name;
-        doc._has_file = true;
-        doc._file_type = _dmFileData.type;
+      var user2 = sessionStorage.getItem('bio_user') || 'guest';
+      if(_dmFiles.length > 0){
+        // Guardar array de archivos
+        var slim = _dmFiles.map(function(f){ return {name:f.name,size:f.size,type:f.type,data:f.data}; });
+        try { localStorage.setItem('bio_docfiles_'+user2+'_'+_dmDid, JSON.stringify(slim)); } catch(e){ showToast('⚠ Almacenamiento lleno, archivos no guardados'); }
+        doc.archivo = _dmFiles.map(function(f){return f.name;}).join(', ');
+        doc._has_file = true; doc._file_count = _dmFiles.length;
       }
     }
   } else {
@@ -1773,11 +1836,12 @@ function dmGuardar(){
       _created: now,
       _modified: now
     };
-    if(_dmFileData){
-      newDoc._file_data = _dmFileData.data;
-      newDoc.archivo = _dmFileData.name;
-      newDoc._has_file = true;
-      newDoc._file_type = _dmFileData.type;
+    var user3 = sessionStorage.getItem('bio_user') || 'guest';
+    if(_dmFiles.length > 0){
+      var slim2 = _dmFiles.map(function(f){ return {name:f.name,size:f.size,type:f.type,data:f.data}; });
+      try { localStorage.setItem('bio_docfiles_'+user3+'_'+newId, JSON.stringify(slim2)); } catch(e){ showToast('⚠ Almacenamiento lleno, archivos no guardados'); }
+      newDoc.archivo = _dmFiles.map(function(f){return f.name;}).join(', ');
+      newDoc._has_file = true; newDoc._file_count = _dmFiles.length;
     }
     est.documentos.push(newDoc);
   }
@@ -1802,8 +1866,9 @@ function dmEliminar(eid, did){
   if(!confirm('¿Eliminar "'+doc.nombre+'"?\nEsta acción no se puede deshacer.')) return;
   var user = sessionStorage.getItem('bio_user') || 'guest';
   est.documentos = est.documentos.filter(function(d){ return d.id !== did; });
-  // Limpiar archivo
+  // Limpiar archivos
   try { localStorage.removeItem('bio_docfile_'+user+'_'+did); } catch(e){}
+  try { localStorage.removeItem('bio_docfiles_'+user+'_'+did); } catch(e){}
   saveDocMods();
   renderEstandares();
   setTimeout(function(){ openEstd(eid); }, 50);
