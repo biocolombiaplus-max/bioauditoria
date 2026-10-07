@@ -55,26 +55,35 @@
     var margin = 48;
     var rgb = hexToRgb(tenant.colorPrimario);
 
-    // Mismo membrete (logo, nombre, datos de contacto) que el informe de
-    // resultados, la cotización y su recibo — un laboratorio que activa el
-    // membrete grande en Configuración lo ve igual en todos sus documentos
-    // impresos. Si el laboratorio desactivó "Incluir el membrete en la
-    // Factura / Recibo" (Configuración → Operación — pensado para
-    // imprimir sobre papel ya membretado de fábrica), se salta por
-    // completo: el documento arranca directo en el margen, sin ningún
-    // logo ni dato del laboratorio arriba.
-    var y = tenant.facturaConMembrete === false ? margin : await window.BIO_PDF.dibujarMembrete(doc, tenant, margin);
-
-    // ---- Título + número, centrados, con línea divisoria de color debajo -
-    doc.setFont("helvetica", "bold"); doc.setFontSize(17); doc.setTextColor(20, 20, 20);
-    doc.text("RECIBO DE PAGO", pageW / 2, y, { align: "center" });
-    y += 17;
-    doc.setFont("helvetica", "bold"); doc.setFontSize(10.5); doc.setTextColor(rgb[0], rgb[1], rgb[2]);
-    doc.text("N° " + numeroRecibo(order), pageW / 2, y, { align: "center" });
-    y += 14;
-    doc.setDrawColor(rgb[0], rgb[1], rgb[2]); doc.setLineWidth(1.3);
-    doc.line(margin, y, pageW - margin, y);
-    y += 26;
+    var conMembrete = tenant.facturaConMembrete !== false;
+    var y;
+    if (conMembrete) {
+      // Mismo membrete (logo, nombre, datos de contacto) que el informe de
+      // resultados, la cotización y su recibo — un laboratorio que activa
+      // el membrete grande en Configuración lo ve igual en todos sus
+      // documentos impresos.
+      y = await window.BIO_PDF.dibujarMembrete(doc, tenant, margin);
+      // ---- Título + número, centrados, con línea divisoria de color debajo
+      doc.setFont("helvetica", "bold"); doc.setFontSize(17); doc.setTextColor(20, 20, 20);
+      doc.text("RECIBO DE PAGO", pageW / 2, y, { align: "center" });
+      y += 17;
+      doc.setFont("helvetica", "bold"); doc.setFontSize(10.5); doc.setTextColor(rgb[0], rgb[1], rgb[2]);
+      doc.text("N° " + numeroRecibo(order), pageW / 2, y, { align: "center" });
+      y += 14;
+      doc.setDrawColor(rgb[0], rgb[1], rgb[2]); doc.setLineWidth(1.3);
+      doc.line(margin, y, pageW - margin, y);
+      y += 26;
+    } else {
+      // Sin membrete: NI el logo/datos del laboratorio NI ningún número
+      // propio de BIOsoft — pensado para imprimir sobre un papel que ya
+      // viene membretado y pre-numerado de fábrica (ej. "Forma Libre"
+      // venezolana, numerada por el SENIAT); un título o número propio
+      // encima duplicaría o entraría en conflicto con el de la hoja. El
+      // documento arranca directo con los datos de la orden, en el
+      // espacio en blanco que el laboratorio configuró para que coincida
+      // con su papel (Configuración → Operación).
+      y = margin + (tenant.facturaMembreteEspacioSuperior != null ? tenant.facturaMembreteEspacioSuperior : 4.5) * 28.3465;
+    }
 
     // ---- Datos del paciente / del pago, en dos columnas ------------------
     // "Recibo detallado" (opción por laboratorio): si la orden es de un

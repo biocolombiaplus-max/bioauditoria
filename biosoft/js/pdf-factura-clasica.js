@@ -52,11 +52,15 @@
     // (nombre grande de la empresa a un lado, caja de identificación
     // fiscal y número de documento al otro). Si el laboratorio desactivó
     // "Incluir el membrete en la Factura / Recibo" (Configuración →
-    // Operación — pensado para imprimir sobre papel ya membretado de
-    // fábrica), se omite TODO este bloque de identidad del laboratorio
-    // (logo, nombre, eslogan, RIF, dirección, contacto): el documento
-    // arranca directo con el N° de Factura, sin nada del laboratorio
-    // arriba. ---------------------------------------------------------
+    // Operación), se omite TODO este bloque de identidad del laboratorio
+    // (logo, nombre, eslogan, RIF, dirección, contacto) Y TAMBIÉN el N°
+    // de Factura — pensado para imprimir sobre un papel que ya viene
+    // membretado Y PRE-NUMERADO de fábrica (ej. "Forma Libre" venezolana,
+    // numerada y controlada por el SENIAT): un N° de Factura propio de
+    // BIOsoft ahí duplicaría o entraría en conflicto con el número
+    // oficial que ya trae la hoja. El documento arranca directo con los
+    // datos del cliente y de la orden, en el espacio en blanco que el
+    // laboratorio configuró para que coincida con su papel. ------------
     var y = margin;
     var conMembrete = tenant.facturaConMembrete !== false;
     if (conMembrete) {
@@ -91,14 +95,12 @@
       doc.text("FACTURA Nº " + String(factura.numero).padStart(6, "0"), xCajaRif + wCajaRif, yContacto + 12, { align: "right" });
 
       y = Math.max(yNombre + 22, yContacto + 24) + 8;
+      doc.setDrawColor(rgb[0], rgb[1], rgb[2]); doc.setLineWidth(1.4);
+      doc.line(margin, y, pageW - margin, y);
+      y += 18;
     } else {
-      doc.setFont("helvetica", "bold"); doc.setFontSize(15); doc.setTextColor(rgbNaranja[0], rgbNaranja[1], rgbNaranja[2]);
-      doc.text("FACTURA Nº " + String(factura.numero).padStart(6, "0"), pageW - margin, y + 12, { align: "right" });
-      y += 30;
+      y = margin + (tenant.facturaMembreteEspacioSuperior != null ? tenant.facturaMembreteEspacioSuperior : 4.5) * 28.3465;
     }
-    doc.setDrawColor(rgb[0], rgb[1], rgb[2]); doc.setLineWidth(1.4);
-    doc.line(margin, y, pageW - margin, y);
-    y += 18;
 
     // ---- Datos del cliente / de la orden, en dos columnas ----------------
     var col1 = margin, col2 = pageW / 2 + 10;
@@ -190,8 +192,14 @@
     doc.setFont("helvetica", "normal"); doc.setFontSize(8); doc.setTextColor(90, 90, 90);
     doc.text("Firma y sello", margin, y + 12);
 
-    doc.setFont("helvetica", "bold"); doc.setFontSize(9); doc.setTextColor(60, 60, 60);
-    doc.text("N° DE CONTROL " + String(factura.numero).padStart(8, "0"), pageW - margin, y - 4, { align: "right" });
+    // El N° de Control también se omite sin membrete: el papel
+    // pre-impreso venezolano ya trae el suyo propio al pie (ver nota del
+    // encabezado más arriba) — imprimir otro encima confundiría cuál es
+    // el número fiscal válido del documento.
+    if (conMembrete) {
+      doc.setFont("helvetica", "bold"); doc.setFontSize(9); doc.setTextColor(60, 60, 60);
+      doc.text("N° DE CONTROL " + String(factura.numero).padStart(8, "0"), pageW - margin, y - 4, { align: "right" });
+    }
 
     doc.setFont("helvetica", "normal"); doc.setFontSize(7); doc.setTextColor(140, 140, 140);
     doc.text("Documento generado electrónicamente por BIOsoft — " + new Date().toLocaleString("es-CO") + ". Sin tachaduras ni enmiendas.", margin, 770, { maxWidth: pageW - margin * 2 });

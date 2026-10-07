@@ -1553,7 +1553,11 @@
         "</select></div>" +
         '<p class="text-muted" style="margin:4px 0 12px;font-size:12.5px">Con "Factura Estilo Clásico", al generar el Recibo de Pago de una orden por primera vez se abre un formulario para revisar el código, precio y cantidad de cada examen (por si necesitas facturar más de una unidad de un mismo examen) y agregar descuento, impuesto y observaciones — igual que una factura de venta tradicional. Solo se pide una vez por orden: al reenviarla, se reutiliza lo que ya se armó.</p>' +
         '<div class="checkbox-row"><input type="checkbox" id="f_facturaConMembrete" ' + (tenant.facturaConMembrete !== false ? "checked" : "") + '/><label style="margin:0" for="f_facturaConMembrete">Incluir el membrete (logo, nombre y datos del laboratorio) en la Factura / Recibo</label></div>' +
-        '<p class="text-muted" style="margin:4px 0 12px;font-size:12.5px">Desactívalo si prefieres una Factura / Recibo totalmente limpia, sin ningún logo ni dato del laboratorio arriba — pensado para imprimir sobre papel que ya viene membretado de fábrica. Con esta opción apagada, el documento arranca directo con el N° de factura/recibo y los datos de la orden; esto no afecta al Informe de Resultados ni a la Cotización, que tienen su propia opción de membrete más abajo.</p>' +
+        '<p class="text-muted" style="margin:4px 0 12px;font-size:12.5px">Desactívalo si vas a imprimir sobre un papel que ya viene membretado de fábrica — muy común en Venezuela con la "Forma Libre" numerada por el SENIAT (logo, RIF y N° de Factura ya impresos de la imprenta, como en tu ejemplo). Con esta opción apagada, BIOsoft NO dibuja ningún logo, dato del laboratorio ni número de factura/recibo propio — eso lo duplicaría o entraría en conflicto con el número oficial que ya trae tu hoja — el documento sale solo con los datos de la orden (cliente, exámenes, totales). Esto no afecta al Informe de Resultados ni a la Cotización, que tienen su propia opción de membrete más abajo.</p>' +
+        '<div id="factura-sin-membrete-opciones" class="' + (tenant.facturaConMembrete === false ? "" : "hidden") + '" style="margin:0 0 12px;padding-left:2px">' +
+        '<div class="field" style="max-width:320px"><label>Espacio en blanco arriba de la hoja (cm)</label><input type="number" id="f_facturaEspacioSuperior" min="0" max="15" step="0.5" value="' + (tenant.facturaMembreteEspacioSuperior != null ? tenant.facturaMembreteEspacioSuperior : 4.5) + '"/></div>' +
+        '<p class="text-muted" style="margin:4px 0 0;font-size:12.5px">Mide desde el borde superior de tu hoja pre-impresa hasta donde termina el encabezado (logo, RIF, N° de Factura…) y pon esa medida aquí — el contenido que genera BIOsoft (datos del cliente, exámenes, totales) empezará justo ahí debajo, para no pisar lo que ya está impreso. Imprime una hoja de prueba y ajusta el número si no queda exacto.</p>' +
+        "</div>" +
         '<div class="field" style="max-width:420px"><label>Formato del N° de Orden</label><select id="f_formatoNumeroOrden">' +
         Object.keys(S.FORMATOS_NUMERO_ORDEN).map(function (k) { return '<option value="' + k + '" ' + ((tenant.formatoNumeroOrden || "diario") === k ? "selected" : "") + '>' + U.esc(S.FORMATOS_NUMERO_ORDEN[k].nombre) + "</option>"; }).join("") +
         "</select></div>" +
@@ -1652,6 +1656,9 @@
     refrescarOpcionesLogoGrande();
     document.getElementById("f_logoGrandeReporte").addEventListener("change", refrescarOpcionesLogoGrande);
     document.getElementById("f_logoAnchoCompleto").addEventListener("change", refrescarOpcionesLogoGrande);
+    document.getElementById("f_facturaConMembrete").addEventListener("change", function () {
+      document.getElementById("factura-sin-membrete-opciones").classList.toggle("hidden", this.checked);
+    });
     document.getElementById("f_logoAnchoPorcentaje").addEventListener("input", function (e) {
       document.getElementById("logo-ancho-pct-valor").textContent = e.target.value;
     });
@@ -1710,6 +1717,7 @@
       tenant.reciboConvenioComoCredito = document.getElementById("f_reciboConvenioComoCredito").checked;
       tenant.formatoFactura = document.getElementById("f_formatoFactura").value;
       tenant.facturaConMembrete = document.getElementById("f_facturaConMembrete").checked;
+      tenant.facturaMembreteEspacioSuperior = parseFloat(document.getElementById("f_facturaEspacioSuperior").value) || 4.5;
       tenant.formatoNumeroOrden = document.getElementById("f_formatoNumeroOrden").value;
       tenant.logoGrandeReporte = document.getElementById("f_logoGrandeReporte").checked;
       tenant.logoAnchoCompleto = document.getElementById("f_logoAnchoCompleto").checked;
@@ -1770,7 +1778,7 @@
           telefonos: tenant.telefonos, email: tenant.email, sitioWeb: tenant.sitioWeb,
           resolucionHabilitacion: tenant.resolucionHabilitacion, codigoREPS: tenant.codigoREPS, nivel: tenant.nivel,
           bacteriologoResponsable: tenant.bacteriologoResponsable, mostrarPrecioOrden: tenant.mostrarPrecioOrden, reportarCIM: tenant.reportarCIM,
-          reciboConvenioComoCredito: tenant.reciboConvenioComoCredito, formatoFactura: tenant.formatoFactura, facturaConMembrete: tenant.facturaConMembrete, formatoNumeroOrden: tenant.formatoNumeroOrden,
+          reciboConvenioComoCredito: tenant.reciboConvenioComoCredito, formatoFactura: tenant.formatoFactura, facturaConMembrete: tenant.facturaConMembrete, facturaMembreteEspacioSuperior: tenant.facturaMembreteEspacioSuperior, formatoNumeroOrden: tenant.formatoNumeroOrden,
           logoGrandeReporte: tenant.logoGrandeReporte, logoAnchoCompleto: tenant.logoAnchoCompleto, logoAnchoPorcentaje: tenant.logoAnchoPorcentaje, ocultarNombreEncabezado: tenant.ocultarNombreEncabezado,
           colorBandaSeccion: tenant.colorBandaSeccion, bandaSeccionSinColor: tenant.bandaSeccionSinColor, membreteEnTodasLasHojas: tenant.membreteEnTodasLasHojas,
           datosPacienteEstiloDiscreto: tenant.datosPacienteEstiloDiscreto, ocultarInterpretacion: tenant.ocultarInterpretacion, ocultarValorReferencia: tenant.ocultarValorReferencia,
