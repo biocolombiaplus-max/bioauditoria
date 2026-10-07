@@ -471,22 +471,24 @@ select.fi option{background:var(--s1);color:var(--t1)}
       <strong style="color:var(--or2)">Crea tu usuario y contraseña</strong> — los usarás cada vez que ingreses al portal BIOAuditoria. Guárdalos en un lugar seguro.
     </div>
     <div class="fg"><label class="fl">Usuario <span class="req-star">*</span></label>
-      <input class="fi" id="r-user" placeholder="Ej: dra.garcia, dr.perez (sin espacios ni tildes)" autocapitalize="none" autocomplete="off" spellcheck="false">
-      <div class="fi-hint"><i class="fas fa-info-circle"></i>Solo letras minúsculas, números y puntos. Sin espacios.</div>
+      <input class="fi" id="r-user" placeholder="Ej: dra.paola, dr.rodriguez, o tu correo electrónico" autocapitalize="none" autocomplete="off" spellcheck="false" oninput="limpiarUsuario()" onblur="limpiarUsuario()">
+      <div id="r-user-preview" style="display:none;margin-top:6px;background:rgba(34,197,94,0.1);border:1px solid rgba(34,197,94,0.3);border-radius:8px;padding:8px 12px;font-size:12px;color:#22C55E;line-height:1.5">
+        <strong>Tu usuario quedará:</strong> <span id="r-user-clean" style="font-family:monospace;font-size:13px;color:#22C55E"></span>
+      </div>
+      <div class="fi-hint"><i class="fas fa-info-circle"></i>Puedes usar tu correo, nombre o cualquier palabra clave. Se limpian automáticamente los caracteres especiales.</div>
     </div>
-    <div class="fgrid">
-      <div class="fg"><label class="fl">Contraseña <span class="req-star">*</span></label>
-        <div style="position:relative">
-          <input class="fi" type="password" id="r-pass" placeholder="Mínimo 6 caracteres" autocomplete="new-password" style="padding-right:44px">
-          <button type="button" onclick="toggleRegPass('r-pass','r-eye1')" style="position:absolute;right:0;top:0;bottom:0;width:44px;background:none;border:none;cursor:pointer;color:#9090B8;font-size:16px;display:flex;align-items:center;justify-content:center"><i class="fas fa-eye" id="r-eye1"></i></button>
-        </div>
+    <div class="fg"><label class="fl">Contraseña <span class="req-star">*</span></label>
+      <div style="position:relative">
+        <input class="fi" type="password" id="r-pass" placeholder="Mínimo 4 caracteres" autocomplete="new-password" style="padding-right:44px" oninput="checkPassMatch()">
+        <button type="button" onclick="toggleRegPass('r-pass','r-eye1')" style="position:absolute;right:0;top:0;bottom:0;width:44px;background:none;border:none;cursor:pointer;color:#9090B8;font-size:16px;display:flex;align-items:center;justify-content:center"><i class="fas fa-eye" id="r-eye1"></i></button>
       </div>
-      <div class="fg"><label class="fl">Confirmar contraseña <span class="req-star">*</span></label>
-        <div style="position:relative">
-          <input class="fi" type="password" id="r-pass2" placeholder="Repite la contraseña" autocomplete="new-password" style="padding-right:44px">
-          <button type="button" onclick="toggleRegPass('r-pass2','r-eye2')" style="position:absolute;right:0;top:0;bottom:0;width:44px;background:none;border:none;cursor:pointer;color:#9090B8;font-size:16px;display:flex;align-items:center;justify-content:center"><i class="fas fa-eye" id="r-eye2"></i></button>
-        </div>
+    </div>
+    <div class="fg"><label class="fl">Confirmar contraseña <span class="req-star">*</span></label>
+      <div style="position:relative">
+        <input class="fi" type="password" id="r-pass2" placeholder="Repite la contraseña" autocomplete="new-password" style="padding-right:44px" oninput="checkPassMatch()">
+        <button type="button" onclick="toggleRegPass('r-pass2','r-eye2')" style="position:absolute;right:0;top:0;bottom:0;width:44px;background:none;border:none;cursor:pointer;color:#9090B8;font-size:16px;display:flex;align-items:center;justify-content:center"><i class="fas fa-eye" id="r-eye2"></i></button>
       </div>
+      <div id="r-pass-match" style="display:none;margin-top:5px;font-size:12px;font-weight:700"></div>
     </div>
     <div id="r-pass-err" style="display:none;background:rgba(239,68,68,0.1);border:1px solid rgba(239,68,68,0.3);border-radius:var(--r3);padding:9px 12px;font-size:12px;color:#ff7b87;margin-bottom:10px"></div>
 
@@ -652,6 +654,16 @@ function goStep(n) {
   }
   if (n === 5) {
     buildResumen();
+    // Auto-suggest username from name if field is empty
+    var uField = document.getElementById('r-user');
+    if (uField && !uField.value.trim()) {
+      var sugg = cleanUser(g('r-nombre') || '');
+      if (sugg) { uField.value = sugg; limpiarUsuario(); }
+    }
+    // Focus password if username already filled
+    if (uField && uField.value.trim()) {
+      setTimeout(function(){ document.getElementById('r-pass').focus(); }, 200);
+    }
   }
   document.getElementById('step-' + currentStep).classList.remove('act');
   currentStep = n;
@@ -715,6 +727,47 @@ function getEsp() {
   return sel.value;
 }
 
+function limpiarUsuario() {
+  var raw = document.getElementById('r-user').value;
+  if (!raw.trim()) { document.getElementById('r-user-preview').style.display='none'; return; }
+  // If looks like email, take part before @
+  var clean = raw;
+  if (raw.indexOf('@') >= 0) clean = raw.split('@')[0];
+  // Normalize: lowercase, remove accents, keep only a-z 0-9 .
+  clean = clean.toLowerCase()
+    .replace(/[áàäâ]/g,'a').replace(/[éèëê]/g,'e').replace(/[íìïî]/g,'i')
+    .replace(/[óòöô]/g,'o').replace(/[úùüû]/g,'u').replace(/ñ/g,'n')
+    .replace(/\s+/g,'.').replace(/[^a-z0-9.]/g,'').replace(/\.{2,}/g,'.').replace(/^\.+|\.+$/g,'')
+    .substring(0,25);
+  var preview = document.getElementById('r-user-preview');
+  var cleanEl = document.getElementById('r-user-clean');
+  if (clean && clean !== raw) {
+    cleanEl.textContent = clean;
+    preview.style.display = 'block';
+  } else {
+    preview.style.display = 'none';
+  }
+}
+
+function checkPassMatch() {
+  var p1 = document.getElementById('r-pass').value;
+  var p2 = document.getElementById('r-pass2').value;
+  var el = document.getElementById('r-pass-match');
+  if (!p2) { el.style.display='none'; return; }
+  if (p1 === p2) { el.style.display='block'; el.style.color='#22C55E'; el.textContent='✅ Las contraseñas coinciden'; }
+  else { el.style.display='block'; el.style.color='#ff7b87'; el.textContent='⚠️ Las contraseñas no coinciden aún'; }
+}
+
+function cleanUser(raw) {
+  var clean = raw;
+  if (raw.indexOf('@') >= 0) clean = raw.split('@')[0];
+  return clean.toLowerCase()
+    .replace(/[áàäâ]/g,'a').replace(/[éèëê]/g,'e').replace(/[íìïî]/g,'i')
+    .replace(/[óòöô]/g,'o').replace(/[úùüû]/g,'u').replace(/ñ/g,'n')
+    .replace(/\s+/g,'.').replace(/[^a-z0-9.]/g,'').replace(/\.{2,}/g,'.').replace(/^\.+|\.+$/g,'')
+    .substring(0,25);
+}
+
 function toggleRegPass(inputId, iconId) {
   var inp = document.getElementById(inputId);
   var icon = document.getElementById(iconId);
@@ -723,23 +776,45 @@ function toggleRegPass(inputId, iconId) {
 }
 
 function enviarRegistro() {
-  var user = g('r-user').toLowerCase().replace(/\s+/g,'').replace(/[^a-z0-9.]/g,'').substring(0,20);
-  if (!user) {
-    var autoUser = g('r-nombre').toLowerCase().replace(/\s+/g,'.').replace(/[^a-z0-9.]/g,'').substring(0,20);
-    document.getElementById('r-user').value = autoUser;
-    user = autoUser;
-  }
-  var pass = g('r-pass');
-  var pass2 = g('r-pass2');
   var errEl = document.getElementById('r-pass-err');
+  if (errEl) errEl.style.display = 'none';
 
-  // Validations
-  if (!user) { var el = document.getElementById('r-user'); el.focus(); el.style.borderColor='var(--red)'; setTimeout(function(){el.style.borderColor='';},2000); return; }
-  if (pass.length < 6) { errEl.textContent = 'La contraseña debe tener al menos 6 caracteres.'; errEl.style.display='block'; document.getElementById('r-pass').focus(); return; }
-  if (pass !== pass2) { errEl.textContent = 'Las contraseñas no coinciden. Verifica e intenta de nuevo.'; errEl.style.display='block'; document.getElementById('r-pass2').focus(); return; }
-  errEl.style.display = 'none';
+  // ── 1. Limpiar usuario ──────────────────────────────────────────
+  var rawUser = document.getElementById('r-user') ? document.getElementById('r-user').value.trim() : '';
+  var user = rawUser ? cleanUser(rawUser) : '';
+  if (!user) user = cleanUser(g('r-nombre') || 'usuario' + Date.now());
 
-  var cliente = {
+  // ── 2. Leer contraseñas directamente del DOM (no usar g() para evitar trim issues) ──
+  var passEl  = document.getElementById('r-pass');
+  var pass2El = document.getElementById('r-pass2');
+  var pass  = passEl  ? passEl.value  : '';
+  var pass2 = pass2El ? pass2El.value : '';
+
+  // ── 3. Validaciones visibles ────────────────────────────────────
+  if (!user) {
+    errEl.textContent = 'Por favor escribe un nombre de usuario.';
+    errEl.style.display = 'block'; return;
+  }
+  if (!pass || pass.length < 4) {
+    errEl.textContent = 'La contraseña debe tener al menos 4 caracteres.';
+    errEl.style.display = 'block';
+    if (passEl) passEl.focus(); return;
+  }
+  if (pass !== pass2) {
+    errEl.textContent = 'Las contraseñas no coinciden. Verifica e intenta de nuevo.';
+    errEl.style.display = 'block';
+    if (pass2El) pass2El.focus(); return;
+  }
+
+  // ── 4. Feedback visual al usuario ──────────────────────────────
+  var btn = document.querySelector('#step-5 .btn-next');
+  if (btn) { btn.disabled = true; btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Guardando...'; }
+
+  // Wrap everything from here in a master try-catch so goStep(6) always fires
+  try {
+
+  // ── 5. Construir objeto cliente (SIN archivos base64 pesados en la lista principal) ──
+  var clienteLite = {
     nombre: g('r-nombre'), cedula: g('r-cedula'), especialidad: getEsp(),
     tarjeta_profesional: g('r-tp'), rethus: g('r-rethus'),
     empresa: g('r-empresa'), nit: g('r-nit'), nivel_atencion: parseInt(g('r-nivel') || '1'),
@@ -752,50 +827,81 @@ function enviarRegistro() {
     usuario: user, pass: pass,
     estado_habilitacion: 'nuevo',
     fecha_registro: new Date().toLocaleDateString('es-CO'),
-    docs_personales: regDocs,
     servicios_reps: regSvcs,
+    docs_count: Object.keys(regDocs).length,
     _desde_formulario: true
   };
 
-  // Save to localStorage (fallback)
-  var pendientes = JSON.parse(localStorage.getItem('bio_reg_pendientes') || '[]');
-  pendientes.push(cliente);
-  localStorage.setItem('bio_reg_pendientes', JSON.stringify(pendientes));
+  // ── 6. Guardar todo en try-catch independientes ─────────────────
+  // 6a. Credenciales de acceso (CRÍTICO — se guarda primero)
+  try {
+    var db = JSON.parse(localStorage.getItem('bio_users_db') || '{}');
+    db[user] = { pass: pass, role: 'cliente', to: 'cliente/index.html' };
+    localStorage.setItem('bio_users_db', JSON.stringify(db));
+  } catch(e) { console.warn('bio_users_db error:', e); }
 
-  // Save to Firebase (shared with admin panel)
-  enviarAFirebase(cliente);
+  // 6b. Datos del cliente para routing directo
+  try {
+    localStorage.setItem('bio_cli_' + user, JSON.stringify(clienteLite));
+  } catch(e) {
+    // Si falla por tamaño, guardar versión mínima
+    try {
+      localStorage.setItem('bio_cli_' + user, JSON.stringify({
+        nombre: clienteLite.nombre, empresa: clienteLite.empresa, nit: clienteLite.nit,
+        ciudad: clienteLite.ciudad, telefono: clienteLite.telefono, email: clienteLite.email,
+        usuario: user, pass: pass, color1: clienteLite.color1, color2: clienteLite.color2,
+        estado_habilitacion: 'nuevo', nivel_atencion: clienteLite.nivel_atencion
+      }));
+    } catch(e2) { console.warn('bio_cli error:', e2); }
+  }
 
-  // Also save as a regular client
-  var clientes = JSON.parse(localStorage.getItem('bio_clientes_list') || '[]');
-  clientes.push(cliente);
-  localStorage.setItem('bio_clientes_list', JSON.stringify(clientes));
+  // 6c. Lista de clientes
+  try {
+    var clientes = JSON.parse(localStorage.getItem('bio_clientes_list') || '[]');
+    // Evitar duplicados
+    clientes = clientes.filter(function(c){ return c.usuario !== user; });
+    clientes.push(clienteLite);
+    localStorage.setItem('bio_clientes_list', JSON.stringify(clientes));
+  } catch(e) { console.warn('bio_clientes_list error:', e); }
 
-  // Save docs
+  // 6d. Pendientes para admin
+  try {
+    var pendientes = JSON.parse(localStorage.getItem('bio_reg_pendientes') || '[]');
+    pendientes.push(clienteLite);
+    localStorage.setItem('bio_reg_pendientes', JSON.stringify(pendientes));
+  } catch(e) { console.warn('bio_reg_pendientes error:', e); }
+
+  // 6e. Documentos (por separado, pueden ser pesados)
   if (Object.keys(regDocs).length > 0) {
-    localStorage.setItem('bio_docs_reg_' + user, JSON.stringify(regDocs));
+    try { localStorage.setItem('bio_docs_reg_' + user, JSON.stringify(regDocs)); }
+    catch(e) { console.warn('docs too large for localStorage:', e); }
   }
 
-  // Save REPS services
+  // 6f. Servicios REPS
   if (regSvcs.length > 0) {
-    var svcData = regSvcs.map(function(k) {
-      var s = SERVICIOS_REPS_REG.find(function(x){ return x.codigo === k; });
-      return s ? {codigo: s.codigo, nombre: s.nombre, nivel: s.nivel, estado: 'en_proceso', fecha_inscripcion: new Date().toLocaleDateString('es-CO')} : null;
-    }).filter(Boolean);
-    localStorage.setItem('bio_servicios_' + user, JSON.stringify(svcData));
+    try {
+      var svcData = regSvcs.map(function(k) {
+        var s = SERVICIOS_REPS_REG.find(function(x){ return x.codigo === k; });
+        return s ? {codigo: s.codigo, nombre: s.nombre, nivel: s.nivel, estado: 'en_proceso', fecha_inscripcion: new Date().toLocaleDateString('es-CO')} : null;
+      }).filter(Boolean);
+      localStorage.setItem('bio_servicios_' + user, JSON.stringify(svcData));
+    } catch(e) { console.warn('bio_servicios error:', e); }
   }
 
-  // AUTO-ACTIVATE: save credentials immediately so client can log in right away
-  var db = JSON.parse(localStorage.getItem('bio_users_db') || '{}');
-  db[user] = { pass: pass, role: 'cliente', to: 'cliente/index.html' };
-  localStorage.setItem('bio_users_db', JSON.stringify(db));
+  // 6g. Firebase (async, no bloquea)
+  try { enviarAFirebase(clienteLite); } catch(e) {}
 
-  // Save client data under direct key for O(1) routing
-  localStorage.setItem('bio_cli_' + user, JSON.stringify(cliente));
+  // ── 7. Mostrar pantalla de éxito ────────────────────────────────
+  try {
+    var suEl = document.getElementById('success-user');
+    var spEl = document.getElementById('success-pass');
+    if (suEl) suEl.textContent = user;
+    if (spEl) spEl.textContent = pass;
+  } catch(e) {}
 
-  // Show credentials in success screen
-  document.getElementById('success-user').textContent = user;
-  document.getElementById('success-pass').textContent = pass;
+  } catch(masterErr) { console.error('enviarRegistro master error:', masterErr); }
 
+  // SIEMPRE avanzar al paso 6
   goStep(6);
 }
 
