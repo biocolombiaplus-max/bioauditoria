@@ -380,11 +380,11 @@
           (tenant.mostrarPrecioOrden ? '<div class="field"><label>Valor a Cobrar</label><input id="f_valorCobrar" type="text" inputmode="decimal" value=""/>' +
             '<span class="text-muted" style="font-size:11px" id="valorCobrar-hint">Se calcula solo según los exámenes que selecciones — puedes ajustarlo a mano.</span>' +
             '<span class="text-muted" style="font-size:11px;display:block" id="valorCobrar-equiv"></span></div>' : "") +
-          // Exclusivo del laboratorio(s) con tenant.cuotaAdministrativaHabilitada
-          // en true (ver Configuración → Operación, encendido solo por
-          // superadmin) — un cargo adicional fijo, opcional, que se suma al
-          // Valor a Cobrar y queda como línea aparte en el Recibo/Factura.
-          (tenant.cuotaAdministrativaHabilitada && tenant.mostrarPrecioOrden && tenant.cuotaAdministrativaValor > 0
+          // Solo aparece en laboratorios que definieron un valor en
+          // Configuración → Operación → "Valor de la Cuota Administrativa"
+          // — un cargo adicional fijo, opcional, que se suma al Valor a
+          // Cobrar y queda como línea aparte en el Recibo/Factura.
+          (tenant.mostrarPrecioOrden && tenant.cuotaAdministrativaValor > 0
             ? '<div class="field"><label class="flex gap-2" style="align-items:center;font-weight:400"><input type="checkbox" id="f_cuotaAdmin" style="width:auto"/> Incluir Cuota Administrativa (' + fmtMoneda(tenant.cuotaAdministrativaValor) + ')</label></div>'
             : "") +
           // Solo Venezuela: ahí es normal que, según el paciente, el cobro
@@ -1569,7 +1569,7 @@
         (tenant.mostrarPrecioOrden ? (tienePago
           ? '<div class="field"><label>Valor a Cobrar</label><div style="padding:9px 0;font-weight:600">' + fmtMoneda(order.valorCobrar || 0) + '</div><span class="text-muted" style="font-size:11px">Esta orden ya tiene un pago registrado — usa "Corregir Monto de Pago" desde la orden para cambiarlo.</span></div>'
           : '<div class="field"><label>Valor a Cobrar</label><input id="eo_valorCobrar" type="text" inputmode="decimal" value="' + (order.valorCobrar || "") + '"/></div>') : "") +
-        (tenant.cuotaAdministrativaHabilitada && tenant.mostrarPrecioOrden && !tienePago
+        (tenant.mostrarPrecioOrden && tenant.cuotaAdministrativaValor > 0 && !tienePago
           ? '<div class="field"><label class="flex gap-2" style="align-items:center;font-weight:400"><input type="checkbox" id="eo_cuotaAdmin" style="width:auto" ' + (order.cuotaAdministrativaIncluida ? "checked" : "") + '/> Incluir Cuota Administrativa (' + fmtMoneda(tenant.cuotaAdministrativaValor || 0) + ')</label>' +
             '<span class="text-muted" style="font-size:11px">Cambiar esto NO ajusta el Valor a Cobrar automáticamente — ajústalo arriba si hace falta.</span></div>'
           : "") +

@@ -151,11 +151,11 @@
       var precio = preciosPorId[ex.examId];
       return [nombre, precio != null ? fmtMoneda(precio) : "—"];
     });
-    // Exclusivo de laboratorios con Cuota Administrativa habilitada (ver
-    // tenant.cuotaAdministrativaHabilitada en Configuración → Operación) —
-    // se muestra como una línea más de la tabla, con el valor YA congelado
-    // en la orden al momento de crearla (order.cuotaAdministrativaValor),
-    // no el valor actual configurado en el tenant.
+    // Solo aparece en laboratorios que definieron un valor de Cuota
+    // Administrativa (Configuración → Operación) y la incluyeron en esta
+    // orden — se muestra como una línea más de la tabla, con el valor YA
+    // congelado en la orden al momento de crearla
+    // (order.cuotaAdministrativaValor), no el valor actual del tenant.
     if (order.cuotaAdministrativaIncluida) {
       filasExamenes.push(hayAlgunPrecio ? ["Cuota Administrativa", fmtMoneda(order.cuotaAdministrativaValor || 0)] : ["Cuota Administrativa"]);
     }
