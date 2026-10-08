@@ -2803,10 +2803,36 @@
     // o inactivo" — porque falta, además, el documento que enlaza esa
     // cuenta con este laboratorio. Esta herramienta detecta ese caso
     // exacto por usuario, y permite repararlo con un clic.
+    // Firestore puede dejar una promesa pendiente PARA SIEMPRE si la
+    // conexión del superadmin está mala a mitad de camino (no falla, no
+    // avisa nada: simplemente nunca resuelve) — el mismo problema real ya
+    // resuelto para "Guardar Configuración" más abajo (ver
+    // promesaConLimite), aplicado aquí a Diagnóstico de Acceso y Reparar
+    // Permisos Operativos: ambos podían quedarse pegados en
+    // "Revisando…"/"Reparando…" sin ningún aviso, de forma indistinguible
+    // de un bug real — caso reportado puntual con un laboratorio en
+    // particular, probablemente por una conexión débil del celular en ese
+    // momento. Esto limita solo la ESPERA (no cancela la operación real,
+    // que Firestore puede seguir intentando sola) a 8 segundos: pasado
+    // ese tiempo, se libera el botón con un mensaje claro para reintentar
+    // en vez de quedarse pegado sin explicación.
+    function conLimiteDeTiempo(promesa) {
+      var yaTermino = false;
+      promesa.then(function () { yaTermino = true; }, function () { yaTermino = true; });
+      return Promise.race([
+        promesa,
+        new Promise(function (resolve, reject) {
+          setTimeout(function () {
+            if (!yaTermino) reject(new Error("Esto está tardando más de lo normal — revisa tu conexión a internet e inténtalo de nuevo."));
+          }, 8000);
+        })
+      ]);
+    }
+
     function abrirDiagnosticoAcceso(tenant) {
       var wrapCargando = U.openModal('<h3 class="modal-title">🔍 Diagnóstico de Acceso — ' + U.esc(tenant.nombre) + '</h3><p class="text-muted">Revisando el enlace de acceso de cada usuario…</p>');
       function cargarYMostrar() {
-        S.tenantsGlobal.diagnosticarAcceso(tenant.id).then(function (resultados) {
+        conLimiteDeTiempo(S.tenantsGlobal.diagnosticarAcceso(tenant.id)).then(function (resultados) {
           U.closeModal(wrapCargando);
           var wrap = U.openModal(
             '<h3 class="modal-title">🔍 Diagnóstico de Acceso — ' + U.esc(tenant.nombre) + '</h3>' +
@@ -2827,7 +2853,7 @@
             b.addEventListener("click", function () {
               var r = resultados[Number(b.dataset.reparar)];
               b.disabled = true; b.textContent = "Reparando…";
-              S.tenantsGlobal.repararPerfilAcceso(tenant.id, r.usuario).then(function () {
+              conLimiteDeTiempo(S.tenantsGlobal.repararPerfilAcceso(tenant.id, r.usuario)).then(function () {
                 U.toast(r.usuario.nombre + " ya puede entrar con su usuario y contraseña actuales.", "success");
                 U.closeModal(wrap);
                 wrapCargando = U.openModal('<h3 class="modal-title">🔍 Diagnóstico de Acceso — ' + U.esc(tenant.nombre) + '</h3><p class="text-muted">Actualizando…</p>');
@@ -2870,7 +2896,7 @@
       wrap.querySelector("#btn-confirmar-reparar").addEventListener("click", function (e) {
         var btn = e.currentTarget;
         btn.disabled = true; btn.textContent = "Reparando…";
-        S.tenantsGlobal.repararPermisosOperativos(tenant.id).then(function (res) {
+        conLimiteDeTiempo(S.tenantsGlobal.repararPermisosOperativos(tenant.id)).then(function (res) {
           U.closeModal(wrap);
           U.toast(res.reparados ? "Listo: se corrigieron los permisos de " + res.reparados + " usuario(s)." : "Todo el personal ya tenía los permisos correctos — no había nada que corregir.", "success");
         }).catch(function (err) {
