@@ -1562,7 +1562,8 @@
         Object.keys(S.FORMATOS_NUMERO_ORDEN).map(function (k) { return '<option value="' + k + '" ' + ((tenant.formatoNumeroOrden || "diario") === k ? "selected" : "") + '>' + U.esc(S.FORMATOS_NUMERO_ORDEN[k].nombre) + "</option>"; }).join("") +
         "</select></div>" +
         '<p class="text-muted" style="margin:4px 0 0;font-size:12.5px">Elige cómo se numeran las nuevas órdenes de tu laboratorio. Cambiar el formato no afecta el número de las órdenes ya creadas — solo aplica a las que se creen de aquí en adelante.</p>' +
-        '<div class="field" style="max-width:260px"><label>Valor de la Cuota Administrativa (opcional)</label><input type="number" id="f_cuotaAdministrativaValor" min="0" step="0.01" value="' + (tenant.cuotaAdministrativaValor || "") + '"/></div>' +
+        '<div class="action-menu-group-title">Cuota Administrativa (opcional)</div>' +
+        '<div class="field" style="max-width:260px"><label>Valor a cobrar por la Cuota Administrativa</label><input type="number" id="f_cuotaAdministrativaValor" min="0" step="0.01" value="' + (tenant.cuotaAdministrativaValor || "") + '"/></div>' +
         '<p class="text-muted" style="margin:4px 0 0;font-size:12.5px">Si defines un valor aquí, vas a poder incluir la Cuota Administrativa como cargo adicional opcional al crear o editar una orden, y aparecerá como línea aparte tanto en el Recibo de Pago como en la Factura. Déjalo vacío o en 0 si tu laboratorio no cobra ninguna cuota administrativa.</p>' +
         "</fieldset>" +
         '<fieldset><legend>Diseño del Reporte de Resultados</legend>' +
