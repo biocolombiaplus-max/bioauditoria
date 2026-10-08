@@ -18,6 +18,18 @@
   };
   function mapFirebaseError(err) {
     if (err && err.code && FIREBASE_ERRORS[err.code]) return FIREBASE_ERRORS[err.code];
+    // "failed-precondition" de Firestore casi siempre significa que el
+    // almacenamiento sin conexión (IndexedDB) quedó bloqueado por OTRA
+    // pestaña/ventana de BIOsoft ya abierta en el mismo navegador (ej. una
+    // pestaña vieja que quedó atrás tras usar el panel de superadmin) — no
+    // tiene nada que ver con las Reglas de Firestore (esas fallan con
+    // "permission-denied", un código distinto) ni con el correo/contraseña.
+    // Se explica así, accionable, en vez del mensaje técnico genérico de
+    // abajo que solo manda a escribirle a soporte por algo que el usuario
+    // mismo puede resolver cerrando las otras pestañas.
+    if (err && err.code === "failed-precondition") {
+      return "Parece que tienes BIOsoft abierto en otra pestaña o ventana del navegador, y eso está bloqueando el ingreso. Cierra TODAS las demás pestañas de BIOsoft (o cierra el navegador por completo) y vuelve a intentar.";
+    }
     // Errores propios que lanza loginReal() (ej. "Esta cuenta no tiene un
     // laboratorio asociado." o "No se encontró el usuario del laboratorio.")
     // no traen un código auth/* de Firebase — antes se perdían y siempre se
