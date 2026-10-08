@@ -525,7 +525,7 @@
     function accionContrato(c) {
       var plan = BIO_PLANES.porId(c.planId);
       if (!plan) { U.toast("Este cliente no tiene un plan asignado.", "error"); return; }
-      var bytes = BIO_PDF_CRM.buildContratoPDF(clienteParaDocs(c), plan, c.modalidadPago);
+      var bytes = BIO_PDF_CRM.buildContratoPDF(clienteParaDocs(c), plan, c.modalidadPago, { cobraEquipos: BIO_PLANES.cobraPorEquipos(c) });
       var mensaje = "Hola " + (c.contacto && c.contacto.nombre ? c.contacto.nombre.split(" ")[0] : "") + " 👋 Te comparto el contrato de prestación de servicios de BIOsoft para " + (c.laboratorio && c.laboratorio.nombre || "tu laboratorio") + ". Cualquier duda, quedo atento.";
       abrirEnviarDocumento({
         titulo: "Enviar Contrato", bytes: bytes, nombreArchivo: "Contrato_BIOsoft_" + (c.laboratorio.nombre || "Cliente").replace(/\s+/g, "_") + ".pdf",

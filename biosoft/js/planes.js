@@ -66,6 +66,20 @@
 
   function porId(id) { return PLANES.filter(function (p) { return p.id === id; })[0]; }
 
+  /* Si a ESTE laboratorio en particular se le cobra por cada equipo que
+     conecte. Por defecto sigue lo que diga su Plan (interfazEquiposIncluida),
+     pero el superadmin puede forzar una excepción puntual por laboratorio
+     (tenant.cobroEquiposModo: "cobrar" | "no_cobrar" | "" / null = usar el
+     plan) — ver "Plan de [Laboratorio]" en Laboratorios Cliente, porque a
+     algunos laboratorios se les cobra y a otros no, sin importar su plan. */
+  function cobraPorEquipos(tenant) {
+    if (!tenant) return false;
+    if (tenant.cobroEquiposModo === "cobrar") return true;
+    if (tenant.cobroEquiposModo === "no_cobrar") return false;
+    var plan = porId(tenant.planId);
+    return !(plan && plan.interfazEquiposIncluida);
+  }
+
   // ---------------------------------------------------------------------
   // Estado de cuenta de cada laboratorio cliente (para el panel de socios).
   // "suspendido" es un interruptor manual del superadmin (bloquea el acceso
@@ -137,7 +151,7 @@
 
   global.BIO_PLANES = {
     IMPLEMENTACION: IMPLEMENTACION, PLANES: PLANES, TARJETAS_TXT: TARJETAS_TXT, porId: porId,
-    INTERFAZ_EQUIPOS: INTERFAZ_EQUIPOS, PROMOCION_LANZAMIENTO: PROMOCION_LANZAMIENTO,
+    INTERFAZ_EQUIPOS: INTERFAZ_EQUIPOS, PROMOCION_LANZAMIENTO: PROMOCION_LANZAMIENTO, cobraPorEquipos: cobraPorEquipos,
     ESTADOS_CUENTA: ESTADOS_CUENTA, DIAS_AVISO_VENCIMIENTO: DIAS_AVISO_VENCIMIENTO, estadoCuenta: estadoCuenta,
     DIAS_PRUEBA_GRATIS: DIAS_PRUEBA_GRATIS, diasRestantes: diasRestantes,
     proximaFechaCobroTrasPago: proximaFechaCobroTrasPago

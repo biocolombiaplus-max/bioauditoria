@@ -1268,13 +1268,13 @@
   // ------------------------------------------------------------------
   function equiposCardHtml(tenant) {
     var plan = BIO_PLANES.porId(tenant.planId);
-    var incluido = !!(plan && plan.interfazEquiposIncluida);
+    var cobra = BIO_PLANES.cobraPorEquipos(tenant);
     var costo = BIO_PLANES.INTERFAZ_EQUIPOS;
     var equipos = tenant.equiposConectados || [];
     return '<div class="card"><div class="card-header"><h3 class="card-title">🔌 Equipos Conectados</h3></div>' +
       '<p class="text-muted" style="margin-top:0">Conecta analizadores de laboratorio (ej. equipos de hematología) para que envíen resultados directamente a BIOsoft, sin digitarlos a mano. ' +
-      (incluido
-        ? "Tu plan (" + U.esc(plan.nombre) + ") incluye la conexión de equipos sin costo adicional."
+      (!cobra
+        ? "La conexión de equipos no tiene costo adicional para tu laboratorio."
         : "Cada equipo conectado tiene un costo adicional de $" + costo.costoPorEquipoUsd + " USD (≈ $" + costo.costoPorEquipoCopFmt + " COP) — pago único, se cobra solo el primer mes en que conectas ese equipo; después no se vuelve a cobrar por él.") +
       "</p>" +
       (equipos.length
@@ -2164,8 +2164,13 @@
         '<div class="field"><label>Ciclo de cobro habitual (días)</label><input type="number" id="f_cicloCobroDias" min="1" value="' + (tenant.cicloCobroDias || 30) + '"/></div>' +
         '<div class="field"><label>Meses de membresía gratis (si aplica)</label><input type="number" id="f_mesesMembresiaGratis" min="1" value="' + (tenant.mesesMembresiaGratis || "") + '"/></div>' +
         '<div class="field"><label>Meses de cortesía sin cobro (regalo)</label><input type="number" id="f_mesesCortesia" min="0" value="' + (tenant.mesesCortesia || "") + '"/></div>' +
+        '<div class="field"><label>Cobro por conexión de equipos (interfaz con analizadores)</label><select id="f_cobroEquipos">' +
+        '<option value="" ' + ((tenant.cobroEquiposModo || "") === "" ? "selected" : "") + '>Según el plan contratado (por defecto)</option>' +
+        '<option value="cobrar" ' + (tenant.cobroEquiposModo === "cobrar" ? "selected" : "") + '>Sí cobrar — $' + BIO_PLANES.INTERFAZ_EQUIPOS.costoPorEquipoUsd + ' USD (≈ $' + BIO_PLANES.INTERFAZ_EQUIPOS.costoPorEquipoCopFmt + ' COP) por equipo, pago único</option>' +
+        '<option value="no_cobrar" ' + (tenant.cobroEquiposModo === "no_cobrar" ? "selected" : "") + '>No cobrar — incluido sin costo para este laboratorio</option>' +
+        "</select></div>" +
         "</div>" +
-        '<p class="text-muted" style="margin:2px 0 8px;font-size:12px">Estas fechas se fijan automáticamente según lo elegido la primera vez que envíes el contrato, pero puedes ajustarlas manualmente aquí.</p>' +
+        '<p class="text-muted" style="margin:2px 0 8px;font-size:12px">Estas fechas se fijan automáticamente según lo elegido la primera vez que envíes el contrato, pero puedes ajustarlas manualmente aquí. El cobro por conexión de equipos es independiente del plan: a algunos laboratorios se les cobra por equipo conectado y a otros no, sin importar el plan que tengan.</p>' +
         '<div class="field"><label class="flex gap-2" style="align-items:center;font-weight:400"><input type="checkbox" id="f_suspendido" ' + (tenant.suspendido ? "checked" : "") + ' style="width:auto"/> Suspender acceso del laboratorio (bloquea el ingreso por falta de pago)</label></div>' +
         "</fieldset>" +
         '<div class="flex gap-2 justify-between" style="margin-top:6px"><button type="button" class="btn btn-ghost" data-modal-close>Cancelar</button><button type="submit" class="btn btn-primary">' + U.icon("check") + " Guardar</button></div>" +
@@ -2223,6 +2228,7 @@
         tenant.mesesMembresiaGratis = parseInt(wrap.querySelector("#f_mesesMembresiaGratis").value, 10) || null;
         tenant.mesesCortesia = parseInt(wrap.querySelector("#f_mesesCortesia").value, 10) || null;
         tenant.descuentoPlan = descuentoActual || null;
+        tenant.cobroEquiposModo = wrap.querySelector("#f_cobroEquipos").value || null;
         tenant.suspendido = quedaSuspendido;
         if (quedaSuspendido && !estabaSuspendido) tenant.fechaSuspension = new Date().toISOString().slice(0, 10);
         if (!quedaSuspendido) tenant.fechaSuspension = null;
@@ -2241,7 +2247,7 @@
           planId: tenant.planId, maxUsuarios: tenant.maxUsuarios, fechaInicioPlan: tenant.fechaInicioPlan,
           fechaProximoPago: tenant.fechaProximoPago, cicloCobroDias: tenant.cicloCobroDias,
           mesesMembresiaGratis: tenant.mesesMembresiaGratis, mesesCortesia: tenant.mesesCortesia,
-          descuentoPlan: tenant.descuentoPlan,
+          descuentoPlan: tenant.descuentoPlan, cobroEquiposModo: tenant.cobroEquiposModo,
           suspendido: tenant.suspendido, fechaSuspension: tenant.fechaSuspension, esPruebaGratis: tenant.esPruebaGratis
         });
         U.toast("Plan actualizado.", "success");
@@ -2435,7 +2441,7 @@
     function abrirEnviarContrato(tenant) {
       var plan = BIO_PLANES.porId(tenant.planId);
       if (!plan) { U.toast('Asigna primero un plan a este laboratorio (botón "Plan").', "error"); return; }
-      var modalidadActual = tenant.modalidadPago === "semestral" || tenant.modalidadPago === "sin_implementacion" ? tenant.modalidadPago : "mensual";
+      var modalidadActual = ["semestral", "sin_implementacion", "contado"].indexOf(tenant.modalidadPago) !== -1 ? tenant.modalidadPago : "mensual";
       var cicloDiasActual = tenant.cicloCobroDias || 30;
       var mesesMembresiaActual = tenant.mesesMembresiaGratis || 6;
       var mesesCortesiaActual = tenant.mesesCortesia || 0;
@@ -2449,12 +2455,15 @@
       var precioEfectivoCop = descuentoPlanActual ? Math.round(plan.precio * (1 - descuentoPlanActual / 100)) : plan.precio;
       var precioEfectivoUsd = descuentoPlanActual ? Math.round(plan.usd * (1 - descuentoPlanActual / 100)) : plan.usd;
       var precioEfectivoFmt = precioEfectivoCop.toLocaleString("es-CO");
+      var cobraEquiposActual = BIO_PLANES.cobraPorEquipos(tenant);
       function construirMensaje(modalidad, ciclo, mesesMembresia, mesesCortesia) {
         return "Hola 👋 Te comparto el contrato de prestación de servicios de BIOsoft para " + (tenant.nombre || "tu laboratorio") +
           ", Plan " + plan.nombre + " ($" + precioEfectivoFmt + " COP/mes, aprox. $" + precioEfectivoUsd + " USD). " + (modalidad === "semestral"
             ? "Tienes membresía gratis por " + mesesMembresia + " meses de una vez."
             : modalidad === "sin_implementacion"
             ? "No pagas cuota de implementación, solo tu mensualidad."
+            : modalidad === "contado"
+            ? "Pagas la cuota de implementación en un solo pago (pago único, se cobra una sola vez)."
             : "El cobro es cada " + ciclo + " días calendario.") +
           (mesesCortesia > 0 ? " Además, te regalamos " + mesesCortesia + " mes(es) sin cobro de mensualidad." : "") +
           " Cualquier duda, aquí estamos.";
@@ -2465,9 +2474,13 @@
         '<p class="text-muted" style="margin-top:0">Plan: <b>' + U.esc(plan.nombre) + '</b> (' + U.esc(plan.usuarios) + ') · Valor mensual: <b>$' + precioEfectivoFmt + ' COP</b> (aprox. $' + precioEfectivoUsd + ' USD)' +
         (descuentoPlanActual ? ' · incluye descuento adicional del <b>' + descuentoPlanActual + '%</b>' : '') +
         ' — <a href="#" id="con-editar-descuento">editar descuento</a>.</p>' +
+        '<p class="text-muted" style="margin:0 0 10px;font-size:12.5px">Cobro por conexión de equipos: <b>' +
+        (cobraEquiposActual ? ("Sí — $" + BIO_PLANES.INTERFAZ_EQUIPOS.costoPorEquipoUsd + " USD (≈ $" + BIO_PLANES.INTERFAZ_EQUIPOS.costoPorEquipoCopFmt + " COP) por equipo, pago único") : "No incluido para este laboratorio") +
+        '</b> — <a href="#" id="con-editar-equipos">cambiar</a>.</p>' +
         '<div class="form-grid">' +
         '<div class="field"><label>Modalidad de pago</label><select id="con-modalidad">' +
-        '<option value="mensual" ' + (modalidadActual === "mensual" ? "selected" : "") + '>Mes a mes (implementación fraccionada)</option>' +
+        '<option value="mensual" ' + (modalidadActual === "mensual" ? "selected" : "") + '>Mes a mes (implementación fraccionada en 2 cuotas)</option>' +
+        '<option value="contado" ' + (modalidadActual === "contado" ? "selected" : "") + '>Implementación en un solo pago (pago único, se cobra una sola vez)</option>' +
         '<option value="sin_implementacion" ' + (modalidadActual === "sin_implementacion" ? "selected" : "") + '>Sin cobro de implementación (mensualidad normal desde el inicio)</option>' +
         '<option value="semestral" ' + (modalidadActual === "semestral" ? "selected" : "") + '>Membresía gratis de una vez (sin implementación)</option>' +
         "</select></div>" +
@@ -2485,6 +2498,11 @@
         { lg: true }
       );
       wrap.querySelector("#con-editar-descuento").addEventListener("click", function (e) {
+        e.preventDefault();
+        U.closeModal(wrap);
+        abrirEditarPlan(tenant);
+      });
+      wrap.querySelector("#con-editar-equipos").addEventListener("click", function (e) {
         e.preventDefault();
         U.closeModal(wrap);
         abrirEditarPlan(tenant);
@@ -2530,7 +2548,7 @@
         var htmlOriginal = btn.innerHTML;
         btn.disabled = true; btn.innerHTML = "Generando…";
         try {
-          var opts = { cicloCobroDias: cicloElegido, mesesMembresia: mesesElegidos, mesesCortesia: mesesCortesiaElegidos, numeroLicencia: numeroLicenciaDe(tenant), descuentoPlan: descuentoPlanActual };
+          var opts = { cicloCobroDias: cicloElegido, mesesMembresia: mesesElegidos, mesesCortesia: mesesCortesiaElegidos, numeroLicencia: numeroLicenciaDe(tenant), descuentoPlan: descuentoPlanActual, cobraEquipos: cobraEquiposActual };
           var bytes = BIO_PDF_CRM.buildContratoPDF(tenantParaDocs(tenant), plan, modalidadElegida, opts);
           var nombreArchivo = "Contrato_BIOsoft_" + (tenant.nombre || "Cliente").replace(/\s+/g, "_") + ".pdf";
           U.downloadBytes(bytes, nombreArchivo);
@@ -2770,7 +2788,7 @@
     // para disparar directamente el correo de restablecimiento.
     function abrirReenviarAcceso(tenant) {
       U.toast("Buscando el usuario administrador…", "success");
-      S.tenantsGlobal.listUsuarios(tenant.id).then(function (usuarios) {
+      conLimiteDeTiempo(function () { return S.tenantsGlobal.listUsuarios(tenant.id); }).then(function (usuarios) {
         var admin = usuarios.filter(function (u) { return u.rol === "admin"; })[0];
         if (!admin) { abrirCrearAdministrador(tenant, usuarios); return; }
         abrirEnviarMensajeTexto({
@@ -2816,7 +2834,23 @@
     // que Firestore puede seguir intentando sola) a 8 segundos: pasado
     // ese tiempo, se libera el botón con un mensaje claro para reintentar
     // en vez de quedarse pegado sin explicación.
-    function conLimiteDeTiempo(promesa) {
+    // Recibe la promesa YA empezada (uso de siempre) o, mejor, una función
+    // que la arranca (func () { return S.tenantsGlobal.algo(...); }) — así,
+    // si ALGO sale mal ANTES de que exista la promesa (ej. un tenant.id raro
+    // que hace que Firestore reviente de una vez al armar la consulta, en
+    // vez de devolver una promesa que luego falla), ese error también se
+    // atrapa aquí y se avisa, en vez de quedar como una excepción suelta que
+    // detiene el script a mitad de camino y deja el modal pegado en
+    // "Revisando…"/"Reparando…" para siempre, sin ningún aviso — exactamente
+    // el síntoma reportado, e indistinguible a simple vista del caso de
+    // conexión lenta que este helper ya cubría.
+    function conLimiteDeTiempo(promesaOFuncion) {
+      var promesa;
+      try {
+        promesa = typeof promesaOFuncion === "function" ? promesaOFuncion() : promesaOFuncion;
+      } catch (err) {
+        return Promise.reject(err);
+      }
       var yaTermino = false;
       promesa.then(function () { yaTermino = true; }, function () { yaTermino = true; });
       return Promise.race([
@@ -2832,7 +2866,7 @@
     function abrirDiagnosticoAcceso(tenant) {
       var wrapCargando = U.openModal('<h3 class="modal-title">🔍 Diagnóstico de Acceso — ' + U.esc(tenant.nombre) + '</h3><p class="text-muted">Revisando el enlace de acceso de cada usuario…</p>');
       function cargarYMostrar() {
-        conLimiteDeTiempo(S.tenantsGlobal.diagnosticarAcceso(tenant.id)).then(function (resultados) {
+        conLimiteDeTiempo(function () { return S.tenantsGlobal.diagnosticarAcceso(tenant.id); }).then(function (resultados) {
           U.closeModal(wrapCargando);
           var wrap = U.openModal(
             '<h3 class="modal-title">🔍 Diagnóstico de Acceso — ' + U.esc(tenant.nombre) + '</h3>' +
@@ -2853,7 +2887,7 @@
             b.addEventListener("click", function () {
               var r = resultados[Number(b.dataset.reparar)];
               b.disabled = true; b.textContent = "Reparando…";
-              conLimiteDeTiempo(S.tenantsGlobal.repararPerfilAcceso(tenant.id, r.usuario)).then(function () {
+              conLimiteDeTiempo(function () { return S.tenantsGlobal.repararPerfilAcceso(tenant.id, r.usuario); }).then(function () {
                 U.toast(r.usuario.nombre + " ya puede entrar con su usuario y contraseña actuales.", "success");
                 U.closeModal(wrap);
                 wrapCargando = U.openModal('<h3 class="modal-title">🔍 Diagnóstico de Acceso — ' + U.esc(tenant.nombre) + '</h3><p class="text-muted">Actualizando…</p>');
@@ -2896,7 +2930,7 @@
       wrap.querySelector("#btn-confirmar-reparar").addEventListener("click", function (e) {
         var btn = e.currentTarget;
         btn.disabled = true; btn.textContent = "Reparando…";
-        conLimiteDeTiempo(S.tenantsGlobal.repararPermisosOperativos(tenant.id)).then(function (res) {
+        conLimiteDeTiempo(function () { return S.tenantsGlobal.repararPermisosOperativos(tenant.id); }).then(function (res) {
           U.closeModal(wrap);
           U.toast(res.reparados ? "Listo: se corrigieron los permisos de " + res.reparados + " usuario(s)." : "Todo el personal ya tenía los permisos correctos — no había nada que corregir.", "success");
         }).catch(function (err) {
