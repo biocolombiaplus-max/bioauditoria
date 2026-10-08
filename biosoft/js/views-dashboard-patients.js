@@ -313,7 +313,14 @@
           "</tbody></table></div></div>";
 
       document.getElementById("btn-new-pac").addEventListener("click", function () { openPatientForm(null, renderList); });
-      document.getElementById("pac-search").addEventListener("input", function (e) { renderList(e.target.value); });
+      var inputBuscar = document.getElementById("pac-search");
+      inputBuscar.addEventListener("input", function (e) { renderList(e.target.value); });
+      // El foco se pierde en cada re-render (innerHTML rehace el input desde
+      // cero) — se lo devolvemos y dejamos el cursor al final, para poder
+      // seguir escribiendo sin que cada tecla obligue a hacer clic de nuevo
+      // (mismo bug real ya resuelto para el buscador de Órdenes).
+      inputBuscar.focus();
+      inputBuscar.setSelectionRange(inputBuscar.value.length, inputBuscar.value.length);
       root.querySelectorAll("[data-historial]").forEach(function (b) { b.addEventListener("click", function () { abrirHistorialPaciente(S.getPatient(b.dataset.historial)); }); });
       root.querySelectorAll("[data-edit]").forEach(function (b) { b.addEventListener("click", function () { openPatientForm(S.getPatient(b.dataset.edit), function () { renderList(filter); }); }); });
       root.querySelectorAll("[data-neworden]").forEach(function (b) { b.addEventListener("click", function () { location.hash = "#/ordenes/nueva-" + b.dataset.neworden; }); });
