@@ -18,17 +18,16 @@
   };
   function mapFirebaseError(err) {
     if (err && err.code && FIREBASE_ERRORS[err.code]) return FIREBASE_ERRORS[err.code];
-    // "failed-precondition" de Firestore casi siempre significa que el
-    // almacenamiento sin conexión (IndexedDB) quedó bloqueado por OTRA
-    // pestaña/ventana de BIOsoft ya abierta en el mismo navegador (ej. una
-    // pestaña vieja que quedó atrás tras usar el panel de superadmin) — no
-    // tiene nada que ver con las Reglas de Firestore (esas fallan con
-    // "permission-denied", un código distinto) ni con el correo/contraseña.
-    // Se explica así, accionable, en vez del mensaje técnico genérico de
-    // abajo que solo manda a escribirle a soporte por algo que el usuario
-    // mismo puede resolver cerrando las otras pestañas.
-    if (err && err.code === "failed-precondition") {
-      return "Parece que tienes BIOsoft abierto en otra pestaña o ventana del navegador, y eso está bloqueando el ingreso. Cierra TODAS las demás pestañas de BIOsoft (o cierra el navegador por completo) y vuelve a intentar.";
+    // "failed-precondition" (al entrar) y "The client has already been
+    // terminated" (en cualquier acción posterior) son la MISMA causa: otra
+    // pestaña/ventana de BIOsoft abierta en el mismo navegador dejó el
+    // almacenamiento sin conexión en conflicto y Firestore apagó el cliente
+    // de esta pestaña — no tiene nada que ver con las Reglas de Firestore
+    // (esas fallan con "permission-denied") ni con el correo/contraseña. Se
+    // centraliza en BIO_STORE.mensajeErrorFirestore() porque afecta por
+    // igual al login y a cualquier botón del superadmin (ver store.js).
+    if ((err && err.code === "failed-precondition") || (err && err.message && /already been terminated/i.test(err.message))) {
+      return BIO_STORE.mensajeErrorFirestore(err);
     }
     // Errores propios que lanza loginReal() (ej. "Esta cuenta no tiene un
     // laboratorio asociado." o "No se encontró el usuario del laboratorio.")

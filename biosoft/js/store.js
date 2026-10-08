@@ -37,6 +37,30 @@
   function limpiarUndefined(obj) {
     return JSON.parse(JSON.stringify(obj));
   }
+
+  /* Caso real que motivó esto: varios botones del superadmin (Diagnóstico de
+     Acceso, Reparar Permisos Operativos, Reenviar Acceso, e incluso el
+     INGRESO mismo) empezaron a fallar todos a la vez, en la misma pestaña,
+     con el mensaje crudo del SDK "The client has already been terminated."
+     (o, justo antes de eso, "failed-precondition" al intentar entrar). Las
+     dos cosas son la MISMA causa: el laboratorio/superadmin tenía BIOsoft
+     abierto en más de una pestaña/ventana a la vez, el almacenamiento sin
+     conexión (IndexedDB) quedó en conflicto entre esas pestañas, y el SDK de
+     Firestore —para evitar corromper los datos— apaga por completo el
+     cliente de ESA pestaña; desde ese momento CUALQUIER operación en esa
+     misma pestaña falla igual, sin importar qué botón se use, hasta que se
+     cierren todas las demás pestañas de BIOsoft y se recargue. No es un bug
+     de ningún botón en particular ni de las Reglas de Firestore (esas fallan
+     con "permission-denied", un código totalmente distinto) — por eso se
+     centraliza aquí el mensaje claro y accionable en vez de mostrar el texto
+     técnico en inglés, que parecía un error de la aplicación. */
+  function mensajeErrorFirestore(err) {
+    var msg = (err && err.message) || String(err || "");
+    if (err && err.code === "failed-precondition" || /already been terminated/i.test(msg)) {
+      return "Parece que tienes BIOsoft abierto en otra pestaña o ventana del navegador, y eso está bloqueando esta acción. Cierra TODAS las demás pestañas de BIOsoft (o cierra el navegador por completo), abre una sola de nuevo e inténtalo otra vez.";
+    }
+    return msg || "Ocurrió un error inesperado.";
+  }
   function fbColl(coll) {
     return global.BIO_FB.db.collection("tenants").doc(FB_TENANT_ID).collection(coll);
   }
@@ -1968,6 +1992,7 @@
   }
 
   global.BIO_STORE = {
+    mensajeErrorFirestore: mensajeErrorFirestore,
     seedIfEmpty: seedIfEmpty,
     loadDB: loadDB,
     saveDB: saveDB,

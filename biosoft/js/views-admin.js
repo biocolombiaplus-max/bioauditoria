@@ -2811,7 +2811,7 @@
           }
         });
       }).catch(function (err) {
-        U.toast("No se pudo cargar el usuario administrador: " + (err.message || err), "error");
+        U.toast("No se pudo cargar el usuario administrador: " + S.mensajeErrorFirestore(err), "error");
       });
     }
 
@@ -2894,13 +2894,13 @@
                 cargarYMostrar();
               }).catch(function (err) {
                 b.disabled = false; b.textContent = "🔧 Reparar";
-                U.toast("No se pudo reparar: " + (err.message || err), "error");
+                U.toast("No se pudo reparar: " + S.mensajeErrorFirestore(err), "error");
               });
             });
           });
         }).catch(function (err) {
           U.closeModal(wrapCargando);
-          U.toast("No se pudo cargar el diagnóstico: " + (err.message || err), "error");
+          U.toast("No se pudo cargar el diagnóstico: " + S.mensajeErrorFirestore(err), "error");
         });
       }
       cargarYMostrar();
@@ -2935,7 +2935,7 @@
           U.toast(res.reparados ? "Listo: se corrigieron los permisos de " + res.reparados + " usuario(s)." : "Todo el personal ya tenía los permisos correctos — no había nada que corregir.", "success");
         }).catch(function (err) {
           btn.disabled = false; btn.textContent = "Reparar Ahora";
-          U.toast("No se pudo reparar: " + (err.message || err), "error");
+          U.toast("No se pudo reparar: " + S.mensajeErrorFirestore(err), "error");
         });
       });
     }
