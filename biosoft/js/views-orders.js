@@ -380,6 +380,13 @@
           (tenant.mostrarPrecioOrden ? '<div class="field"><label>Valor a Cobrar</label><input id="f_valorCobrar" type="text" inputmode="decimal" value=""/>' +
             '<span class="text-muted" style="font-size:11px" id="valorCobrar-hint">Se calcula solo según los exámenes que selecciones — puedes ajustarlo a mano.</span>' +
             '<span class="text-muted" style="font-size:11px;display:block" id="valorCobrar-equiv"></span></div>' : "") +
+          // Exclusivo del laboratorio(s) con tenant.cuotaAdministrativaHabilitada
+          // en true (ver Configuración → Operación, encendido solo por
+          // superadmin) — un cargo adicional fijo, opcional, que se suma al
+          // Valor a Cobrar y queda como línea aparte en el Recibo/Factura.
+          (tenant.cuotaAdministrativaHabilitada && tenant.mostrarPrecioOrden && tenant.cuotaAdministrativaValor > 0
+            ? '<div class="field"><label class="flex gap-2" style="align-items:center;font-weight:400"><input type="checkbox" id="f_cuotaAdmin" style="width:auto"/> Incluir Cuota Administrativa (' + fmtMoneda(tenant.cuotaAdministrativaValor) + ')</label></div>'
+            : "") +
           // Solo Venezuela: ahí es normal que, según el paciente, el cobro
           // termine en bolívares, dólares o pesos colombianos (frontera) —
           // se deja elegir por orden para poder cuadrar caja al final del
@@ -532,6 +539,8 @@
         if (p) p.examenesIds.forEach(function (exId) { idsEnPaquetes[exId] = true; });
       });
       var total = selectedExams.filter(function (id) { return !idsEnPaquetes[id]; }).reduce(function (sum, id) { return sum + precioConConvenio(id); }, 0) + totalPaquetes;
+      var chkCuotaAdmin = document.getElementById("f_cuotaAdmin");
+      if (chkCuotaAdmin && chkCuotaAdmin.checked) total += (tenant.cuotaAdministrativaValor || 0);
       input.value = total || "";
       if (equiv) equiv.textContent = C.fmtMonedaAdicional(tenant, total);
     }
@@ -593,6 +602,8 @@
         if (equiv) equiv.textContent = C.fmtMonedaAdicional(tenant, U.parseMonto(e.target.value));
       });
       sugerirValorCobrar();
+      var chkCuotaAdminNueva = document.getElementById("f_cuotaAdmin");
+      if (chkCuotaAdminNueva) chkCuotaAdminNueva.addEventListener("change", sugerirValorCobrar);
     }
 
     document.getElementById("btn-save-order").addEventListener("click", function () {
@@ -641,6 +652,12 @@
         numAutorizacion: tenant.pais === "CO" ? document.getElementById("f_numAutorizacion").value : "",
         diagnosticoCIE10: tenant.pais === "CO" ? document.getElementById("f_diagnosticoCIE10").value : "",
         valorCobrar: tenant.mostrarPrecioOrden ? U.parseMonto(document.getElementById("f_valorCobrar").value) : null,
+        // Se guarda el valor YA cobrado en este momento (no una referencia
+        // viva a tenant.cuotaAdministrativaValor), para que si el
+        // laboratorio cambia después el valor de su Cuota Administrativa,
+        // las órdenes/recibos ya emitidos no cambien retroactivamente.
+        cuotaAdministrativaIncluida: !!(document.getElementById("f_cuotaAdmin") && document.getElementById("f_cuotaAdmin").checked),
+        cuotaAdministrativaValor: (document.getElementById("f_cuotaAdmin") && document.getElementById("f_cuotaAdmin").checked) ? (tenant.cuotaAdministrativaValor || 0) : 0,
         monedaPago: (tenant.pais === "VE" && tenant.mostrarPrecioOrden) ? document.getElementById("f_monedaPago").value : "",
         examenes: idsExamenesFinal.map(function (id) {
           var exCat = C.examenEfectivo(id, tenant);
@@ -741,6 +758,13 @@
       var exCat = C.examenEfectivo(ex.examId, tenant);
       return { examId: ex.examId, codigo: exCat ? exCat.cups : "", descripcion: exCat ? exCat.nombre : ex.examId, precio: precios[ex.examId] || 0, cantidad: 1 };
     });
+    // Línea aparte y editable (igual que cualquier examen) para la Cuota
+    // Administrativa, si esta orden la incluyó (ver Nueva/Editar Orden) —
+    // así el admin puede ajustar su precio o cantidad aquí mismo antes de
+    // emitir la factura, igual que con cualquier otro renglón.
+    if (order.cuotaAdministrativaIncluida) {
+      filas.push({ examId: "", codigo: "", descripcion: "Cuota Administrativa", precio: order.cuotaAdministrativaValor || 0, cantidad: 1 });
+    }
 
     function filaHtml(f, i) {
       return "<tr><td>" + U.esc(f.codigo || "—") + "</td><td>" + U.esc(f.descripcion) + "</td>" +
@@ -1545,6 +1569,10 @@
         (tenant.mostrarPrecioOrden ? (tienePago
           ? '<div class="field"><label>Valor a Cobrar</label><div style="padding:9px 0;font-weight:600">' + fmtMoneda(order.valorCobrar || 0) + '</div><span class="text-muted" style="font-size:11px">Esta orden ya tiene un pago registrado — usa "Corregir Monto de Pago" desde la orden para cambiarlo.</span></div>'
           : '<div class="field"><label>Valor a Cobrar</label><input id="eo_valorCobrar" type="text" inputmode="decimal" value="' + (order.valorCobrar || "") + '"/></div>') : "") +
+        (tenant.cuotaAdministrativaHabilitada && tenant.mostrarPrecioOrden && !tienePago
+          ? '<div class="field"><label class="flex gap-2" style="align-items:center;font-weight:400"><input type="checkbox" id="eo_cuotaAdmin" style="width:auto" ' + (order.cuotaAdministrativaIncluida ? "checked" : "") + '/> Incluir Cuota Administrativa (' + fmtMoneda(tenant.cuotaAdministrativaValor || 0) + ')</label>' +
+            '<span class="text-muted" style="font-size:11px">Cambiar esto NO ajusta el Valor a Cobrar automáticamente — ajústalo arriba si hace falta.</span></div>'
+          : "") +
       "</div>" +
       '<div class="flex gap-2 justify-between" style="margin-top:6px"><button type="button" class="btn btn-ghost" data-modal-close>Cancelar</button><button type="submit" class="btn btn-primary">' + U.icon("check") + " Guardar Cambios</button></div>" +
       "</form>",
@@ -1574,6 +1602,11 @@
       }
       var inpValor = wrap.querySelector("#eo_valorCobrar");
       if (inpValor) cambios.valorCobrar = U.parseMonto(inpValor.value);
+      var chkCuotaAdminEdit = wrap.querySelector("#eo_cuotaAdmin");
+      if (chkCuotaAdminEdit) {
+        cambios.cuotaAdministrativaIncluida = chkCuotaAdminEdit.checked;
+        cambios.cuotaAdministrativaValor = chkCuotaAdminEdit.checked ? (tenant.cuotaAdministrativaValor || 0) : 0;
+      }
       Object.assign(order, cambios);
       S.saveOrder(order);
       S.addAudit(session.tenantId, session.nombre, session.rol, "EDIT_ORDER", "orden", order.id,

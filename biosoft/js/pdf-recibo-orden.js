@@ -143,7 +143,7 @@
     // examen) no le sirve de nada a quien recibe el recibo — se reemplaza
     // siempre por el valor de cada examen (cuando se conoce), que sí es lo
     // que alguien esperaría ver desglosado en un recibo de pago.
-    var hayAlgunPrecio = order.examenes.some(function (ex) { return preciosPorId[ex.examId] != null; });
+    var hayAlgunPrecio = order.examenes.some(function (ex) { return preciosPorId[ex.examId] != null; }) || order.cuotaAdministrativaIncluida;
     var filasExamenes = order.examenes.map(function (ex) {
       var exCat = C.examenEfectivo(ex.examId, tenant);
       var nombre = exCat ? exCat.nombre : ex.examId;
@@ -151,6 +151,14 @@
       var precio = preciosPorId[ex.examId];
       return [nombre, precio != null ? fmtMoneda(precio) : "—"];
     });
+    // Exclusivo de laboratorios con Cuota Administrativa habilitada (ver
+    // tenant.cuotaAdministrativaHabilitada en Configuración → Operación) —
+    // se muestra como una línea más de la tabla, con el valor YA congelado
+    // en la orden al momento de crearla (order.cuotaAdministrativaValor),
+    // no el valor actual configurado en el tenant.
+    if (order.cuotaAdministrativaIncluida) {
+      filasExamenes.push(hayAlgunPrecio ? ["Cuota Administrativa", fmtMoneda(order.cuotaAdministrativaValor || 0)] : ["Cuota Administrativa"]);
+    }
     doc.autoTable({
       startY: y, margin: { left: margin, right: margin },
       head: hayAlgunPrecio ? [["Examen", "Valor"]] : [["Examen"]],

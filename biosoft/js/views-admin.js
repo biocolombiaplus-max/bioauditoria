@@ -1562,6 +1562,10 @@
         Object.keys(S.FORMATOS_NUMERO_ORDEN).map(function (k) { return '<option value="' + k + '" ' + ((tenant.formatoNumeroOrden || "diario") === k ? "selected" : "") + '>' + U.esc(S.FORMATOS_NUMERO_ORDEN[k].nombre) + "</option>"; }).join("") +
         "</select></div>" +
         '<p class="text-muted" style="margin:4px 0 0;font-size:12.5px">Elige cómo se numeran las nuevas órdenes de tu laboratorio. Cambiar el formato no afecta el número de las órdenes ya creadas — solo aplica a las que se creen de aquí en adelante.</p>' +
+        (tenant.cuotaAdministrativaHabilitada
+          ? '<div class="field" style="max-width:260px"><label>Valor de la Cuota Administrativa</label><input type="number" id="f_cuotaAdministrativaValor" min="0" step="0.01" value="' + (tenant.cuotaAdministrativaValor || "") + '"/></div>' +
+            '<p class="text-muted" style="margin:4px 0 0;font-size:12.5px">Define aquí el valor de tu Cuota Administrativa. Vas a poder incluirla como cargo adicional opcional al crear o editar una orden, y aparecerá como línea aparte tanto en el Recibo de Pago como en la Factura.</p>'
+          : "") +
         "</fieldset>" +
         '<fieldset><legend>Diseño del Reporte de Resultados</legend>' +
         '<div class="checkbox-row"><input type="checkbox" id="f_logoGrandeReporte" ' + (tenant.logoGrandeReporte ? "checked" : "") + '/><label style="margin:0" for="f_logoGrandeReporte">Mostrar tu logo grande y centrado en el encabezado del informe, como un membrete</label></div>' +
@@ -1719,6 +1723,8 @@
       tenant.facturaConMembrete = document.getElementById("f_facturaConMembrete").checked;
       tenant.facturaMembreteEspacioSuperior = parseFloat(document.getElementById("f_facturaEspacioSuperior").value) || 4.5;
       tenant.formatoNumeroOrden = document.getElementById("f_formatoNumeroOrden").value;
+      var elCuotaAdmin = document.getElementById("f_cuotaAdministrativaValor");
+      if (elCuotaAdmin) tenant.cuotaAdministrativaValor = parseFloat(elCuotaAdmin.value) || 0;
       tenant.logoGrandeReporte = document.getElementById("f_logoGrandeReporte").checked;
       tenant.logoAnchoCompleto = document.getElementById("f_logoAnchoCompleto").checked;
       tenant.logoAnchoPorcentaje = parseInt(document.getElementById("f_logoAnchoPorcentaje").value, 10);
@@ -1779,6 +1785,7 @@
           resolucionHabilitacion: tenant.resolucionHabilitacion, codigoREPS: tenant.codigoREPS, nivel: tenant.nivel,
           bacteriologoResponsable: tenant.bacteriologoResponsable, mostrarPrecioOrden: tenant.mostrarPrecioOrden, reportarCIM: tenant.reportarCIM,
           reciboConvenioComoCredito: tenant.reciboConvenioComoCredito, formatoFactura: tenant.formatoFactura, facturaConMembrete: tenant.facturaConMembrete, facturaMembreteEspacioSuperior: tenant.facturaMembreteEspacioSuperior, formatoNumeroOrden: tenant.formatoNumeroOrden,
+          cuotaAdministrativaValor: tenant.cuotaAdministrativaValor,
           logoGrandeReporte: tenant.logoGrandeReporte, logoAnchoCompleto: tenant.logoAnchoCompleto, logoAnchoPorcentaje: tenant.logoAnchoPorcentaje, ocultarNombreEncabezado: tenant.ocultarNombreEncabezado,
           colorBandaSeccion: tenant.colorBandaSeccion, bandaSeccionSinColor: tenant.bandaSeccionSinColor, membreteEnTodasLasHojas: tenant.membreteEnTodasLasHojas,
           datosPacienteEstiloDiscreto: tenant.datosPacienteEstiloDiscreto, ocultarInterpretacion: tenant.ocultarInterpretacion, ocultarValorReferencia: tenant.ocultarValorReferencia,
@@ -2172,6 +2179,8 @@
         "</div>" +
         '<p class="text-muted" style="margin:2px 0 8px;font-size:12px">Estas fechas se fijan automáticamente según lo elegido la primera vez que envíes el contrato, pero puedes ajustarlas manualmente aquí. El cobro por conexión de equipos es independiente del plan: a algunos laboratorios se les cobra por equipo conectado y a otros no, sin importar el plan que tengan.</p>' +
         '<div class="field"><label class="flex gap-2" style="align-items:center;font-weight:400"><input type="checkbox" id="f_suspendido" ' + (tenant.suspendido ? "checked" : "") + ' style="width:auto"/> Suspender acceso del laboratorio (bloquea el ingreso por falta de pago)</label></div>' +
+        '<div class="field"><label class="flex gap-2" style="align-items:center;font-weight:400"><input type="checkbox" id="f_cuotaAdminHabilitada" ' + (tenant.cuotaAdministrativaHabilitada ? "checked" : "") + ' style="width:auto"/> Habilitar Cuota Administrativa personalizable (cargo adicional opcional por orden) — exclusivo para este laboratorio</label></div>' +
+        '<p class="text-muted" style="margin:2px 0 0;font-size:12px">Al activarlo, el propio Administrador de este laboratorio podrá definir el valor de la cuota en su Configuración, e incluirla como cargo adicional al crear o editar una orden — aparece como línea aparte en el Recibo y en la Factura. No afecta a ningún otro laboratorio.</p>' +
         "</fieldset>" +
         '<div class="flex gap-2 justify-between" style="margin-top:6px"><button type="button" class="btn btn-ghost" data-modal-close>Cancelar</button><button type="submit" class="btn btn-primary">' + U.icon("check") + " Guardar</button></div>" +
         "</form>"
@@ -2229,6 +2238,7 @@
         tenant.mesesCortesia = parseInt(wrap.querySelector("#f_mesesCortesia").value, 10) || null;
         tenant.descuentoPlan = descuentoActual || null;
         tenant.cobroEquiposModo = wrap.querySelector("#f_cobroEquipos").value || null;
+        tenant.cuotaAdministrativaHabilitada = wrap.querySelector("#f_cuotaAdminHabilitada").checked;
         tenant.suspendido = quedaSuspendido;
         if (quedaSuspendido && !estabaSuspendido) tenant.fechaSuspension = new Date().toISOString().slice(0, 10);
         if (!quedaSuspendido) tenant.fechaSuspension = null;
@@ -2248,6 +2258,7 @@
           fechaProximoPago: tenant.fechaProximoPago, cicloCobroDias: tenant.cicloCobroDias,
           mesesMembresiaGratis: tenant.mesesMembresiaGratis, mesesCortesia: tenant.mesesCortesia,
           descuentoPlan: tenant.descuentoPlan, cobroEquiposModo: tenant.cobroEquiposModo,
+          cuotaAdministrativaHabilitada: tenant.cuotaAdministrativaHabilitada,
           suspendido: tenant.suspendido, fechaSuspension: tenant.fechaSuspension, esPruebaGratis: tenant.esPruebaGratis
         });
         U.toast("Plan actualizado.", "success");
