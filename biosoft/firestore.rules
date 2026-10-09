@@ -86,7 +86,14 @@ service cloud.firestore {
       // La creación ocurre en el mismo flujo de aprovisionamiento, por el
       // usuario recién autenticado que se convertirá en su administrador.
       allow create: if autenticado();
-      allow delete: if false;
+      // El superadmin puede borrar un laboratorio completo desde
+      // "Laboratorios Cliente" -> "Eliminar Laboratorio" — pensado para
+      // corregir un registro duplicado (ej. el mismo laboratorio creado dos
+      // o tres veces por un reenvío del formulario de auto-registro) ANTES
+      // de que tenga ningún uso real; la propia pantalla ya exige que el
+      // laboratorio no tenga pacientes ni órdenes antes de ofrecer el
+      // botón. Un laboratorio nunca puede borrarse a sí mismo.
+      allow delete: if esSuperadmin();
 
       match /users/{userId} {
         // Un aliado solo puede leer SU PROPIO documento de usuario (para
@@ -108,12 +115,17 @@ service cloud.firestore {
         // Permisos Operativos", cuando un laboratorio reporta fallas de
         // acceso de sus auxiliares/bacteriólogos) — nunca su contraseña,
         // firma ni ningún otro dato del usuario.
-        allow update, delete: if esDeEsteLab(tenantId) ||
+        allow update: if esDeEsteLab(tenantId) ||
           (esSuperadmin() && request.resource.data.diff(resource.data).affectedKeys().hasOnly(["rol", "permisosExtra", "secciones"]));
+        // El borrado SÍ lo puede hacer el superadmin sin restricción de
+        // campos (a diferencia del update de arriba) — lo usa "Eliminar
+        // Laboratorio" para limpiar la subcolección de usuarios de un
+        // laboratorio duplicado antes de borrar el laboratorio mismo.
+        allow delete: if esDeEsteLab(tenantId) || esSuperadmin();
       }
       match /patients/{patientId} {
         allow read: if esDeEsteLab(tenantId) || esSuperadmin();
-        allow write: if esDeEsteLab(tenantId);
+        allow write: if esDeEsteLab(tenantId) || esSuperadmin();
       }
       // Un usuario de Recepción/Auxiliar con el permiso adicional
       // "Resultados" puede capturar/guardar resultados, pero NUNCA validar
@@ -161,7 +173,10 @@ service cloud.firestore {
           resource.data.get("estadoGeneral", "pendiente") != "pendiente" ||
           request.resource.data.estadoGeneral == "pendiente"
         );
-        allow delete: if esDeEsteLab(tenantId);
+        // El superadmin también puede borrar (sin poder crear/editar
+        // ninguna) — lo usa "Eliminar Laboratorio" para limpiar las
+        // órdenes de un laboratorio duplicado antes de borrarlo del todo.
+        allow delete: if esDeEsteLab(tenantId) || esSuperadmin();
       }
       match /auditLog/{logId} {
         // Un aliado nunca debe poder LEER la trazabilidad del laboratorio
@@ -176,67 +191,75 @@ service cloud.firestore {
         allow create: if esDeEsteLab(tenantId) || esSuperadmin() || esAliado(tenantId);
         allow update, delete: if false;
       }
+      // A partir de aquí, todas estas subcolecciones de datos operativos
+      // agregan "|| esSuperadmin()" a su "write" de siempre por la misma
+      // razón: "Eliminar Laboratorio" (Laboratorios Cliente, solo cuando el
+      // laboratorio no tiene pacientes ni órdenes) necesita poder borrar
+      // cualquier documento que el laboratorio haya llegado a crear en
+      // ellas antes de borrar el laboratorio mismo — el superadmin no gana
+      // ningún otro permiso nuevo aquí, solo el mismo acceso de
+      // lectura/escritura que ya tenía el propio laboratorio.
       match /qcControles/{controlId} {
-        allow read, write: if esDeEsteLab(tenantId);
+        allow read, write: if esDeEsteLab(tenantId) || esSuperadmin();
       }
       match /qcLecturas/{lecturaId} {
-        allow read, write: if esDeEsteLab(tenantId);
+        allow read, write: if esDeEsteLab(tenantId) || esSuperadmin();
       }
       match /preciosExamenes/{precioId} {
-        allow read, write: if esDeEsteLab(tenantId);
+        allow read, write: if esDeEsteLab(tenantId) || esSuperadmin();
       }
       match /examenesPersonalizados/{examenId} {
-        allow read, write: if esDeEsteLab(tenantId);
+        allow read, write: if esDeEsteLab(tenantId) || esSuperadmin();
       }
       match /cotizaciones/{cotizacionId} {
-        allow read, write: if esDeEsteLab(tenantId);
+        allow read, write: if esDeEsteLab(tenantId) || esSuperadmin();
       }
       match /reglasRemarketing/{reglaId} {
-        allow read, write: if esDeEsteLab(tenantId);
+        allow read, write: if esDeEsteLab(tenantId) || esSuperadmin();
       }
       match /remarketingContactos/{contactoId} {
-        allow read, write: if esDeEsteLab(tenantId);
+        allow read, write: if esDeEsteLab(tenantId) || esSuperadmin();
       }
       match /insumos/{insumoId} {
-        allow read, write: if esDeEsteLab(tenantId);
+        allow read, write: if esDeEsteLab(tenantId) || esSuperadmin();
       }
       match /recetasReactivos/{recetaId} {
-        allow read, write: if esDeEsteLab(tenantId);
+        allow read, write: if esDeEsteLab(tenantId) || esSuperadmin();
       }
       match /kardexInventario/{movimientoId} {
-        allow read, write: if esDeEsteLab(tenantId);
+        allow read, write: if esDeEsteLab(tenantId) || esSuperadmin();
       }
       match /ripsGenerados/{ripsId} {
-        allow read, write: if esDeEsteLab(tenantId);
+        allow read, write: if esDeEsteLab(tenantId) || esSuperadmin();
       }
       match /facturasGeneradas/{facturaId} {
-        allow read, write: if esDeEsteLab(tenantId);
+        allow read, write: if esDeEsteLab(tenantId) || esSuperadmin();
       }
       match /convenios/{convenioId} {
-        allow read, write: if esDeEsteLab(tenantId);
+        allow read, write: if esDeEsteLab(tenantId) || esSuperadmin();
       }
       match /convenioPrecios/{convenioPrecioId} {
-        allow read, write: if esDeEsteLab(tenantId);
+        allow read, write: if esDeEsteLab(tenantId) || esSuperadmin();
       }
       match /medicosRemitentes/{medicoId} {
-        allow read, write: if esDeEsteLab(tenantId);
+        allow read, write: if esDeEsteLab(tenantId) || esSuperadmin();
       }
       match /medicoTarifasExamen/{tarifaId} {
-        allow read, write: if esDeEsteLab(tenantId);
+        allow read, write: if esDeEsteLab(tenantId) || esSuperadmin();
       }
       match /convenioPagos/{pagoId} {
-        allow read, write: if esDeEsteLab(tenantId);
+        allow read, write: if esDeEsteLab(tenantId) || esSuperadmin();
       }
       // Exámenes de laboratorio de referencia (ej. IDIME): precio de
       // compra y de venta de los exámenes que este laboratorio remite a un
       // tercero — catálogo independiente del catálogo interno de exámenes.
       match /examenesReferencia/{examenRefId} {
-        allow read, write: if esDeEsteLab(tenantId);
+        allow read, write: if esDeEsteLab(tenantId) || esSuperadmin();
       }
       // Paquetes de exámenes (ej. "Perfil Lipídico", "Perfil 20"): un
       // bulto de exámenes del catálogo vendido con un solo precio total.
       match /paquetesExamenes/{paqueteId} {
-        allow read, write: if esDeEsteLab(tenantId);
+        allow read, write: if esDeEsteLab(tenantId) || esSuperadmin();
       }
       // Consentimientos informados (Resolución 3100 de 2019): el paciente
       // puede firmarlo a distancia desde firmar.html, SIN iniciar sesión —
@@ -248,7 +271,12 @@ service cloud.firestore {
       // tocar el resto del documento.
       match /consentimientos/{consentId} {
         allow read: if true;
-        allow create, delete: if esDeEsteLab(tenantId);
+        // El superadmin solo necesita poder BORRAR aquí (para "Eliminar
+        // Laboratorio"), no crear consentimientos a nombre de un
+        // laboratorio — por eso se separa del "create" en vez de
+        // agregarlo a la misma línea de siempre.
+        allow create: if esDeEsteLab(tenantId);
+        allow delete: if esDeEsteLab(tenantId) || esSuperadmin();
         allow update: if esDeEsteLab(tenantId) || (
           resource.data.estado == "pendiente" &&
           request.resource.data.estado == "firmado" &&

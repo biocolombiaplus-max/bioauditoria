@@ -370,6 +370,15 @@
     var local = wrap.querySelector("#f_" + idBase);
     var digitosLocal = (local ? local.value : "").replace(/\D/g, "");
     if (!digitosLocal) return "";
+    // Un "0" inicial en el número LOCAL es el prefijo de marcado nacional
+    // (ej. Venezuela 0424-1234567, Ecuador 099…) — muy común escribirlo así
+    // por costumbre aunque el indicativo YA se haya elegido aparte en el
+    // selector de al lado. Sin esto, el número quedaba guardado como
+    // "+58 04241234567" (con el 0 pegado justo después del indicativo), y
+    // numeroWhatsapp() ya no lo detectaba para corregirlo porque ese 0 ya
+    // no estaba al principio del todo, sino después del "58" — el enlace
+    // de WhatsApp terminaba abriendo un número inválido (bug real).
+    if (digitosLocal.length > 1 && digitosLocal.charAt(0) === "0") digitosLocal = digitosLocal.slice(1);
     return "+" + (cod ? cod.value : indicativoPais("CO")) + " " + digitosLocal;
   }
 

@@ -97,7 +97,9 @@
             F.inp("nombre", "Nombre Completo", user.nombre, true) +
             F.inp("numeroDocumento", "Número de Documento de Identidad", user.numeroDocumento, false) +
             F.inp("correoContacto", "Correo Electrónico", user.correoContacto, false, "email") +
-            F.inp("telefonoContacto", "Teléfono / WhatsApp", user.telefonoContacto, false) +
+          "</div>" +
+          U.telefonoInputHtml("telefonoContacto", "Teléfono / WhatsApp", user.telefonoContacto, tenant && tenant.pais) +
+          '<div class="form-grid">' +
             F.inp("username", "Usuario (login)", user.username, true) +
             F.inp("password", "Contraseña", user.password, !isEdit, "text") +
             F.sel("rol", "Rol", ["admin", "bacteriologo", "recepcion", "aliado"].map(function (r) { return '<option value="' + r + '" ' + (r === user.rol ? "selected" : "") + ">" + U.esc(C.rolLabel(r, tenant && tenant.pais)) + "</option>"; }).join("")) +
@@ -206,11 +208,12 @@
 
       wrap.querySelector("#user-form").addEventListener("submit", function (e) {
         e.preventDefault();
+        if (wrap.querySelector('button[type="submit"]').disabled) return;
         var g = function (id) { return wrap.querySelector("#f_" + id).value.trim(); };
         var secciones = Array.prototype.slice.call(wrap.querySelectorAll("[data-sec]:checked")).map(function (c) { return c.dataset.sec; });
         var chkRemisiones = wrap.querySelector("#f_puedeGestionarRemisiones");
         var data = {
-          nombre: g("nombre"), numeroDocumento: g("numeroDocumento"), correoContacto: g("correoContacto"), telefonoContacto: g("telefonoContacto"),
+          nombre: g("nombre"), numeroDocumento: g("numeroDocumento"), correoContacto: g("correoContacto"), telefonoContacto: U.leerTelefonoCompuesto(wrap, "telefonoContacto"),
           username: g("username"), rol: g("rol"), secciones: secciones, tenantId: session.tenantId, activo: true,
           puedeGestionarRemisiones: false
         };
@@ -2117,8 +2120,52 @@
               U.toast(r.creado ? "Cliente creado en el CRM." : "Este laboratorio ya está en el CRM.", "success");
             }).catch(function (err) { U.toast("No se pudo sincronizar con el CRM: " + err.message, "error"); });
           } }
+        ]},
+        { titulo: "Zona de Riesgo", acciones: [
+          { label: "Eliminar Laboratorio", icon: "trash", danger: true, onClick: function () { abrirEliminarLaboratorio(tenant); } }
         ]}
       ]);
+    }
+
+    // Pensado para corregir un laboratorio duplicado (ej. el mismo quedó
+    // creado dos o tres veces por un reenvío del formulario de
+    // auto-registro, ver activar.js) ANTES de que tenga ningún uso real —
+    // no para "dar de baja" a un cliente que sí llegó a usar BIOsoft, por
+    // eso se bloquea de plano (sin forma de saltárselo desde aquí) si el
+    // laboratorio ya tiene al menos un paciente o una orden registrada,
+    // para proteger información clínica real de un borrado accidental.
+    function abrirEliminarLaboratorio(tenant) {
+      var pacientes = tenant._pacientes || 0;
+      var ordenes = tenant._ordenes || 0;
+      if (pacientes > 0 || ordenes > 0) {
+        U.openModal(
+          '<h3 class="modal-title">No se puede eliminar ' + U.esc(tenant.nombre) + '</h3>' +
+          '<p class="text-muted" style="margin-top:0">Este laboratorio ya tiene <b>' + pacientes + ' paciente(s)</b> y <b>' + ordenes + ' orden(es)</b> registrada(s) — para proteger información clínica real, aquí solo se puede eliminar un laboratorio que todavía no tiene ningún uso (por ejemplo, un duplicado creado por error, recién registrado y nunca usado).</p>' +
+          '<div class="flex justify-between" style="margin-top:14px"><button class="btn btn-ghost" data-modal-close>Cerrar</button><span></span></div>'
+        );
+        return;
+      }
+      var usuarios = tenant._usuarios || 0;
+      var wrap = U.openModal(
+        '<h3 class="modal-title">🗑️ Eliminar ' + U.esc(tenant.nombre) + '</h3>' +
+        '<p class="text-muted" style="margin-top:0">Este laboratorio todavía no tiene pacientes ni órdenes registradas' + (usuarios ? (" — pero sí tiene " + usuarios + " usuario(s) creado(s)") : "") + '. Esta acción borra el laboratorio y todos sus datos (usuarios, configuración, catálogo propio, etc.) de forma <b>permanente — no se puede deshacer</b>.</p>' +
+        '<label class="checkbox-row" style="margin-top:6px"><input type="checkbox" id="el-confirmo"/> Confirmo que quiero eliminar este laboratorio de forma permanente</label>' +
+        '<div class="flex gap-2 justify-between" style="margin-top:16px"><button class="btn btn-ghost" data-modal-close>Cancelar</button><button class="btn btn-danger" id="el-confirmar" disabled>' + U.icon("trash") + ' Eliminar Laboratorio</button></div>'
+      );
+      var chk = wrap.querySelector("#el-confirmo");
+      var btn = wrap.querySelector("#el-confirmar");
+      chk.addEventListener("change", function () { btn.disabled = !chk.checked; });
+      btn.addEventListener("click", function () {
+        btn.disabled = true; btn.textContent = "Eliminando…";
+        conLimiteDeTiempo(function () { return S.tenantsGlobal.eliminar(tenant.id); }).then(function () {
+          U.closeModal(wrap);
+          U.toast("Laboratorio eliminado.", "success");
+          cargar();
+        }).catch(function (err) {
+          btn.disabled = false; btn.textContent = "Eliminar Laboratorio";
+          U.toast("No se pudo eliminar: " + S.mensajeErrorFirestore(err), "error");
+        });
+      });
     }
 
     function recordarPagoPorWhatsapp(tenant) {
@@ -3103,12 +3150,17 @@
       wrap.querySelector("#nt-prueba-nota").classList.remove("hidden");
       wrap.querySelector("#tenant-form").addEventListener("submit", function (e) {
         e.preventDefault();
+        var submitBtn = wrap.querySelector('button[type="submit"]');
+        // Mismo freno contra reenvíos ya aplicado en activar.html (causa
+        // real de laboratorios duplicados): sin esto, un doble Enter o un
+        // doble clic que alcance a pasar antes de deshabilitar el botón
+        // podía disparar dos creaciones en paralelo.
+        if (submitBtn.disabled) return;
         var g = function (id) { return wrap.querySelector("#f_" + id).value.trim(); };
         wrap.querySelector("#f_nit").value = C.normalizarDocumentoTributario(g("nit"), g("pais"));
         if (!g("nombre") || !g("adminUser") || !g("adminPass")) { U.toast("Completa los campos obligatorios.", "error"); return; }
         if (g("adminUser").indexOf("@") === -1) { U.toast("El usuario del administrador debe ser un correo electrónico válido.", "error"); return; }
         if (g("adminPass").length < 6) { U.toast("La contraseña debe tener al menos 6 caracteres.", "error"); return; }
-        var submitBtn = wrap.querySelector('button[type="submit"]');
         submitBtn.disabled = true; submitBtn.textContent = "Creando…";
         var planElegido = BIO_PLANES.porId(g("planId"));
         var tipoContratacion = g("tipoContratacion");

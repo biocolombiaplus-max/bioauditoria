@@ -513,6 +513,57 @@
     return unsub;
   }
 
+  /* Elimina POR COMPLETO un laboratorio — pensado para corregir un
+     registro duplicado (ej. el mismo laboratorio quedó creado dos o tres
+     veces por un reenvío del formulario de auto-registro, ver
+     activar.js) ANTES de que tenga ningún uso real. El llamador
+     (abrirEliminarLaboratorio en views-admin.js) ya verificó que el
+     laboratorio no tiene pacientes ni órdenes antes de llegar aquí — esta
+     función no vuelve a chequearlo, confía en esa validación previa.
+     Borra el documento del tenant y sus subcolecciones de datos
+     operativos; dos cosas quedan A PROPÓSITO sin borrar, porque
+     firestore.rules las protege incluso del superadmin:
+     - auditLog: la trazabilidad nunca se borra, ni siquiera al borrar su
+       propio laboratorio — quedan huérfanas, inofensivas.
+     - userProfiles/{uid}: el enlace cuenta-de-Firebase-Auth -> laboratorio
+       de cada usuario que el laboratorio llegó a crear. Sin él, loginReal()
+       ya rechaza el ingreso con "cuenta no asociada a ningún laboratorio" —
+       mismo mensaje claro que ya existe para ese caso. La cuenta de
+       Firebase Auth en sí tampoco se puede borrar desde el cliente (ni
+       siquiera el superadmin puede borrar la cuenta de otra persona sin un
+       backend/Admin SDK, que este proyecto no tiene) — queda huérfana pero
+       sin ningún acceso real a nada. */
+  function deleteTenantCompleto(tenantId) {
+    if (!firebaseDisponible()) return Promise.reject(errorFirebaseNoDisponible());
+    var SUBCOLECCIONES = [
+      "users", "patients", "orders", "qcControles", "qcLecturas", "preciosExamenes", "examenesPersonalizados",
+      "cotizaciones", "reglasRemarketing", "remarketingContactos", "insumos", "recetasReactivos", "kardexInventario",
+      "ripsGenerados", "facturasGeneradas", "convenios", "convenioPrecios", "medicosRemitentes", "medicoTarifasExamen",
+      "convenioPagos", "examenesReferencia", "paquetesExamenes", "consentimientos"
+    ];
+    var tenantDoc = tenantsColl().doc(tenantId);
+    return Promise.all(SUBCOLECCIONES.map(function (nombre) {
+      return tenantDoc.collection(nombre).get().then(function (snap) {
+        // Firestore limita un batch a 500 escrituras — se parte en bloques
+        // por si acaso, aunque un laboratorio recién duplicado (sin uso
+        // real, que es el único caso que el llamador permite borrar) casi
+        // nunca va a tener tantos documentos en ninguna subcolección.
+        var docs = snap.docs;
+        var lotes = [];
+        for (var i = 0; i < docs.length; i += 450) lotes.push(docs.slice(i, i + 450));
+        return lotes.reduce(function (p, lote) {
+          return p.then(function () {
+            var batch = global.BIO_FB.db.batch();
+            lote.forEach(function (d) { batch.delete(d.ref); });
+            return batch.commit();
+          });
+        }, Promise.resolve());
+      });
+    })).then(function () {
+      return tenantDoc.delete();
+    });
+  }
+
   /* Lectura puntual (sin caché local) de los usuarios de UN laboratorio
      cliente, para uso del superadmin (ej. reenviar el acceso al
      administrador) — a diferencia de listUsers(), no depende de que ese
@@ -2041,7 +2092,8 @@
     crm: { list: crmList, watch: crmWatch, create: crmCreate, update: crmUpdate, delete: crmDelete },
     tenantsGlobal: {
       list: tenantsListGlobal, watch: tenantsWatchGlobal, listUsuarios: listUsuariosTenantOnce, promoverUsuarioAAdmin: promoverUsuarioAAdmin,
-      diagnosticarAcceso: diagnosticarAccesoTenant, repararPerfilAcceso: repararPerfilAcceso, repararPermisosOperativos: repararPermisosOperativos
+      diagnosticarAcceso: diagnosticarAccesoTenant, repararPerfilAcceso: repararPerfilAcceso, repararPermisosOperativos: repararPermisosOperativos,
+      eliminar: deleteTenantCompleto
     },
     plantillas: { list: plantillasList, watch: plantillasWatch, create: plantillasCreate, update: plantillasUpdate, remove: plantillasDelete },
     landingImagenes: { list: landingImagenesList, set: landingImagenesSet, remove: landingImagenesDelete },

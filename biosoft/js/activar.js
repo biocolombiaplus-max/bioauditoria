@@ -47,7 +47,21 @@
     }).join("");
   }
   renderPlanOptions();
-  document.getElementById("f_labPais").addEventListener("change", renderPlanOptions);
+  // Mismo campo compuesto "indicativo de país + número" que ya se usa para
+  // el celular de un paciente (ver U.telefonoInputHtml en ui.js) — antes
+  // era un solo campo de texto libre con el placeholder "573001234567"
+  // pidiéndole al cliente que escribiera bien el indicativo a mano, lo que
+  // además dejaba pasar un "0" inicial (muy común en Venezuela,
+  // "04241234567") que luego dañaba el enlace de WhatsApp. Se preselecciona
+  // según el país del laboratorio elegido arriba, y se vuelve a armar
+  // cuando ese país cambia (sin perder lo que ya se haya escrito).
+  function renderWhatsappField() {
+    var box = document.getElementById("act-whatsapp-box");
+    var valorActual = box.querySelector("#f_contWhatsapp") ? U.leerTelefonoCompuesto(document, "contWhatsapp") : "";
+    box.innerHTML = U.telefonoInputHtml("contWhatsapp", "WhatsApp *", valorActual, document.getElementById("f_labPais").value);
+  }
+  renderWhatsappField();
+  document.getElementById("f_labPais").addEventListener("change", function () { renderPlanOptions(); renderWhatsappField(); });
 
   document.getElementById("act-secciones").innerHTML = C.SECCIONES.map(function (s) {
     return '<div class="checkbox-row"><input type="checkbox" data-seccion="' + s.id + '"/><label style="margin:0">' + s.emoji + " " + s.nombre + "</label></div>";
@@ -97,10 +111,19 @@
 
   document.getElementById("act-form").addEventListener("submit", function (e) {
     e.preventDefault();
+    var submitBtn = document.getElementById("act-submit");
+    // Caso real detectado: el mismo laboratorio quedaba creado dos o tres
+    // veces con el mismo correo. Nada impedía que este manejador volviera
+    // a correr (ej. presionar Enter dos veces seguidas en un campo, o un
+    // doble clic que alcance a pasar antes de que el botón quedara
+    // deshabilitado) mientras la primera activación todavía estaba en
+    // curso, disparando dos llamadas a provisionRealAccount() en paralelo
+    // con los mismos datos. Este freno se evalúa ANTES que nada más.
+    if (submitBtn.disabled) return;
     var errBox = document.getElementById("act-error");
     errBox.classList.add("hidden");
     var g = function (id) { return document.getElementById(id).value.trim(); };
-    var labNombre = g("f_labNombre"), contNombre = g("f_contNombre"), whatsapp = g("f_contWhatsapp"), correo = g("f_contCorreo");
+    var labNombre = g("f_labNombre"), contNombre = g("f_contNombre"), whatsapp = U.leerTelefonoCompuesto(document, "contWhatsapp"), correo = g("f_contCorreo");
     var pass = g("f_contPass"), pass2 = g("f_contPass2");
     if (!labNombre || !contNombre || !whatsapp || !correo || !pass || !pass2) {
       errBox.textContent = "Completa todos los campos obligatorios (*)."; errBox.classList.remove("hidden"); return;
@@ -122,47 +145,71 @@
     var hoy = new Date();
     var proximoPago = new Date(hoy.getTime() + 30 * 864e5);
 
-    var submitBtn = document.getElementById("act-submit");
-    submitBtn.disabled = true; submitBtn.textContent = "Activando tu BIOsoft…";
+    submitBtn.disabled = true; submitBtn.textContent = "Verificando tu correo…";
 
-    // El registro en el CRM es solo trazabilidad interna — si falla (ej. sin
-    // internet un instante), no debe impedir que el laboratorio se active.
-    // El id se deriva del correo (no es aleatorio) para que reenviar este
-    // mismo formulario dos veces (doble clic, reintento tras un error) no
-    // deje leads duplicados: la segunda escritura cae sobre el mismo
-    // documento y Firestore la rechaza sola (ver comentario de crmCreate en
-    // store.js), así que este catch también cubre ese caso a propósito.
-    S.crm.create({
-      origen: "formulario_publico", origenDetalle: origenDetalle,
-      laboratorio: { nombre: labNombre, nit: g("f_labNit"), ciudad: g("f_labCiudad"), pais: pais },
-      contacto: { nombre: contNombre, cargo: g("f_contCargo"), whatsapp: whatsapp, correo: correo },
-      planId: planId, seccionesIds: secciones, logoDataUrl: logoDataUrl, pedirDisenoLogo: pedirLogo, notas: g("f_notas")
-    }, "lead-" + correo.toLowerCase().replace(/[^a-z0-9]/g, "")).catch(function (err) { console.warn("BIOsoft: no se pudo registrar el lead en el CRM ->", err); });
+    function activarDeVerdad() {
+      submitBtn.disabled = true; submitBtn.textContent = "Activando tu BIOsoft…";
+      // El registro en el CRM es solo trazabilidad interna — si falla (ej. sin
+      // internet un instante), no debe impedir que el laboratorio se active.
+      // El id se deriva del correo (no es aleatorio) para que reenviar este
+      // mismo formulario dos veces (doble clic, reintento tras un error) no
+      // deje leads duplicados: la segunda escritura cae sobre el mismo
+      // documento y Firestore la rechaza sola (ver comentario de crmCreate en
+      // store.js), así que este catch también cubre ese caso a propósito.
+      S.crm.create({
+        origen: "formulario_publico", origenDetalle: origenDetalle,
+        laboratorio: { nombre: labNombre, nit: g("f_labNit"), ciudad: g("f_labCiudad"), pais: pais },
+        contacto: { nombre: contNombre, cargo: g("f_contCargo"), whatsapp: whatsapp, correo: correo },
+        planId: planId, seccionesIds: secciones, logoDataUrl: logoDataUrl, pedirDisenoLogo: pedirLogo, notas: g("f_notas")
+      }, "lead-" + correo.toLowerCase().replace(/[^a-z0-9]/g, "")).catch(function (err) { console.warn("BIOsoft: no se pudo registrar el lead en el CRM ->", err); });
 
-    S.provisionRealAccount({
-      tenantData: {
-        nombre: labNombre, nit: g("f_labNit"), pais: pais, direccion: g("f_labCiudad"),
-        telefonos: whatsapp, email: correo, contactoNombre: contNombre, nivel: 1,
-        planId: planId, maxUsuarios: plan ? plan.limiteUsuarios : null,
-        cicloCobroDias: 30, fechaInicioPlan: hoy.toISOString().slice(0, 10), fechaProximoPago: proximoPago.toISOString().slice(0, 10),
-        logoDataUrl: logoDataUrl
-      },
-      userData: { username: correo, password: pass, nombre: contNombre, rol: "admin", secciones: [] }
-    }).then(function (res) {
-      document.getElementById("act-form-block").classList.add("hidden");
-      document.getElementById("act-success-block").classList.remove("hidden");
-      document.getElementById("act-res-user").textContent = correo;
-      // Este texto lo envía el propio cliente (WhatsApp solo permite
-      // prellenar el mensaje, nunca enviarlo solo) — por eso se deja corto
-      // y neutro, sin instrucciones internas para el equipo (esas viven en
-      // el CRM, no en un mensaje que termina redactando el cliente).
-      var mensaje = "✅ Nueva activación instantánea de BIOsoft\n\nLaboratorio: " + labNombre + "\nContacto: " + contNombre + " (" + whatsapp + ")\nPlan: " + (plan ? plan.nombre : planId) +
-        (pedirLogo ? "\n¡Pidió diseño de logo! (+$40.000 COP)" : "") + "\n\nYa quedó creado y activo.";
-      window.open("https://wa.me/" + WA_NUMBER + "?text=" + encodeURIComponent(mensaje), "_blank");
-    }).catch(function (err) {
-      submitBtn.disabled = false; submitBtn.textContent = "🚀 Activar mi BIOsoft Ahora";
-      errBox.textContent = FIREBASE_ERRORS[err && err.code] || ("No se pudo activar: " + (err.message || String(err)));
-      errBox.classList.remove("hidden");
+      S.provisionRealAccount({
+        tenantData: {
+          nombre: labNombre, nit: g("f_labNit"), pais: pais, direccion: g("f_labCiudad"),
+          telefonos: whatsapp, email: correo, contactoNombre: contNombre, nivel: 1,
+          planId: planId, maxUsuarios: plan ? plan.limiteUsuarios : null,
+          cicloCobroDias: 30, fechaInicioPlan: hoy.toISOString().slice(0, 10), fechaProximoPago: proximoPago.toISOString().slice(0, 10),
+          logoDataUrl: logoDataUrl
+        },
+        userData: { username: correo, password: pass, nombre: contNombre, rol: "admin", secciones: [] }
+      }).then(function (res) {
+        document.getElementById("act-form-block").classList.add("hidden");
+        document.getElementById("act-success-block").classList.remove("hidden");
+        document.getElementById("act-res-user").textContent = correo;
+        // Este texto lo envía el propio cliente (WhatsApp solo permite
+        // prellenar el mensaje, nunca enviarlo solo) — por eso se deja corto
+        // y neutro, sin instrucciones internas para el equipo (esas viven en
+        // el CRM, no en un mensaje que termina redactando el cliente).
+        var mensaje = "✅ Nueva activación instantánea de BIOsoft\n\nLaboratorio: " + labNombre + "\nContacto: " + contNombre + " (" + whatsapp + ")\nPlan: " + (plan ? plan.nombre : planId) +
+          (pedirLogo ? "\n¡Pidió diseño de logo! (+$40.000 COP)" : "") + "\n\nYa quedó creado y activo.";
+        window.open("https://wa.me/" + WA_NUMBER + "?text=" + encodeURIComponent(mensaje), "_blank");
+      }).catch(function (err) {
+        submitBtn.disabled = false; submitBtn.textContent = "🚀 Activar mi BIOsoft Ahora";
+        errBox.textContent = FIREBASE_ERRORS[err && err.code] || ("No se pudo activar: " + (err.message || String(err)));
+        errBox.classList.remove("hidden");
+      });
+    }
+
+    // Chequeo previo: ¿ese correo ya tiene una cuenta de BIOsoft? Antes se
+    // dejaba que Firebase Auth lo rechazara recién AL INTENTAR crear la
+    // cuenta (sigue siendo la red de seguridad final, por si este chequeo
+    // falla) — hacerlo antes avisa más rápido y, sobre todo, deja el botón
+    // ya deshabilitado desde este mismo instante mientras se resuelve, para
+    // no dejar ninguna ventana en la que un reenvío alcance a colarse.
+    window.BIO_FB.auth.fetchSignInMethodsForEmail(correo).then(function (metodos) {
+      if (metodos && metodos.length) {
+        submitBtn.disabled = false; submitBtn.textContent = "🚀 Activar mi BIOsoft Ahora";
+        errBox.textContent = FIREBASE_ERRORS["auth/email-already-in-use"];
+        errBox.classList.remove("hidden");
+        return;
+      }
+      activarDeVerdad();
+    }).catch(function () {
+      // Si el chequeo en sí falla (ej. sin internet un instante), no se
+      // bloquea la activación por eso — se sigue de largo, y si de verdad
+      // hay un problema de conexión, provisionRealAccount lo va a mostrar
+      // igual con su propio mensaje claro.
+      activarDeVerdad();
     });
   });
 })();
