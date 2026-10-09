@@ -22,8 +22,19 @@
   function metodosPagoDisponibles(tenant) {
     return Object.keys(BIO_PDF_RECIBO_ORDEN.METODO_PAGO_LABEL).filter(function (k) { return k !== "cashea" || (tenant && tenant.pais === "VE"); });
   }
+  // Recargo configurable por laboratorio (Configuración → Operación →
+  // "Cashea") que se le suma al valor a pagar cuando el cliente elige
+  // pagar con Cashea — exclusivo de laboratorios de Venezuela, igual que
+  // el propio método de pago. 0 (o sin configurar) significa "sin recargo".
+  function pctRecargoCashea(tenant) {
+    return (tenant && tenant.pais === "VE" && tenant.casheaRecargoPorcentaje > 0) ? tenant.casheaRecargoPorcentaje : 0;
+  }
   function opcionesMetodoPagoHtml(tenant) {
-    return metodosPagoDisponibles(tenant).map(function (k) { return '<option value="' + k + '">' + BIO_PDF_RECIBO_ORDEN.METODO_PAGO_LABEL[k] + "</option>"; }).join("");
+    var pct = pctRecargoCashea(tenant);
+    return metodosPagoDisponibles(tenant).map(function (k) {
+      var label = BIO_PDF_RECIBO_ORDEN.METODO_PAGO_LABEL[k] + (k === "cashea" && pct > 0 ? " (+" + pct + "% de recargo)" : "");
+      return '<option value="' + k + '">' + label + "</option>";
+    }).join("");
   }
 
   // Se mantiene a nivel de módulo (no dentro de renderList) para que el
@@ -765,6 +776,12 @@
     if (order.cuotaAdministrativaIncluida) {
       filas.push({ examId: "", codigo: "", descripcion: "Cuota Administrativa", precio: order.cuotaAdministrativaValor || 0, cantidad: 1 });
     }
+    // Misma idea para el recargo por pagar con Cashea (ver Configuración →
+    // Operación → "Cashea", solo Venezuela) — ya quedó congelado en
+    // order.pago al confirmar el pago (ver abrirReciboOrden más arriba).
+    if (order.pago && order.pago.casheaRecargoValor > 0) {
+      filas.push({ examId: "", codigo: "", descripcion: "Recargo Cashea (" + order.pago.casheaRecargoPorcentaje + "%)", precio: order.pago.casheaRecargoValor, cantidad: 1 });
+    }
 
     function filaHtml(f, i) {
       return "<tr><td>" + U.esc(f.codigo || "—") + "</td><td>" + U.esc(f.descripcion) + "</td>" +
@@ -928,6 +945,20 @@
     // orden), en vez de forzar a elegir entre "pagó todo" o "no pagó
     // nada" — así funciona un sistema financiero de verdad.
     var montoDebido = tieneCopago ? valorCopago : order.valorCobrar;
+    // Recargo configurable por laboratorio (Configuración → Operación →
+    // "Cashea", solo Venezuela) que se le suma al monto a pagar cuando se
+    // elige Cashea como método de pago — se calcula SIEMPRE sobre
+    // montoDebido (el valor original, sin recargo), nunca sobre lo que el
+    // usuario haya terminado escribiendo a mano en "Monto Recibido" (un
+    // abono parcial no cambia cuánto se le debe en total por el recargo).
+    var pctCashea = pctRecargoCashea(tenant);
+    function metodoSeleccionadoActual() {
+      var sel = wrapConfirm.querySelector("#rec-ord-metodo");
+      return sel ? sel.value : "";
+    }
+    function recargoCasheaActual() {
+      return (pctCashea > 0 && metodoSeleccionadoActual() === "cashea") ? Math.round(montoDebido * pctCashea / 100) : 0;
+    }
     var wrapConfirm = U.openModal(
       tieneCopago
         ? '<h3 class="modal-title">Copago — Orden ' + order.numeroOrden + '</h3>' +
@@ -961,22 +992,49 @@
     var hintMonto = wrapConfirm.querySelector("#rec-ord-monto-hint");
     if (inpMonto) {
       var actualizarHintMonto = function () {
+        var recargo = recargoCasheaActual();
+        var debidoConRecargo = montoDebido + recargo;
+        var notaRecargo = recargo > 0 ? ("Incluye recargo Cashea del " + pctCashea + "%: +" + fmtMoneda(recargo) + ". ") : "";
         var v = U.parseMonto(inpMonto.value);
-        if (v <= 0) { hintMonto.textContent = "Escribe cuánto pagó realmente."; hintMonto.style.color = "var(--danger, #b91c1c)"; }
-        else if (v < montoDebido) { hintMonto.textContent = "Abono parcial — queda un saldo pendiente de " + fmtMoneda(montoDebido - v) + fmtMonedaEquiv(tenant, montoDebido - v) + "."; hintMonto.style.color = "var(--warning, #c97d0d)"; }
-        else { hintMonto.textContent = "Pago completo."; hintMonto.style.color = ""; }
+        if (v <= 0) { hintMonto.textContent = notaRecargo + "Escribe cuánto pagó realmente."; hintMonto.style.color = "var(--danger, #b91c1c)"; }
+        else if (v < debidoConRecargo) { hintMonto.textContent = notaRecargo + "Abono parcial — queda un saldo pendiente de " + fmtMoneda(debidoConRecargo - v) + fmtMonedaEquiv(tenant, debidoConRecargo - v) + "."; hintMonto.style.color = "var(--warning, #c97d0d)"; }
+        else { hintMonto.textContent = notaRecargo + "Pago completo."; hintMonto.style.color = ""; }
       };
-      inpMonto.addEventListener("input", actualizarHintMonto);
+      inpMonto.addEventListener("input", function () { montoEditadoManualmente = true; actualizarHintMonto(); });
       actualizarHintMonto();
+    }
+    // Al elegir "Cashea", el Monto Recibido se ajusta solo para incluir el
+    // recargo configurado (ver pctCashea arriba) — igual que el Valor a
+    // Cobrar se recalcula solo en Nueva Orden, respeta si el usuario ya
+    // escribió un monto a mano (ej. un abono parcial), para no pisárselo.
+    var montoEditadoManualmente = false;
+    var selMetodo = wrapConfirm.querySelector("#rec-ord-metodo");
+    if (selMetodo && inpMonto && pctCashea > 0) {
+      selMetodo.addEventListener("change", function () {
+        if (montoEditadoManualmente) return;
+        inpMonto.value = montoDebido + recargoCasheaActual();
+        actualizarHintMonto();
+      });
     }
     btnConfirmar.addEventListener("click", async function () {
       var session = BIO_AUTH.getSession();
       var montoRecibido = inpMonto ? U.parseMonto(inpMonto.value) : order.valorCobrar;
+      // El recargo se calcula SIEMPRE sobre montoDebido (el valor original
+      // antes del recargo), sin importar qué haya terminado escribiendo el
+      // usuario en "Monto Recibido" — es un monto fijo que se le suma a lo
+      // que la orden realmente vale al elegir Cashea, no algo que dependa
+      // de si el pago fue parcial.
+      var recargoAplicado = recargoCasheaActual();
+      if (tieneCopago) {
+        valorCopago += recargoAplicado;
+      } else if (!esCargoConvenio) {
+        order.valorCobrar += recargoAplicado;
+      }
       var pago = tieneCopago
-        ? { fecha: new Date().toISOString(), metodoPago: wrapConfirm.querySelector("#rec-ord-metodo").value, monto: montoRecibido, valorCopago: valorCopago, valorConvenio: valorConvenio, tieneCopago: true, esCredito: true, confirmadoPor: session.nombre }
+        ? { fecha: new Date().toISOString(), metodoPago: wrapConfirm.querySelector("#rec-ord-metodo").value, monto: montoRecibido, valorCopago: valorCopago, valorConvenio: valorConvenio, tieneCopago: true, esCredito: true, confirmadoPor: session.nombre, casheaRecargoPorcentaje: recargoAplicado > 0 ? pctCashea : 0, casheaRecargoValor: recargoAplicado }
         : esCargoConvenio
         ? { fecha: new Date().toISOString(), monto: order.valorCobrar, confirmadoPor: session.nombre, esCredito: true }
-        : { fecha: new Date().toISOString(), metodoPago: wrapConfirm.querySelector("#rec-ord-metodo").value, monto: montoRecibido, confirmadoPor: session.nombre };
+        : { fecha: new Date().toISOString(), metodoPago: wrapConfirm.querySelector("#rec-ord-metodo").value, monto: montoRecibido, confirmadoPor: session.nombre, casheaRecargoPorcentaje: recargoAplicado > 0 ? pctCashea : 0, casheaRecargoValor: recargoAplicado };
       order.pago = pago;
       // El primer abono es este mismo pago recién confirmado — de aquí en
       // adelante order.abonos es la fuente de verdad de cuánto se ha

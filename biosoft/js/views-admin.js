@@ -1565,6 +1565,19 @@
         '<div class="action-menu-group-title">Cuota Administrativa (opcional)</div>' +
         '<div class="field" style="max-width:260px"><label>Valor a cobrar por la Cuota Administrativa</label><input type="number" id="f_cuotaAdministrativaValor" min="0" step="0.01" value="' + (tenant.cuotaAdministrativaValor || "") + '"/></div>' +
         '<p class="text-muted" style="margin:4px 0 0;font-size:12.5px">Si defines un valor aquí, vas a poder incluir la Cuota Administrativa como cargo adicional opcional al crear o editar una orden, y aparecerá como línea aparte tanto en el Recibo de Pago como en la Factura. Déjalo vacío o en 0 si tu laboratorio no cobra ninguna cuota administrativa.</p>' +
+        // "Cashea" (financiera de compra-ahora-paga-después muy usada en
+        // Venezuela) ya aparece como método de pago disponible para
+        // cualquier laboratorio de Venezuela (ver metodosPagoDisponibles()
+        // en views-orders.js) — este campo, exclusivo también de
+        // Venezuela, deja definir un recargo (%) que se le suma al valor a
+        // pagar del Recibo/Factura cuando el cliente elige pagar con
+        // Cashea, para cubrir la comisión que Cashea le cobra al
+        // laboratorio. 0 o vacío significa "sin recargo".
+        (tenant.pais === "VE"
+          ? '<div class="action-menu-group-title">Cashea (opcional)</div>' +
+            '<div class="field" style="max-width:260px"><label>Recargo por pago con Cashea (%)</label><input type="number" id="f_casheaRecargoPorcentaje" min="0" max="100" step="0.1" value="' + (tenant.casheaRecargoPorcentaje || "") + '"/></div>' +
+            '<p class="text-muted" style="margin:4px 0 0;font-size:12.5px">Si defines un porcentaje aquí, cuando el administrador o recepción elija "Cashea" como método de pago al generar el Recibo o la Factura de una orden, el valor a pagar se incrementará automáticamente ese porcentaje — aparece como línea aparte ("Recargo Cashea") en el documento. Déjalo vacío o en 0 si tu laboratorio no cobra ningún recargo por Cashea.</p>'
+          : "") +
         "</fieldset>" +
         '<fieldset><legend>Diseño del Reporte de Resultados</legend>' +
         '<div class="checkbox-row"><input type="checkbox" id="f_logoGrandeReporte" ' + (tenant.logoGrandeReporte ? "checked" : "") + '/><label style="margin:0" for="f_logoGrandeReporte">Mostrar tu logo grande y centrado en el encabezado del informe, como un membrete</label></div>' +
@@ -1724,6 +1737,8 @@
       tenant.formatoNumeroOrden = document.getElementById("f_formatoNumeroOrden").value;
       var elCuotaAdmin = document.getElementById("f_cuotaAdministrativaValor");
       if (elCuotaAdmin) tenant.cuotaAdministrativaValor = parseFloat(elCuotaAdmin.value) || 0;
+      var elCasheaRecargo = document.getElementById("f_casheaRecargoPorcentaje");
+      if (elCasheaRecargo) tenant.casheaRecargoPorcentaje = parseFloat(elCasheaRecargo.value) || 0;
       tenant.logoGrandeReporte = document.getElementById("f_logoGrandeReporte").checked;
       tenant.logoAnchoCompleto = document.getElementById("f_logoAnchoCompleto").checked;
       tenant.logoAnchoPorcentaje = parseInt(document.getElementById("f_logoAnchoPorcentaje").value, 10);
@@ -1784,7 +1799,7 @@
           resolucionHabilitacion: tenant.resolucionHabilitacion, codigoREPS: tenant.codigoREPS, nivel: tenant.nivel,
           bacteriologoResponsable: tenant.bacteriologoResponsable, mostrarPrecioOrden: tenant.mostrarPrecioOrden, reportarCIM: tenant.reportarCIM,
           reciboConvenioComoCredito: tenant.reciboConvenioComoCredito, formatoFactura: tenant.formatoFactura, facturaConMembrete: tenant.facturaConMembrete, facturaMembreteEspacioSuperior: tenant.facturaMembreteEspacioSuperior, formatoNumeroOrden: tenant.formatoNumeroOrden,
-          cuotaAdministrativaValor: tenant.cuotaAdministrativaValor,
+          cuotaAdministrativaValor: tenant.cuotaAdministrativaValor, casheaRecargoPorcentaje: tenant.casheaRecargoPorcentaje,
           logoGrandeReporte: tenant.logoGrandeReporte, logoAnchoCompleto: tenant.logoAnchoCompleto, logoAnchoPorcentaje: tenant.logoAnchoPorcentaje, ocultarNombreEncabezado: tenant.ocultarNombreEncabezado,
           colorBandaSeccion: tenant.colorBandaSeccion, bandaSeccionSinColor: tenant.bandaSeccionSinColor, membreteEnTodasLasHojas: tenant.membreteEnTodasLasHojas,
           datosPacienteEstiloDiscreto: tenant.datosPacienteEstiloDiscreto, ocultarInterpretacion: tenant.ocultarInterpretacion, ocultarValorReferencia: tenant.ocultarValorReferencia,

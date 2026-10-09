@@ -143,7 +143,7 @@
     // examen) no le sirve de nada a quien recibe el recibo — se reemplaza
     // siempre por el valor de cada examen (cuando se conoce), que sí es lo
     // que alguien esperaría ver desglosado en un recibo de pago.
-    var hayAlgunPrecio = order.examenes.some(function (ex) { return preciosPorId[ex.examId] != null; }) || order.cuotaAdministrativaIncluida;
+    var hayAlgunPrecio = order.examenes.some(function (ex) { return preciosPorId[ex.examId] != null; }) || order.cuotaAdministrativaIncluida || pago.casheaRecargoValor > 0;
     var filasExamenes = order.examenes.map(function (ex) {
       var exCat = C.examenEfectivo(ex.examId, tenant);
       var nombre = exCat ? exCat.nombre : ex.examId;
@@ -158,6 +158,15 @@
     // (order.cuotaAdministrativaValor), no el valor actual del tenant.
     if (order.cuotaAdministrativaIncluida) {
       filasExamenes.push(hayAlgunPrecio ? ["Cuota Administrativa", fmtMoneda(order.cuotaAdministrativaValor || 0)] : ["Cuota Administrativa"]);
+    }
+    // Recargo por pagar con Cashea (Configuración → Operación → "Cashea",
+    // solo Venezuela) — el valor queda congelado en el propio pago al
+    // momento de confirmarlo (pago.casheaRecargoValor), no el porcentaje
+    // actual configurado en el tenant, para que un cambio posterior no
+    // altere un recibo ya emitido.
+    if (pago.casheaRecargoValor > 0) {
+      var etiquetaRecargo = "Recargo Cashea (" + pago.casheaRecargoPorcentaje + "%)";
+      filasExamenes.push(hayAlgunPrecio ? [etiquetaRecargo, fmtMoneda(pago.casheaRecargoValor)] : [etiquetaRecargo]);
     }
     doc.autoTable({
       startY: y, margin: { left: margin, right: margin },
