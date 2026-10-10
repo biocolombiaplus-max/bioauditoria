@@ -558,6 +558,15 @@
 
     function renderChips() {
       document.getElementById("sel-count").textContent = (selectedExams.length + selectedPaquetes.length) + " seleccionados";
+      // Mientras haya al menos un examen/paquete marcado, le avisa al
+      // router que esta pantalla tiene cambios sin guardar — así un
+      // refresco en tiempo real disparado por OTRO usuario del laboratorio
+      // (ej. alguien más registrando un paciente) no borra de golpe todo
+      // lo que se lleva seleccionado, sin importar dónde esté el foco en
+      // ese instante (bug real: en un laboratorio con varios usuarios
+      // activos, las casillas marcadas podían "perderse" solas, sintiéndose
+      // como que el formulario no dejaba seleccionar nada).
+      BIO_ROUTER.marcarFormularioSucio((selectedExams.length + selectedPaquetes.length) > 0);
       var chipsExamenes = selectedExams.map(function (id) {
         var e = C.examenEfectivo(id, tenant);
         return '<span class="chip">' + U.esc(e.nombre) + ' <button data-remove="' + id + '">' + U.icon("x") + "</button></span>";

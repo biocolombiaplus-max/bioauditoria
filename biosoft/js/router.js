@@ -2,6 +2,28 @@
 (function (global) {
   "use strict";
 
+  // Caso real reportado: en un laboratorio ocupado con varios usuarios a la
+  // vez, armar una orden con varios exámenes/paquetes marcados podía
+  // "perderse" sin ningún aviso — bastaba con que alguien más tocara
+  // cualquier dato (otro compañero registrando un paciente, por ejemplo)
+  // justo en el instante en que el foco NO estaba parado exactamente
+  // dentro de un <input>/<textarea>/<select> (ej. recién se marcó una
+  // casilla y el foco quedó libre un momento, o se estaba mirando la lista
+  // antes de hacer clic en "Crear Orden"): ahí el refresco en tiempo real
+  // de abajo (ver boot() -> estaEscribiendoEnFormulario) ya no se
+  // consideraba "a mitad de algo" y reconstruía toda la pantalla desde
+  // cero, borrando todo lo seleccionado sin ningún mensaje — se sentía
+  // exactamente como que "no deja seleccionar nada". marcarFormularioSucio()
+  // deja que una vista avise explícitamente "tengo cambios sin guardar"
+  // mientras dure esa condición, sin depender de dónde esté el foco en
+  // cada instante — ver su uso en Nueva Orden (views-orders.js). Vive a
+  // este nivel (no dentro de boot()) para que renderRoute() también pueda
+  // limpiarla sola en cuanto la ruta realmente cambia — así nunca queda
+  // "pegada" en true si una vista se abandona sin pasar por su propio
+  // botón Cancelar (ej. clic directo en otro ítem del menú).
+  var formularioSucio = false;
+  function marcarFormularioSucio(valor) { formularioSucio = !!valor; }
+
   var NAV = {
     superadmin: [
       { sec: "BIOSOFT", items: [
@@ -240,6 +262,12 @@
   }
 
   function renderRoute() {
+    // Una ruta que de verdad se vuelve a dibujar deja atrás cualquier
+    // "formulario sucio" que haya marcado la vista ANTERIOR (ver
+    // marcarFormularioSucio arriba) — la vista vieja se está destruyendo de
+    // todos modos, así que esa bandera ya no debe seguir bloqueando el
+    // refresco en tiempo real de lo que venga después.
+    formularioSucio = false;
     var session = BIO_AUTH.getSession();
     if (!session) { showLogin(); return; }
     var tenant = BIO_AUTH.currentTenant();
@@ -310,6 +338,7 @@
     BIO_STORE.seedIfEmpty();
     var renderPendiente = false;
     function estaEscribiendoEnFormulario() {
+      if (formularioSucio) return true;
       var activo = document.activeElement;
       var content = document.getElementById("content");
       if (!activo || !content || !content.contains(activo)) return false;
@@ -451,5 +480,5 @@
 
   document.addEventListener("DOMContentLoaded", boot);
 
-  global.BIO_ROUTER = { renderShell: renderShell, renderRoute: renderRoute, showApp: showApp, showLogin: showLogin };
+  global.BIO_ROUTER = { renderShell: renderShell, renderRoute: renderRoute, showApp: showApp, showLogin: showLogin, marcarFormularioSucio: marcarFormularioSucio };
 })(window);
