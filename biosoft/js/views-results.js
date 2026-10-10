@@ -36,11 +36,21 @@
     return '<span class="chip" style="background:#fff"><span style="width:10px;height:10px;border-radius:50%;background:' + t.color + ';display:inline-block"></span>' + U.esc(t.nombre) + "</span>";
   }
 
-  // "YYYY-M-D" en hora LOCAL (nunca .toISOString(), que corta en UTC y
+  // "YYYY-MM-DD" en hora LOCAL (nunca .toISOString(), que corta en UTC y
   // puede correr la fecha un día hacia atrás para cualquier laboratorio al
-  // oeste de Greenwich) — se usa solo para agrupar por día calendario, no
-  // para mostrar.
-  function claveDia(d) { return d.getFullYear() + "-" + d.getMonth() + "-" + d.getDate(); }
+  // oeste de Greenwich) — se usa para agrupar por día calendario Y para
+  // ordenar los grupos (dias.sort más abajo, por comparación de texto). El
+  // mes y el día SIEMPRE van con cero a la izquierda (padStart) — bug real
+  // reportado: sin el cero, "9" (un dígito) compara como texto MAYOR que
+  // "10" (dos dígitos), así que apenas el día pasaba de un dígito a dos
+  // (ej. hoy día 10 contra ayer día 9), el grupo "Ayer" terminaba
+  // ordenándose ANTES que "Hoy" — parecía que los resultados de hoy habían
+  // desaparecido, cuando en realidad estaban más abajo en la lista.
+  function claveDia(d) {
+    var mm = String(d.getMonth() + 1).padStart(2, "0");
+    var dd = String(d.getDate()).padStart(2, "0");
+    return d.getFullYear() + "-" + mm + "-" + dd;
+  }
 
   function etiquetaDia(fechaOrdenIso) {
     var d = new Date(fechaOrdenIso);
