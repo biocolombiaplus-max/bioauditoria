@@ -152,6 +152,11 @@
       parametros: [
         num("HB", "Hemoglobina", "g/dL", 12.0, 16.0),
         num("HTO", "Hematocrito", "%", 36, 48),
+        // Necesario como base para calcular VCM/HCM/CHCM (ver
+        // tenant.calcularIndicesHematimetricos en examenParaPaciente) —
+        // antes el cuadro hemático no traía el conteo de eritrocitos en
+        // absoluto, así que ese cálculo no tenía de dónde salir.
+        num("ERI", "Eritrocitos", "x10⁶/µL", 4.5, 5.9),
         num("LEU", "Leucocitos", "x10³/µL", 4.5, 11.0),
         num("NEUT", "Neutrófilos", "%", 40, 70),
         num("LINF", "Linfocitos", "%", 20, 45),
@@ -1919,6 +1924,22 @@
       bandaEtiqueta: banda.etiqueta || ("#" + bandas.indexOf(banda))
     });
   }
+  /* Índices hematimétricos del Cuadro Hemático (VCM/HCM/CHCM), calculados a
+     partir de Hemoglobina (HB), Hematocrito (HTO) y Eritrocitos (ERI) con
+     las fórmulas estándar — mismo mecanismo de "parámetro calculado" que ya
+     usan LDL (Friedewald) y Globulinas (ver num() y evaluarFormula() más
+     abajo), pero aplicado condicionalmente: muchos laboratorios hacen el
+     cuadro hemático manual o su equipo no entrega estos índices, por eso
+     NO quedan "calculado" en la definición base del catálogo (arriba) —
+     solo se activan para el laboratorio que prenda
+     tenant.calcularIndicesHematimetricos en Configuración, ver
+     examenParaPaciente() más abajo. Así, por defecto, VCM/HCM/CHCM se
+     siguen digitando a mano exactamente como siempre. */
+  var FORMULAS_INDICES_HEMATIMETRICOS = {
+    VCM: "(HTO * 10) / ERI",
+    HCM: "(HB * 10) / ERI",
+    CHCM: "(HB * 100) / HTO"
+  };
   /* Igual que examenEfectivo, pero además resuelve las bandas de
      género/edad de cada parámetro para un paciente concreto — es lo que
      debe usarse en captura de resultados e informes PDF. "categoriasElegidas"
@@ -1926,10 +1947,16 @@
      mano (ver categoriasDeValores). */
   function examenParaPaciente(examId, tenant, paciente, categoriasElegidas) {
     var ex = examenEfectivo(examId, tenant);
-    if (!ex || !tenant || !tenant.refBandas) return ex;
+    if (!ex) return ex;
+    var tieneBandas = !!(tenant && tenant.refBandas);
+    var tieneIndicesCalculados = !!(tenant && tenant.calcularIndicesHematimetricos && examId === "HEM-001");
+    if (!tieneBandas && !tieneIndicesCalculados) return ex;
     var clone = Object.assign({}, ex);
     clone.parametros = (Array.isArray(ex.parametros) ? ex.parametros : []).map(function (p) {
-      return parametroParaPaciente(examId, p, tenant, paciente, categoriasElegidas ? categoriasElegidas[p.codigo] : null);
+      var efectivo = tieneBandas ? parametroParaPaciente(examId, p, tenant, paciente, categoriasElegidas ? categoriasElegidas[p.codigo] : null) : p;
+      var formula = tieneIndicesCalculados && FORMULAS_INDICES_HEMATIMETRICOS[p.codigo];
+      if (formula) efectivo = Object.assign({}, efectivo, { calculado: true, formula: formula });
+      return efectivo;
     });
     return clone;
   }
