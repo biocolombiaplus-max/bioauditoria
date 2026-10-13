@@ -1580,15 +1580,35 @@ var _dmEid = null;  // estándar actual en el modal
 var _dmDid = null;  // doc id actual (null = nuevo)
 var _dmFileData = null; // {name, size, type, data (base64)}
 
+// Clave canónica para Mediclic — datos siempre persisten bajo este nombre
+var _MEDICLIC_KEY = 'mediclicconsultoriaensalud';
+var _MEDICLIC_ALIAS_KEYS = ['mediclicconsultoriaensalud','mediclic','liseth.duran','dra.duran','dra.liseth'];
+
+function _resolveUserKey(){
+  var u = (sessionStorage.getItem('bio_user')||'').trim().toLowerCase();
+  // Si es cualquier alias Mediclic, siempre usar clave canónica para garantizar consistencia
+  if(_MEDICLIC_ALIAS_KEYS.indexOf(u) >= 0) return _MEDICLIC_KEY;
+  return u || _MEDICLIC_KEY;
+}
+
 // ── Cargar modificaciones guardadas en localStorage ────────────
 function loadDocMods(){
-  var user = sessionStorage.getItem('bio_user') || 'guest';
+  var userKey = _resolveUserKey();
   try {
-    var mods = JSON.parse(localStorage.getItem('bio_docmods_' + user) || '{}');
-    // Aplicar modificaciones a C.estandares
+    // Intentar clave canónica primero, luego sessionStorage original como fallback
+    var raw = localStorage.getItem('bio_docmods_' + userKey);
+    if(!raw){
+      // Buscar en todos los alias por si se guardó con otra clave
+      for(var i=0;i<_MEDICLIC_ALIAS_KEYS.length;i++){
+        raw = localStorage.getItem('bio_docmods_' + _MEDICLIC_ALIAS_KEYS[i]);
+        if(raw) break;
+      }
+    }
+    var mods = JSON.parse(raw || '{}');
     Object.keys(mods).forEach(function(eid){
       var est = C.estandares.find(function(e){ return e.id === eid; });
       if(!est) return;
+      // Fusionar: conservar _gen y otras propiedades del template, actualizar metadata
       est.documentos = mods[eid];
     });
   } catch(e) {}
@@ -1596,9 +1616,7 @@ function loadDocMods(){
 
 // ── Guardar estado de C.estandares en localStorage ─────────────
 function saveDocMods(){
-  var user = sessionStorage.getItem('bio_user') || 'guest';
-  var mods = {};
-  C.estandares.forEach(function(e){ mods[e.id] = e.documentos; });
+  var userKey = _resolveUserKey();
   // Separar archivos pesados en clave independiente para no agotar quota
   var modsLite = {};
   var fileStore = {};
@@ -1607,35 +1625,50 @@ function saveDocMods(){
       var lite = Object.assign({}, d);
       if(lite._file_data){
         fileStore[d.id] = lite._file_data;
-        delete lite._file_data; // no guardar en objeto principal
+        delete lite._file_data;
         lite._has_file = true;
       }
       return lite;
     });
   });
-  try { localStorage.setItem('bio_docmods_' + user, JSON.stringify(modsLite)); } catch(e){}
-  // Guardar archivos individualmente
+  // Guardar metadata — siempre bajo clave canónica
+  var saved = false;
+  try { localStorage.setItem('bio_docmods_' + userKey, JSON.stringify(modsLite)); saved = true; } catch(e){
+    showToast('⚠ Almacenamiento lleno. Elimina archivos antiguos para liberar espacio.');
+  }
+  if(!saved) return;
+  // Guardar archivos individuales
   Object.keys(fileStore).forEach(function(did){
-    try { localStorage.setItem('bio_docfile_' + user + '_' + did, fileStore[did]); } catch(e){}
+    try { localStorage.setItem('bio_docfile_' + userKey + '_' + did, fileStore[did]); } catch(e){
+      showToast('⚠ Archivo demasiado grande para guardar: '+did);
+    }
   });
-  // También actualizar bio_cli para que admin vea cambios
+  // Actualizar bio_cli para que admin vea cambios
   try {
-    var cli = JSON.parse(localStorage.getItem('bio_cli_' + user) || '{}');
+    var cli = JSON.parse(localStorage.getItem('bio_cli_' + userKey) || '{}');
     cli.estandares = modsLite;
     cli._docs_updated = new Date().toISOString();
-    localStorage.setItem('bio_cli_' + user, JSON.stringify(cli));
+    localStorage.setItem('bio_cli_' + userKey, JSON.stringify(cli));
   } catch(e){}
 }
 
 // ── Obtener archivo de un documento ────────────────────────────
 function getDocFile(did){
-  var user = sessionStorage.getItem('bio_user') || 'guest';
+  var userKey = _resolveUserKey();
   // Primero buscar en memoria (si recién subido)
-  var est = null, doc = null;
-  C.estandares.forEach(function(e){ var d=e.documentos.find(function(x){return x.id===did;}); if(d){est=e;doc=d;} });
+  var doc = null;
+  C.estandares.forEach(function(e){ var d=e.documentos.find(function(x){return x.id===did;}); if(d) doc=d; });
   if(doc && doc._file_data) return doc._file_data;
-  // Luego en localStorage
-  try { return localStorage.getItem('bio_docfile_' + user + '_' + did) || null; } catch(e){ return null; }
+  // Luego en localStorage con clave canónica, luego aliases
+  try {
+    var f = localStorage.getItem('bio_docfile_' + userKey + '_' + did);
+    if(f) return f;
+    for(var i=0;i<_MEDICLIC_ALIAS_KEYS.length;i++){
+      f = localStorage.getItem('bio_docfile_' + _MEDICLIC_ALIAS_KEYS[i] + '_' + did);
+      if(f) return f;
+    }
+  } catch(e){}
+  return null;
 }
 
 // ── Abrir modal para doc existente ─────────────────────────────
@@ -1654,14 +1687,21 @@ function openDm(eid, did){
   document.getElementById('docm-notas').value = doc ? (doc.notas||'') : '';
   // Restaurar archivos múltiples guardados
   if(doc){
-    var user = sessionStorage.getItem('bio_user') || 'guest';
+    var userKey2 = _resolveUserKey();
     try {
-      var saved = localStorage.getItem('bio_docfiles_'+user+'_'+did);
-      if(saved){ _dmFiles = JSON.parse(saved); }
+      // Buscar archivos múltiples: clave canónica + aliases
+      var savedMulti = localStorage.getItem('bio_docfiles_'+userKey2+'_'+did);
+      if(!savedMulti){
+        for(var ai=0;ai<_MEDICLIC_ALIAS_KEYS.length;ai++){
+          savedMulti = localStorage.getItem('bio_docfiles_'+_MEDICLIC_ALIAS_KEYS[ai]+'_'+did);
+          if(savedMulti) break;
+        }
+      }
+      if(savedMulti){ _dmFiles = JSON.parse(savedMulti); }
       else if(doc._has_file || doc._file_data){
-        // Compatibilidad: convertir archivo único a lista
-        var fd = doc._file_data || localStorage.getItem('bio_docfile_'+user+'_'+did);
-        if(fd) _dmFiles = [{ name: doc.archivo||'archivo', size: 0, type: doc._file_type||'', data: fd }];
+        // Compatibilidad: convertir archivo único legacy a lista
+        var fd2 = doc._file_data || getDocFile(did);
+        if(fd2) _dmFiles = [{ name: doc.archivo||'archivo', size: 0, type: doc._file_type||'', data: fd2 }];
       }
     } catch(e){ _dmFiles = []; }
   }
@@ -1812,11 +1852,10 @@ function dmGuardar(){
       doc.vencimiento = document.getElementById('docm-vencimiento').value || '';
       doc.notas = document.getElementById('docm-notas').value.trim();
       doc._modified = now;
-      var user2 = sessionStorage.getItem('bio_user') || 'guest';
       if(_dmFiles.length > 0){
-        // Guardar array de archivos
+        var uk2 = _resolveUserKey();
         var slim = _dmFiles.map(function(f){ return {name:f.name,size:f.size,type:f.type,data:f.data}; });
-        try { localStorage.setItem('bio_docfiles_'+user2+'_'+_dmDid, JSON.stringify(slim)); } catch(e){ showToast('⚠ Almacenamiento lleno, archivos no guardados'); }
+        try { localStorage.setItem('bio_docfiles_'+uk2+'_'+_dmDid, JSON.stringify(slim)); } catch(e){ showToast('⚠ Almacenamiento lleno, archivos no guardados'); }
         doc.archivo = _dmFiles.map(function(f){return f.name;}).join(', ');
         doc._has_file = true; doc._file_count = _dmFiles.length;
       }
@@ -1836,10 +1875,10 @@ function dmGuardar(){
       _created: now,
       _modified: now
     };
-    var user3 = sessionStorage.getItem('bio_user') || 'guest';
     if(_dmFiles.length > 0){
+      var uk3 = _resolveUserKey();
       var slim2 = _dmFiles.map(function(f){ return {name:f.name,size:f.size,type:f.type,data:f.data}; });
-      try { localStorage.setItem('bio_docfiles_'+user3+'_'+newId, JSON.stringify(slim2)); } catch(e){ showToast('⚠ Almacenamiento lleno, archivos no guardados'); }
+      try { localStorage.setItem('bio_docfiles_'+uk3+'_'+newId, JSON.stringify(slim2)); } catch(e){ showToast('⚠ Almacenamiento lleno, archivos no guardados'); }
       newDoc.archivo = _dmFiles.map(function(f){return f.name;}).join(', ');
       newDoc._has_file = true; newDoc._file_count = _dmFiles.length;
     }
@@ -1864,11 +1903,13 @@ function dmEliminar(eid, did){
   var doc = est ? est.documentos.find(function(d){ return d.id === did; }) : null;
   if(!doc) return;
   if(!confirm('¿Eliminar "'+doc.nombre+'"?\nEsta acción no se puede deshacer.')) return;
-  var user = sessionStorage.getItem('bio_user') || 'guest';
+  var delKey = _resolveUserKey();
   est.documentos = est.documentos.filter(function(d){ return d.id !== did; });
-  // Limpiar archivos
-  try { localStorage.removeItem('bio_docfile_'+user+'_'+did); } catch(e){}
-  try { localStorage.removeItem('bio_docfiles_'+user+'_'+did); } catch(e){}
+  // Limpiar archivos en todos los alias por si se guardaron con otra clave
+  _MEDICLIC_ALIAS_KEYS.concat([delKey]).forEach(function(k){
+    try { localStorage.removeItem('bio_docfile_'+k+'_'+did); } catch(e){}
+    try { localStorage.removeItem('bio_docfiles_'+k+'_'+did); } catch(e){}
+  });
   saveDocMods();
   renderEstandares();
   setTimeout(function(){ openEstd(eid); }, 50);
@@ -5129,6 +5170,37 @@ function _tele_PQRS(c1,c2,empresa,ciudad){
     +'</table>';
   return _teleDocWrap('tele-e8-03','SISTEMA DE PQRS — PETICIONES, QUEJAS, RECLAMOS Y SUGERENCIAS','Ley 1755/2015 · Res. 3100/2019 E8 · Ley 1437/2011 · Ley 1751/2015',body,c1,c2,empresa,ciudad);
 }
+
+// ─── Migrar datos de alias a clave canónica (una sola vez) ───
+(function migrateKeys(){
+  try {
+    var canonical = _MEDICLIC_KEY;
+    var hasCanonical = !!localStorage.getItem('bio_docmods_' + canonical);
+    if(hasCanonical) return; // ya está en clave correcta
+    // Buscar en aliases
+    for(var i=0;i<_MEDICLIC_ALIAS_KEYS.length;i++){
+      var k = _MEDICLIC_ALIAS_KEYS[i];
+      if(k === canonical) continue;
+      var raw = localStorage.getItem('bio_docmods_' + k);
+      if(raw){
+        localStorage.setItem('bio_docmods_' + canonical, raw);
+        // Migrar también archivos individuales
+        for(var j=0;j<localStorage.length;j++){
+          var lk = localStorage.key(j);
+          if(lk && lk.indexOf('bio_docfile_'+k+'_') === 0){
+            var newLk = 'bio_docfile_'+canonical+'_'+lk.slice(('bio_docfile_'+k+'_').length);
+            try { localStorage.setItem(newLk, localStorage.getItem(lk)); } catch(e){}
+          }
+          if(lk && lk.indexOf('bio_docfiles_'+k+'_') === 0){
+            var newLk2 = 'bio_docfiles_'+canonical+'_'+lk.slice(('bio_docfiles_'+k+'_').length);
+            try { localStorage.setItem(newLk2, localStorage.getItem(lk)); } catch(e){}
+          }
+        }
+        break;
+      }
+    }
+  } catch(e){}
+})();
 
 // ─── INIT ───
 try { loadDocMods(); } catch(e){}
