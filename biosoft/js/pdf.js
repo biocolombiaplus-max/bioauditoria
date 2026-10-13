@@ -1046,7 +1046,30 @@
       // exámenes) y se decide entre tres casos:
       var alturaTotalSeccion = HEAD_H + grupos.reduce(function (sum, g) { return sum + altoGrupo(g); }, 0);
       var presupuestoHojaNueva = pageBottom - margin;
-      if (y + alturaBanner + alturaTotalSeccion > pageBottom && alturaBanner + alturaTotalSeccion <= presupuestoHojaNueva) {
+      // Caso real reportado ("primera hoja casi en blanco"): con una
+      // sección grande de un solo examen (ej. Cuadro Hemático con 20+
+      // parámetros) que no cabía completa en lo que quedaba de la PRIMERA
+      // hoja (ocupada en gran parte por el membrete + datos del paciente),
+      // los 3 casos de abajo —pensados para evitar un examen "huérfano"—
+      // terminaban moviendo la sección ENTERA a la hoja 2, sin importar
+      // cuánto espacio todavía quedara libre en la hoja 1: el informe
+      // arrancaba recién en la página 2, con media hoja 1 completamente
+      // vacía debajo del encabezado. Antes de aplicar cualquiera de esos 3
+      // casos, ahora se revisa si vale la pena: si en la hoja ACTUAL
+      // todavía queda espacio útil de sobra (más que el banner + encabezado
+      // + un puñado de filas), es mejor usarlo ya mismo y dejar que el
+      // reparto normal de abajo (grupos.forEach) y la propia tabla
+      // (autoTable) continúen en una hoja nueva lo que no alcance a caber
+      // — igual que ya hace el Caso 3 para un examen gigante. Por debajo de
+      // ese umbral (poco espacio de sobra, ej. al fondo de una hoja ya
+      // avanzada) se mantienen los 3 casos de siempre tal cual, para no
+      // perder la protección original contra una sección chica que termina
+      // partida con un examen huérfano solo en una hoja nueva casi vacía.
+      var espacioDeSobraParaEmpezarAqui = alturaBanner + HEAD_H + ROW_H * 6;
+      if (pageBottom - y > espacioDeSobraParaEmpezarAqui) {
+        // Espacio de sobra en esta misma hoja: se dibuja aquí, sin forzar
+        // ningún salto — ver el comentario de arriba.
+      } else if (y + alturaBanner + alturaTotalSeccion > pageBottom && alturaBanner + alturaTotalSeccion <= presupuestoHojaNueva) {
         // Caso 1: la sección ENTERA (banner + todos sus exámenes) no cabe
         // en lo que queda de esta hoja, pero sí cabe completa en una hoja
         // nueva — se pasa la sección completa a la siguiente hoja en vez
