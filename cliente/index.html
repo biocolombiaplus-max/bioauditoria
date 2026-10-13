@@ -300,6 +300,32 @@ select.fi option{background:var(--s1)}
 .mf-del{background:rgba(239,68,68,0.08);border:1px solid rgba(239,68,68,0.2);color:var(--red);border-radius:6px;padding:3px 8px;font-size:10px;font-weight:700;cursor:pointer;font-family:inherit}
 .mf-add-btn{display:flex;align-items:center;gap:6px;padding:7px 12px;border-radius:var(--r3);background:rgba(255,107,0,0.06);border:1px dashed rgba(255,107,0,0.3);color:var(--or2);font-size:11px;font-weight:700;cursor:pointer;font-family:inherit;width:100%;justify-content:center;margin-top:6px;transition:all 0.15s}
 .mf-add-btn:hover{background:rgba(255,107,0,0.12)}
+/* ─── File viewer modal ─── */
+.fvm-overlay{position:fixed;inset:0;background:rgba(0,0,0,0.72);z-index:2100;display:flex;align-items:center;justify-content:center;opacity:0;pointer-events:none;transition:opacity 0.2s}
+.fvm-overlay.open{opacity:1;pointer-events:all}
+.fvm-box{background:var(--s2);border:1px solid var(--bd);border-radius:16px;width:min(520px,96vw);max-height:82vh;display:flex;flex-direction:column;box-shadow:0 24px 64px rgba(0,0,0,0.5)}
+.fvm-head{display:flex;align-items:flex-start;justify-content:space-between;padding:18px 20px 14px;border-bottom:1px solid var(--bd)}
+.fvm-title{font-size:15px;font-weight:800;color:var(--t1)}
+.fvm-sub{font-size:11px;color:var(--t2);margin-top:3px}
+.fvm-close{background:none;border:none;color:var(--t2);font-size:18px;cursor:pointer;font-family:inherit;padding:0;line-height:1}
+.fvm-body{flex:1;overflow-y:auto;padding:16px 20px;display:flex;flex-direction:column;gap:10px}
+.fvm-empty{text-align:center;padding:40px 20px;color:var(--t2);font-size:13px}
+.fvm-item{display:flex;align-items:center;gap:12px;background:var(--s3);border:1px solid var(--bd);border-radius:10px;padding:12px 14px;transition:background 0.15s}
+.fvm-item:hover{background:rgba(255,107,0,0.06);border-color:rgba(255,107,0,0.25)}
+.fvm-ico{font-size:26px;flex-shrink:0}
+.fvm-info{flex:1;min-width:0}
+.fvm-fname{font-weight:700;font-size:13px;color:var(--t1);word-break:break-all}
+.fvm-fmeta{font-size:10px;color:var(--t2);margin-top:2px}
+.fvm-open{background:linear-gradient(135deg,var(--or1),var(--or2));border:none;color:#fff;border-radius:8px;padding:7px 14px;font-size:12px;font-weight:800;cursor:pointer;font-family:inherit;white-space:nowrap;display:flex;align-items:center;gap:5px}
+.fvm-open:hover{opacity:0.9}
+.fvm-foot{padding:12px 20px;border-top:1px solid var(--bd);display:flex;gap:8px}
+.fvm-add-btn{flex:1;background:rgba(255,107,0,0.07);border:1px dashed rgba(255,107,0,0.35);color:var(--or2);border-radius:8px;padding:8px;font-size:12px;font-weight:700;cursor:pointer;font-family:inherit;display:flex;align-items:center;justify-content:center;gap:6px}
+/* ─── File badge in doc-row ─── */
+.doc-file-bar{display:flex;align-items:center;gap:6px;margin-top:5px;flex-wrap:wrap}
+.doc-fchip{display:inline-flex;align-items:center;gap:4px;background:rgba(34,197,94,0.1);border:1px solid rgba(34,197,94,0.28);border-radius:6px;padding:2px 7px;font-size:10px;color:var(--green);font-weight:700;cursor:pointer;transition:background 0.15s;max-width:170px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.doc-fchip:hover{background:rgba(34,197,94,0.2)}
+.doc-fchip-more{background:rgba(255,107,0,0.1);border-color:rgba(255,107,0,0.3);color:var(--or2)}
+.doc-fchip-more:hover{background:rgba(255,107,0,0.2)}
 
 /* ─── SIDEBAR (desktop only) ─── */
 .sidebar{display:none}
@@ -977,6 +1003,25 @@ select.fi option{background:var(--s1)}
   </div>
 </div>
 
+<!-- ═══ FILE VIEWER MODAL ═══ -->
+<div class="fvm-overlay" id="fvm-overlay" onclick="if(event.target===this)closeFvm()">
+  <div class="fvm-box">
+    <div class="fvm-head">
+      <div>
+        <div class="fvm-title" id="fvm-title">Archivos adjuntos</div>
+        <div class="fvm-sub" id="fvm-sub"></div>
+      </div>
+      <button class="fvm-close" onclick="closeFvm()"><i class="fas fa-times"></i></button>
+    </div>
+    <div class="fvm-body" id="fvm-body">
+      <div class="fvm-empty"><i class="fas fa-folder-open" style="font-size:32px;opacity:0.3;display:block;margin-bottom:10px"></i>Sin archivos adjuntos</div>
+    </div>
+    <div class="fvm-foot">
+      <button class="fvm-add-btn" id="fvm-add-btn" onclick="fvmAgregar()"><i class="fas fa-plus"></i> Agregar más archivos</button>
+    </div>
+  </div>
+</div>
+
 <script>
 var GITHUB_URL = 'https://raw.githubusercontent.com/biocolombiaplus-max/bioauditoria/main/docs/';
 
@@ -1499,19 +1544,42 @@ function renderEstandares(){
       var vencHtml = d.vencimiento?'<span style="font-size:9px;color:var(--yellow);margin-left:4px">⏰ '+d.vencimiento+'</span>':'';
       var notasHtml = d.notas?'<div style="font-size:10px;color:var(--t2);margin-top:3px;line-height:1.4;font-style:italic">💬 '+d.notas+'</div>':'';
       var statusBadge = sh(d.estado);
-      var fileIcon = hasFile?(fileCount>1?'<span style="display:inline-flex;align-items:center;gap:2px;background:rgba(34,197,94,0.15);border:1px solid rgba(34,197,94,0.3);border-radius:4px;padding:0 4px;font-size:9px;color:var(--green);font-weight:800;margin-left:5px;vertical-align:middle">📎 '+fileCount+'</span>':'<i class="fas fa-paperclip" style="color:var(--green);font-size:10px;margin-left:4px" title="Tiene archivo adjunto"></i>'):'';
+      // Build inline file chips from stored names
+      var fileBarHtml = '';
+      if(hasFile){
+        var fnames = [];
+        // Try to get names from stored multi-file JSON
+        var fkey = _resolveUserKey();
+        var fsaved = null;
+        try { fsaved = localStorage.getItem('bio_docfiles_'+fkey+'_'+d.id); } catch(e){}
+        if(!fsaved){ for(var _ai=0;_ai<_MEDICLIC_ALIAS_KEYS.length;_ai++){ try{ var _t=localStorage.getItem('bio_docfiles_'+_MEDICLIC_ALIAS_KEYS[_ai]+'_'+d.id); if(_t){fsaved=_t;break;} }catch(e){} } }
+        if(fsaved){ try{ var _fa=JSON.parse(fsaved); fnames=_fa.map(function(f){return f.name;}); }catch(e){} }
+        else if(d.archivo){ fnames = d.archivo.split(', ').filter(Boolean); }
+        if(fnames.length){
+          var showMax=2;
+          fileBarHtml='<div class="doc-file-bar">';
+          for(var _fi=0;_fi<Math.min(fnames.length,showMax);_fi++){
+            var _fn=fnames[_fi]; var _fe=(_fn.split('.').pop()||'').toLowerCase();
+            var _fic=_fe==='pdf'?'📄':_fe==='doc'||_fe==='docx'?'📝':_fe==='xls'||_fe==='xlsx'?'📊':_fe==='jpg'||_fe==='jpeg'||_fe==='png'?'🖼️':'📎';
+            fileBarHtml+='<span class="doc-fchip" onclick="openFvm(\''+safeId+'\',\''+d.nombre.replace(/'/g,"&apos;")+'\',\''+safeEid+'\')" title="'+_fn+'">'+_fic+' '+_fn+'</span>';
+          }
+          if(fnames.length>showMax) fileBarHtml+='<span class="doc-fchip doc-fchip-more" onclick="openFvm(\''+safeId+'\',\''+d.nombre.replace(/'/g,"&apos;")+'\',\''+safeEid+'\')">+'+( fnames.length-showMax)+' más</span>';
+          fileBarHtml+='</div>';
+        }
+      }
       var genBtn = safeGen?'<button class="dab" onclick="generarFormato(\''+safeGen+'\')" title="Generar / editar documento" style="background:linear-gradient(135deg,rgba(255,107,0,0.15),rgba(123,47,190,0.15));border:1px solid rgba(255,107,0,0.35);color:var(--or2);font-size:11px;width:auto;padding:0 8px;gap:4px"><i class="fas fa-file-alt"></i><span style="font-size:10px;font-weight:800">Generar</span></button>':'';
       return '<div class="doc-row" id="doc-row-'+safeId+'">'
         +'<div class="doc-ico" style="'+docIcoBg(d.estado)+'">'+docEmoji(d.tipo)+'</div>'
         +'<div class="doc-info">'
-        +'<div class="doc-name">'+d.nombre+fileIcon+'</div>'
+        +'<div class="doc-name">'+d.nombre+(hasFile?'<i class="fas fa-paperclip" style="color:var(--green);font-size:10px;margin-left:5px" title="Tiene '+fileCount+' archivo(s)"></i>':'')+'</div>'
         +'<div class="doc-meta">'+d.version+' &nbsp;·&nbsp; <span class="tipo-pill">'+d.tipo+'</span>'+vencHtml+'</div>'
+        +fileBarHtml
         +notasHtml
         +'</div>'
         +'<div class="doc-actions">'
         +statusBadge
         +genBtn
-        +(hasFile?'<button class="dab dab-view" onclick="dmViewFile(\''+safeId+'\')" title="Ver archivo"><i class="fas fa-eye"></i></button>':'')
+        +(hasFile?'<button class="dab dab-view" onclick="openFvm(\''+safeId+'\',\''+d.nombre.replace(/'/g,"\\'")+'\',\''+safeEid+'\')" title="Ver archivos adjuntos" style="gap:4px"><i class="fas fa-folder-open"></i>'+(fileCount>1?'<span style="font-size:9px;font-weight:800">'+fileCount+'</span>':'')+'</button>':'')
         +'<button class="dab dab-up" onclick="openDmUpload(\''+safeEid+'\',\''+safeId+'\')" title="Subir archivo"><i class="fas fa-upload"></i></button>'
         +'<button class="dab dab-ed" onclick="openDm(\''+safeEid+'\',\''+safeId+'\')" title="Editar metadatos"><i class="fas fa-pen"></i></button>'
         +'<button class="dab dab-del" onclick="dmEliminar(\''+safeEid+'\',\''+safeId+'\')" title="Eliminar"><i class="fas fa-trash"></i></button>'
@@ -1919,14 +1987,79 @@ function dmEliminar(eid, did){
 // ── Ver archivo adjunto ────────────────────────────────────────
 function dmViewFile(did){
   var fileData = getDocFile(did);
-  if(!fileData){ alert('No hay archivo disponible para este documento.'); return; }
-  // Para imágenes y PDFs, abrir en nueva pestaña
+  if(!fileData){ showToast('Sin archivo disponible — usa el visor de archivos'); return; }
   var win = window.open('', '_blank');
   if(!win){ return; }
   win.document.write('<html><body style="margin:0;background:#111">'
     +'<iframe src="'+fileData+'" style="width:100vw;height:100vh;border:none"></iframe>'
     +'</body></html>');
   win.document.close();
+}
+
+// ── Visor de archivos (modal) ──────────────────────────────────
+var _fvmDid = null, _fvmEid = null;
+
+function _getDocFiles(did){
+  var userKey = _resolveUserKey();
+  var raw = null;
+  try { raw = localStorage.getItem('bio_docfiles_'+userKey+'_'+did); } catch(e){}
+  if(!raw){ for(var i=0;i<_MEDICLIC_ALIAS_KEYS.length;i++){ try{ var t=localStorage.getItem('bio_docfiles_'+_MEDICLIC_ALIAS_KEYS[i]+'_'+did); if(t){raw=t;break;} }catch(e){} } }
+  if(raw){ try{ return JSON.parse(raw); }catch(e){} }
+  // Fallback: archivo único
+  var fd = getDocFile(did);
+  if(fd){
+    var doc=null; C.estandares.forEach(function(e){ var d=e.documentos.find(function(x){return x.id===did;}); if(d) doc=d; });
+    return [{ name: (doc&&doc.archivo)||'archivo', size:0, type:(doc&&doc._file_type)||'', data:fd }];
+  }
+  return [];
+}
+
+function openFvm(did, docNombre, eid){
+  _fvmDid = did; _fvmEid = eid||null;
+  document.getElementById('fvm-title').textContent = docNombre || 'Archivos adjuntos';
+  var files = _getDocFiles(did);
+  document.getElementById('fvm-sub').textContent = files.length + ' archivo' + (files.length!==1?'s':'') + ' adjunto' + (files.length!==1?'s':'');
+  var body = document.getElementById('fvm-body');
+  if(!files.length){
+    body.innerHTML = '<div class="fvm-empty"><i class="fas fa-folder-open" style="font-size:36px;opacity:0.25;display:block;margin-bottom:10px"></i>Sin archivos adjuntos.<br><span style="font-size:11px;margin-top:6px;display:block">Usa el botón <strong>Subir</strong> ↑ para agregar archivos.</span></div>';
+  } else {
+    body.innerHTML = files.map(function(f,i){
+      var ext = (f.name.split('.').pop()||'').toLowerCase();
+      var ico = ext==='pdf'?'📄':ext==='doc'||ext==='docx'?'📝':ext==='xls'||ext==='xlsx'?'📊':ext==='jpg'||ext==='jpeg'||ext==='png'?'🖼️':'📎';
+      var sz = f.size>0?(f.size/1024).toFixed(0)+' KB':'';
+      return '<div class="fvm-item">'
+        +'<div class="fvm-ico">'+ico+'</div>'
+        +'<div class="fvm-info"><div class="fvm-fname">'+f.name+'</div>'
+        +'<div class="fvm-fmeta">'+(sz?sz+' · ':'')+ext.toUpperCase()+'</div></div>'
+        +'<button class="fvm-open" onclick="fvmOpenFile('+i+')"><i class="fas fa-eye"></i> Ver</button>'
+        +'</div>';
+    }).join('');
+  }
+  document.getElementById('fvm-overlay').classList.add('open');
+  document.body.style.overflow = 'hidden';
+}
+
+function closeFvm(){
+  document.getElementById('fvm-overlay').classList.remove('open');
+  document.body.style.overflow = '';
+}
+
+function fvmOpenFile(idx){
+  var files = _getDocFiles(_fvmDid);
+  var f = files[idx]; if(!f) return;
+  var win = window.open('','_blank');
+  if(!win) return;
+  if(f.type && f.type.indexOf('image')>=0){
+    win.document.write('<html><body style="margin:0;background:#111;display:flex;align-items:center;justify-content:center;min-height:100vh"><img src="'+f.data+'" style="max-width:100%;max-height:100vh;object-fit:contain"></body></html>');
+  } else {
+    win.document.write('<html><body style="margin:0"><embed src="'+f.data+'" width="100%" height="100%" style="position:fixed;inset:0"></body></html>');
+  }
+  win.document.close();
+}
+
+function fvmAgregar(){
+  closeFvm();
+  if(_fvmEid && _fvmDid) setTimeout(function(){ openDmUpload(_fvmEid, _fvmDid); }, 200);
 }
 
 // ── Toast ──────────────────────────────────────────────────────
