@@ -5693,7 +5693,25 @@ function _surgWrap(id, titulo, norma, body){
     +'.info-box{background:rgba('+r1+',0.06);border:1px solid rgba('+r1+',0.2);border-radius:8px;padding:13px 18px;margin:16px 0;font-size:10pt;line-height:1.7}'
     +'.sig-grid{display:grid;grid-template-columns:1fr 1fr;gap:36px;padding:24px 40px 32px}'
     +'.sig-box{border-top:2.5px solid rgb('+r1+');padding-top:12px;text-align:center;font-size:9.5pt}'
-    +'.sig-box strong{display:block;margin-bottom:4px;font-size:10pt}'
+    +'.sig-box strong{display:block;margin-bottom:8px;font-size:10pt}'
+    +'.sig-canvas-wrap{position:relative;cursor:pointer;border:1.5px dashed rgba('+r1+',0.4);border-radius:8px;background:rgba('+r1+',0.03);margin-bottom:8px;overflow:hidden;transition:all 0.2s}'
+    +'.sig-canvas-wrap:hover{background:rgba('+r1+',0.07);border-color:rgba('+r1+',0.7)}'
+    +'.sig-canvas-wrap canvas{display:block;width:100%;height:70px;touch-action:none}'
+    +'.sig-hint{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;gap:7px;color:rgba('+r1+',0.6);font-size:10pt;font-weight:600;pointer-events:none}'
+    +'.sig-clear-btn{font-size:9pt;color:#94a3b8;background:none;border:none;cursor:pointer;margin-top:3px;text-decoration:underline}'
+    // Modal firma
+    +'.sig-modal{position:fixed;inset:0;background:rgba(0,0,0,0.85);z-index:9999;display:none;flex-direction:column;align-items:center;justify-content:center;padding:16px}'
+    +'.sig-modal.open{display:flex}'
+    +'.sig-modal-box{background:#fff;border-radius:16px;width:min(560px,98vw);overflow:hidden;box-shadow:0 20px 60px rgba(0,0,0,0.4)}'
+    +'.sig-modal-head{background:linear-gradient(135deg,rgb('+r1+'),rgb('+r2+'));color:#fff;padding:16px 20px;display:flex;justify-content:space-between;align-items:center}'
+    +'.sig-modal-head h3{font-size:14pt;font-weight:800;margin:0}'
+    +'.sig-modal-head p{font-size:9pt;opacity:0.85;margin:3px 0 0}'
+    +'.sig-modal-canvas{display:block;width:100%;height:220px;touch-action:none;cursor:crosshair;background:#fafafa;border-top:1px solid #e2e8f0}'
+    +'.sig-modal-foot{padding:14px 20px;display:flex;gap:10px;background:#f8fafc;border-top:1px solid #e2e8f0}'
+    +'.smf-btn{flex:1;padding:12px;border:none;border-radius:10px;font-size:11pt;font-weight:800;cursor:pointer;font-family:inherit}'
+    +'.smf-ok{background:linear-gradient(135deg,rgb('+r1+'),rgb('+r2+'));color:#fff}'
+    +'.smf-clear{background:#f1f5f9;color:#475569;border:1px solid #cbd5e1}'
+    +'.smf-cancel{background:#fff0f0;color:#dc2626;border:1px solid #fecaca}'
     +'.sig-line{min-height:60px;border-bottom:1px dashed rgba('+r1+',0.3);margin-bottom:8px;cursor:text}'
     +'.doc-footer{background:#f1f5f9;padding:13px 40px;font-size:8.5pt;color:#64748b;display:flex;justify-content:space-between;align-items:center;border-top:1px solid #e2e8f0;flex-wrap:wrap;gap:10px}'
     +'@media print{.toolbar,.save-toast,.edit-hint{display:none!important}body{background:#fff;padding:0}.doc-wrap{margin:0;box-shadow:none;border-radius:0}}'
@@ -5721,9 +5739,41 @@ function _surgWrap(id, titulo, norma, body){
     +'<div class="edit-hint">✏️ <strong>Modo edición activo<\/strong> — Haz clic en cualquier campo azul punteado para editarlo. Cuando termines, presiona <strong>💾 Guardar<\/strong> para que tus cambios queden guardados para siempre.<\/div>'
     +body
     +'<\/div>'
+    // Modal de firma electrónica
+    +'<div class="sig-modal" id="sig-modal">'
+    +'<div class="sig-modal-box">'
+    +'<div class="sig-modal-head">'
+    +'<div><h3>✍️ Firma electrónica<\/h3><p>Dibuje su firma con el dedo o el mouse<\/p><\/div>'
+    +'<button onclick="sigModalClose()" style="background:rgba(255,255,255,0.2);border:none;color:#fff;border-radius:8px;padding:6px 12px;cursor:pointer;font-size:14pt;font-weight:700">✕<\/button>'
+    +'<\/div>'
+    +'<canvas class="sig-modal-canvas" id="sig-modal-canvas"><\/canvas>'
+    +'<div style="text-align:center;padding:8px 20px 0;font-size:9pt;color:#94a3b8">Firme dentro del recuadro gris. Use el dedo en celular o el mouse en PC.<\/div>'
+    +'<div class="sig-modal-foot">'
+    +'<button class="smf-btn smf-clear" onclick="sigModalClear()">🗑️ Borrar<\/button>'
+    +'<button class="smf-btn smf-cancel" onclick="sigModalClose()">Cancelar<\/button>'
+    +'<button class="smf-btn smf-ok" onclick="sigModalConfirm()">✅ Confirmar firma<\/button>'
+    +'<\/div>'
+    +'<\/div>'
+    +'<\/div>'
     +'<div class="sig-grid">'
-    +'<div class="sig-box"><strong>Elaboró<\/strong><div class="sig-line" contenteditable="true" data-ph="Nombre completo y firma"><\/div>Nombre · Cargo<\/div>'
-    +'<div class="sig-box"><strong>Aprobó — Director(a) Técnico Q.F.<\/strong><div class="sig-line" contenteditable="true" data-ph="Q.F. responsable y firma"><\/div>Q.F. · Reg. Prof.<\/div>'
+    +'<div class="sig-box">'
+    +'<strong>Elaboró<\/strong>'
+    +'<div class="sig-canvas-wrap" onclick="sigModalOpen(\'sig1\')" id="sig1-wrap">'
+    +'<canvas id="sig1-display" height="70"><\/canvas>'
+    +'<div class="sig-hint" id="sig1-hint">👆 Tocar para firmar<\/div>'
+    +'<\/div>'
+    +'<div contenteditable="true" data-ph="Nombre completo · Cargo" style="margin-bottom:4px;font-size:9.5pt;padding:2px 6px;border-bottom:1px dashed rgba('+r1+',0.3);min-height:1.4em"></div>'
+    +'<button class="sig-clear-btn" onclick="sigClear(\'sig1\')">× Borrar firma<\/button>'
+    +'<\/div>'
+    +'<div class="sig-box">'
+    +'<strong>Aprobó — Director(a) Técnico Q.F.<\/strong>'
+    +'<div class="sig-canvas-wrap" onclick="sigModalOpen(\'sig2\')" id="sig2-wrap">'
+    +'<canvas id="sig2-display" height="70"><\/canvas>'
+    +'<div class="sig-hint" id="sig2-hint">👆 Tocar para firmar<\/div>'
+    +'<\/div>'
+    +'<div contenteditable="true" data-ph="Q.F. · Registro profesional" style="margin-bottom:4px;font-size:9.5pt;padding:2px 6px;border-bottom:1px dashed rgba('+r1+',0.3);min-height:1.4em"></div>'
+    +'<button class="sig-clear-btn" onclick="sigClear(\'sig2\')">× Borrar firma<\/button>'
+    +'<\/div>'
     +'<\/div>'
     +'<div class="doc-footer"><span>'+e+' &nbsp;·&nbsp; BIOAuditoria® &nbsp;·&nbsp; Documento Controlado<\/span><span>Impresión: '+fecha+'<\/span><\/div>'
     +'<\/div>'
@@ -5759,8 +5809,441 @@ function _surgWrap(id, titulo, norma, body){
     +'var _dirty=false;'
     +'document.addEventListener("input",function(){_dirty=true;});'
     +'setInterval(function(){if(_dirty){guardarDoc();_dirty=false;}},60000);'
+    // ── MÓDULO DE FIRMA ELECTRÓNICA ──────────────────────────────────────────
+    +'var _sigTarget=null;'
+    +'var _sigDrawing=false;'
+    +'var _sigCtx=null;'
+    +'var _sigCanvas=null;'
+    // Cargar firmas guardadas al inicio
+    +'(function loadSigs(){'
+    +'  ["sig1","sig2"].forEach(function(k){'
+    +'    var data=localStorage.getItem(_KEY+"_"+k);'
+    +'    if(data) _sigRender(k,data);'
+    +'  });'
+    +'})();'
+    // Renderiza firma guardada en la caja pequeña
+    +'function _sigRender(k,dataUrl){'
+    +'  var c=document.getElementById(k+"-display");'
+    +'  var hint=document.getElementById(k+"-hint");'
+    +'  if(!c) return;'
+    +'  c.width=c.offsetWidth||300; c.height=70;'
+    +'  var ctx=c.getContext("2d");'
+    +'  var img=new Image();'
+    +'  img.onload=function(){ctx.clearRect(0,0,c.width,c.height);ctx.drawImage(img,0,0,c.width,c.height);};'
+    +'  img.src=dataUrl;'
+    +'  if(hint) hint.style.display="none";'
+    +'}'
+    // Abrir modal de firma
+    +'function sigModalOpen(target){'
+    +'  _sigTarget=target;'
+    +'  var modal=document.getElementById("sig-modal");'
+    +'  _sigCanvas=document.getElementById("sig-modal-canvas");'
+    +'  modal.classList.add("open");'
+    +'  // Ajustar tamaño del canvas al contenedor real
+    +'  _sigCanvas.width=_sigCanvas.offsetWidth||500;'
+    +'  _sigCanvas.height=220;'
+    +'  _sigCtx=_sigCanvas.getContext("2d");'
+    +'  _sigCtx.clearRect(0,0,_sigCanvas.width,_sigCanvas.height);'
+    +'  _sigCtx.strokeStyle="#1a1a2e";'
+    +'  _sigCtx.lineWidth=2.5;'
+    +'  _sigCtx.lineCap="round";'
+    +'  _sigCtx.lineJoin="round";'
+    +'  _sigDrawing=false;'
+    +'  // Eventos touch
+    +'  _sigCanvas.ontouchstart=function(ev){'
+    +'    ev.preventDefault();'
+    +'    _sigDrawing=true;'
+    +'    var t=ev.touches[0];'
+    +'    var r=_sigCanvas.getBoundingClientRect();'
+    +'    _sigCtx.beginPath();'
+    +'    _sigCtx.moveTo((t.clientX-r.left)*(_sigCanvas.width/r.width),(t.clientY-r.top)*(_sigCanvas.height/r.height));'
+    +'  };'
+    +'  _sigCanvas.ontouchmove=function(ev){'
+    +'    ev.preventDefault();'
+    +'    if(!_sigDrawing) return;'
+    +'    var t=ev.touches[0];'
+    +'    var r=_sigCanvas.getBoundingClientRect();'
+    +'    _sigCtx.lineTo((t.clientX-r.left)*(_sigCanvas.width/r.width),(t.clientY-r.top)*(_sigCanvas.height/r.height));'
+    +'    _sigCtx.stroke();'
+    +'  };'
+    +'  _sigCanvas.ontouchend=function(){_sigDrawing=false;};'
+    +'  // Eventos mouse
+    +'  _sigCanvas.onmousedown=function(ev){'
+    +'    _sigDrawing=true;'
+    +'    var r=_sigCanvas.getBoundingClientRect();'
+    +'    _sigCtx.beginPath();'
+    +'    _sigCtx.moveTo((ev.clientX-r.left)*(_sigCanvas.width/r.width),(ev.clientY-r.top)*(_sigCanvas.height/r.height));'
+    +'  };'
+    +'  _sigCanvas.onmousemove=function(ev){'
+    +'    if(!_sigDrawing) return;'
+    +'    var r=_sigCanvas.getBoundingClientRect();'
+    +'    _sigCtx.lineTo((ev.clientX-r.left)*(_sigCanvas.width/r.width),(ev.clientY-r.top)*(_sigCanvas.height/r.height));'
+    +'    _sigCtx.stroke();'
+    +'  };'
+    +'  _sigCanvas.onmouseup=function(){_sigDrawing=false;};'
+    +'  _sigCanvas.onmouseleave=function(){_sigDrawing=false;};'
+    +'}'
+    // Limpiar canvas del modal
+    +'function sigModalClear(){'
+    +'  if(_sigCtx&&_sigCanvas) _sigCtx.clearRect(0,0,_sigCanvas.width,_sigCanvas.height);'
+    +'}'
+    // Cerrar sin guardar
+    +'function sigModalClose(){'
+    +'  document.getElementById("sig-modal").classList.remove("open");'
+    +'  _sigTarget=null;'
+    +'}'
+    // Confirmar y guardar firma
+    +'function sigModalConfirm(){'
+    +'  if(!_sigTarget||!_sigCanvas) return;'
+    +'  var dataUrl=_sigCanvas.toDataURL("image/png");'
+    +'  localStorage.setItem(_KEY+"_"+_sigTarget,dataUrl);'
+    +'  _sigRender(_sigTarget,dataUrl);'
+    +'  sigModalClose();'
+    +'  var t=document.getElementById("toast");'
+    +'  t.textContent="✍️ Firma guardada correctamente";'
+    +'  t.classList.add("show");'
+    +'  setTimeout(function(){t.classList.remove("show");t.textContent="✅ ¡Guardado correctamente!";},2200);'
+    +'}'
+    // Borrar firma individual
+    +'function sigClear(k){'
+    +'  if(!confirm("¿Borrar esta firma?")) return;'
+    +'  localStorage.removeItem(_KEY+"_"+k);'
+    +'  var c=document.getElementById(k+"-display");'
+    +'  if(c){var ctx=c.getContext("2d");ctx.clearRect(0,0,c.width,c.height);}'
+    +'  var hint=document.getElementById(k+"-hint");'
+    +'  if(hint) hint.style.display="flex";'
+    +'}'
     +'<\/script>'
     +'<\/body><\/html>';
+}
+
+// ── Generador genérico premium para todos los documentos del surgMap ──────────
+function _surgGenerico(id, titulo, norma, e, n, cd, yr){
+  var fecha = new Date().toLocaleDateString('es-CO',{year:'numeric',month:'long',day:'numeric'});
+  var nit = C.nit||'(NIT)';
+  // Detectar tipo de documento por id para contenido especializado
+  var esHV      = id.indexOf('hv')>=0;
+  var esCap     = id.indexOf('cap')>=0;
+  var esDesempe = id.indexOf('desempe')>=0;
+  var esPlanta  = id.indexOf('planta')>=0||id.indexOf('infraestr')>=0;
+  var esMtto    = id.indexOf('mtto')>=0||id.indexOf('manteni')>=0;
+  var esEquip   = id.indexOf('equip')>=0||id.indexOf('inv-equip')>=0;
+  var esEmerg   = id.indexOf('emerg')>=0||id.indexOf('brigad')>=0;
+  var esPlagas  = id.indexOf('plagas')>=0;
+  var esEPP     = id.indexOf('epp')>=0;
+  var esAT      = id.indexOf('-at')>=0;
+  var esQuejas  = id.indexOf('quejas')>=0;
+  var esAudit   = id.indexOf('auditoria')>=0||id.indexOf('audit')>=0;
+  var esIndic   = id.indexOf('indicad')>=0;
+  var esSSTplan = id.indexOf('sst-plan')>=0;
+  var esSegFis  = id.indexOf('seg-fis')>=0;
+  var esHabeas  = id.indexOf('habeas')>=0;
+  var esReglam  = id.indexOf('reglam')>=0;
+  var esClientes= id.indexOf('clientes')>=0;
+  var esSegre   = id.indexOf('segre')>=0;
+  var esResidu  = id.indexOf('residu')>=0;
+  var esRAMS    = id.indexOf('rams')>=0;
+  var esTecno   = id.indexOf('tecno')>=0||id.indexOf('reactivovig')>=0;
+  var esMejora  = id.indexOf('mejora')>=0;
+  var esChecklist=id.indexOf('checklist')>=0;
+  var esInsumos = id.indexOf('insumos')>=0;
+  var esReactivos=id.indexOf('reactivos')>=0;
+  var esDerrames= id.indexOf('derrames')>=0;
+  var esProfesio= id.indexOf('profesiog')>=0;
+
+  // ── Sección de Marco Normativo genérico ──────────────────────────────────────
+  var marcoBase = '<h2>1. Marco Normativo y Legal</h2>'
+    +'<p>El presente documento se elabora en cumplimiento de la normativa colombiana vigente aplicable a bodegas de almacenamiento y distribución de medicamentos, insumos médicos y reactivos de laboratorio. Toda actividad desarrollada en <strong>'+e+'</strong> debe observar las siguientes disposiciones:</p>'
+    +'<table><tr><th style="width:28%">Norma</th><th>Descripción</th><th style="width:18%">Aplicación</th></tr>'
+    +'<tr><td><strong>Res. 444/2008 INVIMA</strong></td><td>Manual de Buenas Prácticas de Almacenamiento (BPA) — regula las condiciones técnicas y operativas de las bodegas que almacenan y distribuyen medicamentos y dispositivos médicos en Colombia</td><td>Obligatoria</td></tr>'
+    +'<tr><td><strong>Dec. 2200/2005</strong></td><td>Regulación del Servicio Farmacéutico — establece los requisitos de los establecimientos que manejan medicamentos, incluidos bodegas y distribuidores</td><td>Obligatoria</td></tr>'
+    +'<tr><td><strong>Res. 1403/2007</strong></td><td>Modelo de Gestión del Servicio Farmacéutico — determina los estándares mínimos de habilitación y funcionamiento</td><td>Obligatoria</td></tr>'
+    +'<tr><td><strong>Dec. 4725/2005</strong></td><td>Régimen de registros sanitarios y vigilancia de dispositivos médicos e insumos de laboratorio</td><td>Aplicable</td></tr>'
+    +'<tr><td><strong>Res. 3100/2019</strong></td><td>Procedimientos y condiciones de habilitación de servicios de salud y requisitos para la prestación de servicios farmacéuticos</td><td>Aplicable</td></tr>'
+    +'<tr><td><strong>Res. 4816/2008</strong></td><td>Programa Nacional de Farmacovigilancia y Tecnovigilancia — reporte obligatorio de eventos adversos a medicamentos y dispositivos</td><td>Aplicable</td></tr>'
+    +'<tr><td><strong>Dec. 1072/2015</strong></td><td>Decreto Único Reglamentario del Sector Trabajo — Sistema de Gestión de Seguridad y Salud en el Trabajo (SG-SST)</td><td>Aplicable</td></tr>'
+    +'<tr><td><strong>Dec. 351/2014</strong></td><td>Gestión Integral de Residuos generados en el Sector Salud y otras actividades — PGIRH</td><td>Aplicable</td></tr>'
+    +'<\/table>';
+
+  // ── Sección de Objeto y Alcance ───────────────────────────────────────────────
+  var objetoBase = '<h2>2. Objeto y Alcance</h2>'
+    +'<h3>2.1 Objeto</h3>'
+    +'<p>El presente documento tiene por objeto establecer los lineamientos, criterios, responsabilidades y registros asociados al proceso de <span contenteditable="true" data-ph="[describir el proceso específico]"><em>[describir el proceso específico]</em></span>, en las instalaciones de <strong>'+e+'</strong>, con sede en '+cd+', garantizando el cumplimiento de la normativa farmacéutica y sanitaria colombiana vigente.</p>'
+    +'<h3>2.2 Alcance</h3>'
+    +'<p>Este documento aplica a <strong>todo el personal</strong> que labora en '+e+', incluyendo al Director(a) Técnico Químico Farmacéutico, personal operativo de bodega, auxiliares y personal de apoyo. Abarca todas las áreas físicas de la bodega: recepción, almacenamiento, cuarentena, despacho, zona de frío y áreas administrativas.</p>'
+    +'<h3>2.3 Vigencia y Actualización</h3>'
+    +'<p>Este documento tiene vigencia de <strong>un (1) año</strong> a partir de su fecha de emisión. Debe ser revisado anualmente o cuando se produzcan cambios normativos, cambios en los procesos operativos o hallazgos de auditoría que lo justifiquen. Las actualizaciones deben registrarse en la tabla de control de cambios.</p>';
+
+  // ── Sección de Definiciones ───────────────────────────────────────────────────
+  var definiciones = '<h2>3. Definiciones y Terminología</h2>'
+    +'<p>Para efectos de interpretación y aplicación del presente documento, se adoptan las siguientes definiciones conforme a la normativa colombiana vigente:</p>'
+    +'<table><tr><th style="width:28%">Término</th><th>Definición</th></tr>'
+    +'<tr><td><strong>BPA</strong></td><td>Buenas Prácticas de Almacenamiento: conjunto de normas mínimas obligatorias que deben cumplir los establecimientos que almacenan y distribuyen medicamentos, para garantizar el mantenimiento de las condiciones de calidad, pureza, identidad, potencia y seguridad de los productos durante todo el proceso</td></tr>'
+    +'<tr><td><strong>Medicamento</strong></td><td>Preparación farmacéutica obtenida de principios activos, con o sin sustancias auxiliares, presentada bajo forma farmacéutica, con propiedades para la prevención, diagnóstico, curación o tratamiento de enfermedades en personas o animales</td></tr>'
+    +'<tr><td><strong>Dispositivo médico</strong></td><td>Instrumento, aparato, máquina, software, reactivo in vitro, material u otro artículo de uso en seres humanos, destinado a diagnóstico, prevención, monitoreo, tratamiento o alivio de enfermedades</td></tr>'
+    +'<tr><td><strong>Insumo descartable</strong></td><td>Material de uso único destinado al cuidado o procedimientos de salud, que incluye jeringas, guantes, gasas, catéteres, apósitos, entre otros, con registro INVIMA vigente</td></tr>'
+    +'<tr><td><strong>Reactivo IVD</strong></td><td>Reactivo de laboratorio para uso diagnóstico in vitro, destinado al análisis de muestras biológicas para diagnóstico clínico o monitoreo de la salud</td></tr>'
+    +'<tr><td><strong>Cuarentena</strong></td><td>Estado de segregación temporal de un producto mientras se determina su aceptación o rechazo, mediante evaluación de calidad, documentación o condiciones de almacenamiento</td></tr>'
+    +'<tr><td><strong>FEFO</strong></td><td>First Expired, First Out — primero en vencer, primero en salir. Sistema de rotación de inventario que garantiza la dispensación de los productos con fecha de vencimiento más próxima antes que los de vencimiento más tardío</td></tr>'
+    +'<tr><td><strong>Trazabilidad</strong></td><td>Capacidad de rastrear el historial completo de un producto desde su fabricación hasta su entrega al destinatario final, a través de registros que documentan lote, proveedor, fecha de recepción y destino</td></tr>'
+    +'<tr><td><strong>No conformidad</strong></td><td>Incumplimiento de un requisito establecido en normas, procedimientos, contratos o especificaciones técnicas aplicables a los productos o procesos de '+e+'</td></tr>'
+    +'<\/table>';
+
+  // ── Responsabilidades ─────────────────────────────────────────────────────────
+  var responsabilidades = '<h2>4. Responsabilidades</h2>'
+    +'<table><tr><th style="width:35%">Cargo / Responsable</th><th>Responsabilidades principales</th></tr>'
+    +'<tr><td><strong>Director(a) Técnico Q.F.</strong></td><td><div contenteditable="true" data-ph="Describa las responsabilidades del Q.F. para este proceso">• Supervisar y garantizar el cumplimiento del presente documento<br>• Autorizar cualquier modificación o excepción al procedimiento<br>• Firmar los registros de verificación periódica<br>• Reportar novedades al INVIMA o Secretaría de Salud cuando aplique<br>• Capacitar al personal operativo en los requisitos de este documento</div></td></tr>'
+    +'<tr><td><strong>Personal operativo de bodega</strong></td><td><div contenteditable="true" data-ph="Describa las responsabilidades del personal operativo">• Ejecutar las actividades conforme al procedimiento establecido<br>• Diligenciar correcta y oportunamente los registros asociados<br>• Reportar inmediatamente cualquier no conformidad o novedad al Q.F.<br>• Mantener el área de trabajo en condiciones adecuadas de orden y aseo<br>• Usar los elementos de protección personal asignados</div></td></tr>'
+    +'<tr><td><strong>Representante Legal / Administrador</strong></td><td><div contenteditable="true" data-ph="Responsabilidades administrativas">• Proveer los recursos humanos, técnicos y financieros necesarios<br>• Garantizar la vigencia del Concepto Sanitario y permisos de operación<br>• Asegurar el cumplimiento de las obligaciones contractuales con clientes y proveedores</div></td></tr>'
+    +'<\/table>';
+
+  // ── Contenido específico por tipo de documento ────────────────────────────────
+  var contenidoEspecifico = '';
+
+  if(esHV){
+    contenidoEspecifico = '<h2>5. Estructura de la Hoja de Vida</h2>'
+      +'<h3>5.1 Datos Personales</h3>'
+      +'<table><tr><th>Campo</th><th>Información</th></tr>'
+      +'<tr><td>Nombres y apellidos completos</td><td contenteditable="true" data-ph="Ingrese nombre completo"></td></tr>'
+      +'<tr><td>Tipo y número de documento</td><td contenteditable="true" data-ph="CC / CE / Pasaporte"></td></tr>'
+      +'<tr><td>Fecha de nacimiento</td><td contenteditable="true" data-ph="DD/MM/AAAA"></td></tr>'
+      +'<tr><td>Ciudad y departamento de residencia</td><td contenteditable="true" data-ph="Ciudad, Departamento"></td></tr>'
+      +'<tr><td>Teléfono de contacto</td><td contenteditable="true" data-ph="Celular / Fijo"></td></tr>'
+      +'<tr><td>Correo electrónico</td><td contenteditable="true" data-ph="correo@dominio.com"></td></tr>'
+      +'<\/table>'
+      +'<h3>5.2 Formación Académica</h3>'
+      +'<table><tr><th>Título obtenido</th><th>Institución</th><th>Año de grado</th><th>Registro profesional</th></tr>'
+      +'<tr><td contenteditable="true" data-ph="Ej: Q.F."></td><td contenteditable="true"></td><td contenteditable="true"></td><td contenteditable="true"></td></tr>'
+      +'<tr><td contenteditable="true" data-ph="Especialización / Posgrado"></td><td contenteditable="true"></td><td contenteditable="true"></td><td contenteditable="true">N/A</td></tr>'
+      +'<\/table>'
+      +'<h3>5.3 Experiencia Laboral</h3>'
+      +'<table><tr><th>Empresa / Entidad</th><th>Cargo</th><th>Período</th><th>Funciones principales</th></tr>'
+      +'<tr><td contenteditable="true"></td><td contenteditable="true"></td><td contenteditable="true"></td><td contenteditable="true"></td></tr>'
+      +'<tr><td contenteditable="true"></td><td contenteditable="true"></td><td contenteditable="true"></td><td contenteditable="true"></td></tr>'
+      +'<tr><td contenteditable="true"></td><td contenteditable="true"></td><td contenteditable="true"></td><td contenteditable="true"></td></tr>'
+      +'<\/table>'
+      +'<h3>5.4 Certificados y Capacitaciones</h3>'
+      +'<table><tr><th>Curso / Diplomado</th><th>Institución</th><th>Año</th><th>Horas</th></tr>'
+      +'<tr><td contenteditable="true" data-ph="BPA / BPD / Farmacovigilancia"></td><td contenteditable="true"></td><td contenteditable="true"></td><td contenteditable="true"></td></tr>'
+      +'<tr><td contenteditable="true"></td><td contenteditable="true"></td><td contenteditable="true"></td><td contenteditable="true"></td></tr>'
+      +'<\/table>'
+      +'<h3>5.5 Referencias Laborales y Personales</h3>'
+      +'<table><tr><th>Nombre</th><th>Cargo / Relación</th><th>Empresa</th><th>Teléfono</th></tr>'
+      +'<tr><td contenteditable="true"></td><td contenteditable="true"></td><td contenteditable="true"></td><td contenteditable="true"></td></tr>'
+      +'<tr><td contenteditable="true"></td><td contenteditable="true"></td><td contenteditable="true"></td><td contenteditable="true"></td></tr>'
+      +'<\/table>';
+  } else if(esDesempe){
+    contenidoEspecifico = '<h2>5. Criterios de Evaluación de Desempeño</h2>'
+      +'<div class="info-box">📋 La evaluación de desempeño se realiza <strong>anualmente</strong> para cada trabajador de '+e+'. Los resultados son la base para planes de capacitación, ajuste de funciones y reconocimientos.</div>'
+      +'<h3>5.1 Datos del Evaluado</h3>'
+      +'<table><tr><th>Campo</th><th>Información</th></tr>'
+      +'<tr><td>Nombre completo</td><td contenteditable="true" data-ph="Nombre del trabajador evaluado"></td></tr>'
+      +'<tr><td>Cargo</td><td contenteditable="true" data-ph="Ej: Auxiliar de bodega, Q.F., Mensajero"></td></tr>'
+      +'<tr><td>Área</td><td contenteditable="true" data-ph="Bodega / Administrativa / Distribución"></td></tr>'
+      +'<tr><td>Período evaluado</td><td contenteditable="true" data-ph="Ej: Enero – Diciembre 2026"></td></tr>'
+      +'<tr><td>Evaluador</td><td contenteditable="true" data-ph="Q.F. Director Técnico"></td></tr>'
+      +'<\/table>'
+      +'<h3>5.2 Escala de Calificación</h3>'
+      +'<table><tr><th>Puntuación</th><th>Nivel</th><th>Descripción</th></tr>'
+      +'<tr><td><strong>5 — Excelente</strong></td><td>🟢</td><td>Supera consistentemente las expectativas del cargo. Requiere supervisión mínima</td></tr>'
+      +'<tr><td><strong>4 — Bueno</strong></td><td>🟢</td><td>Cumple todas las expectativas. Desempeño sólido y confiable</td></tr>'
+      +'<tr><td><strong>3 — Satisfactorio</strong></td><td>🟡</td><td>Cumple la mayoría de expectativas. Requiere mejoras puntuales</td></tr>'
+      +'<tr><td><strong>2 — Regular</strong></td><td>🟠</td><td>Cumple parcialmente. Requiere plan de mejora específico</td></tr>'
+      +'<tr><td><strong>1 — Deficiente</strong></td><td>🔴</td><td>No cumple las expectativas. Requiere intervención inmediata</td></tr>'
+      +'<\/table>'
+      +'<h3>5.3 Factores de Evaluación</h3>'
+      +'<table><tr><th>Factor</th><th>Calificación (1–5)</th><th>Observaciones</th></tr>'
+      +'<tr><td>Cumplimiento de BPA y normas de bodega</td><td contenteditable="true" data-ph="1–5"></td><td contenteditable="true"></td></tr>'
+      +'<tr><td>Manejo y rotación de inventario (FEFO)</td><td contenteditable="true" data-ph="1–5"></td><td contenteditable="true"></td></tr>'
+      +'<tr><td>Diligenciamiento de registros y formatos</td><td contenteditable="true" data-ph="1–5"></td><td contenteditable="true"></td></tr>'
+      +'<tr><td>Puntualidad y asistencia</td><td contenteditable="true" data-ph="1–5"></td><td contenteditable="true"></td></tr>'
+      +'<tr><td>Trabajo en equipo y comunicación</td><td contenteditable="true" data-ph="1–5"></td><td contenteditable="true"></td></tr>'
+      +'<tr><td>Uso correcto de EPP y bioseguridad</td><td contenteditable="true" data-ph="1–5"></td><td contenteditable="true"></td></tr>'
+      +'<tr><td>Manejo de derrames y emergencias</td><td contenteditable="true" data-ph="1–5"></td><td contenteditable="true"></td></tr>'
+      +'<tr><td>Iniciativa y mejoramiento continuo</td><td contenteditable="true" data-ph="1–5"></td><td contenteditable="true"></td></tr>'
+      +'<tr><td><strong>PROMEDIO TOTAL</strong></td><td contenteditable="true" data-ph="Calcular promedio"></td><td contenteditable="true" data-ph="Calificación final y recomendaciones"></td></tr>'
+      +'<\/table>'
+      +'<h3>5.4 Plan de Mejoramiento</h3>'
+      +'<div contenteditable="true" data-ph="Describa las acciones de mejora acordadas con el trabajador, indicando responsable y fecha compromiso" style="min-height:80px">• Acción 1: <br>• Acción 2: <br>• Fecha compromiso:<\/div>';
+  } else if(esCap){
+    contenidoEspecifico = '<h2>5. Programa de Capacitación</h2>'
+      +'<div class="info-box">📚 La capacitación del personal es un requisito obligatorio de las BPA (Res. 444/2008 Art. 15) y del SG-SST (Dec. 1072/2015). <strong>'+e+'</strong> garantiza un mínimo de <strong>20 horas anuales</strong> de formación para cada trabajador.</div>'
+      +'<h3>5.1 Plan Anual de Capacitaciones</h3>'
+      +'<table><tr><th>Mes</th><th>Tema</th><th>Norma aplicable</th><th>Duración</th><th>Responsable</th><th>Modalidad</th></tr>'
+      +'<tr><td>Enero</td><td contenteditable="true" data-ph="Ej: Inducción BPA">Inducción / Reinducción BPA</td><td>Res. 444/2008</td><td contenteditable="true">2 h</td><td contenteditable="true" data-ph="Q.F."></td><td contenteditable="true">Presencial</td></tr>'
+      +'<tr><td>Febrero</td><td contenteditable="true" data-ph="Ej: Cadena de frío">Manejo de cadena de frío</td><td>Res. 444/2008 Art. 9</td><td contenteditable="true">2 h</td><td contenteditable="true"></td><td contenteditable="true">Presencial</td></tr>'
+      +'<tr><td>Marzo</td><td contenteditable="true">Farmacovigilancia y PRM/RAM</td><td>Res. 4816/2008</td><td contenteditable="true">2 h</td><td contenteditable="true"></td><td contenteditable="true">Virtual</td></tr>'
+      +'<tr><td>Abril</td><td contenteditable="true">Manejo de insumos médicos descartables</td><td>Dec. 4725/2005</td><td contenteditable="true">2 h</td><td contenteditable="true"></td><td contenteditable="true">Presencial</td></tr>'
+      +'<tr><td>Mayo</td><td contenteditable="true">SG-SST — Riesgos en bodega</td><td>Dec. 1072/2015</td><td contenteditable="true">2 h</td><td contenteditable="true"></td><td contenteditable="true">Presencial</td></tr>'
+      +'<tr><td>Junio</td><td contenteditable="true">PGIRH — Gestión de residuos</td><td>Dec. 351/2014</td><td contenteditable="true">1 h</td><td contenteditable="true"></td><td contenteditable="true">Presencial</td></tr>'
+      +'<tr><td>Julio</td><td contenteditable="true">Reactivos de laboratorio IVD</td><td>Dec. 4725/2005</td><td contenteditable="true">2 h</td><td contenteditable="true"></td><td contenteditable="true">Presencial</td></tr>'
+      +'<tr><td>Agosto</td><td contenteditable="true">Simulacro de emergencias / Evacuación</td><td>Res. 0312/2019</td><td contenteditable="true">2 h</td><td contenteditable="true"></td><td contenteditable="true">Simulacro</td></tr>'
+      +'<tr><td>Septiembre</td><td contenteditable="true">Auditoría BPA interna</td><td>Res. 444/2008</td><td contenteditable="true">2 h</td><td contenteditable="true"></td><td contenteditable="true">Taller</td></tr>'
+      +'<tr><td>Octubre</td><td contenteditable="true">Manejo de derrames y SDS/MSDS</td><td>GHS · Dec. 351/2014</td><td contenteditable="true">1 h</td><td contenteditable="true"></td><td contenteditable="true">Presencial</td></tr>'
+      +'<tr><td>Noviembre</td><td contenteditable="true">EPP — Uso y mantenimiento correcto</td><td>Res. 0312/2019</td><td contenteditable="true">1 h</td><td contenteditable="true"></td><td contenteditable="true">Presencial</td></tr>'
+      +'<tr><td>Diciembre</td><td contenteditable="true">Revisión anual y mejora continua</td><td>Res. 3100/2019 E5</td><td contenteditable="true">1 h</td><td contenteditable="true"></td><td contenteditable="true">Reunión</td></tr>'
+      +'<\/table>'
+      +'<h3>5.2 Registro de Asistencia</h3>'
+      +'<table><tr><th>Nombre trabajador</th><th>Cargo</th><th>Firma</th><th>Horas acumuladas</th></tr>'
+      +'<tr><td contenteditable="true"></td><td contenteditable="true"></td><td contenteditable="true" style="min-width:80px"></td><td contenteditable="true"></td></tr>'
+      +'<tr><td contenteditable="true"></td><td contenteditable="true"></td><td contenteditable="true"></td><td contenteditable="true"></td></tr>'
+      +'<tr><td contenteditable="true"></td><td contenteditable="true"></td><td contenteditable="true"></td><td contenteditable="true"></td></tr>'
+      +'<\/table>';
+  } else if(esIndic){
+    contenidoEspecifico = '<h2>5. Indicadores de Gestión</h2>'
+      +'<div class="info-box">📊 El seguimiento mensual de indicadores es obligatorio conforme a la Res. 256/2016 y la Res. 3100/2019. Los resultados se socializan con el Director Técnico y se registran en acta.</div>'
+      +'<h3>5.1 Tablero de Indicadores</h3>'
+      +'<table><tr><th>Indicador</th><th>Fórmula</th><th>Meta</th><th>Frecuencia</th><th>Resultado actual</th><th>Semáforo</th></tr>'
+      +'<tr><td>Productos vencidos en bodega</td><td>(# vencidos / # total) × 100</td><td>0%</td><td>Mensual</td><td contenteditable="true">%</td><td contenteditable="true" data-ph="🟢🟡🔴"></td></tr>'
+      +'<tr><td>Cumplimiento de temperatura</td><td>(días en rango / días período) × 100</td><td>≥ 98%</td><td>Mensual</td><td contenteditable="true">%</td><td contenteditable="true"></td></tr>'
+      +'<tr><td>Despachos con error</td><td>(# despachos error / # total) × 100</td><td>≤ 0.5%</td><td>Mensual</td><td contenteditable="true">%</td><td contenteditable="true"></td></tr>'
+      +'<tr><td>RAM/PRM reportados a INVIMA</td><td># reportes enviados</td><td>100% reportados</td><td>Mensual</td><td contenteditable="true">#</td><td contenteditable="true"></td></tr>'
+      +'<tr><td>Quejas y reclamos</td><td># quejas recibidas / período</td><td>≤ 2/mes</td><td>Mensual</td><td contenteditable="true">#</td><td contenteditable="true"></td></tr>'
+      +'<tr><td>Devoluciones de clientes</td><td>(# devoluciones / # despachos) × 100</td><td>≤ 1%</td><td>Mensual</td><td contenteditable="true">%</td><td contenteditable="true"></td></tr>'
+      +'<tr><td>Cobertura capacitación BPA</td><td>(# capacitados / # personal) × 100</td><td>100%</td><td>Trimestral</td><td contenteditable="true">%</td><td contenteditable="true"></td></tr>'
+      +'<tr><td>Accidentes de trabajo</td><td># AT en el período</td><td>0</td><td>Mensual</td><td contenteditable="true">#</td><td contenteditable="true"></td></tr>'
+      +'<\/table>'
+      +'<h3>5.2 Análisis y Acciones</h3>'
+      +'<div contenteditable="true" data-ph="Describa el análisis de los resultados y las acciones de mejora implementadas" style="min-height:100px">Período analizado: <br>Hallazgos principales: <br>Acciones implementadas: <br>Responsable seguimiento:<\/div>';
+  } else if(esAudit){
+    contenidoEspecifico = '<h2>5. Formato de Auditoría Interna — BPA</h2>'
+      +'<div class="info-box">🔍 La auditoría interna BPA debe realizarse mínimo <strong>una vez al año</strong> por el Director(a) Técnico Q.F. y adicionalmente antes de cualquier visita de verificación externa.</div>'
+      +'<h3>5.1 Datos de la Auditoría</h3>'
+      +'<table><tr><th>Campo</th><th>Información</th></tr>'
+      +'<tr><td>Fecha de auditoría</td><td contenteditable="true" data-ph="DD/MM/AAAA"></td></tr>'
+      +'<tr><td>Auditor(a)</td><td contenteditable="true" data-ph="Nombre Q.F. / Auditor externo"></td></tr>'
+      +'<tr><td>Tipo de auditoría</td><td contenteditable="true" data-ph="Interna / Externa / Seguimiento"></td></tr>'
+      +'<tr><td>Estándares evaluados</td><td contenteditable="true" data-ph="BPA completo / Área específica"></td></tr>'
+      +'<\/table>'
+      +'<h3>5.2 Lista de Verificación BPA</h3>'
+      +'<table><tr><th style="width:40%">Criterio</th><th style="width:12%">Cumple</th><th style="width:12%">No cumple</th><th style="width:12%">N/A</th><th>Observaciones / Hallazgos</th></tr>'
+      +'<tr><td><strong>E1 — Talento Humano</strong><br>Director Técnico Q.F. habilitado con RETHUS vigente</td><td contenteditable="true">☐</td><td contenteditable="true">☐</td><td contenteditable="true">☐</td><td contenteditable="true"></td></tr>'
+      +'<tr><td>Personal capacitado en BPA (registro de asistencia)</td><td contenteditable="true">☐</td><td contenteditable="true">☐</td><td contenteditable="true">☐</td><td contenteditable="true"></td></tr>'
+      +'<tr><td><strong>E2 — Infraestructura</strong><br>Áreas delimitadas: recepción, cuarentena, almacenamiento, despacho</td><td contenteditable="true">☐</td><td contenteditable="true">☐</td><td contenteditable="true">☐</td><td contenteditable="true"></td></tr>'
+      +'<tr><td>Temperatura y humedad en rango — registros diarios al día</td><td contenteditable="true">☐</td><td contenteditable="true">☐</td><td contenteditable="true">☐</td><td contenteditable="true"></td></tr>'
+      +'<tr><td>Control de plagas con empresa certificada</td><td contenteditable="true">☐</td><td contenteditable="true">☐</td><td contenteditable="true">☐</td><td contenteditable="true"></td></tr>'
+      +'<tr><td><strong>E3 — Equipos</strong><br>Neveras / equipos de frío calibrados y con hoja de vida</td><td contenteditable="true">☐</td><td contenteditable="true">☐</td><td contenteditable="true">☐</td><td contenteditable="true"></td></tr>'
+      +'<tr><td>Termómetros e higrómetros calibrados con certificado vigente</td><td contenteditable="true">☐</td><td contenteditable="true">☐</td><td contenteditable="true">☐</td><td contenteditable="true"></td></tr>'
+      +'<tr><td><strong>E4 — Productos</strong><br>Rotación FEFO implementada — sin productos vencidos en bodega</td><td contenteditable="true">☐</td><td contenteditable="true">☐</td><td contenteditable="true">☐</td><td contenteditable="true"></td></tr>'
+      +'<tr><td>Registros de recepción diligenciados con lote, vencimiento y proveedor</td><td contenteditable="true">☐</td><td contenteditable="true">☐</td><td contenteditable="true">☐</td><td contenteditable="true"></td></tr>'
+      +'<tr><td>RS INVIMA verificados en recepción (medicamentos, dispositivos, reactivos)</td><td contenteditable="true">☐</td><td contenteditable="true">☐</td><td contenteditable="true">☐</td><td contenteditable="true"></td></tr>'
+      +'<tr><td><strong>E5 — Vigilancia</strong><br>Sistema farmacovigilancia activo — reporte RAM/PRM al INVIMA</td><td contenteditable="true">☐</td><td contenteditable="true">☐</td><td contenteditable="true">☐</td><td contenteditable="true"></td></tr>'
+      +'<tr><td>Tecnovigilancia y reactivovigilancia implementadas</td><td contenteditable="true">☐</td><td contenteditable="true">☐</td><td contenteditable="true">☐</td><td contenteditable="true"></td></tr>'
+      +'<\/table>'
+      +'<h3>5.3 Resumen de Hallazgos</h3>'
+      +'<table><tr><th>#</th><th>Hallazgo</th><th>Clasificación</th><th>Acción correctiva</th><th>Responsable</th><th>Fecha compromiso</th></tr>'
+      +'<tr><td>1</td><td contenteditable="true"></td><td contenteditable="true" data-ph="Mayor/Menor/Obs."></td><td contenteditable="true"></td><td contenteditable="true"></td><td contenteditable="true"></td></tr>'
+      +'<tr><td>2</td><td contenteditable="true"></td><td contenteditable="true"></td><td contenteditable="true"></td><td contenteditable="true"></td><td contenteditable="true"></td></tr>'
+      +'<\/table>';
+  } else if(esChecklist){
+    contenidoEspecifico = '<h2>5. Lista de Verificación — Visita INVIMA / Secretaría de Salud</h2>'
+      +'<div class="alert-box">⚠️ <strong>Uso:</strong> Aplique esta lista como simulacro previo a cualquier visita de verificación. Complete el estado de cada ítem y genere un plan de acción para los que no cumplan.</div>'
+      +'<h3>5.1 Verificación por Estándar</h3>'
+      +'<table><tr><th style="width:35%">Ítem a verificar</th><th style="width:10%">✅ Cumple</th><th style="width:10%">⚠️ Parcial</th><th style="width:10%">❌ No cumple</th><th>Evidencia / Ubicación del documento</th></tr>'
+      +'<tr><td colspan="5" style="background:#f0f4f8;font-weight:700">ESTÁNDAR 1 — TALENTO HUMANO</td></tr>'
+      +'<tr><td>Director Técnico Q.F. con tarjeta profesional vigente en RETHUS</td><td contenteditable="true">☐</td><td contenteditable="true">☐</td><td contenteditable="true">☐</td><td contenteditable="true"></td></tr>'
+      +'<tr><td>Hojas de vida del personal con soportes académicos completos</td><td contenteditable="true">☐</td><td contenteditable="true">☐</td><td contenteditable="true">☐</td><td contenteditable="true"></td></tr>'
+      +'<tr><td>Programa de capacitación BPA con registros de asistencia</td><td contenteditable="true">☐</td><td contenteditable="true">☐</td><td contenteditable="true">☐</td><td contenteditable="true"></td></tr>'
+      +'<tr><td colspan="5" style="background:#f0f4f8;font-weight:700">ESTÁNDAR 2 — INFRAESTRUCTURA Y PERMISOS</td></tr>'
+      +'<tr><td>Cámara de comercio vigente</td><td contenteditable="true">☐</td><td contenteditable="true">☐</td><td contenteditable="true">☐</td><td contenteditable="true"></td></tr>'
+      +'<tr><td>Concepto sanitario de bodega vigente</td><td contenteditable="true">☐</td><td contenteditable="true">☐</td><td contenteditable="true">☐</td><td contenteditable="true"></td></tr>'
+      +'<tr><td>CCAA — Certificado de Capacidad de Almacenamiento</td><td contenteditable="true">☐</td><td contenteditable="true">☐</td><td contenteditable="true">☐</td><td contenteditable="true"></td></tr>'
+      +'<tr><td>Áreas delimitadas y señalizadas: recepción, cuarentena, almacenamiento, despacho</td><td contenteditable="true">☐</td><td contenteditable="true">☐</td><td contenteditable="true">☐</td><td contenteditable="true"></td></tr>'
+      +'<tr><td colspan="5" style="background:#f0f4f8;font-weight:700">ESTÁNDAR 3 — EQUIPOS Y CONDICIONES</td></tr>'
+      +'<tr><td>Registros diarios de temperatura y humedad (últimos 30 días)</td><td contenteditable="true">☐</td><td contenteditable="true">☐</td><td contenteditable="true">☐</td><td contenteditable="true"></td></tr>'
+      +'<tr><td>Certificados de calibración de termómetros e higrómetros vigentes</td><td contenteditable="true">☐</td><td contenteditable="true">☐</td><td contenteditable="true">☐</td><td contenteditable="true"></td></tr>'
+      +'<tr><td>Control integrado de plagas con certificado del proveedor</td><td contenteditable="true">☐</td><td contenteditable="true">☐</td><td contenteditable="true">☐</td><td contenteditable="true"></td></tr>'
+      +'<tr><td colspan="5" style="background:#f0f4f8;font-weight:700">ESTÁNDAR 4 — PRODUCTOS</td></tr>'
+      +'<tr><td>Sin productos vencidos en bodega (verificación física)</td><td contenteditable="true">☐</td><td contenteditable="true">☐</td><td contenteditable="true">☐</td><td contenteditable="true"></td></tr>'
+      +'<tr><td>RS INVIMA vigentes para todos los productos almacenados</td><td contenteditable="true">☐</td><td contenteditable="true">☐</td><td contenteditable="true">☐</td><td contenteditable="true"></td></tr>'
+      +'<tr><td>Rotación FEFO aplicada (primero en vencer, primero en salir)</td><td contenteditable="true">☐</td><td contenteditable="true">☐</td><td contenteditable="true">☐</td><td contenteditable="true"></td></tr>'
+      +'<tr><td colspan="5" style="background:#f0f4f8;font-weight:700">ESTÁNDAR 5 — VIGILANCIA</td></tr>'
+      +'<tr><td>Sistema de farmacovigilancia activo con reportes a INVIMA</td><td contenteditable="true">☐</td><td contenteditable="true">☐</td><td contenteditable="true">☐</td><td contenteditable="true"></td></tr>'
+      +'<tr><td>Tecnovigilancia y reactivovigilancia implementadas</td><td contenteditable="true">☐</td><td contenteditable="true">☐</td><td contenteditable="true">☐</td><td contenteditable="true"></td></tr>'
+      +'<tr><td colspan="5" style="background:#f0f4f8;font-weight:700">SST — SEGURIDAD Y SALUD EN EL TRABAJO</td></tr>'
+      +'<tr><td>Política SST publicada y firmada</td><td contenteditable="true">☐</td><td contenteditable="true">☐</td><td contenteditable="true">☐</td><td contenteditable="true"></td></tr>'
+      +'<tr><td>Matriz GTC-45 de riesgos actualizada</td><td contenteditable="true">☐</td><td contenteditable="true">☐</td><td contenteditable="true">☐</td><td contenteditable="true"></td></tr>'
+      +'<tr><td>EPP disponible y entregados con registro de firma</td><td contenteditable="true">☐</td><td contenteditable="true">☐</td><td contenteditable="true">☐</td><td contenteditable="true"></td></tr>'
+      +'<\/table>'
+      +'<h3>5.2 Plan de Acción Pre-visita</h3>'
+      +'<table><tr><th>#</th><th>Ítem pendiente</th><th>Responsable</th><th>Fecha compromiso</th><th>Estado</th></tr>'
+      +'<tr><td>1</td><td contenteditable="true"></td><td contenteditable="true"></td><td contenteditable="true"></td><td contenteditable="true" data-ph="Pendiente/Listo">Pendiente</td></tr>'
+      +'<tr><td>2</td><td contenteditable="true"></td><td contenteditable="true"></td><td contenteditable="true"></td><td contenteditable="true">Pendiente</td></tr>'
+      +'<tr><td>3</td><td contenteditable="true"></td><td contenteditable="true"></td><td contenteditable="true"></td><td contenteditable="true">Pendiente</td></tr>'
+      +'<\/table>';
+  } else if(esMejora){
+    contenidoEspecifico = '<h2>5. Plan de Mejoramiento Continuo</h2>'
+      +'<div class="info-box">🔄 El ciclo PHVA (Planear–Hacer–Verificar–Actuar) es la metodología base para el mejoramiento continuo en '+e+', conforme a ISO 9001:2015 y Res. 3100/2019 Estándar 5.</div>'
+      +'<h3>5.1 Fuentes de Hallazgos</h3>'
+      +'<table><tr><th>Fuente</th><th>Descripción</th><th>Frecuencia</th></tr>'
+      +'<tr><td>Auditoría interna BPA</td><td>Revisión anual del cumplimiento de BPA por el Q.F.</td><td>Anual (mín.)</td></tr>'
+      +'<tr><td>Visita INVIMA / Secretaría</td><td>Hallazgos de visitas de verificación externa</td><td>Cuando ocurra</td></tr>'
+      +'<tr><td>Quejas y reclamos de clientes</td><td>PQR recibidos con causa raíz identificada</td><td>Mensual</td></tr>'
+      +'<tr><td>Indicadores fuera de meta</td><td>Tablero de indicadores con resultado deficiente</td><td>Mensual</td></tr>'
+      +'<tr><td>Eventos de farmacovigilancia</td><td>RAM, PRM o tecnovigilancia con causa sistémica</td><td>Cuando ocurra</td></tr>'
+      +'<tr><td>Accidentes / incidentes SST</td><td>AT e incidentes investigados con acción correctiva</td><td>Cuando ocurra</td></tr>'
+      +'<\/table>'
+      +'<h3>5.2 Plan de Acciones de Mejora</h3>'
+      +'<table><tr><th>#</th><th>Hallazgo / Problema</th><th>Causa raíz</th><th>Acción correctiva / preventiva</th><th>Responsable</th><th>Fecha inicio</th><th>Fecha cierre</th><th>Estado</th></tr>'
+      +'<tr><td>1</td><td contenteditable="true"></td><td contenteditable="true"></td><td contenteditable="true"></td><td contenteditable="true"></td><td contenteditable="true"></td><td contenteditable="true"></td><td contenteditable="true" data-ph="Abierta/Cerrada">Abierta</td></tr>'
+      +'<tr><td>2</td><td contenteditable="true"></td><td contenteditable="true"></td><td contenteditable="true"></td><td contenteditable="true"></td><td contenteditable="true"></td><td contenteditable="true"></td><td contenteditable="true">Abierta</td></tr>'
+      +'<tr><td>3</td><td contenteditable="true"></td><td contenteditable="true"></td><td contenteditable="true"></td><td contenteditable="true"></td><td contenteditable="true"></td><td contenteditable="true"></td><td contenteditable="true">Abierta</td></tr>'
+      +'<\/table>';
+  } else if(esProfesio){
+    contenidoEspecifico = '<h2>5. Profesiograma de Cargos</h2>'
+      +'<div class="info-box">👷 El profesiograma establece, por cada cargo, los requisitos de formación, los riesgos laborales identificados mediante GTC-45, los exámenes médicos ocupacionales requeridos y los EPP necesarios.</div>'
+      +'<table><tr><th>Campo</th><th>Director Técnico Q.F.</th><th>Auxiliar de Bodega</th><th>Mensajero / Distribuidor</th></tr>'
+      +'<tr><td><strong>Formación mínima</strong></td><td>Químico Farmacéutico titulado</td><td contenteditable="true" data-ph="Técnico o bachiller">Técnico en servicios farmacéuticos o bachiller con capacitación BPA</td><td contenteditable="true">Bachiller</td></tr>'
+      +'<tr><td><strong>Experiencia mínima</strong></td><td contenteditable="true">1 año en bodega farmacéutica</td><td contenteditable="true">6 meses</td><td contenteditable="true">6 meses conducción</td></tr>'
+      +'<tr><td><strong>Riesgos principales (GTC-45)</strong></td><td contenteditable="true">Biológico, químico, ergonómico</td><td contenteditable="true">Ergonómico, químico, caída de objetos</td><td contenteditable="true">Tránsito, ergonómico</td></tr>'
+      +'<tr><td><strong>EPP requerido</strong></td><td contenteditable="true">Bata, guantes, tapabocas</td><td contenteditable="true">Bata, guantes, botas punta acero, tapabocas</td><td contenteditable="true">Casco, chaleco reflectivo, guantes</td></tr>'
+      +'<tr><td><strong>Examen de ingreso</strong></td><td contenteditable="true">General + optometría</td><td contenteditable="true">Osteomuscar + visual</td><td contenteditable="true">Cardiovascular + visual</td></tr>'
+      +'<tr><td><strong>Examen periódico</strong></td><td contenteditable="true">Anual</td><td contenteditable="true">Anual</td><td contenteditable="true">Anual</td></tr>'
+      +'<tr><td><strong>Vacunación obligatoria</strong></td><td contenteditable="true">Hepatitis B, Tétanos</td><td contenteditable="true">Hepatitis B, Tétanos</td><td contenteditable="true">Tétanos</td></tr>'
+      +'<\/table>';
+  } else {
+    // Plantilla rica por defecto para todos los demás documentos del surgMap
+    contenidoEspecifico = '<h2>5. Desarrollo del Procedimiento</h2>'
+      +'<div class="info-box">✏️ Complete cada sección haciendo clic sobre los campos con borde azul punteado. Todos los cambios se guardan con el botón 💾 Guardar de la barra superior.</div>'
+      +'<h3>5.1 Descripción General del Proceso</h3>'
+      +'<div contenteditable="true" data-ph="Describa de forma clara y completa el proceso, actividad o procedimiento que regula este documento. Incluya el contexto normativo, la frecuencia de ejecución y las condiciones necesarias para llevarlo a cabo correctamente." style="min-height:80px">'+e+' implementa el presente procedimiento como parte del Sistema de Gestión BPA conforme a la Resolución 444/2008 y la normativa farmacéutica colombiana vigente. Su propósito es garantizar la calidad, trazabilidad y seguridad de los productos almacenados y distribuidos.</div>'
+      +'<h3>5.2 Actividades y Pasos del Procedimiento</h3>'
+      +'<table><tr><th style="width:5%">#</th><th style="width:35%">Actividad</th><th style="width:20%">Responsable</th><th style="width:15%">Tiempo</th><th>Evidencia / Registro</th></tr>'
+      +'<tr><td>1</td><td contenteditable="true" data-ph="Describa la primera actividad"></td><td contenteditable="true" data-ph="Q.F. / Aux. bodega"></td><td contenteditable="true" data-ph="Ej: 15 min"></td><td contenteditable="true" data-ph="Formato / Registro"></td></tr>'
+      +'<tr><td>2</td><td contenteditable="true"></td><td contenteditable="true"></td><td contenteditable="true"></td><td contenteditable="true"></td></tr>'
+      +'<tr><td>3</td><td contenteditable="true"></td><td contenteditable="true"></td><td contenteditable="true"></td><td contenteditable="true"></td></tr>'
+      +'<tr><td>4</td><td contenteditable="true"></td><td contenteditable="true"></td><td contenteditable="true"></td><td contenteditable="true"></td></tr>'
+      +'<tr><td>5</td><td contenteditable="true"></td><td contenteditable="true"></td><td contenteditable="true"></td><td contenteditable="true"></td></tr>'
+      +'<\/table>'
+      +'<h3>5.3 Criterios de Aceptación / Rechazo (cuando aplique)</h3>'
+      +'<table><tr><th>Criterio</th><th>Acepta</th><th>Rechaza / No conforme</th><th>Acción a tomar</th></tr>'
+      +'<tr><td contenteditable="true" data-ph="Ej: Temperatura del producto en recepción"></td><td contenteditable="true" data-ph="Ej: 2°C–8°C"></td><td contenteditable="true" data-ph="Fuera de rango"></td><td contenteditable="true" data-ph="Cuarentena + reporte al Q.F."></td></tr>'
+      +'<tr><td contenteditable="true"></td><td contenteditable="true"></td><td contenteditable="true"></td><td contenteditable="true"></td></tr>'
+      +'<\/table>'
+      +'<h3>5.4 Indicadores del Proceso</h3>'
+      +'<table><tr><th>Indicador</th><th>Fórmula</th><th>Meta</th><th>Frecuencia</th></tr>'
+      +'<tr><td contenteditable="true" data-ph="Nombre del indicador"></td><td contenteditable="true" data-ph="(numerador/denominador)×100"></td><td contenteditable="true" data-ph="Ej: ≥95%"></td><td contenteditable="true" data-ph="Mensual/Trimestral"></td></tr>'
+      +'<\/table>';
+  }
+
+  // ── Registros asociados ───────────────────────────────────────────────────────
+  var registros = '<h2>6. Registros y Documentos Asociados</h2>'
+    +'<table><tr><th>Código</th><th>Nombre del registro / documento</th><th>Responsable custodia</th><th>Tiempo retención</th></tr>'
+    +'<tr><td contenteditable="true" data-ph="BPA-R-001"></td><td contenteditable="true" data-ph="Nombre del formato o registro"></td><td contenteditable="true" data-ph="Q.F. / Auxiliar"></td><td contenteditable="true" data-ph="Ej: 5 años"></td></tr>'
+    +'<tr><td contenteditable="true"></td><td contenteditable="true"></td><td contenteditable="true"></td><td contenteditable="true"></td></tr>'
+    +'<tr><td contenteditable="true"></td><td contenteditable="true"></td><td contenteditable="true"></td><td contenteditable="true"></td></tr>'
+    +'<\/table>';
+
+  // ── Control de cambios ────────────────────────────────────────────────────────
+  var controlCambios = '<h2>7. Control de Cambios y Versiones</h2>'
+    +'<table><tr><th style="width:10%">Versión</th><th style="width:18%">Fecha</th><th>Descripción del cambio</th><th style="width:22%">Responsable</th></tr>'
+    +'<tr><td>1.0</td><td>'+fecha+'</td><td>Emisión inicial del documento</td><td contenteditable="true">'+n+'</td></tr>'
+    +'<tr><td contenteditable="true"></td><td contenteditable="true"></td><td contenteditable="true"></td><td contenteditable="true"></td></tr>'
+    +'<\/table>';
+
+  return _surgWrap(id, titulo, norma,
+    marcoBase + objetoBase + definiciones + responsabilidades + contenidoEspecifico + registros + controlCambios
+  );
 }
 
 function generarDocSurgical(id){
@@ -5823,10 +6306,7 @@ function generarDocSurgical(id){
         'surg-checklist-visita':['LISTA DE VERIFICACIÓN — SIMULACRO VISITA INVIMA / SECRETARÍA DE SALUD','Res. 3100/2019 · Res. 444/2008 BPA · Dec. 4725/2005'],
       };
       var entry=surgMap[id];
-      if(entry) html=_surgWrap(id,entry[0],entry[1],
-        '<h2>Objeto y campo de aplicación</h2><p>'+e+' establece el presente documento en cumplimiento de la normativa farmacéutica colombiana. Diligencie cada sección con la información específica de la bodega.</p>'
-        +'<h2>Contenido del documento</h2><div contenteditable="true" style="min-height:200px;border:1px dashed #ccc;border-radius:6px;padding:14px;line-height:1.85;outline:none">Desarrolle aquí el contenido de este documento. Incluya procedimientos, responsabilidades, formatos y registros asociados según la normativa aplicable.</div>'
-        +'<h2>Control de cambios</h2><table><tr><th>Versión</th><th>Fecha</th><th>Descripción del cambio</th><th>Responsable</th></tr><tr><td>1.0</td><td>'+new Date().toLocaleDateString('es-CO')+'</td><td>Emisión inicial</td><td contenteditable="true">'+n+'</td></tr></table>');
+      if(entry) html=_surgGenerico(id,entry[0],entry[1],e,n,cd,yr);
       else html=_surgWrap(id,'DOCUMENTO — '+id,'Normativa BPA · Res. 444/2008','<p>Documento en construcción.</p>');
   }
   w.document.write(html); w.document.close();
