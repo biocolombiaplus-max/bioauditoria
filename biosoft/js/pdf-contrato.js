@@ -146,9 +146,15 @@
     var margin = 34;
     var lab = cliente.laboratorio || {};
     var contacto = cliente.contacto || {};
+    // Igual que en buildContratoPDF: si el laboratorio opera bajo un
+    // nombre comercial pero el Licenciatario que firma legalmente es una
+    // persona natural distinta (con su propio documento), esta licencia
+    // debe identificarla a ELLA, no al laboratorio — ver "Generar el
+    // Contrato a nombre de una persona natural" en views-admin.js.
+    var personaNatural = cliente.personaNatural && cliente.personaNatural.nombre ? cliente.personaNatural : null;
     var numero = opts.numero || generarNumeroLicencia({ id: opts.tenantId });
     var fechaExpedicion = opts.fechaExpedicion ? new Date(opts.fechaExpedicion) : new Date();
-    var textoVerificacion = "BIOsoft · Licencia " + numero + " · " + (lab.nombre || "") + " · " + fechaLarga(fechaExpedicion);
+    var textoVerificacion = "BIOsoft · Licencia " + numero + " · " + (personaNatural ? personaNatural.nombre : (lab.nombre || "")) + " · " + fechaLarga(fechaExpedicion);
 
     return Promise.all([cargarImagenLocal("assets/logo-biosoft.png"), Promise.resolve(buildQrDataUrlLocal(textoVerificacion, 260))]).then(function (res) {
       var logoImg = res[0], qrDataUrl = res[1];
@@ -207,7 +213,7 @@
       // ancho disponible, en vez de desbordarse fuera del marco decorativo
       // (mismo patrón de achicar la letra que ya usa el nombre del paciente
       // en pdf.js).
-      var nombreLabTxt = lab.nombre || "—";
+      var nombreLabTxt = personaNatural ? personaNatural.nombre : (lab.nombre || "—");
       var fsNombreLab = 17;
       doc.setFont("helvetica", "bold"); doc.setFontSize(fsNombreLab);
       while (doc.getTextWidth(nombreLabTxt) > innerW - 40 && fsNombreLab > 11) {
@@ -218,7 +224,12 @@
       doc.text(nombreLabTxt, pageW / 2, y, { align: "center" });
       y += 15;
       doc.setFont("helvetica", "normal"); doc.setFontSize(9.5); doc.setTextColor(90, 90, 90);
-      doc.text((lab.nit ? C.documentoTributarioLabel(lab.pais) + " " + lab.nit : "") + (contacto.nombre ? "  ·  Representante: " + contacto.nombre : ""), pageW / 2, y, { align: "center" });
+      doc.text(
+        personaNatural
+          ? (personaNatural.documento ? C.documentoTributarioLabel(lab.pais) + " " + personaNatural.documento : "") + (lab.nombre ? "  ·  Nombre comercial: " + lab.nombre : "")
+          : (lab.nit ? C.documentoTributarioLabel(lab.pais) + " " + lab.nit : "") + (contacto.nombre ? "  ·  Representante: " + contacto.nombre : ""),
+        pageW / 2, y, { align: "center" }
+      );
       y += 13;
       doc.setFont("helvetica", "normal"); doc.setFontSize(9); doc.setTextColor(120, 120, 120);
       doc.text("es Licenciatario autorizado, bajo modalidad de suscripción, para el uso de " + PROVEEDOR.producto, pageW / 2, y, { align: "center", maxWidth: innerW - 200 });
@@ -605,6 +616,12 @@
     var margin = 50;
     var lab = cliente.laboratorio || {};
     var contacto = cliente.contacto || {};
+    // Igual que en el Contrato y la Licencia: si quien firma legalmente es
+    // una persona natural distinta del laboratorio, el recibo debe
+    // identificarla a ELLA como quien recibió el servicio, no al
+    // laboratorio — ver "Generar el Contrato a nombre de una persona
+    // natural" en views-admin.js.
+    var personaNatural = cliente.personaNatural && cliente.personaNatural.nombre ? cliente.personaNatural : null;
     var numeroRecibo = "REC-" + new Date().getFullYear() + "-" + String(Math.floor(1000 + Math.random() * 9000));
 
     var y = encabezado(doc, margin, "RECIBO DE PAGO", "N° " + numeroRecibo);
@@ -613,7 +630,10 @@
     doc.setFont("helvetica", "normal"); doc.setFontSize(9.5); doc.setTextColor(30, 30, 30);
     var rows = [
       ["Fecha de pago:", fechaLarga(pago && pago.fecha ? pago.fecha : new Date())],
-      ["Recibido de:", (lab.nombre || "—") + (lab.nit ? " (" + C.documentoTributarioLabel(lab.pais) + " " + lab.nit + ")" : "")],
+      ["Recibido de:",
+        personaNatural
+          ? personaNatural.nombre + (personaNatural.documento ? " (" + C.documentoTributarioLabel(lab.pais) + " " + personaNatural.documento + ")" : "") + (lab.nombre ? " — " + lab.nombre : "")
+          : (lab.nombre || "—") + (lab.nit ? " (" + C.documentoTributarioLabel(lab.pais) + " " + lab.nit + ")" : "")],
       ["Contacto:", contacto.nombre || "—"],
       ["Concepto:", (pago && pago.concepto ? pago.concepto : "Mensualidad") + " — Plan " + plan.nombre],
       ["Valor pagado:", "$" + (pago && pago.totalFmt ? pago.totalFmt : "—") + " COP (aprox. $" + (pago && pago.totalUSD ? pago.totalUSD : "—") + " USD)"],

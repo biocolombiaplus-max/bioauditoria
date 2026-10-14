@@ -2494,11 +2494,25 @@
         contacto: { nombre: tenant.contactoNombre || tenant.nombre, whatsapp: tenant.telefonos, correo: tenant.email },
         seccionesTexto: "según la configuración de tu laboratorio"
       };
-      // Solo el Contrato (ver abrirEnviarContrato) pasa esto — el
-      // laboratorio opera bajo un nombre comercial, pero quien firma
-      // legalmente es una persona natural distinta, con su propio
-      // documento de identidad (ver pdf-contrato.js -> buildContratoPDF).
-      if (extra && extra.personaNatural) doc.personaNatural = extra.personaNatural;
+      // El laboratorio puede operar bajo un nombre comercial, pero firmar
+      // legalmente como una persona natural distinta, con su propio
+      // documento de identidad (ver "Generar el Contrato a nombre de una
+      // persona natural" en abrirEnviarContrato, y pdf-contrato.js ->
+      // buildContratoPDF/buildLicenciaPDF/buildReciboPDF). Una vez
+      // guardada en el laboratorio, esa persona se aplica AUTOMÁTICAMENTE
+      // a cualquier documento que se genere después (Licencia, Recibo de
+      // Pago, Guía de Conexión), no solo al Contrato — para que todos
+      // identifiquen siempre a la misma persona, de forma consistente.
+      // "extra.personaNatural" permite pasar un valor explícito (ej. el
+      // que se acaba de editar en el propio modal de "Enviar Contrato",
+      // antes de que quede guardado en el laboratorio) que tiene prioridad
+      // sobre lo ya guardado, incluso para "apagarlo" (null) en esta
+      // generación puntual sin borrar lo guardado.
+      if (extra && "personaNatural" in extra) {
+        if (extra.personaNatural) doc.personaNatural = extra.personaNatural;
+      } else if (tenant.personaNaturalContrato && tenant.personaNaturalNombre) {
+        doc.personaNatural = { nombre: tenant.personaNaturalNombre, documento: tenant.personaNaturalDocumento };
+      }
       return doc;
     }
 
