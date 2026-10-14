@@ -387,6 +387,7 @@ select.fi option{background:var(--s1)}
     <div class="s-item" onclick="nav(this,'actas')"><i class="fas fa-file-signature"></i>Actas</div>
     <div class="s-foot">
       <div class="s-ucard"><div class="s-uname" id="sd-uname">—</div><div class="s-ulevel" id="sd-ulevel">—</div></div>
+      <button onclick="openPerfilConfig()" style="width:100%;margin-bottom:8px;padding:9px;background:linear-gradient(135deg,rgba(14,165,233,0.15),rgba(5,150,105,0.15));border:1px solid rgba(14,165,233,0.3);border-radius:10px;color:#0EA5E9;font-size:12px;font-weight:700;cursor:pointer;font-family:inherit;display:flex;align-items:center;gap:8px;justify-content:center"><i class="fas fa-cog"></i> Configurar perfil</button>
       <div class="s-prot"><i class="fas fa-lock"></i>Solo lectura</div>
       <div class="s-logout" onclick="logout()"><i class="fas fa-sign-out-alt"></i> Cerrar sesión</div>
     </div>
@@ -1004,6 +1005,49 @@ select.fi option{background:var(--s1)}
   </div>
 </div>
 
+<!-- ═══ PERFIL CONFIG MODAL ═══ -->
+<div id="perfil-overlay" onclick="if(event.target===this)closePerfilConfig()" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.7);z-index:9000;align-items:center;justify-content:center;padding:16px">
+  <div style="background:#0F0F24;border:1px solid rgba(14,165,233,0.3);border-radius:20px;width:100%;max-width:520px;max-height:90vh;overflow-y:auto;padding:24px">
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:20px">
+      <div style="font-size:15px;font-weight:800;color:#0EA5E9">⚙️ Configurar perfil</div>
+      <button onclick="closePerfilConfig()" style="background:none;border:none;color:#9090B8;font-size:18px;cursor:pointer">✕</button>
+    </div>
+    <!-- Logo upload -->
+    <div style="text-align:center;margin-bottom:20px">
+      <div id="pc-logo-preview" style="width:80px;height:80px;border-radius:16px;background:linear-gradient(135deg,#0EA5E9,#059669);display:inline-flex;align-items:center;justify-content:center;font-size:32px;margin-bottom:10px;overflow:hidden;cursor:pointer;border:2px dashed rgba(14,165,233,0.4)" onclick="document.getElementById('pc-logo-file').click()">🏥</div>
+      <div style="font-size:11px;color:#9090B8;margin-bottom:6px">Toca el logo para cambiar · Recomendado: cuadrado 300×300px</div>
+      <input type="file" id="pc-logo-file" accept="image/*" style="display:none" onchange="pcLogoChange(this)">
+      <button onclick="document.getElementById('pc-logo-file').click()" style="padding:6px 14px;background:rgba(14,165,233,0.15);border:1px solid rgba(14,165,233,0.4);border-radius:8px;color:#0EA5E9;font-size:11px;font-weight:700;cursor:pointer;font-family:inherit"><i class="fas fa-upload"></i> Subir logo</button>
+      <button onclick="pcLogoRemove()" style="padding:6px 14px;background:rgba(255,100,100,0.1);border:1px solid rgba(255,100,100,0.3);border-radius:8px;color:#ff8b95;font-size:11px;font-weight:700;cursor:pointer;font-family:inherit;margin-left:6px"><i class="fas fa-trash"></i> Quitar</button>
+    </div>
+    <!-- Campos -->
+    <div style="display:grid;gap:12px">
+      <div><label style="font-size:10px;font-weight:700;color:#9090B8;display:block;margin-bottom:4px;text-transform:uppercase;letter-spacing:.05em">Nombre del responsable / propietario</label>
+        <input id="pc-nombre" style="width:100%;padding:10px 12px;background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.12);border-radius:9px;color:#F4F4FF;font-size:13px;font-family:inherit;outline:none" placeholder="Andrea Paola Rodríguez"></div>
+      <div><label style="font-size:10px;font-weight:700;color:#9090B8;display:block;margin-bottom:4px;text-transform:uppercase;letter-spacing:.05em">Nombre de la empresa / bodega</label>
+        <input id="pc-empresa" style="width:100%;padding:10px 12px;background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.12);border-radius:9px;color:#F4F4FF;font-size:13px;font-family:inherit;outline:none" placeholder="SURGICAL — Insumos Médicos y Distribución Farmacéutica"></div>
+      <div><label style="font-size:10px;font-weight:700;color:#9090B8;display:block;margin-bottom:4px;text-transform:uppercase;letter-spacing:.05em">NIT</label>
+        <input id="pc-nit" style="width:100%;padding:10px 12px;background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.12);border-radius:9px;color:#F4F4FF;font-size:13px;font-family:inherit;outline:none" placeholder="900.000.000-0"></div>
+      <div><label style="font-size:10px;font-weight:700;color:#9090B8;display:block;margin-bottom:4px;text-transform:uppercase;letter-spacing:.05em">Ciudad y departamento</label>
+        <input id="pc-ciudad" style="width:100%;padding:10px 12px;background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.12);border-radius:9px;color:#F4F4FF;font-size:13px;font-family:inherit;outline:none" placeholder="Bogotá, Cundinamarca"></div>
+      <div><label style="font-size:10px;font-weight:700;color:#9090B8;display:block;margin-bottom:4px;text-transform:uppercase;letter-spacing:.05em">Dirección de la bodega</label>
+        <input id="pc-direccion" style="width:100%;padding:10px 12px;background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.12);border-radius:9px;color:#F4F4FF;font-size:13px;font-family:inherit;outline:none" placeholder="Cra. 00 # 00-00, Barrio"></div>
+      <div><label style="font-size:10px;font-weight:700;color:#9090B8;display:block;margin-bottom:4px;text-transform:uppercase;letter-spacing:.05em">Teléfono / WhatsApp</label>
+        <input id="pc-telefono" style="width:100%;padding:10px 12px;background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.12);border-radius:9px;color:#F4F4FF;font-size:13px;font-family:inherit;outline:none" placeholder="+57 300 000 0000"></div>
+      <div><label style="font-size:10px;font-weight:700;color:#9090B8;display:block;margin-bottom:4px;text-transform:uppercase;letter-spacing:.05em">Correo electrónico</label>
+        <input id="pc-email" style="width:100%;padding:10px 12px;background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.12);border-radius:9px;color:#F4F4FF;font-size:13px;font-family:inherit;outline:none" placeholder="correo@empresa.com"></div>
+      <div><label style="font-size:10px;font-weight:700;color:#9090B8;display:block;margin-bottom:4px;text-transform:uppercase;letter-spacing:.05em">Código de habilitación / autorización sanitaria</label>
+        <input id="pc-codehab" style="width:100%;padding:10px 12px;background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.12);border-radius:9px;color:#F4F4FF;font-size:13px;font-family:inherit;outline:none" placeholder="0000000000"></div>
+      <div><label style="font-size:10px;font-weight:700;color:#9090B8;display:block;margin-bottom:4px;text-transform:uppercase;letter-spacing:.05em">Secretaría / entidad que habilitó</label>
+        <input id="pc-secretaria" style="width:100%;padding:10px 12px;background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.12);border-radius:9px;color:#F4F4FF;font-size:13px;font-family:inherit;outline:none" placeholder="Secretaría de Salud de Bogotá / INVIMA"></div>
+    </div>
+    <div style="margin-top:18px;display:flex;gap:10px">
+      <button onclick="pcGuardar()" style="flex:1;padding:13px;background:linear-gradient(135deg,#0EA5E9,#059669);color:#fff;border:none;border-radius:11px;font-size:14px;font-weight:800;cursor:pointer;font-family:inherit">💾 Guardar cambios</button>
+      <button onclick="closePerfilConfig()" style="padding:13px 18px;background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.12);border-radius:11px;color:#9090B8;font-size:13px;font-weight:600;cursor:pointer;font-family:inherit">Cancelar</button>
+    </div>
+  </div>
+</div>
+
 <!-- ═══ FILE VIEWER MODAL ═══ -->
 <div class="fvm-overlay" id="fvm-overlay" onclick="if(event.target===this)closeFvm()">
   <div class="fvm-box">
@@ -1488,7 +1532,7 @@ var SURGICAL_ESTANDARES = [
     // Insumos médicos específicos
     {id:'s4-16',nombre:'Manual de manejo de insumos médicos descartables (jeringas, catéteres, gasas)',version:'v1.0 · 2026',estado:'pendiente',archivo:'',tipo:'manual',_gen:'surg-insumos'},
     {id:'s4-17',nombre:'Procedimiento de manejo y almacenamiento de reactivos de laboratorio',version:'v1.0 · 2026',estado:'pendiente',archivo:'',tipo:'procedimiento',_gen:'surg-reactivos'},
-    {id:'s4-18',nombre:'Certificados de almacenamiento emitidos a clientes',version:'v1.0 · 2026',estado:'pendiente',archivo:'',tipo:'soporte'},
+    {id:'s4-18',nombre:'Certificados de almacenamiento emitidos a clientes',version:'v1.0 · 2026',estado:'pendiente',archivo:'',tipo:'soporte',_gen:'surg-cert-almacenamiento'},
     {id:'s4-19',nombre:'Contratos / acuerdos comerciales con proveedores autorizados',version:'v1.0 · 2026',estado:'pendiente',archivo:'',tipo:'contrato'},
     {id:'s4-20',nombre:'Listado de clientes autorizados para distribución',version:'v1.0 · 2026',estado:'pendiente',archivo:'',tipo:'documento',_gen:'surg-clientes'},
   ]},
@@ -1759,6 +1803,77 @@ function bnav(id){
   document.getElementById(id).classList.add('act');
 }
 function logout(){sessionStorage.clear();window.location.replace('../index.html')}
+
+// ── Configuración de perfil ──────────────────────────────────
+function openPerfilConfig(){
+  var ov=document.getElementById('perfil-overlay');
+  ov.style.display='flex';
+  // Prellenar con datos actuales de C
+  document.getElementById('pc-nombre').value=C.nombre||'';
+  document.getElementById('pc-empresa').value=C.empresa||'';
+  document.getElementById('pc-nit').value=C.nit||'';
+  document.getElementById('pc-ciudad').value=C.ciudad||'';
+  document.getElementById('pc-direccion').value=C.direccion||'';
+  document.getElementById('pc-telefono').value=C.telefono||'';
+  document.getElementById('pc-email').value=C.email||'';
+  document.getElementById('pc-codehab').value=C.codigo_hab||'';
+  document.getElementById('pc-secretaria').value=C.secretaria||'';
+  // Logo preview
+  var u=_resolveUserKey();
+  var logo=localStorage.getItem('bio_logo_'+u)||C.logo_url||'';
+  var prev=document.getElementById('pc-logo-preview');
+  if(logo) prev.innerHTML='<img src="'+logo+'" style="width:100%;height:100%;object-fit:cover;border-radius:14px">';
+  else prev.innerHTML='🏥';
+}
+function closePerfilConfig(){ document.getElementById('perfil-overlay').style.display='none'; }
+function pcLogoChange(inp){
+  var file=inp.files[0]; if(!file) return;
+  var rd=new FileReader();
+  rd.onload=function(ev){
+    var dataUrl=ev.target.result;
+    document.getElementById('pc-logo-preview').innerHTML='<img src="'+dataUrl+'" style="width:100%;height:100%;object-fit:cover;border-radius:14px">';
+    var u=_resolveUserKey();
+    localStorage.setItem('bio_logo_'+u,dataUrl);
+    C.logo_url=dataUrl;
+    document.getElementById('tb-logo').innerHTML='<img src="'+dataUrl+'" alt="logo" style="width:100%;height:100%;object-fit:cover;border-radius:9px">';
+    document.getElementById('sd-logo').innerHTML='<img src="'+dataUrl+'" alt="logo" style="width:100%;height:100%;object-fit:cover;border-radius:10px">';
+  };
+  rd.readAsDataURL(file);
+}
+function pcLogoRemove(){
+  var u=_resolveUserKey();
+  localStorage.removeItem('bio_logo_'+u);
+  C.logo_url='';
+  document.getElementById('pc-logo-preview').innerHTML='🏥';
+  document.getElementById('tb-logo').innerHTML='🏥';
+  document.getElementById('sd-logo').innerHTML='🏥';
+}
+function pcGuardar(){
+  var u=_resolveUserKey();
+  C.nombre=document.getElementById('pc-nombre').value.trim()||C.nombre;
+  C.empresa=document.getElementById('pc-empresa').value.trim()||C.empresa;
+  C.nit=document.getElementById('pc-nit').value.trim()||C.nit;
+  C.ciudad=document.getElementById('pc-ciudad').value.trim()||C.ciudad;
+  C.direccion=document.getElementById('pc-direccion').value.trim()||C.direccion;
+  C.telefono=document.getElementById('pc-telefono').value.trim()||C.telefono;
+  C.email=document.getElementById('pc-email').value.trim()||C.email;
+  C.codigo_hab=document.getElementById('pc-codehab').value.trim()||C.codigo_hab;
+  C.secretaria=document.getElementById('pc-secretaria').value.trim()||C.secretaria;
+  // Guardar en localStorage
+  try{ localStorage.setItem('bio_cli_'+u, JSON.stringify(C)); } catch(e){}
+  // Actualizar UI
+  document.getElementById('sd-empresa').textContent=C.empresa;
+  document.getElementById('tb-sub').textContent=C.empresa;
+  document.getElementById('sd-uname').textContent=C.nombre;
+  document.getElementById('sd-ulevel').textContent='Nivel '+C.nivel_atencion+' · '+C.ciudad;
+  closePerfilConfig();
+  // Toast
+  var t=document.createElement('div');
+  t.textContent='✅ Perfil actualizado correctamente';
+  t.style.cssText='position:fixed;bottom:80px;left:50%;transform:translateX(-50%);background:#059669;color:#fff;font-weight:700;font-size:13px;padding:12px 20px;border-radius:12px;z-index:9999;box-shadow:0 8px 24px rgba(0,0,0,0.4)';
+  document.body.appendChild(t);
+  setTimeout(function(){t.remove();},2500);
+}
 
 // ─── STATUS BADGE ───
 function sh(s){
@@ -5755,8 +5870,8 @@ function _surgWrap(id, titulo, norma, body){
     +'<strong>Código:<\/strong> <span class="field" contenteditable="true" data-ph="Cód.">'+id.toUpperCase().replace(/-/g,'/')+'-001<\/span>'
     +'<\/div><\/div>'
     +'<div class="norma-bar">⚖️ '+norma+'<\/div>'
-    +'<div class="body">'
-    +'<div class="edit-hint">✏️ <strong>Modo edición activo<\/strong> — Haz clic en cualquier campo azul punteado para editarlo. Cuando termines, presiona <strong>💾 Guardar<\/strong> para que tus cambios queden guardados para siempre.<\/div>'
+    +'<div class="body" id="doc-body">'
+    +'<div class="edit-hint">✏️ <strong>Modo edición activo<\/strong> — Haz clic en cualquier texto, tabla o campo para editarlo. Cuando termines, presiona <strong>💾 Guardar<\/strong>.<\/div>'
     +body
     +'<\/div>'
     // Modal de firma electrónica
@@ -5944,11 +6059,27 @@ function _surgWrap(id, titulo, norma, body){
     +'  t.appendChild(clone);'
     +'  clone.querySelector("[contenteditable]").focus();'
     +'}'
-    // Auto-inyectar botones Agregar fila después de cargar
+    // Auto-inyectar editable en párrafos, li, h3 y botones Agregar fila
     +'window.addEventListener("load",function(){'
+    // Hacer editables todos los <p>, <li> y <h3> del área de contenido
+    +'  var body=document.getElementById("doc-body");'
+    +'  if(body){'
+    +'    body.querySelectorAll("p,li,h3").forEach(function(el){'
+    +'      if(!el.closest("table")&&!el.closest(".alert-box-fixed")&&el.getAttribute("contenteditable")!=="false"){'
+    +'        el.setAttribute("contenteditable","true");'
+    +'        el.style.outline="none";'
+    +'        el.style.borderRadius="4px";'
+    +'        el.style.transition="background .15s";'
+    +'        el.addEventListener("focus",function(){this.style.background="rgba(14,165,233,0.06)";});'
+    +'        el.addEventListener("blur",function(){this.style.background="";});'
+    +'      }'
+    +'    });'
+    +'  }'
+    // Botones Agregar fila en tablas con celdas editables
     +'  document.querySelectorAll("table").forEach(function(t,i){'
     +'    var hasCE=t.querySelector("[contenteditable]");'
-    +'    var isCtrl=t.previousElementSibling&&t.previousElementSibling.tagName==="H2"&&/(Control de Cambios|Firmas)/i.test(t.previousElementSibling.textContent);'
+    +'    var prev=t.previousElementSibling;'
+    +'    var isCtrl=prev&&prev.tagName==="H2"&&/(Control de Cambios|Firmas)/i.test(prev.textContent);'
     +'    if(!hasCE||isCtrl) return;'
     +'    t.id=t.id||("at"+i);'
     +'    var btn=document.createElement("button");'
@@ -6620,6 +6751,12 @@ function generarDocSurgical(id){
         'surg-profesiograma':['PROFESIOGRAMA — PERFIL DEL CARGO VS. RIESGOS SST','Dec. 1072/2015 Art. 2.2.4.6.2 · Res. 0312/2019 · GTC-45'],
         'surg-mejora':['PLAN DE MEJORAMIENTO CONTINUO CON SEGUIMIENTO','Res. 3100/2019 E5 · Dec. 1072/2015 · ISO 9001:2015 Ciclo PHVA'],
         'surg-checklist-visita':['LISTA DE VERIFICACIÓN — SIMULACRO VISITA INVIMA / SECRETARÍA DE SALUD','Res. 3100/2019 · Res. 444/2008 BPA · Dec. 4725/2005'],
+        'surg-cert-almacenamiento':['CERTIFICADO DE CONDICIONES DE ALMACENAMIENTO','Res. 444/2008 BPA · Dec. 2200/2005 · Res. 1403/2007'],
+        'surg-acta-induccion':['ACTA DE INDUCCIÓN Y REINDUCCIÓN DEL PERSONAL','Res. 3100/2019 E1 · Res. 444/2008 BPA Art. 15'],
+        'surg-contrato-proveedor':['MODELO DE CONTRATO / ACUERDO COMERCIAL CON PROVEEDOR AUTORIZADO','Dec. 2200/2005 · Res. 444/2008 · Dec. 4725/2005'],
+        'surg-politica-calidad':['POLÍTICA DE CALIDAD — BODEGA FARMACÉUTICA','NTC-ISO 9001:2015 · Res. 444/2008 BPA · Res. 3100/2019'],
+        'surg-mapa-procesos':['MAPA DE PROCESOS — BODEGA FARMACÉUTICA Y DISTRIBUCIÓN','ISO 9001:2015 · Res. 444/2008'],
+        'surg-sst-politica2':['POLÍTICA INTEGRADA SST Y CALIDAD','Dec. 1072/2015 · Res. 0312/2019'],
       };
       var entry=surgMap[id];
       if(entry) html=_surgGenerico(id,entry[0],entry[1],e,n,cd,yr);
@@ -6631,58 +6768,274 @@ function generarDocSurgical(id){
 // ── BPA — Manual de Buenas Prácticas de Almacenamiento ────────
 function _surg_BPA(e,n,cd,yr){
   var fecha=new Date().toLocaleDateString('es-CO',{year:'numeric',month:'long',day:'numeric'});
+  var nit=C.nit||'(NIT)';
   return _surgWrap('surg-bpa','MANUAL DE BUENAS PRÁCTICAS DE ALMACENAMIENTO (BPA)',
     'Resolución 444/2008 INVIMA · Resolución 1403/2007 · Decreto 2200/2005 · Dec. 677/1995',
-    '<div class="alert-box">📋 <strong>Objetivo:</strong> Establecer los lineamientos, procedimientos y controles que garanticen que los medicamentos y dispositivos médicos almacenados por '+e+' conserven su identidad, integridad, calidad y pureza durante todo el proceso de almacenamiento y distribución, conforme a la Resolución 444 de 2008 del INVIMA y la normativa farmacéutica colombiana vigente.</div>'
-    +'<h2>1. Marco Normativo</h2>'
-    +'<table><tr><th>Norma</th><th>Descripción</th><th>Aplicación</th></tr>'
-    +'<tr><td><strong>Res. 444/2008</strong></td><td>Manual de Buenas Prácticas de Almacenamiento INVIMA</td><td>Principal — BPA</td></tr>'
-    +'<tr><td><strong>Dec. 2200/2005</strong></td><td>Regulación del Servicio Farmacéutico</td><td>Obligatoria</td></tr>'
-    +'<tr><td><strong>Res. 1403/2007</strong></td><td>Modelo de Gestión del Servicio Farmacéutico</td><td>Obligatoria</td></tr>'
-    +'<tr><td><strong>Dec. 677/1995</strong></td><td>Régimen de registros sanitarios, licencias y establecimientos</td><td>Obligatoria</td></tr>'
-    +'<tr><td><strong>Res. 4816/2008</strong></td><td>Programa Nacional de Farmacovigilancia</td><td>Aplicable</td></tr>'
-    +'<tr><td><strong>Dec. 351/2014</strong></td><td>Gestión integral de residuos generados en el sector salud</td><td>Aplicable</td></tr>'
+
+    // ── CARÁTULA TÉCNICA ──────────────────────────────────────
+    '<table style="border:2px solid #0EA5E9;background:linear-gradient(135deg,#0EA5E914,#05966914);margin-bottom:20px">'
+    +'<tr><td colspan="2" style="text-align:center;padding:14px 10px;border-bottom:1px solid #0EA5E940"><span style="font-size:16pt;font-weight:900;color:#0EA5E9">MANUAL BPA</span><br><span style="font-size:9pt;color:#555">Buenas Prácticas de Almacenamiento y Distribución Farmacéutica</span></td></tr>'
+    +'<tr><td style="width:50%;padding:7px 10px;border-right:1px solid #0EA5E940;border-bottom:1px solid #0EA5E920"><strong>Empresa:</strong></td><td style="padding:7px 10px;border-bottom:1px solid #0EA5E920">'+e+'</td></tr>'
+    +'<tr><td style="padding:7px 10px;border-right:1px solid #0EA5E940;border-bottom:1px solid #0EA5E920"><strong>NIT:</strong></td><td style="padding:7px 10px;border-bottom:1px solid #0EA5E920">'+nit+'</td></tr>'
+    +'<tr><td style="padding:7px 10px;border-right:1px solid #0EA5E940;border-bottom:1px solid #0EA5E920"><strong>Ciudad:</strong></td><td style="padding:7px 10px;border-bottom:1px solid #0EA5E920">'+cd+'</td></tr>'
+    +'<tr><td style="padding:7px 10px;border-right:1px solid #0EA5E940;border-bottom:1px solid #0EA5E920"><strong>Director Técnico Q.F.:</strong></td><td style="padding:7px 10px;border-bottom:1px solid #0EA5E920" contenteditable="true" class="e">Nombre del Director Técnico Q.F.</td></tr>'
+    +'<tr><td style="padding:7px 10px;border-right:1px solid #0EA5E940;border-bottom:1px solid #0EA5E920"><strong>Código del documento:</strong></td><td style="padding:7px 10px;border-bottom:1px solid #0EA5E920"><span class="badge">SURG-MAN-BPA-001</span></td></tr>'
+    +'<tr><td style="padding:7px 10px;border-right:1px solid #0EA5E940;border-bottom:1px solid #0EA5E920"><strong>Versión vigente:</strong></td><td style="padding:7px 10px;border-bottom:1px solid #0EA5E920">1.0</td></tr>'
+    +'<tr><td style="padding:7px 10px;border-right:1px solid #0EA5E940;border-bottom:1px solid #0EA5E920"><strong>Fecha de emisión:</strong></td><td style="padding:7px 10px;border-bottom:1px solid #0EA5E920">'+fecha+'</td></tr>'
+    +'<tr><td style="padding:7px 10px;border-right:1px solid #0EA5E940;border-bottom:1px solid #0EA5E920"><strong>Próxima revisión:</strong></td><td style="padding:7px 10px;border-bottom:1px solid #0EA5E920 "contenteditable="true" class="e">'+yr+1+' (anual)</td></tr>'
+    +'<tr><td style="padding:7px 10px;border-right:1px solid #0EA5E940"><strong>Estado:</strong></td><td style="padding:7px 10px"><span style="background:#05966920;color:#059669;font-weight:700;padding:3px 10px;border-radius:6px;border:1px solid #05966940">✅ VIGENTE</span></td></tr>'
     +'</table>'
-    +'<h2>2. Condiciones Generales de Almacenamiento</h2>'
-    +'<h3>2.1 Temperatura y Humedad Relativa</h3>'
-    +'<table><tr><th>Categoría</th><th>Temperatura</th><th>Humedad relativa</th><th>Frecuencia control</th></tr>'
-    +'<tr><td>Temperatura ambiente</td><td>15 °C – 30 °C</td><td>≤ 75%</td><td>2 veces/día (mañana y tarde)</td></tr>'
-    +'<tr><td>Cadena de frío (refrigeración)</td><td>2 °C – 8 °C</td><td>N/A</td><td>3 veces/día + alarma</td></tr>'
-    +'<tr><td>Congelación</td><td>-20 °C ± 5 °C</td><td>N/A</td><td>3 veces/día + alarma</td></tr>'
-    +'<tr><td>Zona de cuarentena</td><td>Igual a zona principal</td><td>Igual a zona principal</td><td>Igual a zona principal</td></tr>'
+
+    // ── TABLA DE CONTENIDO ────────────────────────────────────
+    +'<div style="background:#f8fafc;border-left:4px solid #0EA5E9;padding:12px 16px;border-radius:6px;margin-bottom:18px">'
+    +'<div style="font-weight:800;font-size:10pt;color:#0EA5E9;margin-bottom:8px;text-transform:uppercase;letter-spacing:.04em">📑 Tabla de Contenido</div>'
+    +'<div style="font-size:9.5pt;line-height:2;color:#333">'
+    +'1. Objetivo y Alcance &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;02<br>'
+    +'2. Marco Normativo &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;03<br>'
+    +'3. Definiciones y Abreviaturas &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;04<br>'
+    +'4. Responsabilidades (Matriz RACI) &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;05<br>'
+    +'5. Requisitos de Infraestructura BPA &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;06<br>'
+    +'6. Control de Condiciones Ambientales &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;07<br>'
+    +'7. Rotación FIFO / FEFO y Alertas de Vencimiento &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;08<br>'
+    +'8. Manejo de Medicamentos Especiales &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;09<br>'
+    +'9. Limpieza, Desinfección y Control de Plagas &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;10<br>'
+    +'10. Capacitación y Competencia del Personal &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;11<br>'
+    +'11. Equipos: Inventario, Mantenimiento y Calibración &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;12<br>'
+    +'12. Gestión de No Conformidades y Desviaciones &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;13<br>'
+    +'13. Auditorías Internas BPA &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;14<br>'
+    +'14. Indicadores de Gestión &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;15<br>'
+    +'15. Control de Cambios &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;16'
+    +'</div></div>'
+
+    // ── 1. OBJETIVO Y ALCANCE ─────────────────────────────────
+    +'<h2>1. Objetivo y Alcance</h2>'
+    +'<div class="alert-box">🎯 <strong>Objetivo general:</strong> Establecer los lineamientos, procedimientos, responsabilidades y controles que garanticen que todos los medicamentos, dispositivos médicos, insumos médico-quirúrgicos y reactivos de laboratorio almacenados y distribuidos por <strong>'+e+'</strong> conserven plenamente su identidad, integridad, calidad, concentración y pureza, desde su ingreso hasta la entrega al cliente final, en estricto cumplimiento de la Resolución 444 de 2008 del INVIMA y la normativa farmacéutica colombiana vigente.</div>'
+    +'<p><strong>Objetivos específicos:</strong></p>'
+    +'<ul style="margin:8px 0 0 18px;line-height:2">'
+    +'<li>Garantizar condiciones físicas y ambientales adecuadas de almacenamiento según las exigencias de cada tipo de producto.</li>'
+    +'<li>Prevenir la contaminación cruzada, el deterioro, la adulteración y la falsificación de productos en la bodega.</li>'
+    +'<li>Implementar el principio FEFO (First Expired, First Out) como norma operativa obligatoria.</li>'
+    +'<li>Asegurar la trazabilidad total de cada lote desde su recepción hasta el despacho.</li>'
+    +'<li>Definir responsabilidades claras para cada proceso operativo de la bodega.</li>'
+    +'<li>Establecer un sistema de alertas para la gestión oportuna de vencimientos, productos no conformes y alertas sanitarias del INVIMA.</li>'
+    +'</ul>'
+    +'<p style="margin-top:10px"><strong>Alcance:</strong> El presente manual aplica a la totalidad de las operaciones de recepción, cuarentena, almacenamiento, alistamiento, despacho, devoluciones, bajas y gestión de residuos de <strong>'+e+'</strong>. Es de obligatorio cumplimiento para el Director Técnico Químico Farmacéutico, el personal de bodega, y todo colaborador que interactúe con los productos farmacéuticos. Aplica para: <em>medicamentos (incluidos psicotrópicos y estupefacientes), dispositivos médicos, insumos médico-quirúrgicos descartables, reactivos de laboratorio clínico e IVD, y productos de cadena de frío</em>.</p>'
+
+    // ── 2. MARCO NORMATIVO ────────────────────────────────────
+    +'<h2>2. Marco Normativo</h2>'
+    +'<p>Las operaciones de '+e+' se rigen por el siguiente marco legal y reglamentario:</p>'
+    +'<table><tr><th>Norma</th><th>Autoridad</th><th>Descripción</th><th>Aplicación</th></tr>'
+    +'<tr><td><strong>Resolución 444/2008</strong></td><td>INVIMA</td><td>Adopción del Manual de Condiciones Esenciales y Procedimientos del Servicio Farmacéutico — Buenas Prácticas de Almacenamiento (BPA)</td><td>Marco principal obligatorio</td></tr>'
+    +'<tr><td><strong>Decreto 2200/2005</strong></td><td>MinSalud</td><td>Reglamenta el servicio farmacéutico y dicta disposiciones para su correcto funcionamiento</td><td>Obligatoria</td></tr>'
+    +'<tr><td><strong>Resolución 1403/2007</strong></td><td>MinSalud</td><td>Modelo de Gestión del Servicio Farmacéutico y establece el Referencial de Frecuencia para los Procedimientos Farmacéuticos</td><td>Obligatoria</td></tr>'
+    +'<tr><td><strong>Decreto 677/1995</strong></td><td>Presidencia</td><td>Régimen de registros sanitarios, licencias, vigilancia y control sanitario de establecimientos farmacéuticos</td><td>Obligatoria</td></tr>'
+    +'<tr><td><strong>Resolución 4816/2008</strong></td><td>MinSalud</td><td>Programa Nacional de Farmacovigilancia — Reportes de RAM y PRM</td><td>Obligatoria</td></tr>'
+    +'<tr><td><strong>Decreto 4725/2005</strong></td><td>MinSalud</td><td>Régimen de registros sanitarios, vigilancia y control sanitario de dispositivos médicos</td><td>Obligatoria — DM e insumos</td></tr>'
+    +'<tr><td><strong>Resolución 1478/2006</strong></td><td>MinSalud</td><td>Control de precursores, sustancias psicotrópicas y estupefacientes</td><td>Obligatoria si aplica</td></tr>'
+    +'<tr><td><strong>Decreto 351/2014</strong></td><td>MinSalud</td><td>Gestión Integral de Residuos Generados en la Atención en Salud y otras Actividades</td><td>Obligatoria</td></tr>'
+    +'<tr><td><strong>Resolución 1164/2002</strong></td><td>MinSalud / MAVDT</td><td>Manual de Procedimientos para la Gestión Integral de los Residuos Hospitalarios y Similares</td><td>Obligatoria</td></tr>'
+    +'<tr><td><strong>Ley 1581/2012</strong></td><td>Congreso</td><td>Protección de datos personales — aplica a datos de clientes y personal</td><td>Obligatoria</td></tr>'
+    +'<tr><td><strong>NTC-ISO 9001:2015</strong></td><td>ICONTEC</td><td>Sistema de Gestión de la Calidad — referente de mejora continua</td><td>Referente voluntario</td></tr>'
     +'</table>'
-    +'<h3>2.2 Distribución y Organización del Espacio</h3>'
-    +'<p>La bodega deberá contar con áreas claramente diferenciadas y señalizadas:</p>'
-    +'<table><tr><th>Área</th><th>Descripción</th><th>Señalización</th></tr>'
-    +'<tr><td>Recepción y cuarentena</td><td>Zona de ingreso temporal de productos pendientes de aprobación</td><td>🟡 CUARENTENA</td></tr>'
-    +'<tr><td>Almacenamiento general</td><td>Productos aprobados para distribución — temperatura ambiente</td><td>🟢 APROBADO</td></tr>'
-    +'<tr><td>Cadena de frío</td><td>Medicamentos que requieren refrigeración 2–8 °C</td><td>❄️ CADENA DE FRÍO</td></tr>'
-    +'<tr><td>Productos devueltos</td><td>Devoluciones pendientes de evaluación</td><td>🔵 DEVUELTO</td></tr>'
-    +'<tr><td>Productos rechazados / vencidos</td><td>Productos no aptos para distribución</td><td>🔴 RECHAZADO</td></tr>'
-    +'<tr><td>Zona de alistamiento y despacho</td><td>Preparación y verificación de pedidos</td><td>📦 DESPACHO</td></tr>'
+
+    // ── 3. DEFINICIONES ───────────────────────────────────────
+    +'<h2>3. Definiciones y Abreviaturas</h2>'
+    +'<table><tr><th>Término / Abreviatura</th><th>Definición</th></tr>'
+    +'<tr><td><strong>BPA</strong></td><td>Buenas Prácticas de Almacenamiento: conjunto de normas mínimas requeridas para las actividades de almacenamiento de medicamentos y demás productos para la salud.</td></tr>'
+    +'<tr><td><strong>FEFO</strong></td><td><em>First Expired, First Out</em> — Primero en vencer, primero en salir. Principio obligatorio para todos los medicamentos.</td></tr>'
+    +'<tr><td><strong>FIFO</strong></td><td><em>First In, First Out</em> — Primero en entrar, primero en salir. Aplica a productos sin fecha de vencimiento crítica.</td></tr>'
+    +'<tr><td><strong>Cuarentena</strong></td><td>Estado de separación de materiales o medicamentos mientras se espera una decisión sobre su uso, rechazo o reprocesamiento.</td></tr>'
+    +'<tr><td><strong>Director Técnico Q.F.</strong></td><td>Químico Farmacéutico habilitado, responsable técnico y sanitario de todas las operaciones farmacéuticas del establecimiento.</td></tr>'
+    +'<tr><td><strong>Dispositivo médico (DM)</strong></td><td>Cualquier instrumento, aparato, implemento, máquina, implante u otro artículo similar, utilizado en diagnóstico, prevención, monitoreo, tratamiento o alivio de enfermedades. Sujeto a Res. 4725/2005.</td></tr>'
+    +'<tr><td><strong>Insumo médico descartable</strong></td><td>Dispositivo médico de un solo uso: jeringas, catéteres, gasas, guantes, agujas, etc.</td></tr>'
+    +'<tr><td><strong>Reactivo IVD</strong></td><td>Reactivo de uso <em>In Vitro</em> para diagnóstico. Sujeto a registro INVIMA y tecnovigilancia.</td></tr>'
+    +'<tr><td><strong>RESPEL</strong></td><td>Residuos o Desechos Peligrosos — incluye medicamentos vencidos y empaques contaminados.</td></tr>'
+    +'<tr><td><strong>RAM</strong></td><td>Reacción Adversa a Medicamento.</td></tr>'
+    +'<tr><td><strong>PRM</strong></td><td>Problema Relacionado con Medicamento.</td></tr>'
+    +'<tr><td><strong>ONAC</strong></td><td>Organismo Nacional de Acreditación de Colombia — acredita laboratorios de calibración.</td></tr>'
+    +'<tr><td><strong>RS</strong></td><td>Registro Sanitario INVIMA vigente.</td></tr>'
+    +'<tr><td><strong>T°</strong></td><td>Temperatura.</td></tr>'
+    +'<tr><td><strong>HR</strong></td><td>Humedad Relativa.</td></tr>'
     +'</table>'
-    +'<h2>3. Principios de Rotación — FIFO / FEFO</h2>'
-    +'<p><strong>FIFO</strong> (First In, First Out — Primero en entrar, primero en salir): aplica para productos sin fecha de vencimiento crítica.<br>'
-    +'<strong>FEFO</strong> (First Expired, First Out — Primero en vencer, primero en salir): aplica para <em>todos</em> los medicamentos. El producto con fecha de vencimiento más próxima debe despacharse primero. Es el principio prioritario en esta bodega.</p>'
-    +'<div class="alert-box">⚠️ <strong>Regla de alerta temprana:</strong> Todo medicamento con fecha de vencimiento ≤ 3 meses debe ser identificado con etiqueta naranja y reportado al Director Técnico Q.F. para gestión prioritaria.</div>'
-    +'<h2>4. Responsabilidades</h2>'
-    +'<table><tr><th>Cargo</th><th>Responsabilidades principales</th></tr>'
-    +'<tr><td><strong>Director Técnico Q.F.</strong></td><td>Supervisar cumplimiento BPA · Aprobar productos en cuarentena · Firmar certificados · Reportar al INVIMA · Aprobar devoluciones y bajas</td></tr>'
-    +'<tr><td><strong>Auxiliar de Bodega</strong></td><td>Recepción, clasificación y ubicación de productos · Registro diario T° y HR · Preparación de pedidos · Control FIFO/FEFO · Reporte de anomalías</td></tr>'
-    +'<tr><td><strong>Gerencia / Administrador</strong></td><td>Garantizar recursos para cumplimiento BPA · Aprobación de proveedores · Contratos gestores residuos</td></tr>'
+
+    // ── 4. RESPONSABILIDADES ──────────────────────────────────
+    +'<h2>4. Responsabilidades — Matriz RACI</h2>'
+    +'<p>R = Responsable de ejecutar · A = Aprueba / tiene autoridad · C = Consultado · I = Informado</p>'
+    +'<table style="font-size:8.5pt"><tr><th style="min-width:180px">Proceso / Actividad</th><th>Director T. Q.F.</th><th>Auxiliar Bodega</th><th>Gerencia</th><th>Proveedor</th></tr>'
+    +'<tr><td>Recepción y cuarentena de productos</td><td style="text-align:center">A</td><td style="text-align:center">R</td><td style="text-align:center">I</td><td style="text-align:center">C</td></tr>'
+    +'<tr><td>Aprobación / rechazo de lotes en cuarentena</td><td style="text-align:center;background:#05966918"><strong>R · A</strong></td><td style="text-align:center">I</td><td style="text-align:center">I</td><td style="text-align:center">I</td></tr>'
+    +'<tr><td>Almacenamiento y organización FEFO</td><td style="text-align:center">A</td><td style="text-align:center">R</td><td style="text-align:center">I</td><td style="text-align:center">—</td></tr>'
+    +'<tr><td>Registro diario de T° y HR</td><td style="text-align:center">A</td><td style="text-align:center">R</td><td style="text-align:center">I</td><td style="text-align:center">—</td></tr>'
+    +'<tr><td>Alistamiento y despacho de pedidos</td><td style="text-align:center">A</td><td style="text-align:center">R</td><td style="text-align:center">I</td><td style="text-align:center">—</td></tr>'
+    +'<tr><td>Verificación doble del pedido (double-check)</td><td style="text-align:center;background:#05966918"><strong>R · A</strong></td><td style="text-align:center">R</td><td style="text-align:center">I</td><td style="text-align:center">—</td></tr>'
+    +'<tr><td>Control de inventarios y vencimientos</td><td style="text-align:center">A</td><td style="text-align:center">R</td><td style="text-align:center">C</td><td style="text-align:center">—</td></tr>'
+    +'<tr><td>Gestión de devoluciones</td><td style="text-align:center;background:#05966918"><strong>R · A</strong></td><td style="text-align:center">R</td><td style="text-align:center">A</td><td style="text-align:center">C</td></tr>'
+    +'<tr><td>Baja de medicamentos vencidos</td><td style="text-align:center;background:#05966918"><strong>R · A</strong></td><td style="text-align:center">C</td><td style="text-align:center">A</td><td style="text-align:center">—</td></tr>'
+    +'<tr><td>Reportes de farmacovigilancia al INVIMA</td><td style="text-align:center;background:#05966918"><strong>R · A</strong></td><td style="text-align:center">I</td><td style="text-align:center">I</td><td style="text-align:center">—</td></tr>'
+    +'<tr><td>Auditorías internas BPA</td><td style="text-align:center;background:#05966918"><strong>R · A</strong></td><td style="text-align:center">C</td><td style="text-align:center">I</td><td style="text-align:center">—</td></tr>'
+    +'<tr><td>Aprobación de proveedores</td><td style="text-align:center">R</td><td style="text-align:center">—</td><td style="text-align:center;background:#05966918"><strong>A</strong></td><td style="text-align:center">I</td></tr>'
+    +'<tr><td>Actualización del manual BPA</td><td style="text-align:center;background:#05966918"><strong>R · A</strong></td><td style="text-align:center">C</td><td style="text-align:center">I</td><td style="text-align:center">—</td></tr>'
     +'</table>'
-    +'<h2>5. Equipos y su Mantenimiento</h2>'
-    +'<p>Todos los equipos de medición (termómetros, higrómetros) deben estar calibrados con certificado vigente emitido por laboratorio acreditado ante ONAC. El programa de mantenimiento preventivo se ejecuta según el cronograma establecido en el Procedimiento <span class="badge">SURG/MTTO/001</span>.</p>'
-    +'<h2>6. Seguridad, Higiene y Control de Plagas</h2>'
-    +'<p>La bodega debe mantenerse libre de plagas mediante contrato vigente con empresa certificada. El programa de limpieza y desinfección se ejecuta con frecuencia diaria (superficies) y mensual (áreas completas). Registro en <span class="badge">SURG/LYD/001</span>.</p>'
-    +'<h2>7. Capacitación del Personal</h2>'
-    +'<p>Todo el personal que labore en la bodega debe recibir capacitación en BPA antes de iniciar actividades y actualización anual. Los registros de capacitación forman parte del expediente laboral y son requisito de habilitación (Estándar 1 — Res. 3100/2019).</p>'
-    +'<h2>8. Auditorías y Mejora Continua</h2>'
-    +'<p>Se realizarán auditorías internas de BPA mínimo dos (2) veces al año. Los hallazgos se registran en el Formato <span class="badge">SURG/AUD-BPA/001</span> y generan planes de mejoramiento con seguimiento mensual.</p>'
-    +'<h2>Control de Cambios</h2>'
-    +'<table><tr><th>Versión</th><th>Fecha</th><th>Descripción</th><th>Aprobó</th></tr>'
-    +'<tr><td>1.0</td><td>'+fecha+'</td><td>Emisión inicial del Manual BPA</td><td contenteditable="true">Director(a) Técnico Q.F.</td></tr>'
-    +'<tr><td contenteditable="true"></td><td contenteditable="true"></td><td contenteditable="true"></td><td contenteditable="true"></td></tr>'
+
+    // ── 5. INFRAESTRUCTURA ────────────────────────────────────
+    +'<h2>5. Requisitos de Infraestructura BPA</h2>'
+    +'<p>La bodega de '+e+' debe cumplir con los siguientes requisitos físicos, conforme al Capítulo II de la Resolución 444/2008:</p>'
+    +'<h3>5.1 Áreas diferenciadas y señalización</h3>'
+    +'<table><tr><th>Área</th><th>Función</th><th>Señalización obligatoria</th><th>Acceso</th></tr>'
+    +'<tr><td><strong>Recepción / Cuarentena</strong></td><td>Ingreso temporal de productos pendientes de aprobación por Q.F.</td><td>🟡 CUARENTENA — No dispensar</td><td>Personal bodega + Q.F.</td></tr>'
+    +'<tr><td><strong>Almacenamiento general</strong></td><td>Productos aprobados — temperatura ambiente 15–30 °C</td><td>🟢 APROBADO — Área general</td><td>Personal autorizado</td></tr>'
+    +'<tr><td><strong>Cadena de frío</strong></td><td>Neveras / cuartos fríos 2–8 °C para biológicos, insulinas, reactivos</td><td>❄️ CADENA DE FRÍO — T° 2–8 °C</td><td>Restringido — Q.F.</td></tr>'
+    +'<tr><td><strong>Control especial</strong></td><td>Psicotrópicos, estupefacientes, precursores</td><td>🔐 CONTROL ESPECIAL — Acceso restringido</td><td>Solo Q.F.</td></tr>'
+    +'<tr><td><strong>Alistamiento / despacho</strong></td><td>Preparación, verificación y empaque de pedidos</td><td>📦 ZONA DE DESPACHO</td><td>Personal autorizado</td></tr>'
+    +'<tr><td><strong>Productos devueltos</strong></td><td>Devoluciones pendientes de evaluación</td><td>🔵 DEVUELTO — Pendiente evaluación Q.F.</td><td>Solo Q.F.</td></tr>'
+    +'<tr><td><strong>Rechazados / Vencidos</strong></td><td>Productos dados de baja o rechazados</td><td>🔴 RECHAZADO — No dispensar bajo ningún concepto</td><td>Solo Q.F. + autorización gerencia</td></tr>'
+    +'</table>'
+    +'<h3>5.2 Condiciones físicas mínimas</h3>'
+    +'<table><tr><th>Parámetro</th><th>Requisito mínimo BPA (Res. 444/2008)</th><th>Estado</th></tr>'
+    +'<tr><td>Pisos</td><td>Lisos, de fácil limpieza, sin grietas, resistentes a productos químicos</td><td contenteditable="true" class="e">✅ Cumple</td></tr>'
+    +'<tr><td>Paredes y techos</td><td>Impermeables, lavables, sin grietas, pintadas en color claro</td><td contenteditable="true" class="e">✅ Cumple</td></tr>'
+    +'<tr><td>Ventilación</td><td>Ventilación natural o mecánica suficiente para mantener T° ≤ 30 °C y HR ≤ 75%</td><td contenteditable="true" class="e">✅ Cumple</td></tr>'
+    +'<tr><td>Iluminación</td><td>Iluminación natural o artificial adecuada (mínimo 300 lux en áreas de trabajo)</td><td contenteditable="true" class="e">✅ Cumple</td></tr>'
+    +'<tr><td>Estibas / estantes</td><td>Altura mínima 10 cm del piso; 30 cm mínimo de las paredes; máx. a 50 cm del techo</td><td contenteditable="true" class="e">✅ Cumple</td></tr>'
+    +'<tr><td>Seguridad física</td><td>Control de acceso, cámaras o alarma, custodia de llaves del área de control especial</td><td contenteditable="true" class="e">✅ Cumple</td></tr>'
+    +'<tr><td>Servicios sanitarios</td><td>Separados del área de almacenamiento, con agua potable</td><td contenteditable="true" class="e">✅ Cumple</td></tr>'
+    +'<tr><td>Control de plagas</td><td>Contrato vigente con empresa certificada; evidencia de última fumigación</td><td contenteditable="true" class="e">✅ Cumple</td></tr>'
+    +'</table>'
+
+    // ── 6. CONDICIONES AMBIENTALES ────────────────────────────
+    +'<h2>6. Control de Condiciones Ambientales</h2>'
+    +'<h3>6.1 Rangos establecidos y frecuencia de control</h3>'
+    +'<table><tr><th>Zona de almacenamiento</th><th>Temperatura (T°)</th><th>Humedad relativa (HR)</th><th>Frecuencia registro</th><th>Instrumento</th><th>Alerta si…</th></tr>'
+    +'<tr><td>Almacenamiento general (ambiente)</td><td>15 °C – 30 °C</td><td>≤ 75%</td><td>Mínimo 2 veces/día: 8:00 a.m. y 4:00 p.m.</td><td>Termohigrómetro calibrado</td><td>T° > 30 °C o HR > 75%</td></tr>'
+    +'<tr><td>Cadena de frío — refrigeración</td><td>2 °C – 8 °C</td><td>N/A</td><td>3 veces/día + alarma continua</td><td>Data logger / termómetro certificado</td><td>T° < 2 °C o T° > 8 °C</td></tr>'
+    +'<tr><td>Cadena de frío — congelación</td><td>-20 °C ± 5 °C</td><td>N/A</td><td>3 veces/día + alarma continua</td><td>Data logger certificado</td><td>T° fuera del rango -25 a -15 °C</td></tr>'
+    +'<tr><td>Zona de cuarentena</td><td>Igual a zona principal que corresponda</td><td>Igual a zona principal</td><td>Igual a zona principal</td><td>Mismo instrumento</td><td>Según zona</td></tr>'
+    +'</table>'
+    +'<h3>6.2 Procedimiento ante desviaciones de T° o HR</h3>'
+    +'<p><strong>Paso 1:</strong> El auxiliar que detecta la desviación registra hora, T°/HR leída y área afectada en el Formato <span class="badge">SURG/TEMP/001</span>.<br>'
+    +'<strong>Paso 2:</strong> Notifica <u>de inmediato</u> al Director Técnico Q.F. (en persona o por teléfono).<br>'
+    +'<strong>Paso 3:</strong> El Q.F. evalúa el tiempo de exposición a condiciones no conformes y decide si el producto puede seguir en uso o debe pasar a cuarentena para evaluación de calidad.<br>'
+    +'<strong>Paso 4:</strong> Se registra la decisión y la acción correctiva tomada en el Formato <span class="badge">SURG/NC/001</span> (No Conformidades).<br>'
+    +'<strong>Paso 5:</strong> Se identifica y corrige la causa raíz de la desviación (equipo defectuoso, puerta abierta, falla de energía, etc.).</p>'
+    +'<div class="alert-box">⚠️ <strong>Ruptura de cadena de frío:</strong> Cualquier producto de cadena de frío expuesto a T° fuera del rango por más de 15 minutos debe ser puesto en cuarentena inmediatamente y evaluado por el Q.F. antes de ser liberado o dado de baja. No se puede despachar sin decisión documentada del Director Técnico.</div>'
+
+    // ── 7. FEFO / FIFO ────────────────────────────────────────
+    +'<h2>7. Rotación FIFO / FEFO y Alertas de Vencimiento</h2>'
+    +'<p><strong>FEFO</strong> (First Expired, First Out) es el principio obligatorio y prioritario en '+e+' para <em>todos</em> los medicamentos. <strong>FIFO</strong> aplica secundariamente para productos sin fecha de vencimiento crítica o cuando los vencimientos son iguales.</p>'
+    +'<h3>7.1 Sistema de alertas por vencimiento</h3>'
+    +'<table><tr><th>Tiempo restante al vencimiento</th><th>Código de color</th><th>Acción requerida</th><th>Responsable</th><th>Plazo</th></tr>'
+    +'<tr><td>6 – 12 meses</td><td style="background:#FFF9C4">🟡 ALERTA PREVENTIVA</td><td>Priorizar en despacho — monitoreo mensual</td><td>Auxiliar Bodega</td><td>Continuo</td></tr>'
+    +'<tr><td>3 – 6 meses</td><td style="background:#FFE0B2">🟠 ALERTA ACTIVA</td><td>Etiqueta naranja visible — informe al Q.F. — oferta prioritaria a clientes</td><td>Auxiliar + Q.F.</td><td>Inmediato al detectar</td></tr>'
+    +'<tr><td>1 – 3 meses</td><td style="background:#FFCDD2">🔴 ALERTA CRÍTICA</td><td>Traslado a zona "Próximos a vencer" — gestión de devolución al proveedor o destrucción</td><td>Q.F. + Gerencia</td><td>48 horas</td></tr>'
+    +'<tr><td>Mes de vencimiento / Vencido</td><td style="background:#EF9A9A"><strong>🔴 VENCIDO</strong></td><td>Retiro inmediato — cuarentena zona RECHAZADO — dar de baja en sistema — destrucción</td><td>Q.F.</td><td>Inmediato — mismo día</td></tr>'
+    +'</table>'
+    +'<h3>7.2 Reglas operativas de ubicación FEFO</h3>'
+    +'<p>Al ingresar nuevos lotes al área de almacenamiento:</p>'
+    +'<ul style="margin:8px 0 0 18px;line-height:2">'
+    +'<li>Los productos con vencimiento más próximo se ubican al <strong>frente</strong> del estante o en la posición superior.</li>'
+    +'<li>Los de vencimiento más lejano se ubican <strong>atrás</strong> o en posición inferior.</li>'
+    +'<li>Nunca se mezclan lotes distintos sin identificación clara.</li>'
+    +'<li>Cada lote debe tener etiqueta visible con: nombre del producto, número de lote, fecha de vencimiento y cantidad.</li>'
+    +'<li>El auxiliar verifica el cumplimiento FEFO en cada movimiento y lo confirma en el <span class="badge">SURG/INV/001</span>.</li>'
+    +'</ul>'
+
+    // ── 8. MEDICAMENTOS ESPECIALES ────────────────────────────
+    +'<h2>8. Manejo de Medicamentos de Control Especial</h2>'
+    +'<p>Los medicamentos psicotrópicos, estupefacientes, precursores y demás sustancias de control se manejan conforme a la Resolución 1478/2006 y la normativa del Fondo Nacional de Estupefacientes (FNE).</p>'
+    +'<table><tr><th>Categoría</th><th>Norma</th><th>Requisitos adicionales al BPA estándar</th></tr>'
+    +'<tr><td>Estupefacientes (morfina, fentanilo, etc.)</td><td>Res. 1478/2006</td><td>Área bajo doble llave — libro oficial de registro — acceso exclusivo Q.F. — reporte mensual al FNE</td></tr>'
+    +'<tr><td>Psicotrópicos</td><td>Res. 1478/2006</td><td>Área bajo llave — libro de dosis diarias — balance mensual — custodia Q.F.</td></tr>'
+    +'<tr><td>Precursores químicos</td><td>Dec. 3874/2001</td><td>Registro ante DIRAN — control cuantitativo estricto — denuncia de pérdidas a Policía</td></tr>'
+    +'<tr><td>Biológicos / vacunas</td><td>INVIMA / OPS</td><td>Cadena de frío exclusiva — data logger — registro de temperaturas continuo — alarma activa 24/7</td></tr>'
+    +'</table>'
+    +'<div class="alert-box">🔐 <strong>Protocolo de pérdida o hurto de medicamentos de control especial:</strong> Reporte inmediato a: (1) Gerencia, (2) Director Técnico Q.F., (3) Policía Nacional / Fiscalía, (4) INVIMA, dentro de las 24 horas del hecho. Se documenta en el Formato <span class="badge">SURG/CE/001</span> y se investiga internamente.</div>'
+
+    // ── 9. LIMPIEZA Y PLAGAS ──────────────────────────────────
+    +'<h2>9. Limpieza, Desinfección y Control de Plagas</h2>'
+    +'<h3>9.1 Programa de limpieza y desinfección</h3>'
+    +'<table><tr><th>Área</th><th>Frecuencia limpieza</th><th>Frecuencia desinfección</th><th>Responsable</th><th>Producto</th></tr>'
+    +'<tr><td>Zona almacenamiento general</td><td>Diaria (pisos y superficies)</td><td>Semanal</td><td>Auxiliar Bodega</td><td contenteditable="true" class="e">Hipoclorito 500 ppm</td></tr>'
+    +'<tr><td>Neveras / cadena de frío (interior)</td><td>Semanal</td><td>Mensual</td><td>Auxiliar + Q.F.</td><td contenteditable="true" class="e">Alcohol etílico 70%</td></tr>'
+    +'<tr><td>Zona recepción / cuarentena</td><td>Diaria</td><td>Semanal</td><td>Auxiliar Bodega</td><td contenteditable="true" class="e">Hipoclorito 500 ppm</td></tr>'
+    +'<tr><td>Zona despacho</td><td>Diaria</td><td>Semanal</td><td>Auxiliar Bodega</td><td contenteditable="true" class="e">Hipoclorito 500 ppm</td></tr>'
+    +'<tr><td>Baños y servicios</td><td>Diaria</td><td>Diaria</td><td>Auxiliar Bodega</td><td contenteditable="true" class="e">Hipoclorito 1000 ppm</td></tr>'
+    +'<tr><td>Limpieza general profunda (toda la bodega)</td><td>Mensual</td><td>Mensual</td><td>Todo el personal</td><td contenteditable="true" class="e">Desengrasante + desinfectante</td></tr>'
+    +'</table>'
+    +'<h3>9.2 Control integrado de plagas</h3>'
+    +'<p>'+e+' mantiene contrato vigente con empresa certificada para el Control Integrado de Plagas (CIP). Las fumigaciones se realizan según el cronograma anual establecido. Se conservan: contrato, certificado de la empresa, cronograma, fichas técnicas de productos usados, certificados de cada visita, y registro de anomalías detectadas.</p>'
+    +'<table><tr><th>Dato del contrato</th><th>Información</th></tr>'
+    +'<tr><td>Empresa prestadora del servicio CIP</td><td contenteditable="true" class="e">(completar nombre empresa)</td></tr>'
+    +'<tr><td>NIT de la empresa</td><td contenteditable="true" class="e">(completar)</td></tr>'
+    +'<tr><td>Número de contrato</td><td contenteditable="true" class="e">(completar)</td></tr>'
+    +'<tr><td>Vigencia del contrato</td><td contenteditable="true" class="e">(completar vigencia)</td></tr>'
+    +'<tr><td>Frecuencia de visitas</td><td contenteditable="true" class="e">Trimestral</td></tr>'
+    +'</table>'
+
+    // ── 10. CAPACITACIÓN ──────────────────────────────────────
+    +'<h2>10. Capacitación y Competencia del Personal</h2>'
+    +'<p>El incumplimiento de los requisitos de capacitación constituye una no conformidad grave en la auditoría BPA. Todo el personal operativo debe demostrar competencia antes de ser autorizado a trabajar de forma independiente.</p>'
+    +'<table><tr><th>Tema de capacitación</th><th>Frecuencia mínima</th><th>A quién aplica</th><th>Evidencia requerida</th></tr>'
+    +'<tr><td>Inducción BPA — generalidades y obligaciones</td><td>Al ingreso (obligatoria antes de iniciar funciones)</td><td>Todo el personal</td><td>Acta de inducción firmada + evaluación</td></tr>'
+    +'<tr><td>Actualización BPA</td><td>Anual</td><td>Todo el personal</td><td>Registro asistencia + evaluación ≥ 80%</td></tr>'
+    +'<tr><td>Cadena de frío y manejo de neveras</td><td>Al ingreso + anual</td><td>Personal operativo</td><td>Registro + certificado (si externo)</td></tr>'
+    +'<tr><td>Farmacovigilancia y tecnovigilancia</td><td>Al ingreso + anual</td><td>Q.F. + Auxiliar</td><td>Registro + evaluación</td></tr>'
+    +'<tr><td>Manejo de medicamentos de control especial</td><td>Al ingreso + cuando haya cambios normativos</td><td>Q.F.</td><td>Registro + constancia FNE si aplica</td></tr>'
+    +'<tr><td>Manejo de RESPEL y residuos farmacéuticos</td><td>Semestral</td><td>Todo el personal</td><td>Registro de asistencia</td></tr>'
+    +'<tr><td>SST — Riesgos en bodega farmacéutica</td><td>Anual</td><td>Todo el personal</td><td>Registro + evaluación</td></tr>'
+    +'</table>'
+
+    // ── 11. EQUIPOS ───────────────────────────────────────────
+    +'<h2>11. Equipos: Inventario, Mantenimiento y Calibración</h2>'
+    +'<table><tr><th>Equipo</th><th>Función en BPA</th><th>Frecuencia mantenimiento</th><th>Calibración (ONAC)</th></tr>'
+    +'<tr><td>Termohigrómetro digital</td><td>Control T° y HR bodega general</td><td>Semestral</td><td>Anual — laboratorio acreditado ONAC</td></tr>'
+    +'<tr><td>Termómetro de nevera / data logger</td><td>Control T° cadena de frío continuo</td><td>Semestral</td><td>Anual — laboratorio acreditado ONAC</td></tr>'
+    +'<tr><td>Neveras / cuartos fríos</td><td>Almacenamiento de productos 2–8 °C</td><td>Semestral (compresor, sello, alarma)</td><td>N/A — verificación anual técnica</td></tr>'
+    +'<tr><td>Balanza o báscula</td><td>Control cuantitativo de pedidos</td><td>Semestral</td><td>Anual — laboratorio acreditado ONAC</td></tr>'
+    +'<tr><td>Estibas y estantería metálica</td><td>Almacenamiento seguro de productos</td><td>Anual (estructura e integridad)</td><td>N/A</td></tr>'
+    +'<tr><td>Sistema de alarma (T°, acceso, incendio)</td><td>Alerta ante desviaciones críticas</td><td>Semestral</td><td>N/A — prueba funcional semestral</td></tr>'
+    +'</table>'
+    +'<div class="alert-box">📌 <strong>Nota de calibración:</strong> Los certificados de calibración emitidos por laboratorios acreditados ante ONAC deben conservarse en el expediente técnico de cada equipo. La fecha de vencimiento del certificado debe ser verificada mensualmente. Un equipo con certificado vencido no puede usarse para tomar decisiones de liberación de productos.</div>'
+
+    // ── 12. NO CONFORMIDADES ──────────────────────────────────
+    +'<h2>12. Gestión de No Conformidades y Desviaciones BPA</h2>'
+    +'<p>Una no conformidad (NC) es cualquier incumplimiento de un requisito BPA. Su gestión debe ser sistemática, documentada y conducir siempre a una acción correctiva que elimine la causa raíz.</p>'
+    +'<h3>12.1 Clasificación de no conformidades</h3>'
+    +'<table><tr><th>Tipo</th><th>Descripción</th><th>Plazo de resolución</th><th>Ejemplos</th></tr>'
+    +'<tr><td><strong>NC Crítica</strong></td><td>Pone en riesgo la calidad del producto o la seguridad del paciente</td><td>Corrección inmediata (mismo día); acción correctiva en 5 días hábiles</td><td>Nevera sin funcionar con productos de cadena frío; medicamentos vencidos en stock activo; acceso no autorizado a área de control especial</td></tr>'
+    +'<tr><td><strong>NC Mayor</strong></td><td>Incumplimiento sistemático de un requisito BPA</td><td>Corrección en 48 h; plan de acción correctiva en 10 días hábiles</td><td>Registro de T° incompleto por 3 o más días; FEFO no aplicado en despacho; personal sin capacitación BPA trabajando</td></tr>'
+    +'<tr><td><strong>NC Menor</strong></td><td>Incumplimiento puntual sin riesgo inmediato para el producto</td><td>Plan de acción correctiva en 15 días hábiles</td><td>Etiqueta de señalización deteriorada; un registro de inventario incompleto; documento sin firmar</td></tr>'
+    +'</table>'
+    +'<h3>12.2 Flujograma de gestión de NC</h3>'
+    +'<p><strong>Detección</strong> (cualquier colaborador) → Reporte al Q.F. (inmediato) → <strong>Registro en Formato <span class="badge">SURG/NC/001</span></strong> → Clasificación (crítica/mayor/menor) → <strong>Acción inmediata de contención</strong> → Análisis de causa raíz → <strong>Acción correctiva</strong> → Verificación de eficacia → Cierre de NC → Registro en base de datos NC.</p>'
+
+    // ── 13. AUDITORÍAS ────────────────────────────────────────
+    +'<h2>13. Auditorías Internas BPA</h2>'
+    +'<p>'+e+' realizará auditorías internas de BPA con la frecuencia establecida, como herramienta de verificación y mejora continua, en cumplimiento de los estándares del INVIMA.</p>'
+    +'<table><tr><th>Tipo de auditoría</th><th>Frecuencia</th><th>Quién audita</th><th>Qué se evalúa</th><th>Formato</th></tr>'
+    +'<tr><td>Auditoría interna BPA completa</td><td>Semestral (mínimo)</td><td>Q.F. + apoyo externo si aplica</td><td>Todos los estándares BPA: infraestructura, T°, FEFO, documentación, personal, equipos, residuos</td><td><span class="badge">SURG/AUD-BPA/001</span></td></tr>'
+    +'<tr><td>Verificación rápida BPA (checklist operativo)</td><td>Mensual</td><td>Q.F.</td><td>Puntos críticos: T° neveras, vencimientos, registro diario, señalización</td><td><span class="badge">SURG/CHK/001</span></td></tr>'
+    +'<tr><td>Simulacro de visita INVIMA / Secretaría</td><td>Anual (antes de visita esperada)</td><td>Q.F. + Gerencia</td><td>Todos los documentos, áreas y procesos según estándares de la Res. 444/2008</td><td>Lista de verificación oficial INVIMA</td></tr>'
+    +'</table>'
+    +'<p><strong>Resultado esperado:</strong> Cada auditoría debe generar un informe con hallazgos clasificados (críticos/mayores/menores), plan de mejoramiento con fechas y responsables, y verificación de cumplimiento del plan en la siguiente auditoría.</p>'
+
+    // ── 14. INDICADORES ───────────────────────────────────────
+    +'<h2>14. Indicadores de Gestión BPA</h2>'
+    +'<table><tr><th>Indicador</th><th>Fórmula</th><th>Meta</th><th>Frecuencia medición</th><th>Responsable</th></tr>'
+    +'<tr><td>Cumplimiento de registros de T° y HR</td><td>(Registros realizados / Registros programados) × 100</td><td>≥ 98%</td><td>Mensual</td><td>Q.F.</td></tr>'
+    +'<tr><td>Productos vencidos encontrados en stock activo</td><td>N° de unidades vencidas detectadas en auditoría</td><td>= 0</td><td>Mensual</td><td>Q.F.</td></tr>'
+    +'<tr><td>Cumplimiento FEFO en despachos</td><td>(Despachos con FEFO aplicado / Total despachos verificados) × 100</td><td>100%</td><td>Mensual</td><td>Q.F.</td></tr>'
+    +'<tr><td>Tiempo promedio resolución cuarentena</td><td>Suma días en cuarentena / N° de lotes liberados o rechazados</td><td>≤ 2 días hábiles</td><td>Mensual</td><td>Q.F.</td></tr>'
+    +'<tr><td>N° de NC críticas detectadas</td><td>Conteo absoluto de NC críticas por período</td><td>= 0</td><td>Semestral (auditoría)</td><td>Q.F.</td></tr>'
+    +'<tr><td>Exactitud de inventario</td><td>(Ítems sin diferencia / Total ítems inventariados) × 100</td><td>≥ 99%</td><td>Mensual</td><td>Q.F. + Auxiliar</td></tr>'
+    +'<tr><td>Personal capacitado en BPA</td><td>(Personal capacitado BPA / Total personal bodega) × 100</td><td>100%</td><td>Anual</td><td>Q.F.</td></tr>'
+    +'<tr><td>Reportes de farmacovigilancia enviados al INVIMA</td><td>(N° reportes enviados / N° eventos detectados) × 100</td><td>100%</td><td>Trimestral</td><td>Q.F.</td></tr>'
+    +'</table>'
+
+    // ── CONTROL DE CAMBIOS ────────────────────────────────────
+    +'<h2>15. Control de Cambios</h2>'
+    +'<table><tr><th>Versión</th><th>Fecha</th><th>Descripción del cambio</th><th>Elaboró</th><th>Aprobó</th></tr>'
+    +'<tr><td>1.0</td><td>'+fecha+'</td><td>Emisión inicial del Manual BPA — '+e+'</td><td contenteditable="true" class="e">Director(a) Técnico Q.F.</td><td contenteditable="true" class="e">Gerencia / Administración</td></tr>'
+    +'<tr><td contenteditable="true"></td><td contenteditable="true"></td><td contenteditable="true"></td><td contenteditable="true"></td><td contenteditable="true"></td></tr>'
     +'</table>'
   );
 }
