@@ -4,6 +4,12 @@
   window.BIO_VIEWS = window.BIO_VIEWS || {};
   var U = BIO_UI, S = BIO_STORE;
 
+  // Buscador de "Envío de Resultados" por nombre/cédula del paciente (o N°
+  // de orden, de paso) — a nivel de módulo para que el término escrito
+  // sobreviva entre un re-render y otro (ej. al enviar un resultado desde
+  // la misma lista), mismo patrón que ordenesSearchTerm en views-orders.js.
+  var enviosSearchTerm = "";
+
   window.BIO_VIEWS.reportes = function (root) {
     var session = BIO_AUTH.getSession();
     var tenantId = session.tenantId;
@@ -26,13 +32,27 @@
     // ENVÍO DE RESULTADOS (comportamiento original de este módulo)
     // ---------------------------------------------------------------------
     function buildEnviosHtml() {
-      var orders = S.listOrders(tenantId).filter(function (o) {
+      var todasLasOrdenes = S.listOrders(tenantId).filter(function (o) {
         return o.examenes.some(function (ex) { return ex.estado === "validado" || ex.estado === "remitido" || ex.estado === "preliminar"; });
       });
-      return '<h4 style="margin-top:14px">Órdenes Listas para Reportar (' + orders.length + ")</h4>" +
+      // Carga los pacientes UNA vez en un mapa por id, en vez de llamar
+      // S.getPatient() por cada orden en cada tecla, para que la búsqueda
+      // se sienta instantánea incluso con muchas órdenes (mismo patrón que
+      // el buscador de Órdenes de Laboratorio en views-orders.js).
+      var pacientesPorId = {};
+      S.listPatients(tenantId).forEach(function (p) { pacientesPorId[p.id] = p; });
+      var term = U.normalizar(enviosSearchTerm.trim());
+      var orders = !term ? todasLasOrdenes : todasLasOrdenes.filter(function (o) {
+        var pac = pacientesPorId[o.patientId];
+        var nombre = pac ? U.normalizar(U.nombreCompleto(pac)) : "";
+        var documento = pac ? U.normalizar(String(pac.numeroDocumento || "")) : "";
+        return nombre.indexOf(term) !== -1 || documento.indexOf(term) !== -1 || U.normalizar(o.numeroOrden || "").indexOf(term) !== -1;
+      });
+      return '<h4 style="margin-top:14px">Órdenes Listas para Reportar (' + orders.length + (term ? " de " + todasLasOrdenes.length : "") + ")</h4>" +
         '<p class="text-muted" style="margin-top:0">Desde aquí puedes descargar el PDF profesional o enviarlo por correo al paciente/médico remitente. El envío abre Gmail, Outlook/Hotmail o tu correo predeterminado ya redactado — solo debes adjuntar el PDF que se descarga automáticamente.</p>' +
+        '<div class="field" style="max-width:340px"><input type="text" id="env-buscar" placeholder="🔎 Buscar por nombre o documento del paciente…" value="' + U.esc(enviosSearchTerm) + '"/></div>' +
         '<div class="table-wrap"><table><thead><tr><th>N° Orden</th><th>Paciente</th><th>Estado</th><th>Enviado</th><th>Acciones</th></tr></thead><tbody>' +
-        (orders.length ? orders.map(rowHtml).join("") : '<tr><td colspan="5" class="text-muted">Aún no hay resultados validados o preliminares para reportar.</td></tr>') +
+        (orders.length ? orders.map(function (o) { return rowHtml(o, pacientesPorId[o.patientId]); }).join("") : '<tr><td colspan="5" class="text-muted">' + (term ? "Ningún resultado coincide con tu búsqueda." : "Aún no hay resultados validados o preliminares para reportar.") + "</td></tr>") +
         "</tbody></table></div>";
     }
 
@@ -41,10 +61,22 @@
         var o = S.getOrder(b.dataset.pdf); window.BIO_PDF.previewOrModal(o, S.getPatient(o.patientId), BIO_AUTH.currentTenant());
       }); });
       root.querySelectorAll("[data-send]").forEach(function (b) { b.addEventListener("click", function () { openSendModal(S.getOrder(b.dataset.send), build); }); });
+      var inputBuscar = document.getElementById("env-buscar");
+      if (inputBuscar) {
+        inputBuscar.addEventListener("input", function (e) {
+          enviosSearchTerm = e.target.value;
+          build();
+        });
+        // El foco se pierde en cada re-render (innerHTML rehace el input
+        // desde cero) — se lo devolvemos y dejamos el cursor al final, para
+        // poder seguir escribiendo sin que cada tecla obligue a hacer clic
+        // de nuevo (mismo ajuste que el buscador de Órdenes de Laboratorio).
+        inputBuscar.focus();
+        inputBuscar.setSelectionRange(inputBuscar.value.length, inputBuscar.value.length);
+      }
     }
 
-    function rowHtml(o) {
-      var pac = S.getPatient(o.patientId);
+    function rowHtml(o, pac) {
       return "<tr><td><b>" + o.numeroOrden + "</b></td><td>" + (pac ? U.esc(U.nombreCompleto(pac)) : "—") + "</td><td>" + window.BIO_badgeEstado(o.estadoGeneral) + "</td>" +
         "<td>" + (o.enviado ? '<span class="badge badge-enviado">Enviado ' + U.fmtFechaCorta(o.fechaEnvio) + "</span>" : '<span class="text-muted">No enviado</span>') + "</td>" +
         '<td><div class="flex gap-2 wrap"><button class="btn btn-outline btn-sm" data-pdf="' + o.id + '">' + U.icon("file") + " Ver / Descargar</button>" +
