@@ -1663,6 +1663,29 @@ function enrichMediclic(overrides) {
   } catch(e) {}
   return base;
 }
+// ─── Reseteo de caché de perfil para clientes hardcodeados ───────────────────
+// Si el usuario tiene datos viejos en bio_cli_ que apuntan al cliente equivocado,
+// los borramos para que siempre cargue el perfil correcto del código.
+(function resetProfileCache(){
+  try {
+    var _PROFILE_VERSION = '20261014-v3'; // incrementar cuando cambie un perfil hardcodeado
+    var _RESET_KEY = 'bio_profile_ver';
+    var loggedUser = (sessionStorage.getItem('bio_user')||'').trim().toLowerCase();
+    if(!loggedUser) return;
+    var storedVer = localStorage.getItem(_RESET_KEY + '_' + loggedUser);
+    if(storedVer === _PROFILE_VERSION) return; // ya está actualizado
+    // Limpiar bio_cli_ para todos los usuarios con perfil hardcodeado
+    var hardcoded = ['surgical.andrea','surgical','andrea.paola','surgical.andrea.paola',
+      'andreapaolafarma','paolarodriguez619','paola.rodriguez619','paola619',
+      'mediclicconsultoriaensalud','mediclic','liseth.duran','dra.duran','dra.liseth',
+      'dra.vesga'];
+    if(hardcoded.indexOf(loggedUser) >= 0){
+      localStorage.removeItem('bio_cli_' + loggedUser);
+    }
+    localStorage.setItem(_RESET_KEY + '_' + loggedUser, _PROFILE_VERSION);
+  } catch(e){}
+})();
+
 const C = loadClienteActual();
 // Set ES to the right standard-info array for this client
 ES = getES();
