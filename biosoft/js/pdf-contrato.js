@@ -386,11 +386,26 @@
       y += 12;
     }
 
+    // Caso real: el laboratorio opera bajo un nombre comercial, pero quien
+    // firma legalmente el Contrato (y responde por él) es una PERSONA
+    // NATURAL distinta, con su propio documento de identidad — nunca el
+    // NIT/RIF del laboratorio. En ese caso, cliente.personaNatural (nombre
+    // + documento) reemplaza al laboratorio como "EL CLIENTE" identificado
+    // en el encabezado del Contrato, dejando constancia de que esa persona
+    // opera bajo el nombre comercial del laboratorio — en vez de identificar
+    // al laboratorio y decir que "lo representa" alguien más, que es lo que
+    // pasa en el caso normal (empresa/entidad con NIT propio, representada
+    // por su representante legal).
+    var personaNatural = cliente.personaNatural && cliente.personaNatural.nombre ? cliente.personaNatural : null;
+    var identificacionCliente = personaNatural
+      ? (personaNatural.nombre +
+          (personaNatural.documento ? ", identificado con " + C.documentoTributarioLabel(lab.pais) + " " + personaNatural.documento : "") +
+          (lab.nombre ? ", quien opera comercialmente bajo el nombre “" + lab.nombre + "”" : ""))
+      : ((lab.nombre || "el laboratorio cliente") + (lab.nit ? ", identificado con " + C.documentoTributarioLabel(lab.pais) + " " + lab.nit : ""));
     parrafo(
       "Entre los suscritos, " + PROVEEDOR.nombre + ", identificado con NIT " + PROVEEDOR.nit + ", representado legalmente por " +
-      PROVEEDOR.representanteLegal + " (en adelante, “EL PROVEEDOR”), y " + (lab.nombre || "el laboratorio cliente") +
-      (lab.nit ? ", identificado con " + C.documentoTributarioLabel(lab.pais) + " " + lab.nit : "") + " (en adelante, “EL CLIENTE”), representado por " +
-      (contacto.nombre || "su representante") + (contacto.cargo ? " (" + contacto.cargo + ")" : "") +
+      PROVEEDOR.representanteLegal + " (en adelante, “EL PROVEEDOR”), y " + identificacionCliente + " (en adelante, “EL CLIENTE”)" +
+      (personaNatural ? "" : (", representado por " + (contacto.nombre || "su representante") + (contacto.cargo ? " (" + contacto.cargo + ")" : ""))) +
       ", se celebra el presente Contrato de Prestación de Servicios de Software y Licencia de Uso (en adelante, “el Contrato”), el cual se regirá por las leyes de la República de Colombia y, en particular por el Código de Comercio, el Código Civil y la Ley 1581 de 2012, bajo las siguientes cláusulas:"
     );
 
@@ -566,9 +581,15 @@
     doc.text("Por EL PROVEEDOR", margin, y); doc.text("Por EL CLIENTE", col2, y);
     y += 13;
     doc.setFont("helvetica", "normal"); doc.setFontSize(8.5); doc.setTextColor(60, 60, 60);
-    doc.text(PROVEEDOR.representanteLegal, margin, y); doc.text(contacto.nombre || "—", col2, y);
+    doc.text(PROVEEDOR.representanteLegal, margin, y); doc.text((personaNatural ? personaNatural.nombre : contacto.nombre) || "—", col2, y);
     y += 12;
-    doc.text(PROVEEDOR.nombre + " · NIT " + PROVEEDOR.nit, margin, y); doc.text((lab.nombre || "—") + (lab.nit ? " · " + C.documentoTributarioLabel(lab.pais) + " " + lab.nit : ""), col2, y);
+    doc.text(PROVEEDOR.nombre + " · NIT " + PROVEEDOR.nit, margin, y);
+    doc.text(
+      personaNatural
+        ? (personaNatural.documento ? C.documentoTributarioLabel(lab.pais) + " " + personaNatural.documento : "—") + (lab.nombre ? " · " + lab.nombre : "")
+        : (lab.nombre || "—") + (lab.nit ? " · " + C.documentoTributarioLabel(lab.pais) + " " + lab.nit : ""),
+      col2, y
+    );
 
     piePagina(doc, margin);
     return new Uint8Array(doc.output("arraybuffer"));

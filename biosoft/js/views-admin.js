@@ -2488,12 +2488,18 @@
       });
     }
 
-    function tenantParaDocs(tenant) {
-      return {
+    function tenantParaDocs(tenant, extra) {
+      var doc = {
         laboratorio: { nombre: tenant.nombre, nit: tenant.nit, pais: tenant.pais, ciudad: tenant.direccion || "" },
         contacto: { nombre: tenant.contactoNombre || tenant.nombre, whatsapp: tenant.telefonos, correo: tenant.email },
         seccionesTexto: "según la configuración de tu laboratorio"
       };
+      // Solo el Contrato (ver abrirEnviarContrato) pasa esto — el
+      // laboratorio opera bajo un nombre comercial, pero quien firma
+      // legalmente es una persona natural distinta, con su propio
+      // documento de identidad (ver pdf-contrato.js -> buildContratoPDF).
+      if (extra && extra.personaNatural) doc.personaNatural = extra.personaNatural;
+      return doc;
     }
 
     // El N.° de Licencia debe ser el MISMO siempre para un laboratorio, sin
@@ -2564,6 +2570,12 @@
         '<div class="field"><label>WhatsApp del destinatario</label><input id="con-whatsapp" value="' + U.esc(tenant.telefonos || "") + '"/></div>' +
         "</div>" +
         '<p class="text-muted" style="margin:2px 0 10px;font-size:12px">La fecha de inicio de cobro no tiene que ser hoy — si la implementación toma unos días, ponla más adelante para que el cliente no pierda esos días de uso gratis. Las "Meses de cortesía" retrasan el primer cobro sin afectar la modalidad elegida.</p>' +
+        '<div class="field" style="margin-bottom:0"><label class="flex gap-2" style="align-items:center;font-weight:400"><input type="checkbox" id="con-persona-natural" style="width:auto" ' + (tenant.personaNaturalContrato ? "checked" : "") + '/> Generar el Contrato a nombre de una persona natural (no del laboratorio)</label>' +
+        '<span class="text-muted" style="font-size:11.5px;display:block;margin-top:2px">Útil cuando el laboratorio opera bajo un nombre comercial, pero quien firma legalmente el Contrato es otra persona, identificada con su propio documento — distinto al ' + C.documentoTributarioLabel(tenant.pais) + ' del laboratorio.</span></div>' +
+        '<div class="form-grid ' + (tenant.personaNaturalContrato ? "" : "hidden") + '" id="con-persona-natural-box" style="margin-top:8px">' +
+        '<div class="field"><label>Nombre completo de la persona</label><input id="con-pn-nombre" value="' + U.esc(tenant.personaNaturalNombre || "") + '"/></div>' +
+        '<div class="field"><label>N° de documento personal (' + C.documentoTributarioLabel(tenant.pais) + ' de la persona)</label><input id="con-pn-documento" value="' + U.esc(tenant.personaNaturalDocumento || "") + '"/></div>' +
+        "</div>" +
         '<div class="field"><label>Mensaje</label><textarea id="con-msg">' + U.esc(mensajeDefault) + "</textarea></div>" +
         '<div class="flex gap-2 justify-between"><button class="btn btn-ghost" data-modal-close>Cancelar</button><button class="btn btn-primary" id="con-go">' + U.icon("download") + " 1. Generar y Descargar</button></div>" +
         bloquePaso2EnviarHtml("con"),
@@ -2603,6 +2615,9 @@
         wrap.querySelector("#con-meses-box").classList.toggle("hidden", !esSemestral);
         actualizarMensajePreview();
       });
+      wrap.querySelector("#con-persona-natural").addEventListener("change", function () {
+        wrap.querySelector("#con-persona-natural-box").classList.toggle("hidden", !this.checked);
+      });
       ["#con-ciclo", "#con-meses", "#con-meses-cortesia"].forEach(function (sel) {
         wrap.querySelector(sel).addEventListener("input", actualizarMensajePreview);
       });
@@ -2615,13 +2630,18 @@
         var cicloElegido = parseInt(wrap.querySelector("#con-ciclo").value, 10) || 30;
         var mesesElegidos = parseInt(wrap.querySelector("#con-meses").value, 10) || 6;
         var mesesCortesiaElegidos = parseInt(wrap.querySelector("#con-meses-cortesia").value, 10) || 0;
+        var personaNaturalMarcada = wrap.querySelector("#con-persona-natural").checked;
+        var pnNombre = wrap.querySelector("#con-pn-nombre").value.trim();
+        var pnDocumento = wrap.querySelector("#con-pn-documento").value.trim();
         if (!email && !whatsapp) { U.toast("Ingresa un correo o un número de WhatsApp.", "error"); return; }
+        if (personaNaturalMarcada && !pnNombre) { U.toast("Escribe el nombre de la persona natural a nombre de quien se genera el Contrato.", "error"); return; }
         var btn = e.currentTarget;
         var htmlOriginal = btn.innerHTML;
         btn.disabled = true; btn.innerHTML = "Generando…";
         try {
           var opts = { cicloCobroDias: cicloElegido, mesesMembresia: mesesElegidos, mesesCortesia: mesesCortesiaElegidos, numeroLicencia: numeroLicenciaDe(tenant), descuentoPlan: descuentoPlanActual, cobraEquipos: cobraEquiposActual };
-          var bytes = BIO_PDF_CRM.buildContratoPDF(tenantParaDocs(tenant), plan, modalidadElegida, opts);
+          var personaNaturalElegida = personaNaturalMarcada && pnNombre ? { nombre: pnNombre, documento: pnDocumento } : null;
+          var bytes = BIO_PDF_CRM.buildContratoPDF(tenantParaDocs(tenant, { personaNatural: personaNaturalElegida }), plan, modalidadElegida, opts);
           var nombreArchivo = "Contrato_BIOsoft_" + (tenant.nombre || "Cliente").replace(/\s+/g, "_") + ".pdf";
           U.downloadBytes(bytes, nombreArchivo);
           var inicio = new Date(fechaInicioElegida + "T12:00:00");
@@ -2632,9 +2652,17 @@
           tenant.cicloCobroDias = cicloElegido;
           tenant.mesesCortesia = mesesCortesiaElegidos || null;
           if (modalidadElegida === "semestral") tenant.mesesMembresiaGratis = mesesElegidos;
+          // Se recuerda la elección de "persona natural" (y sus datos) para
+          // que la próxima vez que se abra "Enviar Contrato" para este
+          // mismo laboratorio (ej. al regenerarlo por un cambio de plan) ya
+          // quede preseleccionada, sin tener que volver a digitarla.
+          tenant.personaNaturalContrato = personaNaturalMarcada;
+          tenant.personaNaturalNombre = personaNaturalMarcada ? pnNombre : "";
+          tenant.personaNaturalDocumento = personaNaturalMarcada ? pnDocumento : "";
           var patchContrato = {
             fechaInicioPlan: tenant.fechaInicioPlan, fechaProximoPago: tenant.fechaProximoPago,
-            modalidadPago: tenant.modalidadPago, cicloCobroDias: tenant.cicloCobroDias, mesesCortesia: tenant.mesesCortesia
+            modalidadPago: tenant.modalidadPago, cicloCobroDias: tenant.cicloCobroDias, mesesCortesia: tenant.mesesCortesia,
+            personaNaturalContrato: tenant.personaNaturalContrato, personaNaturalNombre: tenant.personaNaturalNombre, personaNaturalDocumento: tenant.personaNaturalDocumento
           };
           if (modalidadElegida === "semestral") patchContrato.mesesMembresiaGratis = tenant.mesesMembresiaGratis;
           S.updateTenant(tenant.id, patchContrato);
