@@ -140,10 +140,12 @@ body{display:flex;align-items:center;justify-content:center;min-height:100vh;pad
 
 <script>
 const USERS = {
-  'admin':     {pass:'123456', role:'admin',    to:'admin/index.html'},
-  'dra.vesga': {pass:'Vesga@2025',     role:'cliente',  to:'cliente/index.html'},
+  'admin':             {pass:'123456',       role:'admin',   to:'admin/index.html'},
+  'dra.vesga':         {pass:'Vesga@2025',   role:'cliente', to:'cliente/index.html'},
+  'paolarodriguez619': {pass:'Andreapao3.',  role:'cliente', to:'cliente/index.html'},
+  'surgical.andrea':   {pass:'Surgical2025', role:'cliente', to:'cliente/index.html'},
 };
-let rol = 'cliente'; // default: prestador mode
+let rol = 'cliente';
 let adminTaps = 0, adminTimer = null;
 
 function setRole(r){
@@ -162,33 +164,51 @@ function adminTap(){
   }
 }
 
+// Busca usuario en USERS hardcodeados y en bio_users_db de localStorage.
+// Normaliza: minúsculas + sin espacios extremos.
 function getUser(u){
-  if(USERS[u]) return USERS[u];
+  var key = u.trim().toLowerCase();
+  if(USERS[key]) return USERS[key];
+  // Buscar con variaciones (sin puntos, sin guiones) por si el usuario escribió diferente
+  var variants = [key, key.replace(/\./g,'-'), key.replace(/-/g,'.'), key.replace(/[\.\-_]/g,'')];
+  for(var i=0;i<variants.length;i++){
+    if(USERS[variants[i]]) return USERS[variants[i]];
+  }
   try {
-    const db = JSON.parse(localStorage.getItem('bio_users_db') || '{}');
-    return db[u] || null;
-  } catch(e){ return null; }
+    var db = JSON.parse(localStorage.getItem('bio_users_db') || '{}');
+    if(db[key]) return db[key];
+    // También revisar todas las keys del db con normalización
+    var dbKeys = Object.keys(db);
+    for(var j=0;j<dbKeys.length;j++){
+      if(dbKeys[j].toLowerCase() === key) return db[dbKeys[j]];
+    }
+  } catch(e){}
+  return null;
 }
 
 function doLogin(){
-  const u = document.getElementById('user').value.trim().toLowerCase();
-  const p = document.getElementById('pass').value;
-  const e = document.getElementById('err');
-  const found = getUser(u);
-  if(found && found.pass === p && found.role === rol){
-    e.style.display = 'none';
+  var u = document.getElementById('user').value.trim().toLowerCase();
+  var p = document.getElementById('pass').value;
+  var err = document.getElementById('err');
+  if(!u){ err.textContent='Ingresa tu usuario.'; err.style.display='block'; return; }
+  if(!p){ err.textContent='Ingresa tu contraseña.'; err.style.display='block'; return; }
+  var found = getUser(u);
+  if(found && found.pass === p){
+    // Login correcto — el rol lo toma del usuario, no del selector
+    err.style.display = 'none';
     sessionStorage.setItem('bio_user', u);
-    sessionStorage.setItem('bio_role', rol);
-    window.location.href = found.to;
+    sessionStorage.setItem('bio_role', found.role);
+    // Recuperar datos guardados en localStorage si existen
+    var dest = found.to || 'cliente/index.html';
+    window.location.href = dest;
+  } else if(found && found.pass !== p){
+    err.textContent = 'Contraseña incorrecta. Intenta de nuevo.';
+    err.style.display = 'block';
+    document.getElementById('pass').value = '';
+    document.getElementById('pass').focus();
   } else {
-    if(found && found.pass === p && found.role !== rol){
-      e.textContent = 'Perfil incorrecto — selecciona "' + (found.role === 'admin' ? 'Admin' : 'Prestador') + '" arriba.';
-    } else if(found && found.pass !== p){
-      e.textContent = 'Contraseña incorrecta. Intenta de nuevo.';
-    } else {
-      e.textContent = 'Usuario no encontrado. Verifica tu usuario o selecciona el perfil correcto.';
-    }
-    e.style.display = 'block';
+    err.textContent = 'Usuario no encontrado. Verifica que escribiste bien tu usuario.';
+    err.style.display = 'block';
     document.getElementById('pass').value = '';
   }
 }
