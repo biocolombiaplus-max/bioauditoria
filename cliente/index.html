@@ -959,6 +959,7 @@ select.fi option{background:var(--s1)}
       <select class="dm-fi" id="docm-estado">
         <option value="vigente">✅ Vigente</option>
         <option value="pendiente">⚠️ Pendiente</option>
+        <option value="no_aplica">⬜ No aplica</option>
         <option value="requerido">🚨 Requerido / Crítico</option>
         <option value="vencido">🔴 Vencido</option>
         <option value="en_revision">🔵 En revisión</option>
@@ -1702,12 +1703,13 @@ function initUI(){
   document.getElementById('sd-uname').textContent = C.nombre;
   document.getElementById('sd-ulevel').textContent = 'Nivel '+C.nivel_atencion+' · '+C.ciudad;
 
-  // stats
+  // stats — documentos "no_aplica" se excluyen del total para no afectar el %
   var docs = C.estandares.flatMap(e=>e.documentos);
-  var total = docs.length || 1;
-  var ok = docs.filter(d=>d.estado==='vigente').length;
-  var pen = docs.filter(d=>d.estado==='pendiente').length;
-  var req = docs.filter(d=>d.estado==='requerido').length;
+  var docsAplicables = docs.filter(d=>d.estado!=='no_aplica');
+  var total = docsAplicables.length || 1;
+  var ok = docsAplicables.filter(d=>d.estado==='vigente').length;
+  var pen = docsAplicables.filter(d=>d.estado==='pendiente').length;
+  var req = docsAplicables.filter(d=>d.estado==='requerido').length;
   var pct = Math.round(ok/total*100);
 
   // hero ring
@@ -1760,13 +1762,15 @@ function logout(){sessionStorage.clear();window.location.replace('../index.html'
 
 // ─── STATUS BADGE ───
 function sh(s){
-  if(s==='vigente') return '<span class="status sv"><i class="fas fa-check" style="font-size:8px"></i>Vigente</span>';
+  if(s==='vigente')   return '<span class="status sv"><i class="fas fa-check" style="font-size:8px"></i>Vigente</span>';
   if(s==='pendiente') return '<span class="status sp"><i class="fas fa-clock" style="font-size:8px"></i>Pendiente</span>';
+  if(s==='no_aplica') return '<span class="status" style="background:rgba(148,163,184,0.12);border:1px solid rgba(148,163,184,0.3);color:#94a3b8"><i class="fas fa-minus" style="font-size:8px"></i>No aplica</span>';
   return '<span class="status sr"><i class="fas fa-exclamation" style="font-size:8px"></i>Requerido</span>';
 }
 function docIcoBg(estado){
-  if(estado==='vigente') return 'background:var(--gbg);border:1px solid var(--gb)';
+  if(estado==='vigente')   return 'background:var(--gbg);border:1px solid var(--gb)';
   if(estado==='pendiente') return 'background:var(--ybg);border:1px solid var(--yb)';
+  if(estado==='no_aplica') return 'background:rgba(148,163,184,0.1);border:1px solid rgba(148,163,184,0.25);opacity:0.6';
   return 'background:var(--rbg);border:1px solid var(--rb)';
 }
 
@@ -1774,10 +1778,11 @@ function docIcoBg(estado){
 function renderInicioEstandares(){
   document.getElementById('inicio-estandares').innerHTML = C.estandares.map(e=>{
     var ei = ES.find(x=>x.id===e.id);
-    var ok = e.documentos.filter(d=>d.estado==='vigente').length;
-    var pen = e.documentos.filter(d=>d.estado==='pendiente').length;
-    var req = e.documentos.filter(d=>d.estado==='requerido').length;
-    var total = e.documentos.length;
+    var docsApl = e.documentos.filter(d=>d.estado!=='no_aplica');
+    var ok = docsApl.filter(d=>d.estado==='vigente').length;
+    var pen = docsApl.filter(d=>d.estado==='pendiente').length;
+    var req = docsApl.filter(d=>d.estado==='requerido').length;
+    var total = docsApl.length || 1;
     var pct = Math.round(ok/total*100);
     var pcolor = pct>=80?'var(--green)':pct>=50?'var(--yellow)':'var(--red)';
     return '<div class="estd-mini" onclick="goEstandar(\''+e.id+'\')">'
@@ -1811,11 +1816,12 @@ function goEstandar(eid){
 function renderEstandares(){
   document.getElementById('estandares-list').innerHTML = C.estandares.map(e=>{
     var ei = ES.find(x=>x.id===e.id);
-    var ok = e.documentos.filter(d=>d.estado==='vigente').length;
-    var pen = e.documentos.filter(d=>d.estado==='pendiente'||d.estado==='en_revision').length;
-    var req = e.documentos.filter(d=>d.estado==='requerido'||d.estado==='vencido').length;
-    var total = e.documentos.length;
-    var pct = total>0?Math.round(ok/total*100):0;
+    var docsApl2 = e.documentos.filter(d=>d.estado!=='no_aplica');
+    var ok = docsApl2.filter(d=>d.estado==='vigente').length;
+    var pen = docsApl2.filter(d=>d.estado==='pendiente'||d.estado==='en_revision').length;
+    var req = docsApl2.filter(d=>d.estado==='requerido'||d.estado==='vencido').length;
+    var total = docsApl2.length || 1;
+    var pct = Math.round(ok/total*100);
     var pcolor = pct>=80?'var(--green)':pct>=50?'var(--yellow)':'var(--red)';
 
     var reqRows = ei.requisitos.map(r=>
