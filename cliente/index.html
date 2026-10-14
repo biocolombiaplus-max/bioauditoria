@@ -5839,7 +5839,6 @@ function _surgWrap(id, titulo, norma, body){
     +'  var modal=document.getElementById("sig-modal");'
     +'  _sigCanvas=document.getElementById("sig-modal-canvas");'
     +'  modal.classList.add("open");'
-    +'  // Ajustar tamaño del canvas al contenedor real
     +'  _sigCanvas.width=_sigCanvas.offsetWidth||500;'
     +'  _sigCanvas.height=220;'
     +'  _sigCtx=_sigCanvas.getContext("2d");'
@@ -5849,7 +5848,6 @@ function _surgWrap(id, titulo, norma, body){
     +'  _sigCtx.lineCap="round";'
     +'  _sigCtx.lineJoin="round";'
     +'  _sigDrawing=false;'
-    +'  // Eventos touch
     +'  _sigCanvas.ontouchstart=function(ev){'
     +'    ev.preventDefault();'
     +'    _sigDrawing=true;'
@@ -5867,7 +5865,6 @@ function _surgWrap(id, titulo, norma, body){
     +'    _sigCtx.stroke();'
     +'  };'
     +'  _sigCanvas.ontouchend=function(){_sigDrawing=false;};'
-    +'  // Eventos mouse
     +'  _sigCanvas.onmousedown=function(ev){'
     +'    _sigDrawing=true;'
     +'    var r=_sigCanvas.getBoundingClientRect();'
