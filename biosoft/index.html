@@ -269,12 +269,25 @@ fbq('track', 'PageView');
     .lp-pdf-callout { font-size: 10px; padding: 5px 9px; }
   }
   .lp-sections-grid { display:grid; grid-template-columns: repeat(auto-fill, minmax(230px,1fr)); gap:14px; max-width: 1000px; margin: 0 auto; }
+  /* El "👁 Ver cómo se captura →" antes solo aparecía con :hover — en
+     celular no existe el hover, así que esa pista de "esto se puede tocar"
+     nunca se veía (bug real reportado: en el teléfono, cada tarjeta se
+     sentía como una simple etiqueta informativa, sin ninguna señal de que
+     llevaba a un ejemplo interactivo). Ahora el texto queda SIEMPRE
+     visible, y se agrega una flecha "›" a la derecha de cada tarjeta — el
+     mismo lenguaje visual que cualquier lista táctil (ajustes del celular,
+     apps de banca, etc.) usa para decir "esto abre algo más". El hover en
+     escritorio se conserva como un empujón adicional, no como la única
+     forma de verlo. */
   .lp-sections-grid .sec-card { background: var(--surface); border:1px solid var(--border); border-radius: 14px; padding: 16px; display:flex; align-items:center; gap:13px; box-shadow: var(--shadow-sm); transition: transform .2s ease, box-shadow .2s ease, border-color .2s ease; cursor:pointer; position:relative; }
   .lp-sections-grid .sec-card:hover { transform: translateY(-4px); box-shadow: 0 16px 32px -14px rgba(124,58,237,.3); border-color: color-mix(in srgb, var(--lp-purple) 35%, var(--border)); }
   .lp-sections-grid .sec-ic { width:42px; height:42px; flex-shrink:0; border-radius:12px; background: linear-gradient(135deg, rgba(251,146,60,.18), rgba(168,85,247,.18)); font-size:20px; display:flex; align-items:center; justify-content:center; }
+  .lp-sections-grid .sec-info { flex:1; min-width:0; }
   .lp-sections-grid .sec-name { font-size:13.5px; font-weight:700; line-height:1.3; }
-  .lp-sections-grid .sec-hint { font-size:11px; font-weight:600; color: var(--lp-purple); margin-top:3px; opacity:0; transform: translateX(-4px); transition: opacity .2s ease, transform .2s ease; }
-  .lp-sections-grid .sec-card:hover .sec-hint { opacity:1; transform:translateX(0); }
+  .lp-sections-grid .sec-hint { font-size:11px; font-weight:700; color: var(--lp-purple); margin-top:3px; opacity:.9; transition: opacity .2s ease, transform .2s ease; }
+  .lp-sections-grid .sec-card:hover .sec-hint { opacity:1; transform:translateX(2px); }
+  .lp-sections-grid .sec-arrow { font-size:22px; font-weight:800; line-height:1; color: var(--lp-purple); flex-shrink:0; opacity:.5; transition: opacity .2s ease, transform .2s ease; }
+  .lp-sections-grid .sec-card:hover .sec-arrow { opacity:1; transform: translateX(3px); }
   .lp-sec-modal-card { background: var(--surface-2); border:1px solid var(--border); border-radius:12px; padding:16px; }
   .lp-sec-modal-head { display:flex; justify-content:space-between; align-items:flex-start; margin-bottom:12px; gap:10px; }
   .lp-sec-modal-head .chip { background:#fff; margin-top:8px; }
@@ -1006,7 +1019,8 @@ fbq('track', 'PageView');
   <script>
     document.getElementById("sections-list").innerHTML = BIO_CATALOG.SECCIONES.map(function (s) {
       return "<div class='sec-card' data-sec='" + s.id + "'><div class='sec-ic'>" + (s.emoji || "🧪") + "</div>" +
-        "<div><div class='sec-name'>" + s.nombre + "</div><div class='sec-hint'>👁 Ver cómo se captura →</div></div></div>";
+        "<div class='sec-info'><div class='sec-name'>" + s.nombre + "</div><div class='sec-hint'>👁 Ver ejemplo</div></div>" +
+        "<div class='sec-arrow'>›</div></div>";
     }).join("");
     document.querySelectorAll("#sections-list [data-sec]").forEach(function (card) {
       card.addEventListener("click", function () { abrirVistaSeccion(card.dataset.sec); });
