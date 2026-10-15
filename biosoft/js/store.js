@@ -167,13 +167,31 @@
       }
     }
 
+    // A diferencia de attach() (colecciones secundarias, de arriba: SÍ
+    // pueden quedar vacías sin tumbar el ingreso de nadie), el documento
+    // del laboratorio es indispensable para que la app funcione — pero,
+    // antes de este cambio, un fallo acá (ej. "permission-denied" por una
+    // regla de Firestore desactualizada o no publicada) rechazaba este
+    // tenantPromise SIN ningún .catch(), y como entra tal cual al
+    // Promise.all() de más abajo, tumbaba TODO el inicio de sesión con el
+    // error crudo de Firestore — sin ninguna pista de la causa real, ni
+    // para el laboratorio ni para quien le da soporte (caso real
+    // reportado: "a TODOS los clientes les sale un error" al entrar o al
+    // guardar algo). Se relanza con un mensaje propio y accionable, en vez
+    // de dejar pasar el código crudo tal cual hasta mapFirebaseError() en
+    // auth.js.
     var tenantPromise = db.collection("tenants").doc(tenantId).get().then(function (doc) {
       if (doc.exists) realCache.tenants[tenantId] = doc.data();
       var unsub = db.collection("tenants").doc(tenantId).onSnapshot(function (doc) {
         if (doc.exists) realCache.tenants[tenantId] = doc.data();
         if (onRealtimeChangeCb) onRealtimeChangeCb();
+      }, function (err) {
+        console.warn("BIOsoft: se perdió la sincronización en vivo del laboratorio (" + (err && err.code) + ").", err);
       });
       realUnsubs.push(unsub);
+    }).catch(function (err) {
+      console.error("BIOsoft: no se pudo cargar el laboratorio (tenants/" + tenantId + ") ->", err && err.code, err && err.message);
+      throw new Error("No se pudo cargar la información de tu laboratorio (código: " + ((err && err.code) || "desconocido") + "). Esto casi siempre significa que las Reglas de Seguridad de Firestore no están publicadas o están desactualizadas en el proyecto — contacta a soporte de BIOsoft con este mensaje.");
     });
 
     return Promise.all([
@@ -232,13 +250,22 @@
     realCache = emptyDB();
     var db = global.BIO_FB.db;
 
+    // Mismo riesgo y mismo arreglo que en initRealtime() más arriba: sin
+    // este .catch(), un fallo al leer el documento del laboratorio (ej.
+    // "permission-denied") tumbaba TODO el ingreso del aliado con el error
+    // crudo de Firestore, sin ninguna pista de la causa real.
     var tenantPromise = db.collection("tenants").doc(tenantId).get().then(function (doc) {
       if (doc.exists) realCache.tenants[tenantId] = doc.data();
       var unsub = db.collection("tenants").doc(tenantId).onSnapshot(function (doc) {
         if (doc.exists) realCache.tenants[tenantId] = doc.data();
         if (onRealtimeChangeCb) onRealtimeChangeCb();
+      }, function (err) {
+        console.warn("BIOsoft: se perdió la sincronización en vivo del laboratorio (" + (err && err.code) + ").", err);
       });
       realUnsubs.push(unsub);
+    }).catch(function (err) {
+      console.error("BIOsoft: no se pudo cargar el laboratorio (tenants/" + tenantId + ") ->", err && err.code, err && err.message);
+      throw new Error("No se pudo cargar la información de tu laboratorio (código: " + ((err && err.code) || "desconocido") + "). Esto casi siempre significa que las Reglas de Seguridad de Firestore no están publicadas o están desactualizadas en el proyecto — contacta a soporte de BIOsoft con este mensaje.");
     });
 
     var ordersQuery = fbColl("orders").where("convenioId", "==", convenioId);
