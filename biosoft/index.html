@@ -1016,6 +1016,7 @@ fbq('track', 'PageView');
   <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
   <script src="js/firebase-config.js?v=2"></script>
   <script src="js/landing-images.js?v=2"></script>
+  <script src="js/landing-tracker.js?v=1"></script>
   <script>
     document.getElementById("sections-list").innerHTML = BIO_CATALOG.SECCIONES.map(function (s) {
       return "<div class='sec-card' data-sec='" + s.id + "'><div class='sec-ic'>" + (s.emoji || "🧪") + "</div>" +
@@ -1091,11 +1092,28 @@ fbq('track', 'PageView');
     function trackFbEvent(nombre, params) {
       if (typeof window.fbq === "function") window.fbq("track", nombre, params || {});
     }
+    // ===== Analítica propia de BIOsoft (ver js/landing-tracker.js): se usa
+    // para el panel de superadmin "Rendimiento de Campañas" — de dónde
+    // llega cada visitante, qué tanto avanza y a quién vale la pena
+    // hacerle remarketing — sin depender de la API de Meta Ads. Se llama en
+    // los mismos puntos que ya usa el Píxel, para no duplicar lógica de
+    // detección de clics.
+    function trackPropio(etapa) {
+      if (window.BIO_LANDING_TRACKER) window.BIO_LANDING_TRACKER.trackEtapa(etapa);
+    }
+    if (window.BIO_LANDING_TRACKER) window.BIO_LANDING_TRACKER.trackPageview();
+    var precioObs = document.getElementById("precios");
+    if (precioObs && window.IntersectionObserver) {
+      var ioPrecios = new IntersectionObserver(function (entries) {
+        entries.forEach(function (en) { if (en.isIntersecting) { trackPropio("precios"); ioPrecios.disconnect(); } });
+      }, { threshold: 0.25 });
+      ioPrecios.observe(precioObs);
+    }
     document.addEventListener("click", function (e) {
       var waEl = e.target.closest(".wa-link, #wa-float, #wa-cotizacion");
-      if (waEl) trackFbEvent("Contact", { content_name: "WhatsApp" });
+      if (waEl) { trackFbEvent("Contact", { content_name: "WhatsApp" }); trackPropio("contacto"); }
       var demoEl = e.target.closest('a[href="app.html"]');
-      if (demoEl) trackFbEvent("ViewContent", { content_name: "Demo Gratis" });
+      if (demoEl) { trackFbEvent("ViewContent", { content_name: "Demo Gratis" }); trackPropio("demo"); }
     });
 
     var IMPLEMENTACION = BIO_PLANES.IMPLEMENTACION;
@@ -1204,6 +1222,7 @@ fbq('track', 'PageView');
 
     function abrirSeleccionPlan() {
       trackFbEvent("InitiateCheckout");
+      trackPropio("contacto");
       var modoModal = modoPago;
       var wrap = lpModal(
         '<h3 class="modal-title">Elige tu plan para continuar</h3>' +

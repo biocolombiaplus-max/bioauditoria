@@ -439,6 +439,35 @@
   }
 
   // -----------------------------------------------------------------------
+  // Analítica propia de visitantes de la landing/activación (ver
+  // js/landing-tracker.js), para el panel de superadmin "Rendimiento de
+  // Campañas" — colección independiente, solo lectura para el superadmin
+  // (la escritura la hace cualquier visitante sin sesión, directo desde
+  // el navegador — ver firestore.rules -> landingVisitantes). Se trae
+  // ordenado por última actividad y con un límite generoso, para no
+  // cargar la colección completa indefinidamente a medida que crece.
+  // -----------------------------------------------------------------------
+  function visitantesLandingColl() { return global.BIO_FB.db.collection("landingVisitantes"); }
+  function visitantesLandingList() {
+    if (!firebaseDisponible()) return Promise.reject(errorFirebaseNoDisponible());
+    return visitantesLandingColl().orderBy("lastSeen", "desc").limit(1000).get().then(function (snap) {
+      var out = [];
+      snap.forEach(function (doc) { out.push(Object.assign({ id: doc.id }, doc.data())); });
+      return out;
+    });
+  }
+  // Mismo criterio que crmWatch(): se registra en realUnsubs para que
+  // stopRealtime()/logoutReal() lo cierre solo al salir del panel.
+  function visitantesLandingWatch(onChange) {
+    if (!firebaseDisponible()) return function () {};
+    var unsub = visitantesLandingColl().orderBy("lastSeen", "desc").limit(1000).onSnapshot(function () { onChange(); }, function (err) {
+      console.error("BIOsoft landingVisitantes listener error:", err);
+    });
+    realUnsubs.push(unsub);
+    return unsub;
+  }
+
+  // -----------------------------------------------------------------------
   // Plantillas de mensajes de WhatsApp reutilizables (solo superadmin).
   // -----------------------------------------------------------------------
   function plantillasColl() { return global.BIO_FB.db.collection("crmPlantillas"); }
@@ -2117,6 +2146,7 @@
     restoreRealtimePortalAliado: restoreRealtimePortalAliado,
     restoreSuperadminSession: restoreSuperadminSession,
     crm: { list: crmList, watch: crmWatch, create: crmCreate, update: crmUpdate, delete: crmDelete },
+    visitantesLanding: { list: visitantesLandingList, watch: visitantesLandingWatch },
     tenantsGlobal: {
       list: tenantsListGlobal, watch: tenantsWatchGlobal, listUsuarios: listUsuariosTenantOnce, promoverUsuarioAAdmin: promoverUsuarioAAdmin,
       diagnosticarAcceso: diagnosticarAccesoTenant, repararPerfilAcceso: repararPerfilAcceso, repararPermisosOperativos: repararPermisosOperativos,

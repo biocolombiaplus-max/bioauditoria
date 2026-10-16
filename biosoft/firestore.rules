@@ -58,6 +58,26 @@ service cloud.firestore {
       );
     }
 
+    // Analítica propia de visitantes de la landing pública y del formulario
+    // de activación (ver js/landing-tracker.js), para el panel de
+    // superadmin "Rendimiento de Campañas" — de dónde llega cada visitante,
+    // qué tan lejos avanza en el embudo y a quién vale la pena hacerle
+    // remarketing. Igual que crmClientes, el documento lo escribe un
+    // visitante SIN sesión (desde index.html/activar.html), así que se
+    // valida su forma y tamaño para evitar que se inyecten campos o datos
+    // arbitrarios — nunca información sensible: solo navegación y origen,
+    // nada de contraseñas ni nada parecido. El id del documento (vid) es un
+    // identificador aleatorio generado en el navegador, nunca el de un
+    // usuario autenticado.
+    match /landingVisitantes/{vid} {
+      allow read, delete: if esSuperadmin();
+      allow create, update: if esSuperadmin() || (
+        vid.matches('^[a-f0-9]{24}$') &&
+        request.resource.data.keys().hasOnly(['firstSeen', 'lastSeen', 'visits', 'pageviews', 'landing', 'lastPath', 'source', 'campaign', 'device', 'stage', 'stageAt', 'leadId']) &&
+        request.resource.data.get('stage', 'visita') in ['visita', 'precios', 'demo', 'contacto', 'lead']
+      );
+    }
+
     // Plantillas de mensajes de WhatsApp reutilizables del CRM — de uso
     // exclusivo del superadmin.
     match /crmPlantillas/{plantillaId} {

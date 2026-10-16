@@ -30,6 +30,7 @@
         { route: "crm", label: "Clientes (CRM)", icon: "send" },
         { route: "tenants", label: "Laboratorios Cliente", icon: "building" },
         { route: "dashboard", label: "Resumen Global", icon: "home" },
+        { route: "campanas", label: "Rendimiento de Campañas", icon: "trending" },
         { route: "landing-imagenes", label: "Imágenes de la Landing", icon: "file" }
       ]}
     ],
@@ -221,7 +222,7 @@
   var RUTAS_SOLO_CO = ["facturacion"];
 
   var ALLOWED_ROUTES = {
-    superadmin: ["crm", "tenants", "dashboard", "landing-imagenes"],
+    superadmin: ["crm", "tenants", "dashboard", "campanas", "landing-imagenes"],
     admin: ["dashboard", "pacientes", "ordenes", "resultados", "hojas-trabajo", "reportes", "productividad", "calidad", "cotizador", "marketing", "inventario", "usuarios", "medicos", "config", "auditoria", "catalogo", "facturacion"],
     bacteriologo: ["dashboard", "resultados", "hojas-trabajo", "calidad"],
     recepcion: ["dashboard", "pacientes", "ordenes", "resultados", "hojas-trabajo", "reportes", "cotizador", "marketing"],

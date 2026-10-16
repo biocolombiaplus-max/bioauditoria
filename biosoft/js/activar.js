@@ -22,6 +22,7 @@
 
   var params = new URLSearchParams(location.search);
   var planPreseleccionado = params.get("plan");
+  if (window.BIO_LANDING_TRACKER) window.BIO_LANDING_TRACKER.trackPageview();
 
   /* Si el anuncio de Meta Ads (u otra campaña) apunta aquí con parámetros
      utm_*, los guardamos junto al lead para que el CRM sepa de dónde vino,
@@ -156,12 +157,18 @@
       // deje leads duplicados: la segunda escritura cae sobre el mismo
       // documento y Firestore la rechaza sola (ver comentario de crmCreate en
       // store.js), así que este catch también cubre ese caso a propósito.
+      var leadId = "lead-" + correo.toLowerCase().replace(/[^a-z0-9]/g, "");
       S.crm.create({
         origen: "formulario_publico", origenDetalle: origenDetalle,
         laboratorio: { nombre: labNombre, nit: g("f_labNit"), ciudad: g("f_labCiudad"), pais: pais },
         contacto: { nombre: contNombre, cargo: g("f_contCargo"), whatsapp: whatsapp, correo: correo },
         planId: planId, seccionesIds: secciones, logoDataUrl: logoDataUrl, pedirDisenoLogo: pedirLogo, notas: g("f_notas")
-      }, "lead-" + correo.toLowerCase().replace(/[^a-z0-9]/g, "")).catch(function (err) { console.warn("BIOsoft: no se pudo registrar el lead en el CRM ->", err); });
+      }, leadId).catch(function (err) { console.warn("BIOsoft: no se pudo registrar el lead en el CRM ->", err); });
+      // Cierra el embudo de "Rendimiento de Campañas" (ver landing-tracker.js):
+      // el mismo visitante (vid, guardado en localStorage) que llegó desde la
+      // landing hasta aquí y completó el formulario, queda marcado como
+      // "lead" con el id real de su registro en crmClientes.
+      if (window.BIO_LANDING_TRACKER) window.BIO_LANDING_TRACKER.trackLead(leadId);
 
       S.provisionRealAccount({
         tenantData: {
