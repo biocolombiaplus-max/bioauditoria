@@ -306,6 +306,11 @@
     renderShell();
     renderRoute();
     BIO_TOUR.autoStart();
+    // Anuncio promocional premium (página web / agente de WhatsApp / redes
+    // sociales, rotando 1 por día) — se muestra como mucho una vez por día,
+    // al primer ingreso (login nuevo o sesión restaurada). Nunca bloquea
+    // nada si el módulo no cargó por alguna razón.
+    if (global.BIO_ANUNCIOS_PROMO) global.BIO_ANUNCIOS_PROMO.mostrarSiCorresponde();
   }
 
   /* Con la persistencia offline de Firestore ya activada (ver
