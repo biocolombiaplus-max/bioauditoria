@@ -1581,7 +1581,7 @@
         (tenant.pais === "VE"
           ? '<div class="action-menu-group-title">Cashea (opcional)</div>' +
             '<div class="field" style="max-width:260px"><label>Recargo por pago con Cashea (%)</label><input type="number" id="f_casheaRecargoPorcentaje" min="0" max="100" step="0.1" value="' + (tenant.casheaRecargoPorcentaje || "") + '"/></div>' +
-            '<p class="text-muted" style="margin:4px 0 0;font-size:12.5px">Si defines un porcentaje aquí, cuando el administrador o recepción elija "Cashea" como método de pago al generar el Recibo o la Factura de una orden, el valor a pagar se incrementará automáticamente ese porcentaje — aparece como línea aparte ("Recargo Cashea") en el documento. Déjalo vacío o en 0 si tu laboratorio no cobra ningún recargo por Cashea.</p>'
+            '<p class="text-muted" style="margin:4px 0 0;font-size:12.5px">Si defines un porcentaje aquí, cuando se elija "Cashea" como método de pago (en una orden o en el Cotizador), el precio de cada examen sube automáticamente ese porcentaje — repartido DENTRO del precio de cada examen, nunca como una línea aparte visible: el cliente nunca ve en el recibo ni en la factura que hubo un aumento por el método de pago. El detalle exacto de cuánto se cobró de más (examen por examen, con totales del periodo) solo lo puede ver el Administrador, en Cotizaciones → "💳 Informe Cashea". Déjalo vacío o en 0 si tu laboratorio no cobra ningún recargo por Cashea.</p>'
           : "") +
         "</fieldset>" +
         '<fieldset><legend>Diseño del Reporte de Resultados</legend>' +

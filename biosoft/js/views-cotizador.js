@@ -5,7 +5,26 @@
   window.BIO_VIEWS = window.BIO_VIEWS || {};
   var U = BIO_UI, S = BIO_STORE, C = BIO_CATALOG;
   var WA_NUMBER_GENERICO = "573505457420";
-  var METODO_PAGO_LABEL = { efectivo: "Efectivo", transferencia: "Transferencia", tarjeta: "Tarjeta Débito/Crédito", otro: "Otro" };
+  // "Cashea" (financiera de compra-ahora-paga-después muy usada en
+  // Venezuela) solo se ofrece como método de pago para laboratorios de
+  // Venezuela — misma regla que ya usa el pago de una Orden (ver
+  // metodosPagoDisponibles() en views-orders.js). Reutiliza el mismo
+  // recargo (%) configurado por el laboratorio en Configuración →
+  // Operación → "Cashea" (tenant.casheaRecargoPorcentaje): una sola
+  // fuente de verdad para todo BIOsoft, sin duplicar el campo.
+  var METODO_PAGO_LABEL = { efectivo: "Efectivo", transferencia: "Transferencia", tarjeta: "Tarjeta Débito/Crédito", cashea: "Cashea", otro: "Otro" };
+  function pctRecargoCasheaCot(tenant) {
+    return (tenant && tenant.pais === "VE" && tenant.casheaRecargoPorcentaje > 0) ? tenant.casheaRecargoPorcentaje : 0;
+  }
+  function metodosPagoDisponiblesCot(tenant) {
+    return Object.keys(METODO_PAGO_LABEL).filter(function (k) { return k !== "cashea" || (tenant && tenant.pais === "VE"); });
+  }
+  function opcionesMetodoPagoCotHtml(tenant) {
+    var pct = pctRecargoCasheaCot(tenant);
+    return metodosPagoDisponiblesCot(tenant).map(function (k) {
+      return '<option value="' + k + '">' + METODO_PAGO_LABEL[k] + (k === "cashea" && pct > 0 ? " (+" + pct + "% de recargo)" : "") + "</option>";
+    }).join("");
+  }
 
   function waLinkTo(numero, mensaje) {
     var n = (numero || "").replace(/\D/g, "");
@@ -150,11 +169,17 @@
         '<button type="button" class="' + (vista === "paquetes" ? "active" : "") + '" data-vista="paquetes">📦 Paquetes</button>' +
         '<button type="button" class="' + (vista === "labref" ? "active" : "") + '" data-vista="labref">🔬 Lab. Referencia</button>' +
         '<button type="button" class="' + (vista === "historial" ? "active" : "") + '" data-vista="historial">🕓 Historial</button>' +
+        // "Informe Cashea" es de uso EXCLUSIVO del administrador del
+        // laboratorio (nunca recepción ni bacteriólogo, aunque ambos
+        // también usan el Cotizador) — es la única pantalla de todo
+        // BIOsoft donde el recargo de Cashea se ve desglosado examen por
+        // examen; en ningún recibo/factura que recibe el cliente aparece.
+        (esAdminVEConCashea() ? '<button type="button" class="' + (vista === "cashea" ? "active" : "") + '" data-vista="cashea">💳 Informe Cashea</button>' : "") +
         "</div></div>" +
-        (vista === "nueva" ? buildNuevaHtml() : vista === "recibo" ? buildReciboDirectoHtml() : vista === "precios" ? buildPreciosHtml() : vista === "convenios" ? buildConveniosHtml() : vista === "cartera" ? buildCarteraHtml() : vista === "paquetes" ? buildPaquetesHtml() : vista === "labref" ? buildLabReferenciaHtml() : buildHistorialHtml()) +
+        (vista === "nueva" ? buildNuevaHtml() : vista === "recibo" ? buildReciboDirectoHtml() : vista === "precios" ? buildPreciosHtml() : vista === "convenios" ? buildConveniosHtml() : vista === "cartera" ? buildCarteraHtml() : vista === "paquetes" ? buildPaquetesHtml() : vista === "labref" ? buildLabReferenciaHtml() : (vista === "cashea" && esAdminVEConCashea()) ? buildInformeCasheaHtml() : buildHistorialHtml()) +
         "</div>";
       root.querySelectorAll("[data-vista]").forEach(function (b) { b.addEventListener("click", function () { vista = b.dataset.vista; build(); }); });
-      if (vista === "nueva") wireNueva(); else if (vista === "recibo") wireReciboDirecto(); else if (vista === "precios") wirePrecios(); else if (vista === "convenios") wireConvenios(); else if (vista === "cartera") wireCartera(); else if (vista === "paquetes") wirePaquetes(); else if (vista === "labref") wireLabReferencia(); else wireHistorial();
+      if (vista === "nueva") wireNueva(); else if (vista === "recibo") wireReciboDirecto(); else if (vista === "precios") wirePrecios(); else if (vista === "convenios") wireConvenios(); else if (vista === "cartera") wireCartera(); else if (vista === "paquetes") wirePaquetes(); else if (vista === "labref") wireLabReferencia(); else if (vista === "cashea" && esAdminVEConCashea()) wireInformeCashea(); else wireHistorial();
     }
 
     // ---------------------------------------------------------------------
@@ -391,7 +416,7 @@
         pickerHtml("rec") +
         '<fieldset style="margin-top:14px"><legend>Datos del Pago</legend><div class="form-grid">' +
         '<div class="field"><label>Método de Pago</label><select id="rec-metodoPago">' +
-        Object.keys(METODO_PAGO_LABEL).map(function (k) { return '<option value="' + k + '">' + METODO_PAGO_LABEL[k] + "</option>"; }).join("") +
+        opcionesMetodoPagoCotHtml(tenant) +
         "</select></div>" +
         '<div class="field"><label>Fecha de Pago</label><input type="date" id="rec-fechaPago" value="' + hoy + '"/></div>' +
         '<div class="field"><label>Atendido por (vendedor)</label><select id="rec-vendedor">' +
@@ -415,10 +440,22 @@
       var fechaPago = document.getElementById("rec-fechaPago").value || new Date().toISOString().slice(0, 10);
       var vendedorNombre = document.getElementById("rec-vendedor").value;
       var examenes = examenesSeleccionados(pickerRecibo);
-      var total = examenes.reduce(function (a, e) { return a + e.precio; }, 0);
+      var subtotal = examenes.reduce(function (a, e) { return a + e.precio; }, 0);
+      // Si el cliente paga con Cashea, el recargo configurado
+      // (Configuración → Operación → "Cashea", solo Venezuela) se reparte
+      // DENTRO del precio de cada examen antes de generar el recibo —
+      // NUNCA como una línea aparte — para que el documento no revele que
+      // el método de pago elegido subió el precio. El % y el valor exacto
+      // quedan guardados en la propia cotización (nunca en el PDF) para
+      // el Informe Cashea, de uso exclusivo del administrador.
+      var pctCashea = metodoPago === "cashea" ? pctRecargoCasheaCot(tenant) : 0;
+      var factorCashea = 1 + pctCashea / 100;
+      if (pctCashea > 0) examenes = examenes.map(function (e) { return Object.assign({}, e, { precio: e.precio * factorCashea }); });
+      var total = subtotal * factorCashea;
       var cot = S.cotizador.createCotizacion({
         tenantId: tenantId, cliente: { nombre: nombre, whatsapp: whatsapp, correo: correo }, examenes: examenes, total: total, convenio: convenioAplicado(pickerRecibo),
-        estado: "pagada", pago: { fecha: fechaPago, monto: total, metodoPago: metodoPago, vendedorNombre: vendedorNombre }
+        estado: "pagada", pago: { fecha: fechaPago, monto: total, metodoPago: metodoPago, vendedorNombre: vendedorNombre },
+        casheaRecargoPorcentaje: pctCashea > 0 ? pctCashea : 0, casheaRecargoValor: pctCashea > 0 ? total - subtotal : 0
       });
       S.addAudit(session.tenantId, session.nombre, session.rol, "REGISTRAR_PAGO_COTIZACION", "cotizacion", cot.id, "Generó un recibo de pago directo para " + (nombre || "un cliente") + " por " + fmtMoneda(total) + " (atendido por " + vendedorNombre + ").");
       pickerRecibo.selected = []; pickerRecibo.selectedPaquetes = [];
@@ -1018,6 +1055,86 @@
           grupos.map(carteraFilaConvenioHtml).join("") +
           "</tbody></table></div>"
           : '<p class="text-muted">No hay órdenes con valor a cobrar en este periodo.</p>');
+    }
+
+    // ---------------------------------------------------------------------
+    // INFORME CASHEA — de uso EXCLUSIVO del administrador del laboratorio
+    // (nunca recepción ni bacteriólogo, aunque ambos también entran al
+    // Cotizador): cuánto se ha cobrado de más por el recargo de Cashea,
+    // examen por examen, en cotizaciones (Recibo Directo / Registrar
+    // Pago) y en órdenes — la única pantalla de todo BIOsoft donde ese
+    // recargo se ve desglosado. En ningún recibo/factura que llega al
+    // cliente aparece (ver generarReciboDirecto/abrirRegistrarPago en
+    // este mismo archivo, y pdf-recibo-orden.js/views-orders.js).
+    // ---------------------------------------------------------------------
+    function esAdminVEConCashea() {
+      return session.rol === "admin" && !!tenant && tenant.pais === "VE";
+    }
+    var casheaDesde = "", casheaHasta = "";
+    function calcularInformeCashea(desde, hasta) {
+      var deCotizaciones = cotizaciones.filter(function (c) {
+        if (!(c.casheaRecargoValor > 0) || !c.pago) return false;
+        var fecha = (c.pago.fecha || "").slice(0, 10);
+        return fecha >= desde && fecha <= hasta;
+      }).map(function (c) {
+        return {
+          fecha: c.pago.fecha, tipo: "Cotización", numero: "#" + c.id.slice(-6).toUpperCase(),
+          cliente: (c.cliente && c.cliente.nombre) || "—", nExamenes: c.examenes.length,
+          subtotal: c.total - c.casheaRecargoValor, recargoPct: c.casheaRecargoPorcentaje, recargoValor: c.casheaRecargoValor, total: c.total
+        };
+      });
+      var deOrdenes = S.listOrders(tenantId).filter(function (o) {
+        if (!(o.pago && o.pago.casheaRecargoValor > 0)) return false;
+        var fecha = (o.pago.fecha || "").slice(0, 10);
+        return fecha >= desde && fecha <= hasta;
+      }).map(function (o) {
+        var pac = S.getPatient(o.patientId);
+        return {
+          fecha: o.pago.fecha, tipo: "Orden", numero: String(o.numeroOrden),
+          cliente: pac ? U.nombreCompleto(pac) : "—", nExamenes: o.examenes.length,
+          subtotal: (o.valorCobrar || 0) - o.pago.casheaRecargoValor, recargoPct: o.pago.casheaRecargoPorcentaje, recargoValor: o.pago.casheaRecargoValor, total: o.valorCobrar || 0
+        };
+      });
+      var filas = deCotizaciones.concat(deOrdenes).sort(function (a, b) { return (b.fecha || "").localeCompare(a.fecha || ""); });
+      var totales = filas.reduce(function (acc, f) {
+        acc.subtotal += f.subtotal; acc.recargo += f.recargoValor; acc.total += f.total; return acc;
+      }, { subtotal: 0, recargo: 0, total: 0 });
+      return { filas: filas, totales: totales };
+    }
+    function buildInformeCasheaHtml() {
+      if (!casheaDesde) casheaDesde = primerDiaMesCartera();
+      if (!casheaHasta) casheaHasta = hoyISOCartera();
+      var r = calcularInformeCashea(casheaDesde, casheaHasta);
+      return '<p class="text-muted" style="margin:14px 0">Cuánto se ha cobrado de más por el recargo de Cashea, examen por examen, en el periodo elegido — esta pantalla es de uso <b>exclusivo del administrador</b>: en ningún recibo ni factura que recibe el cliente aparece este desglose.</p>' +
+        '<div class="form-grid" style="margin-bottom:14px">' +
+        '<div class="field"><label>Desde</label><input type="date" id="cashea-desde" value="' + casheaDesde + '"/></div>' +
+        '<div class="field"><label>Hasta</label><input type="date" id="cashea-hasta" value="' + casheaHasta + '"/></div>' +
+        "</div>" +
+        '<div class="flex gap-2 wrap" style="margin-bottom:16px">' +
+        carteraStatCard("Subtotal (precio sin recargo)", r.totales.subtotal, "var(--text)") +
+        carteraStatCard("Recargo Cobrado por Cashea", r.totales.recargo, "#0b8a4a") +
+        carteraStatCard("Total Cobrado por Cashea", r.totales.total, "var(--brand-primary)") +
+        "</div>" +
+        '<div class="flex gap-2 wrap" style="margin-bottom:14px">' +
+        '<button type="button" class="btn btn-outline btn-sm" id="cashea-pdf">' + U.icon("download") + " Descargar Informe PDF</button>" +
+        "</div>" +
+        (r.filas.length ?
+          '<div class="table-wrap"><table><thead><tr><th>Fecha</th><th>Tipo</th><th>N°</th><th>Cliente</th><th># Exám.</th><th>Subtotal</th><th>Recargo</th><th>Recargo $</th><th>Total Cobrado</th></tr></thead><tbody>' +
+          r.filas.map(function (f) {
+            return "<tr><td>" + fmtFechaCorta(f.fecha) + "</td><td>" + f.tipo + "</td><td>" + U.esc(f.numero) + "</td><td>" + U.esc(f.cliente) + "</td><td>" + f.nExamenes + "</td>" +
+              "<td>" + fmtMoneda(f.subtotal) + "</td><td>" + f.recargoPct + "%</td><td style='font-weight:700;color:#0b8a4a'>" + fmtMoneda(f.recargoValor) + "</td><td><b>" + fmtMoneda(f.total) + "</b></td></tr>";
+          }).join("") + "</tbody></table></div>"
+          : '<p class="text-muted">No hay cobros por Cashea en este periodo.</p>');
+    }
+    function wireInformeCashea() {
+      document.getElementById("cashea-desde").addEventListener("change", function (e) { casheaDesde = e.target.value; build(); });
+      document.getElementById("cashea-hasta").addEventListener("change", function (e) { casheaHasta = e.target.value; build(); });
+      var btnPdf = document.getElementById("cashea-pdf");
+      if (btnPdf) btnPdf.addEventListener("click", function () {
+        var r = calcularInformeCashea(casheaDesde, casheaHasta);
+        var bytes = BIO_PDF_INFORME_CASHEA.buildInformeCasheaPDF(r.filas, r.totales, tenant, casheaDesde, casheaHasta);
+        U.downloadBytes(bytes, "Informe_Cashea_" + casheaDesde + "_a_" + casheaHasta + ".pdf");
+      });
     }
 
     // Métodos de pago disponibles para registrar el cobro a un convenio —
@@ -1869,13 +1986,14 @@
       var tenant = S.getTenant(tenantId);
       var usuarios = S.listUsers(tenantId).filter(function (u) { return u.activo; });
       var hoy = new Date().toISOString().slice(0, 10);
+      var pctCashea = pctRecargoCasheaCot(tenant);
       var wrap = U.openModal(
         '<h3 class="modal-title">Registrar Pago — ' + fmtMoneda(cot.total) + fmtMonedaExtra(cot.total) + '</h3>' +
         '<p class="text-muted" style="margin-top:0">Cliente: ' + U.esc((cot.cliente && cot.cliente.nombre) || "—") + '</p>' +
         '<form id="pago-form"><div class="form-grid">' +
         '<div class="field"><label>Monto Pagado</label><input type="number" step="any" min="0" id="f_monto" value="' + cot.total + '" required/></div>' +
         '<div class="field"><label>Método de Pago</label><select id="f_metodoPago">' +
-        Object.keys(METODO_PAGO_LABEL).map(function (k) { return '<option value="' + k + '">' + METODO_PAGO_LABEL[k] + "</option>"; }).join("") +
+        opcionesMetodoPagoCotHtml(tenant) +
         "</select></div>" +
         '<div class="field"><label>Fecha de Pago</label><input type="date" id="f_fechaPago" value="' + hoy + '"/></div>' +
         '<div class="field"><label>Atendido por (vendedor)</label><select id="f_vendedor">' +
@@ -1885,13 +2003,42 @@
         '<div class="flex gap-2 justify-between" style="margin-top:6px"><button type="button" class="btn btn-ghost" data-modal-close>Cancelar</button><button type="submit" class="btn btn-primary">' + U.icon("check") + " Registrar Pago</button></div>" +
         "</form>"
       );
+      var inpMonto = wrap.querySelector("#f_monto");
+      var selMetodo = wrap.querySelector("#f_metodoPago");
+      var montoEditadoManualmente = false;
+      if (inpMonto) inpMonto.addEventListener("input", function () { montoEditadoManualmente = true; });
+      // Igual que al confirmar el pago de una Orden (ver views-orders.js):
+      // elegir "Cashea" ajusta solo el Monto Pagado para incluir el
+      // recargo configurado, sin pisar un monto que ya se haya escrito a
+      // mano (ej. un abono parcial).
+      if (selMetodo && inpMonto && pctCashea > 0) {
+        selMetodo.addEventListener("change", function () {
+          if (montoEditadoManualmente) return;
+          inpMonto.value = selMetodo.value === "cashea" ? Math.round(cot.total * (1 + pctCashea / 100)) : cot.total;
+        });
+      }
       wrap.querySelector("#pago-form").addEventListener("submit", function (e) {
         e.preventDefault();
         var monto = parseFloat(wrap.querySelector("#f_monto").value) || 0;
         var metodoPago = wrap.querySelector("#f_metodoPago").value;
         var fechaPago = wrap.querySelector("#f_fechaPago").value || hoy;
         var vendedorNombre = wrap.querySelector("#f_vendedor").value;
-        S.cotizador.updateCotizacion(cot.id, { estado: "pagada", pago: { fecha: fechaPago, monto: monto, metodoPago: metodoPago, vendedorNombre: vendedorNombre } });
+        var patch = { estado: "pagada", pago: { fecha: fechaPago, monto: monto, metodoPago: metodoPago, vendedorNombre: vendedorNombre } };
+        // Esta cotización se creó SIN recargo (nadie sabía todavía cómo
+        // iba a pagar) — si ahora se paga con Cashea, el recargo se
+        // reparte DENTRO del precio de cada examen recién aquí, antes de
+        // guardar, con el mismo criterio de generarReciboDirecto() y de
+        // una Orden: nunca como línea aparte en el recibo, y el detalle
+        // exacto (% y valor) queda guardado solo para el Informe Cashea
+        // del administrador.
+        if (metodoPago === "cashea" && pctCashea > 0) {
+          var factor = 1 + pctCashea / 100;
+          patch.examenes = cot.examenes.map(function (ex) { return Object.assign({}, ex, { precio: ex.precio * factor }); });
+          patch.total = cot.total * factor;
+          patch.casheaRecargoPorcentaje = pctCashea;
+          patch.casheaRecargoValor = patch.total - cot.total;
+        }
+        S.cotizador.updateCotizacion(cot.id, patch);
         S.addAudit(session.tenantId, session.nombre, session.rol, "REGISTRAR_PAGO_COTIZACION", "cotizacion", cot.id, "Registró el pago de la cotización de " + ((cot.cliente && cot.cliente.nombre) || "un cliente") + " por " + fmtMoneda(monto) + " (atendido por " + vendedorNombre + ").");
         U.toast("Pago registrado. Ya puedes enviar el recibo.", "success");
         U.closeModal(wrap);

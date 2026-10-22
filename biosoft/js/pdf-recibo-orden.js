@@ -143,13 +143,25 @@
     // examen) no le sirve de nada a quien recibe el recibo — se reemplaza
     // siempre por el valor de cada examen (cuando se conoce), que sí es lo
     // que alguien esperaría ver desglosado en un recibo de pago.
-    var hayAlgunPrecio = order.examenes.some(function (ex) { return preciosPorId[ex.examId] != null; }) || order.cuotaAdministrativaIncluida || pago.casheaRecargoValor > 0;
+    // Recargo por pagar con Cashea (Configuración → Operación → "Cashea",
+    // solo Venezuela): el valor queda congelado en el propio pago al
+    // momento de confirmarlo (pago.casheaRecargoValor/casheaRecargoPorcentaje),
+    // no el porcentaje actual configurado en el tenant, para que un cambio
+    // posterior no altere un recibo ya emitido. A propósito NUNCA se
+    // muestra como línea aparte ("Recargo Cashea") — se reparte DENTRO
+    // del precio de cada examen (y de la Cuota Administrativa, si la hay),
+    // para que el cliente no vea en ningún lado que el método de pago
+    // elegido le subió el precio. El detalle exacto queda disponible solo
+    // para el administrador en el Informe Cashea (Cotizador → Informe
+    // Cashea / ver pdf-informe-cashea.js).
+    var factorCashea = pago.casheaRecargoValor > 0 ? 1 + (pago.casheaRecargoPorcentaje / 100) : 1;
+    var hayAlgunPrecio = order.examenes.some(function (ex) { return preciosPorId[ex.examId] != null; }) || order.cuotaAdministrativaIncluida;
     var filasExamenes = order.examenes.map(function (ex) {
       var exCat = C.examenEfectivo(ex.examId, tenant);
       var nombre = exCat ? exCat.nombre : ex.examId;
       if (!hayAlgunPrecio) return [nombre];
       var precio = preciosPorId[ex.examId];
-      return [nombre, precio != null ? fmtMoneda(precio) : "—"];
+      return [nombre, precio != null ? fmtMoneda(precio * factorCashea) : "—"];
     });
     // Solo aparece en laboratorios que definieron un valor de Cuota
     // Administrativa (Configuración → Operación) y la incluyeron en esta
@@ -157,16 +169,7 @@
     // congelado en la orden al momento de crearla
     // (order.cuotaAdministrativaValor), no el valor actual del tenant.
     if (order.cuotaAdministrativaIncluida) {
-      filasExamenes.push(hayAlgunPrecio ? ["Cuota Administrativa", fmtMoneda(order.cuotaAdministrativaValor || 0)] : ["Cuota Administrativa"]);
-    }
-    // Recargo por pagar con Cashea (Configuración → Operación → "Cashea",
-    // solo Venezuela) — el valor queda congelado en el propio pago al
-    // momento de confirmarlo (pago.casheaRecargoValor), no el porcentaje
-    // actual configurado en el tenant, para que un cambio posterior no
-    // altere un recibo ya emitido.
-    if (pago.casheaRecargoValor > 0) {
-      var etiquetaRecargo = "Recargo Cashea (" + pago.casheaRecargoPorcentaje + "%)";
-      filasExamenes.push(hayAlgunPrecio ? [etiquetaRecargo, fmtMoneda(pago.casheaRecargoValor)] : [etiquetaRecargo]);
+      filasExamenes.push(hayAlgunPrecio ? ["Cuota Administrativa", fmtMoneda((order.cuotaAdministrativaValor || 0) * factorCashea)] : ["Cuota Administrativa"]);
     }
     doc.autoTable({
       startY: y, margin: { left: margin, right: margin },

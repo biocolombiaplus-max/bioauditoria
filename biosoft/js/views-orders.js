@@ -774,22 +774,24 @@
      vuelva a pedir todo esto (ver abrirReciboOrden). */
   function abrirEditorFacturaClasica(order, pac, tenant, precios, onListo) {
     var numeroSugerido = S.facturacion.nextNumeroFactura(order.tenantId);
+    // Si la orden se pagó con Cashea (Configuración → Operación →
+    // "Cashea", solo Venezuela), el recargo ya congelado en order.pago al
+    // confirmar el pago se reparte DENTRO del precio de cada examen —
+    // NUNCA como una línea aparte "Recargo Cashea" — para que la factura
+    // no revele que el método de pago elegido subió el precio. Mismo
+    // criterio que pdf-recibo-orden.js; el detalle exacto solo lo ve el
+    // administrador en el Informe Cashea (pestaña del Cotizador).
+    var factorCashea = (order.pago && order.pago.casheaRecargoValor > 0) ? 1 + (order.pago.casheaRecargoPorcentaje / 100) : 1;
     var filas = order.examenes.map(function (ex) {
       var exCat = C.examenEfectivo(ex.examId, tenant);
-      return { examId: ex.examId, codigo: exCat ? exCat.cups : "", descripcion: exCat ? exCat.nombre : ex.examId, precio: precios[ex.examId] || 0, cantidad: 1 };
+      return { examId: ex.examId, codigo: exCat ? exCat.cups : "", descripcion: exCat ? exCat.nombre : ex.examId, precio: (precios[ex.examId] || 0) * factorCashea, cantidad: 1 };
     });
     // Línea aparte y editable (igual que cualquier examen) para la Cuota
     // Administrativa, si esta orden la incluyó (ver Nueva/Editar Orden) —
     // así el admin puede ajustar su precio o cantidad aquí mismo antes de
     // emitir la factura, igual que con cualquier otro renglón.
     if (order.cuotaAdministrativaIncluida) {
-      filas.push({ examId: "", codigo: "", descripcion: "Cuota Administrativa", precio: order.cuotaAdministrativaValor || 0, cantidad: 1 });
-    }
-    // Misma idea para el recargo por pagar con Cashea (ver Configuración →
-    // Operación → "Cashea", solo Venezuela) — ya quedó congelado en
-    // order.pago al confirmar el pago (ver abrirReciboOrden más arriba).
-    if (order.pago && order.pago.casheaRecargoValor > 0) {
-      filas.push({ examId: "", codigo: "", descripcion: "Recargo Cashea (" + order.pago.casheaRecargoPorcentaje + "%)", precio: order.pago.casheaRecargoValor, cantidad: 1 });
+      filas.push({ examId: "", codigo: "", descripcion: "Cuota Administrativa", precio: (order.cuotaAdministrativaValor || 0) * factorCashea, cantidad: 1 });
     }
 
     function filaHtml(f, i) {
