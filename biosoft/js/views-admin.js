@@ -2492,10 +2492,18 @@
     }
 
     function tenantParaDocs(tenant, extra) {
+      // Antes esto dejaba SIEMPRE la frase genérica "según la configuración
+      // de tu laboratorio" en la cláusula SEXTA del Contrato — un cliente
+      // real la señaló como "campo de plantilla sin completar" al revisar
+      // el texto con su abogado. Ahora se listan las secciones REALES ya
+      // configuradas para este laboratorio (ver C.seccionesEfectivas), con
+      // esa frase genérica solo como respaldo si por algún motivo no hay
+      // ninguna.
+      var nombresSecciones = C.seccionesEfectivas(tenant).map(function (s) { return s.nombre; });
       var doc = {
         laboratorio: { nombre: tenant.nombre, nit: tenant.nit, pais: tenant.pais, ciudad: tenant.direccion || "" },
         contacto: { nombre: tenant.contactoNombre || tenant.nombre, whatsapp: tenant.telefonos, correo: tenant.email },
-        seccionesTexto: "según la configuración de tu laboratorio"
+        seccionesTexto: nombresSecciones.length ? nombresSecciones.join(", ") : "según la configuración de tu laboratorio"
       };
       // El laboratorio puede operar bajo un nombre comercial, pero firmar
       // legalmente como una persona natural distinta, con su propio

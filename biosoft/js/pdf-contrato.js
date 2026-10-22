@@ -7,6 +7,19 @@
     nombre: "BIO Colombia Plus",
     representanteLegal: "Juan Carlos Cáceres Medina",
     nit: "88262856-1",
+    // Naturaleza jurídica real de EL PROVEEDOR (confirmada por el titular):
+    // Persona Natural con Establecimiento de Comercio — NO es una sociedad
+    // (SAS/LTDA), así que el Contrato lo identifica a ÉL como la persona
+    // que contrata en nombre propio bajo el nombre comercial "BIO Colombia
+    // Plus", nunca como "representante legal de una empresa" (ver el
+    // párrafo de identificación de las partes más abajo, que usa este
+    // mismo criterio para EL CLIENTE cuando aplica -> cliente.personaNatural).
+    naturalezaJuridica: "Persona Natural con Establecimiento de Comercio",
+    // Tal como consta en el RUT (NIT 88262856-1, Cédula de Ciudadanía
+    // 88.262.856, Dirección Principal) — Establecimiento de Comercio "BIO
+    // COLOMBIA PLUS", Matrícula Mercantil N.° 0023249.
+    domicilio: "Avenida 0 N.° 11-67, Oficina 105, Edificio Cantabria, Cúcuta, Norte de Santander, Colombia",
+    ciudadDomicilio: "Cúcuta",
     producto: "BIOsoft — Software de Gestión de Laboratorio Clínico",
     correo: "biomarketing.salud@gmail.com",
     whatsapp: "573505457420"
@@ -322,7 +335,7 @@
       doc.text(PROVEEDOR.representanteLegal, innerMargin, yFirma + 12);
       doc.text(numero, col2f, yFirma + 12);
       doc.setFont("helvetica", "normal"); doc.setFontSize(7.2); doc.setTextColor(90, 90, 90);
-      doc.text("Representante Legal — " + PROVEEDOR.nombre, innerMargin, yFirma + 22);
+      doc.text("Titular — " + PROVEEDOR.nombre, innerMargin, yFirma + 22);
       doc.text("Código de verificación de esta licencia", col2f, yFirma + 22);
 
       doc.setFont("helvetica", "normal"); doc.setFontSize(6.6); doc.setTextColor(150, 150, 150);
@@ -368,6 +381,14 @@
     var lab = cliente.laboratorio || {};
     var contacto = cliente.contacto || {};
     var normativaDatos = normativaDatosDe(lab.pais);
+    // Antes esta frase (cláusula QUINTA, Facturación Electrónica) nombraba
+    // SIEMPRE "la DIAN en Colombia, el SRI en Ecuador, o la que corresponda
+    // según el país de EL CLIENTE" — un cliente real en Colombia lo marcó
+    // como texto de plantilla sin limpiar, al leer en SU contrato la
+    // mención a Ecuador. Ahora se nombra solo la autoridad del país real de
+    // EL CLIENTE.
+    var AUTORIDAD_TRIBUTARIA_PAIS = { CO: "la DIAN", EC: "el SRI", VE: "el SENIAT", MX: "el SAT" };
+    var autoridadTributariaTexto = "la autoridad tributaria competente" + (AUTORIDAD_TRIBUTARIA_PAIS[lab.pais] ? " (" + AUTORIDAD_TRIBUTARIA_PAIS[lab.pais] + ")" : "");
 
     var y = encabezado(doc, margin, "CONTRATO DE PRESTACIÓN DE SERVICIOS DE SOFTWARE Y LICENCIA DE USO", fechaLarga(new Date()));
 
@@ -414,8 +435,10 @@
           (lab.nombre ? ", quien opera comercialmente bajo el nombre “" + lab.nombre + "”" : ""))
       : ((lab.nombre || "el laboratorio cliente") + (lab.nit ? ", identificado con " + C.documentoTributarioLabel(lab.pais) + " " + lab.nit : ""));
     parrafo(
-      "Entre los suscritos, " + PROVEEDOR.nombre + ", identificado con NIT " + PROVEEDOR.nit + ", representado legalmente por " +
-      PROVEEDOR.representanteLegal + " (en adelante, “EL PROVEEDOR”), y " + identificacionCliente + " (en adelante, “EL CLIENTE”)" +
+      "Entre los suscritos, " + PROVEEDOR.representanteLegal + ", mayor de edad, identificado con NIT " + PROVEEDOR.nit +
+      " (mismo número de su Cédula de Ciudadanía, conforme a su Registro Único Tributario), quien actúa en nombre propio como " + PROVEEDOR.naturalezaJuridica +
+      ", bajo el nombre comercial “" + PROVEEDOR.nombre + "” (Establecimiento de Comercio con Matrícula Mercantil N.° 0023249 de la Cámara de Comercio de Cúcuta), con domicilio en " + PROVEEDOR.domicilio +
+      " (en adelante, “EL PROVEEDOR”), y " + identificacionCliente + " (en adelante, “EL CLIENTE”)" +
       (personaNatural ? "" : (", representado por " + (contacto.nombre || "su representante") + (contacto.cargo ? " (" + contacto.cargo + ")" : ""))) +
       ", se celebra el presente Contrato de Prestación de Servicios de Software y Licencia de Uso (en adelante, “el Contrato”), el cual se regirá por las leyes de la República de Colombia y, en particular por el Código de Comercio, el Código Civil y la Ley 1581 de 2012, bajo las siguientes cláusulas:"
     );
@@ -439,7 +462,7 @@
     titulo("TERCERA — LICENCIA DE USO DEL SOFTWARE");
     parrafo(
       "EL PROVEEDOR otorga a EL CLIENTE, durante la vigencia del Contrato y sujeto al pago oportuno de la suscripción, una licencia de uso NO EXCLUSIVA, INTRANSFERIBLE Y REVOCABLE sobre el Software, limitada al número de usuarios simultáneos que permita el Plan contratado (cláusula CUARTA) y al uso interno de EL CLIENTE para la gestión de su propio laboratorio clínico. Esta licencia NO incluye la venta, cesión, sublicenciamiento, distribución, ingeniería inversa, descompilación ni copia del código fuente del Software, cuya titularidad se mantiene en cabeza de EL PROVEEDOR conforme a la cláusula DÉCIMA. El certificado “Licencia de Funcionamiento de Software” N.° " +
-      numeroLicencia + ", expedido junto con este Contrato, es el documento técnico que identifica de forma única esta Licencia de Uso, y sus datos (número, producto, versión, alcance y vigencia) hacen parte integral del Contrato. La Licencia de Uso se suspende automáticamente durante cualquier período de suspensión del servicio por mora (cláusula NOVENA) y se extingue de pleno derecho a la terminación del Contrato (cláusula DÉCIMA SÉPTIMA)."
+      numeroLicencia + ", expedido junto con este Contrato, es el documento técnico que identifica de forma única esta Licencia de Uso, y sus datos (número, producto, versión, alcance y vigencia) hacen parte integral del Contrato. La Licencia de Uso se restringe automáticamente, en los términos de la cláusula NOVENA, durante cualquier período de mora, y se extingue de pleno derecho a la terminación del Contrato (cláusula DÉCIMA SÉPTIMA)."
     );
 
     titulo("CUARTA — PLAN CONTRATADO");
@@ -449,22 +472,26 @@
       " — ver el detalle de la forma de pago en la cláusula SÉPTIMA. El Plan incluye:"
     );
     bullets(plan.items || []);
+    parrafo(
+      "El Plan contratado se presta en función del número de usuarios simultáneos indicado arriba, SIN LÍMITE en el número de sedes, sucursales o puntos de atención de EL CLIENTE en los que se use el Software, siempre que todos ellos operen bajo la misma configuración, catálogo de exámenes, valores de referencia, logo e identidad visual ya personalizados para EL CLIENTE (cláusula SEXTA), de forma que EL PROVEEDOR no deba modificar la estructura o el código del Software para atender necesidades particulares de alguna sede. Si una sede en particular requiriera una configuración distinta que implique desarrollo o personalización adicional no cubierta por el Plan, dicho requerimiento puntual se cotizará y acordará por separado entre las partes."
+    );
 
     titulo("QUINTA — FUNCIONALIDADES Y MÓDULOS ADMINISTRATIVOS DEL SOFTWARE");
     parrafo(
-      "Además de las funcionalidades clínicas y de gestión de órdenes y resultados propias del Plan contratado (cláusula CUARTA), el Software incluye, sin costo adicional salvo que se indique expresamente lo contrario en este Contrato, los siguientes módulos y funcionalidades administrativas:"
+      "Además de las funcionalidades clínicas y de gestión de órdenes y resultados propias del Plan contratado (cláusula CUARTA), el Software incluye, sin costo adicional salvo que se indique expresamente lo contrario en este Contrato, los siguientes módulos y funcionalidades administrativas. Todos los módulos aquí descritos operan de forma INTEGRADA sobre una misma base de datos del laboratorio clínico de EL CLIENTE, sin que EL CLIENTE deba digitar la misma información por duplicado en sistemas distintos; la descripción funcional detallada de cada módulo consta en el Manual de Usuario del Software, que EL PROVEEDOR pone a disposición de EL CLIENTE junto con este Contrato."
     );
     bullets([
       "Tesorería: control de ingresos, egresos, caja y conciliación de los pagos recibidos por EL CLIENTE a través del Software.",
       "Cartera: seguimiento de las cuentas por cobrar a pacientes, convenios y empresas aliadas de EL CLIENTE, con reportes de saldos pendientes y vencimientos.",
       "Inventarios: control de insumos y reactivos de laboratorio de EL CLIENTE, con registro de entradas, salidas (kardex) y alertas de niveles mínimos de existencias.",
+      "Marketing digital: herramientas de recordatorio y remarketing automatizado dirigidas a los pacientes de EL CLIENTE (por ejemplo, avisos de control periódico), limitadas a comunicaciones relacionadas con los servicios de salud que EL CLIENTE presta. El envío de estas comunicaciones a cada paciente es responsabilidad exclusiva de EL CLIENTE en su calidad de Responsable del Tratamiento (cláusula DÉCIMA PRIMERA), quien debe contar con la autorización previa, expresa e informada del paciente conforme a la Ley 1581 de 2012 para dicha finalidad; EL PROVEEDOR únicamente pone a disposición la herramienta tecnológica, sin intervenir en la decisión de a quién, cuándo ni con qué contenido se envía cada comunicación.",
       "Informes y reportes administrativos y de resultados, exportables en formato Excel (.xlsx), para el uso interno de EL CLIENTE."
     ].concat(
       lab.pais === "CO"
-        ? ["Generación de los Registros Individuales de Prestación de Servicios de Salud (RIPS), en formato JSON, conforme a la Resolución 2275 de 2023 del Ministerio de Salud y Protección Social (o la norma que la adicione, modifique o sustituya), para el reporte que EL CLIENTE deba presentar ante las entidades correspondientes."]
+        ? ["Generación de los Registros Individuales de Prestación de Servicios de Salud (RIPS), en formato JSON, conforme a la estructura exigida por la Resolución 2275 de 2023 del Ministerio de Salud y Protección Social (o la norma que la adicione, modifique o sustituya) — funcionalidad que EL PROVEEDOR actualizará sin costo adicional para EL CLIENTE ante cualquier cambio en dicha normativa. Queda expresamente aclarado que el Software GENERA el archivo RIPS en el formato exigido, para que EL CLIENTE lo presente ante las entidades correspondientes; la radicación, el envío y la validación de dicho archivo ante el Ministerio de Salud y Protección Social (incluyendo, si aplica, su validador en línea) es responsabilidad exclusiva de EL CLIENTE."]
         : []
     ).concat([
-      "Facturación electrónica integrada: el Software se conecta mediante enlace API con el proveedor tecnológico de facturación electrónica autorizado que EL CLIENTE ya tenga contratado o decida contratar (a título de ejemplo, entre otros, Siigo, Alegra, o el facturador gratuito de la autoridad tributaria competente), de forma que EL CLIENTE pueda gestionar la generación y el envío de sus facturas desde el Software, sin necesidad de digitar la información por duplicado en dos sistemas distintos. Queda expresamente aclarado que EL PROVEEDOR NO es, por sí mismo, un facturador electrónico certificado ante la autoridad tributaria competente (la DIAN en Colombia, el SRI en Ecuador, o la que corresponda según el país de EL CLIENTE): la emisión legal del documento electrónico, su validez tributaria y el cumplimiento de la normativa de facturación electrónica aplicable son responsabilidad exclusiva del proveedor tecnológico autorizado elegido por EL CLIENTE, limitándose la obligación de EL PROVEEDOR a la integración técnica (enlace API) entre el Software y dicho proveedor, conforme a la disponibilidad y los términos de la API que este último ofrezca. La disponibilidad de integración con un proveedor específico puede variar según el país y el proveedor elegido por EL CLIENTE, lo cual será informado oportunamente por EL PROVEEDOR."
+      "Facturación electrónica integrada: el Software se conecta mediante enlace API con el proveedor tecnológico de facturación electrónica autorizado que EL CLIENTE ya tenga contratado o decida contratar (a título de ejemplo, entre otros, Siigo o Alegra, sujeto a la disponibilidad de integración vigente con cada uno, que EL PROVEEDOR informará oportunamente a EL CLIENTE antes de la puesta en marcha), de forma que EL CLIENTE pueda gestionar la generación y el envío de sus facturas desde el Software, sin necesidad de digitar la información por duplicado en dos sistemas distintos. Queda expresamente aclarado que EL PROVEEDOR NO es, por sí mismo, un facturador electrónico certificado ante " + autoridadTributariaTexto + ": la emisión legal del documento electrónico, su validez tributaria y el cumplimiento de la normativa de facturación electrónica aplicable son responsabilidad exclusiva del proveedor tecnológico autorizado elegido por EL CLIENTE, limitándose la obligación de EL PROVEEDOR a la integración técnica (enlace API) entre el Software y dicho proveedor, conforme a la disponibilidad y los términos de la API que este último ofrezca."
     ]));
 
     titulo("SEXTA — PERSONALIZACIÓN Y PLAZO DE ENTREGA");
@@ -494,6 +521,9 @@
         ? ("Adicionalmente, por cada equipo (analizador u otro dispositivo de laboratorio compatible) que EL CLIENTE conecte e integre al Software para la transmisión automática de resultados, se cobrará un valor de $" + INTERFAZ.costoPorEquipoCopFmt + " COP (aprox. $" + INTERFAZ.costoPorEquipoUsd + " USD) POR EQUIPO, como PAGO ÚNICO — se cobra una sola vez, al momento en que se conecta cada equipo, y no se vuelve a cobrar nuevamente por ese mismo equipo bajo ninguna circunstancia, sin importar el tiempo que EL CLIENTE lo mantenga conectado y en uso.")
         : "La conexión de equipos (analizadores u otros dispositivos de laboratorio compatibles) al Software, cuando EL CLIENTE decida utilizarla, está incluida sin costo adicional alguno para EL CLIENTE."
     );
+    parrafo(
+      "Los valores pactados en esta cláusula están expresados en pesos colombianos (COP) y NO incluyen el Impuesto al Valor Agregado (IVA), por no ser EL PROVEEDOR responsable de dicho impuesto conforme a su Registro Único Tributario. El valor de la mensualidad del Plan contratado permanecerá FIJO durante los primeros doce (12) meses de vigencia del Contrato, contados desde la fecha de inicio de facturación (cláusula SEXTA); transcurrido dicho término, EL PROVEEDOR podrá ajustarlo anualmente en un porcentaje que no supere la variación del Índice de Precios al Consumidor (IPC) certificado por el DANE para los doce (12) meses inmediatamente anteriores, notificando dicho ajuste a EL CLIENTE con al menos treinta (30) días calendario de antelación a su aplicación."
+    );
 
     titulo("OCTAVA — FORMA DE PAGO Y PERIODICIDAD");
     parrafo(
@@ -502,7 +532,7 @@
 
     titulo("NOVENA — POLÍTICA DE MORA Y SUSPENSIÓN DEL SERVICIO");
     parrafo(
-      "En caso de no recibirse el pago de la mensualidad en la fecha de corte, EL PROVEEDOR otorgará un plazo de gracia de cinco (5) días calendario, durante el cual notificará a EL CLIENTE por los medios de contacto registrados. Transcurrido dicho plazo sin que se registre el pago, EL PROVEEDOR podrá suspender temporalmente el acceso al software (incluyendo la Licencia de Uso otorgada en la cláusula TERCERA) hasta que se regularice la situación, sin que ello genere responsabilidad alguna para EL PROVEEDOR por la interrupción del servicio. El acceso se restablece automáticamente al confirmarse el pago. La información de EL CLIENTE nunca se elimina por mora: solo se restringe el acceso mientras esta subsista."
+      "En caso de no recibirse el pago de la mensualidad en la fecha de corte, EL PROVEEDOR otorgará un plazo de gracia de diez (10) días calendario, durante el cual notificará a EL CLIENTE por los medios de contacto registrados. Transcurrido dicho plazo sin que se registre el pago, el Software pasará a un MODO DE ACCESO RESTRINGIDO, bajo las siguientes reglas: (i) los pacientes de EL CLIENTE que ya cuenten con resultados cargados en el sistema NO se ven afectados en ningún momento y pueden seguir siendo consultados con total normalidad por EL CLIENTE y por dichos pacientes; (ii) EL CLIENTE no podrá registrar nuevos pacientes ni crear nuevas órdenes de laboratorio mientras subsista la mora; y (iii) el acceso completo al Software se restablece de forma INMEDIATA y automática, sin necesidad de ningún trámite adicional, en cuanto se confirme el pago. Lo anterior no genera responsabilidad alguna para EL PROVEEDOR por dicha restricción. La información de EL CLIENTE nunca se elimina por mora bajo ninguna circunstancia: solo se restringe el acceso en los términos aquí descritos mientras esta subsista."
     );
 
     titulo("DÉCIMA — PROPIEDAD INTELECTUAL");
@@ -527,7 +557,7 @@
       "EL CLIENTE, en su calidad de Responsable del Tratamiento, es el único obligado a: (i) contar con la autorización previa, expresa e informada de sus pacientes y usuarios para el tratamiento de sus datos personales; (ii) atender directamente las solicitudes de sus titulares para ejercer sus derechos de acceso, conocimiento, actualización, rectificación, supresión y revocatoria de la autorización sobre sus datos (derechos ARCO); y (iii) garantizar la veracidad, legalidad y calidad de la información clínica y de pacientes que ingrese o autorice ingresar al Software. EL PROVEEDOR se obliga a mantener disponibles, dentro del Software, las herramientas técnicas razonablemente necesarias para que EL CLIENTE pueda atender dichas solicitudes (por ejemplo, consulta, corrección y eliminación de la información de un paciente)."
     );
     parrafo(
-      "EL CLIENTE declara conocer y autoriza que, por la naturaleza de la infraestructura tecnológica en la nube utilizada para prestar el servicio (Google Cloud / Firebase), los Datos del Cliente pueden ser almacenados o transmitidos a través de servidores ubicados fuera del territorio de su país de operación, transferencia y/o transmisión internacional que se realiza exclusivamente para la ejecución del Contrato y bajo los estándares de seguridad de dicho proveedor de infraestructura. Al terminar el Contrato por cualquier causa, EL PROVEEDOR pondrá a disposición de EL CLIENTE, durante un plazo de treinta (30) días calendario, la exportación de la totalidad de sus Datos del Cliente en un formato de uso común; transcurrido dicho plazo sin que EL CLIENTE la solicite, EL PROVEEDOR podrá eliminarlos de forma segura y definitiva de sus sistemas, salvo que exista una obligación legal de conservación por un término mayor."
+      "EL CLIENTE declara conocer y autoriza que, por la naturaleza de la infraestructura tecnológica en la nube utilizada para prestar el servicio (Google Cloud / Firebase), los Datos del Cliente pueden ser almacenados o transmitidos a través de servidores ubicados fuera del territorio de su país de operación, transferencia y/o transmisión internacional que se realiza exclusivamente para la ejecución del Contrato y bajo los estándares de seguridad de dicho proveedor de infraestructura. Al terminar el Contrato por cualquier causa, EL PROVEEDOR pondrá a disposición de EL CLIENTE la exportación de la totalidad de sus Datos del Cliente en un formato de uso común, y NO los eliminará sin la confirmación previa y por escrito de EL CLIENTE. No obstante, si transcurridos sesenta (60) días calendario desde la terminación del Contrato EL PROVEEDOR no ha recibido instrucción alguna de EL CLIENTE, pese a haberla requerido expresamente por los medios de contacto registrados, podrá proceder a la eliminación segura y definitiva de dicha información, salvo que exista una obligación legal de conservación de la historia clínica por un término mayor (ver cláusula DÉCIMA SEGUNDA), en cuyo caso dicho término legal prevalecerá."
     );
 
     titulo("DÉCIMA SEGUNDA — CUMPLIMIENTO NORMATIVO EN SALUD");
@@ -543,7 +573,10 @@
 
     titulo("DÉCIMA TERCERA — GARANTÍAS Y LIMITACIÓN DE RESPONSABILIDAD");
     parrafo(
-      "EL PROVEEDOR garantiza que el Software operará sustancialmente conforme a sus funcionalidades descritas, con una disponibilidad objetivo del noventa y nueve por ciento (99%) mensual, salvo mantenimientos programados (que se notificarán con antelación razonable) y eventos de fuerza mayor o caso fortuito. EL PROVEEDOR NO será responsable por: (i) las decisiones clínicas, diagnósticas o administrativas que EL CLIENTE o sus Usuarios Autorizados adopten con base en la información capturada o generada en el Software; (ii) la exactitud, veracidad o integridad de los datos que EL CLIENTE o sus Usuarios Autorizados ingresen al sistema; ni (iii) fallas originadas en la conexión a internet, dispositivos o equipos de EL CLIENTE, ajenos al control de EL PROVEEDOR. En ningún caso la responsabilidad total de EL PROVEEDOR frente a EL CLIENTE, por cualquier causa derivada del Contrato, excederá el valor equivalente a tres (3) mensualidades efectivamente pagadas por EL CLIENTE en los últimos doce (12) meses."
+      "EL PROVEEDOR garantiza que el Software operará sustancialmente conforme a sus funcionalidades descritas, con una disponibilidad objetivo del noventa y nueve por ciento (99%) mensual, salvo mantenimientos programados (que se notificarán con antelación razonable) y eventos de fuerza mayor o caso fortuito. Si la disponibilidad mensual efectiva del Software resulta inferior al noventa y nueve por ciento (99%) pactado por causas imputables a EL PROVEEDOR, EL CLIENTE tendrá derecho a un crédito equivalente a un (1) día de mensualidad por cada día completo adicional de interrupción no programada del servicio, el cual se aplicará en el siguiente período de facturación. EL PROVEEDOR NO será responsable por: (i) las decisiones clínicas, diagnósticas o administrativas que EL CLIENTE o sus Usuarios Autorizados adopten con base en la información capturada o generada en el Software; (ii) la exactitud, veracidad o integridad de los datos que EL CLIENTE o sus Usuarios Autorizados ingresen al sistema; ni (iii) fallas originadas en la conexión a internet, dispositivos o equipos de EL CLIENTE, ajenos al control de EL PROVEEDOR."
+    );
+    parrafo(
+      "Salvo lo previsto en el párrafo siguiente, en ningún caso la responsabilidad total de EL PROVEEDOR frente a EL CLIENTE, por cualquier causa derivada del Contrato, excederá el valor equivalente a tres (3) mensualidades efectivamente pagadas por EL CLIENTE en los últimos doce (12) meses. Para el caso específico de incumplimientos de las obligaciones de confidencialidad y tratamiento de datos personales a cargo de EL PROVEEDOR bajo la cláusula DÉCIMA PRIMERA, dicho tope se eleva al equivalente a doce (12) mensualidades efectivamente pagadas por EL CLIENTE en los últimos doce (12) meses, en reconocimiento de la naturaleza sensible de la información de salud que EL PROVEEDOR procesa por cuenta de EL CLIENTE."
     );
 
     titulo("DÉCIMA CUARTA — CONTINUIDAD Y RESPALDO DEL SERVICIO");
@@ -558,17 +591,17 @@
 
     titulo("DÉCIMA SEXTA — CESIÓN");
     parrafo(
-      "Ninguna de las partes podrá ceder total o parcialmente los derechos u obligaciones derivados del Contrato sin la autorización previa y escrita de la otra parte, salvo la cesión que EL PROVEEDOR realice a favor de una sociedad matriz, subordinada, filial o sucesora de su actividad empresarial, la cual no requerirá autorización previa de EL CLIENTE, sin perjuicio de su deber de informarla oportunamente."
+      "Ninguna de las partes podrá ceder total o parcialmente los derechos u obligaciones derivados del Contrato sin la autorización previa y escrita de la otra parte, salvo la cesión que EL PROVEEDOR realice a favor de una sociedad matriz, subordinada, filial o sucesora de su actividad empresarial, la cual no requerirá autorización previa de EL CLIENTE, pero sí el deber de EL PROVEEDOR de darle aviso previo y por escrito con al menos quince (15) días calendario de antelación a la cesión."
     );
 
     titulo("DÉCIMA SÉPTIMA — VIGENCIA Y TERMINACIÓN");
     parrafo(
-      "El presente Contrato tiene vigencia indefinida, sujeta al pago oportuno de las mensualidades pactadas. Cualquiera de las partes podrá darlo por terminado mediante aviso previo de al menos treinta (30) días calendario a la otra parte. Adicionalmente, EL PROVEEDOR podrá terminarlo de forma anticipada y sin necesidad de declaración judicial previa cuando: (i) EL CLIENTE incurra en mora superior a sesenta (60) días calendario; (ii) EL CLIENTE utilice el Software para fines ilícitos o contrarios a la ley; o (iii) EL CLIENTE incumpla grave y reiteradamente las obligaciones a su cargo bajo la cláusula DÉCIMA PRIMERA (Tratamiento de Datos Personales). La terminación del Contrato extingue de pleno derecho la Licencia de Uso otorgada en la cláusula TERCERA, sin perjuicio del derecho de EL CLIENTE a la exportación de sus Datos del Cliente conforme a la cláusula DÉCIMA PRIMERA."
+      "El presente Contrato tiene vigencia indefinida, sujeta al pago oportuno de las mensualidades pactadas. EL CLIENTE podrá darlo por terminado mediante aviso previo de al menos treinta (30) días calendario a EL PROVEEDOR. EL PROVEEDOR, por su parte, solo podrá darlo por terminado sin justa causa mediante aviso previo de al menos sesenta (60) días calendario a EL CLIENTE. Adicionalmente, EL PROVEEDOR podrá terminarlo de forma anticipada, sin necesidad de declaración judicial previa y sin el preaviso de sesenta (60) días antes mencionado, cuando: (i) EL CLIENTE incurra en mora superior a sesenta (60) días calendario; (ii) EL CLIENTE utilice el Software para fines ilícitos o contrarios a la ley; o (iii) EL CLIENTE incumpla grave y reiteradamente las obligaciones a su cargo bajo la cláusula DÉCIMA PRIMERA (Tratamiento de Datos Personales). La terminación del Contrato extingue de pleno derecho la Licencia de Uso otorgada en la cláusula TERCERA, sin perjuicio del derecho de EL CLIENTE a la exportación de sus Datos del Cliente conforme a la cláusula DÉCIMA PRIMERA."
     );
 
     titulo("DÉCIMA OCTAVA — LEY APLICABLE Y SOLUCIÓN DE CONTROVERSIAS");
     parrafo(
-      "El Contrato se rige e interpreta conforme a las leyes de la República de Colombia. Toda controversia que surja de su celebración, ejecución o terminación se intentará resolver, en primer lugar, mediante negociación directa y de buena fe entre las partes por un término de quince (15) días calendario. De no lograrse un acuerdo, la controversia se someterá a un Centro de Conciliación y, si es del caso, a arbitraje ante el Centro de Arbitraje y Conciliación de la Cámara de Comercio del domicilio de EL PROVEEDOR, conforme a sus reglamentos vigentes."
+      "El Contrato se rige e interpreta conforme a las leyes de la República de Colombia. Toda controversia que surja de su celebración, ejecución o terminación se intentará resolver, en primer lugar, mediante negociación directa y de buena fe entre las partes por un término de quince (15) días calendario. De no lograrse un acuerdo, la controversia se someterá a un Centro de Conciliación y, si es del caso, a arbitraje ante el Centro de Arbitraje y Conciliación de la Cámara de Comercio de " + PROVEEDOR.ciudadDomicilio + " (domicilio de EL PROVEEDOR), conforme a sus reglamentos vigentes."
     );
 
     titulo("DÉCIMA NOVENA — NOTIFICACIONES");
