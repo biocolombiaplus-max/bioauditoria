@@ -15,10 +15,14 @@
     // párrafo de identificación de las partes más abajo, que usa este
     // mismo criterio para EL CLIENTE cuando aplica -> cliente.personaNatural).
     naturalezaJuridica: "Persona Natural con Establecimiento de Comercio",
-    // Tal como consta en el RUT (NIT 88262856-1, Cédula de Ciudadanía
-    // 88.262.856, Dirección Principal) — Establecimiento de Comercio "BIO
-    // COLOMBIA PLUS", Matrícula Mercantil N.° 0023249.
-    domicilio: "Avenida 0 N.° 11-67, Oficina 105, Edificio Cantabria, Cúcuta, Norte de Santander, Colombia",
+    // Tal como consta TEXTUALMENTE en el RUT (NIT 88262856-1, Cédula de
+    // Ciudadanía 88.262.856, campo 41 "Dirección principal"): "AUT 0 # 11 -
+    // 67 OF 105 ED CANTABRIA", Cúcuta, Norte de Santander — "AUT" es
+    // Autopista, NO Avenida (error real corregido: una versión anterior de
+    // este campo decía "Avenida", que no coincide con el RUT). Código
+    // postal 54000. Establecimiento de Comercio "BIO COLOMBIA PLUS",
+    // Matrícula Mercantil N.° 0023249 de la Cámara de Comercio de Cúcuta.
+    domicilio: "Autopista 0 N.° 11-67, Oficina 105, Edificio Cantabria, Cúcuta, Norte de Santander, Colombia",
     ciudadDomicilio: "Cúcuta",
     producto: "BIOsoft — Software de Gestión de Laboratorio Clínico",
     correo: "biomarketing.salud@gmail.com",
