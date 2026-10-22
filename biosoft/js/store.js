@@ -521,6 +521,25 @@
     if (!firebaseDisponible()) return Promise.reject(errorFirebaseNoDisponible());
     return landingImagenesColl().doc(slotId).delete();
   }
+
+  // -----------------------------------------------------------------------
+  // Demo personalizada de "Página Web" (demo-sitio.html) — ver
+  // abrirGenerarDemoPersonalizada() en views-admin.js (quien la escribe) y
+  // js/demo-sitio.js (quien la lee, sin sesión, desde el enlace enviado al
+  // cliente). Mismo patrón público que landingImagenes: colección propia
+  // en la raíz, nunca bajo tenants/{id}, para que se pueda leer sin login.
+  // -----------------------------------------------------------------------
+  function demoSitioWebColl() { return global.BIO_FB.db.collection("demoSitioWeb"); }
+
+  function demoSitioWebGet(tenantId) {
+    if (!firebaseDisponible()) return Promise.reject(errorFirebaseNoDisponible());
+    return demoSitioWebColl().doc(tenantId).get().then(function (doc) { return doc.exists ? doc.data() : null; });
+  }
+  function demoSitioWebSet(tenantId, datos) {
+    if (!firebaseDisponible()) return Promise.reject(errorFirebaseNoDisponible());
+    var doc = Object.assign({}, datos, { actualizadoEn: nowISO() });
+    return demoSitioWebColl().doc(tenantId).set(doc).then(function () { return doc; });
+  }
   function plantillasDelete(id) {
     if (!firebaseDisponible()) return Promise.reject(errorFirebaseNoDisponible());
     return plantillasColl().doc(id).delete();
@@ -2154,6 +2173,7 @@
     },
     plantillas: { list: plantillasList, watch: plantillasWatch, create: plantillasCreate, update: plantillasUpdate, remove: plantillasDelete },
     landingImagenes: { list: landingImagenesList, set: landingImagenesSet, remove: landingImagenesDelete },
+    demoSitioWeb: { get: demoSitioWebGet, set: demoSitioWebSet },
     qc: {
       listControles: listQCControles, getControl: getQCControl, createControl: createQCControl, updateControl: updateQCControl,
       listLecturas: listQCLecturas, createLectura: createQCLectura, deleteLectura: deleteQCLectura

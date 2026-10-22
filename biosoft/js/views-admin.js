@@ -2112,6 +2112,9 @@
           { label: "Enviar Manual de Usuario", icon: "send", onClick: function () { abrirEnviarManual(tenant); } },
           { label: "Enviar Guía de Conexión de Equipo", icon: "send", onClick: function () { abrirEnviarGuiaConexion(tenant); } }
         ]},
+        { titulo: "Mercadeo", acciones: [
+          { label: "Generar Demo Personalizada de Página Web", icon: "send", onClick: function () { abrirGenerarDemoPersonalizada(tenant); } }
+        ]},
         { titulo: "Acceso y Soporte", acciones: [
           { label: "Editar Datos del Laboratorio", icon: "edit", onClick: function () { abrirEditarDatos(tenant); } },
           { label: "Reenviar Acceso al Administrador", icon: "send", onClick: function () { abrirReenviarAcceso(tenant); } },
@@ -2881,6 +2884,53 @@
         if (opts.alContinuar) opts.alContinuar();
       });
       return wrap;
+    }
+
+    // El enlace apunta a demo-sitio.html, al lado de app.html en el mismo
+    // despliegue — se arma a partir de la URL actual en vez de dejarlo fijo,
+    // para que funcione igual sin importar el dominio/entorno donde corra
+    // BIOsoft.
+    function linkDemoSitioWeb(tenantId) {
+      return location.href.replace(/app\.html.*$/, "") + "demo-sitio.html?t=" + encodeURIComponent(tenantId);
+    }
+    function mensajeDemoSitioWeb(tenant, link) {
+      return "Hola" + (tenant.contactoNombre ? " " + tenant.contactoNombre : "") + "! 👋 Aquí tienes una demo de cómo se vería la página web de " + (tenant.nombre || "tu laboratorio") + " — ya armada con tu propio logo y tus colores, para que te la imagines de verdad:\n\n" + link +
+        "\n\nIncluye un portal donde tus pacientes consultan sus resultados con una clave, un botón para cotizar directo por WhatsApp (sin mostrar precios en la página) y un Orientador que resuelve dudas sobre preparación de exámenes.\n\n" +
+        "Recuerda: todo es 100% personalizable — colores, logo, servicios, ofertas y la información que tú quieras mostrar. Cualquier duda, quedamos atentos 🙌";
+    }
+    // Copia a la colección pública demoSitioWeb (ver store.js) SOLO los
+    // datos ya públicos del laboratorio (nombre, logo, color, contacto) —
+    // nunca su NIT ni nada interno — para que demo-sitio.html pueda leerlos
+    // sin que el cliente tenga que iniciar sesión.
+    function abrirGenerarDemoPersonalizada(tenant) {
+      U.toast("Generando tu demo personalizada…", "success");
+      S.demoSitioWeb.set(tenant.id, {
+        nombre: tenant.nombre || "",
+        logoDataUrl: tenant.logoDataUrl || "",
+        colorPrimario: tenant.colorPrimario || "#f97316",
+        telefonos: tenant.telefonos || "",
+        direccion: tenant.direccion || "",
+        email: tenant.email || ""
+      }).then(function () {
+        var link = linkDemoSitioWeb(tenant.id);
+        abrirEnviarMensajeTexto({
+          titulo: "🌐 Demo Personalizada — " + U.esc(tenant.nombre),
+          descripcion: "Ya quedó lista la demo con el logo y los colores de " + U.esc(tenant.nombre) + ". Revisa el mensaje y envíalo por el canal que prefieras.",
+          tenant: tenant,
+          mensaje: mensajeDemoSitioWeb(tenant, link),
+          asuntoCorreo: "Así se vería la página web de " + (tenant.nombre || "tu laboratorio"),
+          botonExtraHtml:
+            '<a href="' + U.esc(link) + '" target="_blank" rel="noopener" class="btn btn-outline btn-block" style="margin-bottom:8px">' + U.icon("file") + ' Ver la demo ahora</a>' +
+            '<button type="button" class="btn btn-outline btn-block" id="btn-copiar-link-demo" style="margin-bottom:10px">' + U.icon("download") + ' Copiar solo el enlace</button>',
+          wireExtra: function (wrap) {
+            wrap.querySelector("#btn-copiar-link-demo").addEventListener("click", function () {
+              navigator.clipboard.writeText(link).then(function () { U.toast("Enlace copiado.", "success"); }).catch(function () { U.toast("No se pudo copiar. Selecciónalo manualmente.", "error"); });
+            });
+          }
+        });
+      }).catch(function (err) {
+        U.toast("No se pudo generar la demo: " + S.mensajeErrorFirestore(err), "error");
+      });
     }
 
     function abrirBienvenidaLaboratorio(tenant, credenciales, alContinuar) {

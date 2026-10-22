@@ -94,6 +94,20 @@ service cloud.firestore {
       allow write: if esSuperadmin();
     }
 
+    // Demo personalizada de "Página Web" (demo-sitio.html) — el superadmin
+    // genera un enlace por laboratorio desde Laboratorios Cliente → Más
+    // acciones → "Generar Demo Personalizada" (ver abrirGenerarDemoPersonalizada
+    // en views-admin.js), copiando ahí SOLO el nombre, logo, color y datos
+    // de contacto YA públicos de ese laboratorio (nunca su NIT ni nada
+    // interno) — para que el cliente vea la demo con SU propia marca antes
+    // de decidirse. Lectura pública SIN autenticación, igual que
+    // landingImagenes: cualquier cliente que reciba el enlace la abre sin
+    // iniciar sesión.
+    match /demoSitioWeb/{tenantId} {
+      allow read: if true;
+      allow write: if esSuperadmin();
+    }
+
     match /tenants/{tenantId} {
       // El superadmin necesita ver TODOS los laboratorios (panel "Laboratorios
       // Cliente"), no solo el propio — de ahí el esSuperadmin() en la lectura.
