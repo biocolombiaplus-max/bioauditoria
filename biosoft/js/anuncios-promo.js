@@ -14,7 +14,16 @@
    y manejo de redes sociales — cada uno con su propio precio en pesos
    colombianos y dólares. El clic en el botón principal abre WhatsApp con
    BIOsoft (mismo número de contacto que ya usa el Cotizador), con un
-   mensaje ya escrito pidiendo ese producto. */
+   mensaje ya escrito pidiendo ese producto.
+
+   Diseño: tarjeta ancha de dos columnas (panel visual oscuro a la
+   izquierda + contenido a la derecha), como los anuncios de upgrade de
+   Stripe/Linear/Notion — mucho más "premium" en pantallas de computador
+   que un popup angosto estirado. Se abre con BIO_UI.openModal(html,
+   {lg:true}) para aprovechar el ancho de .modal-lg (920px), y un <style>
+   con selector :has() reescribe el padding de .modal-card y el botón ✕
+   SOLO mientras este anuncio está abierto (no toca el resto de modales
+   de la app). */
 (function (global) {
   "use strict";
 
@@ -67,72 +76,90 @@
   }
 
   // ---------------------------------------------------------------------
-  // Plantilla compartida: mismo "cascarón" premium para los 3 anuncios
-  // (badge, título, subtítulo, mini-vista previa propia de cada producto,
-  // 4 beneficios, panel de precio con cinta "SOLO HOY" y las dos monedas,
-  // botón principal a WhatsApp, y "Tal vez más tarde"). Se inyecta dentro
-  // de BIO_UI.openModal() — su .modal-card ya trae fondo blanco y
-  // padding:26px, así que el cascarón usa un margen negativo para pintar
-  // edge-to-edge (barra de color arriba, etc.) sin pelearse con ese
-  // padding por defecto.
+  // Plantilla compartida: tarjeta de dos columnas.
   // ---------------------------------------------------------------------
   function shellHtml(opts) {
+    var beneficiosHtml = opts.beneficios.map(function (b) {
+      return '<div style="display:flex;gap:9px;align-items:flex-start;"><span style="color:#16a34a;font-weight:800;font-size:13px;flex:none;">✓</span><span style="font-size:13px;color:#1e293b;line-height:1.45;">' + b + '</span></div>';
+    }).join("");
+
+    var precioPanel =
+      '<div style="margin-top:2px;position:relative;background:' + opts.precioBg + ';border:2px solid ' + opts.accent + ';border-radius:14px;padding:18px 18px 14px;display:flex;flex-direction:column;gap:10px;">' +
+      '<span style="position:absolute;top:-12px;left:16px;background:#dc2626;color:#fff;font-size:10.5px;font-weight:800;letter-spacing:.03em;padding:4px 12px;border-radius:999px;box-shadow:0 4px 10px rgba(220,38,38,.35);">' + opts.ribbon + '</span>' +
+      (opts.precioTachado
+        ? '<div style="display:flex;align-items:baseline;gap:8px;margin-top:2px;"><span style="font-size:12px;color:#94a3b8;text-decoration:line-through;">' + opts.precioTachado + '</span><span style="background:#dc2626;color:#fff;font-size:10.5px;font-weight:800;padding:3px 8px;border-radius:6px;">' + opts.descuentoPct + '</span></div>'
+        : (opts.planesDesde ? '<div style="font-size:10.5px;color:' + opts.accent + ';font-weight:800;margin-top:2px;letter-spacing:.03em;">' + opts.planesDesde + '</div>' : '<div style="margin-top:2px;"></div>')) +
+      '<div style="display:flex;gap:12px;">' +
+      '<div style="flex:1;text-align:center;background:#fff;border-radius:10px;padding:11px 8px;border:1px solid ' + opts.accent + '40;">' +
+      '<div style="font-size:9.5px;color:#94a3b8;font-weight:800;letter-spacing:.05em;">PESOS COP</div>' +
+      '<div style="font-size:22px;font-weight:800;color:#0f172a;line-height:1.3;">' + opts.precioCOP + '</div>' +
+      '<div style="font-size:9.5px;color:' + opts.accent + ';font-weight:800;">' + opts.unidad + '</div>' +
+      '</div>' +
+      '<div style="flex:1;text-align:center;background:#fff;border-radius:10px;padding:11px 8px;border:1px solid ' + opts.accent + '40;">' +
+      '<div style="font-size:9.5px;color:#94a3b8;font-weight:800;letter-spacing:.05em;">DÓLARES USD</div>' +
+      '<div style="font-size:22px;font-weight:800;color:#0f172a;line-height:1.3;">' + opts.precioUSD + '</div>' +
+      '<div style="font-size:9.5px;color:' + opts.accent + ';font-weight:800;">' + opts.unidad + '</div>' +
+      '</div>' +
+      '</div>' +
+      (opts.destacado ? '<div style="background:' + opts.accent + ';border-radius:8px;padding:8px 11px;text-align:center;"><span style="font-size:11.5px;color:#fff;font-weight:800;">' + opts.destacado + '</span></div>' : "") +
+      '<div style="font-size:11.5px;color:' + opts.notaColor + ';font-weight:700;line-height:1.4;">' + opts.nota + '</div>' +
+      '</div>';
+
     return (
-      '<div style="margin:-26px;border-radius:var(--radius);overflow:hidden;font-family:inherit;max-width:480px;margin-left:auto;margin-right:auto;">' +
-      '<div style="height:6px;background:linear-gradient(90deg,' + opts.accent + ',' + opts.accent2 + ');"></div>' +
-      '<div style="padding:26px 26px 22px;display:flex;flex-direction:column;gap:13px;">' +
-      '<span style="align-self:flex-start;display:inline-flex;align-items:center;gap:6px;background:' + opts.badgeBg + ';color:' + opts.badgeColor + ';font-size:10.5px;font-weight:800;letter-spacing:.04em;text-transform:uppercase;padding:6px 12px;border-radius:999px;border:1px solid ' + opts.badgeBorder + ';">' + opts.badge + '</span>' +
-      '<h3 style="margin:0;font-size:21px;line-height:1.26;color:#0f172a;font-weight:800;">' + opts.titulo + '</h3>' +
-      '<p style="margin:0;font-size:13px;line-height:1.55;color:#475569;">' + opts.subtitulo + '</p>' +
+      '<style>' +
+      '.modal:has(.bio-anuncio-card) .modal-card{padding:0 !important;overflow:hidden !important;border-radius:20px !important;box-shadow:0 40px 90px rgba(0,0,0,.4) !important;}' +
+      '.modal:has(.bio-anuncio-card) .modal-x{background:rgba(255,255,255,.18) !important;-webkit-backdrop-filter:blur(8px);backdrop-filter:blur(8px) !important;}' +
+      '.modal:has(.bio-anuncio-card) .modal-x:hover{background:rgba(255,255,255,.32) !important;}' +
+      '@media (max-width:760px){.bio-anuncio-card{flex-direction:column !important;}.bio-anuncio-visual{flex:none !important;width:100% !important;padding:28px 26px !important;}}' +
+      '</style>' +
+      '<div class="bio-anuncio-card" style="margin:-26px;display:flex;flex-wrap:wrap;min-height:540px;font-family:inherit;">' +
+
+      '<div class="bio-anuncio-visual" style="flex:0 0 340px;width:340px;background:radial-gradient(circle at 28% 16%,' + opts.accent + '33,transparent 60%),#0b1120;padding:40px 32px;display:flex;flex-direction:column;justify-content:space-between;color:#fff;position:relative;">' +
+      '<div style="display:flex;flex-direction:column;gap:20px;">' +
+      '<div style="width:58px;height:58px;border-radius:16px;background:linear-gradient(135deg,' + opts.accent + ',' + opts.accent2 + ');display:flex;align-items:center;justify-content:center;font-size:28px;box-shadow:0 12px 26px ' + opts.accent + '55;">' + opts.icon + '</div>' +
+      '<div>' +
+      '<div style="font-size:10.5px;color:#94a3b8;font-weight:800;letter-spacing:.08em;text-transform:uppercase;">Nuevo · BIOsoft</div>' +
+      '<div style="font-size:21px;font-weight:800;margin-top:5px;line-height:1.25;">' + opts.productoNombre + '</div>' +
+      '</div>' +
       opts.visual +
-      '<div style="display:flex;flex-direction:column;gap:7px;">' +
-      opts.beneficios.map(function (b) {
-        return '<div style="display:flex;gap:8px;align-items:flex-start;"><span style="color:#16a34a;font-weight:800;font-size:13px;">✓</span><span style="font-size:12px;color:#1e293b;line-height:1.4;">' + b + '</span></div>';
-      }).join("") +
       '</div>' +
-      '<div style="margin-top:4px;position:relative;background:' + opts.precioBg + ';border:2px solid ' + opts.accent + ';border-radius:14px;padding:17px 15px 13px;display:flex;flex-direction:column;gap:9px;">' +
-      '<span style="position:absolute;top:-12px;left:14px;background:#dc2626;color:#fff;font-size:10.5px;font-weight:800;letter-spacing:.03em;padding:4px 12px;border-radius:999px;box-shadow:0 4px 10px rgba(220,38,38,.35);">' + opts.ribbon + '</span>' +
-      (opts.precioTachado ? '<div style="display:flex;align-items:baseline;gap:8px;"><span style="font-size:11.5px;color:#94a3b8;text-decoration:line-through;">' + opts.precioTachado + '</span><span style="background:#dc2626;color:#fff;font-size:10px;font-weight:800;padding:3px 8px;border-radius:6px;">' + opts.descuentoPct + '</span></div>' : (opts.planesDesde ? '<div style="font-size:10px;color:' + opts.accent + ';font-weight:700;">' + opts.planesDesde + '</div>' : '')) +
-      '<div style="display:flex;gap:10px;' + (opts.precioTachado ? "" : "margin-top:4px;") + '">' +
-      '<div style="flex:1;text-align:center;background:#fff;border-radius:10px;padding:9px 6px;border:1px solid ' + opts.accent + '55;">' +
-      '<div style="font-size:9px;color:#94a3b8;font-weight:800;letter-spacing:.04em;">PESOS COP</div>' +
-      '<div style="font-size:19px;font-weight:800;color:#0f172a;">' + opts.precioCOP + '</div>' +
-      '<div style="font-size:9px;color:' + opts.accent + ';font-weight:800;">' + opts.unidad + '</div>' +
+      '<p style="margin:0;font-size:11.5px;color:#94a3b8;line-height:1.5;">' + opts.trust + '</p>' +
       '</div>' +
-      '<div style="flex:1;text-align:center;background:#fff;border-radius:10px;padding:9px 6px;border:1px solid ' + opts.accent + '55;">' +
-      '<div style="font-size:9px;color:#94a3b8;font-weight:800;letter-spacing:.04em;">DÓLARES USD</div>' +
-      '<div style="font-size:19px;font-weight:800;color:#0f172a;">' + opts.precioUSD + '</div>' +
-      '<div style="font-size:9px;color:' + opts.accent + ';font-weight:800;">' + opts.unidad + '</div>' +
+
+      '<div style="flex:1 1 420px;min-width:320px;padding:40px 44px;display:flex;flex-direction:column;gap:15px;overflow-y:auto;max-height:min(680px,82vh);box-sizing:border-box;">' +
+      '<span style="align-self:flex-start;display:inline-flex;align-items:center;gap:6px;background:' + opts.badgeBg + ';color:' + opts.badgeColor + ';font-size:10.5px;font-weight:800;letter-spacing:.04em;text-transform:uppercase;padding:6px 13px;border-radius:999px;border:1px solid ' + opts.badgeBorder + ';">' + opts.badge + '</span>' +
+      '<h3 style="margin:0;font-size:25px;line-height:1.24;color:#0f172a;font-weight:800;">' + opts.titulo + '</h3>' +
+      '<p style="margin:0;font-size:14px;line-height:1.6;color:#475569;">' + opts.subtitulo + '</p>' +
+      '<div style="display:flex;flex-direction:column;gap:9px;">' + beneficiosHtml + '</div>' +
+      precioPanel +
+      '<p style="margin:0;font-size:11px;color:#64748b;">🎨 100% personalizable — con el logo, los colores, los servicios y la información de <b>tu</b> laboratorio</p>' +
+      '<div style="display:flex;gap:12px;align-items:center;flex-wrap:wrap;margin-top:2px;">' +
+      '<a href="' + waLink(opts.mensajeWA) + '" target="_blank" rel="noopener" style="text-decoration:none;text-align:center;background:' + opts.accent + ';color:#fff;font-weight:800;font-size:14.5px;padding:14px 26px;border-radius:12px;box-shadow:0 10px 22px ' + opts.accent + '40;">' + opts.ctaTexto + '</a>' +
+      '<button type="button" data-modal-close style="background:none;border:none;color:#94a3b8;font-size:12.5px;text-decoration:underline;cursor:pointer;padding:4px;">Tal vez más tarde</button>' +
       '</div>' +
       '</div>' +
-      (opts.destacado ? '<div style="background:' + opts.accent + ';border-radius:8px;padding:7px 10px;text-align:center;"><span style="font-size:11px;color:#fff;font-weight:800;">' + opts.destacado + '</span></div>' : "") +
-      '<div style="font-size:11px;color:' + opts.notaColor + ';font-weight:700;">' + opts.nota + '</div>' +
-      '</div>' +
-      '<p style="margin:0;text-align:center;font-size:10.5px;color:#64748b;">🎨 100% personalizable — con el logo, los colores, los servicios y la información de <b>tu</b> laboratorio</p>' +
-      '<a href="' + waLink(opts.mensajeWA) + '" target="_blank" rel="noopener" style="text-decoration:none;text-align:center;background:' + opts.accent + ';color:#fff;font-weight:800;font-size:14px;padding:13px;border-radius:12px;">' + opts.ctaTexto + '</a>' +
-      '<button type="button" data-modal-close style="background:none;border:none;color:#94a3b8;font-size:11.5px;text-decoration:underline;cursor:pointer;padding:2px;align-self:center;">Tal vez más tarde</button>' +
-      '<p style="margin:0;text-align:center;font-size:10px;color:#94a3b8;">' + opts.trust + '</p>' +
-      '</div></div>'
+
+      '</div>'
     );
   }
 
   function abrirAnuncioWeb() {
     var visual =
-      '<div style="border-radius:14px;border:1px solid #e2e8f0;overflow:hidden;box-shadow:0 10px 24px rgba(15,23,42,.08);">' +
-      '<div style="background:#f1f5f9;padding:7px 12px;display:flex;align-items:center;gap:6px;">' +
-      '<span style="width:8px;height:8px;border-radius:50%;background:#f87171;display:inline-block;"></span>' +
-      '<span style="width:8px;height:8px;border-radius:50%;background:#fbbf24;display:inline-block;"></span>' +
-      '<span style="width:8px;height:8px;border-radius:50%;background:#34d399;display:inline-block;"></span>' +
-      '<span style="margin-left:6px;font-size:10px;color:#94a3b8;">tulaboratorio.com</span>' +
+      '<div style="border-radius:12px;overflow:hidden;box-shadow:0 10px 24px rgba(0,0,0,.35);">' +
+      '<div style="background:#1e293b;padding:7px 10px;display:flex;align-items:center;gap:6px;">' +
+      '<span style="width:7px;height:7px;border-radius:50%;background:#f87171;display:inline-block;"></span>' +
+      '<span style="width:7px;height:7px;border-radius:50%;background:#fbbf24;display:inline-block;"></span>' +
+      '<span style="width:7px;height:7px;border-radius:50%;background:#34d399;display:inline-block;"></span>' +
+      '<span style="margin-left:5px;font-size:9.5px;color:#94a3b8;">tulaboratorio.com</span>' +
       '</div>' +
-      '<div style="background:#0f172a;padding:14px;display:flex;flex-direction:column;gap:7px;">' +
-      '<div style="font-size:10.5px;color:#94a3b8;font-weight:700;letter-spacing:.03em;">🔐 CONSULTA TUS RESULTADOS</div>' +
-      '<div style="height:9px;border-radius:4px;background:#1e293b;width:80%;"></div>' +
-      '<div style="height:9px;border-radius:4px;background:#1e293b;width:55%;"></div>' +
-      '<div style="margin-top:3px;align-self:flex-start;background:#f97316;color:#fff;font-size:10.5px;font-weight:800;padding:6px 14px;border-radius:8px;">Consultar →</div>' +
+      '<div style="background:#111827;padding:12px;display:flex;flex-direction:column;gap:7px;">' +
+      '<div style="font-size:10px;color:#94a3b8;font-weight:700;letter-spacing:.03em;">🔐 CONSULTA TUS RESULTADOS</div>' +
+      '<div style="height:8px;border-radius:4px;background:#334155;width:80%;"></div>' +
+      '<div style="height:8px;border-radius:4px;background:#334155;width:55%;"></div>' +
+      '<div style="margin-top:3px;align-self:flex-start;background:#f97316;color:#fff;font-size:10px;font-weight:800;padding:6px 13px;border-radius:8px;">Consultar →</div>' +
       '</div></div>';
     BIO_UI.openModal(shellHtml({
-      accent: "#f97316", accent2: "#fb923c",
+      accent: "#f97316", accent2: "#fb923c", icon: "🌐", productoNombre: "Página Web del Laboratorio",
       badge: "🚀 Nuevo · Exclusivo para clientes BIOsoft", badgeBg: "#fff7ed", badgeColor: "#c2410c", badgeBorder: "#fed7aa",
       titulo: "¿Hasta cuándo vas a seguir enviando resultados uno por uno?",
       subtitulo: 'Dale a cada paciente su propia clave de acceso y una <b style="color:#0f172a">página web profesional</b> para tu laboratorio, que trabaja por ti las 24 horas — sin WhatsApp, sin reprocesos.',
@@ -151,23 +178,23 @@
       ctaTexto: "Quiero mi página web →",
       mensajeWA: "Hola, quiero mi página web con el descuento de hoy ($380.000 COP / $140 USD por el año completo) 🙌",
       trust: "✅ Ya lo usan laboratorios en Colombia, Venezuela y Ecuador"
-    }));
+    }), { lg: true });
   }
 
   function abrirAnuncioWhatsapp() {
     var visual =
-      '<div style="border-radius:14px;border:1px solid #e2e8f0;overflow:hidden;box-shadow:0 10px 24px rgba(15,23,42,.08);">' +
-      '<div style="background:#16a34a;padding:9px 12px;display:flex;align-items:center;gap:8px;">' +
-      '<span style="width:22px;height:22px;border-radius:50%;background:rgba(255,255,255,.25);display:flex;align-items:center;justify-content:center;font-size:11px;">🤖</span>' +
-      '<span style="font-size:11.5px;color:#fff;font-weight:700;">Tu Laboratorio · Asistente Activo</span>' +
+      '<div style="border-radius:12px;overflow:hidden;box-shadow:0 10px 24px rgba(0,0,0,.35);">' +
+      '<div style="background:#16a34a;padding:8px 10px;display:flex;align-items:center;gap:7px;">' +
+      '<span style="width:20px;height:20px;border-radius:50%;background:rgba(255,255,255,.25);display:flex;align-items:center;justify-content:center;font-size:10px;">🤖</span>' +
+      '<span style="font-size:10.5px;color:#fff;font-weight:700;">Tu Laboratorio · Activo</span>' +
       '</div>' +
-      '<div style="background:#e8f5ea;padding:14px;display:flex;flex-direction:column;gap:8px;">' +
-      '<div style="align-self:flex-start;background:#fff;border-radius:10px 10px 10px 2px;padding:9px 12px;font-size:11.5px;color:#1e293b;max-width:85%;box-shadow:0 1px 2px rgba(0,0,0,.06);">Hola, ¿cuánto cuesta un hemograma?</div>' +
-      '<div style="align-self:flex-end;background:#dcf8c6;border-radius:10px 10px 2px 10px;padding:9px 12px;font-size:11.5px;color:#1e293b;max-width:85%;box-shadow:0 1px 2px rgba(0,0,0,.06);">¡Hola! 😊 El Hemograma Completo cuesta $XX.XXX. ¿Quieres agendar tu cita?</div>' +
-      '<span style="align-self:flex-end;font-size:9.5px;color:#4b7a52;">⚡ Respondido en 2 segundos</span>' +
+      '<div style="background:#1b2e20;padding:12px;display:flex;flex-direction:column;gap:7px;">' +
+      '<div style="align-self:flex-start;background:#fff;border-radius:9px 9px 9px 2px;padding:8px 10px;font-size:10.5px;color:#1e293b;max-width:88%;">¿Cuánto cuesta un hemograma?</div>' +
+      '<div style="align-self:flex-end;background:#dcf8c6;border-radius:9px 9px 2px 9px;padding:8px 10px;font-size:10.5px;color:#1e293b;max-width:88%;">¡Hola! 😊 Cuesta $XX.XXX. ¿Agendamos tu cita?</div>' +
+      '<span style="align-self:flex-end;font-size:9px;color:#86efac;">⚡ Respondido en 2 segundos</span>' +
       '</div></div>';
     BIO_UI.openModal(shellHtml({
-      accent: "#16a34a", accent2: "#22d3ee",
+      accent: "#16a34a", accent2: "#22d3ee", icon: "🤖", productoNombre: "Agente de WhatsApp 24/7",
       badge: "🤖 Nuevo · Automatización de WhatsApp", badgeBg: "#f0fdf4", badgeColor: "#15803d", badgeBorder: "#bbf7d0",
       titulo: "Tu WhatsApp nunca duerme (aunque tú sí)",
       subtitulo: 'Un <b style="color:#0f172a">agente de WhatsApp profesional</b> que atiende solo a tus pacientes — precios, cotizaciones y atención al público, las 24 horas del día.',
@@ -186,26 +213,26 @@
       ctaTexto: "Quiero mi Asistente de WhatsApp →",
       mensajeWA: "Hola, quiero activar el Agente de WhatsApp 24/7 para mi laboratorio ($80.000 COP / $30 USD al mes) 🤖",
       trust: "✅ Atención 24/7 sin contratar personal adicional"
-    }));
+    }), { lg: true });
   }
 
   function abrirAnuncioRedes() {
     var visual =
-      '<div style="border-radius:14px;border:1px solid #e2e8f0;overflow:hidden;box-shadow:0 10px 24px rgba(15,23,42,.08);">' +
-      '<div style="background:#0f172a;padding:9px 12px;display:flex;align-items:center;gap:8px;">' +
-      '<span style="font-size:11.5px;color:#fff;font-weight:700;">📸 @tulaboratorio</span>' +
-      '<span style="margin-left:auto;font-size:9.5px;color:#4ade80;font-weight:700;">▲ en crecimiento</span>' +
+      '<div style="border-radius:12px;overflow:hidden;box-shadow:0 10px 24px rgba(0,0,0,.35);">' +
+      '<div style="background:#1e293b;padding:8px 10px;display:flex;align-items:center;gap:7px;">' +
+      '<span style="font-size:10.5px;color:#fff;font-weight:700;">📸 @tulaboratorio</span>' +
+      '<span style="margin-left:auto;font-size:9px;color:#4ade80;font-weight:700;">▲ en crecimiento</span>' +
       '</div>' +
-      '<div style="background:#111827;padding:10px;display:grid;grid-template-columns:repeat(3,1fr);gap:4px;">' +
-      '<div style="aspect-ratio:1;border-radius:6px;background:linear-gradient(135deg,#7c3aed,#ec4899);display:flex;align-items:center;justify-content:center;font-size:14px;">❤️</div>' +
-      '<div style="aspect-ratio:1;border-radius:6px;background:linear-gradient(135deg,#f97316,#7c3aed);display:flex;align-items:center;justify-content:center;font-size:14px;">🔬</div>' +
-      '<div style="aspect-ratio:1;border-radius:6px;background:linear-gradient(135deg,#ec4899,#f97316);display:flex;align-items:center;justify-content:center;font-size:14px;">📊</div>' +
-      '<div style="aspect-ratio:1;border-radius:6px;background:linear-gradient(135deg,#f97316,#ec4899);display:flex;align-items:center;justify-content:center;font-size:14px;">🩺</div>' +
-      '<div style="aspect-ratio:1;border-radius:6px;background:linear-gradient(135deg,#7c3aed,#f97316);display:flex;align-items:center;justify-content:center;font-size:14px;">💬</div>' +
-      '<div style="aspect-ratio:1;border-radius:6px;background:linear-gradient(135deg,#ec4899,#7c3aed);display:flex;align-items:center;justify-content:center;font-size:14px;">✨</div>' +
+      '<div style="background:#0f172a;padding:9px;display:grid;grid-template-columns:repeat(3,1fr);gap:4px;">' +
+      '<div style="aspect-ratio:1;border-radius:5px;background:linear-gradient(135deg,#7c3aed,#ec4899);display:flex;align-items:center;justify-content:center;font-size:12px;">❤️</div>' +
+      '<div style="aspect-ratio:1;border-radius:5px;background:linear-gradient(135deg,#f97316,#7c3aed);display:flex;align-items:center;justify-content:center;font-size:12px;">🔬</div>' +
+      '<div style="aspect-ratio:1;border-radius:5px;background:linear-gradient(135deg,#ec4899,#f97316);display:flex;align-items:center;justify-content:center;font-size:12px;">📊</div>' +
+      '<div style="aspect-ratio:1;border-radius:5px;background:linear-gradient(135deg,#f97316,#ec4899);display:flex;align-items:center;justify-content:center;font-size:12px;">🩺</div>' +
+      '<div style="aspect-ratio:1;border-radius:5px;background:linear-gradient(135deg,#7c3aed,#f97316);display:flex;align-items:center;justify-content:center;font-size:12px;">💬</div>' +
+      '<div style="aspect-ratio:1;border-radius:5px;background:linear-gradient(135deg,#ec4899,#7c3aed);display:flex;align-items:center;justify-content:center;font-size:12px;">✨</div>' +
       '</div></div>';
     BIO_UI.openModal(shellHtml({
-      accent: "#7c3aed", accent2: "#ec4899",
+      accent: "#7c3aed", accent2: "#ec4899", icon: "📈", productoNombre: "Marketing Digital",
       badge: "📈 Nuevo · Marketing Digital para tu Laboratorio", badgeBg: "#faf5ff", badgeColor: "#7c2d92", badgeBorder: "#e9d5ff",
       titulo: "¿Tu laboratorio todavía no se ve en redes?",
       subtitulo: 'Manejamos tus redes sociales <b style="color:#0f172a">como una agencia de marketing</b>: contenido profesional, crecimiento real y más visibilidad en tu ciudad.',
@@ -224,7 +251,7 @@
       ctaTexto: "Quiero modernizar mis redes →",
       mensajeWA: "Hola, quiero modernizar las redes sociales de mi laboratorio (planes desde $250.000 COP / $80 USD al mes) 📈",
       trust: "✅ Resultados medibles, mes a mes"
-    }));
+    }), { lg: true });
   }
 
   function mostrarSiCorresponde() {
