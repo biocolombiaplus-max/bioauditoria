@@ -26,7 +26,13 @@
     ciudadDomicilio: "Cúcuta",
     producto: "BIOsoft — Software de Gestión de Laboratorio Clínico",
     correo: "biomarketing.salud@gmail.com",
-    whatsapp: "573505457420"
+    whatsapp: "573505457420",
+    // Únicos dos medios de pago autorizados por EL PROVEEDOR — se imprimen
+    // siempre juntos (nunca uno sin el otro) en la Propuesta Comercial y
+    // en la Cotización Formal, para que el cliente nunca consigne a una
+    // cuenta o canal distinto a estos dos.
+    medioPago1: "Cuenta de ahorros NU N.° 83101054, a nombre de Juan Carlos Cáceres, C.C. 88.262.856",
+    medioPago2: "Llave / código breve NU @OTO262, a nombre de Juan Carlos Cáceres"
   };
 
   function fechaLarga(d) {
@@ -78,6 +84,27 @@
     var pageW = doc.internal.pageSize.getWidth();
     doc.setFont("helvetica", "normal"); doc.setFontSize(7); doc.setTextColor(140, 140, 140);
     doc.text("Documento generado electrónicamente por BIOsoft — " + new Date().toLocaleString("es-CO") + ".", margin, 772, { maxWidth: pageW - margin * 2 });
+  }
+
+  // -----------------------------------------------------------------------
+  // "Resumen de la inversión" — compartido por la Propuesta Comercial y la
+  // Cotización Formal cuando se eligió un plan concreto para el laboratorio
+  // (ver views-crm.js -> calcularResumenPlanPersonalizado). Las filas de la
+  // tabla (periodo/concepto/valor) y la nota de equipos sin definir salen
+  // idénticas en ambos documentos.
+  // -----------------------------------------------------------------------
+  function filasInversionPersonalizada(ri) {
+    var filas = [[ri.primer.periodo, ri.primer.label, "$" + ri.primer.cop.toLocaleString("es-CO") + " COP\n(aprox. $" + ri.primer.usd + " USD)"]];
+    filas.push([ri.segundo.periodo, ri.segundo.label, "$" + ri.segundo.cop.toLocaleString("es-CO") + " COP\n(aprox. $" + ri.segundo.usd + " USD)"]);
+    if (ri.tercero) filas.push([ri.tercero.periodo, ri.tercero.label, "$" + ri.tercero.cop.toLocaleString("es-CO") + " COP\n(aprox. $" + ri.tercero.usd + " USD)"]);
+    return filas;
+  }
+  function notaInversionPersonalizada(ri, EQUIPOS) {
+    return "Estos son los valores exactos calculados para tu laboratorio según lo conversado — fijos, sin cargos ocultos y sin cambios mientras continúes bajo estas mismas condiciones." +
+      (ri.equipos ? "" : " La cantidad de equipos de laboratorio a conectar aún no está definida: cada equipo que decidas conectar tiene un pago único de $" + EQUIPOS.costoPorEquipoCopFmt + " COP (aprox. $" + EQUIPOS.costoPorEquipoUsd + " USD), que se cobra solo el mes en que lo conectes y nunca se repite.");
+  }
+  function lineasMediosPago() {
+    return [PROVEEDOR.medioPago1, PROVEEDOR.medioPago2, "Estos son los ÚNICOS dos medios de pago autorizados por " + PROVEEDOR.nombre + " — no realices consignaciones a ninguna otra cuenta, persona o canal."];
   }
 
   // Marco normativo de protección de datos personales que aplica según el
@@ -359,7 +386,7 @@
     var mesesCortesia = opts.mesesCortesia || 0;
     var numeroLicencia = opts.numeroLicencia || generarNumeroLicencia(opts.tenantParaLicencia || { id: opts.tenantId });
     var IMPL = (window.BIO_PLANES && window.BIO_PLANES.IMPLEMENTACION) || { copFmt: "380.000", usd: 120, cuotaCopFmt: "190.000", cuotaUsd: 60 };
-    var INTERFAZ = (window.BIO_PLANES && window.BIO_PLANES.INTERFAZ_EQUIPOS) || { costoPorEquipoUsd: 10, costoPorEquipoCopFmt: "40.000" };
+    var INTERFAZ = (window.BIO_PLANES && window.BIO_PLANES.INTERFAZ_EQUIPOS) || { costoPorEquipoUsd: 15, costoPorEquipoCopFmt: "40.000" };
     var esSemestral = modalidadPago === "semestral";
     var esSinImplementacion = modalidadPago === "sin_implementacion";
     var esContado = modalidadPago === "contado";
@@ -789,7 +816,8 @@
     var maxW = pageW - margin * 2;
     var PLANES = (window.BIO_PLANES && window.BIO_PLANES.PLANES) || [];
     var ITEMS = (PLANES[0] && PLANES[0].items) || [];
-    var PROMO = (window.BIO_PLANES && window.BIO_PLANES.PROMOCION_LANZAMIENTO) || { implementacionUsd: 120, equiposGratis: 5, costoPorEquipoUsd: 10 };
+    var PROMO = (window.BIO_PLANES && window.BIO_PLANES.PROMOCION_LANZAMIENTO) || { implementacionUsd: 120, equiposGratis: 5, costoPorEquipoUsd: 15 };
+    var EQUIPOS = (window.BIO_PLANES && window.BIO_PLANES.INTERFAZ_EQUIPOS) || { costoPorEquipoCopFmt: "40.000", costoPorEquipoUsd: 15 };
 
     var y = encabezado(doc, margin, "PROPUESTA COMERCIAL", fechaLarga(new Date()));
 
@@ -848,11 +876,7 @@
         ri.planUsuarios + (ri.equipos ? " · " + ri.equipos + " equipo(s) de laboratorio a conectar" + (ri.cobrarEquipos ? "" : " (incluidos sin costo)") : ""),
         { size: 9, color: [90, 90, 90], gap: 8 }
       );
-      var filasInversion = [
-        ["Primer mes", ri.primer.label, "$" + ri.primer.cop.toLocaleString("es-CO") + " COP\n(aprox. $" + ri.primer.usd + " USD)"],
-        [ri.tercero ? "Segundo mes" : "Desde el 2° mes", ri.segundo.label, "$" + ri.segundo.cop.toLocaleString("es-CO") + " COP\n(aprox. $" + ri.segundo.usd + " USD)"]
-      ];
-      if (ri.tercero) filasInversion.push(["Desde el 3er mes", ri.tercero.label, "$" + ri.tercero.cop.toLocaleString("es-CO") + " COP\n(aprox. $" + ri.tercero.usd + " USD)"]);
+      var filasInversion = filasInversionPersonalizada(ri);
       checkPage(filasInversion.length * 30 + 40);
       doc.autoTable({
         startY: y, margin: { left: margin, right: margin },
@@ -864,10 +888,7 @@
         columnStyles: { 0: { fontStyle: "bold", cellWidth: maxW * 0.16 }, 2: { fontStyle: "bold", halign: "right", cellWidth: maxW * 0.27 } }
       });
       y = doc.lastAutoTable.finalY + 8;
-      parrafo(
-        "Estos son los valores exactos calculados para tu laboratorio según lo conversado — fijos, sin cargos ocultos y sin cambios mientras continúes bajo estas mismas condiciones.",
-        { size: 8.5, color: [120, 120, 120], gap: 16 }
-      );
+      parrafo(notaInversionPersonalizada(ri, EQUIPOS), { size: 8.5, color: [120, 120, 120], gap: 16 });
     } else {
       recuadro("Oferta de lanzamiento — gratis al aceptar esta propuesta hoy", [
         "Implementación, adaptación del catálogo y capacitación virtual a la medida de tu laboratorio: normalmente $" + PROMO.implementacionUsd + " USD, HOY sin ningún costo.",
@@ -923,27 +944,33 @@
     });
     y = doc.lastAutoTable.finalY + 18;
 
-    tituloSeccion("Elige tu plan según tu equipo");
-    checkPage(120);
-    doc.autoTable({
-      startY: y, margin: { left: margin, right: margin },
-      head: [["Plan", "Usuarios simultáneos", "Mensualidad"]],
-      body: PLANES.map(function (p) {
-        return [p.nombre + (p.destacado ? " (recomendado)" : ""), p.usuarios, "$" + p.precioFmt + " COP/mes\n(aprox. $" + p.usd + " USD)"];
-      }),
-      theme: "grid",
-      styles: { fontSize: 9.5, cellPadding: 8, valign: "middle" },
-      headStyles: { fillColor: [46, 16, 101], textColor: 255, fontStyle: "bold" },
-      columnStyles: { 2: { fontStyle: "bold", halign: "right" } },
-      didParseCell: function (data) {
-        if (data.section !== "body" || !PLANES[data.row.index]) return;
-        var p = PLANES[data.row.index];
-        if (datos.resumenInversion ? p.nombre === datos.resumenInversion.planNombre : p.destacado) {
-          data.cell.styles.fillColor = [255, 237, 213];
+    if (!datos.resumenInversion) {
+      // Solo se muestran los 4 planes como OPCIONES cuando la propuesta es
+      // general (sin plan negociado todavía) — si ya se eligió un plan
+      // concreto para este laboratorio, mostrar aquí los otros 3 planes
+      // solo generaría confusión sobre qué fue lo que realmente se acordó.
+      tituloSeccion("Elige tu plan según tu equipo");
+      checkPage(120);
+      doc.autoTable({
+        startY: y, margin: { left: margin, right: margin },
+        head: [["Plan", "Usuarios simultáneos", "Mensualidad"]],
+        body: PLANES.map(function (p) {
+          return [p.nombre + (p.destacado ? " (recomendado)" : ""), p.usuarios, "$" + p.precioFmt + " COP/mes\n(aprox. $" + p.usd + " USD)"];
+        }),
+        theme: "grid",
+        styles: { fontSize: 9.5, cellPadding: 8, valign: "middle" },
+        headStyles: { fillColor: [46, 16, 101], textColor: 255, fontStyle: "bold" },
+        columnStyles: { 2: { fontStyle: "bold", halign: "right" } },
+        didParseCell: function (data) {
+          if (data.section === "body" && PLANES[data.row.index] && PLANES[data.row.index].destacado) {
+            data.cell.styles.fillColor = [255, 247, 237];
+          }
         }
-      }
-    });
-    y = doc.lastAutoTable.finalY + 16;
+      });
+      y = doc.lastAutoTable.finalY + 16;
+    }
+
+    recuadro("Medios de pago autorizados", lineasMediosPago());
 
     doc.addPage(); y = margin;
     tituloSeccion("Así funciona tu BIOsoft, módulo por módulo");
@@ -1014,7 +1041,6 @@
     var IMPL = (window.BIO_PLANES && window.BIO_PLANES.IMPLEMENTACION) || {};
     var EQUIPOS = (window.BIO_PLANES && window.BIO_PLANES.INTERFAZ_EQUIPOS) || {};
     var PROMO = (window.BIO_PLANES && window.BIO_PLANES.PROMOCION_LANZAMIENTO) || {};
-    var TARJETAS = (window.BIO_PLANES && window.BIO_PLANES.TARJETAS_TXT) || "";
     var numero = opts.numero || generarNumeroCotizacion();
     var fechaEmision = opts.fechaEmision ? new Date(opts.fechaEmision) : new Date();
     var validezDias = opts.validezDias || 15;
@@ -1039,6 +1065,24 @@
       doc.setFont("helvetica", "bold"); doc.setFontSize(11); doc.setTextColor(46, 16, 101);
       doc.text(t.toUpperCase(), margin + 10, y);
       y += 18;
+    }
+    // Mismo recuadro con relleno suave de la Propuesta Comercial — altura
+    // calculada antes de dibujar, para que el texto nunca se corte.
+    function recuadro(titulo, lineasItems) {
+      doc.setFont("helvetica", "bold"); doc.setFontSize(10.5);
+      var tituloLines = doc.splitTextToSize(titulo, maxW - 24);
+      doc.setFont("helvetica", "normal"); doc.setFontSize(9.3);
+      var itemBlocks = lineasItems.map(function (it) { return doc.splitTextToSize("- " + it, maxW - 24); });
+      var alto = 16 + tituloLines.length * 14 + itemBlocks.reduce(function (s, l) { return s + l.length * 12.5 + 5; }, 0) + 12;
+      checkPage(alto + 10);
+      doc.setFillColor(255, 247, 237); doc.setDrawColor(249, 115, 22); doc.setLineWidth(1);
+      doc.roundedRect(margin, y, maxW, alto, 6, 6, "FD");
+      var iy = y + 18;
+      doc.setFont("helvetica", "bold"); doc.setFontSize(10.5); doc.setTextColor(180, 83, 9);
+      doc.text(tituloLines, margin + 12, iy); iy += tituloLines.length * 14 + 4;
+      doc.setFont("helvetica", "normal"); doc.setFontSize(9.3); doc.setTextColor(60, 45, 30);
+      itemBlocks.forEach(function (lines) { doc.text(lines, margin + 12, iy); iy += lines.length * 12.5 + 5; });
+      y += alto + 16;
     }
 
     doc.setFont("helvetica", "normal"); doc.setFontSize(9); doc.setTextColor(90, 90, 90);
@@ -1095,52 +1139,74 @@
     });
     y = doc.lastAutoTable.finalY + 18;
 
-    tituloSeccion("Planes disponibles por usuarios (Colombia)");
-    checkPage(120);
-    doc.autoTable({
-      startY: y, margin: { left: margin, right: margin },
-      head: [["Plan", "Usuarios simultáneos", "Valor mensual"]],
-      body: PLANES.map(function (p) {
-        return [p.nombre + (p.destacado ? " (recomendado)" : ""), p.usuarios, "$" + p.precioFmt + " COP/mes\n(aprox. $" + p.usd + " USD)"];
-      }),
-      theme: "grid",
-      styles: { fontSize: 9.5, cellPadding: 8, valign: "middle" },
-      headStyles: { fillColor: [46, 16, 101], textColor: 255, fontStyle: "bold" },
-      columnStyles: { 2: { fontStyle: "bold", halign: "right" } },
-      didParseCell: function (data) {
-        if (data.section === "body" && PLANES[data.row.index] && PLANES[data.row.index].destacado) {
-          data.cell.styles.fillColor = [255, 247, 237];
+    if (datos.resumenInversion) {
+      var ri = datos.resumenInversion;
+      // Solo se imprime el plan efectivamente negociado — mostrar aquí los
+      // otros planes como "opciones" solo generaría confusión sobre qué fue
+      // lo que realmente se acordó con este laboratorio.
+      tituloSeccion("Plan contratado");
+      parrafo(
+        "Plan " + ri.planNombre + " — " + ri.planUsuarios + (ri.equipos ? " · " + ri.equipos + " equipo(s) de laboratorio a conectar" + (ri.cobrarEquipos ? "" : " (incluidos sin costo)") : ""),
+        { size: 9.5, bold: true, color: [46, 16, 101], gap: 10 }
+      );
+      tituloSeccion("Resumen de la inversión — valores fijos de este documento");
+      checkPage(120);
+      doc.autoTable({
+        startY: y, margin: { left: margin, right: margin },
+        head: [["Periodo", "Concepto", "Valor a pagar"]],
+        body: filasInversionPersonalizada(ri),
+        theme: "grid",
+        styles: { fontSize: 9, cellPadding: 7, valign: "middle" },
+        headStyles: { fillColor: [249, 115, 22], textColor: 255, fontStyle: "bold" },
+        columnStyles: { 0: { fontStyle: "bold", cellWidth: maxW * 0.16 }, 2: { fontStyle: "bold", halign: "right", cellWidth: maxW * 0.27 } }
+      });
+      y = doc.lastAutoTable.finalY + 8;
+      parrafo(notaInversionPersonalizada(ri, EQUIPOS), { size: 8.5, color: [120, 120, 120], gap: 16 });
+    } else {
+      tituloSeccion("Planes disponibles por usuarios (Colombia)");
+      checkPage(120);
+      doc.autoTable({
+        startY: y, margin: { left: margin, right: margin },
+        head: [["Plan", "Usuarios simultáneos", "Valor mensual"]],
+        body: PLANES.map(function (p) {
+          return [p.nombre + (p.destacado ? " (recomendado)" : ""), p.usuarios, "$" + p.precioFmt + " COP/mes\n(aprox. $" + p.usd + " USD)"];
+        }),
+        theme: "grid",
+        styles: { fontSize: 9.5, cellPadding: 8, valign: "middle" },
+        headStyles: { fillColor: [46, 16, 101], textColor: 255, fontStyle: "bold" },
+        columnStyles: { 2: { fontStyle: "bold", halign: "right" } },
+        didParseCell: function (data) {
+          if (data.section === "body" && PLANES[data.row.index] && PLANES[data.row.index].destacado) {
+            data.cell.styles.fillColor = [255, 247, 237];
+          }
         }
-      }
-    });
-    y = doc.lastAutoTable.finalY + 18;
+      });
+      y = doc.lastAutoTable.finalY + 18;
 
-    tituloSeccion("Costos adicionales — pago único");
-    checkPage(110);
-    var filasCostos = [
-      ["Implementación, configuración del catálogo y capacitación inicial", "$" + IMPL.copFmt + " COP\n(aprox. $" + IMPL.usd + " USD)",
-        "Pago único — se cobra una sola vez, al activarse" + (incluirPromo ? ". SIN COSTO si te activas dentro de la vigencia de esta cotización." : ".")],
-      ["Conexión de equipo de laboratorio (interfaz LIS), por cada equipo", "$" + EQUIPOS.costoPorEquipoCopFmt + " COP\n(aprox. $" + EQUIPOS.costoPorEquipoUsd + " USD)",
-        "Pago único — se cobra SOLO el primer mes en que se conecta ese equipo; nunca se vuelve a cobrar por él después." + (incluirPromo ? " Los primeros " + (PROMO.equiposGratis || 5) + " equipos son gratis si te activas dentro de la vigencia de esta cotización." : "")]
-    ];
-    doc.autoTable({
-      startY: y, margin: { left: margin, right: margin },
-      head: [["Concepto", "Valor", "Condición de cobro"]],
-      body: filasCostos, theme: "grid",
-      styles: { fontSize: 8.7, cellPadding: 7, valign: "top" },
-      headStyles: { fillColor: [46, 16, 101], textColor: 255, fontStyle: "bold" },
-      columnStyles: { 0: { cellWidth: maxW * 0.3 }, 1: { cellWidth: maxW * 0.16, fontStyle: "bold" }, 2: { cellWidth: maxW * 0.54 } }
-    });
-    y = doc.lastAutoTable.finalY + 20;
+      tituloSeccion("Costos adicionales — pago único");
+      checkPage(110);
+      var filasCostos = [
+        ["Implementación, configuración del catálogo y capacitación inicial", "$" + IMPL.copFmt + " COP\n(aprox. $" + IMPL.usd + " USD)",
+          "Pago único — se cobra una sola vez, al activarse" + (incluirPromo ? ". SIN COSTO si te activas dentro de la vigencia de esta cotización." : ".")],
+        ["Conexión de equipo de laboratorio (interfaz LIS), por cada equipo", "$" + EQUIPOS.costoPorEquipoCopFmt + " COP\n(aprox. $" + EQUIPOS.costoPorEquipoUsd + " USD)",
+          "Pago único — se cobra SOLO el primer mes en que se conecta ese equipo; nunca se vuelve a cobrar por él después." + (incluirPromo ? " Los primeros " + (PROMO.equiposGratis || 5) + " equipos son gratis si te activas dentro de la vigencia de esta cotización." : "")]
+      ];
+      doc.autoTable({
+        startY: y, margin: { left: margin, right: margin },
+        head: [["Concepto", "Valor", "Condición de cobro"]],
+        body: filasCostos, theme: "grid",
+        styles: { fontSize: 8.7, cellPadding: 7, valign: "top" },
+        headStyles: { fillColor: [46, 16, 101], textColor: 255, fontStyle: "bold" },
+        columnStyles: { 0: { cellWidth: maxW * 0.3 }, 1: { cellWidth: maxW * 0.16, fontStyle: "bold" }, 2: { cellWidth: maxW * 0.54 } }
+      });
+      y = doc.lastAutoTable.finalY + 20;
+    }
+
+    recuadro("Medios de pago autorizados", lineasMediosPago());
 
     tituloSeccion("Condiciones comerciales");
     parrafo("- Vigencia de esta cotización: " + validezDias + " días calendario a partir de la fecha de emisión. Vencido este plazo, los valores pueden actualizarse sin previo aviso.", { gap: 6 });
     parrafo("- Modalidad de pago: mensualidad por adelantado, sin permanencia mínima obligatoria — el Contrato de Prestación de Servicios tiene vigencia indefinida y cualquiera de las partes puede terminarlo con treinta (30) días de aviso previo.", { gap: 6 });
-    // TARJETAS_TXT trae un emoji 💳 al inicio (pensado para pantalla) que
-    // jsPDF/Helvetica no puede renderizar (bug real detectado al generar
-    // esta cotización: salía como "Ø=Ü³" y descuadraba la línea) — se quita
-    // aquí, solo para el PDF.
-    parrafo("- Medios de pago aceptados: " + TARJETAS.replace(/^💳\s*/, ""), { gap: 6 });
     parrafo("- Este documento es una cotización informativa y no constituye una factura de venta ni el Contrato de Prestación de Servicios. La relación contractual se formaliza mediante la suscripción del Contrato de Prestación de Servicios de Software y Licencia de Uso correspondiente, previo a la activación del servicio.", { gap: 6 });
 
     checkPage(60);

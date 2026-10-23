@@ -12,7 +12,7 @@
      una cuota mensual recurrente). La oferta de lanzamiento (ver
      PROMOCION_LANZAMIENTO abajo) regala además los primeros equipos al
      activarse. */
-  var INTERFAZ_EQUIPOS = { costoPorEquipoUsd: 10, costoPorEquipoCop: 40000, costoPorEquipoCopFmt: "40.000", pagoUnico: true,
+  var INTERFAZ_EQUIPOS = { costoPorEquipoUsd: 15, costoPorEquipoCop: 40000, costoPorEquipoCopFmt: "40.000", pagoUnico: true,
     descripcionCobro: "Pago único por equipo — se cobra solo el primer mes en que se conecta ese equipo; después no se vuelve a cobrar por él." };
 
   /* Política de precios vigente (agosto 2026): los 4 planes incluyen
@@ -61,8 +61,6 @@
     equiposGratis: 5,
     costoPorEquipoUsd: INTERFAZ_EQUIPOS.costoPorEquipoUsd
   };
-
-  var TARJETAS_TXT = "💳 Aceptamos Visa, Mastercard y American Express (crédito y débito), PSE, Nequi, Bancolombia y otros medios de pago";
 
   function porId(id) { return PLANES.filter(function (p) { return p.id === id; })[0]; }
 
@@ -150,7 +148,7 @@
   }
 
   global.BIO_PLANES = {
-    IMPLEMENTACION: IMPLEMENTACION, PLANES: PLANES, TARJETAS_TXT: TARJETAS_TXT, porId: porId,
+    IMPLEMENTACION: IMPLEMENTACION, PLANES: PLANES, porId: porId,
     INTERFAZ_EQUIPOS: INTERFAZ_EQUIPOS, PROMOCION_LANZAMIENTO: PROMOCION_LANZAMIENTO, cobraPorEquipos: cobraPorEquipos,
     ESTADOS_CUENTA: ESTADOS_CUENTA, DIAS_AVISO_VENCIMIENTO: DIAS_AVISO_VENCIMIENTO, estadoCuenta: estadoCuenta,
     DIAS_PRUEBA_GRATIS: DIAS_PRUEBA_GRATIS, diasRestantes: diasRestantes,
