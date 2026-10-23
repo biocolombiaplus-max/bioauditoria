@@ -327,9 +327,10 @@
     // que ni siquiera ha llenado el formulario público todavía.
     function abrirGenerarPropuesta(clientePrefill) {
       var conLeads = clientes.filter(function (c) { return c.contacto && c.contacto.nombre; });
+      var PLANES = BIO_PLANES.PLANES;
       var wrap = U.openModal(
         '<h3 class="modal-title">📄 Generar Propuesta Comercial</h3>' +
-        '<p class="text-muted" style="margin-top:0">La propuesta lista TODO lo que incluye BIOsoft, lista para enviar por correo o WhatsApp.</p>' +
+        '<p class="text-muted" style="margin-top:0">La propuesta lista TODO lo que incluye BIOsoft, lista para enviar por correo o WhatsApp. Elige un plan para agregar una sección con los valores EXACTOS negociados con este laboratorio (implementación, equipos y total mes a mes).</p>' +
         (conLeads.length ? '<div class="field"><label>¿Ya es un cliente o lead? Selecciónalo para traer sus datos</label><select id="pp-cliente"><option value="">— Escribir datos nuevos —</option>' +
           conLeads.map(function (c) { return '<option value="' + c.id + '" ' + (clientePrefill && clientePrefill.id === c.id ? "selected" : "") + '>' + U.esc((c.laboratorio && c.laboratorio.nombre) || c.contacto.nombre) + " — " + U.esc(c.contacto.nombre) + "</option>"; }).join("") +
           "</select></div>" : "") +
@@ -337,6 +338,26 @@
         '<div class="field"><label>Nombre *</label><input id="pp-nombre" required/></div>' +
         '<div class="field"><label>Correo *</label><input id="pp-correo" type="email" required/></div>' +
         '<div class="field"><label>WhatsApp (opcional, con indicativo)</label><input id="pp-whatsapp" placeholder="573001234567"/></div>' +
+        '<div class="field"><label>Plan a proponer (opcional)</label><select id="pp-plan"><option value="">— Propuesta general, sin valores fijos —</option>' +
+        PLANES.map(function (p) { return '<option value="' + p.id + '">' + U.esc(p.nombre) + " — " + U.esc(p.usuarios) + "</option>"; }).join("") +
+        "</select></div>" +
+        "</div>" +
+        '<div class="form-grid hidden" id="pp-personalizada-box" style="margin-top:4px">' +
+        '<div class="field"><label>Modalidad de pago</label><select id="pp-modalidad">' +
+        '<option value="mensual">Mes a mes (implementación en 2 cuotas)</option>' +
+        '<option value="contado">Mes a mes (implementación pagada de una vez)</option>' +
+        '<option value="sin_implementacion">Mes a mes (implementación gratis)</option>' +
+        '<option value="semestral">6 meses de una vez (sin implementación)</option>' +
+        "</select></div>" +
+        '<div class="field" id="pp-implementacion-box"><label>Valor de implementación (COP)</label><input type="number" min="0" step="10000" id="pp-implementacion" value="' + BIO_PLANES.IMPLEMENTACION.cop + '"/></div>' +
+        '<div class="field"><label>Cantidad de equipos a conectar</label><input type="number" min="0" step="1" id="pp-equipos" value="0"/></div>' +
+        '<div class="field" style="align-self:end"><label class="flex gap-2" style="align-items:center;font-weight:400"><input type="checkbox" id="pp-cobrar-equipos" checked style="width:auto"/> Cobrar por la conexión de estos equipos</label></div>' +
+        "</div>" +
+        '<div class="hidden" id="pp-resumen-box" style="margin:10px 0;padding:12px 14px;border:1px solid #f97316;border-radius:8px;background:#fff7ed">' +
+        '<p style="margin:0 0 6px;font-weight:700;font-size:12px;color:#9a3412;text-transform:uppercase;letter-spacing:.03em">Resumen de la inversión — valores fijos de esta propuesta</p>' +
+        '<p style="margin:2px 0;font-size:13px"><b id="pp-resumen-primer-label">Primer mes:</b> <span id="pp-resumen-primer"></span></p>' +
+        '<p style="margin:2px 0;font-size:13px"><b id="pp-resumen-segundo-label">Desde el segundo mes:</b> <span id="pp-resumen-segundo"></span></p>' +
+        '<p style="margin:2px 0;font-size:13px" class="hidden" id="pp-resumen-tercero-wrap"><b>Desde el tercer mes:</b> <span id="pp-resumen-tercero"></span></p>' +
         "</div>" +
         '<div class="flex gap-2 justify-between" style="margin-top:6px">' +
         '<button type="button" class="btn btn-ghost" data-modal-close>Cancelar</button>' +
@@ -345,12 +366,18 @@
       );
       // Al elegir un cliente/lead ya existente, se rellenan sus datos de
       // contacto de una vez — evita escribirlos de nuevo (y el riesgo de
-      // errores de digitación) para alguien que ya está en el CRM.
+      // errores de digitación) para alguien que ya está en el CRM. Si ya
+      // tiene plan/modalidad/implementación asignados (ej. ya es cliente
+      // activo), se preseleccionan también, para no tener que repetirlos.
       function rellenarDesde(cliente) {
         if (!cliente) return;
         wrap.querySelector("#pp-nombre").value = cliente.contacto.nombre || "";
         wrap.querySelector("#pp-correo").value = cliente.contacto.correo || "";
         wrap.querySelector("#pp-whatsapp").value = cliente.contacto.whatsapp || "";
+        if (cliente.planId) wrap.querySelector("#pp-plan").value = cliente.planId;
+        if (["mensual", "contado", "sin_implementacion", "semestral"].indexOf(cliente.modalidadPago) !== -1) wrap.querySelector("#pp-modalidad").value = cliente.modalidadPago;
+        if (cliente.implementacionCOP) wrap.querySelector("#pp-implementacion").value = cliente.implementacionCOP;
+        actualizarPersonalizada();
       }
       var selCliente = wrap.querySelector("#pp-cliente");
       if (selCliente) {
@@ -358,13 +385,86 @@
           rellenarDesde(conLeads.filter(function (c) { return c.id === selCliente.value; })[0]);
         });
       }
+
+      function fmtCOP(n) { return "$" + Math.round(n).toLocaleString("es-CO") + " COP"; }
+      function fmtUSD(n) { return "$" + Math.round(n) + " USD"; }
+
+      // Reutiliza EXACTAMENTE la misma lógica de cálculo que "Marcar como
+      // Pagado" (calcularTotalesPago, más abajo en este archivo) — así el
+      // valor que se promete en la propuesta es siempre el mismo que luego
+      // se va a cobrar de verdad. Se simula el avance de cuotas llamándola
+      // 3 veces seguidas (mes 1, mes 2, mes 3) pasándole cuántas cuotas de
+      // implementación ya habría pagado en cada una, sin tocar ningún dato
+      // real del cliente.
+      function actualizarPersonalizada() {
+        var planId = wrap.querySelector("#pp-plan").value;
+        var personalizadaBox = wrap.querySelector("#pp-personalizada-box");
+        var resumenBox = wrap.querySelector("#pp-resumen-box");
+        if (!planId) {
+          personalizadaBox.classList.add("hidden");
+          resumenBox.classList.add("hidden");
+          return;
+        }
+        personalizadaBox.classList.remove("hidden");
+        resumenBox.classList.remove("hidden");
+        var plan = BIO_PLANES.porId(planId);
+        var modalidad = wrap.querySelector("#pp-modalidad").value;
+        var sinImplementacion = modalidad === "sin_implementacion" || modalidad === "semestral";
+        wrap.querySelector("#pp-implementacion-box").classList.toggle("hidden", sinImplementacion);
+        var implementacionCOP = sinImplementacion ? 0 : (parseFloat(wrap.querySelector("#pp-implementacion").value) || 0);
+        var equipos = parseInt(wrap.querySelector("#pp-equipos").value, 10) || 0;
+        var cobrarEquipos = wrap.querySelector("#pp-cobrar-equipos").checked;
+        var equiposCOP = cobrarEquipos ? equipos * BIO_PLANES.INTERFAZ_EQUIPOS.costoPorEquipoCop : 0;
+        var equiposUSD = cobrarEquipos ? equipos * BIO_PLANES.INTERFAZ_EQUIPOS.costoPorEquipoUsd : 0;
+
+        var calc1 = calcularTotalesPago({ cuotasImplementacionPagadas: 0 }, plan, modalidad, implementacionCOP);
+        var calc2 = calcularTotalesPago({ cuotasImplementacionPagadas: calc1.cuotasTrasEstePago }, plan, modalidad, implementacionCOP);
+        var calc3 = calcularTotalesPago({ cuotasImplementacionPagadas: calc2.cuotasTrasEstePago }, plan, modalidad, implementacionCOP);
+        var hayTercero = modalidad === "mensual" && calc3.totalCOP !== calc2.totalCOP;
+
+        wrap.querySelector("#pp-resumen-primer").textContent = calc1.conceptoLabel + (equipos ? " + conexión de " + equipos + " equipo(s)" : "") + " — " + fmtCOP(calc1.totalCOP + equiposCOP) + " (aprox. " + fmtUSD(calc1.totalUSD + equiposUSD) + ")";
+        wrap.querySelector("#pp-resumen-segundo-label").textContent = (modalidad === "semestral" ? "A partir del mes 7" : hayTercero ? "Segundo mes" : "Desde el segundo mes") + ":";
+        wrap.querySelector("#pp-resumen-segundo").textContent = calc2.conceptoLabel + " — " + fmtCOP(calc2.totalCOP) + " (aprox. " + fmtUSD(calc2.totalUSD) + ")";
+        wrap.querySelector("#pp-resumen-tercero-wrap").classList.toggle("hidden", !hayTercero);
+        if (hayTercero) wrap.querySelector("#pp-resumen-tercero").textContent = calc3.conceptoLabel + " — " + fmtCOP(calc3.totalCOP) + " (aprox. " + fmtUSD(calc3.totalUSD) + ")";
+      }
+      ["#pp-plan", "#pp-modalidad", "#pp-implementacion", "#pp-equipos", "#pp-cobrar-equipos"].forEach(function (sel) {
+        wrap.querySelector(sel).addEventListener("input", actualizarPersonalizada);
+        wrap.querySelector(sel).addEventListener("change", actualizarPersonalizada);
+      });
+      actualizarPersonalizada();
       if (clientePrefill) rellenarDesde(clientePrefill);
+
       wrap.querySelector("#propuesta-form").addEventListener("submit", function (e) {
         e.preventDefault();
         var nombre = wrap.querySelector("#pp-nombre").value.trim();
         var correo = wrap.querySelector("#pp-correo").value.trim();
         var whatsapp = wrap.querySelector("#pp-whatsapp").value.trim();
         if (!nombre || !correo) { U.toast("Completa nombre y correo.", "error"); return; }
+
+        var planId = wrap.querySelector("#pp-plan").value;
+        var datosPropuesta = { nombre: nombre, correo: correo, telefono: whatsapp };
+        if (planId) {
+          var plan = BIO_PLANES.porId(planId);
+          var modalidad = wrap.querySelector("#pp-modalidad").value;
+          var sinImplementacion = modalidad === "sin_implementacion" || modalidad === "semestral";
+          var implementacionCOP = sinImplementacion ? 0 : (parseFloat(wrap.querySelector("#pp-implementacion").value) || 0);
+          var equipos = parseInt(wrap.querySelector("#pp-equipos").value, 10) || 0;
+          var cobrarEquipos = wrap.querySelector("#pp-cobrar-equipos").checked;
+          var equiposCOP = cobrarEquipos ? equipos * BIO_PLANES.INTERFAZ_EQUIPOS.costoPorEquipoCop : 0;
+          var equiposUSD = cobrarEquipos ? equipos * BIO_PLANES.INTERFAZ_EQUIPOS.costoPorEquipoUsd : 0;
+          var calc1 = calcularTotalesPago({ cuotasImplementacionPagadas: 0 }, plan, modalidad, implementacionCOP);
+          var calc2 = calcularTotalesPago({ cuotasImplementacionPagadas: calc1.cuotasTrasEstePago }, plan, modalidad, implementacionCOP);
+          var calc3 = calcularTotalesPago({ cuotasImplementacionPagadas: calc2.cuotasTrasEstePago }, plan, modalidad, implementacionCOP);
+          var hayTercero = modalidad === "mensual" && calc3.totalCOP !== calc2.totalCOP;
+          datosPropuesta.resumenInversion = {
+            planNombre: plan.nombre, planUsuarios: plan.usuarios, equipos: equipos, cobrarEquipos: cobrarEquipos,
+            primer: { label: calc1.conceptoLabel + (equipos ? " + conexión de " + equipos + " equipo(s)" : ""), cop: calc1.totalCOP + equiposCOP, usd: calc1.totalUSD + equiposUSD },
+            segundo: { label: (modalidad === "semestral" ? "A partir del mes 7" : hayTercero ? "Segundo mes" : "Desde el segundo mes") + " — " + calc2.conceptoLabel, cop: calc2.totalCOP, usd: calc2.totalUSD },
+            tercero: hayTercero ? { label: "Desde el tercer mes — " + calc3.conceptoLabel, cop: calc3.totalCOP, usd: calc3.totalUSD } : null
+          };
+        }
+
         // Genera de forma asíncrona: precarga las capturas de pantalla de
         // cada módulo antes de armar el PDF (igual que el Manual de
         // Usuario), así que el botón se deshabilita mientras tanto para
@@ -372,9 +472,9 @@
         var submitBtn = wrap.querySelector('button[type="submit"]');
         var textoOriginal = submitBtn.textContent;
         submitBtn.disabled = true; submitBtn.textContent = "Generando…";
-        BIO_PDF_CRM.buildPropuestaPDF({ nombre: nombre, correo: correo, telefono: whatsapp }).then(function (bytes) {
+        BIO_PDF_CRM.buildPropuestaPDF(datosPropuesta).then(function (bytes) {
           U.closeModal(wrap);
-          var mensaje = "Hola " + nombre.split(" ")[0] + " 👋 Te comparto la propuesta con todo lo que incluye BIOsoft. Cualquier duda, quedo atento.";
+          var mensaje = "Hola " + nombre.split(" ")[0] + " 👋 Te comparto la propuesta con todo lo que incluye BIOsoft" + (planId ? ", con los valores exactos para el Plan " + BIO_PLANES.porId(planId).nombre : "") + ". Cualquier duda, quedo atento.";
           abrirEnviarDocumento({
             titulo: "Enviar Propuesta", bytes: bytes, nombreArchivo: "Propuesta_BIOsoft_" + nombre.replace(/\s+/g, "_") + ".pdf",
             contacto: { correo: correo, whatsapp: whatsapp }, mensaje: mensaje, asuntoCorreo: "Propuesta Comercial — BIOsoft"

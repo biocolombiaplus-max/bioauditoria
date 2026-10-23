@@ -836,13 +836,44 @@
 
     parrafo("Hola " + (datos.nombre || "").split(" ")[0] + ",", { bold: true, size: 12, color: [20, 20, 20], gap: 5 });
     parrafo(
-      "Gracias por tu interés en " + PROVEEDOR.producto + ". Esta propuesta reúne todo lo que incluye BIOsoft y los planes disponibles, para que elijas el que mejor se ajuste al tamaño de tu equipo — con la información completa y sin letra pequeña."
+      datos.resumenInversion
+        ? "Gracias por tu interés en " + PROVEEDOR.producto + ". Esta propuesta reúne todo lo que incluye BIOsoft, junto con los valores EXACTOS acordados para tu laboratorio — con la información completa y sin letra pequeña."
+        : "Gracias por tu interés en " + PROVEEDOR.producto + ". Esta propuesta reúne todo lo que incluye BIOsoft y los planes disponibles, para que elijas el que mejor se ajuste al tamaño de tu equipo — con la información completa y sin letra pequeña."
     );
 
-    recuadro("Oferta de lanzamiento — gratis al aceptar esta propuesta hoy", [
-      "Implementación, adaptación del catálogo y capacitación virtual a la medida de tu laboratorio: normalmente $" + PROMO.implementacionUsd + " USD, HOY sin ningún costo.",
-      "Conexión de hasta " + PROMO.equiposGratis + " equipos de laboratorio por interfaz (LIS): normalmente $" + PROMO.costoPorEquipoUsd + " USD por equipo (pago único, solo el primer mes de ese equipo), HOY sin ningún costo."
-    ]);
+    if (datos.resumenInversion) {
+      var ri = datos.resumenInversion;
+      tituloSeccion("Tu propuesta personalizada — Plan " + ri.planNombre);
+      parrafo(
+        ri.planUsuarios + (ri.equipos ? " · " + ri.equipos + " equipo(s) de laboratorio a conectar" + (ri.cobrarEquipos ? "" : " (incluidos sin costo)") : ""),
+        { size: 9, color: [90, 90, 90], gap: 8 }
+      );
+      var filasInversion = [
+        ["Primer mes", ri.primer.label, "$" + ri.primer.cop.toLocaleString("es-CO") + " COP\n(aprox. $" + ri.primer.usd + " USD)"],
+        [ri.tercero ? "Segundo mes" : "Desde el 2° mes", ri.segundo.label, "$" + ri.segundo.cop.toLocaleString("es-CO") + " COP\n(aprox. $" + ri.segundo.usd + " USD)"]
+      ];
+      if (ri.tercero) filasInversion.push(["Desde el 3er mes", ri.tercero.label, "$" + ri.tercero.cop.toLocaleString("es-CO") + " COP\n(aprox. $" + ri.tercero.usd + " USD)"]);
+      checkPage(filasInversion.length * 30 + 40);
+      doc.autoTable({
+        startY: y, margin: { left: margin, right: margin },
+        head: [["Periodo", "Concepto", "Valor a pagar"]],
+        body: filasInversion,
+        theme: "grid",
+        styles: { fontSize: 9, cellPadding: 7, valign: "middle" },
+        headStyles: { fillColor: [249, 115, 22], textColor: 255, fontStyle: "bold" },
+        columnStyles: { 0: { fontStyle: "bold", cellWidth: maxW * 0.16 }, 2: { fontStyle: "bold", halign: "right", cellWidth: maxW * 0.27 } }
+      });
+      y = doc.lastAutoTable.finalY + 8;
+      parrafo(
+        "Estos son los valores exactos calculados para tu laboratorio según lo conversado — fijos, sin cargos ocultos y sin cambios mientras continúes bajo estas mismas condiciones.",
+        { size: 8.5, color: [120, 120, 120], gap: 16 }
+      );
+    } else {
+      recuadro("Oferta de lanzamiento — gratis al aceptar esta propuesta hoy", [
+        "Implementación, adaptación del catálogo y capacitación virtual a la medida de tu laboratorio: normalmente $" + PROMO.implementacionUsd + " USD, HOY sin ningún costo.",
+        "Conexión de hasta " + PROMO.equiposGratis + " equipos de laboratorio por interfaz (LIS): normalmente $" + PROMO.costoPorEquipoUsd + " USD por equipo (pago único, solo el primer mes de ese equipo), HOY sin ningún costo."
+      ]);
+    }
 
     tituloSeccion("Todo lo que incluye tu BIOsoft");
     parrafo("Los 4 planes de abajo incluyen exactamente esto, sin excepciones ni módulos aparte. Lo único que cambia entre un plan y otro es cuántas personas pueden usar el sistema al mismo tiempo.", { size: 9, color: [90, 90, 90], gap: 10 });
@@ -905,8 +936,10 @@
       headStyles: { fillColor: [46, 16, 101], textColor: 255, fontStyle: "bold" },
       columnStyles: { 2: { fontStyle: "bold", halign: "right" } },
       didParseCell: function (data) {
-        if (data.section === "body" && PLANES[data.row.index] && PLANES[data.row.index].destacado) {
-          data.cell.styles.fillColor = [255, 247, 237];
+        if (data.section !== "body" || !PLANES[data.row.index]) return;
+        var p = PLANES[data.row.index];
+        if (datos.resumenInversion ? p.nombre === datos.resumenInversion.planNombre : p.destacado) {
+          data.cell.styles.fillColor = [255, 237, 213];
         }
       }
     });
