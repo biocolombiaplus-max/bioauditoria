@@ -1036,11 +1036,16 @@
       // que la orden realmente vale al elegir Cashea, no algo que dependa
       // de si el pago fue parcial.
       var recargoAplicado = recargoCasheaActual();
-      if (tieneCopago) {
-        valorCopago += recargoAplicado;
-      } else if (!esCargoConvenio) {
-        order.valorCobrar += recargoAplicado;
-      }
+      // El recargo SIEMPRE debe terminar reflejado en order.valorCobrar (el
+      // valor total de la orden) — si no, "VALOR TOTAL DE LA ORDEN" en el
+      // recibo (y en el Informe Cashea) queda por debajo de la suma real de
+      // "COPAGO DEL PACIENTE" + "A CARGO DEL CONVENIO", que sí incluye el
+      // recargo a través de valorCopago. Bug real detectado y corregido:
+      // antes, con copago, solo se le sumaba a valorCopago y nunca a
+      // order.valorCobrar, dejando el total $recargoAplicado por debajo de
+      // lo que de verdad suman sus dos partes.
+      if (!esCargoConvenio || tieneCopago) order.valorCobrar += recargoAplicado;
+      if (tieneCopago) valorCopago += recargoAplicado;
       var pago = tieneCopago
         ? { fecha: new Date().toISOString(), metodoPago: wrapConfirm.querySelector("#rec-ord-metodo").value, monto: montoRecibido, valorCopago: valorCopago, valorConvenio: valorConvenio, tieneCopago: true, esCredito: true, confirmadoPor: session.nombre, casheaRecargoPorcentaje: recargoAplicado > 0 ? pctCashea : 0, casheaRecargoValor: recargoAplicado }
         : esCargoConvenio
