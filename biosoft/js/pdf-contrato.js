@@ -243,7 +243,7 @@
       doc.setFont("helvetica", "normal"); doc.setFontSize(9.5); doc.setTextColor(90, 90, 90);
       doc.text(
         personaNatural
-          ? (personaNatural.documento ? C.documentoTributarioLabel(lab.pais) + " " + personaNatural.documento : "") + (lab.nombre ? "  ·  Nombre comercial: " + lab.nombre : "")
+          ? (personaNatural.documento ? (personaNatural.tipoDocumento || "Cédula de Ciudadanía") + " " + personaNatural.documento : "") + (lab.nombre ? "  ·  Nombre comercial: " + lab.nombre : "")
           : (lab.nit ? C.documentoTributarioLabel(lab.pais) + " " + lab.nit : "") + (contacto.nombre ? "  ·  Representante: " + contacto.nombre : ""),
         pageW / 2, y, { align: "center" }
       );
@@ -435,7 +435,7 @@
     var personaNatural = cliente.personaNatural && cliente.personaNatural.nombre ? cliente.personaNatural : null;
     var identificacionCliente = personaNatural
       ? (personaNatural.nombre +
-          (personaNatural.documento ? ", identificado con " + C.documentoTributarioLabel(lab.pais) + " " + personaNatural.documento : "") +
+          (personaNatural.documento ? ", identificado con " + (personaNatural.tipoDocumento || "Cédula de Ciudadanía") + " " + personaNatural.documento : "") +
           (lab.nombre ? ", quien opera comercialmente bajo el nombre “" + lab.nombre + "”" : ""))
       : ((lab.nombre || "el laboratorio cliente") + (lab.nit ? ", identificado con " + C.documentoTributarioLabel(lab.pais) + " " + lab.nit : ""));
     parrafo(
@@ -635,7 +635,7 @@
     doc.text(PROVEEDOR.nombre + " · NIT " + PROVEEDOR.nit, margin, y);
     doc.text(
       personaNatural
-        ? (personaNatural.documento ? C.documentoTributarioLabel(lab.pais) + " " + personaNatural.documento : "—") + (lab.nombre ? " · " + lab.nombre : "")
+        ? (personaNatural.documento ? (personaNatural.tipoDocumento || "Cédula de Ciudadanía") + " " + personaNatural.documento : "—") + (lab.nombre ? " · " + lab.nombre : "")
         : (lab.nombre || "—") + (lab.nit ? " · " + C.documentoTributarioLabel(lab.pais) + " " + lab.nit : ""),
       col2, y
     );
@@ -670,7 +670,7 @@
       ["Fecha de pago:", fechaLarga(pago && pago.fecha ? pago.fecha : new Date())],
       ["Recibido de:",
         personaNatural
-          ? personaNatural.nombre + (personaNatural.documento ? " (" + C.documentoTributarioLabel(lab.pais) + " " + personaNatural.documento + ")" : "") + (lab.nombre ? " — " + lab.nombre : "")
+          ? personaNatural.nombre + (personaNatural.documento ? " (" + (personaNatural.tipoDocumento || "Cédula de Ciudadanía") + " " + personaNatural.documento + ")" : "") + (lab.nombre ? " — " + lab.nombre : "")
           : (lab.nombre || "—") + (lab.nit ? " (" + C.documentoTributarioLabel(lab.pais) + " " + lab.nit + ")" : "")],
       ["Contacto:", contacto.nombre || "—"],
       ["Concepto:", (pago && pago.concepto ? pago.concepto : "Mensualidad") + " — Plan " + plan.nombre],

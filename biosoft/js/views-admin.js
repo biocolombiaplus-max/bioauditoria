@@ -2522,7 +2522,7 @@
       if (extra && "personaNatural" in extra) {
         if (extra.personaNatural) doc.personaNatural = extra.personaNatural;
       } else if (tenant.personaNaturalContrato && tenant.personaNaturalNombre) {
-        doc.personaNatural = { nombre: tenant.personaNaturalNombre, documento: tenant.personaNaturalDocumento };
+        doc.personaNatural = { nombre: tenant.personaNaturalNombre, documento: tenant.personaNaturalDocumento, tipoDocumento: tenant.personaNaturalTipoDocumento || "Cédula de Ciudadanía" };
       }
       return doc;
     }
@@ -2599,7 +2599,12 @@
         '<span class="text-muted" style="font-size:11.5px;display:block;margin-top:2px">Útil cuando el laboratorio opera bajo un nombre comercial, pero quien firma legalmente el Contrato es otra persona, identificada con su propio documento — distinto al ' + C.documentoTributarioLabel(tenant.pais) + ' del laboratorio.</span></div>' +
         '<div class="form-grid ' + (tenant.personaNaturalContrato ? "" : "hidden") + '" id="con-persona-natural-box" style="margin-top:8px">' +
         '<div class="field"><label>Nombre completo de la persona</label><input id="con-pn-nombre" value="' + U.esc(tenant.personaNaturalNombre || "") + '"/></div>' +
-        '<div class="field"><label>N° de documento personal (' + C.documentoTributarioLabel(tenant.pais) + ' de la persona)</label><input id="con-pn-documento" value="' + U.esc(tenant.personaNaturalDocumento || "") + '"/></div>' +
+        '<div class="field"><label>Tipo de documento</label><select id="con-pn-tipo-documento">' +
+        ["Cédula de Ciudadanía", "Cédula de Extranjería", C.documentoTributarioLabel(tenant.pais)].filter(function (v, i, arr) { return arr.indexOf(v) === i; }).map(function (tipo) {
+          return '<option value="' + U.esc(tipo) + '" ' + ((tenant.personaNaturalTipoDocumento || "Cédula de Ciudadanía") === tipo ? "selected" : "") + ">" + U.esc(tipo) + "</option>";
+        }).join("") +
+        "</select></div>" +
+        '<div class="field"><label>N° de documento personal</label><input id="con-pn-documento" value="' + U.esc(tenant.personaNaturalDocumento || "") + '"/></div>' +
         "</div>" +
         '<div class="field"><label>Mensaje</label><textarea id="con-msg">' + U.esc(mensajeDefault) + "</textarea></div>" +
         '<div class="flex gap-2 justify-between"><button class="btn btn-ghost" data-modal-close>Cancelar</button><button class="btn btn-primary" id="con-go">' + U.icon("download") + " 1. Generar y Descargar</button></div>" +
@@ -2658,6 +2663,7 @@
         var personaNaturalMarcada = wrap.querySelector("#con-persona-natural").checked;
         var pnNombre = wrap.querySelector("#con-pn-nombre").value.trim();
         var pnDocumento = wrap.querySelector("#con-pn-documento").value.trim();
+        var pnTipoDocumento = wrap.querySelector("#con-pn-tipo-documento").value;
         if (!email && !whatsapp) { U.toast("Ingresa un correo o un número de WhatsApp.", "error"); return; }
         if (personaNaturalMarcada && !pnNombre) { U.toast("Escribe el nombre de la persona natural a nombre de quien se genera el Contrato.", "error"); return; }
         var btn = e.currentTarget;
@@ -2665,7 +2671,7 @@
         btn.disabled = true; btn.innerHTML = "Generando…";
         try {
           var opts = { cicloCobroDias: cicloElegido, mesesMembresia: mesesElegidos, mesesCortesia: mesesCortesiaElegidos, numeroLicencia: numeroLicenciaDe(tenant), descuentoPlan: descuentoPlanActual, cobraEquipos: cobraEquiposActual };
-          var personaNaturalElegida = personaNaturalMarcada && pnNombre ? { nombre: pnNombre, documento: pnDocumento } : null;
+          var personaNaturalElegida = personaNaturalMarcada && pnNombre ? { nombre: pnNombre, documento: pnDocumento, tipoDocumento: pnTipoDocumento } : null;
           var bytes = BIO_PDF_CRM.buildContratoPDF(tenantParaDocs(tenant, { personaNatural: personaNaturalElegida }), plan, modalidadElegida, opts);
           var nombreArchivo = "Contrato_BIOsoft_" + (tenant.nombre || "Cliente").replace(/\s+/g, "_") + ".pdf";
           U.downloadBytes(bytes, nombreArchivo);
@@ -2684,10 +2690,12 @@
           tenant.personaNaturalContrato = personaNaturalMarcada;
           tenant.personaNaturalNombre = personaNaturalMarcada ? pnNombre : "";
           tenant.personaNaturalDocumento = personaNaturalMarcada ? pnDocumento : "";
+          tenant.personaNaturalTipoDocumento = personaNaturalMarcada ? pnTipoDocumento : "";
           var patchContrato = {
             fechaInicioPlan: tenant.fechaInicioPlan, fechaProximoPago: tenant.fechaProximoPago,
             modalidadPago: tenant.modalidadPago, cicloCobroDias: tenant.cicloCobroDias, mesesCortesia: tenant.mesesCortesia,
-            personaNaturalContrato: tenant.personaNaturalContrato, personaNaturalNombre: tenant.personaNaturalNombre, personaNaturalDocumento: tenant.personaNaturalDocumento
+            personaNaturalContrato: tenant.personaNaturalContrato, personaNaturalNombre: tenant.personaNaturalNombre, personaNaturalDocumento: tenant.personaNaturalDocumento,
+            personaNaturalTipoDocumento: tenant.personaNaturalTipoDocumento
           };
           if (modalidadElegida === "semestral") patchContrato.mesesMembresiaGratis = tenant.mesesMembresiaGratis;
           S.updateTenant(tenant.id, patchContrato);
