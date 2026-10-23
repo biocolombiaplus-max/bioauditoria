@@ -33,9 +33,11 @@
   // el equipo comercial de BIOsoft, no el laboratorio cliente.
   var WA_BIOSOFT = "573505457420";
 
-  // Día en que se activó la rotación: HOY = Página Web, mañana = WhatsApp,
-  // pasado mañana = Redes — y se repite el ciclo cada 3 días, siempre.
-  var ANCLA = new Date(2026, 9, 22);
+  // Día en que se activó la rotación: ese día = Página Web, el siguiente =
+  // WhatsApp, el siguiente = Redes — y se repite el ciclo cada 3 días,
+  // siempre. Reanclada al 24 de octubre de 2026 (desde el 23) para que la
+  // Página Web —el anuncio con mejor rendimiento— vuelva a salir primero.
+  var ANCLA = new Date(2026, 9, 24);
 
   function hoySinHora() {
     var h = new Date();
