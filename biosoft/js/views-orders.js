@@ -945,7 +945,12 @@
     // pago y confirmación; el resto sigue yendo a crédito del convenio
     // exactamente igual que antes.
     var convenio = order.convenioId ? S.cotizador.listConvenios(order.tenantId).filter(function (c) { return c.id === order.convenioId; })[0] : null;
-    var valorCopago = esCargoConvenio ? C.calcularCopago(convenio, order.valorCobrar) : 0;
+    // Copago solo existe para laboratorios de Colombia (ver "Nuevo Convenio
+    // / Tarifa" en views-cotizador.js) — se vuelve a comprobar aquí por si
+    // un convenio de otro país quedó con tieneCopago=true de antes de esta
+    // restricción. Así nunca se mezcla con Cashea (exclusivo de Venezuela),
+    // que es justo la combinación que causaba descuadres en el total.
+    var valorCopago = (esCargoConvenio && tenant.pais === "CO") ? C.calcularCopago(convenio, order.valorCobrar) : 0;
     var tieneCopago = valorCopago > 0;
     var valorConvenio = order.valorCobrar - valorCopago;
     // El paciente puede pagar menos de lo que debe (abono parcial) — el
