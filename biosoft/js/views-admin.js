@@ -2010,7 +2010,24 @@
     function build() {
       if (cargando) { root.innerHTML = '<div class="card"><p class="text-muted">Cargando laboratorios…</p></div>'; return; }
       var tenantsVEconRifSinFormato = tenants.filter(function (t) { return t.pais === "VE" && t.nit && C.normalizarDocumentoTributario(t.nit, "VE") !== t.nit; });
+      // Un laboratorio con más usuarios ACTIVOS que los que permite su plan
+      // (ej. reactivó usuarios sin que nadie lo notara, antes de que
+      // "Activar" empezara a comprobar el límite) necesita que alguien
+      // decida qué hacer — ni BIOsoft ni el laboratorio deben dejarlo así
+      // indefinidamente, así que se avisa arriba de todo, bien visible.
+      var tenantsSobreLimite = tenants.filter(function (t) { return t.maxUsuarios && (t._usuarios || 0) > t.maxUsuarios; });
       root.innerHTML =
+        (tenantsSobreLimite.length ?
+          '<div class="card" style="border:1.5px solid var(--danger)"><div class="card-header"><h3 class="card-title">⚠️ Laboratorios con más usuarios activos que su plan (' + tenantsSobreLimite.length + ')</h3></div>' +
+          '<p class="text-muted" style="margin-top:0">Pueden haber quedado así antes de que "Activar" empezara a respetar el límite del plan. Resuélvelo con cada uno: desactiva usuarios para ajustarlo, o propónle subir de plan.</p>' +
+          '<div class="table-wrap"><table><thead><tr><th>Laboratorio</th><th>Plan</th><th>Usuarios Activos</th><th></th></tr></thead><tbody>' +
+          tenantsSobreLimite.map(function (t) {
+            var planT = BIO_PLANES.porId(t.planId);
+            return "<tr><td><b>" + U.esc(t.nombre) + "</b></td><td>" + (planT ? U.esc(planT.nombre) : '<span class="text-muted">Sin asignar</span>') + "</td>" +
+              "<td><span class='badge badge-urgente'>" + (t._usuarios || 0) + " / " + t.maxUsuarios + "</span></td>" +
+              "<td><button class='btn btn-primary btn-sm' data-resolver-limite='" + t.id + "'>⚠️ Resolver Ahora</button></td></tr>";
+          }).join("") + "</tbody></table></div></div>"
+          : "") +
         '<div class="card"><div class="card-header"><h3 class="card-title">Laboratorios Cliente (' + tenants.length + ')</h3>' +
         '<div class="flex gap-2 wrap">' +
         (tenantsVEconRifSinFormato.length ? '<button class="btn btn-outline btn-sm" id="btn-corregir-rif" title="Anteponer el prefijo V- a los RIF de Venezuela que aún no lo tienen">🔧 Corregir Formato RIF (' + tenantsVEconRifSinFormato.length + ")</button>" : "") +
@@ -2039,6 +2056,7 @@
             '<td><div class="flex gap-2 wrap">' +
             '<button class="btn btn-outline btn-sm" data-editar-plan="' + t.id + '">' + U.icon("edit") + " Plan</button>" +
             (t.planId ? '<button class="btn btn-outline btn-sm" data-registrar-pago-tenant="' + t.id + '" title="Registrar el pago recibido, generar su recibo y activar el siguiente período">' + U.icon("check") + " Registrar Pago</button>" : "") +
+            (sobreLimite ? '<button class="btn btn-danger btn-sm" data-resolver-limite="' + t.id + '">⚠️ Resolver Límite</button>' : "") +
             '<button class="btn btn-primary btn-sm" data-mas-acciones="' + t.id + '">' + U.icon("more") + " Más acciones</button>" +
             "</div></td></tr>";
         }).join("") : '<tr><td colspan="7" class="text-muted">Aún no hay laboratorios cliente creados.</td></tr>') + "</tbody></table></div></div>";
@@ -2069,6 +2087,11 @@
       root.querySelectorAll("[data-mas-acciones]").forEach(function (b) {
         b.addEventListener("click", function () {
           abrirMasAccionesTenant(tenants.filter(function (t) { return t.id === b.dataset.masAcciones; })[0]);
+        });
+      });
+      root.querySelectorAll("[data-resolver-limite]").forEach(function (b) {
+        b.addEventListener("click", function () {
+          abrirResolverLimiteUsuarios(tenants.filter(function (t) { return t.id === b.dataset.resolverLimite; })[0]);
         });
       });
       root.querySelectorAll("[data-recordar-pago]").forEach(function (b) {
@@ -2115,6 +2138,7 @@
     }
 
     function abrirMasAccionesTenant(tenant) {
+      var sobreLimiteTenant = !!(tenant.maxUsuarios && (tenant._usuarios || 0) > tenant.maxUsuarios);
       abrirMenuAcciones("Más acciones — " + tenant.nombre, [
         { titulo: "Documentos", acciones: [
           { label: "Enviar Contrato de Prestación de Servicios", icon: "file", onClick: function () { abrirEnviarContrato(tenant); } },
@@ -2130,7 +2154,7 @@
           { label: "Reenviar Acceso al Administrador", icon: "send", onClick: function () { abrirReenviarAcceso(tenant); } },
           { label: "Diagnóstico de Acceso", icon: "search", onClick: function () { abrirDiagnosticoAcceso(tenant); } },
           { label: "Reparar Permisos Operativos", icon: "settings", onClick: function () { abrirRepararPermisos(tenant); } }
-        ]},
+        ].concat(sobreLimiteTenant ? [{ label: "⚠️ Resolver Límite de Usuarios", icon: "edit", onClick: function () { abrirResolverLimiteUsuarios(tenant); } }] : [])},
         { titulo: "CRM", acciones: [
           { label: "Crear / Vincular en el CRM", icon: "send", onClick: function () {
             sincronizarConCRM(tenant).then(function (r) {
@@ -2142,6 +2166,99 @@
           { label: "Eliminar Laboratorio", icon: "trash", danger: true, onClick: function () { abrirEliminarLaboratorio(tenant); } }
         ]}
       ]);
+    }
+
+    // El primer plan (ordenado por límite de usuarios) que alcanza a cubrir
+    // esta cantidad de usuarios activos — "Corporativo" tiene
+    // limiteUsuarios null (sin tope), así que siempre califica como última
+    // opción si ningún otro plan alcanza.
+    function planSugeridoParaUsuarios(cantidadUsuarios) {
+      var candidatos = BIO_PLANES.PLANES.filter(function (p) { return p.limiteUsuarios == null || p.limiteUsuarios >= cantidadUsuarios; });
+      candidatos.sort(function (a, b) { return (a.limiteUsuarios == null ? Infinity : a.limiteUsuarios) - (b.limiteUsuarios == null ? Infinity : b.limiteUsuarios); });
+      return candidatos[0] || null;
+    }
+
+    // Un laboratorio quedó con más usuarios ACTIVOS que los que permite su
+    // plan (ver el badge rojo "X / Y" en la tabla) — casi siempre porque
+    // reactivó a alguien que antes había desactivado, antes de que
+    // "Activar" empezara a respetar el límite (ver views-admin.js ->
+    // BIO_VIEWS.usuarios). Este panel le da al superadmin las DOS salidas
+    // reales: desactivar a quien sobre, o proponerle al laboratorio subir
+    // de plan para que le quede cubierto sin tocar a nadie.
+    function abrirResolverLimiteUsuarios(tenant) {
+      var wrapCargando = U.openModal('<h3 class="modal-title">Cargando usuarios de ' + U.esc(tenant.nombre) + '…</h3><p class="text-muted">Un momento.</p>');
+      conLimiteDeTiempo(function () { return S.tenantsGlobal.listUsuarios(tenant.id); }).then(function (usuarios) {
+        U.closeModal(wrapCargando);
+        var activos = usuarios.filter(function (u) { return u.activo; });
+        var limite = tenant.maxUsuarios || 0;
+        var exceso = Math.max(0, activos.length - limite);
+        if (!exceso) { U.toast("Este laboratorio ya está dentro de su límite de usuarios.", "success"); cargar(); return; }
+        var planActual = BIO_PLANES.porId(tenant.planId);
+        var planSugerido = planSugeridoParaUsuarios(activos.length);
+        var numeroTenant = (tenant.telefonos || "").replace(/\D/g, "");
+        var msgUpgrade = "Hola 👋 Notamos que " + tenant.nombre + " tiene " + activos.length + " usuarios activos, " + exceso + " más de los " + limite +
+          " incluidos en su plan actual" + (planActual ? " (" + planActual.nombre + ")" : "") + ". Si prefieren mantenerlos a todos, podemos subirlos al Plan " +
+          (planSugerido ? planSugerido.nombre + " (" + planSugerido.usuarios + ")" : "siguiente") + " para que les quede todo cubierto, sin tener que desactivar a nadie. ¿Les interesa?";
+        var wrap = U.openModal(
+          '<h3 class="modal-title">⚠️ ' + U.esc(tenant.nombre) + ' tiene ' + exceso + ' usuario(s) más de los contratados</h3>' +
+          '<p class="text-muted" style="margin-top:0">Su plan actual' + (planActual ? " (<b>" + U.esc(planActual.nombre) + "</b>)" : "") +
+          ' permite <b>' + limite + ' usuario(s) activo(s)</b>, pero tiene <b>' + activos.length + ' activos</b> ahora mismo. Elige cómo ajustarlo:</p>' +
+          '<div class="card" style="background:var(--surface-2);margin-bottom:14px">' +
+          '<p style="margin:0 0 4px;font-weight:700;font-size:13.5px">Opción 1 — Desactivar usuarios para ajustarse al plan</p>' +
+          '<p class="text-muted" style="margin:0 0 10px;font-size:12.5px">Marca a quién(es) desactivar — con <b>' + exceso + '</b> queda exacto en ' + limite + '/' + limite + '.</p>' +
+          '<div class="table-wrap"><table><thead><tr><th></th><th>Nombre</th><th>Usuario</th><th>Rol</th></tr></thead><tbody>' +
+          activos.map(function (u) {
+            return '<tr><td><input type="checkbox" class="chk-resolver-desactivar" data-id="' + u.id + '" data-nombre="' + U.esc(u.nombre || u.username) + '"/></td>' +
+              "<td>" + U.esc(u.nombre || "—") + "</td><td>" + U.esc(u.username) + "</td><td>" + U.esc(C.rolLabel(u.rol, tenant.pais)) + "</td></tr>";
+          }).join("") + "</tbody></table></div>" +
+          '<p id="resolver-limite-contador" class="text-muted" style="margin:10px 0 0;font-size:12.5px;font-weight:600"></p>' +
+          '<button type="button" class="btn btn-danger btn-block" id="btn-resolver-desactivar" style="margin-top:10px" disabled>Desactivar Seleccionados</button>' +
+          "</div>" +
+          '<div class="card" style="background:var(--surface-2)">' +
+          '<p style="margin:0 0 4px;font-weight:700;font-size:13.5px">Opción 2 — Subir de plan para cubrir a todos</p>' +
+          '<p class="text-muted" style="margin:0 0 10px;font-size:12.5px">' +
+          (planSugerido ? "Con " + activos.length + " usuarios activos, el Plan <b>" + U.esc(planSugerido.nombre) + "</b> (" + U.esc(planSugerido.usuarios) + ") es el que les cubre sin desactivar a nadie." : "Ningún plan cubre esta cantidad de usuarios — habla con el laboratorio para un acuerdo especial.") +
+          "</p>" +
+          (numeroTenant
+            ? '<a class="btn btn-whatsapp btn-block" href="https://wa.me/' + numeroTenant + '?text=' + encodeURIComponent(msgUpgrade) + '" target="_blank" rel="noopener">' + U.icon("send") + " Proponer Subir de Plan por WhatsApp</a>"
+            : '<p class="text-muted" style="font-size:12px;margin:0">Este laboratorio no tiene un WhatsApp registrado — edítalo en "Editar Datos del Laboratorio" para poder escribirle desde aquí.</p>') +
+          "</div>" +
+          '<div class="flex justify-between" style="margin-top:16px"><button class="btn btn-ghost" data-modal-close>Cerrar</button><span></span></div>'
+        );
+        var checks = wrap.querySelectorAll(".chk-resolver-desactivar");
+        var contador = wrap.querySelector("#resolver-limite-contador");
+        var btnDesactivar = wrap.querySelector("#btn-resolver-desactivar");
+        function actualizarContador() {
+          var seleccionados = Array.prototype.filter.call(checks, function (c) { return c.checked; });
+          var n = seleccionados.length;
+          contador.textContent = n === 0 ? "Ningún usuario seleccionado todavía." :
+            n < exceso ? "Seleccionaste " + n + " de " + exceso + " necesarios para quedar dentro del plan." :
+            "Seleccionaste " + n + " — con esto queda " + (limite + Math.max(0, n - exceso)) + "/" + limite + (n === exceso ? " (exacto)" : "") + ".";
+          contador.style.color = n >= exceso ? "var(--success)" : "";
+          btnDesactivar.disabled = n === 0;
+          btnDesactivar.textContent = n === 0 ? "Desactivar Seleccionados" : "Desactivar " + n + " Usuario(s) Seleccionado(s)";
+        }
+        checks.forEach(function (c) { c.addEventListener("change", actualizarContador); });
+        actualizarContador();
+        btnDesactivar.addEventListener("click", function () {
+          var seleccionados = Array.prototype.filter.call(checks, function (c) { return c.checked; });
+          if (!seleccionados.length) return;
+          if (!confirm("¿Desactivar " + seleccionados.length + " usuario(s) de " + tenant.nombre + "? Podrán reactivarse después si hace falta.")) return;
+          btnDesactivar.disabled = true; btnDesactivar.textContent = "Desactivando…";
+          Promise.all(seleccionados.map(function (c) { return S.tenantsGlobal.desactivarUsuario(tenant.id, c.dataset.id, c.dataset.nombre); }))
+            .then(function () {
+              U.toast(seleccionados.length + " usuario(s) desactivado(s) correctamente.", "success");
+              U.closeModal(wrap);
+              cargar();
+            }).catch(function (err) {
+              btnDesactivar.disabled = false; btnDesactivar.textContent = "Desactivar " + seleccionados.length + " Usuario(s) Seleccionado(s)";
+              U.toast("No se pudo desactivar: " + S.mensajeErrorFirestore(err), "error");
+            });
+        });
+      }).catch(function (err) {
+        U.closeModal(wrapCargando);
+        U.toast("No se pudieron cargar los usuarios: " + S.mensajeErrorFirestore(err), "error");
+      });
     }
 
     // Pensado para corregir un laboratorio duplicado (ej. el mismo quedó

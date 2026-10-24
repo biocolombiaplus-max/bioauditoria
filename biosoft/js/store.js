@@ -671,6 +671,27 @@
     });
   }
 
+  /* Desactiva (superadmin, cross-tenant) a un usuario puntual de un
+     laboratorio cliente — usado desde "Resolver Límite de Usuarios" en
+     Laboratorios Cliente, cuando un laboratorio quedó con más usuarios
+     activos que los que permite su plan (ej. reactivó usuarios sin que
+     nadie se diera cuenta) y el superadmin ayuda a dejarlo dentro de su
+     límite sin que el laboratorio tenga que entrar a hacerlo él mismo.
+     Mismo patrón que promoverUsuarioAAdmin: solo toca el campo "activo"
+     (merge) y deja registro en el auditLog de ESE laboratorio. */
+  function desactivarUsuarioTenant(tenantId, userId, nombreUsuario) {
+    if (!firebaseDisponible()) return Promise.reject(errorFirebaseNoDisponible());
+    var db = global.BIO_FB.db;
+    return db.collection("tenants").doc(tenantId).collection("users").doc(userId).set({ activo: false }, { merge: true }).then(function () {
+      var entry = {
+        id: uid("log"), tenantId: tenantId, fecha: nowISO(), usuario: "Soporte BIOsoft", rol: "superadmin",
+        accion: "TOGGLE_USER", entidad: "usuario", entidadId: userId,
+        detalle: "Desactivó al usuario " + (nombreUsuario || userId) + " para ajustar el laboratorio a su límite de usuarios del plan."
+      };
+      return db.collection("tenants").doc(tenantId).collection("auditLog").doc(entry.id).set(entry);
+    });
+  }
+
   /* Diagnóstico de acceso (superadmin): un usuario puede tener su cuenta de
      Firebase Auth funcionando perfectamente (login exitoso, contraseña
      correcta) y aun así no poder entrar, porque loginReal() necesita
@@ -2168,6 +2189,7 @@
     visitantesLanding: { list: visitantesLandingList, watch: visitantesLandingWatch },
     tenantsGlobal: {
       list: tenantsListGlobal, watch: tenantsWatchGlobal, listUsuarios: listUsuariosTenantOnce, promoverUsuarioAAdmin: promoverUsuarioAAdmin,
+      desactivarUsuario: desactivarUsuarioTenant,
       diagnosticarAcceso: diagnosticarAccesoTenant, repararPerfilAcceso: repararPerfilAcceso, repararPermisosOperativos: repararPermisosOperativos,
       eliminar: deleteTenantCompleto
     },
