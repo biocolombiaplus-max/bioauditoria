@@ -94,6 +94,11 @@
     // superadmin pueden cambiarlo a cualquier rango.
     var rangoDesde = haceDiasISO(29);
     var rangoHasta = hoyISO();
+    // "" = gráficas combinadas de todos los laboratorios (comportamiento de
+    // siempre); un id puntual muestra la tendencia diaria de ESE
+    // laboratorio solo — así el superadmin puede ver tanto el pulso general
+    // de BIOsoft como, cuando lo necesite, el de un cliente específico.
+    var labSeleccionado = "";
     root.innerHTML = '<div class="card"><p class="text-muted">Cargando resumen…</p></div>';
 
     function cargar(silencioso) {
@@ -140,7 +145,9 @@
       return dias;
     }
 
-    function chartHtml(fechas) {
+    function chartHtml(fechas, etiquetaUnidad, degradado) {
+      etiquetaUnidad = etiquetaUnidad || "paciente(s)";
+      degradado = degradado || "linear-gradient(180deg,var(--brand-primary),var(--brand-secondary))";
       var dias = diasDelRango();
       if (!dias.length) return '<p class="text-muted" style="margin:0">Elige un rango de fechas válido.</p>';
       var porDia = {};
@@ -155,7 +162,7 @@
         var mostrarEtiqueta = i % paso === 0 || i === dias.length - 1;
         return '<div style="flex:1 0 auto;min-width:5px;max-width:26px;display:flex;flex-direction:column;align-items:center;gap:4px">' +
           '<div style="width:100%;height:96px;display:flex;align-items:flex-end">' +
-          '<div style="width:100%;height:' + alturaPct + '%;background:linear-gradient(180deg,var(--brand-primary),var(--brand-secondary));border-radius:3px 3px 0 0" title="' + U.fmtFechaCorta(d) + ': ' + val + ' paciente(s)"></div>' +
+          '<div style="width:100%;height:' + alturaPct + '%;background:' + degradado + ';border-radius:3px 3px 0 0" title="' + U.fmtFechaCorta(d) + ': ' + val + ' ' + etiquetaUnidad + '"></div>' +
           "</div>" +
           '<div style="font-size:9px;color:var(--text-muted);white-space:nowrap">' + (mostrarEtiqueta ? U.fmtFechaCorta(d).slice(0, 5) : "") + "</div>" +
           "</div>";
@@ -176,11 +183,25 @@
       var urgentes = porEstado.vencido.concat(porEstado.por_vencer);
 
       var todasFechasPacientes = [];
-      tenants.forEach(function (t) { (t._pacientesFechas || []).forEach(function (f) { todasFechasPacientes.push(f); }); });
-      var pacientesEnRango = todasFechasPacientes.filter(enRango).length;
-      var ordenesEnRango = 0;
-      tenants.forEach(function (t) { (t._ordenesFechas || []).forEach(function (f) { if (enRango(f)) ordenesEnRango++; }); });
+      var todasFechasOrdenes = [];
+      tenants.forEach(function (t) {
+        (t._pacientesFechas || []).forEach(function (f) { todasFechasPacientes.push(f); });
+        (t._ordenesFechas || []).forEach(function (f) { todasFechasOrdenes.push(f); });
+      });
       var laboratoriosNuevosEnRango = tenants.filter(function (t) { return enRango(t.creadoEn); }).length;
+
+      // Las gráficas y los KPIs del periodo son del conjunto de TODOS los
+      // laboratorios por defecto, pero el superadmin puede elegir uno
+      // puntual (select más abajo) para ver SU tendencia diaria exacta —
+      // mismo chartHtml, distinta fuente de fechas, y los KPIs de arriba
+      // cambian con él para no mostrar un número combinado junto a una
+      // gráfica de un solo laboratorio.
+      var labElegido = labSeleccionado ? tenants.filter(function (t) { return t.id === labSeleccionado; })[0] : null;
+      var fechasPacientesGrafica = labElegido ? (labElegido._pacientesFechas || []) : todasFechasPacientes;
+      var fechasOrdenesGrafica = labElegido ? (labElegido._ordenesFechas || []) : todasFechasOrdenes;
+      var pacientesEnRango = fechasPacientesGrafica.filter(enRango).length;
+      var ordenesEnRango = fechasOrdenesGrafica.filter(enRango).length;
+      var tenantsOrdenados = tenants.slice().sort(function (a, b) { return (a.nombre || "").localeCompare(b.nombre || ""); });
 
       // Ranking de laboratorios por actividad EN EL PERIODO elegido — el
       // dato que realmente le interesa a BIOsoft para saber quién está
@@ -215,17 +236,26 @@
         "</div>" +
         '<div class="card">' +
         '<div class="card-header"><h3 class="card-title">📈 Actividad por Periodo</h3></div>' +
-        '<div class="form-grid" style="max-width:420px;margin-bottom:14px">' +
+        '<div class="form-grid" style="max-width:640px;margin-bottom:14px">' +
         '<div class="field"><label>Desde</label><input type="date" id="resumen-desde" value="' + rangoDesde + '"/></div>' +
         '<div class="field"><label>Hasta</label><input type="date" id="resumen-hasta" value="' + rangoHasta + '"/></div>' +
+        '<div class="field"><label>Laboratorio</label><select id="resumen-lab"><option value="">Todos los laboratorios (combinado)</option>' +
+        tenantsOrdenados.map(function (t) { return '<option value="' + t.id + '" ' + (t.id === labSeleccionado ? "selected" : "") + ">" + U.esc(t.nombre) + "</option>"; }).join("") +
+        "</select></div>" +
         "</div>" +
         '<div class="kpi-grid" style="margin-bottom:18px">' +
         kpi(pacientesEnRango, "Pacientes Registrados en el Periodo") +
         kpi(ordenesEnRango, "Órdenes Creadas en el Periodo") +
         kpi(laboratoriosNuevosEnRango, "Laboratorios Nuevos en el Periodo") +
         "</div>" +
-        '<h4 style="margin:0 0 8px;font-size:13px;color:var(--text-muted)">Pacientes registrados por día (todos los laboratorios)</h4>' +
-        chartHtml(todasFechasPacientes) +
+        '<div class="form-grid" style="align-items:start">' +
+        '<div><h4 style="margin:0 0 8px;font-size:13px;color:var(--text-muted)">👥 Pacientes registrados por día' + (labElegido ? " — " + U.esc(labElegido.nombre) : " (todos los laboratorios)") + '</h4>' +
+        chartHtml(fechasPacientesGrafica, "paciente(s)", "linear-gradient(180deg,var(--brand-primary),var(--brand-secondary))") +
+        "</div>" +
+        '<div><h4 style="margin:0 0 8px;font-size:13px;color:var(--text-muted)">🧪 Órdenes registradas por día' + (labElegido ? " — " + U.esc(labElegido.nombre) : " (todos los laboratorios)") + '</h4>' +
+        chartHtml(fechasOrdenesGrafica, "orden(es)", "linear-gradient(180deg,#f97316,#c2410c)") +
+        "</div>" +
+        "</div>" +
         "</div>" +
         '<div class="card"><div class="card-header"><h3 class="card-title">🏆 Laboratorios Más Activos en el Periodo</h3></div>' +
         '<div class="table-wrap"><table><thead><tr><th>Laboratorio</th><th>Plan</th><th>Estado</th><th>Pacientes (periodo)</th><th>Órdenes (periodo)</th><th>Usuarios</th><th>Total histórico</th><th>Cliente desde</th></tr></thead><tbody>' +
@@ -272,8 +302,10 @@
       if (btnRefrescar) btnRefrescar.addEventListener("click", function () { root.innerHTML = '<div class="card"><p class="text-muted">Actualizando…</p></div>'; cargando = true; cargar(false); });
       var inpDesde = document.getElementById("resumen-desde");
       var inpHasta = document.getElementById("resumen-hasta");
+      var selLab = document.getElementById("resumen-lab");
       if (inpDesde) inpDesde.addEventListener("change", function () { rangoDesde = inpDesde.value; render(); });
       if (inpHasta) inpHasta.addEventListener("change", function () { rangoHasta = inpHasta.value; render(); });
+      if (selLab) selLab.addEventListener("change", function () { labSeleccionado = selLab.value; render(); });
     }
 
     cargar(false);
