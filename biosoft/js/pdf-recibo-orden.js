@@ -156,12 +156,28 @@
     // Cashea / ver pdf-informe-cashea.js).
     var factorCashea = pago.casheaRecargoValor > 0 ? 1 + (pago.casheaRecargoPorcentaje / 100) : 1;
     var hayAlgunPrecio = order.examenes.some(function (ex) { return preciosPorId[ex.examId] != null; }) || order.cuotaAdministrativaIncluida;
+    // El desglose por examen debe SUMAR EXACTO al Valor Total de la orden
+    // (order.valorCobrar) — nunca imprimir el precio de la Lista de
+    // Precios tal cual, porque esa lista pudo cambiar desde que se creó
+    // la orden, o el Valor a Cobrar pudo ajustarse a mano (descuento
+    // negociado, precio especial). Bug real detectado en un recibo real:
+    // la suma de los exámenes listados daba más que el "TOTAL PAGADO" del
+    // recibo, porque cada examen mostraba su precio de catálogo actual en
+    // vez de lo realmente cobrado. Se calcula un factor de ajuste
+    // proporcional (lista-con-Cashea -> valor real de la orden) y se
+    // aplica por igual a TODAS las líneas, para que la suma de lo
+    // mostrado siempre cuadre exactamente con el total de más abajo.
+    var sumaListaConCashea = 0;
+    order.examenes.forEach(function (ex) { if (preciosPorId[ex.examId] != null) sumaListaConCashea += preciosPorId[ex.examId] * factorCashea; });
+    if (order.cuotaAdministrativaIncluida) sumaListaConCashea += (order.cuotaAdministrativaValor || 0) * factorCashea;
+    var factorAjuste = (hayAlgunPrecio && sumaListaConCashea > 0 && order.valorCobrar > 0) ? order.valorCobrar / sumaListaConCashea : 1;
+    var factorLinea = factorCashea * factorAjuste;
     var filasExamenes = order.examenes.map(function (ex) {
       var exCat = C.examenEfectivo(ex.examId, tenant);
       var nombre = exCat ? exCat.nombre : ex.examId;
       if (!hayAlgunPrecio) return [nombre];
       var precio = preciosPorId[ex.examId];
-      return [nombre, precio != null ? fmtMoneda(precio * factorCashea) : "—"];
+      return [nombre, precio != null ? fmtMoneda(precio * factorLinea) : "—"];
     });
     // Solo aparece en laboratorios que definieron un valor de Cuota
     // Administrativa (Configuración → Operación) y la incluyeron en esta
@@ -169,7 +185,7 @@
     // congelado en la orden al momento de crearla
     // (order.cuotaAdministrativaValor), no el valor actual del tenant.
     if (order.cuotaAdministrativaIncluida) {
-      filasExamenes.push(hayAlgunPrecio ? ["Cuota Administrativa", fmtMoneda((order.cuotaAdministrativaValor || 0) * factorCashea)] : ["Cuota Administrativa"]);
+      filasExamenes.push(hayAlgunPrecio ? ["Cuota Administrativa", fmtMoneda((order.cuotaAdministrativaValor || 0) * factorLinea)] : ["Cuota Administrativa"]);
     }
     doc.autoTable({
       startY: y, margin: { left: margin, right: margin },
