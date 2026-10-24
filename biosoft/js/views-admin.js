@@ -43,6 +43,16 @@
       root.querySelectorAll("[data-edit]").forEach(function (b) { b.addEventListener("click", function () { openForm(users.filter(function (u) { return u.id === b.dataset.edit; })[0]); }); });
       root.querySelectorAll("[data-toggle]").forEach(function (b) { b.addEventListener("click", function () {
         var u = users.filter(function (x) { return x.id === b.dataset.toggle; })[0];
+        // Reactivar un usuario ya existente (botón "Activar") puede subir
+        // los usuarios activos por encima del límite del plan exactamente
+        // igual que crear uno nuevo — bug real: antes esta comprobación
+        // solo corría al crear, así que un usuario desactivado se podía
+        // volver a activar sin tope alguno, aunque el laboratorio ya
+        // estuviera en su límite (o por encima).
+        if (!u.activo) {
+          var activosAhora = S.listUsers(session.tenantId).filter(function (x) { return x.activo; }).length;
+          if (limite && activosAhora >= limite) { abrirLimiteAlcanzado(limite, tenant); return; }
+        }
         S.updateUser(u.id, { activo: !u.activo });
         S.addAudit(session.tenantId, session.nombre, session.rol, "TOGGLE_USER", "usuario", u.id, (u.activo ? "Desactivó" : "Activó") + " al usuario " + u.nombre + ".");
         build();
