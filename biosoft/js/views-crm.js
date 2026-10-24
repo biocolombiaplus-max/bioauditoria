@@ -109,6 +109,7 @@
     if (od.utmSource && /meta|facebook|instagram|^fb$|^ig$/i.test(od.utmSource)) return '<span class="badge badge-preliminar">📣 Meta Ads</span>';
     if (od.utmSource) return '<span class="badge badge-preliminar">📣 ' + U.esc(od.utmSource) + '</span>';
     if (c.origen === "formulario_publico") return '<span class="badge badge-rutina">🌐 Formulario</span>';
+    if (c.origen === "demo_web") return '<span class="badge badge-pendiente">🚀 Demo Web</span>';
     return '<span class="badge badge-rutina">✋ Manual</span>';
   }
 

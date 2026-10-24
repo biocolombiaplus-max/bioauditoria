@@ -1109,11 +1109,117 @@ fbq('track', 'PageView');
       }, { threshold: 0.25 });
       ioPrecios.observe(precioObs);
     }
+    // ===== Captura de WhatsApp antes de entrar a la Demo Gratis =====
+    // Se pide UNA sola vez por navegador (ver DEMO_WA_KEY) — ya dado, los
+    // siguientes clics en "Ver Demo Gratis" entran directo, sin volver a
+    // preguntar. El país elegido pone el indicativo automáticamente, para
+    // que quede un número completo y listo para remarketing desde el CRM
+    // (ver badgeOrigen -> "demo_web" en views-crm.js).
+    var PAISES_DEMO = [
+      { nombre: "Colombia", cod: "CO", dial: "57", bandera: "🇨🇴" },
+      { nombre: "Venezuela", cod: "VE", dial: "58", bandera: "🇻🇪" },
+      { nombre: "Ecuador", cod: "EC", dial: "593", bandera: "🇪🇨" },
+      { nombre: "México", cod: "MX", dial: "52", bandera: "🇲🇽" },
+      { nombre: "Perú", cod: "PE", dial: "51", bandera: "🇵🇪" },
+      { nombre: "Chile", cod: "CL", dial: "56", bandera: "🇨🇱" },
+      { nombre: "Argentina", cod: "AR", dial: "54", bandera: "🇦🇷" },
+      { nombre: "Panamá", cod: "PA", dial: "507", bandera: "🇵🇦" },
+      { nombre: "República Dominicana", cod: "DO", dial: "1", bandera: "🇩🇴" },
+      { nombre: "Costa Rica", cod: "CR", dial: "506", bandera: "🇨🇷" },
+      { nombre: "Guatemala", cod: "GT", dial: "502", bandera: "🇬🇹" },
+      { nombre: "Honduras", cod: "HN", dial: "504", bandera: "🇭🇳" },
+      { nombre: "El Salvador", cod: "SV", dial: "503", bandera: "🇸🇻" },
+      { nombre: "Nicaragua", cod: "NI", dial: "505", bandera: "🇳🇮" },
+      { nombre: "Bolivia", cod: "BO", dial: "591", bandera: "🇧🇴" },
+      { nombre: "Paraguay", cod: "PY", dial: "595", bandera: "🇵🇾" },
+      { nombre: "Uruguay", cod: "UY", dial: "598", bandera: "🇺🇾" },
+      { nombre: "España", cod: "ES", dial: "34", bandera: "🇪🇸" },
+      { nombre: "Estados Unidos", cod: "US", dial: "1", bandera: "🇺🇸" },
+      { nombre: "Puerto Rico", cod: "PR", dial: "1", bandera: "🇵🇷" }
+    ];
+    var DEMO_WA_KEY = "biosoft_demo_wa_dado";
+    function demoWhatsappYaDado() {
+      try { return localStorage.getItem(DEMO_WA_KEY) === "1"; } catch (e) { return false; }
+    }
+    function guardarLeadDemoWeb(pais, whatsappCompleto) {
+      if (!window.BIO_FB || !window.BIO_FB.db) return Promise.resolve();
+      // Mismo truco anti-duplicados que activar.js -> S.crm.create: el id se
+      // deriva del número (no es aleatorio), así que si la misma persona
+      // vuelve a pasar por aquí en otro momento, la segunda escritura cae
+      // sobre el mismo documento — firestore.rules solo permite "create"
+      // público, así que Firestore la rechaza sola y no duplica el lead.
+      var leadId = "lead-demoweb-" + whatsappCompleto.replace(/\D/g, "");
+      var params = new URLSearchParams(location.search);
+      var doc = {
+        id: leadId, estado: "nuevo", creadoEn: new Date().toISOString(),
+        origen: "demo_web",
+        origenDetalle: { utmSource: params.get("utm_source") || "", utmMedium: params.get("utm_medium") || "", utmCampaign: params.get("utm_campaign") || "" },
+        laboratorio: { pais: pais.cod },
+        contacto: { whatsapp: whatsappCompleto }
+      };
+      return window.BIO_FB.db.collection("crmClientes").doc(leadId).set(doc).then(function () {
+        if (window.BIO_LANDING_TRACKER) window.BIO_LANDING_TRACKER.trackLead(leadId);
+      }).catch(function (err) { console.warn("BIOsoft: no se pudo registrar el lead de demo ->", err); });
+    }
+    // onListo() SIEMPRE se llama, incluso si falla el guardado (sin
+    // internet, bloqueador, etc.) — pedir el WhatsApp nunca debe impedirle
+    // a nadie llegar a probar la demo, igual que landing-tracker.js nunca
+    // rompe la página si algo falla.
+    function abrirCapturaWhatsappDemo(onListo) {
+      var idxPais = 0;
+      var wrap = lpModal(
+        '<div style="text-align:center;font-size:34px;margin-bottom:4px">🚀</div>' +
+        '<h3 class="modal-title" style="text-align:center">¡Ya casi entras a tu Demo!</h3>' +
+        '<p class="text-muted" style="text-align:center;margin:0 0 20px">Para que tu demo funcione bien configurada según tu país (moneda, indicativo y datos de ejemplo), cuéntanos tu WhatsApp — con eso entras de inmediato.</p>' +
+        '<div class="form-grid" style="grid-template-columns:150px 1fr;gap:10px;margin-bottom:4px">' +
+        '<div class="field"><label>País</label><select id="demo-wa-pais">' +
+        PAISES_DEMO.map(function (p, i) { return '<option value="' + i + '">' + p.bandera + " " + p.nombre + " (+" + p.dial + ")</option>"; }).join("") +
+        "</select></div>" +
+        '<div class="field"><label>Tu WhatsApp</label><div style="display:flex;gap:6px;align-items:center">' +
+        '<span id="demo-wa-prefijo" style="font-weight:700;color:var(--text-muted);white-space:nowrap">+57</span>' +
+        '<input type="tel" inputmode="tel" id="demo-wa-numero" placeholder="300 123 4567" style="flex:1" autofocus/>' +
+        "</div></div>" +
+        "</div>" +
+        '<p id="demo-wa-error" class="text-danger hidden" style="font-size:12px;margin:4px 0 0"></p>' +
+        '<button type="button" class="btn btn-primary btn-glow-brand btn-block" id="demo-wa-continuar" style="margin-top:14px">🚀 Entrar a mi Demo Ahora</button>' +
+        '<p class="text-muted" style="font-size:11px;text-align:center;margin:10px 0 0">🔒 Solo lo usamos para acompañarte mientras pruebas tu demo. Nunca lo compartimos ni te llenamos de mensajes.</p>'
+      );
+      var selPais = wrap.querySelector("#demo-wa-pais");
+      var prefijoEl = wrap.querySelector("#demo-wa-prefijo");
+      var inpNumero = wrap.querySelector("#demo-wa-numero");
+      var errEl = wrap.querySelector("#demo-wa-error");
+      selPais.addEventListener("change", function () { prefijoEl.textContent = "+" + PAISES_DEMO[parseInt(selPais.value, 10)].dial; });
+      wrap.querySelector("#demo-wa-continuar").addEventListener("click", function (e) {
+        var pais = PAISES_DEMO[parseInt(selPais.value, 10)];
+        var soloDigitos = inpNumero.value.replace(/\D/g, "");
+        if (soloDigitos.length < 7) {
+          errEl.textContent = "Escribe un número de WhatsApp válido."; errEl.classList.remove("hidden");
+          return;
+        }
+        var whatsappCompleto = pais.dial + soloDigitos;
+        var btn = e.currentTarget;
+        btn.disabled = true; btn.textContent = "Entrando…";
+        try { localStorage.setItem(DEMO_WA_KEY, "1"); } catch (err) {}
+        trackFbEvent("Lead", { content_name: "Demo Gratis - WhatsApp" });
+        guardarLeadDemoWeb(pais, whatsappCompleto).then(function () {
+          lpCloseModal(wrap);
+          onListo();
+        });
+      });
+    }
+
     document.addEventListener("click", function (e) {
       var waEl = e.target.closest(".wa-link, #wa-float, #wa-cotizacion");
       if (waEl) { trackFbEvent("Contact", { content_name: "WhatsApp" }); trackPropio("contacto"); }
       var demoEl = e.target.closest('a[href="app.html"]');
-      if (demoEl) { trackFbEvent("ViewContent", { content_name: "Demo Gratis" }); trackPropio("demo"); }
+      if (demoEl) {
+        trackFbEvent("ViewContent", { content_name: "Demo Gratis" });
+        trackPropio("demo");
+        if (!demoWhatsappYaDado()) {
+          e.preventDefault();
+          abrirCapturaWhatsappDemo(function () { window.location.href = "app.html"; });
+        }
+      }
     });
 
     var IMPLEMENTACION = BIO_PLANES.IMPLEMENTACION;

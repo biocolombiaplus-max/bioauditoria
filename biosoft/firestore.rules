@@ -42,19 +42,29 @@ service cloud.firestore {
 
     // CRM interno (leads y clientes de BIOsoft) — leer, editar y borrar solo
     // lo puede hacer el superadmin real. Crear también lo puede hacer
-    // cualquier visitante SIN sesión desde el formulario público de
-    // activación (activar.html): el cliente aún no tiene cuenta, así que se
-    // valida que el documento nazca en estado "nuevo" y con la forma mínima
-    // esperada, para evitar que se inyecten leads ya "activos" o corruptos.
+    // cualquier visitante SIN sesión, desde dos puntos distintos:
+    //   - formulario público de activación (activar.html): el cliente ya
+    //     dejó su nombre completo, así que se valida contacto.nombre.
+    //   - captura de WhatsApp antes de "Ver Demo Gratis" (index.html): solo
+    //     se le pide el WhatsApp (ver abrirCapturaWhatsappDemo), así que se
+    //     valida contacto.whatsapp en su lugar.
+    // En ambos casos se exige que el documento nazca en estado "nuevo" y
+    // con la forma mínima esperada, para evitar que se inyecten leads ya
+    // "activos" o corruptos.
     match /crmClientes/{clienteId} {
       allow read, update, delete: if esSuperadmin();
       allow create: if esSuperadmin() || (
         request.resource.data.estado == "nuevo" &&
-        request.resource.data.origen == "formulario_publico" &&
         request.resource.data.laboratorio is map &&
         request.resource.data.contacto is map &&
-        request.resource.data.contacto.nombre is string &&
-        request.resource.data.contacto.nombre.size() > 0
+        (
+          (request.resource.data.origen == "formulario_publico" &&
+           request.resource.data.contacto.nombre is string &&
+           request.resource.data.contacto.nombre.size() > 0) ||
+          (request.resource.data.origen == "demo_web" &&
+           request.resource.data.contacto.whatsapp is string &&
+           request.resource.data.contacto.whatsapp.size() > 0)
+        )
       );
     }
 
