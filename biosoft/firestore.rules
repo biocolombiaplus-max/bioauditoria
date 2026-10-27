@@ -361,7 +361,19 @@ service cloud.firestore {
       // los campos de la firma — nunca se puede reabrir uno ya firmado ni
       // tocar el resto del documento.
       match /consentimientos/{consentId} {
-        allow read: if true;
+        // Solo "get" (un documento puntual, por su id prácticamente
+        // imposible de adivinar) es público, para que firmar.html funcione
+        // sin sesión — "allow read: if true" (como estaba) otorga ADEMÁS
+        // "list", y como la llave de API del navegador no es secreta,
+        // cualquier visitante podría listar/enumerar con una consulta
+        // directa desde la consola TODOS los consentimientos firmados (con
+        // firma y datos del paciente) de CUALQUIER laboratorio. El propio
+        // código nunca hizo esa consulta (firmar.js siempre lee por id; la
+        // sincronización completa de la colección, en store.js -> attach(),
+        // es exclusiva de personal autenticado del laboratorio), así que
+        // este ajuste no cambia nada visible — solo cierra ese hueco.
+        allow get: if true;
+        allow list: if esDeEsteLab(tenantId) || esSuperadmin();
         // El superadmin solo necesita poder BORRAR aquí (para "Eliminar
         // Laboratorio"), no crear consentimientos a nombre de un
         // laboratorio — por eso se separa del "create" en vez de
