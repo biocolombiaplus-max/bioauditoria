@@ -1409,48 +1409,43 @@
     function build() {
       var remisiones = order.remisiones || [];
       var saldoOrden = C.saldoPendienteOrden(order);
+      // Antes había hasta 10 botones sueltos en una sola fila — "Editar" y
+      // "Agregar Exámenes" son con diferencia los más usados, así que se
+      // quedan visibles; el resto (imprimir, documentos, pagos,
+      // consentimiento) se agrupa en "Más acciones" (mismo patrón ya
+      // usado en Laboratorios Cliente/CRM) para que la cabecera se vea
+      // ordenada en vez de amontonada.
       root.innerHTML =
         '<div class="card">' +
           '<div class="card-header"><h3 class="card-title">Orden ' + order.numeroOrden + " — " + window.BIO_badgeEstado(order.estadoGeneral) + '</h3>' +
           '<div class="flex gap-2 wrap"><a class="btn btn-ghost btn-sm" id="btn-back">Volver</a>' +
           '<button class="btn btn-outline btn-sm" id="btn-editar-orden">' + U.icon("edit") + " Editar Orden</button>" +
           '<button class="btn btn-primary btn-sm" id="btn-agregar-examenes">' + U.icon("plus") + " Agregar Exámenes</button>" +
-          '<button class="btn btn-outline btn-sm" id="btn-stickers">' + U.icon("printer") + " Imprimir Stickers</button>" +
-          '<button class="btn btn-ghost btn-sm" id="btn-stickers-preview" title="Ver antes de imprimir o elegir otra impresora">Vista previa de stickers</button>' +
-          '<button class="btn btn-outline btn-sm" id="btn-preview">' + U.icon("file") + " Ver / Descargar PDF</button>" +
-          (puedeGestionarRemision(session) ? '<button class="btn btn-outline btn-sm" id="btn-remision">' + U.icon("send") + " Hoja de Remisión</button>" : "") +
-          (puedeReciboOrden(tenant) ? '<button class="btn btn-outline btn-sm" id="btn-recibo-orden">' + U.icon("send") + (order.pago ? " Reenviar Recibo de Pago" : " Recibo de Pago") + "</button>" : "") +
-          (puedeReciboOrden(tenant) && order.pago && saldoOrden > 0 ? '<button class="btn btn-primary btn-sm" id="btn-agregar-abono">' + U.icon("plus") + " Agregar Abono</button>" : "") +
-          (puedeReciboOrden(tenant) && order.pago && (order.abonos || []).length ? '<button class="btn btn-ghost btn-sm" id="btn-corregir-pago" title="Corregir el monto de un pago ya confirmado, ej. un error de digitación">' + U.icon("lock") + " Corregir Monto de Pago</button>" : "") +
-          (tenant.pais === "CO" ? '<button class="btn btn-outline btn-sm" id="btn-consentimiento">' + U.icon("file") + " Consentimiento Informado</button>" : "") +
-          (tenant.pais === "CO" ? '<button class="btn btn-primary btn-sm" id="btn-firmar-consentimiento-aqui">' + U.icon("check") + " Firmar Consentimiento Aquí</button>" : "") +
+          '<button class="btn btn-outline btn-sm" id="btn-mas-acciones-orden">' + U.icon("more") + " Más acciones</button>" +
           "</div></div>" +
-          seccionDivisoria("🧑 Paciente", true) +
-          '<div class="form-grid">' +
+          seccionBoxHtml("🧑 Paciente",
             field("Paciente", pac ? U.nombreCompleto(pac) + " (" + pac.tipoDocumento + " " + pac.numeroDocumento + ")" : "—") +
             field("Edad / Sexo", (pac ? U.edadTexto(pac) : "—") + " · " + (pac ? pac.sexo : "")) +
             field("Fecha de Nacimiento", pac && pac.fechaNacimiento ? new Date(pac.fechaNacimiento + "T00:00:00").toLocaleDateString("es-CO", { day: "2-digit", month: "short", year: "numeric" }) : "—") +
-            (pac && pac.pais === "CO" ? field("EPS / Seguro", pac.eps || "—") : "") +
-          "</div>" +
-          seccionDivisoria("🩺 Datos Clínicos") +
-          '<div class="form-grid">' +
+            (pac && pac.pais === "CO" ? field("EPS / Seguro", pac.eps || "—") : "")
+          ) +
+          seccionBoxHtml("🩺 Datos Clínicos",
             field("Médico Remitente", order.medicoRemitente || "—") +
             field("Procedencia", order.procedencia) +
             field("Prioridad", order.prioridad) +
             field("Fecha de Orden", U.fmtFecha(order.fechaOrden)) +
             field("Diagnóstico", order.diagnostico || "—") +
-            field("Observaciones Clínicas", order.observacionesClinicas || "—") +
-          "</div>" +
-          seccionDivisoria("💳 Facturación") +
-          '<div class="form-grid">' +
+            field("Observaciones Clínicas", order.observacionesClinicas || "—")
+          ) +
+          seccionBoxHtml("💳 Facturación",
             field("Convenio / Empresa Aliada", order.convenioNombre || "Sin convenio (particular)") +
             (tenant.mostrarPrecioOrden ? fieldHtml("Valor a Cobrar", order.valorCobrar ? U.esc(fmtMoneda(order.valorCobrar)) + fmtMonedaEquiv(tenant, order.valorCobrar) : "—") : "") +
             (order.monedaPago ? field("Moneda de Pago", C.monedaPagoLabel(order.monedaPago)) : "") +
             (puedeReciboOrden(tenant) ? field("Estado de Pago", !order.pago ? "Pendiente de confirmar"
               : (order.pago.esCredito && !order.pago.tieneCopago) ? "🤝 A Crédito de Convenio — Pendiente de cobrar a " + (order.convenioNombre || "—")
               : saldoOrden > 0 ? "Parcial — Abonado " + fmtMoneda(C.totalAbonado(order)) + " de " + fmtMoneda(C.montoAdeudarPaciente(order)) + " — Saldo " + fmtMoneda(saldoOrden)
-              : "✓ Pagado (" + (BIO_PDF_RECIBO_ORDEN.METODO_PAGO_LABEL[order.pago.metodoPago] || order.pago.metodoPago) + ") — " + U.fmtFecha(order.pago.fecha)) : "") +
-          "</div>" +
+              : "✓ Pagado (" + (BIO_PDF_RECIBO_ORDEN.METODO_PAGO_LABEL[order.pago.metodoPago] || order.pago.metodoPago) + ") — " + U.fmtFecha(order.pago.fecha)) : "")
+          ) +
           (order.correccionesPago && order.correccionesPago.length ? '<p class="text-muted" style="font-size:12px;margin-top:10px">' + U.icon("history") + " Este pago tiene " + order.correccionesPago.length + " corrección(es) de monto registrada(s) en la trazabilidad." : "") +
           "</div>" +
 
@@ -1481,21 +1476,7 @@
       document.getElementById("btn-back").addEventListener("click", function () { location.hash = "#/ordenes"; });
       document.getElementById("btn-editar-orden").addEventListener("click", function () { abrirEditarOrden(order, tenant, build); });
       document.getElementById("btn-agregar-examenes").addEventListener("click", function () { abrirAgregarExamenesOrden(order, pac, tenant, build); });
-      document.getElementById("btn-preview").addEventListener("click", function () { window.BIO_PDF.previewOrModal(order, pac, tenant); });
-      document.getElementById("btn-stickers").addEventListener("click", function () { window.BIO_PDF.imprimirStickersRapido(order, pac, tenant); });
-      document.getElementById("btn-stickers-preview").addEventListener("click", function () { window.BIO_PDF.previewStickers(order, pac, tenant); });
-      var btnRemision = document.getElementById("btn-remision");
-      if (btnRemision) btnRemision.addEventListener("click", function () { abrirGenerarRemision(order, pac, tenant, build); });
-      var btnReciboOrden = document.getElementById("btn-recibo-orden");
-      if (btnReciboOrden) btnReciboOrden.addEventListener("click", function () { abrirReciboOrden(order, tenant, build); });
-      var btnAgregarAbono = document.getElementById("btn-agregar-abono");
-      if (btnAgregarAbono) btnAgregarAbono.addEventListener("click", function () { abrirAgregarAbono(order, tenant, build); });
-      var btnCorregirPago = document.getElementById("btn-corregir-pago");
-      if (btnCorregirPago) btnCorregirPago.addEventListener("click", function () { abrirCorregirMontoPago(order, tenant, build); });
-      var btnConsentimiento = document.getElementById("btn-consentimiento");
-      if (btnConsentimiento) btnConsentimiento.addEventListener("click", function () { window.BIO_VIEWS_CONSENTIMIENTOS.abrir(order, pac, tenant, build); });
-      var btnFirmarConsentimientoAqui = document.getElementById("btn-firmar-consentimiento-aqui");
-      if (btnFirmarConsentimientoAqui) btnFirmarConsentimientoAqui.addEventListener("click", function () { window.BIO_VIEWS_CONSENTIMIENTOS.abrirFirmarAqui(order, pac, tenant, build); });
+      document.getElementById("btn-mas-acciones-orden").addEventListener("click", function () { abrirMasAccionesOrden(order, pac, tenant, saldoOrden, remisiones, build); });
       var btnEnviarCodigoWa = document.getElementById("btn-enviar-codigo-wa");
       if (btnEnviarCodigoWa) btnEnviarCodigoWa.addEventListener("click", function () {
         var numeroPacienteWA = pac ? (pac.celular || pac.telefono || "") : "";
@@ -1554,6 +1535,60 @@
       });
     }
     build();
+  }
+
+  // Menú compacto de "Más acciones" del detalle de una orden — reemplaza
+  // la fila de hasta 10 botones sueltos (imprimir, documentos, pagos,
+  // consentimiento) que antes salían amontonados en la cabecera; mismo
+  // patrón ya usado en Laboratorios Cliente y el CRM (ver
+  // abrirMenuAcciones en views-admin.js).
+  function abrirMenuAccionesOrden(titulo, grupos) {
+    var acciones = [];
+    var bodyHtml = grupos.map(function (g) {
+      var itemsHtml = g.acciones.map(function (a) {
+        var idx = acciones.length;
+        acciones.push(a);
+        return '<button type="button" class="action-menu-row" data-accion-idx="' + idx + '">' +
+          '<span class="action-menu-icon">' + U.icon(a.icon || "file") + '</span><span>' + U.esc(a.label) + '</span></button>';
+      }).join("");
+      return (g.titulo ? '<div class="action-menu-group-title">' + U.esc(g.titulo) + '</div>' : "") + itemsHtml;
+    }).join("");
+    var wrap = U.openModal(
+      '<h3 class="modal-title">' + U.esc(titulo) + '</h3><div class="action-menu-list">' + bodyHtml + "</div>" +
+      '<div class="flex justify-between" style="margin-top:14px"><button class="btn btn-ghost" data-modal-close>Cerrar</button><span></span></div>'
+    );
+    wrap.querySelectorAll("[data-accion-idx]").forEach(function (btn) {
+      btn.addEventListener("click", function () {
+        var accion = acciones[parseInt(btn.dataset.accionIdx, 10)];
+        U.closeModal(wrap);
+        accion.onClick();
+      });
+    });
+    return wrap;
+  }
+
+  function abrirMasAccionesOrden(order, pac, tenant, saldoOrden, remisiones, onDone) {
+    var session = BIO_AUTH.getSession();
+    var grupos = [
+      { titulo: "Imprimir y Documentos", acciones: [
+        { label: "Imprimir Stickers", icon: "printer", onClick: function () { window.BIO_PDF.imprimirStickersRapido(order, pac, tenant); } },
+        { label: "Vista previa de stickers", icon: "printer", onClick: function () { window.BIO_PDF.previewStickers(order, pac, tenant); } },
+        { label: "Ver / Descargar PDF", icon: "file", onClick: function () { window.BIO_PDF.previewOrModal(order, pac, tenant); } }
+      ].concat(puedeGestionarRemision(session) ? [{ label: "Hoja de Remisión", icon: "send", onClick: function () { abrirGenerarRemision(order, pac, tenant, onDone); } }] : []) }
+    ];
+    if (puedeReciboOrden(tenant)) {
+      var accionesPago = [{ label: order.pago ? "Reenviar Recibo de Pago" : "Recibo de Pago", icon: "send", onClick: function () { abrirReciboOrden(order, tenant, onDone); } }];
+      if (order.pago && saldoOrden > 0) accionesPago.push({ label: "Agregar Abono", icon: "plus", onClick: function () { abrirAgregarAbono(order, tenant, onDone); } });
+      if (order.pago && (order.abonos || []).length) accionesPago.push({ label: "Corregir Monto de Pago", icon: "lock", onClick: function () { abrirCorregirMontoPago(order, tenant, onDone); } });
+      grupos.push({ titulo: "Pagos", acciones: accionesPago });
+    }
+    if (tenant.pais === "CO") {
+      grupos.push({ titulo: "Consentimiento Informado", acciones: [
+        { label: "Consentimiento Informado", icon: "file", onClick: function () { window.BIO_VIEWS_CONSENTIMIENTOS.abrir(order, pac, tenant, onDone); } },
+        { label: "Firmar Consentimiento Aquí", icon: "check", onClick: function () { window.BIO_VIEWS_CONSENTIMIENTOS.abrirFirmarAqui(order, pac, tenant, onDone); } }
+      ]});
+    }
+    abrirMenuAccionesOrden("Más acciones — Orden " + order.numeroOrden, grupos);
   }
 
   // -------------------------------------------------------------------
@@ -1935,12 +1970,13 @@
   }
 
   // Antes los ~14 campos de la orden salían todos en una sola rejilla
-  // plana, sin ningún orden visual — "revisa que se vea más ordenado"
-  // (bug/queja real reportada). Agrupados en Paciente / Datos Clínicos /
-  // Facturación, con un rótulo discreto entre cada grupo, se lee de un
-  // vistazo sin cambiar ni un dato de los que ya se mostraban.
-  function seccionDivisoria(texto, primera) {
-    return '<div style="' + (primera ? "" : "margin-top:16px;padding-top:14px;border-top:1px solid #f1f5f9;") + 'margin-bottom:10px;font-size:11px;font-weight:800;color:#94a3b8;letter-spacing:.06em;text-transform:uppercase">' + texto + "</div>";
+  // plana, sin ningún orden visual — "revisa que se vea más ordenado,
+  // más bonito, que los datos del paciente resalten" (queja real
+  // reportada). Cada grupo (Paciente / Datos Clínicos / Facturación)
+  // ahora vive dentro de su propia caja clara con un rótulo arriba, sin
+  // cambiar ni un dato de los que ya se mostraban.
+  function seccionBoxHtml(titulo, camposHtml) {
+    return '<div class="orden-seccion-box"><div class="orden-seccion-titulo">' + titulo + '</div><div class="form-grid">' + camposHtml + "</div></div>";
   }
 
   function field(label, value) {

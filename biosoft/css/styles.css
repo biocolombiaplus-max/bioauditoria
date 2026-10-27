@@ -195,6 +195,15 @@ fieldset legend { font-family: 'Poppins', sans-serif; font-weight: 700; font-siz
   .codigo-consulta-box { font-size: 19px; letter-spacing: 2px; padding: 10px 12px; }
 }
 
+/* Grupos de campos del detalle de una orden (Paciente / Datos Clínicos /
+   Facturación) — antes salían como una sola rejilla plana de ~14 campos
+   sin ningún orden visual; ahora cada grupo vive dentro de su propia
+   "caja" clara, con un encabezado discreto, para que resalte y se
+   entienda de un vistazo cuál dato pertenece a qué. */
+.orden-seccion-box { background: #f8fafc; border: 1px solid #eef2f6; border-radius: 12px; padding: 16px 18px; margin-bottom: 14px; }
+.orden-seccion-box:last-child { margin-bottom: 0; }
+.orden-seccion-titulo { font-size: 11.5px; font-weight: 800; color: #64748b; letter-spacing: .05em; text-transform: uppercase; margin-bottom: 10px; display: flex; align-items: center; gap: 6px; }
+
 /* Menú de "Más acciones": una lista de filas dentro de un modal, en vez de
    una fila de tabla con 8-10 botones sueltos uno junto al otro — usado en
    paneles de superadministrador con muchas acciones por registro (CRM,
