@@ -21,6 +21,12 @@
   .hidden { display: none !important; }
   @media (max-width: 640px) { .wrap { padding: 0 18px; } }
 
+  /* ---- Banner publicitario ---- */
+  .banner-promo { position: relative; background: linear-gradient(90deg,var(--accent),#db2777); color: #fff; text-align: center; font-size: 12.5px; font-weight: 700; padding: 10px 44px; }
+  .banner-promo a { text-decoration: none; color: #fff; }
+  .banner-promo a:hover { text-decoration: underline; }
+  .banner-promo-cerrar { position: absolute; right: 12px; top: 50%; transform: translateY(-50%); background: rgba(255,255,255,.2); border: none; color: #fff; width: 22px; height: 22px; border-radius: 50%; cursor: pointer; font-size: 12px; line-height: 1; }
+
   /* ---- Barra superior (horario + redes sociales) ---- */
   .topbar { background: var(--navy); color: #cbd5e1; font-size: 11.5px; }
   .trow { padding: 7px 0; display: flex; justify-content: space-between; align-items: center; gap: 10px; flex-wrap: wrap; }
@@ -82,7 +88,8 @@
 
   /* ---- Grids (servicios / ofertas / testimonios) ---- */
   .grid-servicios { display: grid; grid-template-columns: repeat(auto-fit,minmax(220px,1fr)); gap: 18px; }
-  .card-servicio { background: #fff; border: 1px solid #e2e8f0; border-radius: 16px; padding: 22px; display: flex; flex-direction: column; gap: 10px; }
+  .card-servicio { background: #fff; border: 1px solid #e2e8f0; border-radius: 16px; padding: 22px; display: flex; flex-direction: column; gap: 10px; transition: transform .18s, box-shadow .18s; }
+  .card-servicio:hover { transform: translateY(-4px); box-shadow: 0 14px 30px rgba(15,23,42,.08); border-color: transparent; }
   .card-servicio .ic { font-size: 26px; }
   .card-servicio b { font-size: 14.5px; }
   .card-servicio span.desc { font-size: 12.5px; color: #64748b; line-height: 1.5; }
@@ -155,6 +162,11 @@
 </head>
 <body>
 
+  <div class="banner-promo hidden" id="banner-promo">
+    <a href="#" id="banner-promo-texto" target="_blank" rel="noopener"></a>
+    <button type="button" class="banner-promo-cerrar" id="banner-promo-cerrar" aria-label="Cerrar">✕</button>
+  </div>
+
   <div class="topbar hidden" id="topbar">
     <div class="wrap trow">
       <div id="topbar-horario"></div>
@@ -179,6 +191,7 @@
         <a href="#inicio">Inicio</a>
         <a href="#resultados">Resultados</a>
         <a href="#servicios">Servicios</a>
+        <a href="#tecnologia">Nosotros</a>
         <a href="#ubicacion">Ubicación</a>
       </nav>
       <a href="#" class="btn btn-wa" id="btn-wa-header">💬 WhatsApp</a>
@@ -191,7 +204,7 @@
         <div class="texto">
           <span class="badge-pill">🔬 Laboratorio Clínico</span>
           <h1 id="hero-titulo">Tu salud en buenas manos, resultados en los que puedes confiar</h1>
-          <p id="hero-subtitulo">Tecnología de punta y un equipo humano comprometido con tu bienestar.</p>
+          <p id="hero-subtitulo">Exámenes de rutina y especializados, con atención de primer y segundo nivel. Tecnología de punta y un equipo humano comprometido con tu bienestar.</p>
           <div class="cta-row">
             <a href="#resultados" class="btn btn-accent">📄 Consultar Resultados</a>
             <a href="#" class="btn btn-ghost-dark" id="btn-cotizar-hero">💲 Cotizar mis Exámenes</a>
@@ -261,8 +274,9 @@
       <div class="texto">
         <span class="badge-pill" style="background:rgba(37,99,235,.15);color:#93c5fd;border-color:rgba(37,99,235,.35)">⚙️ Sobre Nosotros</span>
         <h2>Equipos de última generación, resultados más precisos</h2>
-        <p id="sobre-nosotros">Invertimos en tecnología automatizada y procesos de control de calidad para que cada resultado sea confiable.</p>
+        <p id="sobre-nosotros">Somos un laboratorio clínico de primer y segundo nivel de complejidad: procesamos tanto tus exámenes de rutina como pruebas especializadas, con equipos automatizados y procesos de control de calidad para que cada resultado sea confiable.</p>
         <div style="display:flex;flex-direction:column;gap:10px;margin-top:4px">
+          <div class="check-row"><span class="ok">✓</span><span>Exámenes de rutina y especializados — primer y segundo nivel</span></div>
           <div class="check-row"><span class="ok">✓</span><span>Equipos automatizados de hematología y química sanguínea</span></div>
           <div class="check-row"><span class="ok">✓</span><span>Control de calidad interno y externo permanente</span></div>
           <div class="check-row"><span class="ok">✓</span><span>Bioseguridad y trazabilidad en cada muestra</span></div>
@@ -355,6 +369,6 @@
   <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
   <script src="js/firebase-config.js?v=2"></script>
-  <script src="js/sitio-web.js?v=2"></script>
+  <script src="js/sitio-web.js?v=3"></script>
 </body>
 </html>

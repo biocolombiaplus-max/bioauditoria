@@ -560,10 +560,18 @@
     if (!firebaseDisponible()) return Promise.reject(errorFirebaseNoDisponible());
     return demoSitioWebColl().doc(tenantId).get().then(function (doc) { return doc.exists ? doc.data() : null; });
   }
-  function demoSitioWebSet(tenantId, datos) {
+  function demoSitioWebSet(tenantId, datos, merge) {
     if (!firebaseDisponible()) return Promise.reject(errorFirebaseNoDisponible());
     var doc = Object.assign({}, datos, { actualizadoEn: nowISO() });
-    return demoSitioWebColl().doc(tenantId).set(doc).then(function () { return doc; });
+    // merge:true existe solo para poder apagar "real" (ver
+    // abrirEditarPlan en views-admin.js, al quitarle a un laboratorio la
+    // autorización de Página Web) SIN borrar el resto del contenido ya
+    // publicado — un .set() normal (sin merge) REEMPLAZA el documento
+    // entero, así que escribir solo {real:false} directo habría borrado
+    // el logo, los servicios, los testimonios, etc. que el laboratorio ya
+    // había cargado, obligándolo a volver a escribir todo si se le
+    // reactiva la autorización más adelante.
+    return demoSitioWebColl().doc(tenantId).set(doc, merge ? { merge: true } : undefined).then(function () { return doc; });
   }
 
   // -----------------------------------------------------------------------

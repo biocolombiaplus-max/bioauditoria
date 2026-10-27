@@ -1503,18 +1503,27 @@
     // que "Resolver Límite de Usuarios" en Laboratorios Cliente.
     function abrirPromoPaginaWeb(tenant) {
       var msg = "Hola 👋 soy de " + (tenant && tenant.nombre ? tenant.nombre : "mi laboratorio") + " y quiero activar la Página Web real con consulta de resultados. ¿Me cuentan cómo la contrato?";
+      var feats = [
+        { ic: "🎨", t: "100% tuya y editable", d: "Tu logo, tus colores, servicios y testimonios — sin tocar código." },
+        { ic: "🔐", t: "Portal de resultados", d: "El paciente consulta y descarga solo, con documento + código por WhatsApp." },
+        { ic: "📍", t: "Mapa y dominio propio", d: "Ubicación con Google Maps, y hasta tu propio dominio (tulaboratorio.com)." },
+        { ic: "📈", t: "Imagen de laboratorio grande", d: "Menos llamadas preguntando por resultados — se ve moderno y de vanguardia." }
+      ];
       U.openModal(
-        '<div style="text-align:center;margin:-4px 0 14px">' +
-        '<div style="font-size:40px;line-height:1">🌐</div>' +
-        '<h3 class="modal-title" style="margin:8px 0 2px">Lleva tu laboratorio a internet</h3>' +
-        '<p class="text-muted" style="margin:0">Tu propia página web profesional, lista en minutos</p>' +
+        '<div style="margin:-26px -26px 16px;padding:28px 24px 22px;border-radius:var(--radius) var(--radius) 0 0;background:linear-gradient(135deg,#f97316,#db2777 65%,#7c3aed);color:#fff;text-align:center">' +
+        '<span style="display:inline-block;background:rgba(255,255,255,.2);border:1px solid rgba(255,255,255,.35);color:#fff;font-size:11px;font-weight:800;letter-spacing:.03em;padding:4px 12px;border-radius:999px;margin-bottom:10px">💎 FUNCIÓN PREMIUM</span>' +
+        '<h3 style="margin:0 0 4px;font-size:20px;font-weight:800;color:#fff">Lleva tu laboratorio a internet</h3>' +
+        '<p style="margin:0;font-size:13px;color:rgba(255,255,255,.9)">Tu propia página web profesional, lista en minutos</p>' +
         "</div>" +
-        '<div style="background:var(--bg-soft,#f8fafc);border-radius:12px;padding:14px 16px;margin-bottom:14px;display:flex;flex-direction:column;gap:10px">' +
-        '<div style="display:flex;gap:10px;align-items:flex-start"><span>✅</span><span>Página web propia, 100% editable desde aquí: tu logo, tus colores, tus servicios y testimonios — sin tocar código.</span></div>' +
-        '<div style="display:flex;gap:10px;align-items:flex-start"><span>✅</span><span>Portal de resultados: tus pacientes consultan y descargan su resultado solos, con su documento y un código que les llega por WhatsApp.</span></div>' +
-        '<div style="display:flex;gap:10px;align-items:flex-start"><span>✅</span><span>Ubicación con Google Maps, y hasta tu propio dominio (ej. tulaboratorio.com) si ya tienes uno.</span></div>' +
-        '<div style="display:flex;gap:10px;align-items:flex-start"><span>✅</span><span>Menos llamadas preguntando "¿ya están mis resultados?" — tu laboratorio se ve grande, moderno y de vanguardia.</span></div>' +
+        '<div class="form-grid" style="margin-bottom:16px">' +
+        feats.map(function (f) {
+          return '<div style="background:var(--bg-soft,#f8fafc);border:1px solid #e2e8f0;border-radius:12px;padding:14px">' +
+            '<div style="font-size:22px;margin-bottom:6px">' + f.ic + '</div>' +
+            '<div style="font-weight:700;font-size:13px;margin-bottom:3px">' + f.t + '</div>' +
+            '<div class="text-muted" style="font-size:12px;line-height:1.4">' + f.d + "</div></div>";
+        }).join("") +
         "</div>" +
+        '<p class="text-muted" style="text-align:center;font-size:12px;margin:0 0 14px">Escríbenos y te contamos el valor y cómo activarla para ' + U.esc((tenant && tenant.nombre) || "tu laboratorio") + '.</p>' +
         '<div class="flex gap-2 justify-between"><button class="btn btn-ghost" data-modal-close>Ahora no</button>' +
         '<a class="btn btn-whatsapp" href="https://wa.me/573505457420?text=' + encodeURIComponent(msg) + '" target="_blank" rel="noopener">' + U.icon("send") + " Quiero activarla</a></div>"
       );
@@ -1648,6 +1657,8 @@
         '<p class="text-muted" style="margin:4px 0 12px;font-size:12.5px">Déjalo vacío mientras configuras el dominio con tu proveedor — mientras tanto, el enlace que se envía a tus pacientes sigue funcionando igual, alojado por BIOsoft (bioauditoria.com/biosoft/sitio-web.html?t=' + U.esc(tenant.id) + "). Cuando tengas el dominio, pégalo aquí y apúntalo (registro CNAME) a bioauditoria.com — te ayudamos con ese paso si lo necesitas.</p>" +
         '<div class="field"><label>Título principal (hero)</label><input id="f_pw_herotitulo" placeholder="Ej. Tu salud en buenas manos, resultados en los que puedes confiar" value="' + U.esc((tenant.paginaWeb && tenant.paginaWeb.heroTitulo) || "") + '"/></div>' +
         '<div class="field"><label>Subtítulo / frase de bienvenida</label><textarea id="f_pw_herosubtitulo" rows="2" placeholder="Ej. Más de 15 años al servicio de tu familia, con tecnología de punta.">' + U.esc((tenant.paginaWeb && tenant.paginaWeb.heroSubtitulo) || "") + "</textarea></div>" +
+        '<div class="field"><label>Banner publicitario arriba del todo (opcional)</label><input id="f_pw_banner" placeholder="Ej. 🎉 20% de descuento en Chequeo Ejecutivo este mes" value="' + U.esc((tenant.paginaWeb && tenant.paginaWeb.bannerTexto) || "") + '"/></div>' +
+        '<p class="text-muted" style="margin:4px 0 12px;font-size:12.5px">Una franja de color arriba de toda la página, con este texto — al hacer clic abre WhatsApp con el mismo mensaje. Déjalo vacío para no mostrar ningún banner.</p>' +
         '<div class="field"><label>Sobre tu laboratorio (sección "Tecnología")</label><textarea id="f_pw_sobrenosotros" rows="3" placeholder="Cuéntales qué los hace diferentes: equipos, experiencia, calidad...">' + U.esc((tenant.paginaWeb && tenant.paginaWeb.sobreNosotros) || "") + "</textarea></div>" +
         '<div class="field"><label>Ubicación en Google Maps</label><input id="f_pw_mapsquery" placeholder="Pega tu dirección o el enlace de Google Maps" value="' + U.esc((tenant.paginaWeb && tenant.paginaWeb.mapsQuery) || "") + '"/></div>' +
         '<p class="text-muted" style="margin:4px 0 12px;font-size:12.5px">Puedes pegar tu dirección completa (ej. "Cra 10 # 20-30, Ciudad") o, si quieres el pin exacto, abre tu ubicación en Google Maps, dale "Compartir" y pega aquí el enlace que te da.</p>' +
@@ -1850,6 +1861,7 @@
         dominio: g("pw_dominio"),
         heroTitulo: g("pw_herotitulo"),
         heroSubtitulo: g("pw_herosubtitulo"),
+        bannerTexto: g("pw_banner"),
         sobreNosotros: g("pw_sobrenosotros"),
         mapsQuery: g("pw_mapsquery"),
         horario: g("pw_horario"),
@@ -1947,7 +1959,7 @@
             nombre: tenant.nombre, colorPrimario: tenant.colorPrimario, logoDataUrl: tenant.logoDataUrl,
             direccion: tenant.direccion, telefonos: tenant.telefonos, email: tenant.email,
             real: true, dominio: tenant.paginaWeb.dominio, heroTitulo: tenant.paginaWeb.heroTitulo,
-            heroSubtitulo: tenant.paginaWeb.heroSubtitulo, sobreNosotros: tenant.paginaWeb.sobreNosotros,
+            heroSubtitulo: tenant.paginaWeb.heroSubtitulo, bannerTexto: tenant.paginaWeb.bannerTexto, sobreNosotros: tenant.paginaWeb.sobreNosotros,
             mapsQuery: tenant.paginaWeb.mapsQuery, horario: tenant.paginaWeb.horario,
             facebook: tenant.paginaWeb.facebook, instagram: tenant.paginaWeb.instagram, tiktok: tenant.paginaWeb.tiktok,
             servicios: tenant.paginaWeb.servicios, testimonios: tenant.paginaWeb.testimonios, stats: tenant.paginaWeb.stats
@@ -2554,9 +2566,14 @@
         // — sin esto, tenant.paginaWeb.activo seguía en true (quedó
         // guardado la última vez que el propio laboratorio la activó) y el
         // sitio público seguía funcionando igual, aunque ya no estuviera
-        // autorizada.
+        // autorizada. El merge:true en demoSitioWeb.set es a propósito:
+        // apaga "real" sin borrar el logo/servicios/testimonios ya
+        // publicados, para que si se reactiva la autorización más
+        // adelante, el sitio vuelva a aparecer tal cual estaba, sin que el
+        // laboratorio tenga que volver a cargar nada.
         if (!tenant.paginaWebAutorizada && tenant.paginaWeb && tenant.paginaWeb.activo) {
           tenant.paginaWeb = Object.assign({}, tenant.paginaWeb, { activo: false });
+          S.demoSitioWeb.set(tenant.id, { real: false }, true).catch(function (err) { console.warn("BIOsoft: no se pudo apagar la Página Web pública ->", err); });
         }
         tenant.fechaInicioPlan = wrap.querySelector("#f_fechaInicioPlan").value || null;
         tenant.fechaProximoPago = wrap.querySelector("#f_fechaProximoPago").value || null;

@@ -25,18 +25,24 @@
   // real, o si un laboratorio no ha llenado aún sus servicios/testimonios.
   // La página NUNCA se rompe por falta de datos (mismo criterio que demo-sitio.js).
   // ---------------------------------------------------------------------
+  // Cubre a propósito tanto exámenes de RUTINA (primer nivel) como
+  // ESPECIALIZADOS (segundo nivel) — así el sitio nunca se ve "vacío" ni
+  // limitado mientras el laboratorio no cargue su propio catálogo.
   var SERVICIOS_GENERICOS = [
     { nombre: "Hematología", desc: "Cuadro hemático, VSG, frotis de sangre periférica y más." },
     { nombre: "Química Sanguínea", desc: "Glicemia, perfil lipídico, función renal y hepática." },
     { nombre: "Uroanálisis", desc: "Examen general de orina y urocultivo." },
-    { nombre: "Serología", desc: "Pruebas de VIH, hepatitis, dengue y más." },
-    { nombre: "Hormonas", desc: "Tiroideas, reproductivas y de seguimiento prenatal." },
-    { nombre: "Coprológico", desc: "Detección de parásitos y sangre oculta." }
+    { nombre: "Coprológico", desc: "Detección de parásitos y sangre oculta." },
+    { nombre: "Serología e Inmunología", desc: "VIH, hepatitis, dengue, PCR, ASTO y más." },
+    { nombre: "Perfil Hormonal", desc: "Tiroideas, reproductivas y seguimiento prenatal." },
+    { nombre: "Microbiología y Cultivos", desc: "Urocultivo, coprocultivo, antibiogramas." },
+    { nombre: "Pruebas Especializadas", desc: "Marcadores tumorales y perfiles de segundo nivel." }
   ];
-  var ICONOS_SERVICIO = ["🩸", "🧪", "🧫", "🦠", "⚗️", "🔬", "🩺", "📋"];
+  var ICONOS_SERVICIO = ["🩸", "🧪", "🧫", "🔬", "🦠", "⚗️", "🧫", "🩺"];
   var TESTIMONIOS_GENERICOS = [
     { texto: "Un laboratorio serio, rápido y con resultados confiables.", nombre: "Paciente" },
-    { texto: "Excelente atención y resultados a tiempo.", nombre: "Paciente" }
+    { texto: "Excelente atención y resultados a tiempo.", nombre: "Paciente" },
+    { texto: "Encontré hasta los exámenes especializados que en otros lados tocaba remitir.", nombre: "Paciente" }
   ];
   // A diferencia de servicios/testimonios, estos NUNCA inventan una cifra
   // sin respaldo (ej. "15 años de experiencia") — son cualidades ciertas
@@ -111,6 +117,28 @@
       });
     });
     return hayRedes;
+  }
+
+  // Banner publicitario arriba del todo (ej. una promoción del mes) — solo
+  // aparece si el laboratorio escribió un texto; el clic abre WhatsApp con
+  // ese mismo texto, igual que el resto de los botones de cotizar.
+  function actualizarBanner(d, numeroLab) {
+    var texto = (d.bannerTexto || "").trim();
+    var banner = document.getElementById("banner-promo");
+    if (!texto || banner.dataset.cerrado === "1") { banner.classList.add("hidden"); return; }
+    var link = document.getElementById("banner-promo-texto");
+    link.textContent = texto;
+    if (numeroLab) link.href = waLink(numeroLab, texto);
+    else { link.removeAttribute("href"); link.style.cursor = "default"; }
+    banner.classList.remove("hidden");
+  }
+
+  function wireBannerPromo() {
+    var banner = document.getElementById("banner-promo");
+    document.getElementById("banner-promo-cerrar").addEventListener("click", function () {
+      banner.dataset.cerrado = "1";
+      banner.classList.add("hidden");
+    });
   }
 
   // La barra superior (horario + redes) solo aparece si hay algo real que
@@ -260,6 +288,7 @@
 
     var numeroLab = numeroWhatsapp(d.telefonos);
     if (numeroLab) wireCotizarWhatsapp(numeroLab, nombre);
+    actualizarBanner(d, numeroLab);
   }
 
   function resolverTenantId(db, cb) {
@@ -278,7 +307,16 @@
     resolverTenantId(db, function (tenantId) {
       if (!tenantId) return;
       db.collection("demoSitioWeb").doc(tenantId).get().then(function (doc) {
-        if (doc.exists) aplicarPersonalizacion(doc.data());
+        // real !== true cubre dos casos: un documento que SOLO existe por
+        // la demo de ventas (nunca se autorizó la Página Web real), y uno
+        // al que el superadmin le quitó la autorización después (ver
+        // abrirEditarPlan en views-admin.js, que apaga este flag sin
+        // borrar el resto — así que si se reactiva, todo vuelve a
+        // aparecer tal cual). En cualquiera de los dos, esta página se
+        // queda con la marca genérica de BIOsoft en vez de mostrar el
+        // logo/colores/contenido de un laboratorio que no pagó (o dejó de
+        // pagar) por este servicio.
+        if (doc.exists && doc.data().real === true) aplicarPersonalizacion(doc.data());
       }).catch(function (e) {
         console.warn("BIOsoft: no se pudo cargar la personalización del sitio ->", e && (e.code || e.message));
       });
@@ -288,6 +326,7 @@
   function init() {
     renderGenericos();
     wireOrientador();
+    wireBannerPromo();
     wireResultados((window.BIO_FB && window.BIO_FB.db) || null);
     personalizar((window.BIO_FB && window.BIO_FB.db) || null);
   }
