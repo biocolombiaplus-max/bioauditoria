@@ -127,33 +127,46 @@
     var db = global.BIO_FB.db;
 
     function attach(coll, arrKey, isMap) {
-      // Caso real que motivó este .catch(): al agregar una colección nueva
-      // (ej. convenioPagos) hay que pegar la regla nueva de firestore.rules
-      // A MANO en la consola de Firebase — el push a git NUNCA la despliega
-      // sola. Si ese paso manual se olvida, esta colección responde
-      // "permission-denied" y, antes de este cambio, Promise.all(...) de más
-      // abajo rechazaba COMPLETO: como initRealtime() es lo primero que
-      // corre justo después de loginReal(), eso tumbaba el ingreso de TODO
-      // usuario real del laboratorio (no solo de quien tocó esa función),
-      // aunque su correo y contraseña fueran perfectamente correctos. Ahora
-      // una sola colección con reglas desactualizadas queda vacía en memoria
-      // (se recupera sola en cuanto se publique la regla, por el
-      // onSnapshot de las demás) en vez de bloquear el inicio de sesión de
-      // nadie.
-      return fbColl(coll).get().then(function (snap) {
-        snap.forEach(function (doc) { pushDoc(doc); });
+      // Caso real que motivó el .catch() de abajo: al agregar una colección
+      // nueva (ej. convenioPagos) hay que pegar la regla nueva de
+      // firestore.rules A MANO en la consola de Firebase — el push a git
+      // NUNCA la despliega sola. Si ese paso manual se olvida, esta
+      // colección responde "permission-denied" y, antes de ese cambio,
+      // Promise.all(...) de más abajo rechazaba COMPLETO: como
+      // initRealtime() es lo primero que corre justo después de
+      // loginReal(), eso tumbaba el ingreso de TODO usuario real del
+      // laboratorio (no solo de quien tocó esa función), aunque su correo y
+      // contraseña fueran perfectamente correctos. Ahora una sola colección
+      // con reglas desactualizadas queda vacía en memoria (se recupera sola
+      // en cuanto se publique la regla, con el siguiente cambio en vivo) en
+      // vez de bloquear el inicio de sesión de nadie.
+      //
+      // Antes esto hacía un fbColl(coll).get() (una lectura completa de la
+      // colección) y LUEGO, aparte, un onSnapshot() — cuyo primer evento
+      // vuelve a traer exactamente los mismos documentos otra vez. Eso
+      // duplicaba la lectura y el procesamiento de CADA una de las ~25
+      // colecciones de este Promise.all en TODO inicio de sesión real, y
+      // era la causa más probable de que a un laboratorio con varios años
+      // de historial (muchas órdenes/auditLog) le tomara varios segundos
+      // entrar. onSnapshot() ya entrega el estado completo en su primer
+      // evento (cada documento llega como "added"), así que basta con
+      // resolver esta promesa ahí mismo — sin perder nada, con la mitad de
+      // las lecturas.
+      return new Promise(function (resolve) {
+        var resuelto = false;
+        function terminar() { if (!resuelto) { resuelto = true; resolve(); } }
         var unsub = fbColl(coll).onSnapshot(function (snap) {
           snap.docChanges().forEach(function (change) {
             if (change.type === "removed") removeDoc(change.doc.id);
             else pushDoc(change.doc);
           });
+          terminar();
           if (onRealtimeChangeCb) onRealtimeChangeCb();
         }, function (err) {
-          console.warn("BIOsoft: se perdió la sincronización en vivo de '" + coll + "' (" + (err && err.code) + ").", err);
+          console.warn("BIOsoft: no se pudo cargar/sincronizar la colección '" + coll + "' (" + (err && err.code) + "). Se continúa sin bloquear el ingreso; probablemente falta publicar la regla de Firestore correspondiente en la consola de Firebase.", err);
+          terminar();
         });
         realUnsubs.push(unsub);
-      }).catch(function (err) {
-        console.warn("BIOsoft: no se pudo cargar la colección '" + coll + "' (" + (err && err.code) + "). Se continúa sin bloquear el ingreso; probablemente falta publicar la regla de Firestore correspondiente en la consola de Firebase.", err);
       });
       function pushDoc(doc) {
         var data = doc.data();
@@ -169,29 +182,26 @@
 
     // A diferencia de attach() (colecciones secundarias, de arriba: SÍ
     // pueden quedar vacías sin tumbar el ingreso de nadie), el documento
-    // del laboratorio es indispensable para que la app funcione — pero,
-    // antes de este cambio, un fallo acá (ej. "permission-denied" por una
-    // regla de Firestore desactualizada o no publicada) rechazaba este
-    // tenantPromise SIN ningún .catch(), y como entra tal cual al
-    // Promise.all() de más abajo, tumbaba TODO el inicio de sesión con el
-    // error crudo de Firestore — sin ninguna pista de la causa real, ni
-    // para el laboratorio ni para quien le da soporte (caso real
-    // reportado: "a TODOS los clientes les sale un error" al entrar o al
-    // guardar algo). Se relanza con un mensaje propio y accionable, en vez
-    // de dejar pasar el código crudo tal cual hasta mapFirebaseError() en
-    // auth.js.
-    var tenantPromise = db.collection("tenants").doc(tenantId).get().then(function (doc) {
-      if (doc.exists) realCache.tenants[tenantId] = doc.data();
+    // del laboratorio es indispensable para que la app funcione — por eso
+    // esta sí rechaza (a diferencia de attach()) con un mensaje propio y
+    // accionable en vez de dejar pasar el código crudo tal cual hasta
+    // mapFirebaseError() en auth.js. Mismo onSnapshot-único que attach(),
+    // en vez de un get() + onSnapshot() por separado, para no duplicar la
+    // lectura de este documento en cada inicio de sesión.
+    var tenantPromise = new Promise(function (resolve, reject) {
+      var resuelto = false;
       var unsub = db.collection("tenants").doc(tenantId).onSnapshot(function (doc) {
         if (doc.exists) realCache.tenants[tenantId] = doc.data();
+        if (!resuelto) { resuelto = true; resolve(); }
         if (onRealtimeChangeCb) onRealtimeChangeCb();
       }, function (err) {
-        console.warn("BIOsoft: se perdió la sincronización en vivo del laboratorio (" + (err && err.code) + ").", err);
+        console.error("BIOsoft: no se pudo cargar el laboratorio (tenants/" + tenantId + ") ->", err && err.code, err && err.message);
+        if (!resuelto) {
+          resuelto = true;
+          reject(new Error("No se pudo cargar la información de tu laboratorio (código: " + ((err && err.code) || "desconocido") + "). Esto casi siempre significa que las Reglas de Seguridad de Firestore no están publicadas o están desactualizadas en el proyecto — contacta a soporte de BIOsoft con este mensaje."));
+        }
       });
       realUnsubs.push(unsub);
-    }).catch(function (err) {
-      console.error("BIOsoft: no se pudo cargar el laboratorio (tenants/" + tenantId + ") ->", err && err.code, err && err.message);
-      throw new Error("No se pudo cargar la información de tu laboratorio (código: " + ((err && err.code) || "desconocido") + "). Esto casi siempre significa que las Reglas de Seguridad de Firestore no están publicadas o están desactualizadas en el proyecto — contacta a soporte de BIOsoft con este mensaje.");
     });
 
     return Promise.all([
@@ -250,34 +260,42 @@
     realCache = emptyDB();
     var db = global.BIO_FB.db;
 
-    // Mismo riesgo y mismo arreglo que en initRealtime() más arriba: sin
-    // este .catch(), un fallo al leer el documento del laboratorio (ej.
-    // "permission-denied") tumbaba TODO el ingreso del aliado con el error
-    // crudo de Firestore, sin ninguna pista de la causa real.
-    var tenantPromise = db.collection("tenants").doc(tenantId).get().then(function (doc) {
-      if (doc.exists) realCache.tenants[tenantId] = doc.data();
+    // Mismo riesgo y mismo arreglo que en initRealtime() más arriba (ver su
+    // comentario): sin el reject() de abajo, un fallo al leer el documento
+    // del laboratorio (ej. "permission-denied") tumbaba TODO el ingreso del
+    // aliado con el error crudo de Firestore; y usar un solo onSnapshot()
+    // en vez de get() + onSnapshot() por separado evita duplicar la lectura
+    // del documento y de las órdenes en cada inicio de sesión.
+    var tenantPromise = new Promise(function (resolve, reject) {
+      var resuelto = false;
       var unsub = db.collection("tenants").doc(tenantId).onSnapshot(function (doc) {
         if (doc.exists) realCache.tenants[tenantId] = doc.data();
+        if (!resuelto) { resuelto = true; resolve(); }
         if (onRealtimeChangeCb) onRealtimeChangeCb();
       }, function (err) {
-        console.warn("BIOsoft: se perdió la sincronización en vivo del laboratorio (" + (err && err.code) + ").", err);
+        console.error("BIOsoft: no se pudo cargar el laboratorio (tenants/" + tenantId + ") ->", err && err.code, err && err.message);
+        if (!resuelto) {
+          resuelto = true;
+          reject(new Error("No se pudo cargar la información de tu laboratorio (código: " + ((err && err.code) || "desconocido") + "). Esto casi siempre significa que las Reglas de Seguridad de Firestore no están publicadas o están desactualizadas en el proyecto — contacta a soporte de BIOsoft con este mensaje."));
+        }
       });
       realUnsubs.push(unsub);
-    }).catch(function (err) {
-      console.error("BIOsoft: no se pudo cargar el laboratorio (tenants/" + tenantId + ") ->", err && err.code, err && err.message);
-      throw new Error("No se pudo cargar la información de tu laboratorio (código: " + ((err && err.code) || "desconocido") + "). Esto casi siempre significa que las Reglas de Seguridad de Firestore no están publicadas o están desactualizadas en el proyecto — contacta a soporte de BIOsoft con este mensaje.");
     });
 
     var ordersQuery = fbColl("orders").where("convenioId", "==", convenioId);
-    var ordersPromise = ordersQuery.get().then(function (snap) {
-      snap.forEach(function (doc) { realCache.orders.push(doc.data()); });
+    var ordersPromise = new Promise(function (resolve) {
+      var resuelto = false;
       var unsub = ordersQuery.onSnapshot(function (snap) {
         snap.docChanges().forEach(function (change) {
           if (change.type === "removed") { realCache.orders = realCache.orders.filter(function (x) { return x.id !== change.doc.id; }); return; }
           var idx = realCache.orders.findIndex(function (x) { return x.id === change.doc.id; });
           if (idx >= 0) realCache.orders[idx] = change.doc.data(); else realCache.orders.push(change.doc.data());
         });
+        if (!resuelto) { resuelto = true; resolve(); }
         if (onRealtimeChangeCb) onRealtimeChangeCb();
+      }, function (err) {
+        console.warn("BIOsoft: no se pudo cargar/sincronizar las órdenes del convenio (" + (err && err.code) + ").", err);
+        if (!resuelto) { resuelto = true; resolve(); }
       });
       realUnsubs.push(unsub);
     });
