@@ -1500,6 +1500,30 @@
       });
       var btnImprimirCodigo = document.getElementById("btn-imprimir-codigo");
       if (btnImprimirCodigo) btnImprimirCodigo.addEventListener("click", function () { imprimirCodigoConsulta(order, pac, tenant); });
+      var btnGenerarCodigoAhora = document.getElementById("btn-generar-codigo-ahora");
+      if (btnGenerarCodigoAhora) btnGenerarCodigoAhora.addEventListener("click", function () {
+        // Reintento manual + error VISIBLE: la reserva en segundo plano de
+        // Nueva Orden solo deja un console.warn si falla (para no
+        // interrumpir a nadie con un error de algo que no bloquea crear la
+        // orden) — eso significa que un fallo real y persistente (no un
+        // simple choque de código, que ya reintenta solo 10 veces) se
+        // queda invisible para siempre, sin ninguna pista de qué pasó.
+        // Este botón reintenta a mano Y muestra el error real con un
+        // toast, para poder diagnosticarlo con certeza en vez de adivinar.
+        btnGenerarCodigoAhora.disabled = true;
+        btnGenerarCodigoAhora.textContent = "Generando…";
+        S.reservarCodigoConsulta(session.tenantId, order.numeroOrden).then(function (codigo) {
+          order.codigoConsulta = codigo;
+          S.saveOrder(order);
+          U.toast("Código generado.", "success");
+          build();
+        }).catch(function (err) {
+          console.error("BIOsoft: fallo al generar el código de consulta ->", err && err.code, err && err.message, err);
+          U.toast("No se pudo generar el código (" + ((err && err.code) || (err && err.message) || "error desconocido") + "). Si vuelve a pasar, escríbenos con este mensaje.", "error");
+          btnGenerarCodigoAhora.disabled = false;
+          btnGenerarCodigoAhora.textContent = "Generar código ahora";
+        });
+      });
       root.querySelectorAll("[data-goresult]").forEach(function (b) {
         b.addEventListener("click", function () { location.hash = "#/resultados/" + order.id; });
       });
@@ -1856,7 +1880,10 @@
   function codigoConsultaCardHtml(order, pac, tenant) {
     if (!tenant.paginaWeb || !tenant.paginaWeb.activo) return "";
     if (!order.codigoConsulta) {
-      return '<div class="card" style="margin-top:16px"><p class="text-muted" style="margin:0;font-size:12.5px">' + U.icon("history") + " El código de consulta de resultados se está generando — actualiza esta página en un momento.</p></div>";
+      return '<div class="card" style="margin-top:16px;display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap">' +
+        '<p class="text-muted" style="margin:0;font-size:12.5px">' + U.icon("history") + " El código de consulta de resultados aún no se ha generado.</p>" +
+        '<button type="button" class="btn btn-outline btn-sm" id="btn-generar-codigo-ahora">' + U.icon("key") + " Generar código ahora</button>" +
+      "</div>";
     }
     return '<div class="card codigo-consulta-card" style="margin-top:16px">' +
       '<div style="display:flex;align-items:flex-start;justify-content:space-between;gap:16px;flex-wrap:wrap">' +
