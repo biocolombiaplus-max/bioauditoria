@@ -38,6 +38,17 @@
     { texto: "Un laboratorio serio, rápido y con resultados confiables.", nombre: "Paciente" },
     { texto: "Excelente atención y resultados a tiempo.", nombre: "Paciente" }
   ];
+  // A diferencia de servicios/testimonios, estos NUNCA inventan una cifra
+  // sin respaldo (ej. "15 años de experiencia") — son cualidades ciertas
+  // para cualquier laboratorio con BIOsoft activo, así que sirven de
+  // respaldo seguro mientras el administrador no cargue sus propias cifras
+  // reales (tenant.paginaWeb.stats, mismo formato "valor | etiqueta" que
+  // servicios/testimonios).
+  var STATS_GENERICOS = [
+    { valor: "✅", etiqueta: "Resultados validados por Bacteriólogo" },
+    { valor: "🔐", etiqueta: "Consulta tus resultados en línea" },
+    { valor: "💬", etiqueta: "Atención directa por WhatsApp" }
+  ];
 
   var FAQS = [
     { p: "¿Necesito estar en ayunas?", r: "Depende del examen: pruebas como glicemia, perfil lipídico o química sanguínea suelen requerir entre 8 y 12 horas de ayuno. Exámenes como el hemograma o el examen de orina generalmente no lo requieren. Confirma siempre con tu laboratorio cuál aplica al tuyo." },
@@ -62,6 +73,7 @@
   function renderGenericos() {
     pintarServicios(SERVICIOS_GENERICOS);
     pintarTestimonios(TESTIMONIOS_GENERICOS);
+    pintarStats(STATS_GENERICOS);
     document.getElementById("orientador-lista").innerHTML = FAQS.map(function (f, i) {
       return '<div class="faq-item" id="faq-' + i + '"><button type="button" class="faq-pregunta" data-faq="' + i + '">' + f.p + '<span class="faq-flecha">▾</span></button><div class="faq-respuesta">' + f.r + '</div></div>';
     }).join("");
@@ -80,6 +92,48 @@
       return '<div class="card-testimonio"><div class="estrellas">★★★★★</div><div style="font-size:13px;color:#334155;line-height:1.55">"' + (t.texto || "") + '"</div>' +
         '<div style="display:flex;align-items:center;gap:8px;margin-top:4px"><div class="avatar-ph">' + nombre.trim().slice(0, 2).toUpperCase() + '</div><span style="font-size:12px;font-weight:700">' + nombre + '</span></div></div>';
     }).join("");
+  }
+
+  function pintarStats(lista) {
+    document.getElementById("stats-row").innerHTML = (lista || []).slice(0, 4).map(function (s) {
+      return '<div class="stat"><b>' + (s.valor || "") + '</b><span>' + (s.etiqueta || "") + '</span></div>';
+    }).join("");
+  }
+
+  function pintarRedesSociales(d) {
+    var redes = { facebook: (d.facebook || "").trim(), instagram: (d.instagram || "").trim(), tiktok: (d.tiktok || "").trim() };
+    var hayRedes = false;
+    Object.keys(redes).forEach(function (key) {
+      var url = redes[key];
+      document.querySelectorAll('[data-social="' + key + '"]').forEach(function (a) {
+        if (url) { a.href = url; a.classList.remove("hidden"); hayRedes = true; }
+        else a.classList.add("hidden");
+      });
+    });
+    return hayRedes;
+  }
+
+  // La barra superior (horario + redes) solo aparece si hay algo real que
+  // mostrar ahí — nunca una barra vacía, que se vería descuidado.
+  function actualizarTopbar(d) {
+    var hayRedes = pintarRedesSociales(d);
+    var horario = (d.horario || "").trim();
+    var topbar = document.getElementById("topbar");
+    document.getElementById("topbar-horario").textContent = horario ? "🕒 " + horario.split("\n")[0] : "";
+    topbar.classList.toggle("hidden", !(hayRedes || horario));
+  }
+
+  function actualizarFooter(d, nombre, direccionTxt, contactoTxt) {
+    document.getElementById("footer-marca-nombre").textContent = nombre;
+    document.getElementById("footer-copyright").textContent = "© " + new Date().getFullYear() + " " + nombre;
+    if (direccionTxt) document.getElementById("footer-direccion").textContent = direccionTxt;
+    if (contactoTxt) document.getElementById("footer-contacto").textContent = contactoTxt;
+    var horario = (d.horario || "").trim();
+    var col = document.getElementById("footer-horario-col");
+    if (horario) {
+      col.classList.remove("hidden");
+      document.getElementById("footer-horario").textContent = horario;
+    } else col.classList.add("hidden");
   }
 
   function wireOrientador() {
@@ -185,7 +239,6 @@
     else document.getElementById("marca-logo").textContent = nombre.trim().slice(0, 2).toUpperCase();
     document.getElementById("marca-nombre").textContent = nombre;
     document.getElementById("marca-eyebrow").textContent = "LABORATORIO CLÍNICO";
-    document.getElementById("footer-nombre").textContent = "© " + new Date().getFullYear() + " " + nombre;
     document.title = nombre + " — Resultados y Citas";
 
     if (d.heroTitulo) document.getElementById("hero-titulo").textContent = d.heroTitulo;
@@ -198,6 +251,10 @@
 
     if (d.servicios && d.servicios.length) pintarServicios(d.servicios);
     if (d.testimonios && d.testimonios.length) pintarTestimonios(d.testimonios);
+    if (d.stats && d.stats.length) pintarStats(d.stats);
+
+    actualizarTopbar(d);
+    actualizarFooter(d, nombre, d.direccion, contactoTxt);
 
     aplicarMapa(d.mapsQuery);
 

@@ -1494,6 +1494,32 @@
     var logo2Temp = tenant.logoSecundarioDataUrl;
     var campos = tenant.camposReporte || {};
 
+    // Publicidad de la función premium "Página Web" para un laboratorio que
+    // todavía no la tiene autorizada (ver tenant.paginaWebAutorizada, que
+    // solo el superadmin activa desde Laboratorios Cliente → Plan). En vez
+    // de solo bloquear el checkbox con un mensaje seco, se aprovecha el
+    // intento de marcarlo para mostrar el valor real de la función y
+    // mandar la conversación directo a WhatsApp — mismo criterio de ventas
+    // que "Resolver Límite de Usuarios" en Laboratorios Cliente.
+    function abrirPromoPaginaWeb(tenant) {
+      var msg = "Hola 👋 soy de " + (tenant && tenant.nombre ? tenant.nombre : "mi laboratorio") + " y quiero activar la Página Web real con consulta de resultados. ¿Me cuentan cómo la contrato?";
+      U.openModal(
+        '<div style="text-align:center;margin:-4px 0 14px">' +
+        '<div style="font-size:40px;line-height:1">🌐</div>' +
+        '<h3 class="modal-title" style="margin:8px 0 2px">Lleva tu laboratorio a internet</h3>' +
+        '<p class="text-muted" style="margin:0">Tu propia página web profesional, lista en minutos</p>' +
+        "</div>" +
+        '<div style="background:var(--bg-soft,#f8fafc);border-radius:12px;padding:14px 16px;margin-bottom:14px;display:flex;flex-direction:column;gap:10px">' +
+        '<div style="display:flex;gap:10px;align-items:flex-start"><span>✅</span><span>Página web propia, 100% editable desde aquí: tu logo, tus colores, tus servicios y testimonios — sin tocar código.</span></div>' +
+        '<div style="display:flex;gap:10px;align-items:flex-start"><span>✅</span><span>Portal de resultados: tus pacientes consultan y descargan su resultado solos, con su documento y un código que les llega por WhatsApp.</span></div>' +
+        '<div style="display:flex;gap:10px;align-items:flex-start"><span>✅</span><span>Ubicación con Google Maps, y hasta tu propio dominio (ej. tulaboratorio.com) si ya tienes uno.</span></div>' +
+        '<div style="display:flex;gap:10px;align-items:flex-start"><span>✅</span><span>Menos llamadas preguntando "¿ya están mis resultados?" — tu laboratorio se ve grande, moderno y de vanguardia.</span></div>' +
+        "</div>" +
+        '<div class="flex gap-2 justify-between"><button class="btn btn-ghost" data-modal-close>Ahora no</button>' +
+        '<a class="btn btn-whatsapp" href="https://wa.me/573505457420?text=' + encodeURIComponent(msg) + '" target="_blank" rel="noopener">' + U.icon("send") + " Quiero activarla</a></div>"
+      );
+    }
+
     function logoPreviewMarkup(dataUrl, removeAction) {
       if (!dataUrl) return '<span class="text-muted">Sin logo cargado</span>';
       return '<img src="' + dataUrl + '" style="height:52px;border-radius:8px;display:block;margin-bottom:4px"/>' +
@@ -1611,7 +1637,7 @@
             '<p class="text-muted" style="margin:4px 0 0;font-size:12.5px">Si defines un porcentaje aquí, cuando se elija "Cashea" como método de pago (en una orden o en el Cotizador), el precio de cada examen sube automáticamente ese porcentaje — repartido DENTRO del precio de cada examen, nunca como una línea aparte visible: el cliente nunca ve en el recibo ni en la factura que hubo un aumento por el método de pago. El detalle exacto de cuánto se cobró de más (examen por examen, con totales del periodo) solo lo puede ver el Administrador, en Cotizaciones → "💳 Informe Cashea". Déjalo vacío o en 0 si tu laboratorio no cobra ningún recargo por Cashea.</p>'
           : "") +
         "</fieldset>" +
-        '<fieldset><legend>🌐 Página Web (sitio real, con consulta de resultados)</legend>' +
+        '<fieldset><legend>🌐 Página Web (sitio real, con consulta de resultados)' + (tenant.paginaWebAutorizada ? "" : ' <span class="badge" style="background:#fef3c7;color:#92400e;font-weight:700;vertical-align:middle">🔒 Premium</span>') + '</legend>' +
         '<p class="text-muted" style="margin:0 0 12px;font-size:12.5px">Tu propia página web pública (sitio-web.html), con tus secciones, tu ubicación en el mapa y un portal para que cada paciente consulte y descargue su resultado con su documento y el código que le enviamos por WhatsApp al crear su orden. 100% editable desde aquí, sin tocar código.</p>' +
         '<div class="checkbox-row"><input type="checkbox" id="f_pw_activo" ' + (tenant.paginaWeb && tenant.paginaWeb.activo ? "checked" : "") + '/><label style="margin:0" for="f_pw_activo">Activar mi Página Web real</label></div>' +
         '<p class="text-muted" style="margin:4px 0 12px;font-size:12.5px">Con esto activado, cada orden nueva genera su propio código de consulta (se envía por WhatsApp al crearla y queda impreso en el Recibo/Factura), y "Enviar Resultados" publica el PDF para que el paciente lo descargue solo.</p>' +
@@ -1625,6 +1651,15 @@
         '<div class="field"><label>Sobre tu laboratorio (sección "Tecnología")</label><textarea id="f_pw_sobrenosotros" rows="3" placeholder="Cuéntales qué los hace diferentes: equipos, experiencia, calidad...">' + U.esc((tenant.paginaWeb && tenant.paginaWeb.sobreNosotros) || "") + "</textarea></div>" +
         '<div class="field"><label>Ubicación en Google Maps</label><input id="f_pw_mapsquery" placeholder="Pega tu dirección o el enlace de Google Maps" value="' + U.esc((tenant.paginaWeb && tenant.paginaWeb.mapsQuery) || "") + '"/></div>' +
         '<p class="text-muted" style="margin:4px 0 12px;font-size:12.5px">Puedes pegar tu dirección completa (ej. "Cra 10 # 20-30, Ciudad") o, si quieres el pin exacto, abre tu ubicación en Google Maps, dale "Compartir" y pega aquí el enlace que te da.</p>' +
+        '<div class="field"><label>Horario de Atención (opcional)</label><textarea id="f_pw_horario" rows="2" placeholder="Un renglón por línea, así:&#10;Lunes a Viernes: 7:00am - 5:00pm&#10;Sábados: 7:00am - 12:00pm">' + U.esc((tenant.paginaWeb && tenant.paginaWeb.horario) || "") + "</textarea></div>" +
+        '<p class="text-muted" style="margin:4px 0 12px;font-size:12.5px">Aparece en el pie de página de tu sitio, y la primera línea también arriba del todo, junto a tus redes sociales.</p>' +
+        '<div class="field"><label>Cifras destacadas (opcional)</label><textarea id="f_pw_stats" rows="3" placeholder="Hasta 3, una por línea, así: Valor | Descripción corta&#10;Ej: 15+ | Años de experiencia&#10;Ej: 24h | Entrega de resultados">' + U.esc(paresATexto(tenant.paginaWeb && tenant.paginaWeb.stats, "valor", "etiqueta")) + "</textarea></div>" +
+        '<p class="text-muted" style="margin:4px 0 12px;font-size:12.5px">Salen destacadas en la portada (ej. "15+ | Años de experiencia"). Déjalo vacío para mostrar unas genéricas mientras tanto.</p>' +
+        '<div class="form-grid">' +
+        '<div class="field"><label>Facebook (enlace, opcional)</label><input id="f_pw_facebook" placeholder="https://facebook.com/tulaboratorio" value="' + U.esc((tenant.paginaWeb && tenant.paginaWeb.facebook) || "") + '"/></div>' +
+        '<div class="field"><label>Instagram (enlace, opcional)</label><input id="f_pw_instagram" placeholder="https://instagram.com/tulaboratorio" value="' + U.esc((tenant.paginaWeb && tenant.paginaWeb.instagram) || "") + '"/></div>' +
+        '<div class="field"><label>TikTok (enlace, opcional)</label><input id="f_pw_tiktok" placeholder="https://tiktok.com/@tulaboratorio" value="' + U.esc((tenant.paginaWeb && tenant.paginaWeb.tiktok) || "") + '"/></div>' +
+        "</div>" +
         '<div class="field"><label>Servicios / exámenes destacados</label><textarea id="f_pw_servicios" rows="5" placeholder="Un servicio por línea, así: Nombre | Descripción corta&#10;Ej: Hematología | Cuadro hemático, VSG y más.">' + U.esc(paresATexto(tenant.paginaWeb && tenant.paginaWeb.servicios, "nombre", "desc")) + "</textarea></div>" +
         '<p class="text-muted" style="margin:4px 0 12px;font-size:12.5px">Un servicio por línea: nombre, una barra vertical " | ", y la descripción corta. Déjalo vacío para mostrar una lista genérica mientras lo completas.</p>' +
         '<div class="field"><label>Testimonios (opcional)</label><textarea id="f_pw_testimonios" rows="4" placeholder="Un testimonio por línea, así: Texto del testimonio | Nombre del paciente">' + U.esc(paresATexto(tenant.paginaWeb && tenant.paginaWeb.testimonios, "texto", "nombre")) + "</textarea></div>" +
@@ -1727,6 +1762,17 @@
       document.getElementById("factura-sin-membrete-opciones").classList.toggle("hidden", this.checked);
     });
     document.getElementById("f_pw_activo").addEventListener("change", function () {
+      // Función premium: solo laboratorios que el superadmin autorizó
+      // explícitamente (tenant.paginaWebAutorizada, ver "Plan" en
+      // Laboratorios Cliente) pueden activarla de verdad. Si uno sin
+      // autorizar intenta marcarla, se revierte el check y en vez de
+      // activarse se le muestra la publicidad del servicio — así este
+      // mismo checkbox ayuda a vender la función en vez de solo bloquearla.
+      if (this.checked && !tenant.paginaWebAutorizada) {
+        this.checked = false;
+        abrirPromoPaginaWeb(tenant);
+        return;
+      }
       document.getElementById("pw-campos-box").classList.toggle("hidden", !this.checked);
     });
     document.getElementById("f_logoAnchoPorcentaje").addEventListener("input", function (e) {
@@ -1795,14 +1841,24 @@
       var elCasheaRecargo = document.getElementById("f_casheaRecargoPorcentaje");
       if (elCasheaRecargo) tenant.casheaRecargoPorcentaje = parseFloat(elCasheaRecargo.value) || 0;
       tenant.paginaWeb = {
-        activo: document.getElementById("f_pw_activo").checked,
+        // Segunda comprobación, del lado del guardado (la del checkbox de
+        // arriba ya evita que se marque, pero esta es la que de verdad
+        // importa): nunca guardar activo:true para un laboratorio sin
+        // tenant.paginaWebAutorizada, sin importar qué quedó marcado en el
+        // formulario.
+        activo: !!(tenant.paginaWebAutorizada && document.getElementById("f_pw_activo").checked),
         dominio: g("pw_dominio"),
         heroTitulo: g("pw_herotitulo"),
         heroSubtitulo: g("pw_herosubtitulo"),
         sobreNosotros: g("pw_sobrenosotros"),
         mapsQuery: g("pw_mapsquery"),
+        horario: g("pw_horario"),
+        facebook: g("pw_facebook"),
+        instagram: g("pw_instagram"),
+        tiktok: g("pw_tiktok"),
         servicios: textoAPares(document.getElementById("f_pw_servicios").value, "nombre", "desc"),
-        testimonios: textoAPares(document.getElementById("f_pw_testimonios").value, "texto", "nombre")
+        testimonios: textoAPares(document.getElementById("f_pw_testimonios").value, "texto", "nombre"),
+        stats: textoAPares(document.getElementById("f_pw_stats").value, "valor", "etiqueta")
       };
       tenant.logoGrandeReporte = document.getElementById("f_logoGrandeReporte").checked;
       tenant.logoAnchoCompleto = document.getElementById("f_logoAnchoCompleto").checked;
@@ -1892,7 +1948,9 @@
             direccion: tenant.direccion, telefonos: tenant.telefonos, email: tenant.email,
             real: true, dominio: tenant.paginaWeb.dominio, heroTitulo: tenant.paginaWeb.heroTitulo,
             heroSubtitulo: tenant.paginaWeb.heroSubtitulo, sobreNosotros: tenant.paginaWeb.sobreNosotros,
-            mapsQuery: tenant.paginaWeb.mapsQuery, servicios: tenant.paginaWeb.servicios, testimonios: tenant.paginaWeb.testimonios
+            mapsQuery: tenant.paginaWeb.mapsQuery, horario: tenant.paginaWeb.horario,
+            facebook: tenant.paginaWeb.facebook, instagram: tenant.paginaWeb.instagram, tiktok: tenant.paginaWeb.tiktok,
+            servicios: tenant.paginaWeb.servicios, testimonios: tenant.paginaWeb.testimonios, stats: tenant.paginaWeb.stats
           }).catch(function (err) { console.warn("BIOsoft: no se pudo publicar la Página Web ->", err); });
         }
         // El toast de "Guardado" ya no se muestra a ciegas: espera a que la
@@ -2424,6 +2482,8 @@
         }).join("")) +
         '<div id="precio-plan-box" class="form-grid"></div>' +
         '<div class="field"><label>Límite de usuarios (se ajusta solo según el plan, o edítalo manual)</label><input type="number" id="f_maxUsuarios" min="1" value="' + (tenant.maxUsuarios || "") + '"/></div>' +
+        '<div class="field"><label class="flex gap-2" style="align-items:center;font-weight:400"><input type="checkbox" id="f_paginaWebAutorizada" ' + (tenant.paginaWebAutorizada ? "checked" : "") + ' style="width:auto"/> 🌐 Autorizar "Página Web" (función premium: sitio real + consulta de resultados)</label></div>' +
+        '<p class="text-muted" style="margin:-4px 0 10px;font-size:12px">Sin esto marcado, el laboratorio ve la función en Configuración pero, al intentar activarla, le aparece la publicidad para contratarla — no la puede activar él mismo. Márcalo solo cuando ya la haya contratado.</p>' +
         '<fieldset><legend>Facturación y Fechas de Pago</legend><div class="form-grid">' +
         '<div class="field"><label>Fecha de inicio del plan</label><input type="date" id="f_fechaInicioPlan" value="' + (tenant.fechaInicioPlan || "") + '"/></div>' +
         '<div class="field"><label>Próxima fecha de pago (corte)</label><input type="date" id="f_fechaProximoPago" value="' + (tenant.fechaProximoPago || "") + '"/></div>' +
@@ -2488,6 +2548,16 @@
         var quedaSuspendido = wrap.querySelector("#f_suspendido").checked;
         tenant.planId = planId || null;
         tenant.maxUsuarios = maxUsuarios || null;
+        tenant.paginaWebAutorizada = wrap.querySelector("#f_paginaWebAutorizada").checked;
+        // Si el superadmin retira la autorización (ej. el cliente dejó de
+        // pagar esa función), la página real también se apaga de inmediato
+        // — sin esto, tenant.paginaWeb.activo seguía en true (quedó
+        // guardado la última vez que el propio laboratorio la activó) y el
+        // sitio público seguía funcionando igual, aunque ya no estuviera
+        // autorizada.
+        if (!tenant.paginaWebAutorizada && tenant.paginaWeb && tenant.paginaWeb.activo) {
+          tenant.paginaWeb = Object.assign({}, tenant.paginaWeb, { activo: false });
+        }
         tenant.fechaInicioPlan = wrap.querySelector("#f_fechaInicioPlan").value || null;
         tenant.fechaProximoPago = wrap.querySelector("#f_fechaProximoPago").value || null;
         tenant.cicloCobroDias = parseInt(wrap.querySelector("#f_cicloCobroDias").value, 10) || 30;
@@ -2514,7 +2584,8 @@
           fechaProximoPago: tenant.fechaProximoPago, cicloCobroDias: tenant.cicloCobroDias,
           mesesMembresiaGratis: tenant.mesesMembresiaGratis, mesesCortesia: tenant.mesesCortesia,
           descuentoPlan: tenant.descuentoPlan, cobroEquiposModo: tenant.cobroEquiposModo,
-          suspendido: tenant.suspendido, fechaSuspension: tenant.fechaSuspension, esPruebaGratis: tenant.esPruebaGratis
+          suspendido: tenant.suspendido, fechaSuspension: tenant.fechaSuspension, esPruebaGratis: tenant.esPruebaGratis,
+          paginaWebAutorizada: tenant.paginaWebAutorizada, paginaWeb: tenant.paginaWeb
         });
         U.toast("Plan actualizado.", "success");
         U.closeModal(wrap);
