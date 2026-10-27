@@ -69,8 +69,13 @@
   // laboratorio día a día (Administrador, Recepción, Bacteriólogo/a) —
   // nunca al superadmin (es BIOsoft mismo, no un cliente) ni a un aliado
   // (usuario externo de solo consulta de un convenio, no decide compras).
+  // Solo laboratorios REALES (ya contratados, con datos de Firebase) ven
+  // estos anuncios — nunca el entorno de Demo (datos de ejemplo que se
+  // restablecen solos, ver el banner amarillo "Los datos de este entorno
+  // son de ejemplo"), donde promocionar servicios adicionales de pago no
+  // tiene sentido para alguien que ni siquiera es cliente todavía.
   function debeVerAnuncios(session) {
-    return !!session && ["admin", "recepcion", "bacteriologo"].indexOf(session.rol) !== -1;
+    return !!session && ["admin", "recepcion", "bacteriologo"].indexOf(session.rol) !== -1 && !!global.BIO_STORE && global.BIO_STORE.isRealMode();
   }
 
   function waLink(mensaje) {
@@ -109,10 +114,25 @@
 
     return (
       '<style>' +
-      '.modal:has(.bio-anuncio-card) .modal-card{padding:0 !important;overflow:hidden !important;border-radius:20px !important;box-shadow:0 40px 90px rgba(0,0,0,.4) !important;}' +
+      '.modal:has(.bio-anuncio-card) .modal-card{padding:0 !important;border-radius:20px !important;box-shadow:0 40px 90px rgba(0,0,0,.4) !important;' +
+      /* En computador el recorte redondeado se ve bien porque el contenido
+         cabe entero; en celular (ver media query abajo) necesita poder
+         desplazarse, así que aquí NO se fuerza overflow:hidden — eso es
+         justo lo que dejaba los botones "cortados" en Android: el panel
+         interno tenía su PROPIO scroll (max-height + overflow-y:auto) y el
+         .modal-card de afuera lo recortaba con overflow:hidden antes de que
+         alcanzara a mostrarse completo. */
+      'overflow:auto !important;max-height:92vh !important;}' +
       '.modal:has(.bio-anuncio-card) .modal-x{background:rgba(255,255,255,.18) !important;-webkit-backdrop-filter:blur(8px);backdrop-filter:blur(8px) !important;}' +
       '.modal:has(.bio-anuncio-card) .modal-x:hover{background:rgba(255,255,255,.32) !important;}' +
-      '@media (max-width:760px){.bio-anuncio-card{flex-direction:column !important;}.bio-anuncio-visual{flex:none !important;width:100% !important;padding:28px 26px !important;}}' +
+      '@media (max-width:760px){' +
+      '.bio-anuncio-card{flex-direction:column !important;min-height:0 !important;}' +
+      '.bio-anuncio-visual{flex:none !important;width:100% !important;padding:24px 22px !important;}' +
+      /* Un solo scroll (el del .modal-card de afuera) en vez de dos
+         anidados — la causa real de que el botón de WhatsApp y "Tal vez
+         más tarde" quedaran cortados/inalcanzables en Android. */
+      '.bio-anuncio-content{max-height:none !important;overflow-y:visible !important;padding:26px 20px 30px !important;}' +
+      '}' +
       '</style>' +
       '<div class="bio-anuncio-card" style="margin:-26px;display:flex;flex-wrap:wrap;min-height:540px;font-family:inherit;">' +
 
@@ -128,7 +148,7 @@
       '<p style="margin:0;font-size:11.5px;color:#94a3b8;line-height:1.5;">' + opts.trust + '</p>' +
       '</div>' +
 
-      '<div style="flex:1 1 420px;min-width:320px;padding:40px 44px;display:flex;flex-direction:column;gap:15px;overflow-y:auto;max-height:min(680px,82vh);box-sizing:border-box;">' +
+      '<div class="bio-anuncio-content" style="flex:1 1 420px;min-width:320px;padding:40px 44px;display:flex;flex-direction:column;gap:15px;overflow-y:auto;max-height:min(680px,82vh);box-sizing:border-box;">' +
       '<span style="align-self:flex-start;display:inline-flex;align-items:center;gap:6px;background:' + opts.badgeBg + ';color:' + opts.badgeColor + ';font-size:10.5px;font-weight:800;letter-spacing:.04em;text-transform:uppercase;padding:6px 13px;border-radius:999px;border:1px solid ' + opts.badgeBorder + ';">' + opts.badge + '</span>' +
       '<h3 style="margin:0;font-size:25px;line-height:1.24;color:#0f172a;font-weight:800;">' + opts.titulo + '</h3>' +
       '<p style="margin:0;font-size:14px;line-height:1.6;color:#475569;">' + opts.subtitulo + '</p>' +

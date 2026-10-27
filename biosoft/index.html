@@ -1217,7 +1217,10 @@ fbq('track', 'PageView');
         trackPropio("demo");
         if (!demoWhatsappYaDado()) {
           e.preventDefault();
-          abrirCapturaWhatsappDemo(function () { window.location.href = "app.html"; });
+          // #demo: router.js entra directo a la demo como administrador
+          // (mismas credenciales de "Ver Demo Gratis Ahora"), sin mostrar
+          // la pantalla de inicio de sesión ni pedir un clic más.
+          abrirCapturaWhatsappDemo(function () { window.location.href = "app.html#demo"; });
         }
       }
     });

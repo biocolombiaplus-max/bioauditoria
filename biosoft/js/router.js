@@ -428,6 +428,18 @@
       document.getElementById("login-password").value = "Demo2026*";
       form.requestSubmit();
     });
+    // Quien ya dio su WhatsApp en la landing (ver abrirCapturaWhatsappDemo
+    // en index.html) llega aquí con app.html#demo — entra derecho a la
+    // demo como administrador, sin tener que tocar "Ver Demo Gratis Ahora"
+    // de nuevo ni ninguna otra pantalla: un solo paso de verdad, como pidió
+    // el cliente ("que se active de una, sin ir a otra ventana, sin tocar
+    // más botones").
+    if (location.hash === "#demo") {
+      history.replaceState(null, "", location.pathname + location.search);
+      document.getElementById("login-username").value = "admin.demo";
+      document.getElementById("login-password").value = "Demo2026*";
+      form.requestSubmit();
+    }
     document.getElementById("btn-forgot-password").addEventListener("click", abrirRecuperarContrasena);
     form.addEventListener("submit", function (e) {
       e.preventDefault();
