@@ -204,40 +204,37 @@
       realUnsubs.push(unsub);
     });
 
-    return Promise.all([
-      tenantPromise,
-      attach("users", "users", false),
-      attach("patients", "patients", false),
-      attach("orders", "orders", false),
-      attach("auditLog", "auditLog", false),
-      attach("qcControles", "qcControles", false),
-      attach("qcLecturas", "qcLecturas", false),
-      attach("preciosExamenes", "preciosExamenes", false),
-      attach("examenesPersonalizados", "examenesPersonalizados", false),
-      attach("cotizaciones", "cotizaciones", false),
-      attach("reglasRemarketing", "reglasRemarketing", false),
-      attach("remarketingContactos", "remarketingContactos", false),
-      attach("insumos", "insumos", false),
-      attach("recetasReactivos", "recetasReactivos", false),
-      attach("kardexInventario", "kardexInventario", false),
-      attach("consentimientos", "consentimientos", false),
-      attach("examenesReferencia", "examenesReferencia", false),
-      // Estas 5 colecciones se escriben con fbWrite/fbDelete desde hace
-      // tiempo (convenios, RIPS y facturas generadas) pero nunca se habían
-      // agregado aquí — sin esto, en modo real (producción) desaparecían
-      // de la pantalla apenas se recargaba la página o se volvía a iniciar
-      // sesión (seguían existiendo en Firestore, solo dejaban de cargarse
-      // de vuelta a memoria). paquetesExamenes se agrega ya de una vez
-      // junto con las demás para no repetir el mismo olvido.
-      attach("convenios", "convenios", false),
-      attach("convenioPrecios", "convenioPrecios", false),
-      attach("ripsGenerados", "ripsGenerados", false),
-      attach("facturasGeneradas", "facturasGeneradas", false),
-      attach("paquetesExamenes", "paquetesExamenes", false),
-      attach("medicosRemitentes", "medicosRemitentes", false),
-      attach("medicoTarifasExamen", "medicoTarifasExamen", false),
-      attach("convenioPagos", "convenioPagos", false)
-    ]).then(function () { return realCache; });
+    // Solo "tenants" y "users" bloquean el login (son lo mínimo que
+    // loginReal() necesita para armar la sesión: encontrar al usuario real
+    // por su uid y revisar si el laboratorio está suspendido). Las demás
+    // ~23 colecciones (pacientes, órdenes, historial, inventario, etc.) YA
+    // NO se esperan aquí — antes initRealtime() entero (este Promise.all
+    // con las 25 colecciones) era lo que tenía al usuario viendo
+    // "Ingresando…" hasta que TODO el laboratorio terminara de cargar,
+    // lo cual en uno con mucho historial podía tardar varios segundos de
+    // más. Como la pantalla ya se vuelve a pintar sola en cuanto llega
+    // cada colección (ver BIO_STORE.onRealtimeChange en router.js), con
+    // tener el laboratorio y los usuarios basta para dejar entrar — el
+    // resto de los datos termina de aparecer solo, un instante después,
+    // sin tener al usuario esperando por algo que ni siquiera necesita ver
+    // todavía (ej. el historial completo de auditoría).
+    return Promise.all([tenantPromise, attach("users", "users", false)]).then(function () {
+      [
+        "patients", "orders", "auditLog", "qcControles", "qcLecturas", "preciosExamenes",
+        "examenesPersonalizados", "cotizaciones", "reglasRemarketing", "remarketingContactos",
+        "insumos", "recetasReactivos", "kardexInventario", "consentimientos", "examenesReferencia",
+        // Estas 5 colecciones se escriben con fbWrite/fbDelete desde hace
+        // tiempo (convenios, RIPS y facturas generadas) pero nunca se habían
+        // agregado aquí — sin esto, en modo real (producción) desaparecían
+        // de la pantalla apenas se recargaba la página o se volvía a iniciar
+        // sesión (seguían existiendo en Firestore, solo dejaban de cargarse
+        // de vuelta a memoria). paquetesExamenes se agrega ya de una vez
+        // junto con las demás para no repetir el mismo olvido.
+        "convenios", "convenioPrecios", "ripsGenerados", "facturasGeneradas", "paquetesExamenes",
+        "medicosRemitentes", "medicoTarifasExamen", "convenioPagos"
+      ].forEach(function (coll) { attach(coll, coll, false); });
+      return realCache;
+    });
   }
 
   /* Espejo en memoria MUY reducido para el "Portal de Aliado" (usuario de
