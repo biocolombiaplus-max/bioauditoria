@@ -1490,6 +1490,72 @@
     return MONEDA_BASE_SUGERIDA_POR_PAIS[tenant && tenant.pais] || "COP";
   }
 
+  /* IVA (Impuesto al Valor Agregado) — tenant.cobraIva (activarlo o no) y
+     tenant.porcentajeIva (el %, editable libremente) se configuran en
+     Configuración → Operación → "Impuestos" (ver views-admin.js). El
+     porcentaje sugerido por país es solo el valor INICIAL que se le
+     propone a un laboratorio que todavía no lo ha definido — una vez que
+     lo guarda, tenant.porcentajeIva manda siempre, sin importar si cambia
+     la tarifa oficial de su país más adelante (cada laboratorio decide
+     cuándo actualizarlo). */
+  var PORCENTAJE_IVA_SUGERIDO_POR_PAIS = { CO: 19, EC: 15, VE: 16 };
+  function porcentajeIvaSugerido(pais) { return PORCENTAJE_IVA_SUGERIDO_POR_PAIS[pais] || 0; }
+
+  /* Descompone un monto que YA incluye el IVA (el Valor a Cobrar de la
+     orden, exactamente lo que paga el paciente — nunca cambia) en
+     Subtotal + IVA + Total, para mostrarlo desglosado en el Recibo de
+     Pago / Factura. A propósito NUNCA se suma el IVA como un cargo
+     adicional sobre el total: eso obligaría a tocar cada cálculo de
+     abonos/saldo/cartera de todo el sistema, que siempre asume que
+     order.valorCobrar es el monto final — en vez de eso, el IVA sale
+     "incluido en el precio" (como ya es costumbre en servicios al
+     consumidor en Colombia/Ecuador/Venezuela), solo se discrimina para
+     que el documento se vea profesional. Si el laboratorio no activó
+     "Cobrar IVA", devuelve el mismo monto como "subtotal" sin IVA, para
+     poder usar este mismo resultado siempre sin condicionales en el PDF. */
+  function desgloseIva(tenant, montoConIvaIncluido) {
+    var total = montoConIvaIncluido || 0;
+    var pct = (tenant && tenant.cobraIva) ? (tenant.porcentajeIva || 0) : 0;
+    if (!pct) return { subtotal: total, iva: 0, total: total, porcentaje: 0 };
+    var subtotal = total / (1 + pct / 100);
+    return { subtotal: subtotal, iva: total - subtotal, total: total, porcentaje: pct };
+  }
+
+  /* Convierte un monto en la moneda BASE del laboratorio a bolívares —
+     usado en los documentos de pago de Venezuela, donde por norma fiscal
+     el total SIEMPRE debe verse en Bs, sin importar en qué moneda tenga
+     el laboratorio cargados sus precios (ver monedaBaseLabel más arriba).
+     Si la moneda base YA es bolívares, es el mismo monto tal cual. Si es
+     otra (típicamente USD), hace falta que el laboratorio tenga
+     configurada su "Moneda Adicional" (Cotizador → Lista de Precios) EN
+     bolívares, con una tasa — si no la configuró, devuelve null (no hay
+     forma de saber el equivalente) para que quien llama decida cómo
+     avisarlo, en vez de inventar un número. */
+  function esCodigoBolivar(codigo) { return /^(bs|ves)/i.test(codigo || ""); }
+  function montoEnBolivares(tenant, montoEnMonedaBase) {
+    var base = monedaBaseLabel(tenant);
+    if (esCodigoBolivar(base)) return montoEnMonedaBase;
+    var m = tenant && tenant.monedaAdicional;
+    if (!m || !esCodigoBolivar(m.codigo) || !m.tasa) return null;
+    return convertirMonedaAdicional(tenant, montoEnMonedaBase);
+  }
+
+  /* Texto corto y discreto con la tasa de cambio configurada (la misma de
+     Cotizador → Lista de Precios), para dejarla visible — pero sin
+     resaltar — junto al monto en bolívares de un documento de pago. "~" y
+     no "≈" por la misma razón de siempre: las fuentes base de jsPDF no
+     soportan "≈" (ver la nota en fmtMonedaAdicional más arriba). Devuelve
+     "" si no hay moneda adicional configurada. */
+  function textoTasaCambio(tenant) {
+    var m = tenant && tenant.monedaAdicional;
+    if (!m || !m.codigo || !m.tasa) return "";
+    var base = monedaBaseLabel(tenant);
+    var baseEsDura = MONEDAS_DURAS.indexOf(base) !== -1;
+    var dura = baseEsDura ? base : m.codigo;
+    var local = baseEsDura ? m.codigo : base;
+    return "Tasa: 1 " + dura + " = " + m.tasa.toLocaleString("es-CO", { maximumFractionDigits: 4 }) + " " + local;
+  }
+
   /* Un resultado numérico a veces se reporta como un rango (ej. "6-8 x
      campo" en un sedimento urinario) en vez de un solo número — se
      necesitan AMBOS extremos para compararlos contra el rango de
@@ -2121,6 +2187,7 @@
     cambiarTuboExamen: cambiarTuboExamen,
     tuboInfo: tuboInfo,
     fmtMonedaAdicional: fmtMonedaAdicional, convertirMonedaAdicional: convertirMonedaAdicional, monedaBaseLabel: monedaBaseLabel, calcularCopago: calcularCopago,
+    porcentajeIvaSugerido: porcentajeIvaSugerido, desgloseIva: desgloseIva, montoEnBolivares: montoEnBolivares, textoTasaCambio: textoTasaCambio,
     montoAdeudarPaciente: montoAdeudarPaciente, totalAbonado: totalAbonado, saldoPendienteOrden: saldoPendienteOrden,
     generarCodigoConsulta: generarCodigoConsulta,
     calcularFlag: calcularFlag,

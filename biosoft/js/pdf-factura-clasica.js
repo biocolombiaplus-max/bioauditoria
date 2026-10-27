@@ -162,9 +162,21 @@
     var totalPagar = Math.max(0, subtotal - descuento + impuesto);
     var abono = factura.abono != null ? factura.abono : totalPagar;
     var saldo = Math.max(0, totalPagar - abono);
-    var etiquetas = ["Subtotal", "Descuento", "Impuesto", "Total a Pagar", "Abono", "Saldo"];
+    // "IVA (19%)" en vez de "Impuesto" a secas cuando el laboratorio tiene
+    // el IVA activado — usa el % que quedó CONGELADO en la propia factura
+    // al generarla (factura.porcentajeIva), no el que tenga el tenant hoy,
+    // para que una factura ya emitida nunca cambie de rótulo sola si el
+    // laboratorio ajusta su % de IVA más adelante.
+    var etiquetas = ["Subtotal", "Descuento", factura.porcentajeIva ? "IVA (" + factura.porcentajeIva + "%)" : "Impuesto", "Total a Pagar", "Abono", "Saldo"];
     var valores = [subtotal, descuento, impuesto, totalPagar, abono, saldo];
     var wTotales = pageW - margin * 2, colW = wTotales / etiquetas.length, hTotales = 34;
+    // Venezuela, por norma fiscal: el total de la factura SIEMPRE debe
+    // verse en bolívares cuando hay tasa configurada (Cotizador → Lista
+    // de Precios) — se convierte toda la tira de totales a Bs, con una
+    // nota pequeña abajo mostrando el mismo total en la moneda base del
+    // laboratorio y la tasa usada, igual que en el Recibo de Pago.
+    var esVE_FC = tenant.pais === "VE";
+    var hayBsFC = esVE_FC && C.montoEnBolivares(tenant, totalPagar) !== null;
     doc.setDrawColor(210, 210, 210); doc.setLineWidth(0.7);
     doc.rect(margin, y, wTotales, hTotales);
     for (var i = 0; i < etiquetas.length; i++) {
@@ -174,9 +186,23 @@
       doc.text(etiquetas[i], cx + colW / 2, y + 12, { align: "center" });
       doc.setFont("helvetica", "bold"); doc.setFontSize(9.5);
       doc.setTextColor(i === 3 ? rgb[0] : 30, i === 3 ? rgb[1] : 30, i === 3 ? rgb[2] : 30);
-      doc.text(fmtMoneda(valores[i]), cx + colW / 2, y + 26, { align: "center" });
+      var textoValorFC = hayBsFC
+        ? C.montoEnBolivares(tenant, valores[i]).toLocaleString("es-VE", { minimumFractionDigits: 2, maximumFractionDigits: 2 }) + " Bs"
+        : fmtMoneda(valores[i]);
+      doc.text(textoValorFC, cx + colW / 2, y + 26, { align: "center" });
     }
-    y += hTotales + 16;
+    y += hTotales + 14;
+    if (hayBsFC) {
+      doc.setFont("helvetica", "normal"); doc.setFontSize(7); doc.setTextColor(130, 130, 130);
+      doc.text("Total a Pagar en " + C.monedaBaseLabel(tenant) + ": " + fmtMoneda(totalPagar) + (C.textoTasaCambio(tenant) ? "   ·   " + C.textoTasaCambio(tenant) : ""),
+        pageW - margin, y, { align: "right" });
+      y += 14;
+    } else if (esVE_FC) {
+      doc.setFont("helvetica", "normal"); doc.setFontSize(7); doc.setTextColor(130, 130, 130);
+      doc.text("Configura tu Tasa de Cambio en Cotizador para mostrar este total en Bolívares.", pageW - margin, y, { align: "right" });
+      y += 14;
+    }
+    y += 4;
 
     // ---- Observaciones ----------------------------------------------------
     doc.setFont("helvetica", "bold"); doc.setFontSize(8); doc.setTextColor(90, 90, 90);

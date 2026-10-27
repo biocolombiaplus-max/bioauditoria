@@ -198,6 +198,41 @@
     });
     y = doc.lastAutoTable.finalY + 22;
 
+    // ---- Desglose de IVA (solo si el laboratorio activó "Cobrar IVA" en
+    // Configuración → Operación → Impuestos) — siempre sobre el Valor
+    // Total de la orden (nunca sobre el abono/saldo): el IVA es del valor
+    // de los exámenes, no de cuánto se ha pagado hasta ahora. Nunca se
+    // suma como cargo adicional (ver desgloseIva en catalog.js) — solo
+    // discrimina el mismo total de siempre en Subtotal + IVA + Total.
+    // Para Venezuela, por norma fiscal, el monto SIEMPRE debe verse en
+    // bolívares — si hay Moneda Adicional/tasa configurada en Cotizador se
+    // convierte automáticamente; si no, se avisa pequeño para que el
+    // laboratorio la configure, en vez de mostrar un monto fiscalmente
+    // incorrecto sin ningún aviso.
+    var esVE = tenant.pais === "VE";
+    var desglose = C.desgloseIva(tenant, order.valorCobrar || 0);
+    if (desglose.porcentaje > 0) {
+      var totalBsIva = esVE ? C.montoEnBolivares(tenant, desglose.total) : null;
+      var enBsIva = totalBsIva !== null;
+      var fmtParteIva = function (base) {
+        return enBsIva ? C.montoEnBolivares(tenant, base).toLocaleString("es-VE", { minimumFractionDigits: 2, maximumFractionDigits: 2 }) + " Bs" : fmtMoneda(base);
+      };
+      doc.setFont("helvetica", "normal"); doc.setFontSize(8.5); doc.setTextColor(90, 90, 90);
+      doc.text("Subtotal: " + fmtParteIva(desglose.subtotal) + "   ·   IVA (" + desglose.porcentaje + "%): " + fmtParteIva(desglose.iva) + "   ·   Total: " + fmtParteIva(desglose.total),
+        pageW - margin, y, { align: "right" });
+      y += 12;
+      if (enBsIva || esVE) {
+        doc.setFontSize(7.5); doc.setTextColor(130, 130, 130);
+        var notaTasaIva = enBsIva
+          ? fmtMoneda(desglose.total) + " " + C.monedaBaseLabel(tenant) + (C.textoTasaCambio(tenant) ? "   ·   " + C.textoTasaCambio(tenant) : "")
+          : "Configura tu Tasa de Cambio en Cotizador para mostrar este valor en Bolívares.";
+        doc.text(notaTasaIva, pageW - margin, y, { align: "right" });
+        y += 14;
+      } else {
+        y += 6;
+      }
+    }
+
     // ---- Tarjeta de total, resaltada -----------------------------------
     // Pagos parciales (abonos): C.totalAbonado() suma TODO lo recibido
     // hasta ahora (order.abonos siempre incluye este mismo pago como su
@@ -228,38 +263,57 @@
       var etiquetas3 = tieneCopago ? ["VALOR TOTAL DE LA ORDEN", "COPAGO DEL PACIENTE", "A CARGO DEL CONVENIO"] : ["VALOR TOTAL", "ABONADO A LA FECHA", "SALDO PENDIENTE"];
       var valores3 = tieneCopago ? [order.valorCobrar, montoAdeudado, pago.valorConvenio || 0] : [order.valorCobrar, montoAbonado, saldo];
       var colores3 = tieneCopago ? [[60, 60, 60], [21, 128, 61], [37, 99, 235]] : [[60, 60, 60], [21, 128, 61], saldo > 0 ? [217, 119, 6] : [21, 128, 61]];
+      // Igual que la tarjeta sencilla de abajo: en Venezuela, por norma
+      // fiscal, estos montos SIEMPRE deben verse en bolívares cuando hay
+      // tasa configurada (ver montoEnBolivares en catalog.js) — si no hay
+      // tasa, se dejan en la moneda base como respaldo, igual que siempre.
+      var hayBsParaDesglose = esVE && C.montoEnBolivares(tenant, order.valorCobrar || 0) !== null;
       for (var ci = 0; ci < 3; ci++) {
         var cx3 = cardX3 + colW3 * ci + colW3 / 2;
         doc.setFont("helvetica", "bold"); doc.setFontSize(7.5); doc.setTextColor(110, 110, 110);
         doc.text(etiquetas3[ci], cx3, cardY3 + 16, { align: "center" });
         doc.setFont("helvetica", "bold"); doc.setFontSize(12); doc.setTextColor(colores3[ci][0], colores3[ci][1], colores3[ci][2]);
-        doc.text(fmtMoneda(valores3[ci]), cx3, cardY3 + 34, { align: "center" });
+        var textoValorCi = hayBsParaDesglose
+          ? C.montoEnBolivares(tenant, valores3[ci]).toLocaleString("es-VE", { minimumFractionDigits: 2, maximumFractionDigits: 2 }) + " Bs"
+          : fmtMoneda(valores3[ci]);
+        doc.text(textoValorCi, cx3, cardY3 + 34, { align: "center" });
         if (ci < 2) { doc.setDrawColor(226, 228, 233); doc.line(cardX3 + colW3 * (ci + 1), cardY3 + 6, cardX3 + colW3 * (ci + 1), cardY3 + cardH3 - 6); }
       }
-      y = cardY3 + cardH3 + 24;
+      y = cardY3 + cardH3 + 16;
+      if (hayBsParaDesglose) {
+        doc.setFont("helvetica", "normal"); doc.setFontSize(7.5); doc.setTextColor(130, 130, 130);
+        doc.text("Valor Total en " + C.monedaBaseLabel(tenant) + ": " + fmtMoneda(order.valorCobrar) + (C.textoTasaCambio(tenant) ? "   ·   " + C.textoTasaCambio(tenant) : ""),
+          pageW - margin, y, { align: "right" });
+        y += 14;
+      }
+      y += 8;
     } else {
-      var cardW = 220, cardH = extraMoneda ? 54 : 40;
-      var cardX = pageW - margin - cardW, cardY = y;
-      doc.setFillColor(250, 250, 251); doc.setDrawColor(rgb[0], rgb[1], rgb[2]); doc.setLineWidth(1.1);
-      doc.roundedRect(cardX, cardY, cardW, cardH, 6, 6, "FD");
       // Un laboratorio de Venezuela suele tener sus precios cargados en
       // dólares (más estable), pero el paciente sigue pensando en
       // bolívares — así que en este recibo, SOLO para Venezuela, se
       // invierte cuál moneda se ve grande/principal: el bolívar arriba en
-      // grande, el dólar abajo como referencia — al revés de cualquier
-      // otro país, donde la moneda en la que el laboratorio tiene cargados
-      // sus precios sigue siendo la principal.
+      // grande, el dólar abajo como referencia (con la tasa usada) — al
+      // revés de cualquier otro país, donde la moneda en la que el
+      // laboratorio tiene cargados sus precios sigue siendo la principal.
       var montoPrincipal = esCredito ? order.valorCobrar : montoAbonado;
-      var valorBs = tenant.pais === "VE" ? C.convertirMonedaAdicional(tenant, montoPrincipal) : null;
+      var valorBs = esVE ? C.montoEnBolivares(tenant, montoPrincipal) : null;
       var invertirVE = valorBs !== null;
+      // Con la tasa de cambio ahora agregada al texto pequeño, esa línea
+      // es más larga y puede partirse en dos renglones dentro del ancho
+      // de la tarjeta (220pt) — se le da más alto a la tarjeta en ese
+      // caso para que el segundo renglón no se salga del recuadro.
+      var cardW = 220, cardH = invertirVE ? 62 : (extraMoneda ? 54 : 40);
+      var cardX = pageW - margin - cardW, cardY = y;
+      doc.setFillColor(250, 250, 251); doc.setDrawColor(rgb[0], rgb[1], rgb[2]); doc.setLineWidth(1.1);
+      doc.roundedRect(cardX, cardY, cardW, cardH, 6, 6, "FD");
       doc.setFont("helvetica", "bold"); doc.setFontSize(8.5); doc.setTextColor(110, 110, 110);
       doc.text(esCredito ? "SALDO A CARGO DEL CONVENIO" : "TOTAL PAGADO", cardX + 14, cardY + 17);
       doc.setFont("helvetica", "bold"); doc.setFontSize(15); doc.setTextColor(rgb[0], rgb[1], rgb[2]);
       doc.text(invertirVE ? (valorBs.toLocaleString("es-VE", { minimumFractionDigits: 2, maximumFractionDigits: 2 }) + " Bs") : fmtMoneda(montoPrincipal), cardX + cardW - 14, cardY + 30, { align: "right" });
-      var textoChico = invertirVE ? (fmtMoneda(montoPrincipal) + " " + C.monedaBaseLabel(tenant)) : extraMoneda;
+      var textoChico = invertirVE ? (fmtMoneda(montoPrincipal) + " " + C.monedaBaseLabel(tenant) + (C.textoTasaCambio(tenant) ? " · " + C.textoTasaCambio(tenant) : "")) : extraMoneda;
       if (textoChico) {
-        doc.setFont("helvetica", "normal"); doc.setFontSize(8.5); doc.setTextColor(120, 120, 120);
-        doc.text(textoChico, cardX + cardW - 14, cardY + 44, { align: "right" });
+        doc.setFont("helvetica", "normal"); doc.setFontSize(7.5); doc.setTextColor(120, 120, 120);
+        doc.text(textoChico, cardX + cardW - 14, cardY + 44, { align: "right", maxWidth: cardW - 28 });
       }
       y = cardY + cardH + 24;
     }

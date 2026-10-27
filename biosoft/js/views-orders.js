@@ -946,16 +946,27 @@
       filas.map(filaHtml).join("") + "</tbody></table></div>" +
       '<div class="form-grid" style="margin-top:12px">' +
       '<div class="field"><label>Descuento</label><input id="fc-descuento" type="number" step="any" min="0" value="0"/></div>' +
-      '<div class="field"><label>Impuesto</label><input id="fc-impuesto" type="number" step="any" min="0" value="0"/></div>' +
+      '<div class="field"><label id="fc-impuesto-label">' + (tenant.cobraIva ? "IVA (" + tenant.porcentajeIva + "%)" : "Impuesto") + '</label><input id="fc-impuesto" type="number" step="any" min="0" value="0"/></div>' +
       '<div class="field"><label>Abono</label><input id="fc-abono" type="number" step="any" min="0" value="' + (order.valorCobrar || 0) + '"/></div>' +
       "</div>" +
+      (tenant.cobraIva ? '<p class="text-muted" style="margin:-6px 0 10px;font-size:12px">El IVA se calcula solo sobre el Subtotal según el ' + tenant.porcentajeIva + '% configurado en Configuración → Operación — puedes ajustarlo a mano si este caso es distinto.</p>' : "") +
       '<div class="field"><label>Observaciones</label><textarea id="fc-observaciones" rows="2" placeholder="Ej. 2do paciente atendido: Nombre — Documento"></textarea></div>' +
       '<p id="fc-totales" class="text-muted" style="text-align:right;font-weight:700;margin-top:10px"></p>' +
       '<div class="flex justify-between" style="margin-top:16px"><button class="btn btn-ghost" data-modal-close>Cancelar</button><button class="btn btn-primary" id="fc-generar">Generar Factura</button></div>'
     );
 
+    // Igual que el "Valor a Cobrar" sugerido de Nueva Orden: el IVA se
+    // recalcula solo (subtotal × % de IVA) cada vez que cambia un precio
+    // o una cantidad, PERO deja de recalcularse en automático apenas el
+    // administrador toca el campo a mano — para no pisarle un ajuste
+    // manual (ej. una exención puntual) con el valor sugerido en el
+    // siguiente recálculo.
+    var impuestoEditadoManualmente = false;
     function recalcular() {
       var subtotal = filas.reduce(function (a, f) { return a + f.precio * f.cantidad; }, 0);
+      if (tenant.cobraIva && !impuestoEditadoManualmente) {
+        document.getElementById("fc-impuesto").value = Math.round(subtotal * (tenant.porcentajeIva || 0) / 100 * 100) / 100;
+      }
       var descuento = parseFloat(document.getElementById("fc-descuento").value) || 0;
       var impuesto = parseFloat(document.getElementById("fc-impuesto").value) || 0;
       var total = Math.max(0, subtotal - descuento + impuesto);
@@ -972,7 +983,7 @@
       inp.addEventListener("input", function () { filas[this.dataset.i].cantidad = parseFloat(this.value) || 0; recalcular(); });
     });
     wrap.querySelector("#fc-descuento").addEventListener("input", recalcular);
-    wrap.querySelector("#fc-impuesto").addEventListener("input", recalcular);
+    wrap.querySelector("#fc-impuesto").addEventListener("input", function () { impuestoEditadoManualmente = true; recalcular(); });
     recalcular();
 
     wrap.querySelector("#fc-generar").addEventListener("click", function () {
@@ -985,6 +996,11 @@
         numero: numeroFinal, fecha: new Date().toISOString(),
         filas: filas.map(function (f) { return { codigo: f.codigo, descripcion: f.descripcion, precio: f.precio, cantidad: f.cantidad }; }),
         descuento: descuento, impuesto: impuesto,
+        // Se congela el % realmente usado al generar la factura (no el que
+        // tenga el tenant en el futuro) — solo para ROTULAR bien el
+        // recuadro de totales ("IVA (19%)" en vez de "Impuesto"); el valor
+        // en dinero de arriba siempre manda, sin importar este rótulo.
+        porcentajeIva: tenant.cobraIva ? tenant.porcentajeIva : 0,
         abono: parseFloat(document.getElementById("fc-abono").value) || 0,
         observaciones: document.getElementById("fc-observaciones").value.trim()
       };

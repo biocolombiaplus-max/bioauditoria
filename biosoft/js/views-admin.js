@@ -1637,6 +1637,13 @@
         Object.keys(S.FORMATOS_NUMERO_ORDEN).map(function (k) { return '<option value="' + k + '" ' + ((tenant.formatoNumeroOrden || "diario") === k ? "selected" : "") + '>' + U.esc(S.FORMATOS_NUMERO_ORDEN[k].nombre) + "</option>"; }).join("") +
         "</select></div>" +
         '<p class="text-muted" style="margin:4px 0 0;font-size:12.5px">Elige cómo se numeran las nuevas órdenes de tu laboratorio. Cambiar el formato no afecta el número de las órdenes ya creadas — solo aplica a las que se creen de aquí en adelante.</p>' +
+        '<div class="action-menu-group-title">Impuestos</div>' +
+        '<div class="checkbox-row"><input type="checkbox" id="f_cobraIva" ' + (tenant.cobraIva ? "checked" : "") + '/><label style="margin:0" for="f_cobraIva">Cobrar IVA (Impuesto al Valor Agregado)</label></div>' +
+        '<p class="text-muted" style="margin:4px 0 10px;font-size:12.5px">Actívalo si tu laboratorio debe discriminar el IVA en el Recibo de Pago / Factura. El Valor a Cobrar de cada orden se sigue digitando igual que siempre (el precio final que paga el paciente, con el IVA ya incluido) — al activar esto, el documento simplemente desglosa ese mismo total en Subtotal + IVA + Total, sin cobrarle nada extra al paciente. Se queda desactivado por defecto; muchos servicios de laboratorio clínico están exentos o excluidos de IVA — confírmalo con tu contador antes de activarlo.</p>' +
+        '<div id="iva-porcentaje-row" class="field ' + (tenant.cobraIva ? "" : "hidden") + '" style="max-width:220px;margin:0 0 12px">' +
+        '<label>Porcentaje de IVA (%)</label>' +
+        '<input type="number" id="f_porcentajeIva" min="0" max="100" step="0.01" value="' + (tenant.porcentajeIva != null ? tenant.porcentajeIva : C.porcentajeIvaSugerido(tenant.pais)) + '"/>' +
+        '</div>' +
         '<div class="action-menu-group-title">Cuota Administrativa (opcional)</div>' +
         '<div class="field" style="max-width:260px"><label>Valor a cobrar por la Cuota Administrativa</label><input type="number" id="f_cuotaAdministrativaValor" min="0" step="0.01" value="' + (tenant.cuotaAdministrativaValor || "") + '"/></div>' +
         '<p class="text-muted" style="margin:4px 0 0;font-size:12.5px">Si defines un valor aquí, vas a poder incluir la Cuota Administrativa como cargo adicional opcional al crear o editar una orden, y aparecerá como línea aparte tanto en el Recibo de Pago como en la Factura. Déjalo vacío o en 0 si tu laboratorio no cobra ninguna cuota administrativa.</p>' +
@@ -1789,6 +1796,9 @@
     document.getElementById("f_facturaConMembrete").addEventListener("change", function () {
       document.getElementById("factura-sin-membrete-opciones").classList.toggle("hidden", this.checked);
     });
+    document.getElementById("f_cobraIva").addEventListener("change", function () {
+      document.getElementById("iva-porcentaje-row").classList.toggle("hidden", !this.checked);
+    });
     document.getElementById("f_pw_activo").addEventListener("change", function () {
       // Función premium: solo laboratorios que el superadmin autorizó
       // explícitamente (tenant.paginaWebAutorizada, ver "Plan" en
@@ -1924,6 +1934,8 @@
       tenant.facturaConMembrete = document.getElementById("f_facturaConMembrete").checked;
       tenant.facturaMembreteEspacioSuperior = parseFloat(document.getElementById("f_facturaEspacioSuperior").value) || 4.5;
       tenant.formatoNumeroOrden = document.getElementById("f_formatoNumeroOrden").value;
+      tenant.cobraIva = document.getElementById("f_cobraIva").checked;
+      tenant.porcentajeIva = tenant.cobraIva ? (parseFloat(document.getElementById("f_porcentajeIva").value) || 0) : 0;
       var elCuotaAdmin = document.getElementById("f_cuotaAdministrativaValor");
       if (elCuotaAdmin) tenant.cuotaAdministrativaValor = parseFloat(elCuotaAdmin.value) || 0;
       var elCasheaRecargo = document.getElementById("f_casheaRecargoPorcentaje");
@@ -2012,6 +2024,7 @@
           bacteriologoResponsable: tenant.bacteriologoResponsable, mostrarPrecioOrden: tenant.mostrarPrecioOrden, reportarCIM: tenant.reportarCIM,
           calcularIndicesHematimetricos: tenant.calcularIndicesHematimetricos,
           reciboConvenioComoCredito: tenant.reciboConvenioComoCredito, formatoFactura: tenant.formatoFactura, facturaConMembrete: tenant.facturaConMembrete, facturaMembreteEspacioSuperior: tenant.facturaMembreteEspacioSuperior, formatoNumeroOrden: tenant.formatoNumeroOrden,
+          cobraIva: tenant.cobraIva, porcentajeIva: tenant.porcentajeIva,
           cuotaAdministrativaValor: tenant.cuotaAdministrativaValor, casheaRecargoPorcentaje: tenant.casheaRecargoPorcentaje,
           logoGrandeReporte: tenant.logoGrandeReporte, logoAnchoCompleto: tenant.logoAnchoCompleto, logoAnchoPorcentaje: tenant.logoAnchoPorcentaje, ocultarNombreEncabezado: tenant.ocultarNombreEncabezado,
           colorBandaSeccion: tenant.colorBandaSeccion, bandaSeccionSinColor: tenant.bandaSeccionSinColor, membreteEnTodasLasHojas: tenant.membreteEnTodasLasHojas,

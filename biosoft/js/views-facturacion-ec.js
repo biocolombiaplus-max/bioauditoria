@@ -239,10 +239,10 @@
           items.map(function (it) { return "<tr><td>" + U.esc(it.nombre) + "</td><td>" + fmtMoneda(it.precio) + "</td></tr>"; }).join("") +
           "</tbody></table></div>" +
           '<div class="form-grid" style="margin-top:10px">' +
-            '<div class="field"><label>IVA (%)</label><input type="number" id="f_ec_ivaPct" value="0" min="0" max="100" step="any"/></div>' +
+            '<div class="field"><label>IVA (%)</label><input type="number" id="f_ec_ivaPct" value="' + (tenant.cobraIva ? tenant.porcentajeIva : 0) + '" min="0" max="100" step="any"/></div>' +
             '<div class="field"><label>Forma de Pago</label><select id="f_ec_formaPago">' + FORMAS_PAGO_SRI.map(function (fp) { return "<option>" + fp + "</option>"; }).join("") + "</select></div>" +
           "</div>" +
-          '<p class="text-muted" style="margin:4px 0 10px;font-size:12px">Muchos servicios de laboratorio clínico pueden tener tarifa 0% de IVA en Ecuador — confírmalo con tu contador antes de emitir, y ajusta el porcentaje si tu caso es distinto.</p>' +
+          '<p class="text-muted" style="margin:4px 0 10px;font-size:12px">' + (tenant.cobraIva ? "Se precargó el " + tenant.porcentajeIva + "% configurado en Configuración → Operación — ajústalo si este caso es distinto." : "Muchos servicios de laboratorio clínico pueden tener tarifa 0% de IVA en Ecuador — confírmalo con tu contador antes de emitir, y ajusta el porcentaje si tu caso es distinto.") + "</p>" +
           '<p id="ec-fv-totales" style="text-align:right;font-size:14px"></p>' +
           '<button type="button" class="btn btn-primary" id="btn-ec-generar-fv">' + U.icon("check") + " Generar Factura (Borrador)</button>" +
           '<div id="ec-fv-acciones" style="margin-top:12px"></div>';
