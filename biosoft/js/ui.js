@@ -531,13 +531,50 @@
     });
   }
 
+  /* Para FOTOS (no logos): a diferencia de redimensionarImagen (PNG, sin
+     pérdida — pensado para un logo con transparencia, que debe quedar
+     nítido y pesa poco porque es simple), una foto real de celular tiene
+     mucho detalle y como PNG puede pesar varios cientos de KB incluso ya
+     redimensionada. El sitio público (demoSitioWeb) puede terminar
+     guardando dos fotos de un mismo laboratorio en el mismo documento de
+     Firestore (límite de 1 MiB), así que aquí se exporta como JPEG con
+     compresión — se ve prácticamente igual para una foto de laboratorio/
+     equipo, pero pesa una fracción. */
+  function redimensionarFoto(file, maxDim, calidad) {
+    return new Promise(function (resolve, reject) {
+      var reader = new FileReader();
+      reader.onerror = reject;
+      reader.onload = function (ev) {
+        var img = new Image();
+        img.onerror = reject;
+        img.onload = function () {
+          var w = img.width, h = img.height;
+          var scale = Math.min(1, maxDim / Math.max(w, h));
+          var canvas = document.createElement("canvas");
+          canvas.width = Math.round(w * scale);
+          canvas.height = Math.round(h * scale);
+          var ctx = canvas.getContext("2d");
+          // Fondo blanco antes de dibujar: JPEG no tiene canal alfa, así
+          // que una foto con transparencia (ej. PNG exportado de un
+          // diseño) se vería con fondo negro sin esto.
+          ctx.fillStyle = "#fff";
+          ctx.fillRect(0, 0, canvas.width, canvas.height);
+          ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+          resolve(canvas.toDataURL("image/jpeg", calidad || 0.78));
+        };
+        img.src = ev.target.result;
+      };
+      reader.readAsDataURL(file);
+    });
+  }
+
   global.BIO_UI = {
     icon: icon, esc: esc, toast: toast, openModal: openModal, closeModal: closeModal,
     calcEdad: calcEdad, edadTexto: edadTexto, fmtFecha: fmtFecha, fmtFechaCorta: fmtFechaCorta, nombreCompleto: nombreCompleto,
     applyTenantTheme: applyTenantTheme, resetTheme: resetTheme, contrastColor: contrastColor, dataUrlToBlob: dataUrlToBlob, openDataUrlInNewTab: openDataUrlInNewTab,
     downloadBytes: downloadBytes, normalizar: normalizar, emailLinks: emailLinks,
     emailProviderButtonsHtml: emailProviderButtonsHtml, wireEmailProviderButtons: wireEmailProviderButtons,
-    redimensionarImagen: redimensionarImagen, recomprimirDataUrlSiHaceFalta: recomprimirDataUrlSiHaceFalta,
+    redimensionarImagen: redimensionarImagen, recomprimirDataUrlSiHaceFalta: recomprimirDataUrlSiHaceFalta, redimensionarFoto: redimensionarFoto,
     indicativoPais: indicativoPais, numeroWhatsapp: numeroWhatsapp,
     soportaCompartirArchivos: soportaCompartirArchivos, compartirPDF: compartirPDF, botonCompartirPDFHtml: botonCompartirPDFHtml,
     parseMonto: parseMonto, passwordToggleBtnHtml: passwordToggleBtnHtml,

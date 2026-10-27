@@ -360,10 +360,19 @@
         '<div class="card-header"><h3 class="card-title">Nueva Orden de Laboratorio</h3>' +
         '<a class="btn btn-ghost btn-sm" id="btn-cancel">Cancelar</a></div>' +
         '<div class="form-grid">' +
-          '<div class="field"><label>Paciente *</label><select id="f_patient">' +
-            '<option value="">Selecciona un paciente…</option>' +
-            patients.map(function (p) { return '<option value="' + p.id + '" ' + (p.id === prefillId ? "selected" : "") + ">" + p.tipoDocumento + " " + p.numeroDocumento + " — " + U.esc(U.nombreCompleto(p)) + "</option>"; }).join("") +
-          "</select></div>" +
+          '<div class="field" style="position:relative;grid-column:1/-1;max-width:420px">' +
+            '<label>Paciente *</label>' +
+            '<input type="text" id="patient-search" placeholder="Buscar por nombre o número de documento…" autocomplete="off"/>' +
+            '<input type="hidden" id="f_patient_id" value="' + (prefillId || "") + '"/>' +
+            '<div id="patient-results" class="hidden" style="position:absolute;z-index:15;top:100%;left:0;right:0;background:#fff;border:1px solid #cbd5e1;border-radius:8px;box-shadow:0 10px 24px rgba(15,23,42,.12);max-height:260px;overflow-y:auto;margin-top:4px"></div>' +
+            '<div id="patient-selected" class="hidden" style="margin-top:8px;display:flex;align-items:center;justify-content:space-between;gap:8px;flex-wrap:wrap;background:#f8fafc;border:1px solid #e2e8f0;border-radius:8px;padding:9px 12px">' +
+              '<span id="patient-selected-txt" style="font-weight:600;font-size:13.5px"></span>' +
+              '<span style="display:flex;gap:14px">' +
+                '<button type="button" class="btn btn-ghost btn-sm" id="btn-edit-selected-patient" style="padding:2px 8px;font-size:11.5px">' + U.icon("edit") + ' Editar datos</button>' +
+                '<button type="button" class="btn btn-ghost btn-sm" id="btn-change-selected-patient" style="padding:2px 8px;font-size:11.5px">✕ Cambiar</button>' +
+              "</span>" +
+            "</div>" +
+          "</div>" +
           F.sel("prioridad", "Prioridad", C.PRIORIDADES.map(function (p) { return "<option>" + p + "</option>"; }).join("")) +
           '<div class="field"><label>Médico Remitente</label><select id="f_medicoRemitenteId">' +
             '<option value="">✏️ Escribir un nombre (no registrado)</option>' +
@@ -439,6 +448,87 @@
       window.BIO_openPatientForm(null, function () { location.hash = "#/ordenes/nueva"; BIO_ROUTER.renderRoute(); });
     });
     document.getElementById("exam-search").addEventListener("input", function (e) { searchTerm = e.target.value; renderSections(); renderExams(); });
+
+    // Buscador de paciente (por nombre o documento) en vez de una lista
+    // desplegable con TODOS los pacientes del laboratorio — con miles de
+    // pacientes registrados, ese <select> único se volvía lentísimo de
+    // abrir y casi imposible de usar a mano. El paciente elegido SIGUE
+    // editable desde aquí mismo (reutiliza el mismo formulario de
+    // Pacientes → Editar, window.BIO_openPatientForm), para no tener que
+    // salir a otra pantalla si hace falta corregirle algo antes de crear
+    // la orden.
+    (function () {
+      var inpBusqueda = document.getElementById("patient-search");
+      var elResultados = document.getElementById("patient-results");
+      var elIdOculto = document.getElementById("f_patient_id");
+      var elSeleccionado = document.getElementById("patient-selected");
+      var elSeleccionadoTxt = document.getElementById("patient-selected-txt");
+
+      function normalizar(txt) {
+        return (txt || "").toString().normalize("NFD").replace(/[̀-ͯ]/g, "").toLowerCase();
+      }
+      function textoPaciente(p) {
+        return p.tipoDocumento + " " + p.numeroDocumento + " — " + U.nombreCompleto(p);
+      }
+      function mostrarSeleccionado(p) {
+        elIdOculto.value = p.id;
+        elSeleccionadoTxt.textContent = textoPaciente(p);
+        elSeleccionado.classList.remove("hidden");
+        inpBusqueda.classList.add("hidden");
+        elResultados.classList.add("hidden");
+      }
+      function mostrarBuscador() {
+        elIdOculto.value = "";
+        elSeleccionado.classList.add("hidden");
+        inpBusqueda.classList.remove("hidden");
+        inpBusqueda.value = "";
+        inpBusqueda.focus();
+      }
+      function renderResultados(termino) {
+        var t = normalizar(termino);
+        if (!t) { elResultados.classList.add("hidden"); elResultados.innerHTML = ""; return; }
+        var encontrados = patients.filter(function (p) {
+          return normalizar(U.nombreCompleto(p)).indexOf(t) !== -1 || normalizar(p.numeroDocumento).indexOf(t) !== -1;
+        }).slice(0, 20);
+        if (!encontrados.length) {
+          elResultados.innerHTML = '<div class="text-muted" style="padding:12px;font-size:12.5px">Sin coincidencias — puedes "Registrar paciente nuevo" abajo.</div>';
+        } else {
+          elResultados.innerHTML = encontrados.map(function (p) {
+            return '<div class="patient-result-item" data-pid="' + p.id + '" style="padding:9px 12px;cursor:pointer;border-bottom:1px solid #f1f5f9;font-size:13px">' + U.esc(textoPaciente(p)) + "</div>";
+          }).join("");
+          elResultados.querySelectorAll("[data-pid]").forEach(function (el) {
+            el.addEventListener("mouseenter", function () { el.style.background = "#f8fafc"; });
+            el.addEventListener("mouseleave", function () { el.style.background = ""; });
+            el.addEventListener("click", function () {
+              var p = patients.filter(function (x) { return x.id === el.dataset.pid; })[0];
+              if (p) mostrarSeleccionado(p);
+            });
+          });
+        }
+        elResultados.classList.remove("hidden");
+      }
+      inpBusqueda.addEventListener("input", function (e) { renderResultados(e.target.value); });
+      inpBusqueda.addEventListener("focus", function () { if (inpBusqueda.value) renderResultados(inpBusqueda.value); });
+      document.addEventListener("click", function (e) {
+        if (!elResultados.contains(e.target) && e.target !== inpBusqueda) elResultados.classList.add("hidden");
+      });
+      document.getElementById("btn-change-selected-patient").addEventListener("click", mostrarBuscador);
+      document.getElementById("btn-edit-selected-patient").addEventListener("click", function () {
+        var p = patients.filter(function (x) { return x.id === elIdOculto.value; })[0];
+        if (!p) return;
+        window.BIO_openPatientForm(p, function () {
+          var actualizado = S.getPatient(p.id);
+          if (actualizado) {
+            var idx = patients.findIndex(function (x) { return x.id === p.id; });
+            if (idx >= 0) patients[idx] = actualizado;
+            mostrarSeleccionado(actualizado);
+          }
+        });
+      });
+
+      var prefillPaciente = prefillId ? patients.filter(function (p) { return p.id === prefillId; })[0] : null;
+      if (prefillPaciente) mostrarSeleccionado(prefillPaciente); else mostrarBuscador();
+    })();
 
     var selMedicoRemitente = document.getElementById("f_medicoRemitenteId");
     var inpMedicoRemitenteTexto = document.getElementById("f_medicoRemitenteTexto");
@@ -627,7 +717,7 @@
     }
 
     document.getElementById("btn-save-order").addEventListener("click", function () {
-      var patientId = document.getElementById("f_patient").value;
+      var patientId = document.getElementById("f_patient_id").value;
       if (!patientId) { U.toast("Selecciona un paciente.", "error"); return; }
       if (!selectedExams.length && !selectedPaquetes.length) { U.toast("Selecciona al menos un examen o paquete.", "error"); return; }
       // Un paquete no es un "examen" real del catálogo — es un atajo de

@@ -250,6 +250,14 @@
     return [r, g, b];
   }
 
+  function aplicarFoto(id, dataUrl, nombre) {
+    if (!dataUrl) return;
+    var el = document.getElementById(id);
+    if (!el) return;
+    el.classList.add("con-foto");
+    el.innerHTML = '<img src="' + dataUrl + '" alt="' + nombre + '"/>';
+  }
+
   function aplicarMapa(mapsQuery) {
     var cont = document.getElementById("mapa-contenedor");
     if (!mapsQuery) return;
@@ -272,6 +280,8 @@
     if (d.heroTitulo) document.getElementById("hero-titulo").textContent = d.heroTitulo;
     if (d.heroSubtitulo) document.getElementById("hero-subtitulo").textContent = d.heroSubtitulo;
     if (d.sobreNosotros) document.getElementById("sobre-nosotros").textContent = d.sobreNosotros;
+    aplicarFoto("foto-hero", d.fotoHero, nombre);
+    aplicarFoto("foto-nosotros", d.fotoNosotros, nombre);
 
     if (d.direccion) document.getElementById("dato-direccion").textContent = d.direccion;
     var contactoTxt = [d.telefonos, d.email].filter(Boolean).join(" · ");

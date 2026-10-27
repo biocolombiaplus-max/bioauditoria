@@ -1492,6 +1492,8 @@
     var tenant = S.getTenant(session.tenantId);
     var logoTemp = tenant.logoDataUrl;
     var logo2Temp = tenant.logoSecundarioDataUrl;
+    var pwFotoHeroTemp = (tenant.paginaWeb && tenant.paginaWeb.fotoHero) || "";
+    var pwFotoNosotrosTemp = (tenant.paginaWeb && tenant.paginaWeb.fotoNosotros) || "";
     var campos = tenant.camposReporte || {};
 
     // Publicidad de la función premium "Página Web" para un laboratorio que
@@ -1533,6 +1535,12 @@
       if (!dataUrl) return '<span class="text-muted">Sin logo cargado</span>';
       return '<img src="' + dataUrl + '" style="height:52px;border-radius:8px;display:block;margin-bottom:4px"/>' +
         '<button type="button" class="btn btn-ghost btn-sm" data-action="' + removeAction + '" style="padding:2px 8px;font-size:11px">' + U.icon("trash") + " Quitar logo</button>";
+    }
+
+    function fotoPreviewMarkup(dataUrl, removeAction, placeholderTxt) {
+      if (!dataUrl) return '<span class="text-muted" style="font-size:12px">' + placeholderTxt + "</span>";
+      return '<img src="' + dataUrl + '" style="width:100%;max-width:280px;height:140px;object-fit:cover;border-radius:10px;display:block;margin-bottom:6px"/>' +
+        '<button type="button" class="btn btn-ghost btn-sm" data-action="' + removeAction + '" style="padding:2px 8px;font-size:11px">' + U.icon("trash") + " Quitar foto</button>";
     }
 
     root.innerHTML =
@@ -1651,6 +1659,11 @@
         '<div class="checkbox-row"><input type="checkbox" id="f_pw_activo" ' + (tenant.paginaWeb && tenant.paginaWeb.activo ? "checked" : "") + '/><label style="margin:0" for="f_pw_activo">Activar mi Página Web real</label></div>' +
         '<p class="text-muted" style="margin:4px 0 12px;font-size:12.5px">Con esto activado, cada orden nueva genera su propio código de consulta (se envía por WhatsApp al crearla y queda impreso en el Recibo/Factura), y "Enviar Resultados" publica el PDF para que el paciente lo descargue solo.</p>' +
         '<div id="pw-campos-box" class="' + (tenant.paginaWeb && tenant.paginaWeb.activo ? "" : "hidden") + '">' +
+        '<div style="background:#f0fdf4;border:1px solid #bbf7d0;border-radius:10px;padding:12px 14px;margin-bottom:14px;display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap">' +
+        '<div><div style="font-weight:700;font-size:13px">🔗 Tu Página Web ya está publicada aquí:</div><div class="text-muted" style="font-size:12px;word-break:break-all" id="pw-link-texto"></div></div>' +
+        '<div class="flex gap-2"><a href="#" target="_blank" rel="noopener" class="btn btn-outline btn-sm" id="btn-pw-abrir">' + U.icon("eye") + ' Abrir</a>' +
+        '<button type="button" class="btn btn-primary btn-sm" id="btn-pw-copiar">' + U.icon("clipboard") + " Copiar enlace</button></div>" +
+        "</div>" +
         '<div class="form-grid">' +
         '<div class="field"><label>Dominio propio (opcional)</label><input id="f_pw_dominio" placeholder="Ej. laboratoriodivinamisericordia.com" value="' + U.esc((tenant.paginaWeb && tenant.paginaWeb.dominio) || "") + '"/></div>' +
         "</div>" +
@@ -1659,7 +1672,11 @@
         '<div class="field"><label>Subtítulo / frase de bienvenida</label><textarea id="f_pw_herosubtitulo" rows="2" placeholder="Ej. Más de 15 años al servicio de tu familia, con tecnología de punta.">' + U.esc((tenant.paginaWeb && tenant.paginaWeb.heroSubtitulo) || "") + "</textarea></div>" +
         '<div class="field"><label>Banner publicitario arriba del todo (opcional)</label><input id="f_pw_banner" placeholder="Ej. 🎉 20% de descuento en Chequeo Ejecutivo este mes" value="' + U.esc((tenant.paginaWeb && tenant.paginaWeb.bannerTexto) || "") + '"/></div>' +
         '<p class="text-muted" style="margin:4px 0 12px;font-size:12.5px">Una franja de color arriba de toda la página, con este texto — al hacer clic abre WhatsApp con el mismo mensaje. Déjalo vacío para no mostrar ningún banner.</p>' +
+        '<div class="field"><label>Foto de portada (opcional)</label><input type="file" id="f_pw_fotohero" accept="image/*"/><div id="pw-foto-hero-preview" style="margin-top:8px">' + fotoPreviewMarkup(pwFotoHeroTemp, "quitar-pw-foto-hero", "Sin foto — se muestra un ícono genérico mientras tanto") + "</div></div>" +
+        '<p class="text-muted" style="margin:4px 0 12px;font-size:12.5px">Aparece al lado del título principal. Una foto del laboratorio, el equipo o las instalaciones queda mejor que el ícono genérico.</p>' +
         '<div class="field"><label>Sobre tu laboratorio (sección "Tecnología")</label><textarea id="f_pw_sobrenosotros" rows="3" placeholder="Cuéntales qué los hace diferentes: equipos, experiencia, calidad...">' + U.esc((tenant.paginaWeb && tenant.paginaWeb.sobreNosotros) || "") + "</textarea></div>" +
+        '<div class="field"><label>Foto de "Sobre Nosotros" (opcional)</label><input type="file" id="f_pw_fotonosotros" accept="image/*"/><div id="pw-foto-nosotros-preview" style="margin-top:8px">' + fotoPreviewMarkup(pwFotoNosotrosTemp, "quitar-pw-foto-nosotros", "Sin foto — se muestra un ícono genérico mientras tanto") + "</div></div>" +
+        '<p class="text-muted" style="margin:4px 0 12px;font-size:12.5px">Aparece al lado del texto "Sobre Nosotros" — ideal una foto de tus equipos o del laboratorio por dentro.</p>' +
         '<div class="field"><label>Ubicación en Google Maps</label><input id="f_pw_mapsquery" placeholder="Pega tu dirección o el enlace de Google Maps" value="' + U.esc((tenant.paginaWeb && tenant.paginaWeb.mapsQuery) || "") + '"/></div>' +
         '<p class="text-muted" style="margin:4px 0 12px;font-size:12.5px">Puedes pegar tu dirección completa (ej. "Cra 10 # 20-30, Ciudad") o, si quieres el pin exacto, abre tu ubicación en Google Maps, dale "Compartir" y pega aquí el enlace que te da.</p>' +
         '<div class="field"><label>Horario de Atención (opcional)</label><textarea id="f_pw_horario" rows="2" placeholder="Un renglón por línea, así:&#10;Lunes a Viernes: 7:00am - 5:00pm&#10;Sábados: 7:00am - 12:00pm">' + U.esc((tenant.paginaWeb && tenant.paginaWeb.horario) || "") + "</textarea></div>" +
@@ -1786,6 +1803,30 @@
       }
       document.getElementById("pw-campos-box").classList.toggle("hidden", !this.checked);
     });
+    // Muestra el enlace real de la Página Web (su dominio propio si ya lo
+    // puso, o el alojado por BIOsoft mientras tanto) y lo mantiene al día
+    // si edita el campo de dominio, sin tener que guardar primero para
+    // verlo — "¿dónde veo el link de mi página?" era una pregunta
+    // recurrente.
+    var elPwDominio = document.getElementById("f_pw_dominio");
+    if (elPwDominio) {
+      function actualizarEnlacePaginaWeb() {
+        var dominio = elPwDominio.value.trim().replace(/^https?:\/\//, "").replace(/\/$/, "");
+        var url = dominio ? "https://" + dominio : "https://bioauditoria.com/biosoft/sitio-web.html?t=" + tenant.id;
+        document.getElementById("pw-link-texto").textContent = url;
+        document.getElementById("btn-pw-abrir").href = url;
+      }
+      actualizarEnlacePaginaWeb();
+      elPwDominio.addEventListener("input", actualizarEnlacePaginaWeb);
+      document.getElementById("btn-pw-copiar").addEventListener("click", function () {
+        var url = document.getElementById("pw-link-texto").textContent;
+        navigator.clipboard.writeText(url).then(function () {
+          U.toast("Enlace copiado.", "success");
+        }).catch(function () {
+          U.toast("No se pudo copiar — selecciona y copia el enlace a mano.", "error");
+        });
+      });
+    }
     document.getElementById("f_logoAnchoPorcentaje").addEventListener("input", function (e) {
       document.getElementById("logo-ancho-pct-valor").textContent = e.target.value;
     });
@@ -1832,6 +1873,42 @@
       }
     });
 
+    // Fotos de la Página Web (distintas del logo): se exportan como JPEG
+    // comprimido, no PNG — ver redimensionarFoto en ui.js, pensado para
+    // que dos fotos quepan en el mismo documento de Firestore junto con
+    // todo lo demás de la página (límite de 1 MiB por documento).
+    var elFotoHero = document.getElementById("f_pw_fotohero");
+    if (elFotoHero) elFotoHero.addEventListener("change", function (e) {
+      var file = e.target.files[0];
+      if (!file) return;
+      U.redimensionarFoto(file, 900, 0.78).then(function (dataUrl) {
+        pwFotoHeroTemp = dataUrl;
+        document.getElementById("pw-foto-hero-preview").innerHTML = fotoPreviewMarkup(pwFotoHeroTemp, "quitar-pw-foto-hero", "Sin foto — se muestra un ícono genérico mientras tanto");
+      }).catch(function () { U.toast("No se pudo procesar la imagen. Intenta con otro archivo.", "error"); });
+    });
+    var elFotoNosotros = document.getElementById("f_pw_fotonosotros");
+    if (elFotoNosotros) elFotoNosotros.addEventListener("change", function (e) {
+      var file = e.target.files[0];
+      if (!file) return;
+      U.redimensionarFoto(file, 900, 0.78).then(function (dataUrl) {
+        pwFotoNosotrosTemp = dataUrl;
+        document.getElementById("pw-foto-nosotros-preview").innerHTML = fotoPreviewMarkup(pwFotoNosotrosTemp, "quitar-pw-foto-nosotros", "Sin foto — se muestra un ícono genérico mientras tanto");
+      }).catch(function () { U.toast("No se pudo procesar la imagen. Intenta con otro archivo.", "error"); });
+    });
+    root.addEventListener("click", function (e) {
+      var btn = e.target.closest("[data-action]");
+      if (!btn) return;
+      if (btn.dataset.action === "quitar-pw-foto-hero") {
+        pwFotoHeroTemp = "";
+        if (elFotoHero) elFotoHero.value = "";
+        document.getElementById("pw-foto-hero-preview").innerHTML = fotoPreviewMarkup(pwFotoHeroTemp, "quitar-pw-foto-hero", "Sin foto — se muestra un ícono genérico mientras tanto");
+      } else if (btn.dataset.action === "quitar-pw-foto-nosotros") {
+        pwFotoNosotrosTemp = "";
+        if (elFotoNosotros) elFotoNosotros.value = "";
+        document.getElementById("pw-foto-nosotros-preview").innerHTML = fotoPreviewMarkup(pwFotoNosotrosTemp, "quitar-pw-foto-nosotros", "Sin foto — se muestra un ícono genérico mientras tanto");
+      }
+    });
+
     document.getElementById("cfg-form").addEventListener("submit", function (e) {
       e.preventDefault();
       var g = function (id) { return document.getElementById("f_" + id).value.trim(); };
@@ -1862,7 +1939,9 @@
         heroTitulo: g("pw_herotitulo"),
         heroSubtitulo: g("pw_herosubtitulo"),
         bannerTexto: g("pw_banner"),
+        fotoHero: pwFotoHeroTemp,
         sobreNosotros: g("pw_sobrenosotros"),
+        fotoNosotros: pwFotoNosotrosTemp,
         mapsQuery: g("pw_mapsquery"),
         horario: g("pw_horario"),
         facebook: g("pw_facebook"),
@@ -1959,7 +2038,8 @@
             nombre: tenant.nombre, colorPrimario: tenant.colorPrimario, logoDataUrl: tenant.logoDataUrl,
             direccion: tenant.direccion, telefonos: tenant.telefonos, email: tenant.email,
             real: true, dominio: tenant.paginaWeb.dominio, heroTitulo: tenant.paginaWeb.heroTitulo,
-            heroSubtitulo: tenant.paginaWeb.heroSubtitulo, bannerTexto: tenant.paginaWeb.bannerTexto, sobreNosotros: tenant.paginaWeb.sobreNosotros,
+            heroSubtitulo: tenant.paginaWeb.heroSubtitulo, bannerTexto: tenant.paginaWeb.bannerTexto, fotoHero: tenant.paginaWeb.fotoHero,
+            sobreNosotros: tenant.paginaWeb.sobreNosotros, fotoNosotros: tenant.paginaWeb.fotoNosotros,
             mapsQuery: tenant.paginaWeb.mapsQuery, horario: tenant.paginaWeb.horario,
             facebook: tenant.paginaWeb.facebook, instagram: tenant.paginaWeb.instagram, tiktok: tenant.paginaWeb.tiktok,
             servicios: tenant.paginaWeb.servicios, testimonios: tenant.paginaWeb.testimonios, stats: tenant.paginaWeb.stats

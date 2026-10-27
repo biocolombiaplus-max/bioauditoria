@@ -57,7 +57,9 @@
   h1 { font-family: 'Sora', system-ui, sans-serif; font-size: 42px; line-height: 1.14; font-weight: 800; margin: 0; }
   #inicio p { font-size: 15px; color: #cbd5e1; line-height: 1.6; max-width: 480px; margin: 0; }
   #inicio .cta-row { display: flex; gap: 12px; flex-wrap: wrap; margin-top: 4px; }
-  .foto-box { flex: 1 1 360px; min-width: 280px; aspect-ratio: 4/3; border-radius: 20px; background: linear-gradient(135deg,rgba(var(--accent-rgb),.35),rgba(99,102,241,.35)); border: 1px solid rgba(255,255,255,.15); display: flex; align-items: center; justify-content: center; color: #e2e8f0; font-size: 13px; text-align: center; padding: 20px; }
+  .foto-box { flex: 1 1 360px; min-width: 280px; aspect-ratio: 4/3; border-radius: 20px; background: linear-gradient(135deg,rgba(var(--accent-rgb),.35),rgba(99,102,241,.35)); border: 1px solid rgba(255,255,255,.15); display: flex; align-items: center; justify-content: center; color: #e2e8f0; font-size: 13px; text-align: center; padding: 20px; overflow: hidden; }
+  .foto-box.con-foto { font-size: 0; padding: 0; border-style: solid; }
+  .foto-box img { width: 100%; height: 100%; object-fit: cover; }
   .stats-row { display: flex; gap: 28px; flex-wrap: wrap; justify-content: space-between; padding-top: 28px; margin-top: 28px; border-top: 1px solid rgba(255,255,255,.08); }
   .stat { text-align: center; flex: 1 1 140px; }
   .stat b { display: block; font-family: 'Sora', sans-serif; font-size: 25px; font-weight: 800; }
@@ -210,7 +212,7 @@
             <a href="#" class="btn btn-ghost-dark" id="btn-cotizar-hero">💲 Cotizar mis Exámenes</a>
           </div>
         </div>
-        <div class="foto-box">🔬🩸🧪</div>
+        <div class="foto-box" id="foto-hero">🔬🩸🧪</div>
       </div>
       <div class="stats-row" id="stats-row"></div>
     </div>
@@ -270,7 +272,7 @@
 
   <section id="tecnologia" class="seccion">
     <div class="wrap cols">
-      <div class="foto-box">⚙️🔬🧬</div>
+      <div class="foto-box" id="foto-nosotros">⚙️🔬🧬</div>
       <div class="texto">
         <span class="badge-pill" style="background:rgba(37,99,235,.15);color:#93c5fd;border-color:rgba(37,99,235,.35)">⚙️ Sobre Nosotros</span>
         <h2>Equipos de última generación, resultados más precisos</h2>
@@ -369,6 +371,6 @@
   <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
   <script src="js/firebase-config.js?v=2"></script>
-  <script src="js/sitio-web.js?v=3"></script>
+  <script src="js/sitio-web.js?v=4"></script>
 </body>
 </html>
