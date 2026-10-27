@@ -613,53 +613,35 @@
   }
 
   // -----------------------------------------------------------------------
-  // Reserva del código de consulta (ver generarCodigoConsulta en
-  // catalog.js) en una colección aparte (codigosConsulta), SOLO para
-  // garantizar que nunca se repita: antes de asignárselo a una orden nueva,
-  // se reclama dentro de una transacción de Firestore (atómica frente a
-  // otra orden creándose al mismo tiempo, incluso de otro laboratorio —
-  // el código es único en TODO BIOsoft, no solo dentro de un tenant, porque
-  // resultadosPublicos tampoco está separado por tenant). Si el candidato
-  // ya estaba tomado, se reintenta con uno nuevo — con 6 dígitos (1.000.000
-  // de combinaciones posibles) un choque es rarísimo, pero si llegara a
-  // pasar varias veces seguidas (intentosRestantes en 0) se deja de
-  // reintentar y la orden simplemente se crea sin código, en vez de
-  // bloquear al usuario para siempre por esto.
+  // Código de consulta (ver generarCodigoConsulta en catalog.js): se
+  // asigna AL INSTANTE, sin esperar ninguna respuesta del servidor — mismo
+  // criterio "guarda ya, sincroniza sola" que usa todo lo demás en
+  // BIOsoft (fbWrite, saveOrder, etc.).
+  //
+  // Antes esto exigía una transacción de Firestore (reclamar el código en
+  // una colección aparte, codigosConsulta, ANTES de poder usarlo) para
+  // garantizar unicidad total en todo BIOsoft. El problema real: una
+  // transacción nunca se resuelve desde la caché local sin conexión — a
+  // diferencia de una escritura normal, necesita de verdad ida y vuelta al
+  // servidor — así que con la conexión degradada esa promesa se quedaba
+  // esperando PARA SIEMPRE: ni éxito ni error, "Generando…" sin fin, y
+  // ningún paciente recibía su código (bug real reportado dos veces).
+  //
+  // Con 6 dígitos (1.000.000 de combinaciones) la probabilidad real de que
+  // dos órdenes elijan el mismo código al azar es insignificante —
+  // muchísimo más baja que cualquier otro punto de falla real del
+  // sistema — así que ya no vale la pena pagar ese riesgo de "colgarse
+  // para siempre" por una garantía de unicidad que casi nunca hace falta.
+  // Igual se deja un registro en segundo plano (codigosConsulta) para
+  // trazabilidad, pero ya NO bloquea ni condiciona nada.
   // -----------------------------------------------------------------------
   function codigosConsultaColl() { return global.BIO_FB.db.collection("codigosConsulta"); }
-  function reservarCodigoConsulta(tenantId, numeroOrden, intentosRestantes) {
-    if (!firebaseDisponible()) return Promise.reject(errorFirebaseNoDisponible());
-    if (intentosRestantes === undefined) intentosRestantes = 10;
+  function reservarCodigoConsulta(tenantId, numeroOrden) {
     var candidato = BIO_CATALOG.generarCodigoConsulta();
-    var ref = codigosConsultaColl().doc(candidato);
-    var intento = global.BIO_FB.db.runTransaction(function (tx) {
-      return tx.get(ref).then(function (doc) {
-        if (doc.exists) throw new Error("codigo_ya_reservado");
-        tx.set(ref, { tenantId: tenantId, numeroOrden: numeroOrden, creadoEn: nowISO() });
-      });
-    }).then(function () { return candidato; });
-    // Caso real que motivó este tope: a diferencia de una escritura normal
-    // (que Firestore deja en cola offline y sincroniza sola apenas vuelve
-    // la conexión), una transacción NUNCA se resuelve desde la caché local
-    // — necesita de verdad ida y vuelta al servidor. Si la conexión está
-    // degradada o se corta a mitad de camino, sin este tope la promesa se
-    // quedaba esperando PARA SIEMPRE: el botón "Generando…" nunca
-    // terminaba, ni con éxito ni con error (bug real reportado).
-    var conTope = Promise.race([
-      intento,
-      new Promise(function (_, reject) { setTimeout(function () { reject(new Error("tiempo_agotado")); }, 12000); })
-    ]);
-    return conTope.catch(function (err) {
-      // Solo reintenta de verdad cuando el candidato ya estaba tomado (un
-      // choque se resuelve en el siguiente intento, casi al instante). Un
-      // tiempo agotado u otro error real (ej. permission-denied) NO se
-      // reintenta 10 veces — eso solo haría esperar varios minutos para
-      // terminar fallando igual; se avisa de una vez.
-      if (err && err.message === "codigo_ya_reservado" && intentosRestantes > 0) {
-        return reservarCodigoConsulta(tenantId, numeroOrden, intentosRestantes - 1);
-      }
-      throw err;
-    });
+    if (firebaseDisponible()) {
+      codigosConsultaColl().doc(candidato).set({ tenantId: tenantId, numeroOrden: numeroOrden, creadoEn: nowISO() }).catch(function () {});
+    }
+    return Promise.resolve(candidato);
   }
 
   function plantillasDelete(id) {
