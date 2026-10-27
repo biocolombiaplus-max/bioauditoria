@@ -332,6 +332,16 @@
   /* Autentica un correo/contraseña de laboratorio real y ubica su perfil
      (a qué tenant pertenece). No toca el login Demo en absoluto. */
   function loginReal(email, password) {
+    // Sin este guardia, con Firebase todavía sin cargar (SDK bloqueado por
+    // una extensión, script lento, sin internet) esta línea lanzaba una
+    // excepción SÍNCRONA ("Cannot read properties of undefined") al
+    // intentar leer global.BIO_FB.auth — eso se escapaba de la Promesa por
+    // completo y dejaba el botón "Ingresando…" del formulario de login
+    // congelado para siempre, sin ningún mensaje de error (ver el try/catch
+    // de login() en auth.js, que ahora también cubre este caso como
+    // segunda red de seguridad). Mismo patrón que firebaseDisponible() usa
+    // en las funciones del CRM, más abajo en este archivo.
+    if (!global.BIO_FB) return Promise.reject(new Error("No se pudo conectar con el servidor. Verifica tu conexión a internet o si alguna extensión del navegador está bloqueando el acceso."));
     return global.BIO_FB.auth.signInWithEmailAndPassword(email, password).then(function (cred) {
       var uidAuth = cred.user.uid;
       return global.BIO_FB.db.collection("userProfiles").doc(uidAuth).get().then(function (doc) {

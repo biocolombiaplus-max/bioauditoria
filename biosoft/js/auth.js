@@ -67,51 +67,69 @@
      para que el único punto que llama a login() pueda usar await de forma
      consistente sin importar qué camino se tome internamente. */
   function login(username, password) {
-    var user = BIO_STORE.findUser(username);
-    if (user) {
-      if (!user.activo) return Promise.resolve({ ok: false, error: "Usuario no encontrado o inactivo." });
-      if (user.password !== password) return Promise.resolve({ ok: false, error: "Contraseña incorrecta." });
-      var session = buildSession(user, false);
-      sessionStorage.setItem(SESSION_KEY, JSON.stringify(session));
-      BIO_STORE.addAudit(user.tenantId, user.nombre, user.rol, "LOGIN", "sesion", user.id, "Inicio de sesión exitoso.");
-      return Promise.resolve({ ok: true, session: session });
-    }
-    // Si no es un usuario Demo y tampoco tiene forma de correo, lo más
-    // probable es que sea un usuario real escribiendo su nombre de usuario
-    // en vez de su correo (las cuentas reales SIEMPRE inician sesión con
-    // correo electrónico) — antes esto devolvía el mismo mensaje genérico
-    // de "inactivo", que hacía pensar que su cuenta estaba dañada cuando en
-    // realidad solo le faltaba escribir el correo completo.
-    if (username.indexOf("@") === -1) return Promise.resolve({ ok: false, error: "Si tu laboratorio ya tiene BIOsoft, ingresa tu correo electrónico completo (el que usaste al crear tu cuenta), no solo tu nombre de usuario." });
-    return BIO_STORE.loginReal(username, password).then(function (realUser) {
-      if (realUser.tenantId) {
-        var tenant = BIO_STORE.getTenant(realUser.tenantId);
-        if (tenant && tenant.suspendido) {
-          BIO_STORE.logoutReal();
-          return { ok: false, error: "El acceso de tu laboratorio está suspendido por pago pendiente. Escríbenos por WhatsApp para reactivarlo." };
+    // Todo el cuerpo queda envuelto en try/catch: login() DEBE devolver
+    // siempre una Promesa, nunca lanzar de forma síncrona — es lo único que
+    // llama quien dibuja el botón "Ingresando…" (ver wireLogin en
+    // router.js). Caso real reportado: un administrador real se quedaba
+    // viendo "Ingresando…" para siempre, sin ningún mensaje de error. La
+    // causa más probable es que algo (una extensión del navegador
+    // bloqueando Firebase, un script que no cargó a tiempo) deja
+    // global.BIO_FB sin definir justo al momento de intentar entrar —
+    // BIO_STORE.loginReal() lo usa de inmediato, ANTES de devolver
+    // cualquier promesa, así que ese fallo era una excepción síncrona que
+    // se escapaba de login() entero y dejaba el botón del formulario
+    // congelado para siempre, porque el .then() de wireLogin nunca llegaba
+    // a ejecutarse.
+    try {
+      var user = BIO_STORE.findUser(username);
+      if (user) {
+        if (!user.activo) return Promise.resolve({ ok: false, error: "Usuario no encontrado o inactivo." });
+        if (user.password !== password) return Promise.resolve({ ok: false, error: "Contraseña incorrecta." });
+        var session = buildSession(user, false);
+        sessionStorage.setItem(SESSION_KEY, JSON.stringify(session));
+        BIO_STORE.addAudit(user.tenantId, user.nombre, user.rol, "LOGIN", "sesion", user.id, "Inicio de sesión exitoso.");
+        return Promise.resolve({ ok: true, session: session });
+      }
+      // Si no es un usuario Demo y tampoco tiene forma de correo, lo más
+      // probable es que sea un usuario real escribiendo su nombre de usuario
+      // en vez de su correo (las cuentas reales SIEMPRE inician sesión con
+      // correo electrónico) — antes esto devolvía el mismo mensaje genérico
+      // de "inactivo", que hacía pensar que su cuenta estaba dañada cuando en
+      // realidad solo le faltaba escribir el correo completo.
+      if (username.indexOf("@") === -1) return Promise.resolve({ ok: false, error: "Si tu laboratorio ya tiene BIOsoft, ingresa tu correo electrónico completo (el que usaste al crear tu cuenta), no solo tu nombre de usuario." });
+      return BIO_STORE.loginReal(username, password).then(function (realUser) {
+        if (realUser.tenantId) {
+          var tenant = BIO_STORE.getTenant(realUser.tenantId);
+          if (tenant && tenant.suspendido) {
+            BIO_STORE.logoutReal();
+            return { ok: false, error: "El acceso de tu laboratorio está suspendido por pago pendiente. Escríbenos por WhatsApp para reactivarlo." };
+          }
         }
-      }
-      // A diferencia del modo Demo, este chequeo faltaba en el camino real:
-      // un usuario desactivado por su administrador (ej. desde "Usuarios del
-      // Laboratorio") podía autenticarse contra Firebase Auth igual, ya que
-      // ese estado "activo" vive en Firestore, no en Firebase Auth.
-      if (realUser.rol !== "superadmin" && realUser.activo === false) {
-        BIO_STORE.logoutReal();
-        return { ok: false, error: "Tu usuario fue desactivado por el administrador de tu laboratorio." };
-      }
-      var session = buildSession(realUser, true);
-      sessionStorage.setItem(SESSION_KEY, JSON.stringify(session));
-      BIO_STORE.addAudit(realUser.tenantId, realUser.nombre, realUser.rol, "LOGIN", "sesion", realUser.id, "Inicio de sesión exitoso.");
-      return { ok: true, session: session };
-    }).catch(function (err) {
-      // Se deja en consola el error crudo (código y mensaje de Firebase/
-      // Firestore) — el mensaje que ve el usuario ya se simplifica para no
-      // asustarlo, pero sin esto, diagnosticar un fallo real (ej. un
-      // permission-denied en alguna colección de initRealtime) exigía
-      // reproducirlo con las herramientas de desarrollador abiertas.
-      console.error("BIOsoft: error de inicio de sesión ->", err && err.code, err && err.message);
-      return { ok: false, error: mapFirebaseError(err) };
-    });
+        // A diferencia del modo Demo, este chequeo faltaba en el camino real:
+        // un usuario desactivado por su administrador (ej. desde "Usuarios del
+        // Laboratorio") podía autenticarse contra Firebase Auth igual, ya que
+        // ese estado "activo" vive en Firestore, no en Firebase Auth.
+        if (realUser.rol !== "superadmin" && realUser.activo === false) {
+          BIO_STORE.logoutReal();
+          return { ok: false, error: "Tu usuario fue desactivado por el administrador de tu laboratorio." };
+        }
+        var session = buildSession(realUser, true);
+        sessionStorage.setItem(SESSION_KEY, JSON.stringify(session));
+        BIO_STORE.addAudit(realUser.tenantId, realUser.nombre, realUser.rol, "LOGIN", "sesion", realUser.id, "Inicio de sesión exitoso.");
+        return { ok: true, session: session };
+      }).catch(function (err) {
+        // Se deja en consola el error crudo (código y mensaje de Firebase/
+        // Firestore) — el mensaje que ve el usuario ya se simplifica para no
+        // asustarlo, pero sin esto, diagnosticar un fallo real (ej. un
+        // permission-denied en alguna colección de initRealtime) exigía
+        // reproducirlo con las herramientas de desarrollador abiertas.
+        console.error("BIOsoft: error de inicio de sesión ->", err && err.code, err && err.message);
+        return { ok: false, error: mapFirebaseError(err) };
+      });
+    } catch (err) {
+      console.error("BIOsoft: fallo inesperado (síncrono) al iniciar sesión ->", err);
+      return Promise.resolve({ ok: false, error: "No se pudo completar el ingreso. Verifica tu conexión a internet y que no haya una extensión del navegador (bloqueador de anuncios, antivirus) interfiriendo, luego inténtalo de nuevo." });
+    }
   }
 
   function logout() {

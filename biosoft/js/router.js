@@ -449,13 +449,32 @@
       var submitBtn = form.querySelector('button[type="submit"]');
       var textoOriginal = submitBtn.textContent;
       submitBtn.disabled = true; submitBtn.textContent = "Ingresando…";
-      BIO_AUTH.login(u, p).then(function (res) {
+      // Red de seguridad adicional (además del try/catch que ya tiene
+      // BIO_AUTH.login en auth.js): "yaResuelto" evita que el botón se
+      // reactive dos veces si el tope de tiempo de abajo dispara primero y
+      // el login real responde después; y el tope de 25s garantiza que el
+      // botón NUNCA se quede en "Ingresando…" para siempre aunque la
+      // conexión a Firebase se cuelgue sin lanzar ningún error (ej. una
+      // extensión del navegador bloqueando la conexión en silencio, sin
+      // rechazar la promesa) — caso real reportado: un administrador se
+      // quedaba viendo "Ingresando…" sin fin, sin ningún mensaje.
+      var yaResuelto = false;
+      function terminar(res) {
+        if (yaResuelto) return;
+        yaResuelto = true;
         submitBtn.disabled = false; submitBtn.textContent = textoOriginal;
         if (!res.ok) { errBox.textContent = res.error; errBox.classList.remove("hidden"); return; }
         errBox.classList.add("hidden");
         form.reset();
         location.hash = res.session.rol === "superadmin" ? "#/crm" : "#/dashboard";
         showApp();
+      }
+      setTimeout(function () {
+        terminar({ ok: false, error: "La conexión está tardando demasiado. Verifica tu internet (o desactiva algún bloqueador/extensión del navegador que pueda estar interfiriendo) e inténtalo de nuevo." });
+      }, 25000);
+      BIO_AUTH.login(u, p).then(terminar).catch(function (err) {
+        console.error("BIOsoft: error inesperado en el formulario de ingreso ->", err);
+        terminar({ ok: false, error: "No se pudo completar el ingreso. Inténtalo de nuevo." });
       });
     });
   }
