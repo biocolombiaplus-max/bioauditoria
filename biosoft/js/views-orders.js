@@ -647,13 +647,9 @@
       var formaPagoConvenioEl = document.getElementById("f_formaPagoConvenio");
       var esCreditoConvenio = !!(convenioIdSel && formaPagoConvenioEl && formaPagoConvenioEl.value === "credito");
       var medicoRemitenteSel = selMedicoRemitente.value ? medicosRemitentes.filter(function (m) { return m.id === selMedicoRemitente.value; })[0] : null;
-      var numeroOrdenNueva = S.nextOrderNumber(session.tenantId);
-      var btnGuardarOrden = document.getElementById("btn-save-order");
-
-      function crearOrdenConCodigo(codigoConsulta) {
       var order = {
         tenantId: session.tenantId,
-        numeroOrden: numeroOrdenNueva,
+        numeroOrden: S.nextOrderNumber(session.tenantId),
         patientId: patientId,
         // Copia mínima de los datos del paciente que necesita el PDF de
         // resultados (ver pdf.js -> buildResultadosPDF), para que un acceso
@@ -692,7 +688,15 @@
           };
         }),
         estadoGeneral: "pendiente", creadoPor: session.username,
-        codigoConsulta: codigoConsulta
+        // Empieza vacío siempre — ver la reserva en segundo plano más
+        // abajo. Antes se esperaba aquí mismo a que
+        // S.reservarCodigoConsulta() confirmara contra Firestore (una
+        // transacción, con viaje de ida y vuelta al servidor) ANTES de
+        // crear la orden — eso volvía lento "Crear Orden" para cualquier
+        // laboratorio con la Página Web activa (bug real reportado: "le
+        // doy en crear orden y se demora"). La orden ahora se crea de
+        // inmediato, igual de rápido que siempre.
+        codigoConsulta: ""
       };
       // A crédito de convenio: se marca el pago desde ya (sin pedirle nada
       // al paciente) para que "Recibo de Pago" genere directo el cargo a
@@ -708,28 +712,21 @@
         (esCreditoConvenio ? " a crédito del convenio " + (convenioSel ? convenioSel.nombre : "—") + "." : "."));
       U.toast("Orden " + created.numeroOrden + " creada.", "success");
       ofrecerStickers(created);
-      }
 
-      // El código de consulta solo tiene sentido si este laboratorio tiene
-      // activa su Página Web real (ver "Página Web" en Configuración); para
-      // los demás, se crea la orden de inmediato, igual que siempre, sin
-      // código. Cuando sí aplica, hay que esperar a que
-      // S.reservarCodigoConsulta() confirme contra Firestore que el código
-      // es único en TODO BIOsoft antes de imprimirlo o enviarlo por
-      // WhatsApp — por eso la creación de la orden espera esa reserva en
-      // vez de generar el código en el momento, al vuelo.
+      // El código de consulta se reserva DESPUÉS, en segundo plano, sin
+      // que nadie lo espere — si este laboratorio no tiene activa su
+      // Página Web real, ni siquiera se intenta. Si el botón "Enviar
+      // código por WhatsApp" del modal de arriba no alcanza a mostrarse
+      // porque la reserva no llegó a tiempo, el código igual queda
+      // guardado en la orden apenas resuelve, listo para el recibo
+      // impreso o para "Enviar Resultados" más adelante.
       if (tenant.paginaWeb && tenant.paginaWeb.activo) {
-        if (btnGuardarOrden) btnGuardarOrden.disabled = true;
-        S.reservarCodigoConsulta(session.tenantId, numeroOrdenNueva).then(function (codigo) {
-          if (btnGuardarOrden) btnGuardarOrden.disabled = false;
-          crearOrdenConCodigo(codigo);
+        S.reservarCodigoConsulta(session.tenantId, created.numeroOrden).then(function (codigo) {
+          created.codigoConsulta = codigo;
+          S.saveOrder(created);
         }).catch(function (err) {
-          if (btnGuardarOrden) btnGuardarOrden.disabled = false;
           console.warn("BIOsoft: no se pudo reservar un código de consulta único ->", err);
-          crearOrdenConCodigo("");
         });
-      } else {
-        crearOrdenConCodigo("");
       }
     });
   }

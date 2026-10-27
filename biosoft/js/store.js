@@ -157,8 +157,24 @@
         function terminar() { if (!resuelto) { resuelto = true; resolve(); } }
         var unsub = fbColl(coll).onSnapshot(function (snap) {
           snap.docChanges().forEach(function (change) {
+            // "added" se separa de "modified" a propósito: el primer
+            // evento de onSnapshot entrega TODO el contenido de la
+            // colección como una ráfaga de cambios "added" (nunca hay uno
+            // ya existente que buscar), así que insertarlos con push()
+            // directo es O(n). pushDoc() en cambio busca con findIndex()
+            // antes de insertar — necesario para "modified" (si no, un
+            // documento editado quedaría duplicado), pero usarlo también
+            // para la carga inicial volvía ese primer evento O(n²): en una
+            // colección de varios miles de documentos (ej. auditLog u
+            // orders de un laboratorio con años de historial) eso bastaba
+            // para congelar el hilo principal el tiempo suficiente para
+            // que el navegador mostrara "La página no responde" (bug real
+            // reportado, en un laboratorio con 1500+ pacientes).
             if (change.type === "removed") removeDoc(change.doc.id);
-            else pushDoc(change.doc);
+            else if (change.type === "added") {
+              var data = change.doc.data();
+              if (isMap) realCache[arrKey][change.doc.id] = data; else realCache[arrKey].push(data);
+            } else pushDoc(change.doc);
           });
           terminar();
           if (onRealtimeChangeCb) onRealtimeChangeCb();

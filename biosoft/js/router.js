@@ -350,9 +350,25 @@
       if (!activo || !content || !content.contains(activo)) return false;
       return activo.tagName === "INPUT" || activo.tagName === "TEXTAREA" || activo.tagName === "SELECT";
     }
+    var renderDebounceTimer = null;
     BIO_STORE.onRealtimeChange(function () {
-      if (estaEscribiendoEnFormulario()) { renderPendiente = true; return; }
-      renderRoute();
+      // Varias colecciones pueden llegar casi juntas en una ráfaga — sobre
+      // todo justo después de iniciar sesión, cuando ~23 colecciones
+      // terminan de cargar en segundo plano casi al mismo tiempo (ver
+      // initRealtime() en store.js). Sin este debounce, CADA una disparaba
+      // su propio renderRoute() completo: hasta ~23 repintados seguidos de
+      // la misma pantalla en una fracción de segundo, suficiente para que
+      // el navegador mostrara "La página no responde" en un laboratorio
+      // con mucho historial (bug real reportado). Juntar varios cambios
+      // seguidos en un solo repintado se ve exactamente igual para quien
+      // usa la app (los datos siguen llegando casi al instante) pero sin
+      // la ráfaga de renders redundantes.
+      if (renderDebounceTimer) clearTimeout(renderDebounceTimer);
+      renderDebounceTimer = setTimeout(function () {
+        renderDebounceTimer = null;
+        if (estaEscribiendoEnFormulario()) { renderPendiente = true; return; }
+        renderRoute();
+      }, 180);
     });
     document.getElementById("content").addEventListener("focusout", function () {
       if (!renderPendiente) return;
