@@ -1466,6 +1466,14 @@
   function recalcEstadoGeneral(order) {
     var estados = order.examenes.map(function (e) { return e.estado; });
     var terminado = function (e) { return e === "validado" || e === "remitido"; };
+    // tieneValidado: aparte de estadoGeneral, marca si YA hay al menos un
+    // examen validado/remitido en la orden — es lo que firestore.rules usa
+    // para distinguir, del lado del servidor, un guardado de "recepcion"
+    // que deja la orden en "parcial" por un simple borrador/preliminar
+    // (permitido) de uno que la deja en "parcial" porque de hecho validó un
+    // examen (prohibido para ese rol). Guardar borrador/preliminar nunca
+    // cambia este valor; solo "Validar" (ver views-results.js) lo hace.
+    order.tieneValidado = estados.some(terminado);
     if (estados.every(terminado)) order.estadoGeneral = "validado";
     else if (estados.every(function (e) { return e === "pendiente"; })) order.estadoGeneral = "pendiente";
     else order.estadoGeneral = "parcial";

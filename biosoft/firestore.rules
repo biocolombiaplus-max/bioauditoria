@@ -217,23 +217,30 @@ service cloud.firestore {
         // producción esto bloqueaba TODA creación/edición de órdenes de
         // cualquier usuario con rol "recepcion" (auxiliar/asistente),
         // incluso una orden nueva con exámenes en "pendiente".
-        // En su lugar se usa "estadoGeneral" (campo agregado que
-        // recalcEstadoGeneral() en store.js recalcula siempre antes de
-        // cualquier guardado que toque el estado de los exámenes; los
-        // guardados que no tocan exámenes lo dejan igual): al crear, exige
-        // que la orden nazca "pendiente"; al actualizar, bloquea que una
-        // orden que seguía 100% "pendiente" deje de estarlo por una
-        // escritura de recepción. La barrera principal contra que un
-        // auxiliar valide/firme un examen sigue siendo la de la interfaz
-        // (puedeValidar() en views-results.js), que nunca le muestra esa
-        // acción.
+        // Un intento posterior usó "estadoGeneral" (bloqueando que una
+        // orden 100% "pendiente" dejara de estarlo por una escritura de
+        // recepción) — pero eso también bloqueaba, por error, el guardado
+        // legítimo de un BORRADOR o un PRELIMINAR (la propia pantalla de
+        // Resultados le ofrece esos dos botones a un auxiliar/asistente):
+        // ambos dejan la orden en "parcial" igual que si de hecho se
+        // hubiera validado un examen, así que la regla no podía distinguir
+        // los dos casos y terminaba rechazando el guardado real en
+        // producción ("No se pudo guardar en el servidor").
+        // Ahora se usa "tieneValidado" (booleano que recalcEstadoGeneral()
+        // en store.js también recalcula siempre junto con estadoGeneral):
+        // solo es true si YA hay al menos un examen validado/remitido en la
+        // orden. Un auxiliar/asistente puede crear y editar la orden
+        // libremente (pendiente, borrador, preliminar, agregar/quitar
+        // exámenes) mientras nunca sea quien hace que tieneValidado pase de
+        // false a true — eso sigue reservado al Bacteriólogo(a)/Bioanalista
+        // (ver puedeValidar() en views-results.js, que nunca le muestra el
+        // botón "Validar" a este rol).
         allow create: if esDeEsteLab(tenantId) && (
-          !esRecepcion() || request.resource.data.estadoGeneral == "pendiente"
+          !esRecepcion() || request.resource.data.get("tieneValidado", false) == false
         );
         allow update: if esDeEsteLab(tenantId) && (
           !esRecepcion() ||
-          resource.data.get("estadoGeneral", "pendiente") != "pendiente" ||
-          request.resource.data.estadoGeneral == "pendiente"
+          resource.data.get("tieneValidado", false) == request.resource.data.get("tieneValidado", false)
         );
         // El superadmin también puede borrar (sin poder crear/editar
         // ninguna) — lo usa "Eliminar Laboratorio" para limpiar las
