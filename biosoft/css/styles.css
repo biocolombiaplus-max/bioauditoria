@@ -185,6 +185,16 @@ fieldset legend { font-family: 'Poppins', sans-serif; font-weight: 700; font-siz
 .card-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 14px; gap: 10px; flex-wrap: wrap; }
 .card-title { font-size: 16px; font-weight: 700; margin: 0; color: var(--heading-color, var(--text)); }
 
+/* Tarjeta del código de consulta de resultados (ver Orden -> detalle),
+   para que el bacteriólogo/auxiliar lo vea de un vistazo y se lo pueda
+   reenviar o imprimir sin ir a buscarlo al PDF. */
+.codigo-consulta-card { background: linear-gradient(135deg,#fff7ed,#fdf4ff); border: 1.5px solid #fed7aa; }
+.codigo-consulta-box { display: flex; background: #fff; border: 2px solid var(--brand-primary, #f97316); border-radius: 12px; padding: 12px 16px; font-family: "SFMono-Regular", Consolas, monospace; font-size: 24px; font-weight: 800; letter-spacing: 4px; color: var(--brand-primary, #f97316); white-space: nowrap; }
+.codigo-consulta-sep { display: inline-block; width: 4px; }
+@media (max-width: 640px) {
+  .codigo-consulta-box { font-size: 19px; letter-spacing: 2px; padding: 10px 12px; }
+}
+
 /* Menú de "Más acciones": una lista de filas dentro de un modal, en vez de
    una fila de tabla con 8-10 botones sueltos uno junto al otro — usado en
    paneles de superadministrador con muchas acciones por registro (CRM,

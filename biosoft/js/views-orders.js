@@ -1447,6 +1447,8 @@
           (order.correccionesPago && order.correccionesPago.length ? '<p class="text-muted" style="font-size:12px;margin-top:10px">' + U.icon("history") + " Este pago tiene " + order.correccionesPago.length + " corrección(es) de monto registrada(s) en la trazabilidad." : "") +
           "</div>" +
 
+        codigoConsultaCardHtml(order, pac, tenant) +
+
         '<div class="card" style="margin-top:16px"><div class="card-header"><h3 class="card-title">Exámenes de la Orden</h3></div>' +
           '<div class="table-wrap"><table><thead><tr><th>Examen</th><th>Sección</th><th>Tubo</th><th>Estado</th><th>Validado / Remitido por</th><th>Fecha</th><th></th></tr></thead><tbody>' +
           order.examenes.map(function (ex, idx) {
@@ -1487,6 +1489,17 @@
       if (btnConsentimiento) btnConsentimiento.addEventListener("click", function () { window.BIO_VIEWS_CONSENTIMIENTOS.abrir(order, pac, tenant, build); });
       var btnFirmarConsentimientoAqui = document.getElementById("btn-firmar-consentimiento-aqui");
       if (btnFirmarConsentimientoAqui) btnFirmarConsentimientoAqui.addEventListener("click", function () { window.BIO_VIEWS_CONSENTIMIENTOS.abrirFirmarAqui(order, pac, tenant, build); });
+      var btnEnviarCodigoWa = document.getElementById("btn-enviar-codigo-wa");
+      if (btnEnviarCodigoWa) btnEnviarCodigoWa.addEventListener("click", function () {
+        var numeroPacienteWA = pac ? (pac.celular || pac.telefono || "") : "";
+        if (!numeroPacienteWA) { U.toast("Este paciente no tiene un número de WhatsApp registrado — edítalo desde Pacientes.", "error"); return; }
+        var nombrePac = pac ? U.nombreCompleto(pac).split(" ")[0] : "";
+        var mensaje = "Hola " + nombrePac + " 👋 Aquí está de nuevo el acceso a tus resultados de " + tenant.nombre + " (Orden " + order.numeroOrden + "):\n" +
+          urlSitioWeb(tenant) + "\n\nSolo necesitas:\n1) Tu número de documento: " + (pac.numeroDocumento || "—") + "\n2) Tu código de consulta: " + order.codigoConsulta + "\n\nGuarda este mensaje — lo vas a necesitar.";
+        window.open("https://wa.me/" + numeroPacienteWA.replace(/\D/g, "") + "?text=" + encodeURIComponent(mensaje), "_blank");
+      });
+      var btnImprimirCodigo = document.getElementById("btn-imprimir-codigo");
+      if (btnImprimirCodigo) btnImprimirCodigo.addEventListener("click", function () { imprimirCodigoConsulta(order, pac, tenant); });
       root.querySelectorAll("[data-goresult]").forEach(function (b) {
         b.addEventListener("click", function () { location.hash = "#/resultados/" + order.id; });
       });
@@ -1831,6 +1844,57 @@
       U.closeModal(wrap);
       onDone();
     });
+  }
+
+  // Tarjeta destacada con el código de consulta de resultados (ver
+  // generarCodigoConsulta en catalog.js) — pensada para que el
+  // bacteriólogo/auxiliar la vea de un vistazo al abrir la orden, sin
+  // tener que ir al PDF o al recibo a buscarla, y pueda reenviársela al
+  // paciente por WhatsApp o imprimirla en el momento (ej. si el paciente
+  // perdió el mensaje original). Solo aparece si este laboratorio tiene
+  // activa su Página Web real (ver "Página Web" en Configuración).
+  function codigoConsultaCardHtml(order, pac, tenant) {
+    if (!tenant.paginaWeb || !tenant.paginaWeb.activo) return "";
+    if (!order.codigoConsulta) {
+      return '<div class="card" style="margin-top:16px"><p class="text-muted" style="margin:0;font-size:12.5px">' + U.icon("history") + " El código de consulta de resultados se está generando — actualiza esta página en un momento.</p></div>";
+    }
+    return '<div class="card codigo-consulta-card" style="margin-top:16px">' +
+      '<div style="display:flex;align-items:flex-start;justify-content:space-between;gap:16px;flex-wrap:wrap">' +
+        '<div>' +
+          '<h3 class="card-title" style="margin:0 0 4px">🔐 Código de Consulta de Resultados</h3>' +
+          '<p class="text-muted" style="margin:0;font-size:12.5px;max-width:420px">Dáselo al paciente junto a su número de documento — con eso descarga su resultado solo, sin llamar, en ' + U.esc(urlSitioWeb(tenant)) + '</p>' +
+        "</div>" +
+        '<div class="codigo-consulta-box">' + order.codigoConsulta.split("").join('<span class="codigo-consulta-sep"></span>') + "</div>" +
+      "</div>" +
+      '<div style="display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;margin-top:14px;padding-top:12px;border-top:1px solid #f1f5f9">' +
+        '<div style="font-size:12.5px;color:#475569"><b>Documento del paciente:</b> ' + U.esc(pac ? pac.numeroDocumento : "—") + "</div>" +
+        '<div class="flex gap-2 wrap">' +
+          '<button class="btn btn-whatsapp btn-sm" id="btn-enviar-codigo-wa">' + U.icon("send") + " Enviar por WhatsApp</button>" +
+          '<button class="btn btn-outline btn-sm" id="btn-imprimir-codigo">' + U.icon("printer") + " Imprimir</button>" +
+        "</div>" +
+      "</div>" +
+    "</div>";
+  }
+
+  function imprimirCodigoConsulta(order, pac, tenant) {
+    var w = window.open("", "_blank", "width=420,height=560");
+    if (!w) { U.toast("El navegador bloqueó la ventana de impresión — permite ventanas emergentes e intenta de nuevo.", "error"); return; }
+    var html = "<!doctype html><html><head><meta charset='utf-8'><title>Código de Consulta — " + U.esc(order.numeroOrden) + "</title>" +
+      "<style>body{font-family:Arial,sans-serif;text-align:center;padding:36px 24px;color:#0f172a}" +
+      "h1{font-size:15px;margin:0 0 2px}.sub{font-size:11.5px;color:#64748b;margin:0 0 22px}" +
+      ".codigo{font-size:34px;font-weight:800;letter-spacing:8px;border:2px solid #f97316;border-radius:14px;padding:18px 10px;margin:0 0 18px}" +
+      ".dato{font-size:12.5px;margin:4px 0}.dato b{color:#0f172a}.pie{font-size:10.5px;color:#94a3b8;margin-top:24px}" +
+      "@media print{.pie{margin-top:40px}}</style></head><body>" +
+      "<h1>" + U.esc(tenant.nombre || "Laboratorio Clínico") + "</h1>" +
+      "<p class='sub'>Código de Consulta de Resultados — Orden " + U.esc(order.numeroOrden) + "</p>" +
+      "<div class='codigo'>" + U.esc(order.codigoConsulta) + "</div>" +
+      "<p class='dato'><b>Paciente:</b> " + U.esc(pac ? U.nombreCompleto(pac) : "—") + "</p>" +
+      "<p class='dato'><b>Documento:</b> " + U.esc(pac ? pac.numeroDocumento : "—") + "</p>" +
+      "<p class='dato'>Consulta tus resultados en:<br>" + U.esc(urlSitioWeb(tenant)) + "</p>" +
+      "<p class='pie'>Guarda este código — lo necesitas para descargar tu resultado.</p>" +
+      "</body></html>";
+    w.document.open(); w.document.write(html); w.document.close();
+    w.onload = function () { w.focus(); w.print(); };
   }
 
   function field(label, value) {
