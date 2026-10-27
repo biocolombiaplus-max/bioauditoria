@@ -38,7 +38,20 @@
     { nombre: "Microbiología y Cultivos", desc: "Urocultivo, coprocultivo, antibiogramas." },
     { nombre: "Pruebas Especializadas", desc: "Marcadores tumorales y perfiles de segundo nivel." }
   ];
-  var ICONOS_SERVICIO = ["🩸", "🧪", "🧫", "🔬", "🦠", "⚗️", "🧫", "🩺"];
+  // Iconos de línea (en vez de emoji) para que la cuadrícula de servicios
+  // se vea consistente y premium sin depender del set de emoji de cada
+  // sistema operativo/navegador (que además varía mucho de tamaño y
+  // estilo entre Android, iPhone y Windows).
+  var ICONOS_SERVICIO = [
+    '<svg viewBox="0 0 24 24"><path d="M12 2s6 7.5 6 12a6 6 0 1 1-12 0c0-4.5 6-12 6-12Z"/></svg>',
+    '<svg viewBox="0 0 24 24"><path d="M9 2v6.5L4.5 17a3 3 0 0 0 2.6 4.5h9.8a3 3 0 0 0 2.6-4.5L15 8.5V2"/><path d="M9 2h6M8.5 14h7"/></svg>',
+    '<svg viewBox="0 0 24 24"><path d="M5 9h14l-1.2 9.2A2 2 0 0 1 15.8 20H8.2a2 2 0 0 1-2-1.8L5 9Z"/><path d="M9 9V5a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v4"/></svg>',
+    '<svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><circle cx="9" cy="10" r="1" fill="currentColor" stroke="none"/><circle cx="14" cy="13" r="1" fill="currentColor" stroke="none"/><circle cx="11" cy="15" r="1" fill="currentColor" stroke="none"/></svg>',
+    '<svg viewBox="0 0 24 24"><path d="M12 2s7 4 7 8a7 7 0 1 1-14 0c0-4 7-8 7-8Z"/><path d="M9.5 12a2.5 2.5 0 0 0 5 0"/></svg>',
+    '<svg viewBox="0 0 24 24"><path d="M12 22s8-4.5 8-11V5l-8-3-8 3v6c0 6.5 8 11 8 11Z"/><path d="M12 8v4l2.5 2.5"/></svg>',
+    '<svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg>',
+    '<svg viewBox="0 0 24 24"><path d="M12 2l2.6 5.3 5.9.8-4.3 4.1 1 5.8L12 15.2 6.8 18l1-5.8L3.5 8.1l5.9-.8Z"/></svg>'
+  ];
   var TESTIMONIOS_GENERICOS = [
     { texto: "Un laboratorio serio, rápido y con resultados confiables.", nombre: "Paciente" },
     { texto: "Excelente atención y resultados a tiempo.", nombre: "Paciente" },
@@ -211,13 +224,77 @@
       document.getElementById("rw-error-titulo").textContent = msg || "⚠️ No encontramos un resultado con esos datos.";
       form.style.display = "none"; exito.style.display = "none"; error.style.display = "flex";
     }
+    function fmtFechaCorta(iso) {
+      if (!iso) return "—";
+      var d = new Date(iso);
+      if (isNaN(d.getTime())) return iso;
+      return d.toLocaleDateString("es-CO", { day: "2-digit", month: "short", year: "numeric" });
+    }
+
+    // Descarga puntual de un resultado del historial — SIEMPRE una lectura
+    // por código (nunca una lista), igual que la consulta principal.
+    function descargarEntradaHistorial(entrada, btnFila) {
+      if (entrada.pdfDataUrl) {
+        var a = document.createElement("a");
+        a.href = entrada.pdfDataUrl; a.download = "Resultado-" + (entrada.numeroOrden || entrada.codigo) + ".pdf";
+        document.body.appendChild(a); a.click(); a.remove();
+        return;
+      }
+      var original = btnFila.textContent;
+      btnFila.disabled = true; btnFila.textContent = "Cargando…";
+      db.collection("resultadosPublicos").doc(entrada.codigo).get().then(function (doc) {
+        if (!doc.exists || !doc.data().pdfDataUrl) throw new Error("sin_pdf");
+        entrada.pdfDataUrl = doc.data().pdfDataUrl;
+        descargarEntradaHistorial(entrada, btnFila);
+      }).catch(function () {
+        alert("No se pudo descargar este resultado. Intenta de nuevo.");
+      }).finally(function () { btnFila.disabled = false; btnFila.textContent = original; });
+    }
+
+    function renderHistorial(entradas) {
+      var wrap = document.getElementById("rw-historial-wrap");
+      var lista = document.getElementById("rw-historial-list");
+      if (!entradas.length) { wrap.classList.add("hidden"); return; }
+      wrap.classList.remove("hidden");
+      lista.innerHTML = entradas.map(function (e, i) {
+        return '<div class="rw-historial-row"><div><b>Orden ' + (e.numeroOrden || e.codigo) + '</b><span>' + fmtFechaCorta(e.fechaOrden) + '</span></div>' +
+          '<button type="button" data-hist="' + i + '">⬇ Descargar</button></div>';
+      }).join("");
+      lista.querySelectorAll("[data-hist]").forEach(function (b) {
+        b.addEventListener("click", function () { descargarEntradaHistorial(entradas[parseInt(b.dataset.hist, 10)], b); });
+      });
+    }
+
+    // El resultado que el paciente consultó siempre se ve junto con el
+    // historial completo de sus demás resultados — el más reciente de
+    // TODOS (no necesariamente el que acaba de consultar) sale resaltado
+    // arriba, y el resto debajo en orden cronológico. Si el más reciente
+    // no es el que trae el PDF ya cargado, se resuelve con UNA lectura
+    // puntual más por su propio código (nunca una lista/consulta).
     function mostrarExito(d, codigo) {
-      document.getElementById("rw-nombre-paciente").textContent = d.nombrePaciente || "Paciente";
-      document.getElementById("rw-datos-orden").textContent = "Orden No. " + (d.numeroOrden || "—") + (d.fechaOrden ? " · " + d.fechaOrden : "");
-      var link = document.getElementById("rw-btn-descargar");
-      link.href = d.pdfDataUrl || "#";
-      link.setAttribute("download", "Resultado-" + (d.numeroOrden || codigo) + ".pdf");
-      form.style.display = "none"; error.style.display = "none"; exito.style.display = "flex";
+      var propio = { codigo: codigo, numeroOrden: d.numeroOrden, fechaOrden: d.fechaOrden, pdfDataUrl: d.pdfDataUrl };
+      var todas = [propio].concat((d.historial || []).map(function (h) {
+        return { codigo: h.codigo, numeroOrden: h.numeroOrden, fechaOrden: h.fechaOrden, pdfDataUrl: null };
+      }));
+      todas.sort(function (a, b) { return (b.fechaOrden || "").localeCompare(a.fechaOrden || ""); });
+      var masReciente = todas[0];
+      var resto = todas.slice(1);
+
+      function pintar() {
+        document.getElementById("rw-nombre-paciente").textContent = d.nombrePaciente || "Paciente";
+        document.getElementById("rw-datos-orden").textContent = "Orden No. " + (masReciente.numeroOrden || "—") + (masReciente.fechaOrden ? " · " + fmtFechaCorta(masReciente.fechaOrden) : "");
+        var link = document.getElementById("rw-btn-descargar");
+        link.href = masReciente.pdfDataUrl || "#";
+        link.setAttribute("download", "Resultado-" + (masReciente.numeroOrden || masReciente.codigo) + ".pdf");
+        renderHistorial(resto);
+        form.style.display = "none"; error.style.display = "none"; exito.style.display = "flex";
+      }
+
+      if (masReciente.pdfDataUrl || masReciente.codigo === codigo) { pintar(); return; }
+      db.collection("resultadosPublicos").doc(masReciente.codigo).get().then(function (doc) {
+        if (doc.exists) masReciente.pdfDataUrl = doc.data().pdfDataUrl;
+        pintar();
+      }).catch(function () { pintar(); });
     }
 
     btn.addEventListener("click", function () {

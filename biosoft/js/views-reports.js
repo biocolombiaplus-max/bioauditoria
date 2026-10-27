@@ -558,10 +558,33 @@
           // base64 (~33% más pesado que el PDF original). Se deja un
           // margen amplio en vez de dejar que la escritura falle sola.
           if (pdfBase64.length < 900000) {
+            // Historial de resultados anteriores del MISMO paciente, ya
+            // publicados con su propio código — nunca se arma buscando por
+            // número de documento (eso permitiría enumerar resultados de
+            // otro paciente con la llave de API, que no es secreta), solo
+            // con órdenes que YA tiene este laboratorio en memoria. Son
+            // referencias livianas ({codigo, numeroOrden, fechaOrden}, sin
+            // el PDF) para que sitio-web.js muestre el más reciente
+            // resaltado y el resto en orden cronológico, y descargue cada
+            // PDF puntual solo cuando el paciente pida verlo.
+            var otrasOrdenesPaciente = S.listOrders(order.tenantId).filter(function (o) {
+              return o.patientId === order.patientId && o.id !== order.id && o.codigoConsulta && o.enviado;
+            });
+            var historialParaEsta = otrasOrdenesPaciente.map(function (o) {
+              return { codigo: o.codigoConsulta, numeroOrden: o.numeroOrden, fechaOrden: o.fechaOrden };
+            });
             S.resultadosPublicos.set(order.codigoConsulta, {
               tenantId: order.tenantId, numeroDocumento: pac ? pac.numeroDocumento : "",
               nombrePaciente: pac ? U.nombreCompleto(pac) : "", numeroOrden: order.numeroOrden, fechaOrden: order.fechaOrden,
-              pdfDataUrl: "data:application/pdf;base64," + pdfBase64
+              pdfDataUrl: "data:application/pdf;base64," + pdfBase64,
+              historial: historialParaEsta
+            }).then(function () {
+              // Propagación en ambos sentidos: cada resultado anterior
+              // también queda enterado de este nuevo, para que el paciente
+              // vea el historial completo sin importar con cuál código de
+              // los suyos entre a consultar.
+              var entradaNueva = { codigo: order.codigoConsulta, numeroOrden: order.numeroOrden, fechaOrden: order.fechaOrden };
+              otrasOrdenesPaciente.forEach(function (o) { S.resultadosPublicos.agregarHistorial(o.codigoConsulta, entradaNueva); });
             }).catch(function (err) { console.warn("BIOsoft: no se pudo publicar el resultado en la Página Web ->", err); });
           } else {
             console.warn("BIOsoft: el PDF de esta orden es demasiado grande para publicarlo en la Página Web (límite de Firestore).");

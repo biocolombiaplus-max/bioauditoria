@@ -125,14 +125,21 @@ service cloud.firestore {
     // desde la página web real de su laboratorio con su documento + el
     // código de consulta de 6 dígitos que se le dio al crear la orden (ver
     // generarCodigoConsulta en catalog.js, y "Enviar Resultados" en
-    // views-reports.js, que es quien escribe aquí). Lectura pública SIN
-    // autenticación — el acceso real está protegido porque hace falta
-    // ADEMÁS el número de documento del paciente (ver sitio-web.js), y
-    // porque el código nunca se repite (ver codigosConsulta más abajo),
-    // así que nunca hay dos pacientes compitiendo por el mismo código.
+    // views-reports.js, que es quien escribe aquí).
+    //
+    // Solo "get" (un documento puntual, por su id = el código exacto) es
+    // público — NUNCA "list": en las reglas de Firestore "allow read: if
+    // true" otorga AMBOS a la vez, y como la llave de API del navegador no
+    // es secreta, cualquier visitante podría abrir la consola del
+    // navegador y listar/consultar TODOS los resultados (con PDF y datos
+    // del paciente) de TODOS los laboratorios, sin conocer ningún código.
+    // Con solo "get" hace falta conocer el código exacto de 6 dígitos de
+    // ESE resultado — exactamente lo que hace sitio-web.js (siempre
+    // .doc(codigo).get(), nunca una consulta/lista) — y aun así se exige
+    // ADEMÁS que el número de documento coincida antes de mostrarlo.
     // Solo el laboratorio dueño o el superadmin pueden escribir/borrar.
     match /resultadosPublicos/{codigo} {
-      allow read: if true;
+      allow get: if true;
       allow create, update: if esDeEsteLab(request.resource.data.tenantId) || esSuperadmin();
     }
 

@@ -611,6 +611,23 @@
     var doc = Object.assign({}, datos, { actualizadoEn: nowISO() });
     return resultadosPublicosColl().doc((codigo || "").toUpperCase()).set(doc).then(function () { return doc; });
   }
+  /* Agrega una referencia liviana ({codigo, numeroOrden, fechaOrden} —
+     NUNCA el PDF) al historial de OTRO resultado ya publicado del mismo
+     paciente — ver "Enviar Resultados" en views-reports.js, que es quien
+     la llama una vez por cada resultado anterior al publicar uno nuevo,
+     para que el historial quede enlazado en ambos sentidos sin importar
+     con cuál código entre varios consulte el paciente. "Fire and forget"
+     a propósito (nunca bloquea el envío al paciente, que ya se hizo
+     bien): si falla, el resultado nuevo publicado sigue siendo válido,
+     solo que ese resultado viejo en particular no listará este en su
+     propio historial hasta el próximo envío. */
+  function resultadoPublicoAgregarHistorial(codigo, entrada) {
+    if (!firebaseDisponible()) return Promise.resolve();
+    return resultadosPublicosColl().doc((codigo || "").toUpperCase()).set(
+      { historial: firebase.firestore.FieldValue.arrayUnion(entrada) },
+      { merge: true }
+    ).catch(function (err) { console.warn("BIOsoft: no se pudo actualizar el historial público de " + codigo + " ->", err); });
+  }
 
   // -----------------------------------------------------------------------
   // Código de consulta (ver generarCodigoConsulta en catalog.js): se
@@ -2308,7 +2325,7 @@
     plantillas: { list: plantillasList, watch: plantillasWatch, create: plantillasCreate, update: plantillasUpdate, remove: plantillasDelete },
     landingImagenes: { list: landingImagenesList, set: landingImagenesSet, remove: landingImagenesDelete },
     demoSitioWeb: { get: demoSitioWebGet, set: demoSitioWebSet },
-    resultadosPublicos: { get: resultadoPublicoGet, set: resultadoPublicoSet },
+    resultadosPublicos: { get: resultadoPublicoGet, set: resultadoPublicoSet, agregarHistorial: resultadoPublicoAgregarHistorial },
     reservarCodigoConsulta: reservarCodigoConsulta,
     qc: {
       listControles: listQCControles, getControl: getQCControl, createControl: createQCControl, updateControl: updateQCControl,

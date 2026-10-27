@@ -54,6 +54,7 @@
   #inicio .cols { display: flex; gap: 48px; align-items: center; flex-wrap: wrap; }
   #inicio .texto { flex: 1 1 420px; display: flex; flex-direction: column; gap: 18px; }
   .badge-pill { display: inline-flex; align-self: flex-start; align-items: center; gap: 6px; background: rgba(var(--accent-rgb),.15); color: #fdba74; border: 1px solid rgba(var(--accent-rgb),.35); font-size: 12px; font-weight: 700; padding: 6px 14px; border-radius: 999px; }
+  .badge-pill svg, .ic-inline { width: 14px; height: 14px; flex: none; stroke: currentColor; fill: none; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
   h1 { font-family: 'Sora', system-ui, sans-serif; font-size: 42px; line-height: 1.14; font-weight: 800; margin: 0; }
   #inicio p { font-size: 15px; color: #cbd5e1; line-height: 1.6; max-width: 480px; margin: 0; }
   #inicio .cta-row { display: flex; gap: 12px; flex-wrap: wrap; margin-top: 4px; }
@@ -62,7 +63,8 @@
   .foto-box img { width: 100%; height: 100%; object-fit: cover; }
   .hero-resultados-bar { display: flex; align-items: center; gap: 14px; margin-top: 26px; background: rgba(255,255,255,.08); border: 1.5px solid rgba(var(--accent-rgb),.5); border-radius: 14px; padding: 14px 18px; text-decoration: none; color: #fff; transition: background .15s, transform .15s; flex-wrap: wrap; }
   .hero-resultados-bar:hover { background: rgba(255,255,255,.15); transform: translateY(-2px); }
-  .hero-resultados-ic { font-size: 28px; flex: none; }
+  .hero-resultados-ic { flex: none; width: 46px; height: 46px; border-radius: 50%; background: rgba(var(--accent-rgb),.18); display: flex; align-items: center; justify-content: center; }
+  .hero-resultados-ic svg { width: 22px; height: 22px; stroke: #fdba74; fill: none; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
   .hero-resultados-txt { flex: 1 1 260px; font-size: 13px; color: #e2e8f0; line-height: 1.45; }
   .hero-resultados-txt b { color: #fff; }
   .hero-resultados-cta { flex: none; font-weight: 800; font-size: 12.5px; color: #fff; background: var(--accent); padding: 10px 16px; border-radius: 10px; white-space: nowrap; }
@@ -94,11 +96,24 @@
   .spinner-rw { display: inline-block; width: 14px; height: 14px; border: 2px solid rgba(255,255,255,.4); border-top-color: #fff; border-radius: 50%; animation: bio-spin .7s linear infinite; }
   @keyframes bio-spin { to { transform: rotate(360deg); } }
 
+  /* ---- Historial de resultados anteriores (mismo paciente) ---- */
+  .rw-historial-titulo { font-size: 11.5px; font-weight: 800; letter-spacing: .05em; text-transform: uppercase; color: #94a3b8; margin: 2px 0 10px; }
+  .rw-historial-list { display: flex; flex-direction: column; gap: 10px; }
+  .rw-historial-row { display: flex; align-items: center; justify-content: space-between; gap: 12px; border: 1px solid #e2e8f0; border-radius: 12px; padding: 12px 15px; background: #fff; }
+  .rw-historial-row b { display: block; font-size: 13px; }
+  .rw-historial-row span { font-size: 11.5px; color: #64748b; }
+  .rw-historial-row button { flex: none; background: #f1f5f9; color: #334155; border: none; border-radius: 9px; padding: 8px 14px; font-size: 12px; font-weight: 700; cursor: pointer; font-family: inherit; }
+  @media (max-width: 640px) {
+    .rw-historial-row { flex-direction: column; align-items: stretch; }
+    .rw-historial-row button { width: 100%; }
+  }
+
   /* ---- Grids (servicios / ofertas / testimonios) ---- */
   .grid-servicios { display: grid; grid-template-columns: repeat(auto-fit,minmax(220px,1fr)); gap: 18px; }
   .card-servicio { background: #fff; border: 1px solid #e2e8f0; border-radius: 16px; padding: 22px; display: flex; flex-direction: column; gap: 10px; transition: transform .18s, box-shadow .18s; }
   .card-servicio:hover { transform: translateY(-4px); box-shadow: 0 14px 30px rgba(15,23,42,.08); border-color: transparent; }
-  .card-servicio .ic { font-size: 26px; }
+  .card-servicio .ic { width: 46px; height: 46px; border-radius: 13px; background: rgba(var(--accent-rgb),.12); display: flex; align-items: center; justify-content: center; }
+  .card-servicio .ic svg { width: 23px; height: 23px; stroke: var(--accent); fill: none; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; }
   .card-servicio b { font-size: 14.5px; }
   .card-servicio span.desc { font-size: 12.5px; color: #64748b; line-height: 1.5; }
   .card-servicio .cotizar { margin-top: 2px; text-decoration: none; font-size: 12px; font-weight: 800; color: var(--accent); }
@@ -140,7 +155,8 @@
   .footer-tagline { margin: 2px 0 2px; color: #94a3b8; line-height: 1.55; }
   .footer-bottom { border-top: 1px solid rgba(255,255,255,.08); padding: 16px 0; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px; font-size: 12px; }
 
-  .flotante { position: fixed; bottom: 24px; width: 58px; height: 58px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 26px; text-decoration: none; box-shadow: 0 10px 24px rgba(0,0,0,.3); z-index: 25; border: none; cursor: pointer; }
+  .flotante { position: fixed; bottom: 24px; width: 58px; height: 58px; border-radius: 50%; display: flex; align-items: center; justify-content: center; text-decoration: none; box-shadow: 0 10px 24px rgba(0,0,0,.3); z-index: 25; border: none; cursor: pointer; }
+  .flotante svg { width: 26px; height: 26px; stroke: #fff; fill: none; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
   #boton-whatsapp-flotante { right: 24px; background: #16a34a; color: #fff; animation: bio-pulse 2.4s infinite; }
   #boton-orientador-flotante { left: 24px; background: #2563eb; color: #fff; }
   @keyframes bio-pulse { 0% { box-shadow: 0 0 0 0 rgba(22,163,74,.55); } 70% { box-shadow: 0 0 0 14px rgba(22,163,74,0); } 100% { box-shadow: 0 0 0 0 rgba(22,163,74,0); } }
@@ -217,7 +233,8 @@
     .footer-col .social-row { justify-content: center; }
     .footer-bottom { flex-direction: column; text-align: center; gap: 6px; }
 
-    .flotante { width: 50px; height: 50px; font-size: 22px; bottom: 18px; }
+    .flotante { width: 50px; height: 50px; bottom: 18px; }
+    .flotante svg { width: 22px; height: 22px; }
   }
 
   @media (max-width: 420px) {
@@ -262,7 +279,7 @@
         <a href="#tecnologia">Nosotros</a>
         <a href="#ubicacion">Ubicación</a>
       </nav>
-      <a href="#" class="btn btn-wa" id="btn-wa-header">💬 WhatsApp</a>
+      <a href="#" class="btn btn-wa" id="btn-wa-header"><svg class="ic-inline" viewBox="0 0 24 24" style="stroke:#fff"><path d="M21 11.5a8.4 8.4 0 0 1-11.7 7.7L5 20l.9-4A8.4 8.4 0 1 1 21 11.5Z"/><path d="M8.5 10.5c.3 2.5 2.5 4.7 5 5"/></svg> WhatsApp</a>
     </div>
   </header>
 
@@ -270,18 +287,18 @@
     <div class="wrap">
       <div class="cols">
         <div class="texto">
-          <span class="badge-pill">🔬 Laboratorio Clínico</span>
+          <span class="badge-pill"><svg viewBox="0 0 24 24"><path d="M9 2v6.5L4.5 17a3 3 0 0 0 2.6 4.5h9.8a3 3 0 0 0 2.6-4.5L15 8.5V2"/><path d="M9 2h6M8.5 14h7"/></svg> Laboratorio Clínico</span>
           <h1 id="hero-titulo">Tu salud en buenas manos, resultados en los que puedes confiar</h1>
           <p id="hero-subtitulo">Exámenes de rutina y especializados, con atención de primer y segundo nivel. Tecnología de punta y un equipo humano comprometido con tu bienestar.</p>
           <div class="cta-row">
-            <a href="#resultados" class="btn btn-accent">📄 Consultar Resultados</a>
-            <a href="#" class="btn btn-ghost-dark" id="btn-cotizar-hero">💲 Cotizar mis Exámenes</a>
+            <a href="#resultados" class="btn btn-accent"><svg class="ic-inline" viewBox="0 0 24 24"><path d="M6 2h9l3 3v17H6z"/><path d="M9 7h6M9 11h6M9 15h3"/></svg> Consultar Resultados</a>
+            <a href="#" class="btn btn-ghost-dark" id="btn-cotizar-hero"><svg class="ic-inline" viewBox="0 0 24 24"><path d="M21 11.5a8.5 8.5 0 1 1-4.5-7.5M21 3v6h-6"/></svg> Cotizar mis Exámenes</a>
           </div>
         </div>
         <div class="foto-box" id="foto-hero">🔬🩸🧪</div>
       </div>
       <a href="#resultados" class="hero-resultados-bar">
-        <span class="hero-resultados-ic">🔐</span>
+        <span class="hero-resultados-ic"><svg viewBox="0 0 24 24"><rect x="4" y="11" width="16" height="10" rx="2"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/></svg></span>
         <span class="hero-resultados-txt"><b>¿Ya te tomaste tus muestras?</b> Ingresa tu número de documento y tu código de consulta para ver y descargar tus resultados aquí mismo, sin llamar.</span>
         <span class="hero-resultados-cta">Consultar Resultados →</span>
       </a>
@@ -291,10 +308,10 @@
 
   <section id="resultados" class="seccion">
     <div class="wrap">
-      <div class="titulo-seccion"><span class="badge-pill" style="background:#fff7ed;color:#c2410c;border-color:#fed7aa">🔐 Portal de Resultados</span></div>
+      <div class="titulo-seccion"><span class="badge-pill" style="background:#fff7ed;color:#c2410c;border-color:#fed7aa"><svg viewBox="0 0 24 24"><rect x="4" y="11" width="16" height="10" rx="2"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/></svg> Portal de Resultados</span></div>
       <div class="panel-resultados">
         <div style="display:flex;align-items:center;gap:12px">
-          <span style="font-size:30px">🔐</span>
+          <span style="width:52px;height:52px;border-radius:14px;background:#fff7ed;display:flex;align-items:center;justify-content:center;flex:none"><svg viewBox="0 0 24 24" style="width:26px;height:26px;stroke:#c2410c;fill:none;stroke-width:2;stroke-linecap:round;stroke-linejoin:round"><rect x="4" y="11" width="16" height="10" rx="2"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/></svg></span>
           <div>
             <h3>Consulta tus Resultados en Línea</h3>
             <p style="margin:2px 0 0;font-size:13px;color:#64748b">Ingresa tu número de documento y el código de consulta que te enviamos por WhatsApp al tomar tu muestra.</p>
@@ -318,6 +335,10 @@
               <div style="font-size:12px;color:#64748b" id="rw-datos-orden">—</div>
             </div>
             <a href="#" id="rw-btn-descargar" class="btn" style="background:#0f172a;color:#fff;padding:13px 20px;font-size:13.5px;align-self:flex-start" download>⬇ Descargar PDF de mi resultado</a>
+          </div>
+          <div id="rw-historial-wrap" class="hidden">
+            <div class="rw-historial-titulo">Historial de resultados anteriores</div>
+            <div class="rw-historial-list" id="rw-historial-list"></div>
           </div>
           <button type="button" class="btn" style="background:#fff;color:#334155;border:1px solid #cbd5e1;padding:11px 18px;font-size:13px;align-self:flex-start" id="btn-reiniciar-resultado">Buscar otro resultado</button>
         </div>
@@ -345,7 +366,7 @@
     <div class="wrap cols">
       <div class="foto-box" id="foto-nosotros">⚙️🔬🧬</div>
       <div class="texto">
-        <span class="badge-pill" style="background:rgba(37,99,235,.15);color:#93c5fd;border-color:rgba(37,99,235,.35)">⚙️ Sobre Nosotros</span>
+        <span class="badge-pill" style="background:rgba(37,99,235,.15);color:#93c5fd;border-color:rgba(37,99,235,.35)"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M12 2v3M12 19v3M4.2 4.2l2.1 2.1M17.7 17.7l2.1 2.1M2 12h3M19 12h3M4.2 19.8l2.1-2.1M17.7 6.3l2.1-2.1"/></svg> Sobre Nosotros</span>
         <h2>Equipos de última generación, resultados más precisos</h2>
         <p id="sobre-nosotros">Somos un laboratorio clínico de primer y segundo nivel de complejidad: procesamos tanto tus exámenes de rutina como pruebas especializadas, con equipos automatizados y procesos de control de calidad para que cada resultado sea confiable.</p>
         <div style="display:flex;flex-direction:column;gap:10px;margin-top:4px">
@@ -369,11 +390,11 @@
     <div class="wrap cols">
       <div class="datos">
         <h2>Visítanos</h2>
-        <div class="dato-row"><span>📍</span><span id="dato-direccion">[Dirección del laboratorio]</span></div>
-        <div class="dato-row"><span>📞</span><span id="dato-contacto">[Teléfono] · [WhatsApp]</span></div>
-        <a href="#" class="btn btn-wa" style="margin-top:6px;align-self:flex-start;padding:12px 20px;font-size:13.5px" id="btn-wa-ubicacion">💬 Escríbenos por WhatsApp</a>
+        <div class="dato-row"><span><svg class="ic-inline" viewBox="0 0 24 24" style="stroke:#64748b"><path d="M12 22s7-7.1 7-12.5a7 7 0 1 0-14 0C5 14.9 12 22 12 22Z"/><circle cx="12" cy="9.5" r="2.4"/></svg></span><span id="dato-direccion">[Dirección del laboratorio]</span></div>
+        <div class="dato-row"><span><svg class="ic-inline" viewBox="0 0 24 24" style="stroke:#64748b"><path d="M5 4h4l2 5-2.5 1.5a11 11 0 0 0 5 5L15 13l5 2v4a2 2 0 0 1-2 2A16 16 0 0 1 3 6a2 2 0 0 1 2-2Z"/></svg></span><span id="dato-contacto">[Teléfono] · [WhatsApp]</span></div>
+        <a href="#" class="btn btn-wa" style="margin-top:6px;align-self:flex-start;padding:12px 20px;font-size:13.5px" id="btn-wa-ubicacion"><svg class="ic-inline" viewBox="0 0 24 24" style="stroke:#fff"><path d="M21 11.5a8.4 8.4 0 0 1-11.7 7.7L5 20l.9-4A8.4 8.4 0 1 1 21 11.5Z"/><path d="M8.5 10.5c.3 2.5 2.5 4.7 5 5"/></svg> Escríbenos por WhatsApp</a>
       </div>
-      <div class="mapa-ph" id="mapa-contenedor">📍 Mapa de ubicación</div>
+      <div class="mapa-ph" id="mapa-contenedor">Mapa de ubicación</div>
     </div>
   </section>
 
@@ -381,7 +402,7 @@
     <div class="wrap box">
       <h2>¿Lista tu próxima cita?</h2>
       <p style="margin:0;font-size:14px;color:rgba(255,255,255,.85)">Agenda hoy mismo y recibe tus resultados sin salir de casa.</p>
-      <a href="#ubicacion" class="btn btn-light">📅 Agendar mi Cita</a>
+      <a href="#ubicacion" class="btn btn-light"><svg class="ic-inline" viewBox="0 0 24 24" style="stroke:#0f172a"><rect x="3" y="5" width="18" height="16" rx="2"/><path d="M3 10h18M8 3v4M16 3v4"/></svg> Agendar mi Cita</a>
     </div>
   </section>
 
@@ -421,14 +442,14 @@
     </div>
   </footer>
 
-  <button type="button" id="boton-orientador-flotante" class="flotante" aria-label="Abrir el Orientador de exámenes" data-abrir-orientador>💡</button>
-  <a href="#" id="boton-whatsapp-flotante" class="flotante" aria-label="Escríbenos por WhatsApp" target="_blank" rel="noopener">💬</a>
+  <button type="button" id="boton-orientador-flotante" class="flotante" aria-label="Abrir el Orientador de exámenes" data-abrir-orientador><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><path d="M9.5 9a2.5 2.5 0 0 1 5 0c0 1.7-2.5 2-2.5 4"/><path d="M12 17h.01"/></svg></button>
+  <a href="#" id="boton-whatsapp-flotante" class="flotante" aria-label="Escríbenos por WhatsApp" target="_blank" rel="noopener"><svg viewBox="0 0 24 24"><path d="M21 11.5a8.4 8.4 0 0 1-11.7 7.7L5 20l.9-4A8.4 8.4 0 1 1 21 11.5Z"/><path d="M8.5 10.5c.3 2.5 2.5 4.7 5 5"/></svg></a>
 
   <div id="orientador-backdrop">
     <div id="orientador-panel">
       <div class="cabecera">
         <div>
-          <h3>💡 Orientador de Exámenes</h3>
+          <h3>Orientador de Exámenes</h3>
           <p>Resolvemos tus dudas antes de venir al laboratorio</p>
         </div>
         <button type="button" class="cerrar-orientador" id="btn-cerrar-orientador" aria-label="Cerrar">✕</button>
@@ -442,6 +463,6 @@
   <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
   <script src="js/firebase-config.js?v=2"></script>
-  <script src="js/sitio-web.js?v=4"></script>
+  <script src="js/sitio-web.js?v=5"></script>
 </body>
 </html>
