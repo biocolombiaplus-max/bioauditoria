@@ -1425,17 +1425,24 @@
           (tenant.pais === "CO" ? '<button class="btn btn-outline btn-sm" id="btn-consentimiento">' + U.icon("file") + " Consentimiento Informado</button>" : "") +
           (tenant.pais === "CO" ? '<button class="btn btn-primary btn-sm" id="btn-firmar-consentimiento-aqui">' + U.icon("check") + " Firmar Consentimiento Aquí</button>" : "") +
           "</div></div>" +
+          seccionDivisoria("🧑 Paciente", true) +
           '<div class="form-grid">' +
             field("Paciente", pac ? U.nombreCompleto(pac) + " (" + pac.tipoDocumento + " " + pac.numeroDocumento + ")" : "—") +
             field("Edad / Sexo", (pac ? U.edadTexto(pac) : "—") + " · " + (pac ? pac.sexo : "")) +
             field("Fecha de Nacimiento", pac && pac.fechaNacimiento ? new Date(pac.fechaNacimiento + "T00:00:00").toLocaleDateString("es-CO", { day: "2-digit", month: "short", year: "numeric" }) : "—") +
             (pac && pac.pais === "CO" ? field("EPS / Seguro", pac.eps || "—") : "") +
+          "</div>" +
+          seccionDivisoria("🩺 Datos Clínicos") +
+          '<div class="form-grid">' +
             field("Médico Remitente", order.medicoRemitente || "—") +
             field("Procedencia", order.procedencia) +
             field("Prioridad", order.prioridad) +
             field("Fecha de Orden", U.fmtFecha(order.fechaOrden)) +
             field("Diagnóstico", order.diagnostico || "—") +
             field("Observaciones Clínicas", order.observacionesClinicas || "—") +
+          "</div>" +
+          seccionDivisoria("💳 Facturación") +
+          '<div class="form-grid">' +
             field("Convenio / Empresa Aliada", order.convenioNombre || "Sin convenio (particular)") +
             (tenant.mostrarPrecioOrden ? fieldHtml("Valor a Cobrar", order.valorCobrar ? U.esc(fmtMoneda(order.valorCobrar)) + fmtMonedaEquiv(tenant, order.valorCobrar) : "—") : "") +
             (order.monedaPago ? field("Moneda de Pago", C.monedaPagoLabel(order.monedaPago)) : "") +
@@ -1519,7 +1526,10 @@
           build();
         }).catch(function (err) {
           console.error("BIOsoft: fallo al generar el código de consulta ->", err && err.code, err && err.message, err);
-          U.toast("No se pudo generar el código (" + ((err && err.code) || (err && err.message) || "error desconocido") + "). Si vuelve a pasar, escríbenos con este mensaje.", "error");
+          var msg = (err && err.message === "tiempo_agotado")
+            ? "La conexión está tardando demasiado para generar el código. Verifica tu internet e inténtalo de nuevo."
+            : "No se pudo generar el código (" + ((err && err.code) || (err && err.message) || "error desconocido") + "). Si vuelve a pasar, escríbenos con este mensaje.";
+          U.toast(msg, "error");
           btnGenerarCodigoAhora.disabled = false;
           btnGenerarCodigoAhora.textContent = "Generar código ahora";
         });
@@ -1922,6 +1932,15 @@
       "</body></html>";
     w.document.open(); w.document.write(html); w.document.close();
     w.onload = function () { w.focus(); w.print(); };
+  }
+
+  // Antes los ~14 campos de la orden salían todos en una sola rejilla
+  // plana, sin ningún orden visual — "revisa que se vea más ordenado"
+  // (bug/queja real reportada). Agrupados en Paciente / Datos Clínicos /
+  // Facturación, con un rótulo discreto entre cada grupo, se lee de un
+  // vistazo sin cambiar ni un dato de los que ya se mostraban.
+  function seccionDivisoria(texto, primera) {
+    return '<div style="' + (primera ? "" : "margin-top:16px;padding-top:14px;border-top:1px solid #f1f5f9;") + 'margin-bottom:10px;font-size:11px;font-weight:800;color:#94a3b8;letter-spacing:.06em;text-transform:uppercase">' + texto + "</div>";
   }
 
   function field(label, value) {

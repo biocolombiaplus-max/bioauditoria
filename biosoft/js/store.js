@@ -632,14 +632,33 @@
     if (intentosRestantes === undefined) intentosRestantes = 10;
     var candidato = BIO_CATALOG.generarCodigoConsulta();
     var ref = codigosConsultaColl().doc(candidato);
-    return global.BIO_FB.db.runTransaction(function (tx) {
+    var intento = global.BIO_FB.db.runTransaction(function (tx) {
       return tx.get(ref).then(function (doc) {
         if (doc.exists) throw new Error("codigo_ya_reservado");
         tx.set(ref, { tenantId: tenantId, numeroOrden: numeroOrden, creadoEn: nowISO() });
       });
-    }).then(function () { return candidato; }).catch(function (err) {
-      if (intentosRestantes <= 0) throw err;
-      return reservarCodigoConsulta(tenantId, numeroOrden, intentosRestantes - 1);
+    }).then(function () { return candidato; });
+    // Caso real que motivó este tope: a diferencia de una escritura normal
+    // (que Firestore deja en cola offline y sincroniza sola apenas vuelve
+    // la conexión), una transacción NUNCA se resuelve desde la caché local
+    // — necesita de verdad ida y vuelta al servidor. Si la conexión está
+    // degradada o se corta a mitad de camino, sin este tope la promesa se
+    // quedaba esperando PARA SIEMPRE: el botón "Generando…" nunca
+    // terminaba, ni con éxito ni con error (bug real reportado).
+    var conTope = Promise.race([
+      intento,
+      new Promise(function (_, reject) { setTimeout(function () { reject(new Error("tiempo_agotado")); }, 12000); })
+    ]);
+    return conTope.catch(function (err) {
+      // Solo reintenta de verdad cuando el candidato ya estaba tomado (un
+      // choque se resuelve en el siguiente intento, casi al instante). Un
+      // tiempo agotado u otro error real (ej. permission-denied) NO se
+      // reintenta 10 veces — eso solo haría esperar varios minutos para
+      // terminar fallando igual; se avisa de una vez.
+      if (err && err.message === "codigo_ya_reservado" && intentosRestantes > 0) {
+        return reservarCodigoConsulta(tenantId, numeroOrden, intentosRestantes - 1);
+      }
+      throw err;
     });
   }
 
