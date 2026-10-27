@@ -1501,6 +1501,20 @@
   var PORCENTAJE_IVA_SUGERIDO_POR_PAIS = { CO: 19, EC: 15, VE: 16 };
   function porcentajeIvaSugerido(pais) { return PORCENTAJE_IVA_SUGERIDO_POR_PAIS[pais] || 0; }
 
+  /* El nombre del impuesto también es editable (tenant.nombreImpuesto) —
+     no es lo mismo en todos los países ("IVA" en Colombia/Ecuador/
+     Venezuela hoy, pero mañana BIOsoft puede llegar a un país donde se
+     llame distinto, ej. "IGV" o "ITBIS"), y algunos laboratorios necesitan
+     dejarlo dicho tal cual lo exige su régimen tributario (ej. "IVA
+     (Excluido)" para servicios de salud exentos en Colombia, en vez de
+     ocultar la línea por completo). "IVA" es solo la sugerencia inicial —
+     una vez guardado, tenant.nombreImpuesto manda siempre. */
+  var NOMBRE_IMPUESTO_SUGERIDO_POR_PAIS = { CO: "IVA", EC: "IVA", VE: "IVA" };
+  function nombreImpuestoSugerido(pais) { return NOMBRE_IMPUESTO_SUGERIDO_POR_PAIS[pais] || "IVA"; }
+  function nombreImpuesto(tenant) {
+    return (tenant && tenant.nombreImpuesto && tenant.nombreImpuesto.trim()) || nombreImpuestoSugerido(tenant && tenant.pais);
+  }
+
   /* Descompone un monto que YA incluye el IVA (el Valor a Cobrar de la
      orden, exactamente lo que paga el paciente — nunca cambia) en
      Subtotal + IVA + Total, para mostrarlo desglosado en el Recibo de
@@ -2188,6 +2202,7 @@
     tuboInfo: tuboInfo,
     fmtMonedaAdicional: fmtMonedaAdicional, convertirMonedaAdicional: convertirMonedaAdicional, monedaBaseLabel: monedaBaseLabel, calcularCopago: calcularCopago,
     porcentajeIvaSugerido: porcentajeIvaSugerido, desgloseIva: desgloseIva, montoEnBolivares: montoEnBolivares, textoTasaCambio: textoTasaCambio,
+    nombreImpuestoSugerido: nombreImpuestoSugerido, nombreImpuesto: nombreImpuesto,
     montoAdeudarPaciente: montoAdeudarPaciente, totalAbonado: totalAbonado, saldoPendienteOrden: saldoPendienteOrden,
     generarCodigoConsulta: generarCodigoConsulta,
     calcularFlag: calcularFlag,

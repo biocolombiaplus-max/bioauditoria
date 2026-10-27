@@ -218,7 +218,7 @@
         return enBsIva ? C.montoEnBolivares(tenant, base).toLocaleString("es-VE", { minimumFractionDigits: 2, maximumFractionDigits: 2 }) + " Bs" : fmtMoneda(base);
       };
       doc.setFont("helvetica", "normal"); doc.setFontSize(8.5); doc.setTextColor(90, 90, 90);
-      doc.text("Subtotal: " + fmtParteIva(desglose.subtotal) + "   ·   IVA (" + desglose.porcentaje + "%): " + fmtParteIva(desglose.iva) + "   ·   Total: " + fmtParteIva(desglose.total),
+      doc.text("Subtotal: " + fmtParteIva(desglose.subtotal) + "   ·   " + C.nombreImpuesto(tenant) + " (" + desglose.porcentaje + "%): " + fmtParteIva(desglose.iva) + "   ·   Total: " + fmtParteIva(desglose.total),
         pageW - margin, y, { align: "right" });
       y += 12;
       if (enBsIva || esVE) {

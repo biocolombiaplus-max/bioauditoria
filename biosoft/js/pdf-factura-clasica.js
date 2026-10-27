@@ -167,7 +167,7 @@
     // al generarla (factura.porcentajeIva), no el que tenga el tenant hoy,
     // para que una factura ya emitida nunca cambie de rótulo sola si el
     // laboratorio ajusta su % de IVA más adelante.
-    var etiquetas = ["Subtotal", "Descuento", factura.porcentajeIva ? "IVA (" + factura.porcentajeIva + "%)" : "Impuesto", "Total a Pagar", "Abono", "Saldo"];
+    var etiquetas = ["Subtotal", "Descuento", factura.porcentajeIva ? (factura.nombreImpuesto || "IVA") + " (" + factura.porcentajeIva + "%)" : "Impuesto", "Total a Pagar", "Abono", "Saldo"];
     var valores = [subtotal, descuento, impuesto, totalPagar, abono, saldo];
     var wTotales = pageW - margin * 2, colW = wTotales / etiquetas.length, hTotales = 34;
     // Venezuela, por norma fiscal: el total de la factura SIEMPRE debe
