@@ -523,6 +523,16 @@
     // falta que el cliente descargue aparte antes de poder enviar. Adjuntar
     // el archivo al mensaje sigue siendo manual porque ningún navegador
     // permite adjuntarlo automáticamente desde un enlace de WhatsApp/correo.
+    // Uint8Array -> base64, en trozos para no reventar la pila con
+    // String.fromCharCode.apply en un PDF grande (varias páginas con
+    // muchos exámenes) — usado solo para publicar el resultado en
+    // resultadosPublicos (ver más abajo), nunca para el PDF que se
+    // descarga/adjunta normalmente.
+    function bytesABase64(bytes) {
+      var binario = "", chunk = 0x8000;
+      for (var i = 0; i < bytes.length; i += chunk) binario += String.fromCharCode.apply(null, bytes.subarray(i, i + chunk));
+      return btoa(binario);
+    }
     var pdfCache = null;
     var pdfFilenameCache = null;
     function obtenerPdf() {
@@ -535,6 +545,28 @@
         U.downloadBytes(bytes, pdfFilenameCache);
         order.enviado = true; order.fechaEnvio = S.nowISO();
         S.saveOrder(order);
+        // Publica este PDF para que el paciente lo descargue solo desde la
+        // Página Web real del laboratorio (ver "Página Web" en
+        // Configuración) — solo si está activada y esta orden sí generó
+        // código de consulta al crearse. Nunca bloquea el envío normal si
+        // falla (sin internet, PDF grande, etc.): el paciente igual recibe
+        // su resultado por el canal que se eligió aquí.
+        if (tenant.paginaWeb && tenant.paginaWeb.activo && order.codigoConsulta) {
+          var pdfBase64 = bytesABase64(bytes);
+          // Firestore limita cada documento a 1 MB — un informe con MUCHOS
+          // exámenes/páginas podría acercarse a ese límite codificado en
+          // base64 (~33% más pesado que el PDF original). Se deja un
+          // margen amplio en vez de dejar que la escritura falle sola.
+          if (pdfBase64.length < 900000) {
+            S.resultadosPublicos.set(order.codigoConsulta, {
+              tenantId: order.tenantId, numeroDocumento: pac ? pac.numeroDocumento : "",
+              nombrePaciente: pac ? U.nombreCompleto(pac) : "", numeroOrden: order.numeroOrden, fechaOrden: order.fechaOrden,
+              pdfDataUrl: "data:application/pdf;base64," + pdfBase64
+            }).catch(function (err) { console.warn("BIOsoft: no se pudo publicar el resultado en la Página Web ->", err); });
+          } else {
+            console.warn("BIOsoft: el PDF de esta orden es demasiado grande para publicarlo en la Página Web (límite de Firestore).");
+          }
+        }
         return bytes;
       });
     }

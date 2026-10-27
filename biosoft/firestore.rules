@@ -104,18 +104,36 @@ service cloud.firestore {
       allow write: if esSuperadmin();
     }
 
-    // Demo personalizada de "Página Web" (demo-sitio.html) — el superadmin
-    // genera un enlace por laboratorio desde Laboratorios Cliente → Más
-    // acciones → "Generar Demo Personalizada" (ver abrirGenerarDemoPersonalizada
-    // en views-admin.js), copiando ahí SOLO el nombre, logo, color y datos
-    // de contacto YA públicos de ese laboratorio (nunca su NIT ni nada
-    // interno) — para que el cliente vea la demo con SU propia marca antes
-    // de decidirse. Lectura pública SIN autenticación, igual que
-    // landingImagenes: cualquier cliente que reciba el enlace la abre sin
-    // iniciar sesión.
+    // Página web del laboratorio (demo-sitio.html / sitio-web.html) —
+    // mismo documento sirve para dos cosas: la demo de venta que el
+    // superadmin genera desde Laboratorios Cliente → Más acciones →
+    // "Generar Demo Personalizada" (ver abrirGenerarDemoPersonalizada en
+    // views-admin.js, copiando solo nombre/logo/color/contacto YA públicos,
+    // nunca el NIT ni nada interno), Y la página web REAL ya contratada
+    // (real: true), que el propio laboratorio edita desde Configuración →
+    // "Página Web" (ver abrirConfigSitioWeb en views-admin.js) — por eso el
+    // laboratorio dueño del tenantId también puede escribir aquí, no solo
+    // el superadmin. Lectura pública SIN autenticación en ambos casos,
+    // igual que landingImagenes: cualquiera que reciba el enlace (o visite
+    // el dominio del laboratorio) la abre sin iniciar sesión.
     match /demoSitioWeb/{tenantId} {
       allow read: if true;
-      allow write: if esSuperadmin();
+      allow write: if esDeEsteLab(tenantId) || esSuperadmin();
+    }
+
+    // Resultado de UNA orden, publicado para que el paciente lo descargue
+    // desde la página web real de su laboratorio con su documento + el
+    // código de consulta de 8 caracteres que se le dio al crear la orden
+    // (ver generarCodigoConsulta en catalog.js, y "Enviar Resultados" en
+    // views-reports.js, que es quien escribe aquí). Lectura pública SIN
+    // autenticación, pero protegida en la práctica por el propio id del
+    // documento (el código: 8 caracteres de un alfabeto de 32, al azar —
+    // prácticamente imposible de adivinar) exactamente igual que un
+    // enlace de firma electrónica (ver consentimientos, más abajo); solo
+    // el laboratorio dueño o el superadmin pueden escribir/borrar.
+    match /resultadosPublicos/{codigo} {
+      allow read: if true;
+      allow create, update: if esDeEsteLab(request.resource.data.tenantId) || esSuperadmin();
     }
 
     match /tenants/{tenantId} {

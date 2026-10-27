@@ -1458,6 +1458,20 @@
     return Math.max(0, montoAdeudarPaciente(order) - totalAbonado(order));
   }
 
+  /* Código de consulta pública de resultados (ver "Página Web" en
+     Configuración y sitio-web.js): se genera UNA vez, al crear la orden,
+     y es lo que el paciente usa junto a su documento para ver/descargar su
+     resultado desde la página web del laboratorio, sin tener que llamar ni
+     escribir — ver resultadosPublicos en firestore.rules. 8 caracteres,
+     mayúsculas y dígitos, sin 0/O ni 1/I/L (se confunden fácil al
+     transcribirlos a mano desde un papel o una foto del recibo). */
+  var ALFABETO_CODIGO_CONSULTA = "ABCDEFGHJKMNPQRSTUVWXYZ23456789";
+  function generarCodigoConsulta() {
+    var out = "";
+    for (var i = 0; i < 8; i++) out += ALFABETO_CODIGO_CONSULTA.charAt(Math.floor(Math.random() * ALFABETO_CODIGO_CONSULTA.length));
+    return out;
+  }
+
   /* En qué moneda tiene el laboratorio cargados TODOS sus precios (la moneda
      "base") — no siempre es la moneda oficial de su país: un laboratorio
      venezolano puede manejar sus precios en Bs. o directo en USD (muy común
@@ -2104,6 +2118,7 @@
     tuboInfo: tuboInfo,
     fmtMonedaAdicional: fmtMonedaAdicional, convertirMonedaAdicional: convertirMonedaAdicional, monedaBaseLabel: monedaBaseLabel, calcularCopago: calcularCopago,
     montoAdeudarPaciente: montoAdeudarPaciente, totalAbonado: totalAbonado, saldoPendienteOrden: saldoPendienteOrden,
+    generarCodigoConsulta: generarCodigoConsulta,
     calcularFlag: calcularFlag,
     examenEfectivo: examenEfectivo,
     parametroEfectivo: parametroEfectivo,

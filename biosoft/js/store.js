@@ -540,6 +540,30 @@
     var doc = Object.assign({}, datos, { actualizadoEn: nowISO() });
     return demoSitioWebColl().doc(tenantId).set(doc).then(function () { return doc; });
   }
+
+  // -----------------------------------------------------------------------
+  // Resultado público de UNA orden, para que el paciente lo descargue desde
+  // la página web real de su laboratorio (sitio-web.html) con su documento
+  // + el código de consulta que se le dio al crear la orden (ver
+  // catalog.js -> generarCodigoConsulta, y "Enviar Resultados" en
+  // views-reports.js, que es quien escribe aquí al enviar el PDF). El
+  // propio código (8 caracteres, prácticamente imposible de adivinar) es
+  // la verdadera protección de acceso — igual que un enlace de firma
+  // electrónica de cualquier proveedor (ver consentimientos en
+  // firestore.rules); el documento del paciente se vuelve a comprobar del
+  // lado del cliente solo para atrapar un error de transcripción, no como
+  // control de seguridad real.
+  // -----------------------------------------------------------------------
+  function resultadosPublicosColl() { return global.BIO_FB.db.collection("resultadosPublicos"); }
+  function resultadoPublicoGet(codigo) {
+    if (!firebaseDisponible()) return Promise.reject(errorFirebaseNoDisponible());
+    return resultadosPublicosColl().doc((codigo || "").toUpperCase()).get().then(function (doc) { return doc.exists ? doc.data() : null; });
+  }
+  function resultadoPublicoSet(codigo, datos) {
+    if (!firebaseDisponible()) return Promise.reject(errorFirebaseNoDisponible());
+    var doc = Object.assign({}, datos, { actualizadoEn: nowISO() });
+    return resultadosPublicosColl().doc((codigo || "").toUpperCase()).set(doc).then(function () { return doc; });
+  }
   function plantillasDelete(id) {
     if (!firebaseDisponible()) return Promise.reject(errorFirebaseNoDisponible());
     return plantillasColl().doc(id).delete();
@@ -2196,6 +2220,7 @@
     plantillas: { list: plantillasList, watch: plantillasWatch, create: plantillasCreate, update: plantillasUpdate, remove: plantillasDelete },
     landingImagenes: { list: landingImagenesList, set: landingImagenesSet, remove: landingImagenesDelete },
     demoSitioWeb: { get: demoSitioWebGet, set: demoSitioWebSet },
+    resultadosPublicos: { get: resultadoPublicoGet, set: resultadoPublicoSet },
     qc: {
       listControles: listQCControles, getControl: getQCControl, createControl: createQCControl, updateControl: updateQCControl,
       listLecturas: listQCLecturas, createLectura: createQCLectura, deleteLectura: deleteQCLectura

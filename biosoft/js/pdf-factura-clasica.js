@@ -184,7 +184,17 @@
     doc.setFont("helvetica", "normal"); doc.setTextColor(50, 50, 50);
     var lineasObs = doc.splitTextToSize(factura.observaciones || "—", pageW - margin * 2 - 78);
     doc.text(lineasObs, margin + 78, y);
-    y += Math.max(14, lineasObs.length * 11) + 22;
+    y += Math.max(14, lineasObs.length * 11) + 10;
+
+    // ---- Consulta de resultados en línea (solo si esta orden generó
+    // código — ver "Página Web" en Configuración) ---------------------------
+    if (order.codigoConsulta) {
+      var dominioSitioFC = tenant.paginaWeb && tenant.paginaWeb.dominio ? tenant.paginaWeb.dominio.trim().replace(/^https?:\/\//, "").replace(/\/$/, "") : "";
+      var urlSitioFC = dominioSitioFC ? dominioSitioFC : "bioauditoria.com/biosoft/sitio-web.html?t=" + tenant.id;
+      doc.setFont("helvetica", "bold"); doc.setFontSize(8); doc.setTextColor(rgb[0], rgb[1], rgb[2]);
+      doc.text("🔐 Consulta tus resultados en " + urlSitioFC + " con tu documento y el código " + order.codigoConsulta, margin, y);
+      y += 16;
+    }
 
     // ---- Firma y N° de Control ---------------------------------------------
     doc.setDrawColor(160, 160, 160); doc.setLineWidth(0.7);

@@ -287,6 +287,29 @@
       y = doc.lastAutoTable.finalY + 14;
     }
 
+    // ---- Consulta de resultados en línea (Página Web real del laboratorio,
+    // ver "Página Web" en Configuración) — solo aparece si esta orden
+    // generó código (tenant.paginaWeb.activo al momento de crearla, ver
+    // views-orders.js). Recuadro aparte, bien visible, con el paso a paso
+    // para que el paciente nunca tenga que llamar a preguntar "¿ya están
+    // mis resultados?".
+    if (order.codigoConsulta) {
+      var dominioSitio = tenant.paginaWeb && tenant.paginaWeb.dominio ? tenant.paginaWeb.dominio.trim().replace(/^https?:\/\//, "").replace(/\/$/, "") : "";
+      var urlSitio = dominioSitio ? dominioSitio : "bioauditoria.com/biosoft/sitio-web.html?t=" + tenant.id;
+      var cardRW = 300, cardRH = 70, cardRX = margin, cardRY = y;
+      doc.setFillColor(255, 247, 237); doc.setDrawColor(rgb[0], rgb[1], rgb[2]); doc.setLineWidth(1.1);
+      doc.roundedRect(cardRX, cardRY, cardRW, cardRH, 6, 6, "FD");
+      doc.setFont("helvetica", "bold"); doc.setFontSize(8.5); doc.setTextColor(rgb[0], rgb[1], rgb[2]);
+      doc.text("🔐 CONSULTA TUS RESULTADOS EN LÍNEA", cardRX + 14, cardRY + 16);
+      doc.setFont("helvetica", "normal"); doc.setFontSize(8); doc.setTextColor(60, 60, 60);
+      doc.text("Ingresa a " + urlSitio, cardRX + 14, cardRY + 31);
+      doc.setFont("helvetica", "bold"); doc.setFontSize(8); doc.setTextColor(40, 40, 40);
+      doc.text("Documento: " + (pac ? pac.numeroDocumento : "—") + "   ·   Código: " + order.codigoConsulta, cardRX + 14, cardRY + 46);
+      doc.setFont("helvetica", "normal"); doc.setFontSize(7); doc.setTextColor(120, 120, 120);
+      doc.text("Disponibles apenas tu laboratorio valide tus resultados.", cardRX + 14, cardRY + 60);
+      y = cardRY + cardRH + 18;
+    }
+
     // ---- Insignia de estado ---------------------------------------------
     // Nunca uses ✓/★/≈ ni ningún carácter fuera de WinAnsi dentro de
     // doc.text()/autoTable — las fuentes base de jsPDF (Helvetica) no las

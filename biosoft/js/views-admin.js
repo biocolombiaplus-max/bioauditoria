@@ -1470,6 +1470,23 @@
   // ------------------------------------------------------------------
   // CONFIGURACIÓN DEL LABORATORIO
   // ------------------------------------------------------------------
+  // Textarea de líneas "campoA | campoB" <-> arreglo de objetos — usado por
+  // el editor de Servicios y Testimonios de "Página Web" (más abajo),
+  // para no tener que armar una fila/botón "Agregar" por cada uno; una
+  // línea por item es más rápido de escribir y de editar en bloque.
+  function paresATexto(lista, campoA, campoB) {
+    return (lista || []).map(function (x) { return (x[campoA] || "") + (x[campoB] ? " | " + x[campoB] : ""); }).join("\n");
+  }
+  function textoAPares(texto, campoA, campoB) {
+    return (texto || "").split("\n").map(function (l) { return l.trim(); }).filter(Boolean).map(function (l) {
+      var partes = l.split("|");
+      var obj = {};
+      obj[campoA] = (partes[0] || "").trim();
+      obj[campoB] = (partes[1] || "").trim();
+      return obj;
+    });
+  }
+
   window.BIO_VIEWS.config = function (root) {
     var session = BIO_AUTH.getSession();
     var tenant = S.getTenant(session.tenantId);
@@ -1594,6 +1611,25 @@
             '<p class="text-muted" style="margin:4px 0 0;font-size:12.5px">Si defines un porcentaje aquí, cuando se elija "Cashea" como método de pago (en una orden o en el Cotizador), el precio de cada examen sube automáticamente ese porcentaje — repartido DENTRO del precio de cada examen, nunca como una línea aparte visible: el cliente nunca ve en el recibo ni en la factura que hubo un aumento por el método de pago. El detalle exacto de cuánto se cobró de más (examen por examen, con totales del periodo) solo lo puede ver el Administrador, en Cotizaciones → "💳 Informe Cashea". Déjalo vacío o en 0 si tu laboratorio no cobra ningún recargo por Cashea.</p>'
           : "") +
         "</fieldset>" +
+        '<fieldset><legend>🌐 Página Web (sitio real, con consulta de resultados)</legend>' +
+        '<p class="text-muted" style="margin:0 0 12px;font-size:12.5px">Tu propia página web pública (sitio-web.html), con tus secciones, tu ubicación en el mapa y un portal para que cada paciente consulte y descargue su resultado con su documento y el código que le enviamos por WhatsApp al crear su orden. 100% editable desde aquí, sin tocar código.</p>' +
+        '<div class="checkbox-row"><input type="checkbox" id="f_pw_activo" ' + (tenant.paginaWeb && tenant.paginaWeb.activo ? "checked" : "") + '/><label style="margin:0" for="f_pw_activo">Activar mi Página Web real</label></div>' +
+        '<p class="text-muted" style="margin:4px 0 12px;font-size:12.5px">Con esto activado, cada orden nueva genera su propio código de consulta (se envía por WhatsApp al crearla y queda impreso en el Recibo/Factura), y "Enviar Resultados" publica el PDF para que el paciente lo descargue solo.</p>' +
+        '<div id="pw-campos-box" class="' + (tenant.paginaWeb && tenant.paginaWeb.activo ? "" : "hidden") + '">' +
+        '<div class="form-grid">' +
+        '<div class="field"><label>Dominio propio (opcional)</label><input id="f_pw_dominio" placeholder="Ej. laboratoriodivinamisericordia.com" value="' + U.esc((tenant.paginaWeb && tenant.paginaWeb.dominio) || "") + '"/></div>' +
+        "</div>" +
+        '<p class="text-muted" style="margin:4px 0 12px;font-size:12.5px">Déjalo vacío mientras configuras el dominio con tu proveedor — mientras tanto, el enlace que se envía a tus pacientes sigue funcionando igual, alojado por BIOsoft (bioauditoria.com/biosoft/sitio-web.html?t=' + U.esc(tenant.id) + "). Cuando tengas el dominio, pégalo aquí y apúntalo (registro CNAME) a bioauditoria.com — te ayudamos con ese paso si lo necesitas.</p>" +
+        '<div class="field"><label>Título principal (hero)</label><input id="f_pw_herotitulo" placeholder="Ej. Tu salud en buenas manos, resultados en los que puedes confiar" value="' + U.esc((tenant.paginaWeb && tenant.paginaWeb.heroTitulo) || "") + '"/></div>' +
+        '<div class="field"><label>Subtítulo / frase de bienvenida</label><textarea id="f_pw_herosubtitulo" rows="2" placeholder="Ej. Más de 15 años al servicio de tu familia, con tecnología de punta.">' + U.esc((tenant.paginaWeb && tenant.paginaWeb.heroSubtitulo) || "") + "</textarea></div>" +
+        '<div class="field"><label>Sobre tu laboratorio (sección "Tecnología")</label><textarea id="f_pw_sobrenosotros" rows="3" placeholder="Cuéntales qué los hace diferentes: equipos, experiencia, calidad...">' + U.esc((tenant.paginaWeb && tenant.paginaWeb.sobreNosotros) || "") + "</textarea></div>" +
+        '<div class="field"><label>Ubicación en Google Maps</label><input id="f_pw_mapsquery" placeholder="Pega tu dirección o el enlace de Google Maps" value="' + U.esc((tenant.paginaWeb && tenant.paginaWeb.mapsQuery) || "") + '"/></div>' +
+        '<p class="text-muted" style="margin:4px 0 12px;font-size:12.5px">Puedes pegar tu dirección completa (ej. "Cra 10 # 20-30, Ciudad") o, si quieres el pin exacto, abre tu ubicación en Google Maps, dale "Compartir" y pega aquí el enlace que te da.</p>' +
+        '<div class="field"><label>Servicios / exámenes destacados</label><textarea id="f_pw_servicios" rows="5" placeholder="Un servicio por línea, así: Nombre | Descripción corta&#10;Ej: Hematología | Cuadro hemático, VSG y más.">' + U.esc(paresATexto(tenant.paginaWeb && tenant.paginaWeb.servicios, "nombre", "desc")) + "</textarea></div>" +
+        '<p class="text-muted" style="margin:4px 0 12px;font-size:12.5px">Un servicio por línea: nombre, una barra vertical " | ", y la descripción corta. Déjalo vacío para mostrar una lista genérica mientras lo completas.</p>' +
+        '<div class="field"><label>Testimonios (opcional)</label><textarea id="f_pw_testimonios" rows="4" placeholder="Un testimonio por línea, así: Texto del testimonio | Nombre del paciente">' + U.esc(paresATexto(tenant.paginaWeb && tenant.paginaWeb.testimonios, "texto", "nombre")) + "</textarea></div>" +
+        "</div>" +
+        "</fieldset>" +
         '<fieldset><legend>Diseño del Reporte de Resultados</legend>' +
         '<div class="checkbox-row"><input type="checkbox" id="f_logoGrandeReporte" ' + (tenant.logoGrandeReporte ? "checked" : "") + '/><label style="margin:0" for="f_logoGrandeReporte">Mostrar tu logo grande y centrado en el encabezado del informe, como un membrete</label></div>' +
         '<p class="text-muted" style="margin:4px 0 12px;font-size:12.5px">En vez del logo chico a la izquierda, tu logo sale grande y centrado arriba de la página, con el nombre de tu laboratorio también centrado debajo — un encabezado tipo membrete. Necesitas tener un logo cargado arriba para que se vea.</p>' +
@@ -1690,6 +1726,9 @@
     document.getElementById("f_facturaConMembrete").addEventListener("change", function () {
       document.getElementById("factura-sin-membrete-opciones").classList.toggle("hidden", this.checked);
     });
+    document.getElementById("f_pw_activo").addEventListener("change", function () {
+      document.getElementById("pw-campos-box").classList.toggle("hidden", !this.checked);
+    });
     document.getElementById("f_logoAnchoPorcentaje").addEventListener("input", function (e) {
       document.getElementById("logo-ancho-pct-valor").textContent = e.target.value;
     });
@@ -1755,6 +1794,16 @@
       if (elCuotaAdmin) tenant.cuotaAdministrativaValor = parseFloat(elCuotaAdmin.value) || 0;
       var elCasheaRecargo = document.getElementById("f_casheaRecargoPorcentaje");
       if (elCasheaRecargo) tenant.casheaRecargoPorcentaje = parseFloat(elCasheaRecargo.value) || 0;
+      tenant.paginaWeb = {
+        activo: document.getElementById("f_pw_activo").checked,
+        dominio: g("pw_dominio"),
+        heroTitulo: g("pw_herotitulo"),
+        heroSubtitulo: g("pw_herosubtitulo"),
+        sobreNosotros: g("pw_sobrenosotros"),
+        mapsQuery: g("pw_mapsquery"),
+        servicios: textoAPares(document.getElementById("f_pw_servicios").value, "nombre", "desc"),
+        testimonios: textoAPares(document.getElementById("f_pw_testimonios").value, "texto", "nombre")
+      };
       tenant.logoGrandeReporte = document.getElementById("f_logoGrandeReporte").checked;
       tenant.logoAnchoCompleto = document.getElementById("f_logoAnchoCompleto").checked;
       tenant.logoAnchoPorcentaje = parseInt(document.getElementById("f_logoAnchoPorcentaje").value, 10);
@@ -1824,13 +1873,28 @@
           piePaginaPersonalizado: tenant.piePaginaPersonalizado,
           colorPrimario: tenant.colorPrimario, colorSecundario: tenant.colorSecundario, colorTextoMenu: tenant.colorTextoMenu,
           colorTitulos: tenant.colorTitulos, colorSubtitulos: tenant.colorSubtitulos, logoDataUrl: tenant.logoDataUrl,
-          logoSecundarioDataUrl: tenant.logoSecundarioDataUrl
+          logoSecundarioDataUrl: tenant.logoSecundarioDataUrl, paginaWeb: tenant.paginaWeb
         };
         if (claveNueva) patch.claveAdmin = tenant.claveAdmin;
         var resultado = S.updateTenant(tenant.id, patch);
         S.addAudit(session.tenantId, session.nombre, session.rol, "CONFIG_CHANGE", "laboratorio", tenant.id, "Actualizó la configuración e identidad visual del laboratorio.");
         BIO_UI.applyTenantTheme(tenant);
         BIO_ROUTER.renderShell();
+        // Publica (o actualiza) la página web pública — mismo documento
+        // público que usa la Demo Personalizada (ver demoSitioWeb.set en
+        // store.js), con real:true y el contenido editado aquí, para que
+        // sitio-web.html lo cargue sin sesión. Nunca bloquea el guardado
+        // de la Configuración si falla (sin internet, etc.) — se puede
+        // reintentar simplemente volviendo a guardar.
+        if (tenant.paginaWeb && tenant.paginaWeb.activo) {
+          S.demoSitioWeb.set(tenant.id, {
+            nombre: tenant.nombre, colorPrimario: tenant.colorPrimario, logoDataUrl: tenant.logoDataUrl,
+            direccion: tenant.direccion, telefonos: tenant.telefonos, email: tenant.email,
+            real: true, dominio: tenant.paginaWeb.dominio, heroTitulo: tenant.paginaWeb.heroTitulo,
+            heroSubtitulo: tenant.paginaWeb.heroSubtitulo, sobreNosotros: tenant.paginaWeb.sobreNosotros,
+            mapsQuery: tenant.paginaWeb.mapsQuery, servicios: tenant.paginaWeb.servicios, testimonios: tenant.paginaWeb.testimonios
+          }).catch(function (err) { console.warn("BIOsoft: no se pudo publicar la Página Web ->", err); });
+        }
         // El toast de "Guardado" ya no se muestra a ciegas: espera a que la
         // escritura a Firestore de verdad se confirme (ver _fbPromise en
         // store.js). Antes, si esa escritura fallaba, el mensaje decía

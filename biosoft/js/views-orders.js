@@ -687,7 +687,12 @@
             remitido: false, laboratorioRemision: "", pdfRemitidoDataUrl: "", pdfRemitidoNombre: ""
           };
         }),
-        estadoGeneral: "pendiente", creadoPor: session.username
+        estadoGeneral: "pendiente", creadoPor: session.username,
+        // Solo tiene sentido generarlo si este laboratorio tiene activa su
+        // Página Web real con consulta de resultados (ver "Página Web" en
+        // Configuración) — para los demás, un código que nadie va a usar
+        // nunca es solo ruido en la orden.
+        codigoConsulta: (tenant.paginaWeb && tenant.paginaWeb.activo) ? C.generarCodigoConsulta() : ""
       };
       // A crédito de convenio: se marca el pago desde ya (sin pedirle nada
       // al paciente) para que "Recibo de Pago" genere directo el cargo a
@@ -706,12 +711,26 @@
     });
   }
 
+  // Enlace público de la Página Web real de este laboratorio — usa su
+  // propio dominio si ya lo tiene configurado (ver "Página Web" en
+  // Configuración), o mientras tanto el enlace alojado por BIOsoft (misma
+  // página, funciona igual de bien), para que el paciente nunca se quede
+  // sin forma de consultar su resultado solo porque el DNS del dominio
+  // propio todavía no está listo.
+  function urlSitioWeb(tenant) {
+    var dominio = tenant.paginaWeb && tenant.paginaWeb.dominio ? tenant.paginaWeb.dominio.trim().replace(/^https?:\/\//, "").replace(/\/$/, "") : "";
+    return dominio ? "https://" + dominio : "https://bioauditoria.com/biosoft/sitio-web.html?t=" + tenant.id;
+  }
+
   function ofrecerStickers(order) {
     var pac = S.getPatient(order.patientId);
     var tenant = BIO_AUTH.currentTenant();
+    var numeroPacienteWA = pac ? (pac.celular || pac.telefono || "") : "";
+    var puedeEnviarCodigo = !!(order.codigoConsulta && numeroPacienteWA);
     var wrap = U.openModal(
       '<h3 class="modal-title">Orden ' + order.numeroOrden + " creada</h3>" +
       '<p class="text-muted">¿Deseas imprimir ahora los stickers para rotular los tubos de esta orden?</p>' +
+      (puedeEnviarCodigo ? '<button class="btn btn-whatsapp btn-block" id="btn-enviar-codigo-resultado" style="margin-bottom:12px">' + U.icon("send") + " Enviar código de resultados por WhatsApp</button>" : "") +
       (puedeReciboOrden(tenant) ? '<button class="btn btn-outline btn-block" id="btn-recibo-orden" style="margin-bottom:12px">' + U.icon("send") + " Recibo de Pago (confirmar y enviar)</button>" : "") +
       '<div class="flex gap-2 justify-between">' +
       '<button class="btn btn-ghost" id="btn-skip">Continuar sin imprimir</button>' +
@@ -729,6 +748,14 @@
     // (con el buscador de exámenes vacío), parecía que la orden nunca
     // había terminado de crearse — bug real reportado. Se agrega la
     // misma navegación que ya tienen las otras 3 opciones.
+    if (puedeEnviarCodigo) wrap.querySelector("#btn-enviar-codigo-resultado").addEventListener("click", function () {
+      var nombrePac = pac ? U.nombreCompleto(pac).split(" ")[0] : "";
+      var mensaje = "Hola " + nombrePac + " 👋 Ya quedó registrada tu orden " + order.numeroOrden + " en " + tenant.nombre + ".\n\n" +
+        "Apenas tus resultados estén listos, podrás verlos y descargarlos tú mismo(a) aquí:\n" + urlSitioWeb(tenant) + "\n\n" +
+        "Solo necesitas:\n1) Tu número de documento: " + (pac.numeroDocumento || "—") + "\n2) Tu código de consulta: " + order.codigoConsulta + "\n\n" +
+        "Guarda este mensaje — lo vas a necesitar.";
+      window.open("https://wa.me/" + numeroPacienteWA.replace(/\D/g, "") + "?text=" + encodeURIComponent(mensaje), "_blank");
+    });
     if (puedeReciboOrden(tenant)) wrap.querySelector("#btn-recibo-orden").addEventListener("click", function () {
       U.closeModal(wrap);
       abrirReciboOrden(order, tenant);
