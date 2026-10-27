@@ -547,12 +547,10 @@
   // + el código de consulta que se le dio al crear la orden (ver
   // catalog.js -> generarCodigoConsulta, y "Enviar Resultados" en
   // views-reports.js, que es quien escribe aquí al enviar el PDF). El
-  // propio código (8 caracteres, prácticamente imposible de adivinar) es
-  // la verdadera protección de acceso — igual que un enlace de firma
-  // electrónica de cualquier proveedor (ver consentimientos en
-  // firestore.rules); el documento del paciente se vuelve a comprobar del
-  // lado del cliente solo para atrapar un error de transcripción, no como
-  // control de seguridad real.
+  // código (6 dígitos, pero reservado de forma única en TODO BIOsoft —
+  // ver reservarCodigoConsulta más abajo) SIEMPRE se exige junto al número
+  // de documento del paciente para poder verlo, así que adivinar uno de
+  // los dos no basta.
   // -----------------------------------------------------------------------
   function resultadosPublicosColl() { return global.BIO_FB.db.collection("resultadosPublicos"); }
   function resultadoPublicoGet(codigo) {
@@ -564,6 +562,38 @@
     var doc = Object.assign({}, datos, { actualizadoEn: nowISO() });
     return resultadosPublicosColl().doc((codigo || "").toUpperCase()).set(doc).then(function () { return doc; });
   }
+
+  // -----------------------------------------------------------------------
+  // Reserva del código de consulta (ver generarCodigoConsulta en
+  // catalog.js) en una colección aparte (codigosConsulta), SOLO para
+  // garantizar que nunca se repita: antes de asignárselo a una orden nueva,
+  // se reclama dentro de una transacción de Firestore (atómica frente a
+  // otra orden creándose al mismo tiempo, incluso de otro laboratorio —
+  // el código es único en TODO BIOsoft, no solo dentro de un tenant, porque
+  // resultadosPublicos tampoco está separado por tenant). Si el candidato
+  // ya estaba tomado, se reintenta con uno nuevo — con 6 dígitos (1.000.000
+  // de combinaciones posibles) un choque es rarísimo, pero si llegara a
+  // pasar varias veces seguidas (intentosRestantes en 0) se deja de
+  // reintentar y la orden simplemente se crea sin código, en vez de
+  // bloquear al usuario para siempre por esto.
+  // -----------------------------------------------------------------------
+  function codigosConsultaColl() { return global.BIO_FB.db.collection("codigosConsulta"); }
+  function reservarCodigoConsulta(tenantId, numeroOrden, intentosRestantes) {
+    if (!firebaseDisponible()) return Promise.reject(errorFirebaseNoDisponible());
+    if (intentosRestantes === undefined) intentosRestantes = 10;
+    var candidato = BIO_CATALOG.generarCodigoConsulta();
+    var ref = codigosConsultaColl().doc(candidato);
+    return global.BIO_FB.db.runTransaction(function (tx) {
+      return tx.get(ref).then(function (doc) {
+        if (doc.exists) throw new Error("codigo_ya_reservado");
+        tx.set(ref, { tenantId: tenantId, numeroOrden: numeroOrden, creadoEn: nowISO() });
+      });
+    }).then(function () { return candidato; }).catch(function (err) {
+      if (intentosRestantes <= 0) throw err;
+      return reservarCodigoConsulta(tenantId, numeroOrden, intentosRestantes - 1);
+    });
+  }
+
   function plantillasDelete(id) {
     if (!firebaseDisponible()) return Promise.reject(errorFirebaseNoDisponible());
     return plantillasColl().doc(id).delete();
@@ -2229,6 +2259,7 @@
     landingImagenes: { list: landingImagenesList, set: landingImagenesSet, remove: landingImagenesDelete },
     demoSitioWeb: { get: demoSitioWebGet, set: demoSitioWebSet },
     resultadosPublicos: { get: resultadoPublicoGet, set: resultadoPublicoSet },
+    reservarCodigoConsulta: reservarCodigoConsulta,
     qc: {
       listControles: listQCControles, getControl: getQCControl, createControl: createQCControl, updateControl: updateQCControl,
       listLecturas: listQCLecturas, createLectura: createQCLectura, deleteLectura: deleteQCLectura

@@ -1462,13 +1462,17 @@
      Configuración y sitio-web.js): se genera UNA vez, al crear la orden,
      y es lo que el paciente usa junto a su documento para ver/descargar su
      resultado desde la página web del laboratorio, sin tener que llamar ni
-     escribir — ver resultadosPublicos en firestore.rules. 8 caracteres,
-     mayúsculas y dígitos, sin 0/O ni 1/I/L (se confunden fácil al
-     transcribirlos a mano desde un papel o una foto del recibo). */
-  var ALFABETO_CODIGO_CONSULTA = "ABCDEFGHJKMNPQRSTUVWXYZ23456789";
+     escribir — ver resultadosPublicos en firestore.rules. 6 dígitos
+     numéricos (como una clave de verificación de banco o de WhatsApp: fácil
+     de leer y de digitar desde un papel o una foto del recibo). Que nunca
+     se repita NO depende de esto (6 dígitos solos se agotarían rápido) —
+     lo garantiza S.reservarCodigoConsulta en store.js, que reclama el
+     código en una colección aparte de Firestore (codigosConsulta) y
+     reintenta con uno nuevo si ya estaba tomado, antes de asignarlo a la
+     orden. */
   function generarCodigoConsulta() {
     var out = "";
-    for (var i = 0; i < 8; i++) out += ALFABETO_CODIGO_CONSULTA.charAt(Math.floor(Math.random() * ALFABETO_CODIGO_CONSULTA.length));
+    for (var i = 0; i < 6; i++) out += Math.floor(Math.random() * 10);
     return out;
   }
 

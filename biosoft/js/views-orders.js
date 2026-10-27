@@ -647,9 +647,13 @@
       var formaPagoConvenioEl = document.getElementById("f_formaPagoConvenio");
       var esCreditoConvenio = !!(convenioIdSel && formaPagoConvenioEl && formaPagoConvenioEl.value === "credito");
       var medicoRemitenteSel = selMedicoRemitente.value ? medicosRemitentes.filter(function (m) { return m.id === selMedicoRemitente.value; })[0] : null;
+      var numeroOrdenNueva = S.nextOrderNumber(session.tenantId);
+      var btnGuardarOrden = document.getElementById("btn-save-order");
+
+      function crearOrdenConCodigo(codigoConsulta) {
       var order = {
         tenantId: session.tenantId,
-        numeroOrden: S.nextOrderNumber(session.tenantId),
+        numeroOrden: numeroOrdenNueva,
         patientId: patientId,
         // Copia mínima de los datos del paciente que necesita el PDF de
         // resultados (ver pdf.js -> buildResultadosPDF), para que un acceso
@@ -688,11 +692,7 @@
           };
         }),
         estadoGeneral: "pendiente", creadoPor: session.username,
-        // Solo tiene sentido generarlo si este laboratorio tiene activa su
-        // Página Web real con consulta de resultados (ver "Página Web" en
-        // Configuración) — para los demás, un código que nadie va a usar
-        // nunca es solo ruido en la orden.
-        codigoConsulta: (tenant.paginaWeb && tenant.paginaWeb.activo) ? C.generarCodigoConsulta() : ""
+        codigoConsulta: codigoConsulta
       };
       // A crédito de convenio: se marca el pago desde ya (sin pedirle nada
       // al paciente) para que "Recibo de Pago" genere directo el cargo a
@@ -708,6 +708,29 @@
         (esCreditoConvenio ? " a crédito del convenio " + (convenioSel ? convenioSel.nombre : "—") + "." : "."));
       U.toast("Orden " + created.numeroOrden + " creada.", "success");
       ofrecerStickers(created);
+      }
+
+      // El código de consulta solo tiene sentido si este laboratorio tiene
+      // activa su Página Web real (ver "Página Web" en Configuración); para
+      // los demás, se crea la orden de inmediato, igual que siempre, sin
+      // código. Cuando sí aplica, hay que esperar a que
+      // S.reservarCodigoConsulta() confirme contra Firestore que el código
+      // es único en TODO BIOsoft antes de imprimirlo o enviarlo por
+      // WhatsApp — por eso la creación de la orden espera esa reserva en
+      // vez de generar el código en el momento, al vuelo.
+      if (tenant.paginaWeb && tenant.paginaWeb.activo) {
+        if (btnGuardarOrden) btnGuardarOrden.disabled = true;
+        S.reservarCodigoConsulta(session.tenantId, numeroOrdenNueva).then(function (codigo) {
+          if (btnGuardarOrden) btnGuardarOrden.disabled = false;
+          crearOrdenConCodigo(codigo);
+        }).catch(function (err) {
+          if (btnGuardarOrden) btnGuardarOrden.disabled = false;
+          console.warn("BIOsoft: no se pudo reservar un código de consulta único ->", err);
+          crearOrdenConCodigo("");
+        });
+      } else {
+        crearOrdenConCodigo("");
+      }
     });
   }
 

@@ -123,17 +123,32 @@ service cloud.firestore {
 
     // Resultado de UNA orden, publicado para que el paciente lo descargue
     // desde la página web real de su laboratorio con su documento + el
-    // código de consulta de 8 caracteres que se le dio al crear la orden
-    // (ver generarCodigoConsulta en catalog.js, y "Enviar Resultados" en
+    // código de consulta de 6 dígitos que se le dio al crear la orden (ver
+    // generarCodigoConsulta en catalog.js, y "Enviar Resultados" en
     // views-reports.js, que es quien escribe aquí). Lectura pública SIN
-    // autenticación, pero protegida en la práctica por el propio id del
-    // documento (el código: 8 caracteres de un alfabeto de 32, al azar —
-    // prácticamente imposible de adivinar) exactamente igual que un
-    // enlace de firma electrónica (ver consentimientos, más abajo); solo
-    // el laboratorio dueño o el superadmin pueden escribir/borrar.
+    // autenticación — el acceso real está protegido porque hace falta
+    // ADEMÁS el número de documento del paciente (ver sitio-web.js), y
+    // porque el código nunca se repite (ver codigosConsulta más abajo),
+    // así que nunca hay dos pacientes compitiendo por el mismo código.
+    // Solo el laboratorio dueño o el superadmin pueden escribir/borrar.
     match /resultadosPublicos/{codigo} {
       allow read: if true;
       allow create, update: if esDeEsteLab(request.resource.data.tenantId) || esSuperadmin();
+    }
+
+    // Ledger de códigos de consulta YA reclamados (ver
+    // S.reservarCodigoConsulta en store.js) — existe solo para que
+    // generarCodigoConsulta() nunca pueda repetir un código entre dos
+    // órdenes, ni siquiera de dos laboratorios distintos: antes de
+    // asignarle un código a una orden nueva, se reclama aquí dentro de una
+    // transacción (atómica frente a otra orden creándose al mismo tiempo).
+    // No guarda ningún dato del paciente, así que cualquier usuario
+    // autenticado de BIOsoft puede leerlo (lo necesita para comprobar si
+    // un candidato ya está tomado); nunca se borra, para que un código ya
+    // usado jamás vuelva a quedar libre.
+    match /codigosConsulta/{codigo} {
+      allow read: if autenticado();
+      allow create: if esDeEsteLab(request.resource.data.tenantId) || esSuperadmin();
     }
 
     match /tenants/{tenantId} {
