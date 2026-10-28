@@ -1115,28 +1115,72 @@ fbq('track', 'PageView');
     // preguntar. El país elegido pone el indicativo automáticamente, para
     // que quede un número completo y listo para remarketing desde el CRM
     // (ver badgeOrigen -> "demo_web" en views-crm.js).
+    // "digitos": largo típico del número local (sin indicativo) para ese
+    // país — se usa para el placeholder de ejemplo y para avisar si el
+    // número escrito parece incompleto, SOLO como ayuda (nunca bloquea
+    // del todo: un dato de origen real vale más que una validación
+    // perfecta, así que basta con que el largo sea razonablemente
+    // cercano al esperado).
     var PAISES_DEMO = [
-      { nombre: "Colombia", cod: "CO", dial: "57", bandera: "🇨🇴" },
-      { nombre: "Venezuela", cod: "VE", dial: "58", bandera: "🇻🇪" },
-      { nombre: "Ecuador", cod: "EC", dial: "593", bandera: "🇪🇨" },
-      { nombre: "México", cod: "MX", dial: "52", bandera: "🇲🇽" },
-      { nombre: "Perú", cod: "PE", dial: "51", bandera: "🇵🇪" },
-      { nombre: "Chile", cod: "CL", dial: "56", bandera: "🇨🇱" },
-      { nombre: "Argentina", cod: "AR", dial: "54", bandera: "🇦🇷" },
-      { nombre: "Panamá", cod: "PA", dial: "507", bandera: "🇵🇦" },
-      { nombre: "República Dominicana", cod: "DO", dial: "1", bandera: "🇩🇴" },
-      { nombre: "Costa Rica", cod: "CR", dial: "506", bandera: "🇨🇷" },
-      { nombre: "Guatemala", cod: "GT", dial: "502", bandera: "🇬🇹" },
-      { nombre: "Honduras", cod: "HN", dial: "504", bandera: "🇭🇳" },
-      { nombre: "El Salvador", cod: "SV", dial: "503", bandera: "🇸🇻" },
-      { nombre: "Nicaragua", cod: "NI", dial: "505", bandera: "🇳🇮" },
-      { nombre: "Bolivia", cod: "BO", dial: "591", bandera: "🇧🇴" },
-      { nombre: "Paraguay", cod: "PY", dial: "595", bandera: "🇵🇾" },
-      { nombre: "Uruguay", cod: "UY", dial: "598", bandera: "🇺🇾" },
-      { nombre: "España", cod: "ES", dial: "34", bandera: "🇪🇸" },
-      { nombre: "Estados Unidos", cod: "US", dial: "1", bandera: "🇺🇸" },
-      { nombre: "Puerto Rico", cod: "PR", dial: "1", bandera: "🇵🇷" }
+      { nombre: "Colombia", cod: "CO", dial: "57", bandera: "🇨🇴", digitos: 10, ejemplo: "300 123 4567" },
+      { nombre: "Venezuela", cod: "VE", dial: "58", bandera: "🇻🇪", digitos: 10, ejemplo: "414 123 4567" },
+      { nombre: "Ecuador", cod: "EC", dial: "593", bandera: "🇪🇨", digitos: 9, ejemplo: "99 123 4567" },
+      { nombre: "México", cod: "MX", dial: "52", bandera: "🇲🇽", digitos: 10, ejemplo: "55 1234 5678" },
+      { nombre: "Perú", cod: "PE", dial: "51", bandera: "🇵🇪", digitos: 9, ejemplo: "912 345 678" },
+      { nombre: "Chile", cod: "CL", dial: "56", bandera: "🇨🇱", digitos: 9, ejemplo: "9 1234 5678" },
+      { nombre: "Argentina", cod: "AR", dial: "54", bandera: "🇦🇷", digitos: 10, ejemplo: "11 1234 5678" },
+      { nombre: "Panamá", cod: "PA", dial: "507", bandera: "🇵🇦", digitos: 8, ejemplo: "6123 4567" },
+      { nombre: "República Dominicana", cod: "DO", dial: "1", bandera: "🇩🇴", digitos: 10, ejemplo: "809 123 4567" },
+      { nombre: "Costa Rica", cod: "CR", dial: "506", bandera: "🇨🇷", digitos: 8, ejemplo: "8123 4567" },
+      { nombre: "Guatemala", cod: "GT", dial: "502", bandera: "🇬🇹", digitos: 8, ejemplo: "5123 4567" },
+      { nombre: "Honduras", cod: "HN", dial: "504", bandera: "🇭🇳", digitos: 8, ejemplo: "9123 4567" },
+      { nombre: "El Salvador", cod: "SV", dial: "503", bandera: "🇸🇻", digitos: 8, ejemplo: "7123 4567" },
+      { nombre: "Nicaragua", cod: "NI", dial: "505", bandera: "🇳🇮", digitos: 8, ejemplo: "8123 4567" },
+      { nombre: "Bolivia", cod: "BO", dial: "591", bandera: "🇧🇴", digitos: 8, ejemplo: "7123 4567" },
+      { nombre: "Paraguay", cod: "PY", dial: "595", bandera: "🇵🇾", digitos: 9, ejemplo: "981 123 456" },
+      { nombre: "Uruguay", cod: "UY", dial: "598", bandera: "🇺🇾", digitos: 8, ejemplo: "9123 4567" },
+      { nombre: "España", cod: "ES", dial: "34", bandera: "🇪🇸", digitos: 9, ejemplo: "612 345 678" },
+      { nombre: "Estados Unidos", cod: "US", dial: "1", bandera: "🇺🇸", digitos: 10, ejemplo: "305 123 4567" },
+      { nombre: "Puerto Rico", cod: "PR", dial: "1", bandera: "🇵🇷", digitos: 10, ejemplo: "787 123 4567" }
     ];
+    // Adivina el país del visitante SOLO con lo que el propio navegador ya
+    // sabe (zona horaria del sistema operativo, y de respaldo el idioma) —
+    // sin ningún servicio externo de geolocalización por IP: no hace falta
+    // pedir permiso, no depende de internet, y nunca falla por bloqueador
+    // de terceros. Es una sugerencia inicial nada más — el visitante sigue
+    // pudiendo elegir cualquier otro país en el selector.
+    var TIMEZONE_A_PAIS = {
+      "America/Bogota": "CO", "America/Caracas": "VE", "America/Guayaquil": "EC",
+      "America/Mexico_City": "MX", "America/Tijuana": "MX", "America/Cancun": "MX", "America/Monterrey": "MX", "America/Merida": "MX",
+      "America/Lima": "PE", "America/Santiago": "CL", "America/Punta_Arenas": "CL",
+      "America/Argentina/Buenos_Aires": "AR", "America/Argentina/Cordoba": "AR", "America/Argentina/Mendoza": "AR",
+      "America/Panama": "PA", "America/Santo_Domingo": "DO", "America/Costa_Rica": "CR",
+      "America/Guatemala": "GT", "America/Tegucigalpa": "HN", "America/El_Salvador": "SV",
+      "America/Managua": "NI", "America/La_Paz": "BO", "America/Asuncion": "PY", "America/Montevideo": "UY",
+      "Europe/Madrid": "ES", "America/Puerto_Rico": "PR",
+      "America/New_York": "US", "America/Chicago": "US", "America/Denver": "US", "America/Los_Angeles": "US", "America/Phoenix": "US"
+    };
+    function indicePaisSugerido() {
+      try {
+        var tz = Intl.DateTimeFormat().resolvedOptions().timeZone;
+        var codTz = TIMEZONE_A_PAIS[tz];
+        if (codTz) {
+          var iTz = PAISES_DEMO.findIndex(function (p) { return p.cod === codTz; });
+          if (iTz !== -1) return iTz;
+        }
+      } catch (e) {}
+      try {
+        // "es-VE", "es-CO"... el segmento tras el guion es el país, cuando
+        // el navegador lo trae (no siempre — muchos quedan en "es" a secas
+        // o en "es-419", genérico de toda Latinoamérica).
+        var region = (navigator.language || "").split("-")[1];
+        if (region) {
+          var iLang = PAISES_DEMO.findIndex(function (p) { return p.cod === region.toUpperCase(); });
+          if (iLang !== -1) return iLang;
+        }
+      } catch (e) {}
+      return 0; // Colombia, mismo valor por defecto que ya tenía esto
+    }
     var DEMO_WA_KEY = "biosoft_demo_wa_dado";
     function demoWhatsappYaDado() {
       try { return localStorage.getItem(DEMO_WA_KEY) === "1"; } catch (e) { return false; }
@@ -1166,18 +1210,18 @@ fbq('track', 'PageView');
     // a nadie llegar a probar la demo, igual que landing-tracker.js nunca
     // rompe la página si algo falla.
     function abrirCapturaWhatsappDemo(onListo) {
-      var idxPais = 0;
+      var idxPais = indicePaisSugerido();
       var wrap = lpModal(
         '<div style="text-align:center;font-size:34px;margin-bottom:4px">🚀</div>' +
         '<h3 class="modal-title" style="text-align:center">¡Ya casi entras a tu Demo!</h3>' +
         '<p class="text-muted" style="text-align:center;margin:0 0 20px">Para que tu demo funcione bien configurada según tu país (moneda, indicativo y datos de ejemplo), cuéntanos tu WhatsApp — con eso entras de inmediato.</p>' +
         '<div class="form-grid" style="grid-template-columns:150px 1fr;gap:10px;margin-bottom:4px">' +
         '<div class="field"><label>País</label><select id="demo-wa-pais">' +
-        PAISES_DEMO.map(function (p, i) { return '<option value="' + i + '">' + p.bandera + " " + p.nombre + " (+" + p.dial + ")</option>"; }).join("") +
+        PAISES_DEMO.map(function (p, i) { return '<option value="' + i + '" ' + (i === idxPais ? "selected" : "") + '>' + p.bandera + " " + p.nombre + " (+" + p.dial + ")</option>"; }).join("") +
         "</select></div>" +
         '<div class="field"><label>Tu WhatsApp</label><div style="display:flex;gap:6px;align-items:center">' +
-        '<span id="demo-wa-prefijo" style="font-weight:700;color:var(--text-muted);white-space:nowrap">+57</span>' +
-        '<input type="tel" inputmode="tel" id="demo-wa-numero" placeholder="300 123 4567" style="flex:1" autofocus/>' +
+        '<span id="demo-wa-prefijo" style="font-weight:700;color:var(--text-muted);white-space:nowrap">+' + PAISES_DEMO[idxPais].dial + '</span>' +
+        '<input type="tel" inputmode="tel" id="demo-wa-numero" placeholder="' + PAISES_DEMO[idxPais].ejemplo + '" style="flex:1" autofocus/>' +
         "</div></div>" +
         "</div>" +
         '<p id="demo-wa-error" class="text-danger hidden" style="font-size:12px;margin:4px 0 0"></p>' +
@@ -1188,12 +1232,35 @@ fbq('track', 'PageView');
       var prefijoEl = wrap.querySelector("#demo-wa-prefijo");
       var inpNumero = wrap.querySelector("#demo-wa-numero");
       var errEl = wrap.querySelector("#demo-wa-error");
-      selPais.addEventListener("change", function () { prefijoEl.textContent = "+" + PAISES_DEMO[parseInt(selPais.value, 10)].dial; });
+      selPais.addEventListener("change", function () {
+        var p = PAISES_DEMO[parseInt(selPais.value, 10)];
+        prefijoEl.textContent = "+" + p.dial;
+        inpNumero.placeholder = p.ejemplo;
+        errEl.classList.add("hidden");
+      });
+      // Igual que en el resto de BIOsoft (ver numeroWhatsapp/leerTelefonoCompuesto
+      // en js/ui.js): un "0" inicial en el número LOCAL es el prefijo de
+      // marcado nacional (ej. Venezuela 0414…, Ecuador 099…) — muy común
+      // escribirlo así por costumbre aunque el indicativo ya se eligió
+      // aparte en el selector de al lado. Sin quitarlo, el enlace de
+      // WhatsApp queda con un dígito de más (ej. "58" + "04141234567" en
+      // vez de "58" + "4141234567") y abre un número inválido.
+      function digitosLocales() {
+        var d = inpNumero.value.replace(/\D/g, "");
+        if (d.length > 1 && d.charAt(0) === "0") d = d.slice(1);
+        return d;
+      }
       wrap.querySelector("#demo-wa-continuar").addEventListener("click", function (e) {
         var pais = PAISES_DEMO[parseInt(selPais.value, 10)];
-        var soloDigitos = inpNumero.value.replace(/\D/g, "");
-        if (soloDigitos.length < 7) {
-          errEl.textContent = "Escribe un número de WhatsApp válido."; errEl.classList.remove("hidden");
+        var soloDigitos = digitosLocales();
+        // Validación por país: nunca bloquea del todo (un visitante real
+        // con un número poco común vale más que una regla perfecta), solo
+        // avisa cuando el largo queda claramente corto o largo para el
+        // país elegido, nombrando cuántos dígitos se esperan — mucho más
+        // claro que el genérico "número inválido" de antes.
+        if (soloDigitos.length < pais.digitos - 1 || soloDigitos.length > pais.digitos + 1) {
+          errEl.textContent = "Ese número no parece completo para " + pais.nombre + " — se esperan alrededor de " + pais.digitos + " dígitos (ej: " + pais.ejemplo + ").";
+          errEl.classList.remove("hidden");
           return;
         }
         var whatsappCompleto = pais.dial + soloDigitos;
