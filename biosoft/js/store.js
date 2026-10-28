@@ -121,6 +121,20 @@
      resuelve cuando realCache ya tiene los datos iniciales del laboratorio
      (para que el primer render no encuentre datos vacíos). */
   function initRealtime(tenantId) {
+    // Si ya había listeners activos de un intento anterior (ej. el
+    // administrador reintentó "Ingresar" después de que el aviso de "la
+    // conexión está tardando demasiado" reactivara el botón, mientras el
+    // primer intento seguía resolviendo en segundo plano con mala señal)
+    // hay que cerrarlos ANTES de abrir los nuevos. Sin esto, quedaban DOS
+    // juegos de listeners activos sobre las mismas ~25 colecciones a la
+    // vez: cada documento que Firestore entregaba como "added" en el
+    // segundo juego YA había llegado con el primero, así que cada
+    // paciente/orden/etc. terminaba duplicado en pantalla (bug real
+    // reportado: "varios clientes... sale doble"). stopRealtime() no sirve
+    // aquí tal cual porque también apaga MODE a "demo" — se repite solo la
+    // parte de cerrar los unsubs.
+    realUnsubs.forEach(function (u) { try { u(); } catch (e) {} });
+    realUnsubs = [];
     MODE = "real";
     FB_TENANT_ID = tenantId;
     realCache = emptyDB();
@@ -156,25 +170,42 @@
         var resuelto = false;
         function terminar() { if (!resuelto) { resuelto = true; resolve(); } }
         var unsub = fbColl(coll).onSnapshot(function (snap) {
+          // Set de ids YA presentes en realCache[arrKey] en este instante
+          // — se arma UNA vez por evento (no por cada "added"), y solo si
+          // de verdad hace falta (la mayoría de los eventos en vivo son
+          // "modified" de un registro ya existente, donde nunca se
+          // necesita). Existe para distinguir un "added" genuinamente
+          // nuevo (push() directo, O(1)) de uno que es el ECO del propio
+          // guardado optimista local: createPatient/createOrder/etc. (ver
+          // loadDB()/saveDB()) insertan el registro en realCache DE UNA,
+          // antes incluso de que fbWrite() confirme la escritura en
+          // Firestore — así que, un instante después, este mismo listener
+          // reporta esa misma escritura como "added" (Firestore no sabe
+          // que ya la insertamos nosotros localmente) y, sin este
+          // control, quedaba insertada una SEGUNDA vez. Bug real
+          // reportado: "se crea un paciente y se duplica", "después de
+          // imprimir sticker se duplica" (el sticker se imprime justo
+          // después de crear la orden). Se arma a partir del estado REAL
+          // de realCache (no de un contador aparte) para que SIEMPRE
+          // detecte el eco, sin importar qué función haya hecho el
+          // guardado optimista. No es un findIndex() antes de CADA push
+          // (eso sí sería O(n²) en una carga inicial de miles de
+          // documentos, el mismo problema ya resuelto antes): se arma una
+          // sola vez por evento, con el arreglo tal como está en ESE
+          // momento — en la carga inicial arranca vacío, así que sigue
+          // siendo O(n) en total.
+          var idsExistentes = null;
           snap.docChanges().forEach(function (change) {
-            // "added" se separa de "modified" a propósito: el primer
-            // evento de onSnapshot entrega TODO el contenido de la
-            // colección como una ráfaga de cambios "added" (nunca hay uno
-            // ya existente que buscar), así que insertarlos con push()
-            // directo es O(n). pushDoc() en cambio busca con findIndex()
-            // antes de insertar — necesario para "modified" (si no, un
-            // documento editado quedaría duplicado), pero usarlo también
-            // para la carga inicial volvía ese primer evento O(n²): en una
-            // colección de varios miles de documentos (ej. auditLog u
-            // orders de un laboratorio con años de historial) eso bastaba
-            // para congelar el hilo principal el tiempo suficiente para
-            // que el navegador mostrara "La página no responde" (bug real
-            // reportado, en un laboratorio con 1500+ pacientes).
-            if (change.type === "removed") removeDoc(change.doc.id);
-            else if (change.type === "added") {
-              var data = change.doc.data();
-              if (isMap) realCache[arrKey][change.doc.id] = data; else realCache[arrKey].push(data);
-            } else pushDoc(change.doc);
+            if (change.type === "removed") { removeDoc(change.doc.id); return; }
+            if (change.type === "added") {
+              if (isMap) { realCache[arrKey][change.doc.id] = change.doc.data(); return; }
+              if (!idsExistentes) idsExistentes = new Set(realCache[arrKey].map(function (x) { return x.id; }));
+              if (idsExistentes.has(change.doc.id)) { pushDoc(change.doc); return; } // eco de un guardado ya insertado -> actualizar, no duplicar
+              idsExistentes.add(change.doc.id);
+              realCache[arrKey].push(change.doc.data());
+              return;
+            }
+            pushDoc(change.doc);
           });
           terminar();
           if (onRealtimeChangeCb) onRealtimeChangeCb();
@@ -268,6 +299,12 @@
      resultado van tomados del snapshot que ya viaja dentro de cada orden
      (order.pacienteSnap), nunca de la colección patients. */
   function initRealtimePortalAliado(tenantId, convenioId) {
+    // Mismo riesgo que initRealtime() (ver su comentario): cerrar
+    // cualquier listener de un intento anterior antes de abrir uno nuevo,
+    // para que nunca queden dos juegos activos a la vez duplicando cada
+    // documento recibido.
+    realUnsubs.forEach(function (u) { try { u(); } catch (e) {} });
+    realUnsubs = [];
     MODE = "real";
     FB_TENANT_ID = tenantId;
     realCache = emptyDB();
