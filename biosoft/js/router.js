@@ -410,6 +410,57 @@
     } else showLogin();
   }
 
+  // Mismo modal que la landing (ver abrirCapturaWhatsappDemo en index.html),
+  // pero dibujado con el sistema visual de la app (BIO_UI.openModal,
+  // clases .field/.form-grid/.btn de css/styles.css) en vez del de la
+  // landing — los datos/validación/guardado vienen de
+  // js/demo-whatsapp-capture.js, compartido entre las dos páginas.
+  function abrirCapturaWhatsappDemoApp(onListo) {
+    var DWA = window.BIO_DEMO_WA;
+    var idxPais = DWA.indicePaisSugerido();
+    var wrap = BIO_UI.openModal(
+      '<div style="text-align:center;font-size:34px;margin-bottom:4px">🚀</div>' +
+      '<h3 class="modal-title" style="text-align:center">¡Ya casi entras a tu Demo!</h3>' +
+      '<p class="text-muted" style="text-align:center;margin:0 0 20px">Para que tu demo funcione bien configurada según tu país (moneda, indicativo y datos de ejemplo), cuéntanos tu WhatsApp — con eso entras de inmediato.</p>' +
+      '<div class="form-grid" style="grid-template-columns:150px 1fr;gap:10px;margin-bottom:4px">' +
+      '<div class="field"><label>País</label><select id="demo-wa-pais">' +
+      DWA.paises.map(function (p, i) { return '<option value="' + i + '" ' + (i === idxPais ? "selected" : "") + '>' + p.bandera + " " + p.nombre + " (+" + p.dial + ")</option>"; }).join("") +
+      "</select></div>" +
+      '<div class="field"><label>Tu WhatsApp</label><div style="display:flex;gap:6px;align-items:center">' +
+      '<span id="demo-wa-prefijo" style="font-weight:700;color:var(--text-muted);white-space:nowrap">+' + DWA.paises[idxPais].dial + '</span>' +
+      '<input type="tel" inputmode="tel" id="demo-wa-numero" placeholder="' + DWA.paises[idxPais].ejemplo + '" style="flex:1" autofocus/>' +
+      "</div></div>" +
+      "</div>" +
+      '<p id="demo-wa-error" class="text-danger hidden" style="font-size:12px;margin:4px 0 0"></p>' +
+      '<button type="button" class="btn btn-primary btn-block" id="demo-wa-continuar" style="margin-top:14px">🚀 Entrar a mi Demo Ahora</button>' +
+      '<p class="text-muted" style="font-size:11px;text-align:center;margin:10px 0 0">🔒 Solo lo usamos para acompañarte mientras pruebas tu demo. Nunca lo compartimos ni te llenamos de mensajes.</p>'
+    );
+    var selPais = wrap.querySelector("#demo-wa-pais");
+    var prefijoEl = wrap.querySelector("#demo-wa-prefijo");
+    var inpNumero = wrap.querySelector("#demo-wa-numero");
+    var errEl = wrap.querySelector("#demo-wa-error");
+    selPais.addEventListener("change", function () {
+      var p = DWA.paises[parseInt(selPais.value, 10)];
+      prefijoEl.textContent = "+" + p.dial;
+      inpNumero.placeholder = p.ejemplo;
+      errEl.classList.add("hidden");
+    });
+    wrap.querySelector("#demo-wa-continuar").addEventListener("click", function (e) {
+      var pais = DWA.paises[parseInt(selPais.value, 10)];
+      var soloDigitos = DWA.digitosLocales(inpNumero.value);
+      var error = DWA.validar(pais, soloDigitos);
+      if (error) { errEl.textContent = error; errEl.classList.remove("hidden"); return; }
+      var whatsappCompleto = pais.dial + soloDigitos;
+      var btn = e.currentTarget;
+      btn.disabled = true; btn.textContent = "Entrando…";
+      DWA.marcarDado();
+      DWA.guardarLead(pais, whatsappCompleto, {}).then(function () {
+        BIO_UI.closeModal(wrap);
+        onListo();
+      });
+    });
+  }
+
   function wireLogin() {
     var form = document.getElementById("login-form");
     var toggleBtn = document.getElementById("btn-toggle-login");
@@ -439,10 +490,26 @@
         document.getElementById("login-password").value = tab.dataset.pass;
       });
     });
-    document.getElementById("btn-demo-quick").addEventListener("click", function () {
+    // Entra a la demo con las credenciales fijas de siempre — factorizado
+    // aparte porque ahora hay DOS caminos para llegar aquí: directo (ya se
+    // dio el WhatsApp antes) o después de cerrar el modal de captura.
+    function entrarDemoQuick() {
       document.getElementById("login-username").value = "admin.demo";
       document.getElementById("login-password").value = "Demo2026*";
       form.requestSubmit();
+    }
+    // "Ver Demo Gratis Ahora" de ESTA pantalla (app.html) es un segundo
+    // punto de entrada a la demo, igual de real que el de la landing
+    // (index.html) — un visitante puede llegar derecho aquí (enlace
+    // compartido, favorito, etc.) sin pasar nunca por index.html. Antes
+    // entraba directo sin pedir ni guardar nada, así que esos visitantes
+    // se perdían por completo para el CRM/remarketing (bug real
+    // reportado: "le doy Ver Demo y no pide WhatsApp"). Mismo criterio
+    // "una sola vez por navegador" que la landing — BIO_DEMO_WA.yaDado()
+    // comparte el mismo localStorage en ambas páginas (mismo origen).
+    document.getElementById("btn-demo-quick").addEventListener("click", function () {
+      if (BIO_DEMO_WA.yaDado()) { entrarDemoQuick(); return; }
+      abrirCapturaWhatsappDemoApp(entrarDemoQuick);
     });
     // Quien ya dio su WhatsApp en la landing (ver abrirCapturaWhatsappDemo
     // en index.html) llega aquí con app.html#demo — entra derecho a la
