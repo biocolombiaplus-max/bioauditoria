@@ -469,14 +469,21 @@
 
   function crmColl() { return global.BIO_FB.db.collection("crmClientes"); }
 
+  // crmList() en vuelo (si varias pantallas de superadmin -CRM, Campañas-
+  // la piden casi al mismo tiempo, o si quedaron varios listeners
+  // acumulados de antes de este ajuste, todas comparten la MISMA lectura
+  // en vez de disparar una consulta a Firestore por cada una).
+  var crmListEnVuelo = null;
   function crmList() {
     if (!firebaseDisponible()) return Promise.reject(errorFirebaseNoDisponible());
-    return crmColl().get().then(function (snap) {
+    if (crmListEnVuelo) return crmListEnVuelo;
+    crmListEnVuelo = crmColl().get().then(function (snap) {
       var out = [];
       snap.forEach(function (doc) { out.push(doc.data()); });
       out.sort(function (a, b) { return (b.creadoEn || "").localeCompare(a.creadoEn || ""); });
       return out;
-    });
+    }).finally(function () { crmListEnVuelo = null; });
+    return crmListEnVuelo;
   }
   // Se registra también en realUnsubs (el mismo arreglo que usa
   // initRealtime() para las colecciones de un laboratorio) para que
@@ -486,9 +493,25 @@
   // sin sesión válida, y la consola se llenaba de "Missing or insufficient
   // permissions" en cada intento de inicio de sesión posterior en la misma
   // pestaña (ruido que complicaba diagnosticar fallos de acceso reales).
+  // Antes, cada vez que una pantalla de superadmin (CRM, Campañas) volvía
+  // a montarse llamaba a crmWatch() de nuevo, y como la pantalla NUNCA
+  // cerraba la conexión anterior, quedaban N conexiones en tiempo real
+  // abiertas para siempre en la misma pestaña, cada una disparando su
+  // propia recarga completa ante cualquier cambio en crmClientes. Ahora
+  // se guarda la última conexión activa a nivel de módulo: si se vuelve a
+  // llamar, la anterior se cierra primero, así que solo puede haber UNA
+  // activa a la vez sin importar cuántas veces se visite la pantalla. El
+  // aviso de cambio además se agrupa (debounce) para que una ráfaga de
+  // cambios casi simultáneos dispare una sola recarga, no una por cada uno.
+  var crmWatchUnsub = null, crmWatchDebounce = null;
   function crmWatch(onChange) {
     if (!firebaseDisponible()) return function () {};
-    var unsub = crmColl().onSnapshot(function () { onChange(); }, function (err) { console.error("BIOsoft CRM listener error:", err); });
+    if (crmWatchUnsub) { try { crmWatchUnsub(); } catch (e) {} }
+    var unsub = crmColl().onSnapshot(function () {
+      if (crmWatchDebounce) clearTimeout(crmWatchDebounce);
+      crmWatchDebounce = setTimeout(function () { crmWatchDebounce = null; onChange(); }, 1200);
+    }, function (err) { console.error("BIOsoft CRM listener error:", err); });
+    crmWatchUnsub = unsub;
     realUnsubs.push(unsub);
     return unsub;
   }
@@ -526,21 +549,32 @@
   // cargar la colección completa indefinidamente a medida que crece.
   // -----------------------------------------------------------------------
   function visitantesLandingColl() { return global.BIO_FB.db.collection("landingVisitantes"); }
+  var visitantesLandingListEnVuelo = null;
   function visitantesLandingList() {
     if (!firebaseDisponible()) return Promise.reject(errorFirebaseNoDisponible());
-    return visitantesLandingColl().orderBy("lastSeen", "desc").limit(1000).get().then(function (snap) {
+    if (visitantesLandingListEnVuelo) return visitantesLandingListEnVuelo;
+    visitantesLandingListEnVuelo = visitantesLandingColl().orderBy("lastSeen", "desc").limit(1000).get().then(function (snap) {
       var out = [];
       snap.forEach(function (doc) { out.push(Object.assign({ id: doc.id }, doc.data())); });
       return out;
-    });
+    }).finally(function () { visitantesLandingListEnVuelo = null; });
+    return visitantesLandingListEnVuelo;
   }
   // Mismo criterio que crmWatch(): se registra en realUnsubs para que
-  // stopRealtime()/logoutReal() lo cierre solo al salir del panel.
+  // stopRealtime()/logoutReal() lo cierre solo al salir del panel, y además
+  // cierra sola cualquier conexión anterior (evita acumular una por cada
+  // visita a "Rendimiento de Campañas") y agrupa los avisos de cambio.
+  var visitantesLandingWatchUnsub = null, visitantesLandingWatchDebounce = null;
   function visitantesLandingWatch(onChange) {
     if (!firebaseDisponible()) return function () {};
-    var unsub = visitantesLandingColl().orderBy("lastSeen", "desc").limit(1000).onSnapshot(function () { onChange(); }, function (err) {
+    if (visitantesLandingWatchUnsub) { try { visitantesLandingWatchUnsub(); } catch (e) {} }
+    var unsub = visitantesLandingColl().orderBy("lastSeen", "desc").limit(1000).onSnapshot(function () {
+      if (visitantesLandingWatchDebounce) clearTimeout(visitantesLandingWatchDebounce);
+      visitantesLandingWatchDebounce = setTimeout(function () { visitantesLandingWatchDebounce = null; onChange(); }, 1200);
+    }, function (err) {
       console.error("BIOsoft landingVisitantes listener error:", err);
     });
+    visitantesLandingWatchUnsub = unsub;
     realUnsubs.push(unsub);
     return unsub;
   }
@@ -550,18 +584,27 @@
   // -----------------------------------------------------------------------
   function plantillasColl() { return global.BIO_FB.db.collection("crmPlantillas"); }
 
+  var plantillasListEnVuelo = null;
   function plantillasList() {
     if (!firebaseDisponible()) return Promise.reject(errorFirebaseNoDisponible());
-    return plantillasColl().get().then(function (snap) {
+    if (plantillasListEnVuelo) return plantillasListEnVuelo;
+    plantillasListEnVuelo = plantillasColl().get().then(function (snap) {
       var out = [];
       snap.forEach(function (doc) { out.push(doc.data()); });
       out.sort(function (a, b) { return (a.creadoEn || "").localeCompare(b.creadoEn || ""); });
       return out;
-    });
+    }).finally(function () { plantillasListEnVuelo = null; });
+    return plantillasListEnVuelo;
   }
+  var plantillasWatchUnsub = null, plantillasWatchDebounce = null;
   function plantillasWatch(onChange) {
     if (!firebaseDisponible()) return function () {};
-    var unsub = plantillasColl().onSnapshot(function () { onChange(); }, function (err) { console.error("BIOsoft plantillas listener error:", err); });
+    if (plantillasWatchUnsub) { try { plantillasWatchUnsub(); } catch (e) {} }
+    var unsub = plantillasColl().onSnapshot(function () {
+      if (plantillasWatchDebounce) clearTimeout(plantillasWatchDebounce);
+      plantillasWatchDebounce = setTimeout(function () { plantillasWatchDebounce = null; onChange(); }, 1200);
+    }, function (err) { console.error("BIOsoft plantillas listener error:", err); });
+    plantillasWatchUnsub = unsub;
     realUnsubs.push(unsub);
     return unsub;
   }
@@ -709,9 +752,20 @@
      que esta consulta va siempre directo a Firestore, igual que el CRM. */
   function tenantsColl() { return global.BIO_FB.db.collection("tenants"); }
 
+  // tenantsListGlobal() es, por mucho, la consulta más cara de todo
+  // BIOsoft: lee la colección COMPLETA de users/patients/orders de CADA
+  // laboratorio, solo para contar y sacar fechas. La llaman 3 pantallas
+  // distintas de superadmin (CRM, Laboratorios Cliente, Resumen Global),
+  // y antes de este ajuste cada una disparaba su propia lectura completa
+  // por separado -y cada conexión en tiempo real acumulada por el bug de
+  // arriba disparaba OTRA más-. Ahora, si ya hay una lectura en vuelo,
+  // todas las pantallas que la pidan comparten esa MISMA promesa en vez
+  // de multiplicar la lectura de miles de documentos por cada una.
+  var tenantsListGlobalEnVuelo = null;
   function tenantsListGlobal() {
     if (!firebaseDisponible()) return Promise.reject(errorFirebaseNoDisponible());
-    return tenantsColl().get().then(function (snap) {
+    if (tenantsListGlobalEnVuelo) return tenantsListGlobalEnVuelo;
+    tenantsListGlobalEnVuelo = tenantsColl().get().then(function (snap) {
       var tenants = [];
       snap.forEach(function (doc) { tenants.push(doc.data()); });
       tenants.sort(function (a, b) { return (b.creadoEn || "").localeCompare(a.creadoEn || ""); });
@@ -737,11 +791,23 @@
           });
         });
       }));
-    });
+    }).finally(function () { tenantsListGlobalEnVuelo = null; });
+    return tenantsListGlobalEnVuelo;
   }
+  // Mismo criterio que crmWatch(): una sola conexión activa a la vez (se
+  // cierra la anterior antes de abrir una nueva) y el aviso de cambio se
+  // agrupa, para no disparar la lectura carísima de arriba una vez por
+  // cada laboratorio-creado/editado casi simultáneo ni por cada
+  // conexión que haya quedado acumulada antes de este ajuste.
+  var tenantsWatchGlobalUnsub = null, tenantsWatchGlobalDebounce = null;
   function tenantsWatchGlobal(onChange) {
     if (!firebaseDisponible()) return function () {};
-    var unsub = tenantsColl().onSnapshot(function () { onChange(); }, function (err) { console.error("BIOsoft tenants listener error:", err); });
+    if (tenantsWatchGlobalUnsub) { try { tenantsWatchGlobalUnsub(); } catch (e) {} }
+    var unsub = tenantsColl().onSnapshot(function () {
+      if (tenantsWatchGlobalDebounce) clearTimeout(tenantsWatchGlobalDebounce);
+      tenantsWatchGlobalDebounce = setTimeout(function () { tenantsWatchGlobalDebounce = null; onChange(); }, 1200);
+    }, function (err) { console.error("BIOsoft tenants listener error:", err); });
+    tenantsWatchGlobalUnsub = unsub;
     realUnsubs.push(unsub);
     return unsub;
   }
