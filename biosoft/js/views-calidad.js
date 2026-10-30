@@ -84,6 +84,21 @@
       return lecturas.length ? lecturas[lecturas.length - 1] : null;
     }
 
+    // Compartida entre "Captura de Hoy" y "Controles" — eliminar un control
+    // es la misma acción sin importar desde qué pantalla se pida.
+    function eliminarControl(control) {
+      if (!control) return;
+      var info = analitoInfo(control.seccion, control.analitoCodigo);
+      var lecturas = S.qc.listLecturas(control.id);
+      var advertencia = lecturas.length ? (" Se borrará también TODO su historial (" + lecturas.length + " lectura" + (lecturas.length === 1 ? "" : "s") + ") y su gráfica de Levey-Jennings.") : "";
+      if (!confirm('¿Eliminar el control "' + info.nombre + " (" + control.nivel + ', Lote ' + (control.lote || "—") + ')"?' + advertencia + " Esta acción no se puede deshacer.")) return;
+      S.qc.deleteControl(control.id);
+      S.addAudit(tenantId, session.nombre, session.rol, "QC_CONTROL_ELIMINADO", "control_calidad", control.id,
+        "Eliminó el control de calidad \"" + info.nombre + " " + control.nivel + "\" (Lote " + (control.lote || "—") + ") junto con " + lecturas.length + " lectura(s) de su historial.");
+      U.toast("Control eliminado.", "success");
+      cargar();
+    }
+
     function build() {
       root.innerHTML =
         '<div class="card"><div class="card-header"><h3 class="card-title">Control de Calidad</h3>' +
@@ -137,7 +152,8 @@
               celdaCaptura = "<td style='min-width:140px'><input type='number' step='any' data-captura='" + c.id + "' placeholder='Ej: " + c.media + "'/></td>" +
                 "<td><button class='btn btn-primary btn-sm' data-guardar-captura='" + c.id + "'>" + U.icon("check") + " Guardar</button></td>";
             }
-            return "<tr><td><b>" + U.esc(info.nombre) + "</b><div class='text-muted' style='font-size:11px'>" + U.esc(c.nivel) + "</div></td>" +
+            return "<tr><td><b>" + U.esc(info.nombre) + "</b><div class='text-muted' style='font-size:11px'>" + U.esc(c.nivel) +
+              " · <button type='button' class='text-danger' data-eliminar-control-captura='" + c.id + "' title='Eliminar este control' style='background:none;border:none;padding:0;font-size:11px;cursor:pointer;text-decoration:underline'>eliminar control</button></div></td>" +
               "<td>" + U.esc(c.lote || "—") + "</td>" +
               "<td>" + mediaDsHtml(c, info.unidad) + "</td>" +
               celdaCaptura + "</tr>";
@@ -182,6 +198,11 @@
           cargar();
         });
       });
+      root.querySelectorAll("[data-eliminar-control-captura]").forEach(function (b) {
+        b.addEventListener("click", function () {
+          eliminarControl(controles.filter(function (c) { return c.id === b.dataset.eliminarControlCaptura; })[0]);
+        });
+      });
     }
 
     // ---------------------------------------------------------------------
@@ -214,17 +235,7 @@
         abrirFormControl(controles.filter(function (c) { return c.id === b.dataset.editarControl; })[0]);
       }); });
       root.querySelectorAll("[data-eliminar-control]").forEach(function (b) { b.addEventListener("click", function () {
-        var control = controles.filter(function (c) { return c.id === b.dataset.eliminarControl; })[0];
-        if (!control) return;
-        var info = analitoInfo(control.seccion, control.analitoCodigo);
-        var lecturas = S.qc.listLecturas(control.id);
-        var advertencia = lecturas.length ? (" Se borrará también TODO su historial (" + lecturas.length + " lectura" + (lecturas.length === 1 ? "" : "s") + ") y su gráfica de Levey-Jennings.") : "";
-        if (!confirm('¿Eliminar el control "' + info.nombre + " (" + control.nivel + ', Lote ' + (control.lote || "—") + ')"?' + advertencia + " Esta acción no se puede deshacer.")) return;
-        S.qc.deleteControl(control.id);
-        S.addAudit(tenantId, session.nombre, session.rol, "QC_CONTROL_ELIMINADO", "control_calidad", control.id,
-          "Eliminó el control de calidad \"" + info.nombre + " " + control.nivel + "\" (Lote " + (control.lote || "—") + ") junto con " + lecturas.length + " lectura(s) de su historial.");
-        U.toast("Control eliminado.", "success");
-        cargar();
+        eliminarControl(controles.filter(function (c) { return c.id === b.dataset.eliminarControl; })[0]);
       }); });
     }
 
