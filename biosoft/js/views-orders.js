@@ -1541,7 +1541,7 @@
           var idx = parseInt(b.dataset.quitarExamen, 10);
           var ex = order.examenes[idx];
           var exCat = C.examenEfectivo(ex.examId, tenant);
-          abrirQuitarExamen(order, ex, exCat, idx, build);
+          abrirQuitarExamen(order, ex, exCat, idx, tenant, build);
         });
       });
       root.querySelectorAll("[data-redescargar-remision]").forEach(function (b) {
@@ -1708,9 +1708,25 @@
   // corrección de resultados, para no borrar un resultado finalizado sin
   // dejar rastro.
   // -------------------------------------------------------------------
-  function abrirQuitarExamen(order, ex, exCat, idx, onDone) {
+  function abrirQuitarExamen(order, ex, exCat, idx, tenant, onDone) {
     var session = BIO_AUTH.getSession();
     var esFinal = ex.estado === "validado" || ex.estado === "remitido";
+    // Simétrico a "Agregar Exámenes" (que SÍ suma el precio de lista del
+    // examen agregado a order.valorCobrar): antes, quitar un examen borraba
+    // el renglón pero dejaba el valor a cobrar intacto, así que la orden
+    // quedaba cobrando de más por un examen que ya no tiene. Se sugiere el
+    // nuevo valor restando el precio de lista de este examen — igual que
+    // "Agregar", queda editable a mano (por convenios, paquetes con
+    // descuento, etc. donde el precio de lista no es exacto).
+    var ajustaValor = tenant.mostrarPrecioOrden && order.valorCobrar != null && order.valorCobrar > 0;
+    var precioExamen = 0;
+    if (ajustaValor) {
+      var precios = {};
+      S.cotizador.listPrecios(tenant.id).forEach(function (p) { precios[p.examId] = p.precio; });
+      precioExamen = precios[ex.examId] || 0;
+    }
+    var sugerido = ajustaValor ? Math.max(0, order.valorCobrar - precioExamen) : 0;
+    var yaPagada = !!order.pago;
     var wrap = U.openModal(
       '<h3 class="modal-title">' + U.icon("trash") + " Quitar Examen — " + U.esc(exCat.nombre) + "</h3>" +
       '<p class="text-muted">' + (esFinal
@@ -1719,6 +1735,10 @@
       (ex.reactivosDescontados ? '<p class="text-muted" style="font-size:12px">⚠️ El inventario de reactivos de este examen ya se descontó — al quitarlo, ese descuento NO se revierte automáticamente; ajústalo a mano en Inventario si hace falta.</p>' : "") +
       (esFinal ? '<div class="field"><label>Clave de administrador *</label><div class="password-field-wrap"><input type="password" id="qe-clave"/>' + U.passwordToggleBtnHtml() + "</div></div>" : "") +
       '<div class="field"><label>Motivo *</label><textarea id="qe-motivo" placeholder="Ej: Examen agregado por error, el paciente no lo solicitó."></textarea></div>' +
+      (ajustaValor ? '<div class="field"><label>Nuevo Valor a Cobrar de la Orden</label><input id="qe-nuevo-valor" type="text" inputmode="decimal" value="' + sugerido + '"/>' +
+        '<span class="text-muted" style="font-size:11px">Valor actual ' + fmtMoneda(order.valorCobrar) + (precioExamen ? " − precio de lista de este examen (" + fmtMoneda(precioExamen) + ")" : " (este examen no tiene precio de lista configurado)") + " = sugerido " + fmtMoneda(sugerido) + '. Ajústalo a mano si la orden tenía un descuento de convenio o venía de un paquete.</span></div>'
+        + (yaPagada ? '<p class="text-muted" style="font-size:12px">⚠️ Esta orden ya tiene un pago/cargo registrado de ' + fmtMoneda(order.pago.monto != null ? order.pago.monto : order.valorCobrar) + (order.pago.esCredito ? " (a crédito de convenio)" : "") + '. Si el nuevo valor queda por debajo de eso, quedaría un saldo a favor — usa "Corregir Monto de Pago" desde la orden si corresponde ajustarlo o devolverlo.</p>' : "")
+        : "") +
       '<div class="flex gap-2 justify-between" style="margin-top:10px"><button class="btn btn-ghost" data-modal-close>Cancelar</button><button class="btn btn-danger" id="qe-confirmar">' + U.icon("trash") + " Quitar Examen</button></div>"
     );
     wrap.querySelector("#qe-confirmar").addEventListener("click", function () {
@@ -1728,11 +1748,20 @@
         var clave = wrap.querySelector("#qe-clave").value;
         if (!BIO_AUTH.verificarClaveAdmin(clave)) { U.toast("Clave de administrador incorrecta.", "error"); return; }
       }
+      var detalleValor = "";
+      if (ajustaValor) {
+        var nuevoValor = U.parseMonto(wrap.querySelector("#qe-nuevo-valor").value);
+        if (isNaN(nuevoValor) || nuevoValor < 0) { U.toast("Ingresa un Nuevo Valor a Cobrar válido.", "error"); return; }
+        if (nuevoValor !== order.valorCobrar) {
+          detalleValor = " Valor a Cobrar ajustado de " + fmtMoneda(order.valorCobrar) + " a " + fmtMoneda(nuevoValor) + ".";
+          order.valorCobrar = nuevoValor;
+        }
+      }
       order.examenes.splice(idx, 1);
       S.recalcEstadoGeneral(order);
       S.saveOrder(order);
       S.addAudit(session.tenantId, session.nombre, session.rol, "REMOVE_EXAM_FROM_ORDER", "orden", order.id,
-        'Quitó el examen "' + exCat.nombre + '" (estaba ' + ex.estado + ") de la orden " + order.numeroOrden + ". Motivo: " + motivo);
+        'Quitó el examen "' + exCat.nombre + '" (estaba ' + ex.estado + ") de la orden " + order.numeroOrden + ". Motivo: " + motivo + "." + detalleValor);
       U.toast("Examen quitado de la orden.", "success");
       U.closeModal(wrap);
       onDone();
