@@ -201,6 +201,7 @@
             "<td><div class='flex gap-2 wrap'>" +
             "<button class='btn btn-outline btn-sm' data-ver-grafica='" + c.id + "'>📈 Gráfica</button>" +
             "<button class='btn btn-ghost btn-sm' data-editar-control='" + c.id + "'>" + U.icon("edit") + "</button>" +
+            "<button class='btn btn-ghost btn-sm text-danger' data-eliminar-control='" + c.id + "' title='Eliminar este control'>" + U.icon("trash") + "</button>" +
             "</div></td></tr>";
         }).join("") + "</tbody></table></div>";
     }
@@ -211,6 +212,19 @@
       }); });
       root.querySelectorAll("[data-editar-control]").forEach(function (b) { b.addEventListener("click", function () {
         abrirFormControl(controles.filter(function (c) { return c.id === b.dataset.editarControl; })[0]);
+      }); });
+      root.querySelectorAll("[data-eliminar-control]").forEach(function (b) { b.addEventListener("click", function () {
+        var control = controles.filter(function (c) { return c.id === b.dataset.eliminarControl; })[0];
+        if (!control) return;
+        var info = analitoInfo(control.seccion, control.analitoCodigo);
+        var lecturas = S.qc.listLecturas(control.id);
+        var advertencia = lecturas.length ? (" Se borrará también TODO su historial (" + lecturas.length + " lectura" + (lecturas.length === 1 ? "" : "s") + ") y su gráfica de Levey-Jennings.") : "";
+        if (!confirm('¿Eliminar el control "' + info.nombre + " (" + control.nivel + ', Lote ' + (control.lote || "—") + ')"?' + advertencia + " Esta acción no se puede deshacer.")) return;
+        S.qc.deleteControl(control.id);
+        S.addAudit(tenantId, session.nombre, session.rol, "QC_CONTROL_ELIMINADO", "control_calidad", control.id,
+          "Eliminó el control de calidad \"" + info.nombre + " " + control.nivel + "\" (Lote " + (control.lote || "—") + ") junto con " + lecturas.length + " lectura(s) de su historial.");
+        U.toast("Control eliminado.", "success");
+        cargar();
       }); });
     }
 

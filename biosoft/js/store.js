@@ -1709,6 +1709,21 @@
     fbWrite("qcControles", c.id, c);
     return c;
   }
+  // Elimina POR COMPLETO un control de calidad (ej. uno duplicado o mal
+  // configurado, como los que quedaron con una DS inventada antes de que
+  // el formulario pidiera el rango del inserto) junto con TODAS sus
+  // lecturas — un control sin historial no sirve de nada y dejarlo huérfano
+  // solo ensuciaría la base de datos sin que nadie pueda volver a verlo
+  // desde ninguna pantalla.
+  function deleteQCControl(id) {
+    var db = loadDB();
+    var lecturasDelControl = db.qcLecturas.filter(function (l) { return l.controlId === id; });
+    db.qcLecturas = db.qcLecturas.filter(function (l) { return l.controlId !== id; });
+    db.qcControles = db.qcControles.filter(function (c) { return c.id !== id; });
+    saveDB(db);
+    lecturasDelControl.forEach(function (l) { fbDelete("qcLecturas", l.id); });
+    fbDelete("qcControles", id);
+  }
   function listQCLecturas(controlId) {
     var db = loadDB();
     return db.qcLecturas.filter(function (l) { return l.controlId === controlId; }).sort(function (a, b) { return a.fecha.localeCompare(b.fecha); });
@@ -2432,6 +2447,7 @@
     reservarCodigoConsulta: reservarCodigoConsulta,
     qc: {
       listControles: listQCControles, getControl: getQCControl, createControl: createQCControl, updateControl: updateQCControl,
+      deleteControl: deleteQCControl,
       listLecturas: listQCLecturas, createLectura: createQCLectura, deleteLectura: deleteQCLectura
     },
     cotizador: {
