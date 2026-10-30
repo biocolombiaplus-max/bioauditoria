@@ -131,5 +131,21 @@
     return { z: zActual, reglas: reglas, estado: estado, recomendaciones: recomendaciones };
   }
 
-  global.BIO_QC = { ANALITOS: ANALITOS, NIVELES: NIVELES, evaluar: evaluar, RECOMENDACIONES: RECOMENDACIONES, RECHAZO: RECHAZO };
+  /* Media y desviación estándar MUESTRAL (n-1, la fórmula correcta para
+     datos acumulados por el propio laboratorio, no la poblacional) de un
+     arreglo de lecturas reales — para la recomendación CLSI C24 de
+     recalcular la media/DS con datos propios tras acumular ~20 corridas,
+     en vez de seguir usando indefinidamente los valores del inserto del
+     fabricante (que son solo un punto de partida). */
+  function estadisticas(valores) {
+    var n = valores.length;
+    if (!n) return { media: null, ds: null, n: 0 };
+    var media = valores.reduce(function (a, b) { return a + b; }, 0) / n;
+    if (n < 2) return { media: media, ds: null, n: n };
+    var sumaCuadrados = valores.reduce(function (a, v) { return a + Math.pow(v - media, 2); }, 0);
+    var ds = Math.sqrt(sumaCuadrados / (n - 1));
+    return { media: media, ds: ds, n: n };
+  }
+
+  global.BIO_QC = { ANALITOS: ANALITOS, NIVELES: NIVELES, evaluar: evaluar, RECOMENDACIONES: RECOMENDACIONES, RECHAZO: RECHAZO, estadisticas: estadisticas };
 })(window);

@@ -18,6 +18,30 @@
     return new Date(iso).toLocaleDateString("es-CO", { day: "2-digit", month: "short", year: "numeric" });
   }
 
+  // La mayoría de insertos de controles comerciales en Colombia y Venezuela
+  // (Wiener Lab, Spinreact, Biosystems, Human, etc.) no imprimen una "DS"
+  // directa: imprimen una media y un rango aceptable (ej. "70,4 - 95,2"),
+  // que casi siempre representa la media ± 2 DE del fabricante. De ahí se
+  // despeja la DS que realmente usan las reglas de Westgard.
+  function dsDesdeRango(rangoMin, rangoMax, rangoEnDS) {
+    if (rangoMin == null || rangoMax == null || isNaN(rangoMin) || isNaN(rangoMax)) return null;
+    var n = rangoEnDS || 2;
+    return Math.abs(rangoMax - rangoMin) / (2 * n);
+  }
+
+  // Texto "Media ± DS" para las tablas, con el rango del inserto debajo
+  // cuando el control se configuró a partir de él (en vez de una DS propia
+  // calculada por el laboratorio) — así el usuario siempre ve el mismo
+  // dato que tiene impreso en la caja del control, no solo la DS derivada.
+  function mediaDsHtml(c, unidad) {
+    var dsTxt = typeof c.ds === "number" ? (Math.round(c.ds * 100) / 100) : c.ds;
+    var base = c.media + " ± " + dsTxt + " " + U.esc(unidad);
+    if (c.dsOrigen === "inserto" && c.rangoMin != null && c.rangoMax != null) {
+      base += "<div class='text-muted' style='font-size:10.5px'>Rango inserto: " + c.rangoMin + " – " + c.rangoMax + " (± " + (c.rangoEnDS || 2) + " DE)</div>";
+    }
+    return base;
+  }
+
   window.BIO_VIEWS.calidad = function (root) {
     var session = BIO_AUTH.getSession();
     var tenantId = session.tenantId;
@@ -115,7 +139,7 @@
             }
             return "<tr><td><b>" + U.esc(info.nombre) + "</b><div class='text-muted' style='font-size:11px'>" + U.esc(c.nivel) + "</div></td>" +
               "<td>" + U.esc(c.lote || "—") + "</td>" +
-              "<td>" + c.media + " ± " + c.ds + " " + U.esc(info.unidad) + "</td>" +
+              "<td>" + mediaDsHtml(c, info.unidad) + "</td>" +
               celdaCaptura + "</tr>";
           }).join("") + "</tbody></table></div>";
       }).join("");
@@ -171,7 +195,7 @@
           var sec = SECCIONES_QC.filter(function (s) { return s.id === c.seccion; })[0] || {};
           return "<tr><td>" + (sec.emoji || "") + " " + U.esc(sec.nombre || c.seccion) + "</td>" +
             "<td>" + U.esc(info.nombre) + "</td><td>" + U.esc(c.nivel) + "</td><td>" + U.esc(c.lote || "—") + "</td>" +
-            "<td>" + c.media + " ± " + c.ds + " " + U.esc(info.unidad) + "</td>" +
+            "<td>" + mediaDsHtml(c, info.unidad) + "</td>" +
             "<td>" + (c.vencimiento ? fmtFecha(c.vencimiento) : "—") + "</td>" +
             "<td>" + (c.activo ? '<span class="badge badge-validado">Activo</span>' : '<span class="badge badge-rutina">Inactivo</span>') + "</td>" +
             "<td><div class='flex gap-2 wrap'>" +
@@ -192,7 +216,11 @@
 
     function abrirFormControl(control) {
       var isEdit = !!control;
-      control = control || { seccion: "quimica", analitoCodigo: "", nivel: "Normal", lote: "", media: "", ds: "", vencimiento: "", activo: true };
+      control = control || { seccion: "quimica", analitoCodigo: "", nivel: "Normal", lote: "", media: "", ds: "", vencimiento: "", activo: true, dsOrigen: "inserto", rangoMin: "", rangoMax: "", rangoEnDS: 2 };
+      // Un control ya existente SIN rango guardado (de antes de este ajuste,
+      // o que el laboratorio ya recalculó con sus propios datos) arranca en
+      // modo "propio" para no inventarle un rango de inserto que nunca tuvo.
+      var origen = control.dsOrigen || (control.rangoMin != null && control.rangoMin !== "" ? "inserto" : (isEdit ? "propio" : "inserto"));
       var wrap = U.openModal(
         '<h3 class="modal-title">' + (isEdit ? "Editar Control" : "Nuevo Control de Calidad") + '</h3>' +
         '<form id="qc-form">' +
@@ -201,11 +229,23 @@
         '<div class="field"><label>Analito</label><select id="f_qcAnalito"></select></div>' +
         F.sel("qcNivel", "Nivel del Control", Q.NIVELES.map(function (n) { return "<option value='" + n + "' " + (n === control.nivel ? "selected" : "") + ">" + n + "</option>"; }).join("")) +
         F.inp("qcLote", "Número de Lote", control.lote) +
-        F.inp("qcMedia", "Media (valor objetivo)", control.media, true, "number") +
-        F.inp("qcDs", "Desviación Estándar (DS)", control.ds, true, "number") +
         F.inp("qcVencimiento", "Fecha de Vencimiento del Lote", control.vencimiento, false, "date") +
         "</div>" +
-        '<p class="text-muted" style="font-size:12.5px">La media y la DS son los valores objetivo del inserto del fabricante del control, o los calculados por tu laboratorio tras 20 corridas.</p>' +
+        '<div class="field" style="margin-top:4px"><label>¿De dónde salen la media y la DS de este control?</label>' +
+        '<div class="crm-view-toggle"><button type="button" class="' + (origen === "inserto" ? "active" : "") + '" data-origen="inserto">📄 Datos del inserto</button>' +
+        '<button type="button" class="' + (origen === "propio" ? "active" : "") + '" data-origen="propio">🔬 Datos propios del laboratorio</button></div></div>' +
+        '<div id="qc-origen-inserto" class="form-grid" style="margin-top:6px">' +
+        F.inp("qcMediaIns", "Media (valor objetivo impreso en el inserto)", control.media, false, "number") +
+        F.inp("qcRangoMin", "Rango Mínimo Aceptable (del inserto)", control.rangoMin, false, "number") +
+        F.inp("qcRangoMax", "Rango Máximo Aceptable (del inserto)", control.rangoMax, false, "number") +
+        F.sel("qcRangoEnDS", "Ese rango representa", [2, 3].map(function (n) { return "<option value='" + n + "' " + ((control.rangoEnDS || 2) === n ? "selected" : "") + ">± " + n + " DE" + (n === 2 ? " (lo más común)" : "") + "</option>"; }).join("")) +
+        "</div>" +
+        '<p id="qc-ds-calculada" class="text-muted" style="font-size:12.5px;margin:2px 0 10px"></p>' +
+        '<div id="qc-origen-propio" class="form-grid" style="margin-top:6px">' +
+        F.inp("qcMediaProp", "Media (calculada con datos propios)", control.media, false, "number") +
+        F.inp("qcDsProp", "Desviación Estándar (DS) calculada", control.ds, false, "number") +
+        "</div>" +
+        '<p class="text-muted" style="font-size:12.5px">La mayoría de insertos en Colombia y Venezuela no traen una "DS" impresa: traen una media y un rango aceptable (ej. "70,4 - 95,2"), que casi siempre representa la media ± 2 DE del fabricante — de ahí se calcula la DS que realmente usan las reglas de Westgard. Si tu laboratorio ya recalculó su propia media/DS tras acumular ~20 corridas (recomendado por CLSI), usa "Datos propios del laboratorio".</p>' +
         '<div class="flex gap-2 justify-between" style="margin-top:6px"><button type="button" class="btn btn-ghost" data-modal-close>Cancelar</button><button type="submit" class="btn btn-primary">' + U.icon("check") + " Guardar</button></div>" +
         "</form>", { lg: true }
       );
@@ -216,15 +256,55 @@
       }
       wrap.querySelector("#f_qcSeccion").addEventListener("change", refrescarAnalitos);
       refrescarAnalitos();
+
+      function actualizarDsCalculada() {
+        if (origen !== "inserto") return;
+        var min = parseFloat(wrap.querySelector("#f_qcRangoMin").value);
+        var max = parseFloat(wrap.querySelector("#f_qcRangoMax").value);
+        var nsd = parseFloat(wrap.querySelector("#f_qcRangoEnDS").value) || 2;
+        var ds = dsDesdeRango(min, max, nsd);
+        wrap.querySelector("#qc-ds-calculada").textContent = (ds != null && !isNaN(ds) && max > min)
+          ? "DS calculada a partir del rango: " + (Math.round(ds * 100) / 100)
+          : "Completa el rango mínimo y máximo (el máximo debe ser mayor que el mínimo) para calcular la DS.";
+      }
+      function actualizarVisibilidadOrigen() {
+        wrap.querySelector("#qc-origen-inserto").style.display = origen === "inserto" ? "" : "none";
+        wrap.querySelector("#qc-ds-calculada").style.display = origen === "inserto" ? "" : "none";
+        wrap.querySelector("#qc-origen-propio").style.display = origen === "propio" ? "" : "none";
+        actualizarDsCalculada();
+      }
+      wrap.querySelectorAll("[data-origen]").forEach(function (b) {
+        b.addEventListener("click", function () {
+          origen = b.dataset.origen;
+          wrap.querySelectorAll("[data-origen]").forEach(function (x) { x.classList.toggle("active", x === b); });
+          actualizarVisibilidadOrigen();
+        });
+      });
+      wrap.querySelector("#f_qcRangoMin").addEventListener("input", actualizarDsCalculada);
+      wrap.querySelector("#f_qcRangoMax").addEventListener("input", actualizarDsCalculada);
+      wrap.querySelector("#f_qcRangoEnDS").addEventListener("change", actualizarDsCalculada);
+      actualizarVisibilidadOrigen();
+
       wrap.querySelector("#qc-form").addEventListener("submit", function (e) {
         e.preventDefault();
         var g = function (id) { return wrap.querySelector("#f_" + id).value; };
-        var media = parseFloat(g("qcMedia")), ds = parseFloat(g("qcDs"));
-        if (isNaN(media) || isNaN(ds) || ds <= 0) { U.toast("Ingresa una media y una DS válidas (DS mayor que 0).", "error"); return; }
         var data = {
           seccion: g("qcSeccion"), analitoCodigo: g("qcAnalito"), nivel: g("qcNivel"),
-          lote: g("qcLote").trim(), media: media, ds: ds, vencimiento: g("qcVencimiento"), activo: true
+          lote: g("qcLote").trim(), vencimiento: g("qcVencimiento"), activo: true
         };
+        if (origen === "inserto") {
+          var mediaI = parseFloat(g("qcMediaIns"));
+          var min = parseFloat(g("qcRangoMin")), max = parseFloat(g("qcRangoMax"));
+          var nsd = parseFloat(g("qcRangoEnDS")) || 2;
+          if (isNaN(mediaI) || isNaN(min) || isNaN(max)) { U.toast("Completa la media y el rango mínimo/máximo del inserto.", "error"); return; }
+          if (max <= min) { U.toast("El rango máximo debe ser mayor que el mínimo.", "error"); return; }
+          var dsCalc = dsDesdeRango(min, max, nsd);
+          Object.assign(data, { media: mediaI, ds: Math.round(dsCalc * 100) / 100, dsOrigen: "inserto", rangoMin: min, rangoMax: max, rangoEnDS: nsd });
+        } else {
+          var mediaP = parseFloat(g("qcMediaProp")), dsP = parseFloat(g("qcDsProp"));
+          if (isNaN(mediaP) || isNaN(dsP) || dsP <= 0) { U.toast("Ingresa una media y una DS válidas (DS mayor que 0).", "error"); return; }
+          Object.assign(data, { media: mediaP, ds: dsP, dsOrigen: "propio", rangoMin: null, rangoMax: null });
+        }
         var resultado = isEdit ? S.qc.updateControl(control.id, data) : S.qc.createControl(Object.assign({ tenantId: tenantId }, data));
         U.toast("Control guardado.", "success");
         U.closeModal(wrap);
@@ -239,14 +319,44 @@
       if (!control) return;
       var lecturas = S.qc.listLecturas(control.id);
       var info = analitoInfo(control.seccion, control.analitoCodigo);
+      // Sugerencia CLSI C24: tras ~20 corridas, lo recomendado es dejar de
+      // usar la media/DS del inserto del fabricante (solo un punto de
+      // partida) y pasar a la media/DS REAL calculada con los datos que ya
+      // produjo el propio equipo del laboratorio — más representativa de
+      // su desempeño real que el valor genérico de la caja del control.
+      var statsPropias = lecturas.length >= 20 ? Q.estadisticas(lecturas.map(function (l) { return l.valor; })) : null;
+      var sugerenciaHtml = "";
+      if (statsPropias && statsPropias.ds) {
+        var mediaR = Math.round(statsPropias.media * 100) / 100, dsR = Math.round(statsPropias.ds * 100) / 100;
+        sugerenciaHtml = '<div class="card" style="background:var(--surface-2);box-shadow:none;margin:10px 0;padding:10px 12px">' +
+          '<p style="margin:0 0 6px;font-size:13px"><b>📊 Recomendación CLSI C24:</b> ya tienes ' + lecturas.length + ' lecturas registradas. Puedes calcular tu propia media y DS con el desempeño real de tu equipo, en vez de seguir usando solo el valor del inserto: <b>Media ' + mediaR + '</b> · <b>DS ' + dsR + '</b> ' + U.esc(info.unidad) + '.</p>' +
+          '<button type="button" class="btn btn-outline btn-sm" id="btn-usar-stats-propias">Usar estos valores como mi Media/DS</button>' +
+          '</div>';
+      }
       var wrap = U.openModal(
         '<h3 class="modal-title">📈 ' + U.esc(info.nombre) + " — " + U.esc(control.nivel) + '</h3>' +
-        '<p class="text-muted" style="margin-top:0">Lote ' + U.esc(control.lote || "—") + " · Media " + control.media + " ± " + control.ds + " " + U.esc(info.unidad) + '</p>' +
+        '<p class="text-muted" style="margin-top:0">Lote ' + U.esc(control.lote || "—") + " · Media " + control.media + " ± " + (Math.round(control.ds * 100) / 100) + " " + U.esc(info.unidad) +
+        (control.dsOrigen === "inserto" && control.rangoMin != null ? " <span style='font-size:11px'>(rango inserto " + control.rangoMin + "–" + control.rangoMax + ", ± " + (control.rangoEnDS || 2) + " DE)</span>" : "") + '</p>' +
+        sugerenciaHtml +
         (lecturas.length ? renderLJChart(lecturas, control.media, control.ds) : '<p class="text-muted">Aún no hay lecturas registradas para este control.</p>') +
         renderTablaLecturas(lecturas, control) +
         '<div class="flex justify-between" style="margin-top:14px"><button class="btn btn-ghost" data-modal-close>Cerrar</button></div>',
         { lg: true }
       );
+      if (statsPropias && statsPropias.ds) {
+        wrap.querySelector("#btn-usar-stats-propias").addEventListener("click", function () {
+          if (!confirm("¿Usar la media y DS calculadas con tus propios datos (" + lecturas.length + " lecturas) en vez de los valores del inserto? Las próximas lecturas se evaluarán con estos nuevos valores.")) return;
+          S.qc.updateControl(control.id, {
+            media: Math.round(statsPropias.media * 100) / 100, ds: Math.round(statsPropias.ds * 100) / 100,
+            dsOrigen: "propio", rangoMin: null, rangoMax: null
+          });
+          S.addAudit(tenantId, session.nombre, session.rol, "QC_RECALCULO", "control_calidad", control.id,
+            "Recalculó Media/DS de QC (" + info.nombre + " " + control.nivel + ") con datos propios del laboratorio (" + lecturas.length + " lecturas).");
+          U.toast("Media/DS actualizadas con datos propios del laboratorio.", "success");
+          U.closeModal(wrap);
+          cargar();
+        });
+      }
     }
 
     function renderTablaLecturas(lecturas, control) {

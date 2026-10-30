@@ -148,6 +148,7 @@
 
         doc.setFont("helvetica", "normal"); doc.setFontSize(8); doc.setTextColor(80, 80, 80);
         var lineaStats = "Lote " + (c.lote || "—") + "  ·  Objetivo: " + c.media + " ± " + c.ds + " " + info.unidad +
+          (c.dsOrigen === "inserto" && c.rangoMin != null ? "  ·  Rango inserto: " + c.rangoMin + "-" + c.rangoMax + " (± " + (c.rangoEnDS || 2) + " DE)" : "") +
           "  ·  Lecturas: " + lecturas.length +
           (medReal != null ? "  ·  Media real: " + medReal.toFixed(2) : "") +
           (dsReal != null ? "  ·  DS real: " + dsReal.toFixed(2) : "") +
