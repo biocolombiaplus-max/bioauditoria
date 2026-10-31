@@ -828,8 +828,43 @@
   // sin forma de consultar su resultado solo porque el DNS del dominio
   // propio todavía no está listo.
   function urlSitioWeb(tenant) {
+    // Un laboratorio puede tener su propio sitio hecho por fuera de BIOsoft
+    // (ej. en Vercel, mientras compra su dominio propio) — esa URL completa
+    // tiene prioridad sobre el dominio propio y sobre el sitio alojado por
+    // BIOsoft, porque es literalmente donde vive su portal de consulta de
+    // resultados (ver "Página Web" en Configuración).
+    var externa = tenant.paginaWeb && tenant.paginaWeb.urlExterna ? tenant.paginaWeb.urlExterna.trim() : "";
+    if (externa) return /^https?:\/\//i.test(externa) ? externa : ("https://" + externa);
     var dominio = tenant.paginaWeb && tenant.paginaWeb.dominio ? tenant.paginaWeb.dominio.trim().replace(/^https?:\/\//, "").replace(/\/$/, "") : "";
     return dominio ? "https://" + dominio : "https://bioauditoria.com/biosoft/sitio-web.html?t=" + tenant.id;
+  }
+
+  // Mensaje + envío del código de consulta por WhatsApp — compartido entre
+  // el modal que sale justo al crear la orden y el botón para reenviarlo
+  // desde el detalle de la orden, para no mantener el mismo texto
+  // duplicado en dos lugares. En celular/tablet (navegadores con Web Share
+  // API de archivos) adjunta el PDF de media carta CON el logo del
+  // laboratorio al mensaje — así "el logo" sí viaja al chat de WhatsApp,
+  // algo que un enlace wa.me normal (solo texto) nunca puede hacer, por
+  // una limitación del propio WhatsApp, no de BIOsoft. En computador de
+  // escritorio (sin esa API) se abre el wa.me normal, solo con el texto.
+  function enviarCodigoConsultaWhatsApp(order, pac, tenant, numeroPacienteWA, parrafoIntro) {
+    var nombrePac = pac ? U.nombreCompleto(pac).split(" ")[0] : "";
+    var mensaje = "Hola " + nombrePac + " 👋\n\n" + parrafoIntro + "\n\n" +
+      "🔗 " + urlSitioWeb(tenant) + "\n\n" +
+      "Solo necesitas estos 2 datos:\n" +
+      "📄 Documento: *" + (pac && pac.numeroDocumento ? pac.numeroDocumento : "—") + "*\n" +
+      "🔑 Código: *" + order.codigoConsulta + "*\n\n" +
+      "Guarda este mensaje — lo vas a necesitar para descargar tu resultado.";
+    var numero = numeroPacienteWA.replace(/\D/g, "");
+    if (U.soportaCompartirArchivos()) {
+      try {
+        var bytes = BIO_PDF_CODIGO_CONSULTA.buildCodigoConsultaPDF(order, pac, tenant, urlSitioWeb(tenant));
+        U.compartirPDF(bytes, "Codigo_Consulta_" + order.numeroOrden + ".pdf", mensaje);
+        return;
+      } catch (e) { /* si falla, sigue con el enlace de texto de abajo */ }
+    }
+    window.open("https://wa.me/" + numero + "?text=" + encodeURIComponent(mensaje), "_blank");
   }
 
   function ofrecerStickers(order) {
@@ -859,12 +894,8 @@
     // había terminado de crearse — bug real reportado. Se agrega la
     // misma navegación que ya tienen las otras 3 opciones.
     if (puedeEnviarCodigo) wrap.querySelector("#btn-enviar-codigo-resultado").addEventListener("click", function () {
-      var nombrePac = pac ? U.nombreCompleto(pac).split(" ")[0] : "";
-      var mensaje = "Hola " + nombrePac + " 👋 Ya quedó registrada tu orden " + order.numeroOrden + " en " + tenant.nombre + ".\n\n" +
-        "Apenas tus resultados estén listos, podrás verlos y descargarlos tú mismo(a) aquí:\n" + urlSitioWeb(tenant) + "\n\n" +
-        "Solo necesitas:\n1) Tu número de documento: " + (pac.numeroDocumento || "—") + "\n2) Tu código de consulta: " + order.codigoConsulta + "\n\n" +
-        "Guarda este mensaje — lo vas a necesitar.";
-      window.open("https://wa.me/" + numeroPacienteWA.replace(/\D/g, "") + "?text=" + encodeURIComponent(mensaje), "_blank");
+      var parrafo = "Ya quedó registrada tu orden *" + order.numeroOrden + "* en *" + (tenant.nombre || "nuestro laboratorio") + "*. Apenas tus resultados estén listos, podrás verlos y descargarlos tú mismo(a) aquí:";
+      enviarCodigoConsultaWhatsApp(order, pac, tenant, numeroPacienteWA, parrafo);
     });
     if (puedeReciboOrden(tenant)) wrap.querySelector("#btn-recibo-orden").addEventListener("click", function () {
       U.closeModal(wrap);
@@ -1499,10 +1530,8 @@
       if (btnEnviarCodigoWa) btnEnviarCodigoWa.addEventListener("click", function () {
         var numeroPacienteWA = pac ? (pac.celular || pac.telefono || "") : "";
         if (!numeroPacienteWA) { U.toast("Este paciente no tiene un número de WhatsApp registrado — edítalo desde Pacientes.", "error"); return; }
-        var nombrePac = pac ? U.nombreCompleto(pac).split(" ")[0] : "";
-        var mensaje = "Hola " + nombrePac + " 👋 Aquí está de nuevo el acceso a tus resultados de " + tenant.nombre + " (Orden " + order.numeroOrden + "):\n" +
-          urlSitioWeb(tenant) + "\n\nSolo necesitas:\n1) Tu número de documento: " + (pac.numeroDocumento || "—") + "\n2) Tu código de consulta: " + order.codigoConsulta + "\n\nGuarda este mensaje — lo vas a necesitar.";
-        window.open("https://wa.me/" + numeroPacienteWA.replace(/\D/g, "") + "?text=" + encodeURIComponent(mensaje), "_blank");
+        var parrafo = "Aquí tienes de nuevo el acceso a tus resultados de *" + (tenant.nombre || "nuestro laboratorio") + "* (Orden *" + order.numeroOrden + "*):";
+        enviarCodigoConsultaWhatsApp(order, pac, tenant, numeroPacienteWA, parrafo);
       });
       var btnImprimirCodigo = document.getElementById("btn-imprimir-codigo");
       if (btnImprimirCodigo) btnImprimirCodigo.addEventListener("click", function () { imprimirCodigoConsulta(order, pac, tenant); });
@@ -1995,25 +2024,28 @@
     "</div>";
   }
 
+  // Antes era una ventana HTML simple (sin logo, tamaño carta completa
+  // para 4 líneas de texto) — ahora es un PDF de verdad (media carta, con
+  // el logo del laboratorio y QR), igual de profesional que el resto de
+  // documentos de BIOsoft, impreso con el mismo mecanismo ya probado que
+  // usan los stickers (iframe oculto + print()).
   function imprimirCodigoConsulta(order, pac, tenant) {
-    var w = window.open("", "_blank", "width=420,height=560");
-    if (!w) { U.toast("El navegador bloqueó la ventana de impresión — permite ventanas emergentes e intenta de nuevo.", "error"); return; }
-    var html = "<!doctype html><html><head><meta charset='utf-8'><title>Código de Consulta — " + U.esc(order.numeroOrden) + "</title>" +
-      "<style>body{font-family:Arial,sans-serif;text-align:center;padding:36px 24px;color:#0f172a}" +
-      "h1{font-size:15px;margin:0 0 2px}.sub{font-size:11.5px;color:#64748b;margin:0 0 22px}" +
-      ".codigo{font-size:34px;font-weight:800;letter-spacing:8px;border:2px solid #f97316;border-radius:14px;padding:18px 10px;margin:0 0 18px}" +
-      ".dato{font-size:12.5px;margin:4px 0}.dato b{color:#0f172a}.pie{font-size:10.5px;color:#94a3b8;margin-top:24px}" +
-      "@media print{.pie{margin-top:40px}}</style></head><body>" +
-      "<h1>" + U.esc(tenant.nombre || "Laboratorio Clínico") + "</h1>" +
-      "<p class='sub'>Código de Consulta de Resultados — Orden " + U.esc(order.numeroOrden) + "</p>" +
-      "<div class='codigo'>" + U.esc(order.codigoConsulta) + "</div>" +
-      "<p class='dato'><b>Paciente:</b> " + U.esc(pac ? U.nombreCompleto(pac) : "—") + "</p>" +
-      "<p class='dato'><b>Documento:</b> " + U.esc(pac ? pac.numeroDocumento : "—") + "</p>" +
-      "<p class='dato'>Consulta tus resultados en:<br>" + U.esc(urlSitioWeb(tenant)) + "</p>" +
-      "<p class='pie'>Guarda este código — lo necesitas para descargar tu resultado.</p>" +
-      "</body></html>";
-    w.document.open(); w.document.write(html); w.document.close();
-    w.onload = function () { w.focus(); w.print(); };
+    var bytes = BIO_PDF_CODIGO_CONSULTA.buildCodigoConsultaPDF(order, pac, tenant, urlSitioWeb(tenant));
+    var blobUrl = URL.createObjectURL(new Blob([bytes], { type: "application/pdf" }));
+    var iframe = document.createElement("iframe");
+    iframe.style.cssText = "position:fixed;right:0;bottom:0;width:1px;height:1px;border:0;opacity:0";
+    iframe.src = blobUrl;
+    var yaImprimio = false;
+    function lanzarImpresion() {
+      if (yaImprimio) return;
+      yaImprimio = true;
+      try { iframe.contentWindow.focus(); iframe.contentWindow.print(); } catch (e) { window.open(blobUrl, "_blank"); }
+    }
+    iframe.onload = function () { setTimeout(lanzarImpresion, 150); };
+    document.body.appendChild(iframe);
+    setTimeout(lanzarImpresion, 1200);
+    setTimeout(function () { iframe.remove(); }, 60000);
+    U.toast("Abriendo el diálogo de impresión de tu navegador…", "success");
   }
 
   // Antes los ~14 campos de la orden salían todos en una sola rejilla

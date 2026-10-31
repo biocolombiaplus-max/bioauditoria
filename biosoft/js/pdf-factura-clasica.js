@@ -215,8 +215,9 @@
     // ---- Consulta de resultados en línea (solo si esta orden generó
     // código — ver "Página Web" en Configuración) ---------------------------
     if (order.codigoConsulta) {
+      var externaSitioFC = tenant.paginaWeb && tenant.paginaWeb.urlExterna ? tenant.paginaWeb.urlExterna.trim() : "";
       var dominioSitioFC = tenant.paginaWeb && tenant.paginaWeb.dominio ? tenant.paginaWeb.dominio.trim().replace(/^https?:\/\//, "").replace(/\/$/, "") : "";
-      var urlSitioFC = dominioSitioFC ? dominioSitioFC : "bioauditoria.com/biosoft/sitio-web.html?t=" + tenant.id;
+      var urlSitioFC = externaSitioFC ? externaSitioFC.replace(/^https?:\/\//i, "") : (dominioSitioFC ? dominioSitioFC : "bioauditoria.com/biosoft/sitio-web.html?t=" + tenant.id);
       doc.setFont("helvetica", "bold"); doc.setFontSize(8); doc.setTextColor(rgb[0], rgb[1], rgb[2]);
       doc.text("🔐 Consulta tus resultados en " + urlSitioFC + " con tu documento y el código " + order.codigoConsulta, margin, y);
       y += 16;

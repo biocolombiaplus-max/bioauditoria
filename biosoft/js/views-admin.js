@@ -1675,6 +1675,8 @@
         '<div class="field"><label>Dominio propio (opcional)</label><input id="f_pw_dominio" placeholder="Ej. laboratoriodivinamisericordia.com" value="' + U.esc((tenant.paginaWeb && tenant.paginaWeb.dominio) || "") + '"/></div>' +
         "</div>" +
         '<p class="text-muted" style="margin:4px 0 12px;font-size:12.5px">Déjalo vacío mientras configuras el dominio con tu proveedor — mientras tanto, el enlace que se envía a tus pacientes sigue funcionando igual, alojado por BIOsoft (bioauditoria.com/biosoft/sitio-web.html?t=' + U.esc(tenant.id) + "). Cuando tengas el dominio, pégalo aquí y apúntalo (registro CNAME) a bioauditoria.com — te ayudamos con ese paso si lo necesitas.</p>" +
+        '<div class="field"><label>¿Tu sitio web lo hiciste aparte de BIOsoft? (opcional)</label><input id="f_pw_urlexterna" placeholder="Ej. https://tulaboratorio.vercel.app" value="' + U.esc((tenant.paginaWeb && tenant.paginaWeb.urlExterna) || "") + '"/></div>' +
+        '<p class="text-muted" style="margin:4px 0 12px;font-size:12.5px">Si ya tienes tu propia página (ej. hecha en Vercel, Wix u otro) con tu propio portal de consulta de resultados, pega aquí su dirección completa — se usará esa en vez de la de arriba, en el recibo, el código de consulta y los mensajes de WhatsApp a tus pacientes. Sirve también como dirección temporal mientras compras tu dominio propio. Déjalo vacío si tu Página Web es la que armaste aquí mismo en BIOsoft.</p>' +
         '<div class="field"><label>Título principal (hero)</label><input id="f_pw_herotitulo" placeholder="Ej. Tu salud en buenas manos, resultados en los que puedes confiar" value="' + U.esc((tenant.paginaWeb && tenant.paginaWeb.heroTitulo) || "") + '"/></div>' +
         '<div class="field"><label>Subtítulo / frase de bienvenida</label><textarea id="f_pw_herosubtitulo" rows="2" placeholder="Ej. Más de 15 años al servicio de tu familia, con tecnología de punta.">' + U.esc((tenant.paginaWeb && tenant.paginaWeb.heroSubtitulo) || "") + "</textarea></div>" +
         '<div class="field"><label>Banner publicitario arriba del todo (opcional)</label><input id="f_pw_banner" placeholder="Ej. 🎉 20% de descuento en Chequeo Ejecutivo este mes" value="' + U.esc((tenant.paginaWeb && tenant.paginaWeb.bannerTexto) || "") + '"/></div>' +
@@ -1819,15 +1821,23 @@
     // verlo — "¿dónde veo el link de mi página?" era una pregunta
     // recurrente.
     var elPwDominio = document.getElementById("f_pw_dominio");
+    var elPwUrlExterna = document.getElementById("f_pw_urlexterna");
     if (elPwDominio) {
       function actualizarEnlacePaginaWeb() {
-        var dominio = elPwDominio.value.trim().replace(/^https?:\/\//, "").replace(/\/$/, "");
-        var url = dominio ? "https://" + dominio : "https://bioauditoria.com/biosoft/sitio-web.html?t=" + tenant.id;
+        var externa = elPwUrlExterna ? elPwUrlExterna.value.trim() : "";
+        var url;
+        if (externa) {
+          url = /^https?:\/\//i.test(externa) ? externa : ("https://" + externa);
+        } else {
+          var dominio = elPwDominio.value.trim().replace(/^https?:\/\//, "").replace(/\/$/, "");
+          url = dominio ? "https://" + dominio : "https://bioauditoria.com/biosoft/sitio-web.html?t=" + tenant.id;
+        }
         document.getElementById("pw-link-texto").textContent = url;
         document.getElementById("btn-pw-abrir").href = url;
       }
       actualizarEnlacePaginaWeb();
       elPwDominio.addEventListener("input", actualizarEnlacePaginaWeb);
+      if (elPwUrlExterna) elPwUrlExterna.addEventListener("input", actualizarEnlacePaginaWeb);
       document.getElementById("btn-pw-copiar").addEventListener("click", function () {
         var url = document.getElementById("pw-link-texto").textContent;
         navigator.clipboard.writeText(url).then(function () {
@@ -1949,6 +1959,7 @@
         // formulario.
         activo: !!(tenant.paginaWebAutorizada && document.getElementById("f_pw_activo").checked),
         dominio: g("pw_dominio"),
+        urlExterna: g("pw_urlexterna"),
         heroTitulo: g("pw_herotitulo"),
         heroSubtitulo: g("pw_herosubtitulo"),
         bannerTexto: g("pw_banner"),

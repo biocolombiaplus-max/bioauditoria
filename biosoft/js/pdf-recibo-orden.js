@@ -348,8 +348,9 @@
     // para que el paciente nunca tenga que llamar a preguntar "¿ya están
     // mis resultados?".
     if (order.codigoConsulta) {
+      var externaSitio = tenant.paginaWeb && tenant.paginaWeb.urlExterna ? tenant.paginaWeb.urlExterna.trim() : "";
       var dominioSitio = tenant.paginaWeb && tenant.paginaWeb.dominio ? tenant.paginaWeb.dominio.trim().replace(/^https?:\/\//, "").replace(/\/$/, "") : "";
-      var urlSitio = dominioSitio ? dominioSitio : "bioauditoria.com/biosoft/sitio-web.html?t=" + tenant.id;
+      var urlSitio = externaSitio ? externaSitio.replace(/^https?:\/\//i, "") : (dominioSitio ? dominioSitio : "bioauditoria.com/biosoft/sitio-web.html?t=" + tenant.id);
       var cardRW = 300, cardRH = 70, cardRX = margin, cardRY = y;
       doc.setFillColor(255, 247, 237); doc.setDrawColor(rgb[0], rgb[1], rgb[2]); doc.setLineWidth(1.1);
       doc.roundedRect(cardRX, cardRY, cardRW, cardRH, 6, 6, "FD");
