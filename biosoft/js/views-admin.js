@@ -2198,20 +2198,34 @@
   // ------------------------------------------------------------------
   // AUDITORÍA / TRAZABILIDAD
   // ------------------------------------------------------------------
+  // auditLog ya NO llega sincronizado en tiempo real con el resto del
+  // laboratorio (ver el comentario en initRealtime(), store.js) — crece
+  // para siempre y antes se releía POR COMPLETO en cada inicio de sesión
+  // de CADA usuario, aunque casi nadie visita esta pantalla (es la de
+  // mayor volumen de lecturas de toda la app en un laboratorio con
+  // historial largo). Ahora se trae una sola vez, solo cuando de verdad se
+  // entra a "Trazabilidad" — en modo demo sigue viniendo directo de
+  // memoria (sin ningún costo de red), igual que siempre.
   window.BIO_VIEWS.auditoria = function (root) {
     var session = BIO_AUTH.getSession();
     var tenant = S.getTenant(session.tenantId);
     var filtro = "";
+    var logCompleto = null;
+    var cargando = true;
+    var error = "";
+
     function build() {
-      var log = S.listAudit(session.tenantId).filter(function (a) {
+      if (cargando) { root.innerHTML = '<div class="card"><p class="text-muted">Cargando trazabilidad…</p></div>'; return; }
+      if (error) { root.innerHTML = '<div class="card"><p class="text-muted">No se pudo cargar la trazabilidad: ' + U.esc(error) + '</p></div>'; return; }
+      var log = (logCompleto || []).filter(function (a) {
         if (!filtro) return true;
         var f = filtro.toLowerCase();
         return (a.usuario || "").toLowerCase().indexOf(f) !== -1 || (a.accion || "").toLowerCase().indexOf(f) !== -1 || (a.detalle || "").toLowerCase().indexOf(f) !== -1;
       });
-      // Del más reciente al más antiguo — listAudit() devuelve las entradas
-      // en el mismo orden en que se fueron guardando (la más vieja primero),
-      // así que sin este ordenamiento había que bajar hasta el final de una
-      // trazabilidad larga para ver lo que acababa de pasar.
+      // Del más reciente al más antiguo — llegan en el mismo orden en que
+      // se fueron guardando (la más vieja primero), así que sin este
+      // ordenamiento había que bajar hasta el final de una trazabilidad
+      // larga para ver lo que acababa de pasar.
       log = log.slice().sort(function (a, b) { return (b.fecha || "").localeCompare(a.fecha || ""); });
       root.innerHTML =
         '<div class="card"><div class="card-header"><h3 class="card-title">Trazabilidad de Acciones (' + log.length + ')</h3>' +
@@ -2222,6 +2236,17 @@
         }).join("") : '<tr><td colspan="5" class="text-muted">Sin registros.</td></tr>') +
         "</tbody></table></div></div>";
       document.getElementById("aud-search").addEventListener("input", function (e) { filtro = e.target.value; build(); });
+    }
+
+    if (S.isRealMode()) {
+      S.listAuditRemoto().then(function (log) {
+        logCompleto = log; cargando = false; build();
+      }).catch(function (err) {
+        cargando = false; error = (err && err.message) || String(err); build();
+      });
+    } else {
+      logCompleto = S.listAudit(session.tenantId);
+      cargando = false;
     }
     build();
   };

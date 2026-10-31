@@ -267,7 +267,7 @@
     // todavía (ej. el historial completo de auditoría).
     return Promise.all([tenantPromise, attach("users", "users", false)]).then(function () {
       [
-        "patients", "orders", "auditLog", "qcControles", "qcLecturas", "preciosExamenes",
+        "patients", "orders", "qcControles", "qcLecturas", "preciosExamenes",
         "examenesPersonalizados", "cotizaciones", "reglasRemarketing", "remarketingContactos",
         "insumos", "recetasReactivos", "kardexInventario", "consentimientos", "examenesReferencia",
         // Estas 5 colecciones se escriben con fbWrite/fbDelete desde hace
@@ -1332,6 +1332,23 @@
     return db.auditLog.filter(function (a) { return tenantId ? a.tenantId === tenantId : true; });
   }
 
+  // auditLog NO se sincroniza en tiempo real dentro de initRealtime() (ver
+  // ese comentario) porque crece para siempre y solo lo necesita el
+  // Administrador, al entrar a "Trazabilidad" — rarísima vez el resto del
+  // personal. Esta lectura puntual (una sola vez, solo cuando de verdad se
+  // visita esa pantalla) reemplaza esa sincronización permanente para TODOS
+  // los usuarios en cada inicio de sesión. Devuelve una promesa (a
+  // diferencia de listAudit(), que sigue sirviendo igual para el modo demo,
+  // donde todo ya está en memoria local sin costo de red).
+  function listAuditRemoto() {
+    if (!firebaseDisponible()) return Promise.reject(errorFirebaseNoDisponible());
+    return fbColl("auditLog").get().then(function (snap) {
+      var out = [];
+      snap.forEach(function (doc) { out.push(doc.data()); });
+      return out;
+    });
+  }
+
   // ---------------------------------------------------------------------
   // TENANTS (LABORATORIOS CLIENTE)
   // ---------------------------------------------------------------------
@@ -2394,6 +2411,7 @@
     nowISO: nowISO,
     addAudit: addAudit,
     listAudit: listAudit,
+    listAuditRemoto: listAuditRemoto,
     listTenants: listTenants,
     getTenant: getTenant,
     saveTenant: saveTenant,
