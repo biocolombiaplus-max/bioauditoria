@@ -644,6 +644,38 @@
   }
 
   // -----------------------------------------------------------------------
+  // "Nuestros Clientes" de la landing pública (solo superadmin) — logos de
+  // laboratorios clientes reales en el carrusel de la landing, cada uno con
+  // su propio enlace de WhatsApp para pedirle una recomendación. Ver
+  // js/views-landing-imagenes.js (administración) y js/landing-clientes.js
+  // (lo que ve el público en index.html).
+  // -----------------------------------------------------------------------
+  function landingClientesColl() { return global.BIO_FB.db.collection("landingClientes"); }
+  function landingClientesList() {
+    if (!firebaseDisponible()) return Promise.reject(errorFirebaseNoDisponible());
+    return landingClientesColl().get().then(function (snap) {
+      var out = [];
+      snap.forEach(function (doc) { out.push(doc.data()); });
+      out.sort(function (a, b) { return (a.creadoEn || "").localeCompare(b.creadoEn || ""); });
+      return out;
+    });
+  }
+  function landingClientesCreate(data) {
+    if (!firebaseDisponible()) return Promise.reject(errorFirebaseNoDisponible());
+    var id = uid("lcl");
+    var doc = Object.assign({ creadoEn: nowISO() }, data, { id: id });
+    return landingClientesColl().doc(id).set(doc).then(function () { return doc; });
+  }
+  function landingClientesUpdate(id, patch) {
+    if (!firebaseDisponible()) return Promise.reject(errorFirebaseNoDisponible());
+    return landingClientesColl().doc(id).update(patch);
+  }
+  function landingClientesDelete(id) {
+    if (!firebaseDisponible()) return Promise.reject(errorFirebaseNoDisponible());
+    return landingClientesColl().doc(id).delete();
+  }
+
+  // -----------------------------------------------------------------------
   // Demo personalizada de "Página Web" (demo-sitio.html) — ver
   // abrirGenerarDemoPersonalizada() en views-admin.js (quien la escribe) y
   // js/demo-sitio.js (quien la lee, sin sesión, desde el enlace enviado al
@@ -2460,6 +2492,7 @@
     },
     plantillas: { list: plantillasList, watch: plantillasWatch, create: plantillasCreate, update: plantillasUpdate, remove: plantillasDelete },
     landingImagenes: { list: landingImagenesList, set: landingImagenesSet, remove: landingImagenesDelete },
+    landingClientes: { list: landingClientesList, create: landingClientesCreate, update: landingClientesUpdate, remove: landingClientesDelete },
     demoSitioWeb: { get: demoSitioWebGet, set: demoSitioWebSet },
     resultadosPublicos: { get: resultadoPublicoGet, set: resultadoPublicoSet, agregarHistorial: resultadoPublicoAgregarHistorial },
     reservarCodigoConsulta: reservarCodigoConsulta,

@@ -104,6 +104,16 @@ service cloud.firestore {
       allow write: if esSuperadmin();
     }
 
+    // "Nuestros Clientes" de la landing pública (index.html) — logos de
+    // laboratorios clientes reales, en un carrusel, cada uno con un enlace
+    // de WhatsApp para pedirle una recomendación. Mismo criterio que
+    // landingImagenes: lectura pública sin sesión (la ve cualquier
+    // visitante de la landing), solo el superadmin administra la lista.
+    match /landingClientes/{clienteId} {
+      allow read: if true;
+      allow write: if esSuperadmin();
+    }
+
     // Página web del laboratorio (demo-sitio.html / sitio-web.html) —
     // mismo documento sirve para dos cosas: la demo de venta que el
     // superadmin genera desde Laboratorios Cliente → Más acciones →

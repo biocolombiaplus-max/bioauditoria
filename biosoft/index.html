@@ -47,8 +47,8 @@ fbq('track', 'PageView');
     "@type": "AggregateOffer",
     "priceCurrency": "COP",
     "lowPrice": "120000",
-    "highPrice": "250000",
-    "offerCount": "3"
+    "highPrice": "320000",
+    "offerCount": "4"
   }
 }
 </script>
@@ -147,6 +147,30 @@ fbq('track', 'PageView');
   }
   .lp-scroll-chevron { font-size:22px; line-height:.6; margin-top:-2px; }
   @keyframes lpScrollBounce { 0%, 100% { transform: translateY(0); box-shadow: 0 0 0 0 rgba(255,255,255,.18); } 50% { transform: translateY(6px); box-shadow: 0 0 0 8px rgba(255,255,255,0); } }
+
+  /* Carrusel de "Nuestros Clientes" (ver js/landing-clientes.js) — logos
+     grandes, en movimiento continuo, justo debajo del héroe: el primer
+     vistazo con prueba social real de que BIOsoft ya tiene laboratorios
+     clientes funcionando en varios países. Oculto por defecto (display:
+     none inline en el HTML) — landing-clientes.js solo lo muestra si de
+     verdad hay al menos un cliente cargado desde el panel de superadmin. */
+  .lp-clientes-section { padding: 38px 0 6px; background: linear-gradient(180deg, var(--lp-navy) 0%, #140b30 100%); text-align: center; }
+  .lp-clientes-kicker { color: rgba(255,255,255,.62); font-size: 12.5px; font-weight: 800; letter-spacing: .09em; text-transform: uppercase; margin-bottom: 22px; }
+  .lp-clientes-marquee { overflow: hidden; -webkit-mask-image: linear-gradient(90deg, transparent, #000 8%, #000 92%, transparent); mask-image: linear-gradient(90deg, transparent, #000 8%, #000 92%, transparent); }
+  .lp-clientes-track { display: flex; align-items: flex-start; gap: 52px; width: max-content; animation: lpClientesScroll 36s linear infinite; }
+  .lp-clientes-marquee:hover .lp-clientes-track { animation-play-state: paused; }
+  @keyframes lpClientesScroll { from { transform: translateX(0); } to { transform: translateX(-50%); } }
+  .lp-cliente-logo { display: flex; flex-direction: column; align-items: center; gap: 9px; text-decoration: none; flex-shrink: 0; width: 104px; }
+  .lp-cliente-logo img, .lp-cliente-logo-ph {
+    height: 84px; width: 84px; border-radius: 50%; object-fit: cover; background: #fff;
+    box-shadow: 0 12px 30px -8px rgba(0,0,0,.55), 0 0 0 3px rgba(255,255,255,.08);
+    transition: transform .2s ease, box-shadow .2s ease;
+  }
+  .lp-cliente-logo-ph { display: flex; align-items: center; justify-content: center; font-size: 30px; }
+  .lp-cliente-logo:hover img, .lp-cliente-logo:hover .lp-cliente-logo-ph { transform: scale(1.1); box-shadow: 0 16px 36px -6px rgba(168,85,247,.55), 0 0 0 3px rgba(255,255,255,.18); }
+  .lp-cliente-logo span { color: rgba(255,255,255,.72); font-size: 11.5px; font-weight: 700; line-height: 1.3; }
+  @media (max-width: 640px) { .lp-clientes-track { gap: 36px; } .lp-cliente-logo { width: 84px; } .lp-cliente-logo img, .lp-cliente-logo-ph { height: 64px; width: 64px; } }
+
   .lp-section { padding: 60px 24px; }
   .lp-section h2 { text-align: center; font-size: 30px; margin-bottom: 8px; }
   .lp-section .lead { text-align: center; color: var(--text-muted); max-width: 640px; margin: 0 auto 40px; }
@@ -487,6 +511,11 @@ fbq('track', 'PageView');
       <span class="lp-scroll-cue-icon"><span class="lp-scroll-chevron">⌄</span></span>
       <span>Sigue bajando y descubre todo</span>
     </a>
+  </section>
+
+  <section class="lp-clientes-section" id="lp-clientes-section" style="display:none">
+    <div class="lp-clientes-kicker">🌎 Laboratorios clientes reales, en varios países</div>
+    <div class="lp-clientes-marquee"><div class="lp-clientes-track" id="lp-clientes-track"></div></div>
   </section>
 
   <section class="lp-showcase" id="demo-preview">
@@ -942,7 +971,7 @@ fbq('track', 'PageView');
         </div>
       </div>
     </div>
-    <p style="text-align:center;font-size:13px;color:var(--text-muted);margin-top:18px">¿Tu laboratorio necesita más de 10 usuarios o varias sedes? <a href="#" id="wa-cotizacion" target="_blank" rel="noopener" style="color:var(--brand-primary);font-weight:700">Solicita una cotización personalizada →</a></p>
+    <p style="text-align:center;font-size:13px;color:var(--text-muted);margin-top:18px">¿Tu laboratorio necesita más de 20 usuarios o varias sedes? <a href="#" id="wa-cotizacion" target="_blank" rel="noopener" style="color:var(--brand-primary);font-weight:700">Solicita una cotización personalizada →</a></p>
     <div class="lp-value-stack">
       <h4>¿Qué te da tu inversión de $380.000 en personalización?</h4>
       <div class="lp-value-grid">
@@ -1010,12 +1039,13 @@ fbq('track', 'PageView');
   <footer class="lp-footer">BIOsoft™ · Un producto de BIOMarketing · biomarketing.salud@gmail.com<br/>© 2026 Todos los derechos reservados.</footer>
 
   <script src="js/catalog.js?v=21"></script>
-  <script src="js/planes.js?v=8"></script>
+  <script src="js/planes.js?v=9"></script>
   <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
   <script src="js/firebase-config.js?v=2"></script>
   <script src="js/landing-images.js?v=2"></script>
+  <script src="js/landing-clientes.js?v=1"></script>
   <script src="js/landing-tracker.js?v=1"></script>
   <script src="js/demo-whatsapp-capture.js?v=1"></script>
   <script>
@@ -1195,12 +1225,12 @@ fbq('track', 'PageView');
     var modoPago = "mensual"; // "mensual" (promo de hoy: $0 implementación) | "semestral" (6 meses de una vez, sin implementación)
     var PROMESA_WA = "\n\n✅ Accedes de inmediato tras el pago\n📘 Te enviamos el manual de uso el mismo día\n📅 Agendamos tu capacitación cuando a tu equipo le quede mejor\n🔧 Ajustes de personalización en 2 a 4 días";
 
-    // En la landing solo se muestran los 3 primeros planes — la única
-    // diferencia entre ellos es cuántos usuarios pueden usar el sistema al
-    // mismo tiempo, todos incluyen exactamente lo mismo. El plan Corporativo
-    // sigue existiendo (CRM, contratos, cotizador) para laboratorios de más
-    // de 10 usuarios, pero se ofrece a la medida por WhatsApp, no en la grilla.
-    var PLANES_LANDING = PLANES.filter(function (p) { return p.id !== "corporativo"; });
+    // Los 4 planes se muestran siempre en la landing — la única diferencia
+    // entre uno y otro es cuántos usuarios pueden usar el sistema al mismo
+    // tiempo, todos incluyen exactamente lo mismo (ver ITEMS_COMUNES en
+    // planes.js). Un laboratorio con más de 20 usuarios o varias sedes
+    // sigue cotizándose a la medida por WhatsApp (ver más abajo).
+    var PLANES_LANDING = PLANES;
 
     function renderPriceGrid() {
       document.getElementById("price-grid").innerHTML = PLANES_LANDING.map(function (p) {
@@ -1252,7 +1282,7 @@ fbq('track', 'PageView');
         trackFbEvent("ViewContent", { content_name: "Modo de pago: " + modoPago });
       });
     });
-    document.getElementById("wa-cotizacion").href = waLink("Hola, mi laboratorio necesita más de 10 usuarios o varias sedes. ¿Me ayudas con una cotización personalizada de BIOsoft?");
+    document.getElementById("wa-cotizacion").href = waLink("Hola, mi laboratorio necesita más de 20 usuarios o varias sedes. ¿Me ayudas con una cotización personalizada de BIOsoft?");
     document.getElementById("wa-cotizador-lp").href = waLink("Hola 👋 quiero reservar esta semana BIOsoft con el módulo de Cotización de Exámenes + Control de Calidad con IA + App móvil incluidos. ¿Me ayudan a activarlo?");
     document.getElementById("wa-marketing-lp").href = waLink("Hola 👋 vi el módulo de Marketing Digital con IA (Remarketing + Creador de Imágenes) de BIOsoft y quiero activarlo esta semana con acompañamiento personalizado. ¿Me ayudan?");
     document.getElementById("wa-inventario-lp").href = waLink("Hola 👋 vi el módulo de Control de Inventario y Reactivos con Kardex de BIOsoft y quiero reservarlo esta semana para que me lo incluyan sin costo. ¿Me ayudan a activarlo?");

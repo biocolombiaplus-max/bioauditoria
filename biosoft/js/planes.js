@@ -49,7 +49,13 @@
     // exactamente en precio con los planes anteriores) — wompiLink queda
     // vacío hasta que me pases el link real; mientras tanto el botón de
     // pago directo de este plan en la landing simplemente no aparece.
-    { id: "corporativo", nombre: "Corporativo", usuarios: "Más de 10 usuarios simultáneos", limiteUsuarios: null, precio: 320000, precioFmt: "320.000", usd: 99, destacado: false,
+    // limiteUsuarios se deja en null (sin tope técnico real) a propósito
+    // aunque la etiqueta diga "11 a 20": es la franja de precio que se
+    // vende en la landing, pero un laboratorio con más de 20 usuarios que
+    // de todas formas cae aquí no debe quedar bloqueado por el sistema —
+    // ver "más de 20 usuarios" en index.html, que sigue ofreciéndose a la
+    // medida por WhatsApp para el caso de varias sedes.
+    { id: "corporativo", nombre: "Corporativo", usuarios: "11 a 20 usuarios simultáneos", limiteUsuarios: null, precio: 320000, precioFmt: "320.000", usd: 99, destacado: false,
       wompiLink: "", interfazEquiposIncluida: false, items: ITEMS_COMUNES }
   ];
 
