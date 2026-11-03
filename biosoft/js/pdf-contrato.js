@@ -861,6 +861,17 @@
       itemBlocks.forEach(function (lines) { doc.text(lines, margin + 12, iy); iy += lines.length * 12.5 + 5; });
       y += alto + 16;
     }
+    // Cláusula exclusiva de Venezuela — ver el mismo helper en
+    // buildCotizacionPDF para el porqué y el texto exacto.
+    function clausulaFacturacionMaquinaFiscal() {
+      recuadro("Facturación con Máquina Fiscal (Venezuela)", [
+        "Si tu laboratorio emite el comprobante en formato proforma ya impreso, BIOsoft genera ese reporte directamente — sin ningún costo ni implementación adicional.",
+        "Si tu laboratorio requiere facturación mediante máquina fiscal u otro mecanismo tecnológico de facturación vigente en Venezuela, BIOsoft se adapta a cualquier método de integración (vía API o cualquier otro mecanismo tecnológico) y al formato que exija la empresa de facturación que elijas.",
+        "Tú eliges y contratas libremente la empresa de facturación de tu preferencia; BIOsoft se encarga del enlace técnico con ella.",
+        "Si esa empresa cobra algún valor por la integración, ese costo lo asumes tú — BIOsoft no te cobra nada adicional por este servicio.",
+        "Los costos propios de la empresa de facturación (suscripción, uso, soporte, etc.) también corren por tu cuenta."
+      ]);
+    }
 
     parrafo("Hola " + (datos.nombre || "").split(" ")[0] + ",", { bold: true, size: 12, color: [20, 20, 20], gap: 5 });
     parrafo(
@@ -971,6 +982,8 @@
     }
 
     recuadro("Medios de pago autorizados", lineasMediosPago());
+
+    if (datos.facturacionMaquinaFiscal) clausulaFacturacionMaquinaFiscal();
 
     doc.addPage(); y = margin;
     tituloSeccion("Así funciona tu BIOsoft, módulo por módulo");
@@ -1083,6 +1096,22 @@
       doc.setFont("helvetica", "normal"); doc.setFontSize(9.3); doc.setTextColor(60, 45, 30);
       itemBlocks.forEach(function (lines) { doc.text(lines, margin + 12, iy); iy += lines.length * 12.5 + 5; });
       y += alto + 16;
+    }
+    // Cláusula exclusiva de Venezuela (opción "Incluir cláusula de
+    // Facturación con Máquina Fiscal" al generar la cotización) — deja por
+    // escrito, con condiciones claras, cómo se maneja la facturación fiscal
+    // venezolana: proforma impresa (sin costo ni implementación) vs.
+    // máquina fiscal u otro mecanismo tecnológico (BIOsoft se adapta a
+    // cualquier método de integración; el costo de la empresa de
+    // facturación y de su integración lo asume el cliente, nunca BIOsoft).
+    function clausulaFacturacionMaquinaFiscal() {
+      recuadro("Facturación con Máquina Fiscal (Venezuela)", [
+        "Si tu laboratorio emite el comprobante en formato proforma ya impreso, BIOsoft genera ese reporte directamente — sin ningún costo ni implementación adicional.",
+        "Si tu laboratorio requiere facturación mediante máquina fiscal u otro mecanismo tecnológico de facturación vigente en Venezuela, BIOsoft se adapta a cualquier método de integración (vía API o cualquier otro mecanismo tecnológico) y al formato que exija la empresa de facturación que elijas.",
+        "Tú eliges y contratas libremente la empresa de facturación de tu preferencia; BIOsoft se encarga del enlace técnico con ella.",
+        "Si esa empresa cobra algún valor por la integración, ese costo lo asumes tú — BIOsoft no te cobra nada adicional por este servicio.",
+        "Los costos propios de la empresa de facturación (suscripción, uso, soporte, etc.) también corren por tu cuenta."
+      ]);
     }
 
     doc.setFont("helvetica", "normal"); doc.setFontSize(9); doc.setTextColor(90, 90, 90);
@@ -1208,6 +1237,8 @@
     parrafo("- Vigencia de esta cotización: " + validezDias + " días calendario a partir de la fecha de emisión. Vencido este plazo, los valores pueden actualizarse sin previo aviso.", { gap: 6 });
     parrafo("- Modalidad de pago: mensualidad por adelantado, sin permanencia mínima obligatoria — el Contrato de Prestación de Servicios tiene vigencia indefinida y cualquiera de las partes puede terminarlo con treinta (30) días de aviso previo.", { gap: 6 });
     parrafo("- Este documento es una cotización informativa y no constituye una factura de venta ni el Contrato de Prestación de Servicios. La relación contractual se formaliza mediante la suscripción del Contrato de Prestación de Servicios de Software y Licencia de Uso correspondiente, previo a la activación del servicio.", { gap: 6 });
+
+    if (datos.facturacionMaquinaFiscal) clausulaFacturacionMaquinaFiscal();
 
     checkPage(60);
     parrafo(

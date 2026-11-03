@@ -5,6 +5,21 @@
   window.BIO_VIEWS = window.BIO_VIEWS || {};
   var U = BIO_UI, S = BIO_STORE, C = BIO_CATALOG, F = window.BIO_formHelpers;
 
+  // Países que puede elegir el superadmin al generar una Propuesta o
+  // Cotización — antes "Cotización Formal" dejaba el país fijo en
+  // "Colombia" sin importar a quién se le enviara. Se usa también para
+  // decidir si mostrar la cláusula de Facturación con Máquina Fiscal
+  // (exclusiva de Venezuela, ver abrirGenerarPropuesta/Cotizacion).
+  var PAISES_COTIZACION = [
+    { cod: "CO", nombre: "Colombia" }, { cod: "VE", nombre: "Venezuela" }, { cod: "EC", nombre: "Ecuador" },
+    { cod: "MX", nombre: "México" }, { cod: "PE", nombre: "Perú" }, { cod: "AR", nombre: "Argentina" },
+    { cod: "BO", nombre: "Bolivia" }, { cod: "BR", nombre: "Brasil" }
+  ];
+  function nombrePais(cod) {
+    var p = PAISES_COTIZACION.filter(function (x) { return x.cod === cod; })[0];
+    return p ? p.nombre : (cod || "Colombia");
+  }
+
   var ESTADO_LABEL = {
     nuevo: "Nuevo / Interesado", contrato_enviado: "Contrato enviado", pagado: "Implementación pagada (por activar)",
     activo: "Activo", recordatorio_enviado: "Recordatorio enviado", en_mora: "En mora",
@@ -434,6 +449,8 @@
         '<div class="field"><label>Nombre *</label><input id="pp-nombre" required/></div>' +
         '<div class="field"><label>Correo *</label><input id="pp-correo" type="email" required/></div>' +
         '<div class="field"><label>WhatsApp (opcional, con indicativo)</label><input id="pp-whatsapp" placeholder="573001234567"/></div>' +
+        '<div class="field"><label>País</label><select id="pp-pais">' + PAISES_COTIZACION.map(function (p) { return "<option value='" + p.cod + "' " + (p.cod === "CO" ? "selected" : "") + ">" + p.nombre + "</option>"; }).join("") + "</select></div>" +
+        '<div class="checkbox-row hidden" id="pp-mf-row" style="align-self:end"><input type="checkbox" id="pp-mf" checked/><label style="margin:0">Incluir cláusula de Facturación con Máquina Fiscal (Venezuela)</label></div>' +
         camposPlanPersonalizadoHtml("pp") +
         "</div>" +
         '<div class="flex gap-2 justify-between" style="margin-top:6px">' +
@@ -442,6 +459,9 @@
         "</div></form>"
       );
       var actualizarPersonalizada = wirePlanPersonalizado(wrap, "pp");
+      wrap.querySelector("#pp-pais").addEventListener("change", function () {
+        wrap.querySelector("#pp-mf-row").classList.toggle("hidden", this.value !== "VE");
+      });
       // Al elegir un cliente/lead ya existente, se rellenan sus datos de
       // contacto de una vez — evita escribirlos de nuevo (y el riesgo de
       // errores de digitación) para alguien que ya está en el CRM. Si ya
@@ -452,6 +472,8 @@
         wrap.querySelector("#pp-nombre").value = cliente.contacto.nombre || "";
         wrap.querySelector("#pp-correo").value = cliente.contacto.correo || "";
         wrap.querySelector("#pp-whatsapp").value = cliente.contacto.whatsapp || "";
+        if (cliente.laboratorio && cliente.laboratorio.pais) wrap.querySelector("#pp-pais").value = cliente.laboratorio.pais;
+        wrap.querySelector("#pp-mf-row").classList.toggle("hidden", wrap.querySelector("#pp-pais").value !== "VE");
         prellenarPlanPersonalizado(wrap, "pp", cliente);
         actualizarPersonalizada();
       }
@@ -468,10 +490,12 @@
         var nombre = wrap.querySelector("#pp-nombre").value.trim();
         var correo = wrap.querySelector("#pp-correo").value.trim();
         var whatsapp = wrap.querySelector("#pp-whatsapp").value.trim();
+        var paisCod = wrap.querySelector("#pp-pais").value;
         if (!nombre || !correo) { U.toast("Completa nombre y correo.", "error"); return; }
 
         var resumenInversion = leerResumenPlanPersonalizado(wrap, "pp");
-        var datosPropuesta = { nombre: nombre, correo: correo, telefono: whatsapp, resumenInversion: resumenInversion };
+        var facturacionMaquinaFiscal = paisCod === "VE" && wrap.querySelector("#pp-mf").checked;
+        var datosPropuesta = { nombre: nombre, correo: correo, telefono: whatsapp, pais: nombrePais(paisCod), facturacionMaquinaFiscal: facturacionMaquinaFiscal, resumenInversion: resumenInversion };
 
         // Genera de forma asíncrona: precarga las capturas de pantalla de
         // cada módulo antes de armar el PDF (igual que el Manual de
@@ -515,8 +539,10 @@
         '<div class="field"><label>Correo *</label><input id="cz-correo" type="email" required/></div>' +
         '<div class="field"><label>WhatsApp (opcional, con indicativo)</label><input id="cz-whatsapp" placeholder="573001234567"/></div>' +
         '<div class="field"><label>Ciudad (opcional)</label><input id="cz-ciudad"/></div>' +
+        '<div class="field"><label>País</label><select id="cz-pais">' + PAISES_COTIZACION.map(function (p) { return "<option value='" + p.cod + "' " + (p.cod === "CO" ? "selected" : "") + ">" + p.nombre + "</option>"; }).join("") + "</select></div>" +
         '<div class="field"><label>Vigencia de la cotización</label><select id="cz-validez"><option value="8">8 días</option><option value="15" selected>15 días</option><option value="30">30 días</option></select></div>' +
         '<div class="checkbox-row" id="cz-promo-row" style="align-self:end"><input type="checkbox" id="cz-promo" checked/><label style="margin:0">Incluir promoción de lanzamiento vigente ($0 implementación + equipos gratis)</label></div>' +
+        '<div class="checkbox-row hidden" id="cz-mf-row" style="align-self:end"><input type="checkbox" id="cz-mf" checked/><label style="margin:0">Incluir cláusula de Facturación con Máquina Fiscal (Venezuela)</label></div>' +
         camposPlanPersonalizadoHtml("cz") +
         "</div>" +
         '<div class="flex gap-2 justify-between" style="margin-top:6px">' +
@@ -528,6 +554,9 @@
       wrap.querySelector("#cz-plan").addEventListener("change", function () {
         wrap.querySelector("#cz-promo-row").classList.toggle("hidden", !!this.value);
       });
+      wrap.querySelector("#cz-pais").addEventListener("change", function () {
+        wrap.querySelector("#cz-mf-row").classList.toggle("hidden", this.value !== "VE");
+      });
       function rellenarDesde(cliente) {
         if (!cliente) return;
         wrap.querySelector("#cz-empresa").value = (cliente.laboratorio && cliente.laboratorio.nombre) || "";
@@ -536,6 +565,8 @@
         wrap.querySelector("#cz-correo").value = cliente.contacto.correo || "";
         wrap.querySelector("#cz-whatsapp").value = cliente.contacto.whatsapp || "";
         wrap.querySelector("#cz-ciudad").value = (cliente.laboratorio && cliente.laboratorio.ciudad) || "";
+        if (cliente.laboratorio && cliente.laboratorio.pais) wrap.querySelector("#cz-pais").value = cliente.laboratorio.pais;
+        wrap.querySelector("#cz-mf-row").classList.toggle("hidden", wrap.querySelector("#cz-pais").value !== "VE");
         prellenarPlanPersonalizado(wrap, "cz", cliente);
         actualizarPersonalizada();
         wrap.querySelector("#cz-promo-row").classList.toggle("hidden", !!cliente.planId);
@@ -555,12 +586,14 @@
         var correo = wrap.querySelector("#cz-correo").value.trim();
         var whatsapp = wrap.querySelector("#cz-whatsapp").value.trim();
         var ciudad = wrap.querySelector("#cz-ciudad").value.trim();
+        var paisCod = wrap.querySelector("#cz-pais").value;
         var validezDias = parseInt(wrap.querySelector("#cz-validez").value, 10);
         var resumenInversion = leerResumenPlanPersonalizado(wrap, "cz");
         var incluirPromo = !resumenInversion && wrap.querySelector("#cz-promo").checked;
+        var facturacionMaquinaFiscal = paisCod === "VE" && wrap.querySelector("#cz-mf").checked;
         if (!empresa || !contactoNombre || !correo) { U.toast("Completa laboratorio, contacto y correo.", "error"); return; }
         var bytes = BIO_PDF_CRM.buildCotizacionPDF(
-          { empresa: empresa, nit: nit, contacto: contactoNombre, correo: correo, whatsapp: whatsapp, ciudad: ciudad, pais: "Colombia", resumenInversion: resumenInversion },
+          { empresa: empresa, nit: nit, contacto: contactoNombre, correo: correo, whatsapp: whatsapp, ciudad: ciudad, pais: nombrePais(paisCod), facturacionMaquinaFiscal: facturacionMaquinaFiscal, resumenInversion: resumenInversion },
           { validezDias: validezDias, incluirPromo: incluirPromo }
         );
         U.closeModal(wrap);
