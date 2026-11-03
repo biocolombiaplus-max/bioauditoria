@@ -150,7 +150,7 @@
     var horasDesde = ultimo ? (Date.now() - new Date(ultimo).getTime()) / 3600000 : Infinity;
     return {
       pasoIdx: paso, totalEnviados: envios.length, totalPasos: REENGANCHE_MENSAJES.length,
-      mensaje: REENGANCHE_MENSAJES[paso], ultimoContacto: ultimo,
+      mensaje: REENGANCHE_MENSAJES[paso], ultimoContacto: ultimo, horasDesdeUltimo: horasDesde,
       listo: horasDesde >= 24, horasFaltantes: Math.max(0, Math.ceil(24 - horasDesde))
     };
   }
@@ -285,7 +285,7 @@
       root.querySelectorAll("[data-filtro-cobro]").forEach(function (b) {
         b.addEventListener("click", function () { filtroCobro = b.dataset.filtroCobro; build(); });
       });
-      if (vista === "tabla") { wireRowActions(); wireSeleccion(); } else if (vista === "kanban") { wireKanbanDnD(); } else { wireReenganiche(); }
+      if (vista === "tabla") { wireRowActions(); wireSeleccion(); } else if (vista === "kanban") { wireKanbanDnD(); } else { wireReenganiche(leadsReenganche); }
     }
 
     function buildTablaHtml(lista) {
@@ -322,52 +322,116 @@
     // cada 24 horas por lead, en la secuencia de REENGANCHE_MENSAJES. No
     // hay backend ni API real de WhatsApp (ver abrirDifusion más abajo):
     // sigue siendo el mismo mecanismo de siempre en BIOsoft, "abrir
-    // WhatsApp con el mensaje ya escrito y dejar constancia al confirmar"
-    // — pero aquí ordenado como un tablero de trabajo diario, con los leads
-    // listos para su próximo mensaje arriba de todo, fácil de recorrer uno
-    // por uno sin tener que ir a buscarlos.
+    // WhatsApp con el mensaje ya escrito y dejar constancia al confirmar".
+    //
+    // Se agrupa en 3 bloques, siempre en el mismo orden, para que nunca se
+    // confunda a quién ya se le escribió: primero los "Enviados en esta
+    // sesión" (lo que se acaba de hacer, ahora mismo, en esta sentada de
+    // trabajo), luego "Listos para enviar hoy" y al final "En espera".
+    // reenganicheRecienEnviados (abajo) es la clave de esto: al hacer clic
+    // en "Enviar" NO se recarga toda la lista desde Firestore (eso
+    // reordenaba todo de golpe y era justo lo que generaba la confusión
+    // reportada) — se marca esa fila como enviada DE UNA, local e
+    // inmediata, y el resto del tablero se queda exactamente donde estaba.
     // ---------------------------------------------------------------------
+    var reenganicheRecienEnviados = {};
+    var reenganicheBusqueda = "";
+
+    // El buscador vive en un cascarón fijo (buildReenganicheHtml, llamado
+    // una sola vez por build()) y la tabla en su propio contenedor aparte
+    // (#reen-tabla-wrap, repintado por renderReenganicheTabla) — así
+    // escribir en el buscador o marcar un envío solo repinta la tabla, sin
+    // tocar el <input>, que perdería el foco/cursor en cada letra si todo
+    // el tablero (incluido el buscador) se reconstruyera de nuevo cada vez.
     function buildReenganicheHtml(lista) {
-        if (!lista.length) {
-          return '<p class="text-muted">Ningún lead "Nuevo" o "Contrato enviado" tiene WhatsApp registrado todavía — el reenganche se activa solo para esos.</p>';
-        }
-        var conInfo = lista.map(function (c) { return { c: c, info: reenganicheInfo(c) }; });
-        // Listos primero (y entre ellos, el que lleva más tiempo esperando
-        // primero); los que todavía están en espera, ordenados por los que
-        // menos les falta — así el tablero siempre muestra arriba lo que
-        // de verdad toca hacer hoy.
-        conInfo.sort(function (a, b) {
-          if (a.info.listo !== b.info.listo) return a.info.listo ? -1 : 1;
-          return a.info.horasFaltantes - b.info.horasFaltantes;
-        });
-        return '<div class="table-wrap"><table><thead><tr><th>Laboratorio</th><th>Ingresó</th><th>Próximo mensaje</th><th>Último enviado</th><th>Estado</th><th></th></tr></thead><tbody>' +
-          conInfo.map(function (x) {
-            var c = x.c, info = x.info, lab = c.laboratorio || {}, contacto = c.contacto || {};
-            return "<tr><td><b>" + U.esc(lab.nombre || "—") + "</b><div class='text-muted' style='font-size:11px'>" + U.esc(contacto.nombre || "") + " · " + U.esc(contacto.whatsapp || "") + "</div></td>" +
-              "<td style='font-size:12px'>" + (c.creadoEn ? fmtFechaCorta(c.creadoEn) : "—") + "</td>" +
-              "<td><b>" + (info.pasoIdx + 1) + "/" + info.totalPasos + " — " + U.esc(info.mensaje.titulo) + "</b><div class='text-muted' style='font-size:11px;max-width:320px'>" + U.esc(llenarPlantilla(info.mensaje.mensaje, c)) + "</div></td>" +
-              "<td style='font-size:12px'>" + (info.ultimoContacto ? fmtFechaCorta(info.ultimoContacto) : "Nunca") + "</td>" +
-              "<td>" + (info.listo ? '<span class="badge badge-validado">🟢 Listo</span>' : '<span class="badge badge-pendiente">⏳ Faltan ' + info.horasFaltantes + "h</span>") + "</td>" +
-              "<td><button class='btn btn-whatsapp btn-sm' data-reenganche='" + c.id + "' " + (info.listo ? "" : "disabled title='Todavía no pasan las 24 horas desde el último mensaje'") + ">" + U.icon("send") + " Enviar</button></td></tr>";
-          }).join("") + "</tbody></table></div>";
+      if (!lista.length) {
+        return '<p class="text-muted">Ningún lead "Nuevo" o "Contrato enviado" tiene WhatsApp registrado todavía — el reenganche se activa solo para esos.</p>';
+      }
+      return '<div class="flex gap-2 wrap" style="margin-bottom:10px;align-items:center">' +
+        '<input id="reen-buscar" placeholder="Buscar por laboratorio, contacto o WhatsApp…" value="' + U.esc(reenganicheBusqueda) + '" style="max-width:320px"/>' +
+        '<span id="reen-resumen" class="text-muted" style="font-size:12.5px"></span>' +
+        "</div>" +
+        '<div id="reen-tabla-wrap"></div>';
     }
 
-    function wireReenganiche() {
-      root.querySelectorAll("[data-reenganche]").forEach(function (b) {
+    function renderReenganicheTabla(lista) {
+      var tablaWrap = root.querySelector("#reen-tabla-wrap");
+      if (!tablaWrap) return;
+      var term = U.normalizar ? U.normalizar(reenganicheBusqueda.trim()) : reenganicheBusqueda.trim().toLowerCase();
+      var listaFiltrada = !term ? lista : lista.filter(function (c) {
+        var lab = c.laboratorio || {}, contacto = c.contacto || {};
+        var texto = U.normalizar ? U.normalizar([lab.nombre, contacto.nombre, contacto.whatsapp].join(" ")) : [lab.nombre, contacto.nombre, contacto.whatsapp].join(" ").toLowerCase();
+        return texto.indexOf(term) !== -1;
+      });
+      var conInfo = listaFiltrada.map(function (c) { return { c: c, info: reenganicheInfo(c), enviadoAhora: !!reenganicheRecienEnviados[c.id] }; });
+      var enviadosAhora = conInfo.filter(function (x) { return x.enviadoAhora; });
+      var listos = conInfo.filter(function (x) { return !x.enviadoAhora && x.info.listo; });
+      var enEspera = conInfo.filter(function (x) { return !x.enviadoAhora && !x.info.listo; });
+      // Dentro de "listos", el que lleva más tiempo esperando primero;
+      // dentro de "en espera", al que menos le falta primero.
+      listos.sort(function (a, b) { return b.info.horasDesdeUltimo - a.info.horasDesdeUltimo; });
+      enEspera.sort(function (a, b) { return a.info.horasFaltantes - b.info.horasFaltantes; });
+
+      var resumen = root.querySelector("#reen-resumen");
+      if (resumen) resumen.textContent = listos.length + " listo(s) para enviar ahora · " + enEspera.length + " en espera · " + enviadosAhora.length + " enviado(s) en esta sesión";
+
+      function filaHtml(x) {
+        var c = x.c, info = x.info, lab = c.laboratorio || {}, contacto = c.contacto || {};
+        var nombreVisible = lab.nombre || contacto.nombre;
+        var identidad = nombreVisible
+          ? "<b>" + U.esc(nombreVisible) + "</b><div class='text-muted' style='font-size:11px'>" + U.esc(contacto.nombre && lab.nombre ? contacto.nombre : "") + (contacto.nombre && lab.nombre ? " · " : "") + U.esc(contacto.whatsapp ? "+" + contacto.whatsapp : "") + "</div>"
+          : "<b>" + U.esc(contacto.whatsapp ? "+" + contacto.whatsapp : "Sin WhatsApp") + "</b><div style='font-size:11px' class='badge badge-pendiente'>✏️ Sin nombre — edítalo</div>";
+        var pasoBadge = "<span class='badge' style='background:#ede9fe;color:#5b21b6;font-weight:700'>" + (info.pasoIdx + 1) + "/" + info.totalPasos + "</span>";
+        var estadoCelda = x.enviadoAhora
+          ? '<span class="badge badge-validado">✅ Enviado ahora</span>'
+          : (info.listo ? '<span class="badge badge-validado">🟢 Listo</span>' : '<span class="badge badge-pendiente">⏳ Faltan ' + info.horasFaltantes + "h</span>");
+        var accionCelda = x.enviadoAhora
+          ? "<button class='btn btn-outline btn-sm' disabled>" + U.icon("check") + " Enviado</button>"
+          : "<button class='btn btn-whatsapp btn-sm' data-reenganche='" + c.id + "' " + (info.listo ? "" : "disabled title='Todavía no pasan las 24 horas desde el último mensaje'") + ">" + U.icon("send") + " Enviar</button>";
+        return "<tr" + (x.enviadoAhora ? " style='opacity:.6'" : "") + "><td>" + identidad + "</td>" +
+          "<td style='font-size:12px'>" + (c.creadoEn ? fmtFechaCorta(c.creadoEn) : "—") + "</td>" +
+          "<td>" + pasoBadge + " <b>" + U.esc(info.mensaje.titulo) + "</b><div class='text-muted' style='font-size:11px;max-width:320px'>" + U.esc(llenarPlantilla(info.mensaje.mensaje, c)) + "</div></td>" +
+          "<td style='font-size:12px'>" + (info.ultimoContacto ? fmtFechaCorta(info.ultimoContacto) : "Nunca") + "</td>" +
+          "<td>" + estadoCelda + "</td>" +
+          "<td>" + accionCelda + "</td></tr>";
+      }
+      function grupoHtml(titulo, items, colorTitulo) {
+        if (!items.length) return "";
+        return '<tr class="reenganche-grupo"><td colspan="6" style="background:var(--surface-2);font-weight:700;font-size:12px;padding:9px 12px;color:' + colorTitulo + '">' + U.esc(titulo) + " (" + items.length + ")</td></tr>" +
+          items.map(filaHtml).join("");
+      }
+
+      tablaWrap.innerHTML = '<div class="table-wrap"><table><thead><tr><th>Laboratorio / Contacto</th><th>Ingresó</th><th>Próximo mensaje</th><th>Último enviado</th><th>Estado</th><th></th></tr></thead><tbody>' +
+        (listaFiltrada.length
+          ? grupoHtml("✅ Enviados en esta sesión", enviadosAhora, "#15803d") + grupoHtml("🟢 Listos para enviar hoy", listos, "#b45309") + grupoHtml("⏳ En espera (próximas 24h)", enEspera, "#64748b")
+          : '<tr><td colspan="6" class="text-muted">Ningún lead coincide con esa búsqueda.</td></tr>') +
+        "</tbody></table></div>";
+
+      tablaWrap.querySelectorAll("[data-reenganche]").forEach(function (b) {
         b.addEventListener("click", function () {
           var c = clientes.filter(function (x) { return x.id === b.dataset.reenganche; })[0];
           if (!c) return;
           var info = reenganicheInfo(c);
           var texto = llenarPlantilla(info.mensaje.mensaje, c);
           window.open(waLinkTo(c.contacto.whatsapp, texto), "_blank");
-          b.disabled = true; b.textContent = "Enviado";
-          agregarActividad(c, "reenganche", "Reenganche: " + info.mensaje.titulo + ".").then(function () {
-            cargar();
-          }).catch(function (err) {
-            U.toast("Se abrió WhatsApp, pero no se pudo guardar el registro: " + err.message, "error");
+          // Marca la fila como enviada DE UNA, sin esperar la red ni
+          // repintar nada más que esta tabla — ver el comentario de arriba
+          // de buildReenganicheHtml.
+          reenganicheRecienEnviados[c.id] = true;
+          renderReenganicheTabla(lista);
+          agregarActividad(c, "reenganche", "Reenganche: " + info.mensaje.titulo + ".").catch(function (err) {
+            delete reenganicheRecienEnviados[c.id];
+            U.toast("No se pudo guardar el registro del envío: " + err.message, "error");
+            renderReenganicheTabla(lista);
           });
         });
       });
+    }
+
+    function wireReenganiche(lista) {
+      var buscador = root.querySelector("#reen-buscar");
+      if (buscador) buscador.addEventListener("input", function (e) { reenganicheBusqueda = e.target.value; renderReenganicheTabla(lista); });
+      renderReenganicheTabla(lista);
     }
 
     function buildKanbanHtml(lista) {
