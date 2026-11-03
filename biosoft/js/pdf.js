@@ -1012,7 +1012,20 @@
       // ocupe su valor de referencia, no siempre 1).
       function altoGrupo(g) {
         var filasAlto = g.filas.reduce(function (sum, f) { return sum + f.lineas; }, 0);
-        return (1 + (g.metodo ? 1 : 0) + filasAlto) * ROW_H;
+        return ((colapsaNombreGrupo(g) ? 0 : 1) + (g.metodo ? 1 : 0) + filasAlto) * ROW_H;
+      }
+      // Un examen de un solo parámetro (la mayoría en Química: Glicemia,
+      // Urea, Creatinina...) repetía su nombre dos veces: una vez como
+      // fila-título en negrita, y otra vez abajo como el nombre del único
+      // parámetro — casi siempre el mismo texto, uno encima del otro (ej.
+      // "Glicemia" / "glicemia"). Por ahora, solo para Química Sanguínea
+      // (a pedido explícito), un examen así se colapsa a UNA sola fila: sin
+      // fila-título aparte, con el nombre del examen en negrita directo en
+      // la columna "Parámetro" — el mismo formato de una sola línea por
+      // analito que usan los informes de los laboratorios de referencia
+      // grandes.
+      function colapsaNombreGrupo(g) {
+        return seccionId === "quimica" && g.filas.length === 1;
       }
 
       // Antes de dibujar el banner de la sección, se verifica que quepa
@@ -1149,6 +1162,10 @@
             // leer rápido a un médico remitente en un reporte con muchos
             // parámetros.
             if (data.column.index === 1) data.cell.styles.fontStyle = "bold";
+            // Examen de un solo parámetro en Química (ver colapsaNombreGrupo
+            // más arriba): el nombre del examen va en negrita en la columna
+            // "Parámetro" ya que aquí hace las veces de fila-título.
+            if (data.column.index === 0 && meta.nombreDestacado) data.cell.styles.fontStyle = "bold";
             if (colInterpretacion !== -1 && data.column.index === colInterpretacion && meta.anormal) {
               data.cell.styles.textColor = [214, 69, 69]; data.cell.styles.fontStyle = "bold";
             }
@@ -1171,6 +1188,7 @@
       }
 
       grupos.forEach(function (g) {
+        var colapsar = colapsaNombreGrupo(g);
         var necesita = (body.length ? 0 : HEAD_H) + altoGrupo(g);
         if (body.length && yEstimado + necesita > pageBottom) {
           volcarTablaSeccion();
@@ -1183,15 +1201,23 @@
         } else {
           yEstimado += necesita;
         }
-        body.push([{ content: g.nombre, colSpan: numColumnasTabla, styles: { fillColor: [246, 247, 249], textColor: estiloDiscreto ? [0, 0, 0] : [50, 50, 50], fontStyle: "bold", fontSize: tamanoBase + 0.5 } }]);
-        filaMeta.push({ tipo: "titulo" });
+        if (!colapsar) {
+          body.push([{ content: g.nombre, colSpan: numColumnasTabla, styles: { fillColor: [246, 247, 249], textColor: estiloDiscreto ? [0, 0, 0] : [50, 50, 50], fontStyle: "bold", fontSize: tamanoBase + 0.5 } }]);
+          filaMeta.push({ tipo: "titulo" });
+        }
         if (g.metodo) {
           body.push([{ content: "Método: " + g.metodo, colSpan: numColumnasTabla, styles: { fontStyle: "italic", textColor: estiloDiscreto ? [0, 0, 0] : [140, 140, 140], fontSize: tamanoBase - 1.2 } }]);
           filaMeta.push({ tipo: "metodo" });
         }
         g.filas.forEach(function (f) {
-          body.push(f.fila);
-          filaMeta.push({ tipo: "dato", anormal: f.anormal });
+          var fila = f.fila;
+          if (colapsar) {
+            var sufijoCalculado = / \(calculado\)$/.test(fila[0]) ? " (calculado)" : "";
+            fila = fila.slice();
+            fila[0] = g.nombre + sufijoCalculado;
+          }
+          body.push(fila);
+          filaMeta.push({ tipo: "dato", anormal: f.anormal, nombreDestacado: colapsar });
         });
       });
       volcarTablaSeccion();
