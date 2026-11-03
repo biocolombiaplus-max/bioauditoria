@@ -38,6 +38,23 @@
     { nombre: "Bienvenida - contrato enviado", mensaje: "¡Bienvenido a BIOsoft, {laboratorio}! 🎉 Te acabamos de enviar el contrato. Ya puedes empezar a usar el sistema, y te vamos entregando la personalización (logo, catálogo, firmas) en los próximos días. Cualquier duda, aquí estamos." },
     { nombre: "Recordatorio 2da cuota de implementación", mensaje: "Hola {nombre} 👋 Te escribimos de BIOsoft: este mes corresponde tu 2da y última cuota de implementación ($60 USD) junto con la mensualidad del Plan {plan} de {laboratorio}. A partir del próximo mes, solo pagas tu mensualidad. ¿Te ayudamos a coordinar el pago?" }
   ];
+  // Secuencia de mensajes de "Reenganche" — un lead que no responde no
+  // recibe siempre el mismo mensaje genérico: cada uno de estos nombra UNA
+  // característica concreta de BIOsoft distinta (lo que de verdad genera
+  // curiosidad y ganas de responder), y siempre cierra con una pregunta
+  // para invitar a contestar, nunca con un cierre plano. Se envían en
+  // orden, uno por lead cada vez que le toca su turno (ver reenganicheInfo
+  // más abajo) — al llegar al último, se vuelve a empezar por el primero.
+  var REENGANCHE_MENSAJES = [
+    { titulo: "IA de Remarketing", mensaje: "Hola {nombre} 👋 ¿Sabías que BIOsoft tiene una IA que revisa sola la base de pacientes de {laboratorio} todos los días y te dice a quién contactar para su próximo control? Nadie se te vuelve a pasar. ¿Te cuento cómo funciona?" },
+    { titulo: "Interfaz automática con equipos", mensaje: "Hola {nombre} 👋 En BIOsoft los resultados llegan solos desde tus analizadores a la pantalla — se acabó digitarlos uno por uno. ¿Cuántas horas a la semana crees que eso le ahorraría a tu equipo en {laboratorio}?" },
+    { titulo: "Resultados en línea para el paciente", mensaje: "Hola {nombre} 👋 Con BIOsoft, el paciente de {laboratorio} consulta y descarga su propio resultado con su documento y un código — sin llamar a preguntar \"¿ya están mis resultados?\". ¿Te muestro cómo se ve desde el celular del paciente?" },
+    { titulo: "Control de Calidad Westgard", mensaje: "Hola {nombre} 👋 BIOsoft trae control de calidad con las 6 reglas de Westgard y gráficas de Levey-Jennings armadas solas, sin depender de una hoja de Excel suelta. ¿Cómo llevan hoy el control de calidad en {laboratorio}?" },
+    { titulo: "Marketing con IA", mensaje: "Hola {nombre} 👋 BIOsoft te genera en segundos el texto listo para publicar en redes sociales, con plantillas para promociones y cumpleaños — sin pagar diseñador ni redactor. ¿Quieres ver un ejemplo armado para {laboratorio}?" },
+    { titulo: "Se adapta a tu facturación", mensaje: "Hola {nombre} 👋 BIOsoft se adapta a tu forma de facturar, sea cual sea — máquina fiscal, proforma o el país donde trabajes. El sistema se ajusta a {laboratorio}, no al revés. ¿En qué formato facturan hoy?" },
+    { titulo: "Interpretación clínica automática", mensaje: "Hola {nombre} 👋 Cada resultado en BIOsoft se compara solo contra el rango correcto según edad y sexo del paciente, marcando alto/bajo de una vez — menos margen de error humano. ¿Cómo lo revisan hoy en {laboratorio}?" },
+    { titulo: "Todo tu equipo, en tiempo real", mensaje: "Hola {nombre} 👋 En BIOsoft, recepción, bacteriólogos y administrador trabajan al mismo tiempo sobre la misma información, en tiempo real, sin pisarse ni duplicar nada. ¿Cuántas personas manejarían BIOsoft en {laboratorio}?" }
+  ];
   // Palabra clave para reconocer, por nombre, cuál plantilla corresponde a
   // cada estado de cobro (ver abrirMensajeConPlantilla). "pago" (no
   // "vencer") es a propósito para el caso "por_vencer": así sigue
@@ -119,6 +136,32 @@
     if (dias <= 5) return "por_vencer";
     return "al_dia";
   }
+  // Estado de "Reenganche" de un lead, calculado a partir de su propia
+  // bitácora de actividad (c.actividad, ya existente para notas/difusión/
+  // correos) — no hace falta ningún campo nuevo en Firestore: cada envío
+  // de reenganche ya queda ahí como un registro más (ver agregarActividad),
+  // así que de ahí mismo se puede reconstruir en qué mensaje de la
+  // secuencia va cada lead y cuándo fue el último envío, llevando el
+  // control de a quién se le ha ido escribiendo sin duplicar ningún dato.
+  function reenganicheInfo(c) {
+    var envios = (c.actividad || []).filter(function (a) { return a.tipo === "reenganche"; });
+    var paso = envios.length % REENGANCHE_MENSAJES.length;
+    var ultimo = envios.length ? envios[envios.length - 1].fecha : null;
+    var horasDesde = ultimo ? (Date.now() - new Date(ultimo).getTime()) / 3600000 : Infinity;
+    return {
+      pasoIdx: paso, totalEnviados: envios.length, totalPasos: REENGANCHE_MENSAJES.length,
+      mensaje: REENGANCHE_MENSAJES[paso], ultimoContacto: ultimo,
+      listo: horasDesde >= 24, horasFaltantes: Math.max(0, Math.ceil(24 - horasDesde))
+    };
+  }
+  // Solo entra al tablero de Reenganche un lead que todavía NO es cliente
+  // (sigue "Nuevo" o con el contrato ya enviado pero sin pagar) y que sí
+  // tiene a dónde escribirle — a un cliente activo o uno ya perdido
+  // (cancelado/bloqueado) no tiene sentido mandarle mensajes de curiosidad
+  // sobre funciones de BIOsoft.
+  function esCandidatoReenganche(c) {
+    return (c.estado === "nuevo" || c.estado === "contrato_enviado") && !!(c.contacto && c.contacto.whatsapp);
+  }
   function badgeOrigen(c) {
     var od = c.origenDetalle || {};
     if (od.utmSource && /meta|facebook|instagram|^fb$|^ig$/i.test(od.utmSource)) return '<span class="badge badge-preliminar">📣 Meta Ads</span>';
@@ -196,6 +239,8 @@
       if (cargando) { root.innerHTML = '<div class="card"><p class="text-muted">Cargando clientes…</p></div>'; return; }
       var nSel = Object.keys(seleccionados).filter(function (k) { return seleccionados[k]; }).length;
       var clientesVisibles = filtroCobro ? clientes.filter(function (c) { return estadoCobroCliente(c) === filtroCobro; }) : clientes;
+      var leadsReenganche = clientes.filter(esCandidatoReenganche);
+      var totalListosReenganche = leadsReenganche.filter(function (c) { return reenganicheInfo(c).listo; }).length;
       var FILTROS_COBRO = [
         { key: "", label: "Todos" },
         { key: "al_dia", label: "🟢 Al día" },
@@ -208,10 +253,11 @@
           kpi(clientes.filter(function (c) { return c.estado === "activo" || c.estado === "recordatorio_enviado"; }).length, "Activos") +
           kpi(clientes.filter(enMora).length, "En Mora") +
           kpi(clientes.filter(function (c) { return c.estado === "nuevo" || c.estado === "contrato_enviado"; }).length, "Por Cerrar") +
+          kpi(totalListosReenganche, "Listos para Reenganche hoy") +
         "</div>" +
         '<div class="card"><div class="card-header"><h3 class="card-title">Clientes y Leads (' + clientesVisibles.length + (filtroCobro ? " de " + clientes.length : "") + ')</h3>' +
         '<div class="flex gap-2 wrap">' +
-        '<div class="crm-view-toggle"><button type="button" class="' + (vista === "tabla" ? "active" : "") + '" data-vista="tabla">☰ Tabla</button><button type="button" class="' + (vista === "kanban" ? "active" : "") + '" data-vista="kanban">🗂️ Kanban</button></div>' +
+        '<div class="crm-view-toggle"><button type="button" class="' + (vista === "tabla" ? "active" : "") + '" data-vista="tabla">☰ Tabla</button><button type="button" class="' + (vista === "kanban" ? "active" : "") + '" data-vista="kanban">🗂️ Kanban</button><button type="button" class="' + (vista === "reenganche" ? "active" : "") + '" data-vista="reenganche">🔄 Reenganche' + (totalListosReenganche ? " (" + totalListosReenganche + ")" : "") + '</button></div>' +
         '<button class="btn btn-outline btn-sm" id="btn-plantillas">📝 Plantillas</button>' +
         '<button class="btn btn-outline btn-sm" id="btn-propuesta">📄 Generar Propuesta</button>' +
         '<button class="btn btn-outline btn-sm" id="btn-cotizacion">📋 Generar Cotización</button>' +
@@ -223,7 +269,7 @@
         '<div class="crm-view-toggle" id="crm-filtro-cobro">' + FILTROS_COBRO.map(function (f) {
           return '<button type="button" class="' + (filtroCobro === f.key ? "active" : "") + '" data-filtro-cobro="' + f.key + '">' + f.label + "</button>";
         }).join("") + "</div></div>" +
-        (vista === "tabla" ? buildTablaHtml(clientesVisibles) : buildKanbanHtml(clientesVisibles)) +
+        (vista === "tabla" ? buildTablaHtml(clientesVisibles) : vista === "kanban" ? buildKanbanHtml(clientesVisibles) : buildReenganicheHtml(leadsReenganche)) +
         "</div>";
       document.getElementById("btn-new-crm").addEventListener("click", function () { openForm(null); });
       document.getElementById("btn-plantillas").addEventListener("click", abrirPlantillas);
@@ -239,12 +285,12 @@
       root.querySelectorAll("[data-filtro-cobro]").forEach(function (b) {
         b.addEventListener("click", function () { filtroCobro = b.dataset.filtroCobro; build(); });
       });
-      if (vista === "tabla") { wireRowActions(); wireSeleccion(); } else { wireKanbanDnD(); }
+      if (vista === "tabla") { wireRowActions(); wireSeleccion(); } else if (vista === "kanban") { wireKanbanDnD(); } else { wireReenganiche(); }
     }
 
     function buildTablaHtml(lista) {
-      return '<div class="table-wrap"><table><thead><tr><th></th><th>Laboratorio</th><th>Contacto</th><th>Origen</th><th>Plan</th><th>Estado</th><th>Próximo cobro</th><th></th></tr></thead><tbody>' +
-        (lista.length ? lista.map(rowHtml).join("") : '<tr><td colspan="8" class="text-muted">' + (filtroCobro ? "Ningún cliente coincide con este estado de cobro." : 'Aún no hay clientes registrados. Usa "Nuevo Cliente" para agregar el primero.') + "</td></tr>") +
+      return '<div class="table-wrap"><table><thead><tr><th></th><th>Laboratorio</th><th>Contacto</th><th>Ingresó</th><th>Origen</th><th>Plan</th><th>Estado</th><th>Próximo cobro</th><th></th></tr></thead><tbody>' +
+        (lista.length ? lista.map(rowHtml).join("") : '<tr><td colspan="9" class="text-muted">' + (filtroCobro ? "Ningún cliente coincide con este estado de cobro." : 'Aún no hay clientes registrados. Usa "Nuevo Cliente" para agregar el primero.') + "</td></tr>") +
         "</tbody></table></div>";
     }
 
@@ -254,6 +300,7 @@
       return "<tr><td><input type='checkbox' data-sel='" + c.id + "' " + (seleccionados[c.id] ? "checked" : "") + "/></td>" +
         "<td><b>" + U.esc(lab.nombre || "—") + "</b><div class='text-muted' style='font-size:11px'>" + U.esc(lab.ciudad || "") + (lab.pais ? ", " + U.esc(lab.pais) : "") + "</div></td>" +
         "<td>" + U.esc(contacto.nombre || "—") + "<div class='text-muted' style='font-size:11px'>" + U.esc(contacto.whatsapp || contacto.correo || "—") + "</div></td>" +
+        "<td style='font-size:12px'>" + (c.creadoEn ? fmtFechaCorta(c.creadoEn) : "—") + "</td>" +
         "<td>" + badgeOrigen(c) + "</td>" +
         "<td>" + U.esc(plan.nombre || "—") + "</td>" +
         "<td>" + (ESTADO_LABEL[c.estado] || c.estado) + "</td>" +
@@ -268,6 +315,59 @@
         "<button class='btn btn-whatsapp btn-sm' data-mensaje='" + c.id + "'>" + U.icon("send") + " Mensaje</button>" +
         "<button class='btn btn-outline btn-sm' data-mas-acciones-crm='" + c.id + "'>" + U.icon("more") + " Más</button>" +
         "</div></td></tr>";
+    }
+
+    // ---------------------------------------------------------------------
+    // Tablero de Reenganche — mensajes de curiosidad sobre BIOsoft, uno
+    // cada 24 horas por lead, en la secuencia de REENGANCHE_MENSAJES. No
+    // hay backend ni API real de WhatsApp (ver abrirDifusion más abajo):
+    // sigue siendo el mismo mecanismo de siempre en BIOsoft, "abrir
+    // WhatsApp con el mensaje ya escrito y dejar constancia al confirmar"
+    // — pero aquí ordenado como un tablero de trabajo diario, con los leads
+    // listos para su próximo mensaje arriba de todo, fácil de recorrer uno
+    // por uno sin tener que ir a buscarlos.
+    // ---------------------------------------------------------------------
+    function buildReenganicheHtml(lista) {
+        if (!lista.length) {
+          return '<p class="text-muted">Ningún lead "Nuevo" o "Contrato enviado" tiene WhatsApp registrado todavía — el reenganche se activa solo para esos.</p>';
+        }
+        var conInfo = lista.map(function (c) { return { c: c, info: reenganicheInfo(c) }; });
+        // Listos primero (y entre ellos, el que lleva más tiempo esperando
+        // primero); los que todavía están en espera, ordenados por los que
+        // menos les falta — así el tablero siempre muestra arriba lo que
+        // de verdad toca hacer hoy.
+        conInfo.sort(function (a, b) {
+          if (a.info.listo !== b.info.listo) return a.info.listo ? -1 : 1;
+          return a.info.horasFaltantes - b.info.horasFaltantes;
+        });
+        return '<div class="table-wrap"><table><thead><tr><th>Laboratorio</th><th>Ingresó</th><th>Próximo mensaje</th><th>Último enviado</th><th>Estado</th><th></th></tr></thead><tbody>' +
+          conInfo.map(function (x) {
+            var c = x.c, info = x.info, lab = c.laboratorio || {}, contacto = c.contacto || {};
+            return "<tr><td><b>" + U.esc(lab.nombre || "—") + "</b><div class='text-muted' style='font-size:11px'>" + U.esc(contacto.nombre || "") + " · " + U.esc(contacto.whatsapp || "") + "</div></td>" +
+              "<td style='font-size:12px'>" + (c.creadoEn ? fmtFechaCorta(c.creadoEn) : "—") + "</td>" +
+              "<td><b>" + (info.pasoIdx + 1) + "/" + info.totalPasos + " — " + U.esc(info.mensaje.titulo) + "</b><div class='text-muted' style='font-size:11px;max-width:320px'>" + U.esc(llenarPlantilla(info.mensaje.mensaje, c)) + "</div></td>" +
+              "<td style='font-size:12px'>" + (info.ultimoContacto ? fmtFechaCorta(info.ultimoContacto) : "Nunca") + "</td>" +
+              "<td>" + (info.listo ? '<span class="badge badge-validado">🟢 Listo</span>' : '<span class="badge badge-pendiente">⏳ Faltan ' + info.horasFaltantes + "h</span>") + "</td>" +
+              "<td><button class='btn btn-whatsapp btn-sm' data-reenganche='" + c.id + "' " + (info.listo ? "" : "disabled title='Todavía no pasan las 24 horas desde el último mensaje'") + ">" + U.icon("send") + " Enviar</button></td></tr>";
+          }).join("") + "</tbody></table></div>";
+    }
+
+    function wireReenganiche() {
+      root.querySelectorAll("[data-reenganche]").forEach(function (b) {
+        b.addEventListener("click", function () {
+          var c = clientes.filter(function (x) { return x.id === b.dataset.reenganche; })[0];
+          if (!c) return;
+          var info = reenganicheInfo(c);
+          var texto = llenarPlantilla(info.mensaje.mensaje, c);
+          window.open(waLinkTo(c.contacto.whatsapp, texto), "_blank");
+          b.disabled = true; b.textContent = "Enviado";
+          agregarActividad(c, "reenganche", "Reenganche: " + info.mensaje.titulo + ".").then(function () {
+            cargar();
+          }).catch(function (err) {
+            U.toast("Se abrió WhatsApp, pero no se pudo guardar el registro: " + err.message, "error");
+          });
+        });
+      });
     }
 
     function buildKanbanHtml(lista) {
