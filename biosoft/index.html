@@ -237,13 +237,6 @@ fbq('track', 'PageView');
   .lp-pdf-feature { display: flex; align-items: center; gap: 10px; font-size: 14.5px; font-weight: 600; color: var(--text); }
   .lp-pdf-feature span { font-size: 18px; }
 
-  /* Garabato de firma sobre el ejemplo de PDF: el screenshot real ya trae
-     la firma dentro de la imagen, pero se nota poco a tamaño reducido —
-     este trazo SVG se dibuja ENCIMA, justo sobre la zona de firma, para
-     que a simple vista quede claro que ahí va una firma manuscrita real. */
-  .lp-pdf-firma-garabato { position: absolute; left: 3%; top: 63%; width: 34%; pointer-events: none; filter: drop-shadow(0 1px 1px rgba(0,0,0,.15)); }
-  .lp-pdf-firma-garabato svg { width: 100%; display: block; }
-  .lp-pdf-firma-label { position: absolute; left: 3%; top: 76.2%; font-family: 'Segoe Script','Brush Script MT',cursive; font-size: 15px; color: #1e3a8a; transform: rotate(-3deg); pointer-events: none; }
 
   /* Insignia "Analizado por IA" sobre la gráfica de Control de Calidad —
      refuerza visualmente que el análisis no es manual, es la IA la que ya
@@ -658,13 +651,6 @@ fbq('track', 'PageView');
     <div class="lp-pdf-showcase">
       <div class="lp-pdf-image-wrap">
         <img src="assets/screenshots/informe-pdf.jpg" alt="Informe de resultados de laboratorio en PDF, con firma digital del bacteriólogo y código QR de verificación" class="lp-pdf-image"/>
-        <div class="lp-pdf-firma-garabato">
-          <svg viewBox="0 0 160 46" xmlns="http://www.w3.org/2000/svg">
-            <path d="M4 32 C 14 8, 24 8, 30 26 C 34 38, 40 20, 46 18 C 52 16, 54 32, 62 30 C 70 28, 70 12, 80 14 C 92 16, 90 34, 102 30 C 112 27, 108 10, 120 12 C 132 14, 128 30, 142 26 C 150 23, 152 18, 156 20"
-              fill="none" stroke="#1e3a8a" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"/>
-          </svg>
-        </div>
-        <div class="lp-pdf-firma-label">Dra. Laura Gómez</div>
         <div class="lp-pdf-callout lp-pdf-callout-firma">✍️ Firma digital del bacteriólogo</div>
         <div class="lp-pdf-callout lp-pdf-callout-qr">🔳 Código QR de verificación</div>
       </div>
