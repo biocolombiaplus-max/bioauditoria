@@ -257,7 +257,7 @@ fbq('track', 'PageView');
   /* Marco de celular reutilizable — envuelve un screenshot cualquiera para
      que se vea realmente "dentro de un teléfono" en vez de un rectángulo
      plano de imagen. */
-  .lp-phone-frame { max-width: 230px; margin: 0 auto; background:#0b1220; border-radius: 34px; padding: 10px 10px 16px; box-shadow: 0 24px 54px -10px rgba(76,29,149,.35), 0 10px 24px -8px rgba(0,0,0,.3); }
+  .lp-phone-frame { width: 230px; max-width: 230px; margin: 0 auto; background:#0b1220; border-radius: 34px; padding: 10px 10px 16px; box-shadow: 0 24px 54px -10px rgba(76,29,149,.35), 0 10px 24px -8px rgba(0,0,0,.3); }
   .lp-phone-frame .lp-phone-notch { width: 70px; height: 16px; background:#0b1220; border-radius: 0 0 12px 12px; margin: 0 auto 6px; position:relative; }
   .lp-phone-frame .lp-phone-notch::after { content:""; position:absolute; left:50%; top:4px; transform:translateX(-50%); width:34px; height:5px; border-radius:4px; background:#1e293b; }
   .lp-phone-frame .lp-phone-screen { border-radius: 20px; overflow:hidden; position:relative; }
@@ -274,7 +274,7 @@ fbq('track', 'PageView');
      brillo tipo vidrio/bokeh + grano sutil — no es una foto real, pero se
      aleja del look plano de color sólido de la versión anterior. */
   .lp-mktg-lab-bg {
-    aspect-ratio: 1/1; position:relative; overflow:hidden;
+    width: 100%; aspect-ratio: 1/1; position:relative; overflow:hidden;
     background:
       radial-gradient(circle at 18% 15%, rgba(255,255,255,.22), transparent 38%),
       radial-gradient(circle at 85% 75%, rgba(94,234,212,.35), transparent 42%),
@@ -285,12 +285,10 @@ fbq('track', 'PageView');
     content: ""; position:absolute; inset:0; opacity:.5; mix-blend-mode: overlay; pointer-events:none;
     background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='120' height='120'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.35'/%3E%3C/svg%3E");
   }
-  .lp-mktg-lab-bg .blob { position:absolute; border-radius:50%; filter: blur(18px); background: radial-gradient(circle at 35% 30%, rgba(255,255,255,.55), rgba(255,255,255,.04) 70%); }
-  .lp-mktg-lab-bg .blob.b1 { width:90px; height:140px; top:8%; left:12%; transform: rotate(-18deg); opacity:.55; }
-  .lp-mktg-lab-bg .blob.b2 { width:60px; height:60px; bottom:22%; right:14%; opacity:.4; }
-  .lp-mktg-lab-bg .deco { position:absolute; font-size: 30px; opacity:.5; filter: drop-shadow(0 4px 10px rgba(0,0,0,.25)); }
-  .lp-mktg-lab-bg .deco.d1 { top: 12%; left: 14%; font-size: 46px; transform: rotate(-14deg); }
-  .lp-mktg-lab-bg .deco.d2 { bottom: 24%; right: 15%; font-size: 36px; transform: rotate(12deg); }
+  /* Microscopio ilustrado en SVG — más reconocible y profesional que los
+     emojis sueltos de la versión anterior; al ser SVG se ve nítido en
+     cualquier tamaño de pantalla, sin depender de una foto externa. */
+  .lp-mktg-micro { position:absolute; left:50%; top:38%; transform:translate(-50%,-50%); width:46%; filter: drop-shadow(0 8px 16px rgba(0,0,0,.3)); }
   .lp-mktg-lab-card { position:absolute; left:7%; right:7%; bottom:9%; background: rgba(15,23,42,.6); backdrop-filter: blur(6px); border-radius: 12px; padding: 14px 16px; color:#fff; border: 1px solid rgba(255,255,255,.12); }
   .lp-mktg-lab-card .tag { display:inline-block; background: linear-gradient(90deg,var(--lp-orange),var(--lp-pink)); font-size:10.5px; font-weight:800; padding:3px 10px; border-radius:14px; margin-bottom:6px; }
   .lp-mktg-lab-card b { display:block; font-size:16px; line-height:1.25; }
@@ -898,8 +896,24 @@ fbq('track', 'PageView');
             <span class="lp-ig-dots">⋯</span>
           </div>
           <div class="lp-mktg-lab-bg">
-            <span class="blob b1"></span><span class="blob b2"></span>
-            <span class="deco d1">🧪</span><span class="deco d2">🔬</span>
+            <svg class="lp-mktg-micro" viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg">
+              <g fill="none" stroke="#fff" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" opacity=".92">
+                <ellipse cx="38" cy="88" rx="26" ry="6" fill="#fff" fill-opacity=".16"/>
+                <path d="M38 82 L38 40"/>
+                <path d="M38 40 C38 24, 52 18, 60 24"/>
+                <rect x="52" y="4" width="14" height="22" rx="5" transform="rotate(18 59 15)" fill="#fff" fill-opacity=".18"/>
+                <rect x="16" y="52" width="44" height="9" rx="4.5" fill="#fff" fill-opacity=".16"/>
+                <rect x="22" y="47" width="24" height="5" rx="1.5" fill="#fff" fill-opacity=".4" stroke="none"/>
+                <path d="M38 61 L38 72"/>
+                <rect x="31" y="72" width="14" height="10" rx="2.5" fill="#fff" fill-opacity=".22"/>
+                <circle cx="50" cy="34" r="3" fill="#fff" stroke="none"/>
+              </g>
+              <g opacity=".5" transform="translate(2,56)">
+                <path d="M14 0 L14 14 L2 38 Q0 44 6 44 L30 44 Q36 44 34 38 L22 14 L22 0 Z" fill="#5eead4" fill-opacity=".3" stroke="#fff" stroke-width="2" stroke-opacity=".5"/>
+                <rect x="11" y="-3" width="14" height="5" rx="1.5" fill="#fff" fill-opacity=".5"/>
+                <circle cx="17" cy="34" r="2" fill="#fff" fill-opacity=".6"/>
+              </g>
+            </svg>
             <div class="lp-mktg-lab-card">
               <span class="tag">PROMOCIÓN</span>
               <b>Hoy: Perfil Lipídico completo</b>
@@ -922,8 +936,24 @@ fbq('track', 'PageView');
                 <div class="lp-ig-avatar">BS</div>
                 <div><b>laboratorio.biosoft</b><br/><span>Ahora</span></div>
               </div>
-              <span class="blob b1"></span><span class="blob b2"></span>
-              <span class="deco d1">🧫</span><span class="deco d2">💉</span>
+              <svg class="lp-mktg-micro" viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg">
+                <g fill="none" stroke="#fff" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" opacity=".92">
+                  <ellipse cx="38" cy="88" rx="26" ry="6" fill="#fff" fill-opacity=".16"/>
+                  <path d="M38 82 L38 40"/>
+                  <path d="M38 40 C38 24, 52 18, 60 24"/>
+                  <rect x="52" y="4" width="14" height="22" rx="5" transform="rotate(18 59 15)" fill="#fff" fill-opacity=".18"/>
+                  <rect x="16" y="52" width="44" height="9" rx="4.5" fill="#fff" fill-opacity=".16"/>
+                  <rect x="22" y="47" width="24" height="5" rx="1.5" fill="#fff" fill-opacity=".4" stroke="none"/>
+                  <path d="M38 61 L38 72"/>
+                  <rect x="31" y="72" width="14" height="10" rx="2.5" fill="#fff" fill-opacity=".22"/>
+                  <circle cx="50" cy="34" r="3" fill="#fff" stroke="none"/>
+                </g>
+                <g opacity=".5" transform="translate(2,56)">
+                  <path d="M14 0 L14 14 L2 38 Q0 44 6 44 L30 44 Q36 44 34 38 L22 14 L22 0 Z" fill="#5eead4" fill-opacity=".3" stroke="#fff" stroke-width="2" stroke-opacity=".5"/>
+                  <rect x="11" y="-3" width="14" height="5" rx="1.5" fill="#fff" fill-opacity=".5"/>
+                  <circle cx="17" cy="34" r="2" fill="#fff" fill-opacity=".6"/>
+                </g>
+              </svg>
               <div class="lp-mktg-lab-card">
                 <span class="tag">URGENTE</span>
                 <b>Agenda tu examen hoy</b>
