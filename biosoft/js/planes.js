@@ -55,8 +55,13 @@
     // de todas formas cae aquí no debe quedar bloqueado por el sistema —
     // ver "más de 20 usuarios" en index.html, que sigue ofreciéndose a la
     // medida por WhatsApp para el caso de varias sedes.
+    // "extra" es un beneficio EXCLUSIVO de este plan (no se mezcla con
+    // ITEMS_COMUNES, que es idéntico en los 4 planes) — se muestra en la
+    // landing y en activar.html con una insignia dorada distinta, para que
+    // se note como el único plan que lo incluye.
     { id: "corporativo", nombre: "Corporativo", usuarios: "11 a 20 usuarios simultáneos", limiteUsuarios: null, precio: 320000, precioFmt: "320.000", usd: 99, destacado: false,
-      wompiLink: "", interfazEquiposIncluida: false, items: ITEMS_COMUNES }
+      wompiLink: "", interfazEquiposIncluida: false, items: ITEMS_COMUNES,
+      extra: ["🎁 GRATIS: página web propia con consulta de resultados en línea, 24/7"] }
   ];
 
   // Oferta de lanzamiento vigente: se regala al activarse hoy, sin importar

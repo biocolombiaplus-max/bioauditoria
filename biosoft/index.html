@@ -237,6 +237,75 @@ fbq('track', 'PageView');
   .lp-pdf-feature { display: flex; align-items: center; gap: 10px; font-size: 14.5px; font-weight: 600; color: var(--text); }
   .lp-pdf-feature span { font-size: 18px; }
 
+  /* Garabato de firma sobre el ejemplo de PDF: el screenshot real ya trae
+     la firma dentro de la imagen, pero se nota poco a tamaño reducido —
+     este trazo SVG se dibuja ENCIMA, justo sobre la zona de firma, para
+     que a simple vista quede claro que ahí va una firma manuscrita real. */
+  .lp-pdf-firma-garabato { position: absolute; left: 3%; top: 63%; width: 34%; pointer-events: none; filter: drop-shadow(0 1px 1px rgba(0,0,0,.15)); }
+  .lp-pdf-firma-garabato svg { width: 100%; display: block; }
+  .lp-pdf-firma-label { position: absolute; left: 3%; top: 76.2%; font-family: 'Segoe Script','Brush Script MT',cursive; font-size: 15px; color: #1e3a8a; transform: rotate(-3deg); pointer-events: none; }
+
+  /* Insignia "Analizado por IA" sobre la gráfica de Control de Calidad —
+     refuerza visualmente que el análisis no es manual, es la IA la que ya
+     revisó ese punto (el diferenciador que más le importa resaltar). */
+  .lp-ia-badge {
+    position: absolute; z-index: 2; background: linear-gradient(135deg,#0ea5e9,#6366f1); color:#fff;
+    font-size: 11.5px; font-weight: 800; padding: 7px 13px; border-radius: 20px; box-shadow: var(--shadow-md);
+    display:flex; align-items:center; gap:6px; animation: lpIaPulse 2.4s ease-in-out infinite;
+  }
+  @keyframes lpIaPulse { 0%,100% { box-shadow: 0 0 0 0 rgba(99,102,241,.5); } 50% { box-shadow: 0 0 0 8px rgba(99,102,241,0); } }
+  .lp-ia-badge-punto { top: 38%; right: 8%; }
+  .lp-ia-callout {
+    margin-top: 14px; background: linear-gradient(135deg, color-mix(in srgb, #6366f1 10%, #fff), color-mix(in srgb, #0ea5e9 10%, #fff));
+    border: 1.5px solid color-mix(in srgb, #6366f1 30%, var(--border)); border-radius: 14px; padding: 14px 16px; font-size: 13.5px; line-height: 1.55; color: var(--text);
+  }
+  .lp-ia-callout b { color: #4338ca; }
+
+  /* Marco de celular reutilizable — envuelve un screenshot cualquiera para
+     que se vea realmente "dentro de un teléfono" en vez de un rectángulo
+     plano de imagen. */
+  .lp-phone-frame { max-width: 230px; margin: 0 auto; background:#0b1220; border-radius: 34px; padding: 10px 10px 16px; box-shadow: 0 24px 54px -10px rgba(76,29,149,.35), 0 10px 24px -8px rgba(0,0,0,.3); }
+  .lp-phone-frame .lp-phone-notch { width: 70px; height: 16px; background:#0b1220; border-radius: 0 0 12px 12px; margin: 0 auto 6px; position:relative; }
+  .lp-phone-frame .lp-phone-notch::after { content:""; position:absolute; left:50%; top:4px; transform:translateX(-50%); width:34px; height:5px; border-radius:4px; background:#1e293b; }
+  .lp-phone-frame .lp-phone-screen { border-radius: 20px; overflow:hidden; }
+  .lp-phone-frame .lp-phone-screen img { width:100%; display:block; }
+  .lp-phone-caption { text-align:center; font-size:12px; color: var(--text-muted); margin-top:10px; }
+
+  /* Mockup "Creador de Imágenes": ya que el ejemplo real no puede traer un
+     fondo fotográfico de laboratorio, se construye una vista previa con
+     CSS/SVG (nunca presentada como una foto real) con ese fondo tipo
+     laboratorio para transmitir el estilo premium del resultado final. */
+  .lp-mktg-mockups { display:flex; gap:28px; justify-content:center; align-items:flex-end; flex-wrap:wrap; margin: 18px 0 8px; }
+  .lp-mktg-mockup-pc { width: 320px; }
+  .lp-mktg-lab-bg {
+    aspect-ratio: 1/1; border-radius: 14px; position:relative; overflow:hidden;
+    background:
+      radial-gradient(circle at 25% 20%, rgba(255,255,255,.14), transparent 45%),
+      linear-gradient(160deg, #0f766e 0%, #0e7490 45%, #1e3a8a 100%);
+  }
+  .lp-mktg-lab-bg .deco { position:absolute; font-size: 38px; opacity:.22; filter: blur(.2px); }
+  .lp-mktg-lab-bg .deco.d1 { top: 10%; left: 10%; font-size: 54px; transform: rotate(-12deg); }
+  .lp-mktg-lab-bg .deco.d2 { bottom: 14%; right: 12%; font-size: 46px; transform: rotate(10deg); }
+  .lp-mktg-lab-bg .deco.d3 { top: 46%; left: 60%; font-size: 30px; transform: rotate(-6deg); }
+  .lp-mktg-lab-card { position:absolute; left:8%; right:8%; bottom:10%; background: rgba(15,23,42,.72); backdrop-filter: blur(2px); border-radius: 12px; padding: 14px 16px; color:#fff; }
+  .lp-mktg-lab-card .tag { display:inline-block; background: linear-gradient(90deg,var(--lp-orange),var(--lp-pink)); font-size:10.5px; font-weight:800; padding:3px 10px; border-radius:14px; margin-bottom:6px; }
+  .lp-mktg-lab-card b { display:block; font-size:16px; line-height:1.25; }
+  .lp-mktg-lab-card span { display:block; font-size:11.5px; opacity:.85; margin-top:3px; }
+  .lp-mktg-mockup-note { text-align:center; font-size:11.5px; color: var(--text-muted); margin-top:20px; max-width:620px; margin-left:auto; margin-right:auto; }
+
+  /* Aclaración de "usuarios" en precios — para que nadie confunda usuarios
+     (bacteriólogos / bioanalistas / técnicos) con pacientes atendidos. */
+  .lp-aclaracion-usuarios {
+    max-width: 700px; margin: 18px auto 30px; background: linear-gradient(135deg, color-mix(in srgb, #0ea5e9 10%, #fff), color-mix(in srgb, var(--lp-purple) 8%, #fff));
+    border: 1.5px solid color-mix(in srgb, #0ea5e9 30%, var(--border)); border-radius: 16px; padding: 18px 22px; text-align:left;
+  }
+  .lp-aclaracion-usuarios p { margin: 0; font-size: 14px; line-height: 1.6; color: var(--text); }
+  .lp-aclaracion-usuarios p + p { margin-top: 8px; }
+  .lp-aclaracion-usuarios b { color: #0369a1; }
+
+  .price-card li.price-extra { color: var(--text); font-weight: 700; }
+  .price-card li.price-extra:before { content: "🎁 "; color: inherit; }
+
   .lp-cot-urgencia {
     margin-top: 6px; background: linear-gradient(135deg, color-mix(in srgb, var(--lp-orange) 14%, #fff), color-mix(in srgb, var(--lp-pink) 12%, #fff));
     border: 1.5px solid color-mix(in srgb, var(--lp-pink) 34%, var(--border)); border-radius: 16px; padding: 16px 20px;
@@ -589,28 +658,37 @@ fbq('track', 'PageView');
     <div class="lp-pdf-showcase">
       <div class="lp-pdf-image-wrap">
         <img src="assets/screenshots/informe-pdf.jpg" alt="Informe de resultados de laboratorio en PDF, con firma digital del bacteriólogo y código QR de verificación" class="lp-pdf-image"/>
+        <div class="lp-pdf-firma-garabato">
+          <svg viewBox="0 0 160 46" xmlns="http://www.w3.org/2000/svg">
+            <path d="M4 32 C 14 8, 24 8, 30 26 C 34 38, 40 20, 46 18 C 52 16, 54 32, 62 30 C 70 28, 70 12, 80 14 C 92 16, 90 34, 102 30 C 112 27, 108 10, 120 12 C 132 14, 128 30, 142 26 C 150 23, 152 18, 156 20"
+              fill="none" stroke="#1e3a8a" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"/>
+          </svg>
+        </div>
+        <div class="lp-pdf-firma-label">Dra. Laura Gómez</div>
         <div class="lp-pdf-callout lp-pdf-callout-firma">✍️ Firma digital del bacteriólogo</div>
         <div class="lp-pdf-callout lp-pdf-callout-qr">🔳 Código QR de verificación</div>
       </div>
       <div class="lp-pdf-side">
         <div class="lp-pdf-feature"><span>✅</span> 100% profesional, con tu logo y colores institucionales</div>
-        <div class="lp-pdf-feature"><span>✍️</span> Firma digital de cada bacteriólogo responsable</div>
+        <div class="lp-pdf-feature"><span>✍️</span> Firma digital de cada bacteriólogo responsable — igual de real que firmar en papel, pero en segundos</div>
         <div class="lp-pdf-feature"><span>🔳</span> Código QR de validación en cada informe</div>
         <div class="lp-pdf-feature"><span>📲</span> Envío directo por WhatsApp al paciente</div>
         <div class="lp-pdf-feature"><span>✉️</span> Envío por Gmail u Outlook en un clic</div>
         <a class="btn btn-primary btn-glow-brand btn-block" href="assets/muestra-informe-biosoft.pdf" target="_blank" rel="noopener" download>📄 Descargar informe de ejemplo</a>
+        <a class="btn btn-whatsapp btn-block" id="wa-pdfpro-lp" href="#" target="_blank" rel="noopener">💬 Tengo una duda sobre esto</a>
         <p class="text-muted" style="font-size:11.5px;text-align:center;margin-top:8px">Es un PDF real, generado con BIOsoft. Así vas a entregar tus resultados desde el primer día.</p>
       </div>
     </div>
   </section>
 
   <section class="lp-section lp-pdf-section" id="control-calidad">
-    <div class="lp-pdf-kicker">🤖 NUEVO — Análisis Inteligente</div>
-    <h2>Control de Calidad con IA, como los grandes laboratorios</h2>
-    <p class="lead">Química Sanguínea y Hematología ahora con curvas de Levey-Jennings y las reglas de Westgard completas. BIOsoft analiza cada dato que ingresas y te dice al instante si tu control está bien, en aviso o si debes repetir la prueba — con la recomendación exacta de qué revisar.</p>
+    <div class="lp-pdf-kicker">🤖 LO QUE NOS HACE DIFERENTES — Análisis con Inteligencia Artificial</div>
+    <h2>La IA que analiza, decide y te dice qué hacer — no solo "dibuja" una gráfica</h2>
+    <p class="lead">Esta es la verdadera diferencia de BIOsoft frente a cualquier otro software de laboratorio: no te entrega una gráfica para que tú la interpretes — <b>la Inteligencia Artificial de BIOsoft analiza cada dato, aplica las reglas de Westgard y te dice al instante si tu control está bien, en aviso o si debes repetir la prueba</b>, con la recomendación exacta de qué revisar. Es como tener un experto en control de calidad trabajando contigo las 24 horas.</p>
     <div class="lp-pdf-showcase">
       <div class="lp-pdf-image-wrap">
         <span class="lp-nuevo-badge">✨ NUEVO</span>
+        <span class="lp-ia-badge lp-ia-badge-punto">🤖 IA analizando en tiempo real</span>
         <img src="assets/screenshots/control-calidad.jpg" alt="Módulo de Control de Calidad de BIOsoft con gráfica de Levey-Jennings, reglas de Westgard y recomendaciones inteligentes" class="lp-pdf-image"/>
       </div>
       <div class="lp-pdf-side">
@@ -620,8 +698,9 @@ fbq('track', 'PageView');
         <div class="lp-pdf-feature"><span>💡</span> Recomendación específica: error aleatorio o sistemático, y qué hacer</div>
         <div class="lp-pdf-feature"><span>📱</span> Úsalo como app desde cualquier celular, en pleno laboratorio</div>
         <div class="lp-pdf-feature"><span>🧪</span> Química Sanguínea y Hematología, con más secciones en camino</div>
+        <div class="lp-ia-callout">🤖 <b>Esto es lo que ningún otro software en tu rango de precio tiene:</b> la IA no solo grafica tu control — lo analiza, toma la decisión y te explica por qué, para que tu laboratorio tome decisiones clínicas más seguras, más rápido.</div>
         <a class="btn btn-primary btn-glow-brand btn-block" href="app.html">🚀 Ver Demo Gratis</a>
-        <p class="text-muted" style="font-size:11.5px;text-align:center;margin-top:8px">Ningún otro software de laboratorio en tu rango de precio tiene esto — así de simple.</p>
+        <a class="btn btn-whatsapp btn-block" id="wa-controlcalidad-lp" href="#" target="_blank" rel="noopener">💬 Quiero que mi laboratorio tenga esto</a>
       </div>
     </div>
   </section>
@@ -651,8 +730,16 @@ fbq('track', 'PageView');
         <h3 class="lp-mktg-subtitulo" style="margin-top:0">📲 Desde el celular, sin perder ni un segundo</h3>
         <p class="text-muted" style="font-size:13.5px">Tu equipo puede seguir capturando resultados directamente desde su celular, con el mismo aviso claro de que está trabajando sin conexión — para que nadie se quede esperando a que "vuelva el internet".</p>
       </div>
-      <div class="lp-pdf-image-wrap">
-        <img src="assets/screenshots/modo-offline-movil.jpg" alt="BIOsoft en modo offline usado desde un celular, con el Panel Principal funcionando sin conexión" class="lp-pdf-image" style="max-height:420px;object-fit:cover;object-position:top"/>
+      <div class="lp-pdf-image-wrap" style="display:flex;justify-content:center">
+        <div>
+          <div class="lp-phone-frame">
+            <div class="lp-phone-notch"></div>
+            <div class="lp-phone-screen">
+              <img src="assets/screenshots/modo-offline-movil.jpg" alt="BIOsoft en modo offline usado desde un celular, con el Panel Principal funcionando sin conexión" style="object-fit:cover;object-position:top;height:460px"/>
+            </div>
+          </div>
+          <p class="lp-phone-caption">📲 Así se ve BIOsoft en tu celular</p>
+        </div>
       </div>
     </div>
   </section>
@@ -674,6 +761,7 @@ fbq('track', 'PageView');
         <div class="lp-pdf-feature"><span>🔑</span> Clave de interfaz única y segura por cada equipo</div>
         <div class="lp-pdf-feature"><span>📋</span> Historial completo de qué equipo envió cada resultado, y cuándo</div>
         <a class="btn btn-primary btn-glow-brand btn-block" href="app.html">🚀 Ver Demo Gratis</a>
+        <a class="btn btn-whatsapp btn-block" id="wa-equipos-lp" href="#" target="_blank" rel="noopener">💬 Quiero conectar mis equipos</a>
         <p class="text-muted" style="font-size:11.5px;text-align:center;margin-top:8px">Los primeros 5 equipos son gratis al activarte hoy, en cualquier plan · luego, $10 USD por equipo adicional — pago único, solo el primer mes de cada equipo.</p>
       </div>
     </div>
@@ -702,6 +790,7 @@ fbq('track', 'PageView');
         <div class="lp-pdf-feature"><span>🧮</span> Clase (0 a 6) e Interpretación (Positivo/Negativo) calculadas solas</div>
         <div class="lp-pdf-feature"><span>➕</span> ¿Falta un alérgeno? Se agrega al catálogo de tu laboratorio al instante</div>
         <a class="btn btn-primary btn-glow-brand btn-block" href="app.html">🚀 Ver Demo Gratis</a>
+        <a class="btn btn-whatsapp btn-block" id="wa-paneles-lp" href="#" target="_blank" rel="noopener">💬 Tengo una duda sobre esto</a>
         <p class="text-muted" style="font-size:11.5px;text-align:center;margin-top:8px">Ningún otro software de laboratorio en tu rango de precio tiene esto — así de simple.</p>
       </div>
       <div class="lp-pdf-image-wrap">
@@ -774,6 +863,40 @@ fbq('track', 'PageView');
         <img src="assets/screenshots/marketing-creador.jpg" alt="Creador de Imágenes de BIOsoft con plantillas premium para WhatsApp, Instagram y TikTok, respetando márgenes seguros" class="lp-pdf-image"/>
       </div>
     </div>
+
+    <div class="lp-mktg-mockups">
+      <div class="lp-mktg-mockup-pc">
+        <div class="lp-shot-frame">
+          <div class="lp-shot-bar"><i></i><i></i><i></i><span class="lp-shot-url">biosoft</span></div>
+          <div class="lp-mktg-lab-bg">
+            <span class="deco d1">🧪</span><span class="deco d2">🔬</span><span class="deco d3">🧬</span>
+            <div class="lp-mktg-lab-card">
+              <span class="tag">PROMOCIÓN</span>
+              <b>Hoy: Perfil Lipídico completo</b>
+              <span>Laboratorio Clínico BIOsoft · Resultados el mismo día</span>
+            </div>
+          </div>
+        </div>
+        <p class="lp-shot-caption" style="margin-top:12px"><b>Vista en PC</b> — con fondo tipo laboratorio, lista para tus redes</p>
+      </div>
+      <div>
+        <div class="lp-phone-frame">
+          <div class="lp-phone-notch"></div>
+          <div class="lp-phone-screen">
+            <div class="lp-mktg-lab-bg" style="border-radius:0">
+              <span class="deco d1">🧫</span><span class="deco d2">💉</span><span class="deco d3">🩺</span>
+              <div class="lp-mktg-lab-card">
+                <span class="tag">URGENTE</span>
+                <b>Agenda tu examen hoy</b>
+                <span>Cupos limitados esta semana</span>
+              </div>
+            </div>
+          </div>
+        </div>
+        <p class="lp-phone-caption"><b>Vista en celular</b> — Estado de WhatsApp e Instagram</p>
+      </div>
+    </div>
+    <p class="lp-mktg-mockup-note">Vista previa ilustrativa del estilo de imagen que genera este módulo — tú eliges tu propio fondo, texto y colores en segundos, desde PC o celular.</p>
 
     <div class="lp-cot-urgencia" style="max-width:700px;margin:36px auto 0">
       <span class="lp-cot-urgencia-tag">🔥 Cupos limitados esta semana</span>
@@ -950,6 +1073,10 @@ fbq('track', 'PageView');
     <h2>Precios claros, según el número de usuarios</h2>
     <p class="lead">Empiezas a usar tu BIOsoft el mismo día que pagas. Elige cómo prefieres cubrir tu inversión de personalización — sin sorpresas.</p>
     <div class="lp-img-slot" data-slot="precios" style="display:none"><img alt=""/></div>
+    <div class="lp-aclaracion-usuarios">
+      <p>☝️ <b>Importante para que no haya confusión:</b> "usuarios" son las personas de tu laboratorio que van a usar el sistema — tus bacteriólogos, bioanalistas o técnicos de laboratorio. <b>Nunca se refiere a tus pacientes.</b></p>
+      <p>En <b>TODOS</b> los planes, sin excepción, los <b>pacientes y las órdenes de laboratorio son 100% ilimitados</b> — puedes atender a cuantos pacientes necesites, sin pagar más por eso. La única diferencia entre un plan y otro es cuántas personas de tu equipo pueden trabajar al mismo tiempo dentro del sistema.</p>
+    </div>
     <div class="lp-onetime-banner" id="lp-onetime-banner">
       <span class="lp-onetime-tag" id="lp-onetime-tag">🔥 PROMOCIÓN DE HOY — $0 EN IMPLEMENTACIÓN</span>
       <p id="lp-onetime-text">Si te activas <b>hoy</b>, no pagas los <b>$380.000 COP (≈ $120 USD) de implementación</b> — <b>solo pagas tu primer mes de servicio</b> y accedes de inmediato. Sin letra pequeña, sin cuotas escondidas.</p>
@@ -1039,7 +1166,7 @@ fbq('track', 'PageView');
   <footer class="lp-footer">BIOsoft™ · Un producto de BIOMarketing · biomarketing.salud@gmail.com<br/>© 2026 Todos los derechos reservados.</footer>
 
   <script src="js/catalog.js?v=21"></script>
-  <script src="js/planes.js?v=9"></script>
+  <script src="js/planes.js?v=10"></script>
   <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
@@ -1239,7 +1366,9 @@ fbq('track', 'PageView');
           "<h3>" + p.nombre + "</h3><div class='users'>" + p.usuarios + "</div>" +
           '<div class="amount">$' + p.precioFmt + " <small>/mes</small></div>" +
           '<div class="amount-usd">≈ $' + p.usd + " USD/mes</div>" +
-          "<ul>" + p.items.map(function (it) { return "<li>" + it + "</li>"; }).join("") + "</ul>" +
+          "<ul>" + p.items.map(function (it) { return "<li>" + it + "</li>"; }).join("") +
+          (p.extra ? p.extra.map(function (it) { return '<li class="price-extra">' + it + "</li>"; }).join("") : "") +
+          "</ul>" +
           (modoPago === "semestral" ? semestralBloque(p) : mensualBloque(p)) +
           "</div>";
       }).join("");
@@ -1286,6 +1415,10 @@ fbq('track', 'PageView');
     document.getElementById("wa-cotizador-lp").href = waLink("Hola 👋 quiero reservar esta semana BIOsoft con el módulo de Cotización de Exámenes + Control de Calidad con IA + App móvil incluidos. ¿Me ayudan a activarlo?");
     document.getElementById("wa-marketing-lp").href = waLink("Hola 👋 vi el módulo de Marketing Digital con IA (Remarketing + Creador de Imágenes) de BIOsoft y quiero activarlo esta semana con acompañamiento personalizado. ¿Me ayudan?");
     document.getElementById("wa-inventario-lp").href = waLink("Hola 👋 vi el módulo de Control de Inventario y Reactivos con Kardex de BIOsoft y quiero reservarlo esta semana para que me lo incluyan sin costo. ¿Me ayudan a activarlo?");
+    document.getElementById("wa-pdfpro-lp").href = waLink("Hola 👋 vi el ejemplo de informe en PDF de BIOsoft, con firma digital y código QR, y tengo una duda antes de activarlo. ¿Me ayudan?");
+    document.getElementById("wa-controlcalidad-lp").href = waLink("Hola 👋 vi el Control de Calidad con Inteligencia Artificial de BIOsoft (Levey-Jennings + reglas de Westgard) y quiero que mi laboratorio tenga esto. ¿Me ayudan a activarlo?");
+    document.getElementById("wa-equipos-lp").href = waLink("Hola 👋 quiero conectar los equipos de mi laboratorio directamente a BIOsoft (módulo LIS). ¿Me ayudan a activarlo?");
+    document.getElementById("wa-paneles-lp").href = waLink("Hola 👋 tengo una duda sobre los paneles de Antibiograma y Alergia de BIOsoft. ¿Me ayudan?");
 
     // ===== Cuenta regresiva hasta el fin de esta semana (domingo 23:59) =====
     function finDeEstaSemana() {
