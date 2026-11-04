@@ -260,7 +260,7 @@ fbq('track', 'PageView');
   .lp-phone-frame { max-width: 230px; margin: 0 auto; background:#0b1220; border-radius: 34px; padding: 10px 10px 16px; box-shadow: 0 24px 54px -10px rgba(76,29,149,.35), 0 10px 24px -8px rgba(0,0,0,.3); }
   .lp-phone-frame .lp-phone-notch { width: 70px; height: 16px; background:#0b1220; border-radius: 0 0 12px 12px; margin: 0 auto 6px; position:relative; }
   .lp-phone-frame .lp-phone-notch::after { content:""; position:absolute; left:50%; top:4px; transform:translateX(-50%); width:34px; height:5px; border-radius:4px; background:#1e293b; }
-  .lp-phone-frame .lp-phone-screen { border-radius: 20px; overflow:hidden; }
+  .lp-phone-frame .lp-phone-screen { border-radius: 20px; overflow:hidden; position:relative; }
   .lp-phone-frame .lp-phone-screen img { width:100%; display:block; }
   .lp-phone-caption { text-align:center; font-size:12px; color: var(--text-muted); margin-top:10px; }
 
@@ -268,22 +268,61 @@ fbq('track', 'PageView');
      fondo fotográfico de laboratorio, se construye una vista previa con
      CSS/SVG (nunca presentada como una foto real) con ese fondo tipo
      laboratorio para transmitir el estilo premium del resultado final. */
-  .lp-mktg-mockups { display:flex; gap:28px; justify-content:center; align-items:flex-end; flex-wrap:wrap; margin: 18px 0 8px; }
-  .lp-mktg-mockup-pc { width: 320px; }
+  .lp-mktg-mockups { display:flex; gap:28px; justify-content:center; align-items:flex-start; flex-wrap:wrap; margin: 18px 0 8px; }
+
+  /* Fondo "foto de laboratorio" simulado con mesh-gradient + manchas de
+     brillo tipo vidrio/bokeh + grano sutil — no es una foto real, pero se
+     aleja del look plano de color sólido de la versión anterior. */
   .lp-mktg-lab-bg {
-    aspect-ratio: 1/1; border-radius: 14px; position:relative; overflow:hidden;
+    aspect-ratio: 1/1; position:relative; overflow:hidden;
     background:
-      radial-gradient(circle at 25% 20%, rgba(255,255,255,.14), transparent 45%),
-      linear-gradient(160deg, #0f766e 0%, #0e7490 45%, #1e3a8a 100%);
+      radial-gradient(circle at 18% 15%, rgba(255,255,255,.22), transparent 38%),
+      radial-gradient(circle at 85% 75%, rgba(94,234,212,.35), transparent 42%),
+      radial-gradient(circle at 70% 10%, rgba(168,85,247,.3), transparent 45%),
+      linear-gradient(155deg, #0f766e 0%, #0e7490 42%, #1e1b4b 100%);
   }
-  .lp-mktg-lab-bg .deco { position:absolute; font-size: 38px; opacity:.22; filter: blur(.2px); }
-  .lp-mktg-lab-bg .deco.d1 { top: 10%; left: 10%; font-size: 54px; transform: rotate(-12deg); }
-  .lp-mktg-lab-bg .deco.d2 { bottom: 14%; right: 12%; font-size: 46px; transform: rotate(10deg); }
-  .lp-mktg-lab-bg .deco.d3 { top: 46%; left: 60%; font-size: 30px; transform: rotate(-6deg); }
-  .lp-mktg-lab-card { position:absolute; left:8%; right:8%; bottom:10%; background: rgba(15,23,42,.72); backdrop-filter: blur(2px); border-radius: 12px; padding: 14px 16px; color:#fff; }
+  .lp-mktg-lab-bg::before {
+    content: ""; position:absolute; inset:0; opacity:.5; mix-blend-mode: overlay; pointer-events:none;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='120' height='120'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.35'/%3E%3C/svg%3E");
+  }
+  .lp-mktg-lab-bg .blob { position:absolute; border-radius:50%; filter: blur(18px); background: radial-gradient(circle at 35% 30%, rgba(255,255,255,.55), rgba(255,255,255,.04) 70%); }
+  .lp-mktg-lab-bg .blob.b1 { width:90px; height:140px; top:8%; left:12%; transform: rotate(-18deg); opacity:.55; }
+  .lp-mktg-lab-bg .blob.b2 { width:60px; height:60px; bottom:22%; right:14%; opacity:.4; }
+  .lp-mktg-lab-bg .deco { position:absolute; font-size: 30px; opacity:.5; filter: drop-shadow(0 4px 10px rgba(0,0,0,.25)); }
+  .lp-mktg-lab-bg .deco.d1 { top: 12%; left: 14%; font-size: 46px; transform: rotate(-14deg); }
+  .lp-mktg-lab-bg .deco.d2 { bottom: 24%; right: 15%; font-size: 36px; transform: rotate(12deg); }
+  .lp-mktg-lab-card { position:absolute; left:7%; right:7%; bottom:9%; background: rgba(15,23,42,.6); backdrop-filter: blur(6px); border-radius: 12px; padding: 14px 16px; color:#fff; border: 1px solid rgba(255,255,255,.12); }
   .lp-mktg-lab-card .tag { display:inline-block; background: linear-gradient(90deg,var(--lp-orange),var(--lp-pink)); font-size:10.5px; font-weight:800; padding:3px 10px; border-radius:14px; margin-bottom:6px; }
   .lp-mktg-lab-card b { display:block; font-size:16px; line-height:1.25; }
   .lp-mktg-lab-card span { display:block; font-size:11.5px; opacity:.85; margin-top:3px; }
+
+  /* Tarjeta estilo "publicación de Instagram" para la vista en PC. */
+  .lp-ig-post { width: 300px; background:#fff; border-radius: 14px; overflow:hidden; box-shadow: 0 24px 54px -10px rgba(76,29,149,.3), 0 10px 24px -8px rgba(0,0,0,.18); border: 1px solid rgba(15,23,42,.06); }
+  .lp-ig-head { display:flex; align-items:center; gap:9px; padding: 10px 12px; }
+  .lp-ig-avatar { width:30px; height:30px; border-radius:50%; background: linear-gradient(135deg,var(--lp-orange),var(--lp-pink),var(--lp-purple)); display:flex; align-items:center; justify-content:center; color:#fff; font-weight:800; font-size:11px; flex-shrink:0; }
+  .lp-ig-head-info { flex:1; min-width:0; }
+  .lp-ig-head-info b { display:block; font-size:12.5px; line-height:1.2; }
+  .lp-ig-head-info span { display:block; font-size:10.5px; color: var(--text-muted); }
+  .lp-ig-dots { color: var(--text-muted); font-weight:800; letter-spacing:1px; }
+  .lp-ig-actions { display:flex; align-items:center; gap:12px; padding: 9px 12px 4px; font-size:17px; }
+  .lp-ig-actions span:last-child { margin-left:auto; }
+  .lp-ig-likes { padding: 2px 12px 2px; font-size:12px; font-weight:800; }
+  .lp-ig-caption { padding: 0 12px 12px; font-size:12px; line-height:1.45; color: var(--text); }
+  .lp-ig-caption b { margin-right: 4px; }
+
+  /* Marco "Historia" (Story) para la vista en celular. */
+  .lp-ig-story-top { position:absolute; left:8px; right:8px; top:8px; display:flex; gap:4px; z-index:2; }
+  .lp-ig-story-top i { flex:1; height:2.5px; border-radius:2px; background: rgba(255,255,255,.35); display:block; }
+  .lp-ig-story-top i.on { background: #fff; }
+  .lp-ig-story-head { position:absolute; left:10px; right:10px; top:16px; display:flex; align-items:center; gap:7px; z-index:2; }
+  .lp-ig-story-head .lp-ig-avatar { width:24px; height:24px; font-size:9px; border: 1.5px solid rgba(255,255,255,.8); }
+  .lp-ig-story-head b { color:#fff; font-size:11.5px; font-weight:700; text-shadow: 0 1px 3px rgba(0,0,0,.4); }
+  .lp-ig-story-head span { color: rgba(255,255,255,.75); font-size:10px; text-shadow: 0 1px 3px rgba(0,0,0,.4); }
+  .lp-ig-story-reply { position:absolute; left:10px; right:10px; bottom:12px; display:flex; align-items:center; gap:8px; z-index:2; }
+  .lp-ig-story-reply .box { flex:1; border:1.5px solid rgba(255,255,255,.7); border-radius: 20px; padding:7px 12px; font-size:10.5px; color: rgba(255,255,255,.85); }
+  .lp-ig-story-reply .heart { font-size:16px; }
+
+  .lp-mktg-mockup-col { display:flex; flex-direction:column; align-items:center; }
   .lp-mktg-mockup-note { text-align:center; font-size:11.5px; color: var(--text-muted); margin-top:20px; max-width:620px; margin-left:auto; margin-right:auto; }
 
   /* Aclaración de "usuarios" en precios — para que nadie confunda usuarios
@@ -851,31 +890,46 @@ fbq('track', 'PageView');
     </div>
 
     <div class="lp-mktg-mockups">
-      <div class="lp-mktg-mockup-pc">
-        <div class="lp-shot-frame">
-          <div class="lp-shot-bar"><i></i><i></i><i></i><span class="lp-shot-url">biosoft</span></div>
+      <div class="lp-mktg-mockup-col">
+        <div class="lp-ig-post">
+          <div class="lp-ig-head">
+            <div class="lp-ig-avatar">BS</div>
+            <div class="lp-ig-head-info"><b>laboratorio.biosoft</b><span>Patrocinado</span></div>
+            <span class="lp-ig-dots">⋯</span>
+          </div>
           <div class="lp-mktg-lab-bg">
-            <span class="deco d1">🧪</span><span class="deco d2">🔬</span><span class="deco d3">🧬</span>
+            <span class="blob b1"></span><span class="blob b2"></span>
+            <span class="deco d1">🧪</span><span class="deco d2">🔬</span>
             <div class="lp-mktg-lab-card">
               <span class="tag">PROMOCIÓN</span>
               <b>Hoy: Perfil Lipídico completo</b>
               <span>Laboratorio Clínico BIOsoft · Resultados el mismo día</span>
             </div>
           </div>
+          <div class="lp-ig-actions"><span>🤍</span><span>💬</span><span>📤</span><span>🔖</span></div>
+          <div class="lp-ig-likes">Me gusta a 214 personas</div>
+          <div class="lp-ig-caption"><b>laboratorio.biosoft</b>Hoy con precio especial 🔥 Agenda por WhatsApp.</div>
         </div>
-        <p class="lp-shot-caption" style="margin-top:12px"><b>Vista en PC</b> — con fondo tipo laboratorio, lista para tus redes</p>
+        <p class="lp-shot-caption" style="margin-top:12px"><b>Vista en PC</b> — publicación lista para Facebook o Instagram</p>
       </div>
-      <div>
+      <div class="lp-mktg-mockup-col">
         <div class="lp-phone-frame">
           <div class="lp-phone-notch"></div>
           <div class="lp-phone-screen">
             <div class="lp-mktg-lab-bg" style="border-radius:0">
-              <span class="deco d1">🧫</span><span class="deco d2">💉</span><span class="deco d3">🩺</span>
+              <div class="lp-ig-story-top"><i class="on"></i><i></i><i></i></div>
+              <div class="lp-ig-story-head">
+                <div class="lp-ig-avatar">BS</div>
+                <div><b>laboratorio.biosoft</b><br/><span>Ahora</span></div>
+              </div>
+              <span class="blob b1"></span><span class="blob b2"></span>
+              <span class="deco d1">🧫</span><span class="deco d2">💉</span>
               <div class="lp-mktg-lab-card">
                 <span class="tag">URGENTE</span>
                 <b>Agenda tu examen hoy</b>
                 <span>Cupos limitados esta semana</span>
               </div>
+              <div class="lp-ig-story-reply"><span class="box">Enviar mensaje</span><span class="heart">🤍</span></div>
             </div>
           </div>
         </div>
