@@ -908,6 +908,90 @@
     });
   }
 
+  /* Lectura puntual (sin caché local, sin tiempo real) del documento
+     COMPLETO de un laboratorio — para el superadmin cuando necesita la
+     versión más reciente de UN tenant puntual sin pagar el costo de
+     tenantsGlobal.list() (que trae TODOS los laboratorios con sus conteos
+     de pacientes/órdenes). La usa la Plantilla de Precios y Valores de
+     Referencia: entre que el superadmin descarga el Excel y lo vuelve a
+     subir puede pasar un buen rato (lo llena fuera del navegador), así
+     que antes de aplicar los cambios se vuelve a leer el documento más
+     reciente en vez de confiar en la copia que ya tenía abierta en
+     pantalla desde que abrió "Laboratorios Cliente". */
+  function tenantGetOnce(tenantId) {
+    if (!firebaseDisponible()) return Promise.reject(errorFirebaseNoDisponible());
+    return tenantsColl().doc(tenantId).get().then(function (doc) {
+      return doc.exists ? doc.data() : null;
+    });
+  }
+
+  /* Lectura puntual de los precios de UN laboratorio, por su tenantId
+     explícito — a diferencia de cotizador.listPrecios() (que lee de la
+     copia local en localStorage, sincronizada solo con el tenant de la
+     sesión ACTUAL), esta lee directo de Firestore, así que sirve para que
+     el superadmin consulte los precios de CUALQUIER laboratorio sin tener
+     esa sesión abierta como ese laboratorio. */
+  function tenantListPreciosOnce(tenantId) {
+    if (!firebaseDisponible()) return Promise.reject(errorFirebaseNoDisponible());
+    return tenantsColl().doc(tenantId).collection("preciosExamenes").get().then(function (snap) {
+      var out = [];
+      snap.forEach(function (doc) { out.push(doc.data()); });
+      return out;
+    });
+  }
+
+  /* Igual que cotizador.bulkSetPrecios(), pero dirigida EXPLÍCITAMENTE al
+     tenantId que se le pasa, sin pasar por fbWrite()/fbColl() — esas dos
+     siempre escriben en tenants/{FB_TENANT_ID}/... (la variable interna
+     que solo se llena con el tenant de la sesión ACTUAL, nunca con un
+     tenantId que se le pase aparte). Para un superadmin (cuya sesión no
+     tiene tenant propio) o para cualquier caso en que se edite el catálogo
+     de OTRO laboratorio distinto al de la sesión, fbWrite() escribiría en
+     el lugar equivocado (o en ningún lado) sin avisar — por eso esta
+     función arma su propia ruta de Firestore con el tenantId explícito de principio a fin.
+     pares: [{ examId, precio }]. */
+  function tenantBulkSetPreciosOnce(tenantId, pares) {
+    if (!firebaseDisponible()) return Promise.reject(errorFirebaseNoDisponible());
+    var coll = tenantsColl().doc(tenantId).collection("preciosExamenes");
+    return coll.get().then(function (snap) {
+      var idPorExamId = {};
+      snap.forEach(function (doc) { idPorExamId[doc.data().examId] = doc.id; });
+      // Firestore limita un batch a 500 operaciones — se parte en lotes
+      // para no romper con un catálogo grande (ej. cientos de exámenes
+      // propios además de los de fábrica).
+      var lotes = [];
+      for (var i = 0; i < pares.length; i += 400) lotes.push(pares.slice(i, i + 400));
+      var cadena = Promise.resolve();
+      lotes.forEach(function (lote) {
+        cadena = cadena.then(function () {
+          var batch = global.BIO_FB.db.batch();
+          lote.forEach(function (par) {
+            var id = idPorExamId[par.examId] || uid("prc");
+            idPorExamId[par.examId] = id;
+            batch.set(coll.doc(id), { id: id, tenantId: tenantId, examId: par.examId, precio: par.precio, actualizadoEn: nowISO() });
+          });
+          return batch.commit();
+        });
+      });
+      return cadena;
+    });
+  }
+
+  /* Igual que addAudit(), pero para que el superadmin deje un registro en
+     el auditLog de OTRO laboratorio (no el de su propia sesión, que no
+     tiene — ver el "if (!tenantId) return entry" de addAudit, que por
+     diseño ni siquiera lo intenta cuando no hay tenant propio). addAudit()
+     tampoco serviría pasándole el tenantId del laboratorio de todas
+     formas: por dentro usa fbWrite()/fbColl(), que siempre escribe en
+     tenants/{FB_TENANT_ID}/... (el tenant de la sesión ACTUAL), nunca en
+     el tenantId que se le pase aparte — mismo motivo que
+     tenantBulkSetPreciosOnce(), ver su comentario. */
+  function tenantAddAuditOnce(tenantId, usuario, rol, accion, entidad, entidadId, detalle) {
+    if (!firebaseDisponible()) return Promise.reject(errorFirebaseNoDisponible());
+    var entry = { id: uid("log"), tenantId: tenantId, fecha: nowISO(), usuario: usuario, rol: rol, accion: accion, entidad: entidad, entidadId: entidadId, detalle: detalle };
+    return tenantsColl().doc(tenantId).collection("auditLog").doc(entry.id).set(entry);
+  }
+
   /* Le da (también) el rol de Administrador a un usuario que YA existe en un
      laboratorio — para cuando ese mismo correo es, por ejemplo, el de la
      única bacterióloga del laboratorio y Firebase no permite crear una
@@ -2485,9 +2569,10 @@
     crm: { list: crmList, watch: crmWatch, create: crmCreate, update: crmUpdate, delete: crmDelete },
     visitantesLanding: { list: visitantesLandingList, watch: visitantesLandingWatch },
     tenantsGlobal: {
-      list: tenantsListGlobal, watch: tenantsWatchGlobal, listUsuarios: listUsuariosTenantOnce, promoverUsuarioAAdmin: promoverUsuarioAAdmin,
+      list: tenantsListGlobal, watch: tenantsWatchGlobal, getOnce: tenantGetOnce, listUsuarios: listUsuariosTenantOnce, promoverUsuarioAAdmin: promoverUsuarioAAdmin,
       desactivarUsuario: desactivarUsuarioTenant,
       diagnosticarAcceso: diagnosticarAccesoTenant, repararPerfilAcceso: repararPerfilAcceso, repararPermisosOperativos: repararPermisosOperativos,
+      listPreciosOnce: tenantListPreciosOnce, bulkSetPreciosOnce: tenantBulkSetPreciosOnce, addAuditOnce: tenantAddAuditOnce,
       eliminar: deleteTenantCompleto
     },
     plantillas: { list: plantillasList, watch: plantillasWatch, create: plantillasCreate, update: plantillasUpdate, remove: plantillasDelete },

@@ -1038,7 +1038,15 @@
         if (modalidad !== "semestral") patch.cuotasImplementacionPagadas = calc.cuotasTrasEstePago;
         if (yaImplementado) {
           patch.estado = "activo";
-          patch.fechaPagoInicial = c.fechaPagoInicial || fechaPago.toISOString();
+          // Siempre se usa la fecha que se acaba de elegir en "Fecha de
+          // pago" (nunca se conserva una fechaPagoInicial anterior): antes,
+          // si ya existía un valor previo (ej. de un primer registro con la
+          // fecha equivocada), esta línea lo dejaba intacto para siempre —
+          // corregir la fecha aquí y volver a confirmar no cambiaba nada, y
+          // cualquier Recibo de Pago generado después (incluyendo con
+          // "Enviar Recibo de Pago", que lee c.fechaPagoInicial) seguía
+          // mostrando la fecha vieja.
+          patch.fechaPagoInicial = fechaPago.toISOString();
           patch.proximaFechaCobro = proxima.toISOString();
         } else {
           patch.estado = "pagado";

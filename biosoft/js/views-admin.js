@@ -2419,6 +2419,9 @@
           { label: "Diagnóstico de Acceso", icon: "search", onClick: function () { abrirDiagnosticoAcceso(tenant); } },
           { label: "Reparar Permisos Operativos", icon: "settings", onClick: function () { abrirRepararPermisos(tenant); } }
         ].concat(sobreLimiteTenant ? [{ label: "⚠️ Resolver Límite de Usuarios", icon: "edit", onClick: function () { abrirResolverLimiteUsuarios(tenant); } }] : [])},
+        { titulo: "Catálogo", acciones: [
+          { label: "Plantilla de Precios y Valores de Referencia (Excel)", icon: "download", onClick: function () { abrirPlantillaCatalogo(tenant); } }
+        ]},
         { titulo: "CRM", acciones: [
           { label: "Crear / Vincular en el CRM", icon: "send", onClick: function () {
             sincronizarConCRM(tenant).then(function (r) {
@@ -3525,6 +3528,256 @@
         }).catch(function (err) {
           btn.disabled = false; btn.textContent = "Reparar Ahora";
           U.toast("No se pudo reparar: " + S.mensajeErrorFirestore(err), "error");
+        });
+      });
+    }
+
+    // -------------------------------------------------------------------
+    // PLANTILLA DE PRECIOS Y VALORES DE REFERENCIA (Excel) — exclusiva del
+    // superadmin: descarga un Excel con el catálogo COMPLETO de UN
+    // laboratorio (precios + valores de referencia, incluyendo rangos por
+    // género/edad si ya tiene) y permite volver a subirlo para actualizar
+    // ese mismo laboratorio de una sola vez. Cada laboratorio ya tiene su
+    // propia versión self-service de la hoja de Precios (ver "Cotizador"
+    // en views-cotizador.js) — esto es lo mismo, pero accionable por el
+    // superadmin en nombre de cualquier laboratorio, y sumando además los
+    // Valores de Referencia (que ningún laboratorio puede cargar en lote
+    // hoy, solo examen por examen desde "Valores de Referencia del
+    // Catálogo"). IMPORTANTE: nunca pasa por fbWrite()/fbColl() ni por
+    // S.cotizador (esas rutas asumen el tenant de la sesión ACTUAL) — usa
+    // S.tenantsGlobal.getOnce/listPreciosOnce/bulkSetPreciosOnce y
+    // S.updateTenant(tenant.id, …), que sí aceptan un tenantId explícito,
+    // distinto al del superadmin (que no tiene tenant propio).
+    // -------------------------------------------------------------------
+    function parseNumeroLatam(v) {
+      if (typeof v === "number") return v;
+      var s = String(v == null ? "" : v).trim();
+      if (!s) return NaN;
+      return parseFloat(s.replace(/[^0-9,.\-]/g, "").replace(/\.(?=\d{3}(\D|$))/g, "").replace(",", "."));
+    }
+
+    function abrirPlantillaCatalogo(tenant) {
+      var wrap = U.openModal(
+        '<h3 class="modal-title">📊 Plantilla de Precios y Valores de Referencia — ' + U.esc(tenant.nombre) + '</h3>' +
+        '<p class="text-muted" style="margin-top:0">Descarga un Excel con el catálogo completo de este laboratorio — precios y valores de referencia, incluyendo los rangos por género/edad que ya tenga configurados — complétalo o corrígelo, y vuélvelo a subir aquí para actualizar a este laboratorio de una sola vez. Solo tú, como superadministrador, puedes hacer esto desde aquí.</p>' +
+        '<div class="flex gap-2 wrap" style="margin-bottom:10px">' +
+        '<button type="button" class="btn btn-outline btn-sm" id="pc-descargar">' + U.icon("download") + ' Descargar Plantilla Excel</button>' +
+        '<label class="btn btn-outline btn-sm" style="cursor:pointer">' + U.icon("plus") + ' Subir Excel Completado<input type="file" id="pc-input" accept=".xlsx,.xls" style="display:none"/></label>' +
+        "</div>" +
+        '<p class="text-muted" style="font-size:12px;line-height:1.55">La hoja <b>Precios</b> trae ID Examen, CUPS, Examen, Sección y Precio Actual — deja el precio en blanco para NO cambiarlo. La hoja <b>Valores de Referencia</b> trae una fila base por cada parámetro numérico (Género "Ambos", sin edad) y, debajo, una fila adicional por cada rango que ya tenga por género/edad. Para agregar un rango nuevo, copia una fila del mismo examen/parámetro y llena Género y/o Edad Mín/Máx. Para quitar un rango existente, borra esa fila antes de subir. No cambies las columnas "ID Examen" ni "Código Parámetro" — identifican cada fila al volver a subir el archivo.</p>' +
+        '<div class="flex gap-2 justify-between" style="margin-top:10px"><button class="btn btn-ghost" data-modal-close>Cerrar</button><span id="pc-estado" class="text-muted" style="font-size:12.5px"></span></div>'
+      );
+
+      function estado(msg) { wrap.querySelector("#pc-estado").textContent = msg || ""; }
+
+      wrap.querySelector("#pc-descargar").addEventListener("click", function (e) {
+        var btn = e.currentTarget;
+        btn.disabled = true;
+        estado("Preparando plantilla…");
+        conLimiteDeTiempo(function () {
+          return Promise.all([S.tenantsGlobal.getOnce(tenant.id), S.tenantsGlobal.listPreciosOnce(tenant.id)]);
+        }).then(function (res) {
+          btn.disabled = false;
+          estado("");
+          generarYDescargarPlantilla(res[0] || tenant, res[1] || []);
+        }).catch(function (err) {
+          btn.disabled = false;
+          estado("");
+          U.toast("No se pudo preparar la plantilla: " + S.mensajeErrorFirestore(err), "error");
+        });
+      });
+
+      wrap.querySelector("#pc-input").addEventListener("change", function (e) {
+        var file = e.target.files[0];
+        e.target.value = "";
+        if (!file) return;
+        estado("Leyendo archivo…");
+        leerArchivoCatalogo(file, function (err, datos) {
+          estado("");
+          if (err) { U.toast(err, "error"); return; }
+          U.closeModal(wrap);
+          abrirConfirmarCatalogo(tenant, datos);
+        });
+      });
+    }
+
+    function generarYDescargarPlantilla(tenant, precios) {
+      var examenes = C.examenesEfectivos(tenant);
+      var preciosPorExamId = {};
+      precios.forEach(function (p) { preciosPorExamId[p.examId] = p.precio; });
+
+      var filasPrecios = examenes.map(function (e) {
+        return {
+          "ID Examen": e.id, CUPS: e.cups || "", Examen: e.nombre, "Sección": C.seccionNombre(e.seccion, tenant),
+          "Precio Actual": preciosPorExamId[e.id] != null ? preciosPorExamId[e.id] : ""
+        };
+      });
+
+      var filasRef = [];
+      examenes.forEach(function (e) {
+        (e.parametros || []).forEach(function (p) {
+          if (p.tipo !== "numerico") return;
+          filasRef.push({
+            "ID Examen": e.id, Examen: e.nombre, "Sección": C.seccionNombre(e.seccion, tenant),
+            "Código Parámetro": p.codigo, "Parámetro": p.nombre, Unidad: p.unidad || "",
+            Etiqueta: "", "Género": "Ambos", "Edad Mín (años)": "", "Edad Máx (años)": "",
+            "Mínimo": p.min, "Máximo": p.max, "Texto de Referencia": p.refText || ""
+          });
+          C.getBandas(tenant, e.id, p.codigo).forEach(function (b) {
+            filasRef.push({
+              "ID Examen": e.id, Examen: e.nombre, "Sección": C.seccionNombre(e.seccion, tenant),
+              "Código Parámetro": p.codigo, "Parámetro": p.nombre, Unidad: p.unidad || "",
+              Etiqueta: b.etiqueta || "",
+              "Género": b.genero === "Femenino" ? "Femenino" : b.genero === "Masculino" ? "Masculino" : "Ambos",
+              "Edad Mín (años)": b.edadMinAnios != null ? b.edadMinAnios : "",
+              "Edad Máx (años)": b.edadMaxAnios != null ? b.edadMaxAnios : "",
+              "Mínimo": b.min, "Máximo": b.max, "Texto de Referencia": b.refText || ""
+            });
+          });
+        });
+      });
+
+      var filasInstrucciones = [
+        { Instrucciones: "Plantilla de " + (tenant.nombre || "este laboratorio") + " — generada " + new Date().toLocaleString("es-CO") + "." },
+        { Instrucciones: "Hoja Precios: edita \"Precio Actual\". Deja una celda en blanco para NO cambiar ese precio." },
+        { Instrucciones: "Hoja Valores de Referencia: cada parámetro numérico trae una fila base (Género = Ambos, sin edad)." },
+        { Instrucciones: "Para un rango distinto por género o edad, agrega una fila con el MISMO ID Examen y Código Parámetro, y llena Género y/o Edad Mín/Máx." },
+        { Instrucciones: "Para quitar un rango por género/edad que ya existía, borra esa fila antes de subir el archivo." },
+        { Instrucciones: "No cambies ni borres las columnas \"ID Examen\" ni \"Código Parámetro\" — identifican cada fila al volver a subir." },
+        { Instrucciones: "No subas la plantilla de un laboratorio en la pantalla de otro — cada uno tiene su propio catálogo." }
+      ];
+
+      var wb = XLSX.utils.book_new();
+      XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(filasInstrucciones), "Instrucciones");
+      XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(filasPrecios), "Precios");
+      XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(filasRef), "Valores de Referencia");
+      XLSX.writeFile(wb, "Plantilla_" + (tenant.nombre || "Laboratorio").replace(/[^a-z0-9]+/gi, "_") + "_BIOsoft.xlsx");
+    }
+
+    function leerArchivoCatalogo(file, cb) {
+      var reader = new FileReader();
+      reader.onload = function (ev) {
+        try {
+          var wb = XLSX.read(new Uint8Array(ev.target.result), { type: "array" });
+          var hojaPrecios = wb.Sheets["Precios"];
+          var hojaRef = wb.Sheets["Valores de Referencia"];
+          if (!hojaPrecios && !hojaRef) { cb('No encontramos las hojas "Precios" ni "Valores de Referencia" en el archivo. Descarga la plantilla para ver el formato esperado.'); return; }
+
+          var pares = [];
+          if (hojaPrecios) {
+            XLSX.utils.sheet_to_json(hojaPrecios, { defval: "" }).forEach(function (fila) {
+              var examId = String(fila["ID Examen"] || "").trim();
+              var precio = parseNumeroLatam(fila["Precio Actual"]);
+              if (!examId || isNaN(precio)) return;
+              pares.push({ examId: examId, precio: precio });
+            });
+          }
+
+          var gruposRef = {}; // "examId::codigo" -> { examId, codigo, filas: [...] }
+          if (hojaRef) {
+            XLSX.utils.sheet_to_json(hojaRef, { defval: "" }).forEach(function (fila) {
+              var examId = String(fila["ID Examen"] || "").trim();
+              var codigo = String(fila["Código Parámetro"] || "").trim();
+              if (!examId || !codigo) return;
+              var key = examId + "::" + codigo;
+              gruposRef[key] = gruposRef[key] || { examId: examId, codigo: codigo, filas: [] };
+              gruposRef[key].filas.push({
+                etiqueta: String(fila["Etiqueta"] || "").trim(),
+                genero: String(fila["Género"] || "").trim(),
+                edadMin: fila["Edad Mín (años)"],
+                edadMax: fila["Edad Máx (años)"],
+                min: fila["Mínimo"],
+                max: fila["Máximo"],
+                refText: String(fila["Texto de Referencia"] || "").trim()
+              });
+            });
+          }
+
+          if (!pares.length && !Object.keys(gruposRef).length) { cb("El archivo no trae filas con datos reconocibles. Descarga la plantilla para ver el formato esperado."); return; }
+          cb(null, { pares: pares, grupos: Object.keys(gruposRef).map(function (k) { return gruposRef[k]; }) });
+        } catch (err) {
+          cb("No se pudo leer el archivo: " + err.message);
+        }
+      };
+      reader.readAsArrayBuffer(file);
+    }
+
+    // Clasifica las filas de un mismo examen+parámetro en "base" (sin
+    // etiqueta, género Ambos, sin edad) y "bandas" (todo lo demás) — igual
+    // criterio que usa la plantilla al generarse. Devuelve también
+    // advertencias puntuales (fila con solo un extremo min/max, sin poder
+    // interpretarla) sin descartar el resto del grupo.
+    function clasificarFilasRef(grupo, advertencias) {
+      var base = null, bandas = [];
+      grupo.filas.forEach(function (f) {
+        var esBase = !f.etiqueta && (!f.genero || /^ambos$/i.test(f.genero)) && (f.edadMin === "" || f.edadMin == null) && (f.edadMax === "" || f.edadMax == null);
+        var min = parseNumeroLatam(f.min), max = parseNumeroLatam(f.max);
+        if (esBase) {
+          if (f.min === "" && f.max === "") { base = { limpiar: true }; return; } // ambos en blanco -> restablecer a fábrica
+          if (isNaN(min) || isNaN(max)) { advertencias.push(grupo.examId + "/" + grupo.codigo + ": fila base con Mínimo/Máximo incompleto — se dejó sin cambios."); return; }
+          base = { min: min, max: max, refText: f.refText };
+        } else {
+          if (isNaN(min) || isNaN(max)) { advertencias.push(grupo.examId + "/" + grupo.codigo + ": una fila de rango con Mínimo/Máximo incompleto — se omitió esa fila."); return; }
+          var genero = /^femenino$/i.test(f.genero) ? "Femenino" : /^masculino$/i.test(f.genero) ? "Masculino" : "ambos";
+          var edadMin = f.edadMin === "" || f.edadMin == null ? null : parseNumeroLatam(f.edadMin);
+          var edadMax = f.edadMax === "" || f.edadMax == null ? null : parseNumeroLatam(f.edadMax);
+          bandas.push({ etiqueta: f.etiqueta, genero: genero, edadMinAnios: isNaN(edadMin) ? null : edadMin, edadMaxAnios: isNaN(edadMax) ? null : edadMax, min: min, max: max, refText: f.refText });
+        }
+      });
+      return { base: base, bandas: bandas };
+    }
+
+    function abrirConfirmarCatalogo(tenant, datos) {
+      var session = BIO_AUTH.getSession();
+      var advertencias = [];
+      var cambiosRef = datos.grupos.map(function (g) { return Object.assign({ examId: g.examId, codigo: g.codigo }, clasificarFilasRef(g, advertencias)); });
+
+      var wrap = U.openModal(
+        '<h3 class="modal-title">Confirmar cambios — ' + U.esc(tenant.nombre) + '</h3>' +
+        '<p class="text-muted" style="margin-top:0">Esto va a aplicar, de una sola vez, para <b>' + U.esc(tenant.nombre) + '</b>:</p>' +
+        '<ul style="margin:0 0 10px;padding-left:20px;font-size:13.5px">' +
+        '<li><b>' + datos.pares.length + '</b> precio(s)</li>' +
+        '<li><b>' + cambiosRef.filter(function (c) { return c.base; }).length + '</b> valor(es) de referencia base</li>' +
+        '<li><b>' + cambiosRef.reduce(function (n, c) { return n + c.bandas.length; }, 0) + '</b> rango(s) por género/edad (reemplazan a los que ya tuviera cada parámetro mencionado en el archivo)</li>' +
+        "</ul>" +
+        (advertencias.length ? '<div class="field" style="background:#fef3c7;border-radius:8px;padding:10px 12px;margin-bottom:10px"><p style="margin:0 0 4px;font-weight:700;font-size:13px">⚠️ ' + advertencias.length + ' fila(s) con datos incompletos (se omitieron, el resto se aplica igual):</p><p class="text-muted" style="margin:0;font-size:12px;max-height:120px;overflow-y:auto">' + advertencias.map(U.esc).join("<br/>") + "</p></div>" : "") +
+        '<p class="text-muted" style="font-size:12.5px">Los exámenes/parámetros que NO aparecen en el archivo quedan exactamente como estaban — esto no borra nada que no esté mencionado en las filas subidas.</p>' +
+        '<div class="flex gap-2 justify-between" style="margin-top:10px"><button class="btn btn-ghost" data-modal-close>Cancelar</button><button class="btn btn-primary" id="pc-aplicar">' + U.icon("check") + " Aplicar a " + U.esc(tenant.nombre) + "</button></div>"
+      );
+
+      wrap.querySelector("#pc-aplicar").addEventListener("click", function (e) {
+        var btn = e.currentTarget;
+        btn.disabled = true; btn.textContent = "Aplicando…";
+        conLimiteDeTiempo(function () { return S.tenantsGlobal.getOnce(tenant.id); }).then(function (fresco) {
+          var t = fresco || tenant;
+          cambiosRef.forEach(function (c) {
+            if (c.base) {
+              if (c.base.limpiar) {
+                C.clearOverride(t, c.examId, c.codigo);
+              } else {
+                var efectivo = (C.examenEfectivo(c.examId, t) || {}).parametros || [];
+                var actual = efectivo.filter(function (p) { return p.codigo === c.codigo; })[0] || {};
+                C.setOverride(t, c.examId, c.codigo, {
+                  nombre: actual.nombre, min: c.base.min, max: c.base.max,
+                  refText: c.base.refText || (c.base.min + " - " + c.base.max + " " + (actual.unidad || "")),
+                  calculado: !!actual.calculado, formula: actual.formula || "",
+                  ocultarEnInforme: !!actual.ocultarEnInforme, ocultarInterpretacionEnInforme: !!actual.ocultarInterpretacionEnInforme
+                });
+              }
+            }
+            C.setBandas(t, c.examId, c.codigo, c.bandas);
+          });
+          var tareas = [S.updateTenant(t.id, { refOverrides: t.refOverrides || {}, refBandas: t.refBandas || {} })._fbPromise || Promise.resolve()];
+          if (datos.pares.length) tareas.push(S.tenantsGlobal.bulkSetPreciosOnce(t.id, datos.pares));
+          return conLimiteDeTiempo(function () { return Promise.all(tareas); });
+        }).then(function () {
+          U.closeModal(wrap);
+          U.toast("Catálogo de " + tenant.nombre + " actualizado.", "success");
+          S.tenantsGlobal.addAuditOnce(tenant.id, session.nombre, session.rol, "UPDATE_CATALOGO_EXCEL", "catalogo", tenant.id,
+            "Cargó desde Excel " + datos.pares.length + " precio(s) y " + cambiosRef.length + " parámetro(s) de valores de referencia para " + tenant.nombre + ".").catch(function () {});
+        }).catch(function (err) {
+          btn.disabled = false; btn.textContent = "Aplicar a " + tenant.nombre;
+          U.toast("No se pudo aplicar: " + S.mensajeErrorFirestore(err), "error");
         });
       });
     }
