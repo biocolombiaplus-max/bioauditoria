@@ -3577,9 +3577,11 @@
     }
 
     function abrirPlantillaCatalogo(tenant) {
+      var monedaActual = C.monedaBaseLabel(tenant);
       var wrap = U.openModal(
         '<h3 class="modal-title">📊 Plantilla de Precios y Valores de Referencia — ' + U.esc(tenant.nombre) + '</h3>' +
         '<p class="text-muted" style="margin-top:0">Descarga un Excel con el catálogo completo de este laboratorio — precios y valores de referencia, incluyendo los rangos por género/edad que ya tenga configurados — complétalo o corrígelo, y vuélvelo a subir aquí para actualizar a este laboratorio de una sola vez. Solo tú, como superadministrador, puedes hacer esto desde aquí.</p>' +
+        '<p style="background:var(--surface-2);border-radius:8px;padding:8px 12px;font-size:13px;margin:0 0 10px">💱 Este laboratorio maneja sus precios en <b>' + U.esc(monedaActual) + '</b> — la plantilla lo deja marcado en la columna de precio y te lo vuelve a preguntar al subir el archivo, para no mezclar monedas por error.</p>' +
         '<div class="flex gap-2 wrap" style="margin-bottom:10px">' +
         '<button type="button" class="btn btn-outline btn-sm" id="pc-descargar">' + U.icon("download") + ' Descargar Plantilla Excel</button>' +
         '<label class="btn btn-outline btn-sm" style="cursor:pointer">' + U.icon("plus") + ' Subir Excel Completado<input type="file" id="pc-input" accept=".xlsx,.xls" style="display:none"/></label>' +
@@ -3616,8 +3618,42 @@
           estado("");
           if (err) { U.toast(err, "error"); return; }
           U.closeModal(wrap);
-          abrirConfirmarCatalogo(tenant, datos);
+          abrirConfirmarMoneda(tenant, monedaActual, datos);
         });
+      });
+    }
+
+    // Paso intermedio, solo si el archivo trae precios: confirma en QUÉ
+    // moneda están escritos los números antes de aplicar nada — nunca
+    // convierte valores (eso exigiría una tasa de cambio y arriesgaría un
+    // error costoso), solo evita que una lista de precios en una moneda
+    // distinta a la que usa el laboratorio se cargue por error pensando
+    // que es la misma. Si no hay precios en el archivo (solo Valores de
+    // Referencia), se salta directo a la confirmación.
+    function abrirConfirmarMoneda(tenant, monedaActual, datos) {
+      if (!datos.pares.length) { abrirConfirmarCatalogo(tenant, datos, monedaActual); return; }
+      var MONEDAS = ["COP", "Bs", "USD", "EUR"];
+      var opciones = MONEDAS.indexOf(monedaActual) === -1 ? [monedaActual].concat(MONEDAS) : MONEDAS;
+      var wrap = U.openModal(
+        '<h3 class="modal-title">💱 ¿En qué moneda vienen estos precios?</h3>' +
+        '<p class="text-muted" style="margin-top:0">El archivo trae <b>' + datos.pares.length + ' precio(s)</b>. Este laboratorio maneja los suyos en <b>' + U.esc(monedaActual) + '</b> — confirma que el archivo también está en esa moneda, o indica cuál es.</p>' +
+        '<div class="field"><label>Moneda de los precios de este archivo</label><select id="pc-moneda">' +
+        opciones.map(function (m) { return '<option value="' + U.esc(m) + '" ' + (m === monedaActual ? "selected" : "") + '>' + U.esc(m) + "</option>"; }).join("") +
+        "</select></div>" +
+        '<p class="text-muted" id="pc-moneda-aviso" style="font-size:12.5px"></p>' +
+        '<div class="flex gap-2 justify-between" style="margin-top:10px"><button class="btn btn-ghost" data-modal-close>Cancelar</button><button class="btn btn-primary" id="pc-moneda-continuar">Continuar →</button></div>'
+      );
+      function revisar() {
+        var elegida = wrap.querySelector("#pc-moneda").value;
+        wrap.querySelector("#pc-moneda-aviso").innerHTML = elegida === monedaActual ? "" :
+          "⚠️ Elegiste <b>" + U.esc(elegida) + "</b>, pero este laboratorio maneja sus precios en <b>" + U.esc(monedaActual) + "</b>. Los números se van a guardar TAL CUAL vienen en el archivo — el sistema no convierte monedas. Solo continúa si estás seguro de que lo que escribiste ahí ya está en " + U.esc(monedaActual) + ", o si de verdad quieres cambiarle la moneda a este laboratorio en Configuración antes de aplicar.";
+      }
+      wrap.querySelector("#pc-moneda").addEventListener("change", revisar);
+      revisar();
+      wrap.querySelector("#pc-moneda-continuar").addEventListener("click", function () {
+        var elegida = wrap.querySelector("#pc-moneda").value;
+        U.closeModal(wrap);
+        abrirConfirmarCatalogo(tenant, datos, elegida);
       });
     }
 
@@ -3626,11 +3662,16 @@
       var preciosPorExamId = {};
       precios.forEach(function (p) { preciosPorExamId[p.examId] = p.precio; });
 
+      // La moneda va EN el nombre de la columna (ej. "Precio Actual (COP)")
+      // para que quede imposible de ignorar al llenar la plantilla — el
+      // parseo en leerArchivoCatalogo() no exige este texto exacto, busca
+      // cualquier columna que EMPIECE con "Precio Actual", así que esto es
+      // solo para que se vea claro, no para que el parseo dependa de ella.
+      var colPrecio = "Precio Actual (" + C.monedaBaseLabel(tenant) + ")";
       var filasPrecios = examenes.map(function (e) {
-        return {
-          "ID Examen": e.id, CUPS: e.cups || "", Examen: e.nombre, "Sección": C.seccionNombre(e.seccion, tenant),
-          "Precio Actual": preciosPorExamId[e.id] != null ? preciosPorExamId[e.id] : ""
-        };
+        var fila = { "ID Examen": e.id, CUPS: e.cups || "", Examen: e.nombre, "Sección": C.seccionNombre(e.seccion, tenant) };
+        fila[colPrecio] = preciosPorExamId[e.id] != null ? preciosPorExamId[e.id] : "";
+        return fila;
       });
 
       // Filas de EJEMPLO, siempre primero: el laboratorio las ve apenas abre
@@ -3677,7 +3718,8 @@
         { Instrucciones: "Plantilla de " + (tenant.nombre || "este laboratorio") + " — generada " + new Date().toLocaleString("es-CO") + "." },
         { Instrucciones: "" },
         { Instrucciones: "═══ HOJA \"Precios\" ═══" },
-        { Instrucciones: "Edita la columna \"Precio Actual\". Deja una celda en blanco para NO cambiar ese precio." },
+        { Instrucciones: "Este laboratorio maneja sus precios en " + C.monedaBaseLabel(tenant) + " — por eso la columna se llama \"Precio Actual (" + C.monedaBaseLabel(tenant) + ")\". Escribe todos los precios en esa misma moneda; el sistema NO convierte monedas." },
+        { Instrucciones: "Edita esa columna con el precio. Deja una celda en blanco para NO cambiar ese precio." },
         { Instrucciones: "" },
         { Instrucciones: "═══ HOJA \"Valores de Referencia\" ═══" },
         { Instrucciones: "Las primeras 4 filas de esa hoja son un EJEMPLO en vivo (ID Examen = \"EJEMPLO\") — bórralas cuando entiendas el formato; si las dejas, el sistema las ignora solas al subir el archivo." },
@@ -3732,9 +3774,16 @@
 
           var pares = [];
           if (hojaPrecios) {
-            XLSX.utils.sheet_to_json(hojaPrecios, { defval: "" }).forEach(function (fila) {
+            var filasPreciosJson = XLSX.utils.sheet_to_json(hojaPrecios, { defval: "" });
+            // La columna de precio se llama "Precio Actual (COP)" (con la
+            // moneda del laboratorio — ver generarYDescargarPlantilla), así
+            // que se busca por prefijo en vez de un nombre exacto: sigue
+            // funcionando aunque el archivo venga de un laboratorio con otra
+            // moneda, o de una versión anterior de la plantilla.
+            var colPrecioEncontrada = filasPreciosJson.length ? Object.keys(filasPreciosJson[0]).filter(function (k) { return /^precio actual/i.test(k); })[0] : null;
+            filasPreciosJson.forEach(function (fila) {
               var examId = String(fila["ID Examen"] || "").trim();
-              var precio = parseNumeroLatam(fila["Precio Actual"]);
+              var precio = parseNumeroLatam(colPrecioEncontrada ? fila[colPrecioEncontrada] : fila["Precio Actual"]);
               if (!examId || esFilaEjemplo(examId) || isNaN(precio)) return;
               pares.push({ examId: examId, precio: precio });
             });
@@ -3794,7 +3843,7 @@
       return { base: base, bandas: bandas };
     }
 
-    function abrirConfirmarCatalogo(tenant, datos) {
+    function abrirConfirmarCatalogo(tenant, datos, monedaElegida) {
       var session = BIO_AUTH.getSession();
       var advertencias = [];
       var cambiosRef = datos.grupos.map(function (g) { return Object.assign({ examId: g.examId, codigo: g.codigo }, clasificarFilasRef(g, advertencias)); });
@@ -3803,7 +3852,7 @@
         '<h3 class="modal-title">Confirmar cambios — ' + U.esc(tenant.nombre) + '</h3>' +
         '<p class="text-muted" style="margin-top:0">Esto va a aplicar, de una sola vez, para <b>' + U.esc(tenant.nombre) + '</b>:</p>' +
         '<ul style="margin:0 0 10px;padding-left:20px;font-size:13.5px">' +
-        '<li><b>' + datos.pares.length + '</b> precio(s)</li>' +
+        '<li><b>' + datos.pares.length + '</b> precio(s)' + (datos.pares.length && monedaElegida ? ' en <b>' + U.esc(monedaElegida) + "</b>" : "") + '</li>' +
         '<li><b>' + cambiosRef.filter(function (c) { return c.base; }).length + '</b> valor(es) de referencia base</li>' +
         '<li><b>' + cambiosRef.reduce(function (n, c) { return n + c.bandas.length; }, 0) + '</b> rango(s) por género/edad (reemplazan a los que ya tuviera cada parámetro mencionado en el archivo)</li>' +
         "</ul>" +
