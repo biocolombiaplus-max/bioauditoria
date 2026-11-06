@@ -204,8 +204,18 @@
           if (!file) return;
           var reader = new FileReader();
           reader.onload = function (ev) {
-            firmaTemp = ev.target.result;
-            wrap.querySelector("#firma-preview").innerHTML = '<img src="' + firmaTemp + '" style="height:60px;background:#fff;border:1px solid var(--border);border-radius:8px;padding:4px"/>';
+            // Se comprime ANTES de guardarla en firmaTemp — una foto/
+            // escaneo de firma sin comprimir fácilmente supera el límite
+            // de 1 MiB por documento de Firestore, y esa escritura fallaba
+            // en silencio al guardar el usuario (solo se veía el aviso
+            // genérico "No se pudo guardar en el servidor (users)"): la
+            // firma se veía bien en el informe generado en el momento
+            // (ya estaba en memoria local), pero nunca quedaba guardada de
+            // verdad — al volver a iniciar sesión, desaparecía.
+            U.recomprimirDataUrlSiHaceFalta(ev.target.result, 500, 300000).then(function (comprimida) {
+              firmaTemp = comprimida;
+              wrap.querySelector("#firma-preview").innerHTML = '<img src="' + firmaTemp + '" style="height:60px;background:#fff;border:1px solid var(--border);border-radius:8px;padding:4px"/>';
+            });
           };
           reader.readAsDataURL(file);
         });
