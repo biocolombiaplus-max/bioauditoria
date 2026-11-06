@@ -8,6 +8,26 @@
 <meta name="robots" content="noindex, nofollow"/>
 <link rel="icon" type="image/png" href="assets/favicon-biosoft.png"/>
 <link rel="stylesheet" href="css/styles.css?v=10"/>
+<!-- ===== Meta Pixel Code ===== -->
+<!-- Mismo Pixel que index.html — sin esto, Meta ve que alguien mostró
+     interés en la landing (Lead/InitiateCheckout) pero nunca se entera de
+     quién de verdad llegó a activarse como cliente (ver el evento
+     CompleteRegistration en activar.js), que es la señal más valiosa para
+     optimizar una campaña de conversiones. -->
+<script>
+!function(f,b,e,v,n,t,s)
+{if(f.fbq)return;n=f.fbq=function(){n.callMethod?
+n.callMethod.apply(n,arguments):n.queue.push(arguments)};
+if(!f._fbq)f._fbq=n;n.push=n;n.loaded=!0;n.version='2.0';
+n.queue=[];t=b.createElement(e);t.async=!0;
+t.src=v;s=b.getElementsByTagName(e)[0];
+s.parentNode.insertBefore(t,s)}(window, document,'script',
+'https://connect.facebook.net/en_US/fbevents.js');
+fbq('init', '1342856697961949');
+fbq('track', 'PageView');
+</script>
+<noscript><img height="1" width="1" style="display:none" src="https://www.facebook.com/tr?id=1342856697961949&ev=PageView&noscript=1"/></noscript>
+<!-- ===== Fin Meta Pixel Code ===== -->
 <style>
   body { background: var(--bg); }
   .act-wrap { max-width: 760px; margin: 0 auto; padding: 32px 16px 60px; }
@@ -120,6 +140,6 @@
 <script src="js/store.js?v=41"></script>
 <script src="js/ui.js?v=10"></script>
 <script src="js/landing-tracker.js?v=1"></script>
-<script src="js/activar.js?v=7"></script>
+<script src="js/activar.js?v=8"></script>
 </body>
 </html>

@@ -183,6 +183,13 @@
         document.getElementById("act-form-block").classList.add("hidden");
         document.getElementById("act-success-block").classList.remove("hidden");
         document.getElementById("act-res-user").textContent = correo;
+        // La landing (index.html) solo alcanza a ver "Lead"/"InitiateCheckout"
+        // (alguien mostró interés) — este es el único punto donde se sabe que
+        // alguien de verdad completó su activación como cliente, así que es la
+        // señal que más le importa a Meta para optimizar la campaña.
+        if (typeof window.fbq === "function") {
+          window.fbq("track", "CompleteRegistration", { content_name: "Plan " + (plan ? plan.nombre : planId), value: plan ? plan.usd : 0, currency: "USD" });
+        }
         // Este texto lo envía el propio cliente (WhatsApp solo permite
         // prellenar el mensaje, nunca enviarlo solo) — por eso se deja corto
         // y neutro, sin instrucciones internas para el equipo (esas viven en
