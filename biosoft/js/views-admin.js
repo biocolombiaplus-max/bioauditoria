@@ -2260,7 +2260,7 @@
     var unsubTenants = null;
 
     function cargar() {
-      S.tenantsGlobal.list().then(function (list) {
+      S.tenantsGlobal.listConConteos().then(function (list) {
         tenants = list;
         cargando = false;
         build();

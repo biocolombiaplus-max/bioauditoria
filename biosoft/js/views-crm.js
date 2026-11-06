@@ -209,7 +209,7 @@
             console.error("BIOsoft: no se pudieron cargar las plantillas ->", err.code, err.message);
             return [];
           }),
-          S.tenantsGlobal.list().catch(function (err) {
+          S.tenantsGlobal.listBasico().catch(function (err) {
             console.error("BIOsoft: no se pudieron cargar los laboratorios para el CRM ->", err.code, err.message);
             return [];
           })

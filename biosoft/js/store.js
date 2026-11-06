@@ -784,15 +784,70 @@
      que esta consulta va siempre directo a Firestore, igual que el CRM. */
   function tenantsColl() { return global.BIO_FB.db.collection("tenants"); }
 
+  /* Lo mismo que tenantsListGlobal() (ver su comentario, justo abajo) pero
+     SIN leer ni users, ni patients, ni orders de ningún laboratorio — solo
+     los documentos de /tenants. Es lo único que el CRM necesita de cada
+     laboratorio (fechaProximoPago, planId, suspendido — ver badgeCobro()
+     en views-crm.js): antes pagaba el costo COMPLETO de
+     tenantsListGlobal() (miles de documentos de pacientes/órdenes de
+     TODOS los laboratorios) solo para leer 3 campos del propio tenant. */
+  var tenantsListGlobalBasicoEnVuelo = null;
+  function tenantsListGlobalBasico() {
+    if (!firebaseDisponible()) return Promise.reject(errorFirebaseNoDisponible());
+    if (tenantsListGlobalBasicoEnVuelo) return tenantsListGlobalBasicoEnVuelo;
+    tenantsListGlobalBasicoEnVuelo = tenantsColl().get().then(function (snap) {
+      var tenants = [];
+      snap.forEach(function (doc) { tenants.push(doc.data()); });
+      tenants.sort(function (a, b) { return (b.creadoEn || "").localeCompare(a.creadoEn || ""); });
+      return tenants;
+    }).finally(function () { tenantsListGlobalBasicoEnVuelo = null; });
+    return tenantsListGlobalBasicoEnVuelo;
+  }
+
+  /* Lo mismo que tenantsListGlobal(), pero con el CONTEO de
+     users/patients/orders de cada laboratorio sacado con una consulta de
+     agregación (.count()) en vez de descargar cada documento completo —
+     Firestore la resuelve del lado del servidor y cobra una fracción de
+     una lectura normal por cada mil documentos contados, sin transferir
+     ningún dato de paciente/orden al navegador. Es lo único que
+     "Laboratorios Cliente" necesita (_usuarios, _pacientes, _ordenes —
+     ver buildTenantsGrid en views-admin.js); nunca usa
+     _pacientesFechas/_ordenesFechas (eso es exclusivo del gráfico "por
+     fecha" de Resumen Global), así que no hace falta bajar ni un solo
+     documento real para pintar esta pantalla. */
+  var tenantsListGlobalConConteosEnVuelo = null;
+  function tenantsListGlobalConConteos() {
+    if (!firebaseDisponible()) return Promise.reject(errorFirebaseNoDisponible());
+    if (tenantsListGlobalConConteosEnVuelo) return tenantsListGlobalConConteosEnVuelo;
+    tenantsListGlobalConConteosEnVuelo = tenantsColl().get().then(function (snap) {
+      var tenants = [];
+      snap.forEach(function (doc) { tenants.push(doc.data()); });
+      tenants.sort(function (a, b) { return (b.creadoEn || "").localeCompare(a.creadoEn || ""); });
+      return Promise.all(tenants.map(function (t) {
+        return Promise.all([
+          tenantsColl().doc(t.id).collection("users").count().get(),
+          tenantsColl().doc(t.id).collection("patients").count().get(),
+          tenantsColl().doc(t.id).collection("orders").count().get()
+        ]).then(function (conteos) {
+          return Object.assign({}, t, {
+            _usuarios: conteos[0].data().count, _pacientes: conteos[1].data().count, _ordenes: conteos[2].data().count
+          });
+        });
+      }));
+    }).finally(function () { tenantsListGlobalConConteosEnVuelo = null; });
+    return tenantsListGlobalConConteosEnVuelo;
+  }
+
   // tenantsListGlobal() es, por mucho, la consulta más cara de todo
   // BIOsoft: lee la colección COMPLETA de users/patients/orders de CADA
-  // laboratorio, solo para contar y sacar fechas. La llaman 3 pantallas
-  // distintas de superadmin (CRM, Laboratorios Cliente, Resumen Global),
-  // y antes de este ajuste cada una disparaba su propia lectura completa
-  // por separado -y cada conexión en tiempo real acumulada por el bug de
-  // arriba disparaba OTRA más-. Ahora, si ya hay una lectura en vuelo,
-  // todas las pantallas que la pidan comparten esa MISMA promesa en vez
-  // de multiplicar la lectura de miles de documentos por cada una.
+  // laboratorio, solo para contar y sacar fechas. Hoy la usa exclusivamente
+  // Resumen Global (views-dashboard-patients.js), el único lugar que de
+  // verdad necesita la fecha de cada paciente/orden para su gráfico "por
+  // fecha" — CRM y Laboratorios Cliente tienen sus propias versiones
+  // ligeras arriba (tenantsListGlobalBasico/tenantsListGlobalConConteos),
+  // que no pagan este costo. Se mantiene el mismo mecanismo de "una sola
+  // lectura en vuelo" para cuando Resumen Global se visita varias veces
+  // seguidas.
   var tenantsListGlobalEnVuelo = null;
   function tenantsListGlobal() {
     if (!firebaseDisponible()) return Promise.reject(errorFirebaseNoDisponible());
@@ -2569,7 +2624,8 @@
     crm: { list: crmList, watch: crmWatch, create: crmCreate, update: crmUpdate, delete: crmDelete },
     visitantesLanding: { list: visitantesLandingList, watch: visitantesLandingWatch },
     tenantsGlobal: {
-      list: tenantsListGlobal, watch: tenantsWatchGlobal, getOnce: tenantGetOnce, listUsuarios: listUsuariosTenantOnce, promoverUsuarioAAdmin: promoverUsuarioAAdmin,
+      list: tenantsListGlobal, listBasico: tenantsListGlobalBasico, listConConteos: tenantsListGlobalConConteos,
+      watch: tenantsWatchGlobal, getOnce: tenantGetOnce, listUsuarios: listUsuariosTenantOnce, promoverUsuarioAAdmin: promoverUsuarioAAdmin,
       desactivarUsuario: desactivarUsuarioTenant,
       diagnosticarAcceso: diagnosticarAccesoTenant, repararPerfilAcceso: repararPerfilAcceso, repararPermisosOperativos: repararPermisosOperativos,
       listPreciosOnce: tenantListPreciosOnce, bulkSetPreciosOnce: tenantBulkSetPreciosOnce, addAuditOnce: tenantAddAuditOnce,
