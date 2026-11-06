@@ -3633,44 +3633,85 @@
         };
       });
 
-      var filasRef = [];
+      // Filas de EJEMPLO, siempre primero: el laboratorio las ve apenas abre
+      // la hoja (antes de llegar a su propio catálogo), demostrando en vivo
+      // los 3 casos — fila base, rango solo por género, rango solo por edad
+      // — en vez de que solo quede descrito en la hoja de Instrucciones.
+      // "ID Examen" = "EJEMPLO" es un valor centinela: leerArchivoCatalogo()
+      // (más abajo en este archivo) SIEMPRE ignora cualquier fila con ese
+      // ID Examen al subir el archivo, así que estas filas son inofensivas
+      // aunque el laboratorio olvide borrarlas.
+      var filaRefCols = function (datos) {
+        return {
+          "ID Examen": datos.id, Examen: datos.examen, "Sección": datos.seccion || "",
+          "Código Parámetro": datos.codigo, "Parámetro": datos.parametro, Unidad: datos.unidad || "",
+          "Género": datos.genero, "Edad Mín (años)": datos.edadMin != null ? datos.edadMin : "",
+          "Edad Máx (años)": datos.edadMax != null ? datos.edadMax : "", Etiqueta: datos.etiqueta || "",
+          "Mínimo": datos.min, "Máximo": datos.max, "Texto de Referencia": datos.refText || ""
+        };
+      };
+      var filasRef = [
+        filaRefCols({ id: "EJEMPLO", examen: "👉 EJEMPLO (borra estas 4 filas antes de guardar)", codigo: "DEMO", parametro: "Hemoglobina (de ejemplo)", unidad: "g/dL", genero: "Ambos", min: 12, max: 16, refText: "FILA BASE: el valor general, para cualquier paciente que no entre en ninguna fila de abajo" }),
+        filaRefCols({ id: "EJEMPLO", examen: "👉 EJEMPLO", codigo: "DEMO", parametro: "Hemoglobina (de ejemplo)", unidad: "g/dL", genero: "Femenino", etiqueta: "Mujeres", min: 12, max: 15, refText: "Agrega una fila así (mismo ID Examen y Código Parámetro) para un rango SOLO en mujeres" }),
+        filaRefCols({ id: "EJEMPLO", examen: "👉 EJEMPLO", codigo: "DEMO", parametro: "Hemoglobina (de ejemplo)", unidad: "g/dL", genero: "Masculino", etiqueta: "Hombres", min: 13.5, max: 17.5, refText: "Y otra fila así para un rango SOLO en hombres" }),
+        filaRefCols({ id: "EJEMPLO", examen: "👉 EJEMPLO", codigo: "DEMO", parametro: "Hemoglobina (de ejemplo)", unidad: "g/dL", genero: "Ambos", edadMin: 0, edadMax: 12, etiqueta: "Niños", min: 11, max: 14, refText: "O por EDAD: una fila con Edad Mín/Máx para un rango solo en menores de 12 años (deja Género en \"Ambos\" si no también depende del género)" })
+      ];
       examenes.forEach(function (e) {
         (e.parametros || []).forEach(function (p) {
           if (p.tipo !== "numerico") return;
-          filasRef.push({
-            "ID Examen": e.id, Examen: e.nombre, "Sección": C.seccionNombre(e.seccion, tenant),
-            "Código Parámetro": p.codigo, "Parámetro": p.nombre, Unidad: p.unidad || "",
-            Etiqueta: "", "Género": "Ambos", "Edad Mín (años)": "", "Edad Máx (años)": "",
-            "Mínimo": p.min, "Máximo": p.max, "Texto de Referencia": p.refText || ""
-          });
+          filasRef.push(filaRefCols({
+            id: e.id, examen: e.nombre, seccion: C.seccionNombre(e.seccion, tenant), codigo: p.codigo, parametro: p.nombre, unidad: p.unidad,
+            genero: "Ambos", min: p.min, max: p.max, refText: p.refText
+          }));
           C.getBandas(tenant, e.id, p.codigo).forEach(function (b) {
-            filasRef.push({
-              "ID Examen": e.id, Examen: e.nombre, "Sección": C.seccionNombre(e.seccion, tenant),
-              "Código Parámetro": p.codigo, "Parámetro": p.nombre, Unidad: p.unidad || "",
-              Etiqueta: b.etiqueta || "",
-              "Género": b.genero === "Femenino" ? "Femenino" : b.genero === "Masculino" ? "Masculino" : "Ambos",
-              "Edad Mín (años)": b.edadMinAnios != null ? b.edadMinAnios : "",
-              "Edad Máx (años)": b.edadMaxAnios != null ? b.edadMaxAnios : "",
-              "Mínimo": b.min, "Máximo": b.max, "Texto de Referencia": b.refText || ""
-            });
+            filasRef.push(filaRefCols({
+              id: e.id, examen: e.nombre, seccion: C.seccionNombre(e.seccion, tenant), codigo: p.codigo, parametro: p.nombre, unidad: p.unidad,
+              genero: b.genero === "Femenino" ? "Femenino" : b.genero === "Masculino" ? "Masculino" : "Ambos",
+              edadMin: b.edadMinAnios, edadMax: b.edadMaxAnios, etiqueta: b.etiqueta, min: b.min, max: b.max, refText: b.refText
+            }));
           });
         });
       });
 
       var filasInstrucciones = [
         { Instrucciones: "Plantilla de " + (tenant.nombre || "este laboratorio") + " — generada " + new Date().toLocaleString("es-CO") + "." },
-        { Instrucciones: "Hoja Precios: edita \"Precio Actual\". Deja una celda en blanco para NO cambiar ese precio." },
-        { Instrucciones: "Hoja Valores de Referencia: cada parámetro numérico trae una fila base (Género = Ambos, sin edad)." },
-        { Instrucciones: "Para un rango distinto por género o edad, agrega una fila con el MISMO ID Examen y Código Parámetro, y llena Género y/o Edad Mín/Máx." },
-        { Instrucciones: "Para quitar un rango por género/edad que ya existía, borra esa fila antes de subir el archivo." },
-        { Instrucciones: "No cambies ni borres las columnas \"ID Examen\" ni \"Código Parámetro\" — identifican cada fila al volver a subir." },
+        { Instrucciones: "" },
+        { Instrucciones: "═══ HOJA \"Precios\" ═══" },
+        { Instrucciones: "Edita la columna \"Precio Actual\". Deja una celda en blanco para NO cambiar ese precio." },
+        { Instrucciones: "" },
+        { Instrucciones: "═══ HOJA \"Valores de Referencia\" ═══" },
+        { Instrucciones: "Las primeras 4 filas de esa hoja son un EJEMPLO en vivo (ID Examen = \"EJEMPLO\") — bórralas cuando entiendas el formato; si las dejas, el sistema las ignora solas al subir el archivo." },
+        { Instrucciones: "Cada parámetro numérico ya trae su fila BASE (Género = Ambos, sin edad) con el valor general — edita Mínimo/Máximo ahí para cambiar el valor de siempre." },
+        { Instrucciones: "¿Necesitas un rango DIFERENTE para mujeres u hombres? Copia esa fila base, pégala debajo, y en la copia: deja el MISMO \"ID Examen\" y \"Código Parámetro\", cambia \"Género\" a Femenino o Masculino, y pon el Mínimo/Máximo de ese caso." },
+        { Instrucciones: "¿Necesitas un rango DIFERENTE por EDAD (ej. niños, adultos mayores)? Igual que arriba, pero en vez de cambiar Género, llena \"Edad Mín (años)\" y/o \"Edad Máx (años)\" — puedes combinar género y edad en la misma fila si lo necesitas." },
+        { Instrucciones: "\"Género\" solo acepta: Ambos, Femenino o Masculino (no importan mayúsculas/minúsculas)." },
+        { Instrucciones: "\"Etiqueta\" y \"Texto de Referencia\" son opcionales — si los dejas en blanco, el sistema arma un texto automático con el Mínimo/Máximo." },
+        { Instrucciones: "Al validar un resultado, BIOsoft elige SOLO la fila que mejor calce con el paciente (género y edad); si ninguna calza, usa la fila BASE — nunca se mezclan dos filas para el mismo resultado." },
+        { Instrucciones: "Para QUITAR un rango de género/edad que ya existía, simplemente borra esa fila antes de subir el archivo (la fila BASE no se puede quitar así — déjale siempre un Mínimo y un Máximo)." },
+        { Instrucciones: "" },
+        { Instrucciones: "═══ GENERAL ═══" },
+        { Instrucciones: "No cambies ni borres las columnas \"ID Examen\" ni \"Código Parámetro\" de tus propias filas — identifican cada fila al volver a subir el archivo." },
+        { Instrucciones: "Los exámenes o parámetros que NO aparecen en el archivo quedan exactamente como estaban — subir el archivo nunca borra nada que no esté mencionado en él." },
         { Instrucciones: "No subas la plantilla de un laboratorio en la pantalla de otro — cada uno tiene su propio catálogo." }
       ];
 
+      var wsInstrucciones = XLSX.utils.json_to_sheet(filasInstrucciones);
+      wsInstrucciones["!cols"] = [{ wch: 115 }];
+      var wsPrecios = XLSX.utils.json_to_sheet(filasPrecios);
+      wsPrecios["!cols"] = [{ wch: 14 }, { wch: 10 }, { wch: 42 }, { wch: 18 }, { wch: 14 }];
+      var wsRef = XLSX.utils.json_to_sheet(filasRef);
+      // Mismo orden de columnas que filaRefCols(), para que cada ancho le
+      // caiga a la columna correcta — si se le agrega o reordena una
+      // columna a filaRefCols() hay que actualizar este arreglo igual.
+      wsRef["!cols"] = [
+        { wch: 12 }, { wch: 40 }, { wch: 16 }, { wch: 14 }, { wch: 22 }, { wch: 10 },
+        { wch: 11 }, { wch: 13 }, { wch: 13 }, { wch: 14 }, { wch: 10 }, { wch: 10 }, { wch: 48 }
+      ];
+
       var wb = XLSX.utils.book_new();
-      XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(filasInstrucciones), "Instrucciones");
-      XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(filasPrecios), "Precios");
-      XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(filasRef), "Valores de Referencia");
+      XLSX.utils.book_append_sheet(wb, wsInstrucciones, "Instrucciones");
+      XLSX.utils.book_append_sheet(wb, wsPrecios, "Precios");
+      XLSX.utils.book_append_sheet(wb, wsRef, "Valores de Referencia");
       XLSX.writeFile(wb, "Plantilla_" + (tenant.nombre || "Laboratorio").replace(/[^a-z0-9]+/gi, "_") + "_BIOsoft.xlsx");
     }
 
@@ -3683,12 +3724,18 @@
           var hojaRef = wb.Sheets["Valores de Referencia"];
           if (!hojaPrecios && !hojaRef) { cb('No encontramos las hojas "Precios" ni "Valores de Referencia" en el archivo. Descarga la plantilla para ver el formato esperado.'); return; }
 
+          // "EJEMPLO" es el ID Examen centinela de las filas de demostración
+          // que trae la propia plantilla (ver generarYDescargarPlantilla) —
+          // se ignoran siempre, aunque el laboratorio se le haya olvidado
+          // borrarlas antes de subir el archivo.
+          var esFilaEjemplo = function (examId) { return /^ejemplo$/i.test(examId); };
+
           var pares = [];
           if (hojaPrecios) {
             XLSX.utils.sheet_to_json(hojaPrecios, { defval: "" }).forEach(function (fila) {
               var examId = String(fila["ID Examen"] || "").trim();
               var precio = parseNumeroLatam(fila["Precio Actual"]);
-              if (!examId || isNaN(precio)) return;
+              if (!examId || esFilaEjemplo(examId) || isNaN(precio)) return;
               pares.push({ examId: examId, precio: precio });
             });
           }
@@ -3698,7 +3745,7 @@
             XLSX.utils.sheet_to_json(hojaRef, { defval: "" }).forEach(function (fila) {
               var examId = String(fila["ID Examen"] || "").trim();
               var codigo = String(fila["Código Parámetro"] || "").trim();
-              if (!examId || !codigo) return;
+              if (!examId || !codigo || esFilaEjemplo(examId)) return;
               var key = examId + "::" + codigo;
               gruposRef[key] = gruposRef[key] || { examId: examId, codigo: codigo, filas: [] };
               gruposRef[key].filas.push({
