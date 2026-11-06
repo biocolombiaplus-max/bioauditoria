@@ -1715,6 +1715,11 @@
         "</div>" +
         '<div class="checkbox-row"><input type="checkbox" id="f_ocultarNombreEncabezado" ' + (tenant.ocultarNombreEncabezado ? "checked" : "") + '/><label style="margin:0" for="f_ocultarNombreEncabezado">Ocultar el nombre del laboratorio en el encabezado (úsalo solo si tu logo ya trae el nombre escrito, para no repetirlo)</label></div>' +
         "</div>" +
+        '<div class="field" style="max-width:420px;margin:0 0 12px">' +
+        '<label for="f_firmaTamanoPorcentaje">Tamaño de la firma en el informe: <span id="firma-tamano-pct-valor">' + (tenant.firmaTamanoPorcentaje || 100) + '</span>%</label>' +
+        '<input type="range" id="f_firmaTamanoPorcentaje" min="50" max="200" step="10" value="' + (tenant.firmaTamanoPorcentaje || 100) + '" style="width:100%"/>' +
+        '<p class="text-muted" style="margin:4px 0 0;font-size:12.5px">Ajusta el deslizante para que la firma digital de cada bacteriólogo(a)/bioanalista salga más grande o más chica en el informe de resultados — 100% es el tamaño de siempre.</p>' +
+        "</div>" +
         '<div class="field" style="max-width:340px"><label>Color de las Barras de Sección</label><input type="color" id="f_colorBandaSeccion" value="' + (tenant.colorBandaSeccion || tenant.colorPrimario || "#f97316") + '"/></div>' +
         '<p class="text-muted" style="margin:4px 0 12px;font-size:12.5px">Por defecto usa tu Color Primario (arriba, en "Marca e Identidad Visual"), pero puedes darle un color propio e independiente a estas barras (ej. "HEMATOLOGÍA", "QUÍMICA SANGUÍNEA") sin afectar el resto del informe.</p>' +
         '<div class="checkbox-row"><input type="checkbox" id="f_bandaSeccionSinColor" ' + (tenant.bandaSeccionSinColor ? "checked" : "") + '/><label style="margin:0" for="f_bandaSeccionSinColor">Barras de sección del informe sin color (solo texto en negrita con una línea fina)</label></div>' +
@@ -1850,6 +1855,9 @@
     document.getElementById("f_logoAnchoPorcentaje").addEventListener("input", function (e) {
       document.getElementById("logo-ancho-pct-valor").textContent = e.target.value;
     });
+    document.getElementById("f_firmaTamanoPorcentaje").addEventListener("input", function (e) {
+      document.getElementById("firma-tamano-pct-valor").textContent = e.target.value;
+    });
 
     document.getElementById("f_logo").addEventListener("change", function (e) {
       var file = e.target.files[0];
@@ -1979,6 +1987,7 @@
       tenant.logoAnchoCompleto = document.getElementById("f_logoAnchoCompleto").checked;
       tenant.logoAnchoPorcentaje = parseInt(document.getElementById("f_logoAnchoPorcentaje").value, 10);
       tenant.ocultarNombreEncabezado = document.getElementById("f_ocultarNombreEncabezado").checked;
+      tenant.firmaTamanoPorcentaje = parseInt(document.getElementById("f_firmaTamanoPorcentaje").value, 10) || 100;
       tenant.colorBandaSeccion = document.getElementById("f_colorBandaSeccion").value;
       tenant.bandaSeccionSinColor = document.getElementById("f_bandaSeccionSinColor").checked;
       tenant.membreteEnTodasLasHojas = document.getElementById("f_membreteEnTodasLasHojas").checked;
@@ -2039,6 +2048,7 @@
           cobraIva: tenant.cobraIva, porcentajeIva: tenant.porcentajeIva, nombreImpuesto: tenant.nombreImpuesto,
           cuotaAdministrativaValor: tenant.cuotaAdministrativaValor, casheaRecargoPorcentaje: tenant.casheaRecargoPorcentaje,
           logoGrandeReporte: tenant.logoGrandeReporte, logoAnchoCompleto: tenant.logoAnchoCompleto, logoAnchoPorcentaje: tenant.logoAnchoPorcentaje, ocultarNombreEncabezado: tenant.ocultarNombreEncabezado,
+          firmaTamanoPorcentaje: tenant.firmaTamanoPorcentaje,
           colorBandaSeccion: tenant.colorBandaSeccion, bandaSeccionSinColor: tenant.bandaSeccionSinColor, membreteEnTodasLasHojas: tenant.membreteEnTodasLasHojas,
           datosPacienteEstiloDiscreto: tenant.datosPacienteEstiloDiscreto, ocultarInterpretacion: tenant.ocultarInterpretacion, ocultarValorReferencia: tenant.ocultarValorReferencia,
           camposReporte: tenant.camposReporte, fuenteReporte: tenant.fuenteReporte, tamanoFuenteReporte: tenant.tamanoFuenteReporte,

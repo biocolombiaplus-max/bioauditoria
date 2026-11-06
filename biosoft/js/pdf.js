@@ -690,22 +690,36 @@
       doc.setFont(fontFam, "italic"); doc.setFontSize(7);
       if (estiloDiscreto) doc.setTextColor(0, 0, 0); else doc.setTextColor(140, 140, 140);
       doc.text("Validado por:", margin, yy);
-      // Caso real reportado ("Validado por:" saliendo tapado por la firma):
-      // una firma ancha/alta (hasta 110x28) centrada en las 170pt de la
-      // línea se monta sobre la etiqueta "Validado por:" cuando el espacio
-      // vertical entre la etiqueta y la línea es muy chico (antes solo 15pt
-      // en total, menos que los 28pt de alto máximo permitido para la
-      // firma). Ahora hay espacio suficiente para que la firma más grande
-      // permitida quede SIEMPRE debajo de la etiqueta, nunca encima.
-      yy += 25;
+      // Se mide la firma ANTES de decidir cuánto espacio reservar debajo de
+      // "Validado por:" (ver yy += 25 + extra, más abajo) — el laboratorio
+      // ajusta este tamaño desde Configuración → Diseño del Reporte de
+      // Resultados → "Tamaño de la firma" (50% a 200%, 100% = el tamaño de
+      // siempre de 110x28pt). El Math.min(..., 1) sigue evitando ampliarla
+      // más allá de su resolución real (para no pixelarla), así que una
+      // firma ya pequeña/de baja resolución no se ve peor aunque se suba
+      // el porcentaje — solo agranda el recuadro disponible para ella.
+      var recorte = null, dw = 0, dh = 0;
       if (f.firmaDataUrl) {
         try {
-          var recorte = await recortarEspacioSobrante(f.firmaDataUrl);
-          var maxW = 110, maxH = 28;
+          recorte = await recortarEspacioSobrante(f.firmaDataUrl);
+          var escalaTenant = (tenant.firmaTamanoPorcentaje || 100) / 100;
+          var maxW = 110 * escalaTenant, maxH = 28 * escalaTenant;
           var escala = Math.min(maxW / recorte.w, maxH / recorte.h, 1);
-          var dw = recorte.w * escala, dh = recorte.h * escala;
-          doc.addImage(recorte.url, "PNG", margin + (lineW - dw) / 2, yy + 6 - dh, dw, dh);
-        } catch (e) {}
+          dw = recorte.w * escala; dh = recorte.h * escala;
+        } catch (e) { recorte = null; }
+      }
+      // Caso real reportado ("Validado por:" saliendo tapado por la firma):
+      // una firma ancha/alta (hasta 110x28, el tamaño por defecto) centrada
+      // en las 170pt de la línea se monta sobre la etiqueta "Validado por:"
+      // cuando el espacio vertical entre la etiqueta y la línea es muy
+      // chico (antes solo 15pt en total, menos que los 28pt de alto máximo
+      // permitido). Los 25pt de siempre ya cubren ese caso por defecto; si
+      // el laboratorio agranda la firma más allá de eso (más de 28pt de
+      // alto), se reserva el espacio EXTRA exacto que le haga falta, para
+      // que nunca tape la etiqueta, sin importar qué tan grande la pida.
+      yy += 25 + Math.max(0, dh - 28);
+      if (recorte) {
+        try { doc.addImage(recorte.url, "PNG", margin + (lineW - dw) / 2, yy + 6 - dh, dw, dh); } catch (e) {}
       }
       doc.setDrawColor(180, 180, 180); doc.line(margin, yy + 8, margin + lineW, yy + 8);
       doc.setFont(fontFam, estiloDiscreto ? "normal" : "bold"); doc.setFontSize(8.5);
