@@ -3692,10 +3692,22 @@
         };
       };
       var filasRef = [
-        filaRefCols({ id: "EJEMPLO", examen: "👉 EJEMPLO (borra estas 4 filas antes de guardar)", codigo: "DEMO", parametro: "Hemoglobina (de ejemplo)", unidad: "g/dL", genero: "Ambos", min: 12, max: 16, refText: "FILA BASE: el valor general, para cualquier paciente que no entre en ninguna fila de abajo" }),
+        filaRefCols({ id: "EJEMPLO", examen: "👉 EJEMPLO (borra estas filas antes de guardar)", codigo: "DEMO", parametro: "Hemoglobina (de ejemplo)", unidad: "g/dL", genero: "Ambos", min: 12, max: 16, refText: "FILA BASE: el valor general, para cualquier paciente que no entre en ninguna fila de abajo" }),
         filaRefCols({ id: "EJEMPLO", examen: "👉 EJEMPLO", codigo: "DEMO", parametro: "Hemoglobina (de ejemplo)", unidad: "g/dL", genero: "Femenino", etiqueta: "Mujeres", min: 12, max: 15, refText: "Agrega una fila así (mismo ID Examen y Código Parámetro) para un rango SOLO en mujeres" }),
         filaRefCols({ id: "EJEMPLO", examen: "👉 EJEMPLO", codigo: "DEMO", parametro: "Hemoglobina (de ejemplo)", unidad: "g/dL", genero: "Masculino", etiqueta: "Hombres", min: 13.5, max: 17.5, refText: "Y otra fila así para un rango SOLO en hombres" }),
-        filaRefCols({ id: "EJEMPLO", examen: "👉 EJEMPLO", codigo: "DEMO", parametro: "Hemoglobina (de ejemplo)", unidad: "g/dL", genero: "Ambos", edadMin: 0, edadMax: 12, etiqueta: "Niños", min: 11, max: 14, refText: "O por EDAD: una fila con Edad Mín/Máx para un rango solo en menores de 12 años (deja Género en \"Ambos\" si no también depende del género)" })
+        filaRefCols({ id: "EJEMPLO", examen: "👉 EJEMPLO", codigo: "DEMO", parametro: "Hemoglobina (de ejemplo)", unidad: "g/dL", genero: "Ambos", edadMin: 0, edadMax: 12, etiqueta: "Niños", min: 11, max: 14, refText: "O por EDAD: una fila con Edad Mín/Máx para un rango solo en menores de 12 años (deja Género en \"Ambos\" si no también depende del género)" }),
+        // Caso hormonas "por condición" (ej. Progesterona, Beta-hCG, TSH en
+        // embarazo): varias filas con el MISMO Género (y sin edad) pero
+        // distinta Etiqueta — como ninguna de las dos se distingue por
+        // sexo/edad, BIOsoft no puede elegir sola cuál aplica: al capturar
+        // ESTE resultado, le aparece al bacteriólogo(a)/bioanalista un
+        // selector con cada Etiqueta para que escoja la condición de la
+        // paciente a mano (ver "Captura de Resultados"). Es la MISMA
+        // mecánica de arriba (Género/Edad/Etiqueta) — el selector aparece
+        // solo porque, para esta paciente, dos o más filas calzan igual.
+        filaRefCols({ id: "EJEMPLO", examen: "👉 EJEMPLO", codigo: "DEMO2", parametro: "Progesterona (de ejemplo)", unidad: "ng/mL", genero: "Femenino", etiqueta: "Fase Folicular", min: 0.1, max: 0.9, refText: "Rango por CONDICIÓN, no por sexo/edad — mismo Género en las 3 filas de abajo" }),
+        filaRefCols({ id: "EJEMPLO", examen: "👉 EJEMPLO", codigo: "DEMO2", parametro: "Progesterona (de ejemplo)", unidad: "ng/mL", genero: "Femenino", etiqueta: "Fase Lútea", min: 5, max: 20, refText: "Al validar este examen, el sistema le muestra al bacteriólogo(a) un selector con \"Fase Folicular / Fase Lútea / Embarazo (1er Trimestre)\" para elegir cuál aplica" }),
+        filaRefCols({ id: "EJEMPLO", examen: "👉 EJEMPLO", codigo: "DEMO2", parametro: "Progesterona (de ejemplo)", unidad: "ng/mL", genero: "Femenino", etiqueta: "Embarazo (1er Trimestre)", min: 11, max: 44, refText: "Así de simple: agrega una fila por cada condición, todas con el mismo Género y la Etiqueta que describa la condición" })
       ];
       examenes.forEach(function (e) {
         (e.parametros || []).forEach(function (p) {
@@ -3722,14 +3734,16 @@
         { Instrucciones: "Edita esa columna con el precio. Deja una celda en blanco para NO cambiar ese precio." },
         { Instrucciones: "" },
         { Instrucciones: "═══ HOJA \"Valores de Referencia\" ═══" },
-        { Instrucciones: "Las primeras 4 filas de esa hoja son un EJEMPLO en vivo (ID Examen = \"EJEMPLO\") — bórralas cuando entiendas el formato; si las dejas, el sistema las ignora solas al subir el archivo." },
+        { Instrucciones: "Las primeras filas de esa hoja son un EJEMPLO en vivo (ID Examen = \"EJEMPLO\") — bórralas cuando entiendas el formato; si las dejas, el sistema las ignora solas al subir el archivo." },
         { Instrucciones: "Cada parámetro numérico ya trae su fila BASE (Género = Ambos, sin edad) con el valor general — edita Mínimo/Máximo ahí para cambiar el valor de siempre." },
         { Instrucciones: "¿Necesitas un rango DIFERENTE para mujeres u hombres? Copia esa fila base, pégala debajo, y en la copia: deja el MISMO \"ID Examen\" y \"Código Parámetro\", cambia \"Género\" a Femenino o Masculino, y pon el Mínimo/Máximo de ese caso." },
         { Instrucciones: "¿Necesitas un rango DIFERENTE por EDAD (ej. niños, adultos mayores)? Igual que arriba, pero en vez de cambiar Género, llena \"Edad Mín (años)\" y/o \"Edad Máx (años)\" — puedes combinar género y edad en la misma fila si lo necesitas." },
+        { Instrucciones: "¿Y un parámetro con varios rangos por CONDICIÓN CLÍNICA, no por sexo/edad (ej. hormonas como Progesterona, Beta-hCG o TSH, que cambian según fase del ciclo o trimestre de embarazo)? Agrega una fila por cada condición con el MISMO Género (ej. todas \"Femenino\") y SIN edad, cambiando solo la \"Etiqueta\" (ej. \"Fase Folicular\", \"Fase Lútea\", \"Embarazo 1er Trimestre\") — mira el ejemplo con Código Parámetro \"DEMO2\" más abajo." },
+        { Instrucciones: "En ese caso, como el sistema no puede adivinar solo cuál condición aplica, al capturar ESE resultado le aparece al bacteriólogo(a)/bioanalista un selector con las Etiquetas que pusiste, para que elija a mano cuál le corresponde a esa paciente." },
         { Instrucciones: "\"Género\" solo acepta: Ambos, Femenino o Masculino (no importan mayúsculas/minúsculas)." },
-        { Instrucciones: "\"Etiqueta\" y \"Texto de Referencia\" son opcionales — si los dejas en blanco, el sistema arma un texto automático con el Mínimo/Máximo." },
-        { Instrucciones: "Al validar un resultado, BIOsoft elige SOLO la fila que mejor calce con el paciente (género y edad); si ninguna calza, usa la fila BASE — nunca se mezclan dos filas para el mismo resultado." },
-        { Instrucciones: "Para QUITAR un rango de género/edad que ya existía, simplemente borra esa fila antes de subir el archivo (la fila BASE no se puede quitar así — déjale siempre un Mínimo y un Máximo)." },
+        { Instrucciones: "\"Etiqueta\" y \"Texto de Referencia\" son opcionales para un rango por género/edad (el sistema arma un texto automático con el Mínimo/Máximo si los dejas en blanco) — pero la Etiqueta es OBLIGATORIA para que un rango por condición se distinga de los demás en el selector." },
+        { Instrucciones: "Al validar un resultado, BIOsoft elige la fila que mejor calce con el paciente (género y edad); si más de una calza igual, pregunta cuál condición aplica (ver arriba); si ninguna calza, usa la fila BASE — nunca se mezclan dos filas para el mismo resultado." },
+        { Instrucciones: "Para QUITAR un rango de género/edad/condición que ya existía, simplemente borra esa fila antes de subir el archivo (la fila BASE no se puede quitar así — déjale siempre un Mínimo y un Máximo)." },
         { Instrucciones: "" },
         { Instrucciones: "═══ GENERAL ═══" },
         { Instrucciones: "No cambies ni borres las columnas \"ID Examen\" ni \"Código Parámetro\" de tus propias filas — identifican cada fila al volver a subir el archivo." },
