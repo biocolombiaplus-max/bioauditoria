@@ -804,17 +804,17 @@
     return tenantsListGlobalBasicoEnVuelo;
   }
 
-  /* Lo mismo que tenantsListGlobal(), pero con el CONTEO de
-     users/patients/orders de cada laboratorio sacado con una consulta de
-     agregación (.count()) en vez de descargar cada documento completo —
-     Firestore la resuelve del lado del servidor y cobra una fracción de
-     una lectura normal por cada mil documentos contados, sin transferir
-     ningún dato de paciente/orden al navegador. Es lo único que
-     "Laboratorios Cliente" necesita (_usuarios, _pacientes, _ordenes —
-     ver buildTenantsGrid en views-admin.js); nunca usa
-     _pacientesFechas/_ordenesFechas (eso es exclusivo del gráfico "por
-     fecha" de Resumen Global), así que no hace falta bajar ni un solo
-     documento real para pintar esta pantalla. */
+  /* Lo mismo que tenantsListGlobal(), pero SIN sacar la fecha de cada
+     paciente/orden (ni el forEach que las recolecta) — es lo único que
+     "Laboratorios Cliente" necesita (_usuarios, _pacientes, _ordenes — ver
+     buildTenantsGrid en views-admin.js); _pacientesFechas/_ordenesFechas
+     son exclusivas del gráfico "por fecha" de Resumen Global.
+     NOTA: se intentó primero con una consulta de agregación (.count()),
+     que evita descargar los documentos — pero el SDK de Firestore que
+     carga esta app no la trae disponible en este bundle (".count is not a
+     function" en producción), así que se volvió a .get() normal, igual
+     que tenantsListGlobal(). Sigue siendo más liviana que esa: no hace el
+     trabajo extra de leer y guardar cada fecha. */
   var tenantsListGlobalConConteosEnVuelo = null;
   function tenantsListGlobalConConteos() {
     if (!firebaseDisponible()) return Promise.reject(errorFirebaseNoDisponible());
@@ -825,12 +825,12 @@
       tenants.sort(function (a, b) { return (b.creadoEn || "").localeCompare(a.creadoEn || ""); });
       return Promise.all(tenants.map(function (t) {
         return Promise.all([
-          tenantsColl().doc(t.id).collection("users").count().get(),
-          tenantsColl().doc(t.id).collection("patients").count().get(),
-          tenantsColl().doc(t.id).collection("orders").count().get()
-        ]).then(function (conteos) {
+          tenantsColl().doc(t.id).collection("users").get(),
+          tenantsColl().doc(t.id).collection("patients").get(),
+          tenantsColl().doc(t.id).collection("orders").get()
+        ]).then(function (snaps) {
           return Object.assign({}, t, {
-            _usuarios: conteos[0].data().count, _pacientes: conteos[1].data().count, _ordenes: conteos[2].data().count
+            _usuarios: snaps[0].size, _pacientes: snaps[1].size, _ordenes: snaps[2].size
           });
         });
       }));
