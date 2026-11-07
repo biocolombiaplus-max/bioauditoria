@@ -246,6 +246,7 @@
     var muestrasPendientes = o.examenes.filter(function (ex) { return ex.muestraPendiente; }).length;
     var colspanTotal = 7 + (conPrecio ? 1 : 0) + (conEstadoPago ? 1 : 0);
     var filaPrincipal = "<tr><td><b>" + o.numeroOrden + "</b>" + (o.convenioNombre ? '<div class="text-muted" style="font-size:11px">🤝 ' + U.esc(o.convenioNombre) + "</div>" : "") +
+      (o.descuentoMonto > 0 ? '<div style="font-size:11px;color:var(--brand-primary);font-weight:600">🏷️ Descuento ' + (o.descuentoTipo === "porcentaje" ? (o.descuentoValorIngresado + "%") : fmtMoneda(o.descuentoValorIngresado)) + " (−" + fmtMoneda(o.descuentoMonto) + ")</div>" : "") +
       (muestrasPendientes ? '<div class="badge-muestra-pendiente-mini">🧪 Muestra pendiente' + (muestrasPendientes > 1 ? " (" + muestrasPendientes + ")" : "") + "</div>" : "") +
       "</td><td><span class=\"orden-paciente-toggle\" data-toggle-orden=\"" + o.id + "\">" + U.icon("chevron-down", "fila-grupo-chevron" + (abierto ? " abierto" : "")) + " " + (pac ? U.esc(U.nombreCompleto(pac)) : "—") + "</span></td><td>" + U.fmtFecha(o.fechaOrden) + "</td>" +
       '<td><span class="badge badge-' + (o.prioridad === "Urgente" ? "urgente" : "rutina") + '">' + o.prioridad + "</span></td>" +
@@ -397,8 +398,27 @@
             '<option value="contado">Contado (el paciente paga ahora)</option>' +
             '<option value="credito">Crédito (queda pendiente — se le cobra al convenio después)</option>' +
             "</select></div>" : "") +
-          (tenant.mostrarPrecioOrden ? '<div class="field"><label>Valor a Cobrar</label><input id="f_valorCobrar" type="text" inputmode="decimal" value=""/>' +
-            '<span class="text-muted" style="font-size:11px" id="valorCobrar-hint">Se calcula solo según los exámenes que selecciones — puedes ajustarlo a mano.</span>' +
+          // Descuento puntual de la orden (distinto del descuento por
+          // Convenio, que ya viene incluido en el precio de cada examen —
+          // ver precioConConvenio): este es para un cliente particular, o
+          // para un extra sobre un convenio, decidido aquí mismo al crear
+          // la orden. Se resta del total calculado y queda visible tanto
+          // en el resumen de abajo como en el recibo que se le entrega al
+          // paciente (ver pdf-recibo-orden.js) — a propósito nunca se
+          // esconde, al contrario del recargo de Cashea.
+          (tenant.mostrarPrecioOrden ? '<div class="field"><label>Descuento (opcional)</label>' +
+            '<div class="flex gap-2">' +
+              '<select id="f_descuentoTipo" style="max-width:170px">' +
+                '<option value="">Sin descuento</option>' +
+                '<option value="porcentaje">Porcentaje (%)</option>' +
+                '<option value="valor">Valor fijo</option>' +
+              "</select>" +
+              '<input id="f_descuentoValor" type="number" step="any" min="0" value="0" style="display:none;max-width:150px" placeholder="0"/>' +
+            "</div></div>" : "") +
+          (tenant.mostrarPrecioOrden ? '<div class="field"><label>Valor a Cobrar</label>' +
+            '<div id="resumen-cobro"></div>' +
+            '<input id="f_valorCobrar" type="text" inputmode="decimal" value=""/>' +
+            '<span class="text-muted" style="font-size:11px" id="valorCobrar-hint">Se calcula solo según los exámenes que selecciones y el descuento indicado — puedes ajustarlo a mano.</span>' +
             '<span class="text-muted" style="font-size:11px;display:block" id="valorCobrar-equiv"></span></div>' : "") +
           // Solo aparece en laboratorios que definieron un valor en
           // Configuración → Operación → "Valor de la Cuota Administrativa"
@@ -616,20 +636,12 @@
       });
     }
 
-    function sugerirValorCobrar() {
-      if (!tenant.mostrarPrecioOrden) return;
-      var equiv = document.getElementById("valorCobrar-equiv");
-      if (precioEditadoManualmente) {
-        if (equiv) equiv.textContent = C.fmtMonedaAdicional(tenant, U.parseMonto(document.getElementById("f_valorCobrar").value));
-        return;
-      }
-      var input = document.getElementById("f_valorCobrar");
-      if (!input) return;
-      // El precio de un paquete es el precio TOTAL que se le fijó al
-      // crearlo (con su descuento ya incluido) — no la suma de sus
-      // exámenes individuales, igual que en el Cotizador — salvo que el
-      // convenio seleccionado tenga una tarifa exclusiva puntual para ese
-      // paquete (ver precioPaqueteConConvenio).
+    // El precio de un paquete es el precio TOTAL que se le fijó al
+    // crearlo (con su descuento ya incluido) — no la suma de sus
+    // exámenes individuales, igual que en el Cotizador — salvo que el
+    // convenio seleccionado tenga una tarifa exclusiva puntual para ese
+    // paquete (ver precioPaqueteConConvenio).
+    function calcularSubtotalSeleccion() {
       var totalPaquetes = selectedPaquetes.reduce(function (sum, id) { return sum + precioPaqueteConConvenio(id); }, 0);
       // Un examen ya cubierto por un paquete seleccionado no se vuelve a
       // sumar por separado, aunque también esté marcado a mano — su costo
@@ -642,6 +654,43 @@
       var total = selectedExams.filter(function (id) { return !idsEnPaquetes[id]; }).reduce(function (sum, id) { return sum + precioConConvenio(id); }, 0) + totalPaquetes;
       var chkCuotaAdmin = document.getElementById("f_cuotaAdmin");
       if (chkCuotaAdmin && chkCuotaAdmin.checked) total += (tenant.cuotaAdministrativaValor || 0);
+      return total;
+    }
+    // Descuento puntual de la orden (campo "Descuento" del formulario),
+    // calculado sobre el subtotal YA con convenio/cuota administrativa
+    // aplicados. Un % se topa en 100 y un valor fijo nunca pasa del
+    // subtotal, para que el total nunca pueda quedar negativo.
+    function calcularDescuentoSeleccion(subtotal) {
+      var tipoEl = document.getElementById("f_descuentoTipo");
+      var valorEl = document.getElementById("f_descuentoValor");
+      if (!tipoEl || !valorEl || !tipoEl.value) return { tipo: "", valorIngresado: 0, monto: 0 };
+      var valorIngresado = Math.max(0, parseFloat(valorEl.value) || 0);
+      if (!valorIngresado) return { tipo: tipoEl.value, valorIngresado: 0, monto: 0 };
+      var monto = tipoEl.value === "porcentaje" ? subtotal * (Math.min(valorIngresado, 100) / 100) : Math.min(valorIngresado, subtotal);
+      return { tipo: tipoEl.value, valorIngresado: valorIngresado, monto: Math.max(0, monto) };
+    }
+    function renderResumenCobro(subtotal, desc) {
+      var el = document.getElementById("resumen-cobro");
+      if (!el) return;
+      if (!desc.monto) { el.innerHTML = ""; return; }
+      var etiquetaDesc = desc.tipo === "porcentaje" ? desc.valorIngresado + "%" : fmtMoneda(desc.valorIngresado);
+      el.innerHTML =
+        '<div class="flex justify-between" style="font-size:12px;padding:1px 0"><span class="text-muted">Subtotal</span><span class="text-muted" style="text-decoration:line-through">' + fmtMoneda(subtotal) + "</span></div>" +
+        '<div class="flex justify-between" style="font-size:12px;padding:1px 0 4px;color:var(--brand-primary);font-weight:700"><span>🏷️ Descuento (' + etiquetaDesc + ")</span><span>−" + fmtMoneda(desc.monto) + "</span></div>";
+    }
+    function sugerirValorCobrar() {
+      if (!tenant.mostrarPrecioOrden) return;
+      var subtotal = calcularSubtotalSeleccion();
+      var desc = calcularDescuentoSeleccion(subtotal);
+      var total = Math.max(0, subtotal - desc.monto);
+      renderResumenCobro(subtotal, desc);
+      var equiv = document.getElementById("valorCobrar-equiv");
+      if (precioEditadoManualmente) {
+        if (equiv) equiv.textContent = C.fmtMonedaAdicional(tenant, U.parseMonto(document.getElementById("f_valorCobrar").value));
+        return;
+      }
+      var input = document.getElementById("f_valorCobrar");
+      if (!input) return;
       input.value = total || "";
       if (equiv) equiv.textContent = C.fmtMonedaAdicional(tenant, total);
     }
@@ -714,6 +763,29 @@
       sugerirValorCobrar();
       var chkCuotaAdminNueva = document.getElementById("f_cuotaAdmin");
       if (chkCuotaAdminNueva) chkCuotaAdminNueva.addEventListener("change", sugerirValorCobrar);
+      var selDescuentoTipo = document.getElementById("f_descuentoTipo");
+      var inpDescuentoValor = document.getElementById("f_descuentoValor");
+      function actualizarCampoDescuentoValor() {
+        if (!inpDescuentoValor || !selDescuentoTipo) return;
+        var activo = !!selDescuentoTipo.value;
+        inpDescuentoValor.style.display = activo ? "" : "none";
+        inpDescuentoValor.placeholder = selDescuentoTipo.value === "porcentaje" ? "Ej: 10" : "Ej: 5000";
+      }
+      if (selDescuentoTipo) {
+        selDescuentoTipo.addEventListener("change", function () {
+          actualizarCampoDescuentoValor();
+          if (!selDescuentoTipo.value) inpDescuentoValor.value = "0";
+          precioEditadoManualmente = false;
+          sugerirValorCobrar();
+        });
+        actualizarCampoDescuentoValor();
+      }
+      if (inpDescuentoValor) {
+        inpDescuentoValor.addEventListener("input", function () {
+          precioEditadoManualmente = false;
+          sugerirValorCobrar();
+        });
+      }
     }
 
     document.getElementById("btn-save-order").addEventListener("click", function () {
@@ -737,6 +809,12 @@
       var formaPagoConvenioEl = document.getElementById("f_formaPagoConvenio");
       var esCreditoConvenio = !!(convenioIdSel && formaPagoConvenioEl && formaPagoConvenioEl.value === "credito");
       var medicoRemitenteSel = selMedicoRemitente.value ? medicosRemitentes.filter(function (m) { return m.id === selMedicoRemitente.value; })[0] : null;
+      // El descuento (si se indicó alguno en "Descuento") se congela aquí,
+      // en pesos/dólares ya calculados — igual que cuotaAdministrativaValor
+      // más abajo — para que un cambio posterior al catálogo de precios no
+      // altere retroactivamente cuánto descuento tuvo esta orden ya creada.
+      var subtotalSel = tenant.mostrarPrecioOrden ? calcularSubtotalSeleccion() : 0;
+      var descuentoSel = tenant.mostrarPrecioOrden ? calcularDescuentoSeleccion(subtotalSel) : { tipo: "", valorIngresado: 0, monto: 0 };
       var order = {
         tenantId: session.tenantId,
         numeroOrden: S.nextOrderNumber(session.tenantId),
@@ -762,6 +840,10 @@
         numAutorizacion: tenant.pais === "CO" ? document.getElementById("f_numAutorizacion").value : "",
         diagnosticoCIE10: tenant.pais === "CO" ? document.getElementById("f_diagnosticoCIE10").value : "",
         valorCobrar: tenant.mostrarPrecioOrden ? U.parseMonto(document.getElementById("f_valorCobrar").value) : null,
+        subtotalAntesDescuento: subtotalSel,
+        descuentoTipo: descuentoSel.tipo,
+        descuentoValorIngresado: descuentoSel.valorIngresado,
+        descuentoMonto: descuentoSel.monto,
         // Se guarda el valor YA cobrado en este momento (no una referencia
         // viva a tenant.cuotaAdministrativaValor), para que si el
         // laboratorio cambia después el valor de su Cuota Administrativa,
@@ -1489,6 +1571,9 @@
           seccionBoxHtml("💳 Facturación",
             field("Convenio / Empresa Aliada", order.convenioNombre || "Sin convenio (particular)") +
             (tenant.mostrarPrecioOrden ? fieldHtml("Valor a Cobrar", order.valorCobrar ? U.esc(fmtMoneda(order.valorCobrar)) + fmtMonedaEquiv(tenant, order.valorCobrar) : "—") : "") +
+            (tenant.mostrarPrecioOrden && order.descuentoMonto > 0 ? fieldHtml("🏷️ Descuento Aplicado",
+              U.esc(fmtMoneda(order.subtotalAntesDescuento || 0)) + " → −" + U.esc(fmtMoneda(order.descuentoMonto)) +
+              " (" + U.esc(order.descuentoTipo === "porcentaje" ? order.descuentoValorIngresado + "%" : fmtMoneda(order.descuentoValorIngresado)) + ")") : "") +
             (order.monedaPago ? field("Moneda de Pago", C.monedaPagoLabel(order.monedaPago)) : "") +
             (puedeReciboOrden(tenant) ? field("Estado de Pago", !order.pago ? "Pendiente de confirmar"
               : (order.pago.esCredito && !order.pago.tieneCopago) ? "🤝 A Crédito de Convenio — Pendiente de cobrar a " + (order.convenioNombre || "—")

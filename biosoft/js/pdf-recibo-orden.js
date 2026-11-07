@@ -198,6 +198,23 @@
     });
     y = doc.lastAutoTable.finalY + 22;
 
+    // ---- Línea de Descuento (solo si esta orden tuvo un descuento
+    // aplicado al crearse, en el campo "Descuento" de Nueva Orden — distinto
+    // del descuento por Convenio, que ya viene incluido en el precio de
+    // cada examen de la tabla de arriba). A propósito SIEMPRE se muestra al
+    // paciente, justo lo contrario del recargo de Cashea (ver el comentario
+    // de factorCashea más arriba): aquí el objetivo es que quede clarísimo
+    // cuánto se le rebajó.
+    if (order.descuentoMonto > 0) {
+      var etiquetaDescuentoPdf = order.descuentoTipo === "porcentaje"
+        ? (order.descuentoValorIngresado || 0) + "%"
+        : fmtMoneda(order.descuentoValorIngresado || 0);
+      doc.setFont("helvetica", "normal"); doc.setFontSize(8.5); doc.setTextColor(90, 90, 90);
+      doc.text("Subtotal: " + fmtMoneda(order.subtotalAntesDescuento || 0) + "   ·   Descuento (" + etiquetaDescuentoPdf + "): −" + fmtMoneda(order.descuentoMonto),
+        pageW - margin, y, { align: "right" });
+      y += 16;
+    }
+
     // ---- Desglose de IVA (solo si el laboratorio activó "Cobrar IVA" en
     // Configuración → Operación → Impuestos) — siempre sobre el Valor
     // Total de la orden (nunca sobre el abono/saldo): el IVA es del valor
