@@ -114,6 +114,19 @@ service cloud.firestore {
       allow write: if esSuperadmin();
     }
 
+    // Popup diario de la app (ver js/anuncios-promo.js) — un único
+    // documento fijo ("actual") con una imagen que, cuando está activa,
+    // reemplaza a los 3 anuncios internos rotativos en el primer ingreso
+    // del día de cualquier laboratorio real. A diferencia de
+    // landingImagenes/landingClientes (landing pública, sin sesión), este
+    // SOLO lo ve quien ya inició sesión de verdad — nunca un visitante
+    // anónimo — porque es contenido interno de la aplicación, no de
+    // mercadeo público. Solo el superadmin lo administra.
+    match /anuncioPopup/{docId} {
+      allow read: if autenticado();
+      allow write: if esSuperadmin();
+    }
+
     // Página web del laboratorio (demo-sitio.html / sitio-web.html) —
     // mismo documento sirve para dos cosas: la demo de venta que el
     // superadmin genera desde Laboratorios Cliente → Más acciones →

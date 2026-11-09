@@ -644,6 +644,32 @@
   }
 
   // -----------------------------------------------------------------------
+  // Popup diario de la app (solo superadmin) — ver js/anuncios-promo.js
+  // (quien lo muestra, a cualquier laboratorio real) y
+  // js/views-anuncio-popup.js (administración). Un único documento fijo
+  // ("actual"): no hay rotación ni historial, solo lo que esté activo hoy
+  // — cuando "activo" es true, su imagen reemplaza a los 3 anuncios
+  // internos rotativos de siempre.
+  // -----------------------------------------------------------------------
+  function anuncioPopupColl() { return global.BIO_FB.db.collection("anuncioPopup"); }
+  function anuncioPopupGet() {
+    if (!firebaseDisponible()) return Promise.reject(errorFirebaseNoDisponible());
+    return anuncioPopupColl().doc("actual").get().then(function (doc) { return doc.exists ? doc.data() : null; });
+  }
+  function anuncioPopupSet(datos, actualizadoPor) {
+    if (!firebaseDisponible()) return Promise.reject(errorFirebaseNoDisponible());
+    var doc = {
+      dataUrl: datos.dataUrl || "", alt: datos.alt || "", linkUrl: datos.linkUrl || "",
+      activo: !!datos.activo, actualizadoEn: nowISO(), actualizadoPor: actualizadoPor || ""
+    };
+    return anuncioPopupColl().doc("actual").set(doc).then(function () { return doc; });
+  }
+  function anuncioPopupDelete() {
+    if (!firebaseDisponible()) return Promise.reject(errorFirebaseNoDisponible());
+    return anuncioPopupColl().doc("actual").delete();
+  }
+
+  // -----------------------------------------------------------------------
   // "Nuestros Clientes" de la landing pública (solo superadmin) — logos de
   // laboratorios clientes reales en el carrusel de la landing, cada uno con
   // su propio enlace de WhatsApp para pedirle una recomendación. Ver
@@ -2909,6 +2935,7 @@
     plantillas: { list: plantillasList, watch: plantillasWatch, create: plantillasCreate, update: plantillasUpdate, remove: plantillasDelete },
     landingImagenes: { list: landingImagenesList, set: landingImagenesSet, remove: landingImagenesDelete },
     landingClientes: { list: landingClientesList, create: landingClientesCreate, update: landingClientesUpdate, remove: landingClientesDelete },
+    anuncioPopup: { get: anuncioPopupGet, set: anuncioPopupSet, remove: anuncioPopupDelete },
     demoSitioWeb: { get: demoSitioWebGet, set: demoSitioWebSet },
     resultadosPublicos: { get: resultadoPublicoGet, set: resultadoPublicoSet, agregarHistorial: resultadoPublicoAgregarHistorial },
     reservarCodigoConsulta: reservarCodigoConsulta,

@@ -276,14 +276,54 @@
     }), { lg: true });
   }
 
+  // ---------------------------------------------------------------------
+  // Popup diario con imagen propia (ver "Popup del Día" en Administración,
+  // js/views-anuncio-popup.js) — cuando el superadmin sube una imagen y la
+  // marca "activa", ESA imagen reemplaza a los 3 anuncios rotativos de
+  // arriba, sin tocar código ni esperar un despliegue. Si nunca se
+  // configura nada (o se desactiva), todo sigue exactamente igual que
+  // siempre: la rotación de 3 anuncios.
+  function abrirAnuncioImagen(datos) {
+    var contenido =
+      '<style>' +
+      '.modal:has(.bio-anuncio-imagen) .modal-card{padding:0 !important;border-radius:20px !important;max-width:460px !important;' +
+      'overflow:hidden !important;box-shadow:0 40px 90px rgba(0,0,0,.4) !important;max-height:90vh !important;}' +
+      '.modal:has(.bio-anuncio-imagen) .modal-x{background:rgba(255,255,255,.22) !important;-webkit-backdrop-filter:blur(8px);backdrop-filter:blur(8px) !important;}' +
+      '.modal:has(.bio-anuncio-imagen) .modal-x:hover{background:rgba(255,255,255,.36) !important;}' +
+      '</style>' +
+      '<div class="bio-anuncio-imagen">' +
+      (datos.linkUrl ? '<a href="' + BIO_UI.esc(datos.linkUrl) + '" target="_blank" rel="noopener" title="Haz clic para más información">' : "") +
+      '<img src="' + datos.dataUrl + '" alt="' + BIO_UI.esc(datos.alt || "") + '" style="display:block;width:100%;height:auto;max-height:90vh;object-fit:contain;' + (datos.linkUrl ? "cursor:pointer;" : "") + '"/>' +
+      (datos.linkUrl ? "</a>" : "") +
+      "</div>";
+    BIO_UI.openModal(contenido);
+  }
+
   function mostrarSiCorresponde() {
     var session = global.BIO_AUTH ? global.BIO_AUTH.getSession() : null;
     if (!debeVerAnuncios(session) || yaSeMostroHoy()) return;
-    marcarMostradoHoy();
-    var cual = anuncioDeHoy();
-    if (cual === "web") abrirAnuncioWeb();
-    else if (cual === "whatsapp") abrirAnuncioWhatsapp();
-    else abrirAnuncioRedes();
+    // La imagen personalizada se consulta en Firestore (lectura liviana, un
+    // único documento) justo en este momento, una vez al día por
+    // navegador — nunca bloquea ni retrasa el resto del login: si falla
+    // por cualquier motivo (sin internet, regla de Firestore, etc.) cae
+    // directo a la rotación de siempre, exactamente como si esta función
+    // no existiera.
+    (global.BIO_STORE && global.BIO_STORE.anuncioPopup ? global.BIO_STORE.anuncioPopup.get() : Promise.resolve(null))
+      .then(function (datos) {
+        marcarMostradoHoy();
+        if (datos && datos.activo && datos.dataUrl) { abrirAnuncioImagen(datos); return; }
+        var cual = anuncioDeHoy();
+        if (cual === "web") abrirAnuncioWeb();
+        else if (cual === "whatsapp") abrirAnuncioWhatsapp();
+        else abrirAnuncioRedes();
+      })
+      .catch(function () {
+        marcarMostradoHoy();
+        var cual = anuncioDeHoy();
+        if (cual === "web") abrirAnuncioWeb();
+        else if (cual === "whatsapp") abrirAnuncioWhatsapp();
+        else abrirAnuncioRedes();
+      });
   }
 
   global.BIO_ANUNCIOS_PROMO = { mostrarSiCorresponde: mostrarSiCorresponde };
