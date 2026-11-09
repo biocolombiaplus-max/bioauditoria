@@ -2291,6 +2291,20 @@
       });
     }
 
+    // Un laboratorio "ya es cliente" (pagó y está usando el sistema, esté
+    // al día o en mora) en cuanto tiene una fecha de corte real asignada
+    // (tenant.fechaProximoPago) y no sigue en la prueba gratis — eso es
+    // justo lo que deja puesto "Registrar Pago" la primera vez que se usa
+    // (ver abrirRegistrarPago más abajo), así que el paso de "potencial" a
+    // "cliente" ocurre SOLO con registrar su primer pago, sin que haga
+    // falta ningún campo ni botón nuevo. Mientras tanto (en prueba gratis,
+    // prueba vencida, o creado pero sin ningún pago registrado todavía) es
+    // un prospecto: se registró o se le creó la cuenta, pero aún no se ha
+    // decidido ni ha pagado nada.
+    function esClientePagante(t) {
+      return !t.esPruebaGratis && !!t.fechaProximoPago;
+    }
+
     function build() {
       if (cargando) { root.innerHTML = '<div class="card"><p class="text-muted">Cargando laboratorios…</p></div>'; return; }
       var tenantsVEconRifSinFormato = tenants.filter(function (t) { return t.pais === "VE" && t.nit && C.normalizarDocumentoTributario(t.nit, "VE") !== t.nit; });
@@ -2300,6 +2314,45 @@
       // decida qué hacer — ni BIOsoft ni el laboratorio deben dejarlo así
       // indefinidamente, así que se avisa arriba de todo, bien visible.
       var tenantsSobreLimite = tenants.filter(function (t) { return t.maxUsuarios && (t._usuarios || 0) > t.maxUsuarios; });
+      var tenantsActivos = tenants.filter(esClientePagante);
+      var tenantsPotenciales = tenants.filter(function (t) { return !esClientePagante(t); });
+
+      // Misma fila de siempre, ahora factorizada aparte para poder pintarla
+      // tanto en la tabla de Clientes Activos como en la de Potenciales sin
+      // duplicar el template.
+      function filaTenantHtml(t) {
+        var plan = BIO_PLANES.porId(t.planId);
+        var usuariosActivos = t._usuarios || 0;
+        var limite = t.maxUsuarios;
+        var usuariosTxt = limite ? usuariosActivos + " / " + limite : String(usuariosActivos);
+        var sobreLimite = limite && usuariosActivos > limite;
+        var estado = BIO_PLANES.estadoCuenta(t);
+        var estadoInfo = BIO_PLANES.ESTADOS_CUENTA[estado];
+        var necesitaRecordatorio = estado === "vencido" || estado === "por_vencer";
+        var necesitaRecordatorioPrueba = estado === "en_prueba" || estado === "prueba_vencida";
+        var diasPruebaTxt = estado === "en_prueba" ? " (" + BIO_PLANES.diasRestantes(t.fechaFinPrueba) + " día(s) restante(s))" : "";
+        return "<tr><td><b>" + U.esc(t.nombre) + "</b><div class='text-muted' style='font-size:11px'>" + U.esc(C.documentoTributarioLabel(t.pais)) + " " + U.esc(t.nit || "—") + "</div></td><td>" + t.pais + "</td>" +
+          "<td>" + (plan ? U.esc(plan.nombre) : '<span class="text-muted">Sin asignar</span>') + "</td>" +
+          "<td><span class='badge " + estadoInfo.badge + "'>" + estadoInfo.label + diasPruebaTxt + "</span>" +
+          (necesitaRecordatorio ? ' <button class="btn btn-ghost btn-sm" data-recordar-pago="' + t.id + '" title="Recordar pago por WhatsApp">' + U.icon("send") + "</button>" : "") +
+          (necesitaRecordatorioPrueba ? ' <button class="btn btn-ghost btn-sm" data-recordar-prueba="' + t.id + '" title="Recordar por WhatsApp que elija un plan">' + U.icon("send") + "</button>" : "") + "</td>" +
+          "<td>" + (t.esPruebaGratis ? (t.fechaFinPrueba ? U.fmtFechaCorta(t.fechaFinPrueba) : "—") : (t.fechaProximoPago ? U.fmtFechaCorta(t.fechaProximoPago) : "—")) + "</td>" +
+          "<td>" + (sobreLimite ? '<span class="badge badge-urgente">' + usuariosTxt + '</span>' : usuariosTxt) + "</td>" +
+          '<td><div class="flex gap-2 wrap">' +
+          '<button class="btn btn-outline btn-sm" data-editar-plan="' + t.id + '">' + U.icon("edit") + " Plan</button>" +
+          (t.planId ? '<button class="btn btn-outline btn-sm" data-registrar-pago-tenant="' + t.id + '" title="Registrar el pago recibido, generar su recibo y activar el siguiente período">' + U.icon("check") + " Registrar Pago</button>" : "") +
+          (sobreLimite ? '<button class="btn btn-danger btn-sm" data-resolver-limite="' + t.id + '">⚠️ Resolver Límite</button>' : "") +
+          '<button class="btn btn-primary btn-sm" data-mas-acciones="' + t.id + '">' + U.icon("more") + " Más acciones</button>" +
+          "</div></td></tr>";
+      }
+
+      function renderTablaTenants(titulo, lista, textoVacio) {
+        return '<div class="card"><div class="card-header"><h3 class="card-title">' + titulo + " (" + lista.length + ')</h3></div>' +
+          '<div class="table-wrap"><table><thead><tr><th>Laboratorio</th><th>País</th><th>Plan</th><th>Estado de Pago</th><th>Próximo Pago</th><th>Usuarios</th><th></th></tr></thead><tbody>' +
+          (lista.length ? lista.map(filaTenantHtml).join("") : '<tr><td colspan="7" class="text-muted">' + U.esc(textoVacio) + "</td></tr>") +
+          "</tbody></table></div></div>";
+      }
+
       root.innerHTML =
         (tenantsSobreLimite.length ?
           '<div class="card" style="border:1.5px solid var(--danger)"><div class="card-header"><h3 class="card-title">⚠️ Laboratorios con más usuarios activos que su plan (' + tenantsSobreLimite.length + ')</h3></div>' +
@@ -2318,32 +2371,10 @@
         '<button class="btn btn-outline" id="btn-enlace-autoregistro" title="Envíaselo a un laboratorio que quiera empezar — llena sus propios datos y crea su cuenta solo, sin que tú tengas que crearla">' + U.icon("send") + ' Enlace de Auto-Registro</button>' +
         '<button class="btn btn-primary" id="btn-new-tenant">' + U.icon("plus") + ' Crear Nuevo Laboratorio</button>' +
         "</div></div>" +
-        '<div class="table-wrap"><table><thead><tr><th>Laboratorio</th><th>País</th><th>Plan</th><th>Estado de Pago</th><th>Próximo Pago</th><th>Usuarios</th><th></th></tr></thead><tbody>' +
-        (tenants.length ? tenants.map(function (t) {
-          var plan = BIO_PLANES.porId(t.planId);
-          var usuariosActivos = t._usuarios || 0;
-          var limite = t.maxUsuarios;
-          var usuariosTxt = limite ? usuariosActivos + " / " + limite : String(usuariosActivos);
-          var sobreLimite = limite && usuariosActivos > limite;
-          var estado = BIO_PLANES.estadoCuenta(t);
-          var estadoInfo = BIO_PLANES.ESTADOS_CUENTA[estado];
-          var necesitaRecordatorio = estado === "vencido" || estado === "por_vencer";
-          var necesitaRecordatorioPrueba = estado === "en_prueba" || estado === "prueba_vencida";
-          var diasPruebaTxt = estado === "en_prueba" ? " (" + BIO_PLANES.diasRestantes(t.fechaFinPrueba) + " día(s) restante(s))" : "";
-          return "<tr><td><b>" + U.esc(t.nombre) + "</b><div class='text-muted' style='font-size:11px'>" + U.esc(C.documentoTributarioLabel(t.pais)) + " " + U.esc(t.nit || "—") + "</div></td><td>" + t.pais + "</td>" +
-            "<td>" + (plan ? U.esc(plan.nombre) : '<span class="text-muted">Sin asignar</span>') + "</td>" +
-            "<td><span class='badge " + estadoInfo.badge + "'>" + estadoInfo.label + diasPruebaTxt + "</span>" +
-            (necesitaRecordatorio ? ' <button class="btn btn-ghost btn-sm" data-recordar-pago="' + t.id + '" title="Recordar pago por WhatsApp">' + U.icon("send") + "</button>" : "") +
-            (necesitaRecordatorioPrueba ? ' <button class="btn btn-ghost btn-sm" data-recordar-prueba="' + t.id + '" title="Recordar por WhatsApp que elija un plan">' + U.icon("send") + "</button>" : "") + "</td>" +
-            "<td>" + (t.esPruebaGratis ? (t.fechaFinPrueba ? U.fmtFechaCorta(t.fechaFinPrueba) : "—") : (t.fechaProximoPago ? U.fmtFechaCorta(t.fechaProximoPago) : "—")) + "</td>" +
-            "<td>" + (sobreLimite ? '<span class="badge badge-urgente">' + usuariosTxt + '</span>' : usuariosTxt) + "</td>" +
-            '<td><div class="flex gap-2 wrap">' +
-            '<button class="btn btn-outline btn-sm" data-editar-plan="' + t.id + '">' + U.icon("edit") + " Plan</button>" +
-            (t.planId ? '<button class="btn btn-outline btn-sm" data-registrar-pago-tenant="' + t.id + '" title="Registrar el pago recibido, generar su recibo y activar el siguiente período">' + U.icon("check") + " Registrar Pago</button>" : "") +
-            (sobreLimite ? '<button class="btn btn-danger btn-sm" data-resolver-limite="' + t.id + '">⚠️ Resolver Límite</button>' : "") +
-            '<button class="btn btn-primary btn-sm" data-mas-acciones="' + t.id + '">' + U.icon("more") + " Más acciones</button>" +
-            "</div></td></tr>";
-        }).join("") : '<tr><td colspan="7" class="text-muted">Aún no hay laboratorios cliente creados.</td></tr>') + "</tbody></table></div></div>";
+        '<p class="text-muted" style="margin:0">Separados en dos grupos: los que ya pagaron y están usando el sistema (abajo), y los potenciales que se registraron o se crearon pero aún no han hecho ningún pago. En cuanto le registres el primer pago a uno, pasa solo al grupo de Clientes Activos.</p>' +
+        "</div>" +
+        renderTablaTenants("💼 Clientes Activos — Ya Pagaron", tenantsActivos, "Aún no hay ningún cliente que haya registrado un pago.") +
+        renderTablaTenants("🧲 Clientes Potenciales — Aún No Han Pagado", tenantsPotenciales, "No hay prospectos pendientes de decidirse en este momento.");
       document.getElementById("btn-new-tenant").addEventListener("click", openNewTenant);
       document.getElementById("btn-enlace-autoregistro").addEventListener("click", abrirEnlaceAutoRegistro);
       var btnCorregirRif = document.getElementById("btn-corregir-rif");
