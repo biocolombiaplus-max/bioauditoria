@@ -110,6 +110,38 @@
     try { localStorage.setItem(WA_KEY, "1"); } catch (e) {}
   }
 
+  // El país que el visitante eligió aquí (para el indicativo de su
+  // WhatsApp) es el MISMO que debe decidir qué laboratorio demo ve al
+  // entrar — antes se pedía y se guardaba en el lead, pero nunca se usaba
+  // para nada más, así que un prospecto de Venezuela terminaba viendo
+  // siempre la demo de Colombia (EPS, RIPS, pesos colombianos — conceptos
+  // que no existen allá). Se guarda en localStorage (mismo origen entre
+  // index.html y app.html) para que sobreviva la navegación entre las dos
+  // páginas.
+  var PAIS_ELEGIDO_KEY = "biosoft_demo_pais_elegido";
+  function guardarPaisElegido(codPais) {
+    try { localStorage.setItem(PAIS_ELEGIDO_KEY, codPais || ""); } catch (e) {}
+  }
+  function paisElegido() {
+    try { return localStorage.getItem(PAIS_ELEGIDO_KEY) || "CO"; } catch (e) { return "CO"; }
+  }
+
+  // ver store.js -> seedIfEmpty(): hay un laboratorio demo sembrado por
+  // cada país con contenido propio (CO/VE/EC/MX) y uno "Internacional"
+  // genérico (sin RIPS/EPS/DIAN/SENIAT/SRI/SAT, precios en USD) para
+  // cualquier otro país — aquí se traduce el código de país elegido a las
+  // credenciales del laboratorio demo que le corresponde.
+  var CREDENCIALES_DEMO_POR_PAIS = {
+    CO: { username: "admin.demo", password: "Demo2026*" },
+    VE: { username: "admin.demo.ve", password: "Demo2026*" },
+    EC: { username: "admin.demo.ec", password: "Demo2026*" },
+    MX: { username: "admin.demo.mx", password: "Demo2026*" }
+  };
+  var CREDENCIAL_DEMO_INTERNACIONAL = { username: "admin.demo.intl", password: "Demo2026*" };
+  function credencialesDemoPorPais(codPais) {
+    return CREDENCIALES_DEMO_POR_PAIS[codPais] || CREDENCIAL_DEMO_INTERNACIONAL;
+  }
+
   // Guarda (o actualiza) el lead en crmClientes — mismo id determinístico a
   // partir del número para que dos visitas de la misma persona (desde
   // index.html y luego desde app.html, o dos veces desde cualquiera) nunca
@@ -140,6 +172,9 @@
     validar: validar,
     yaDado: yaDado,
     marcarDado: marcarDado,
-    guardarLead: guardarLead
+    guardarLead: guardarLead,
+    guardarPaisElegido: guardarPaisElegido,
+    paisElegido: paisElegido,
+    credencialesDemoPorPais: credencialesDemoPorPais
   };
 })(window);

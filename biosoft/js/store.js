@@ -1257,51 +1257,42 @@
   // ---------------------------------------------------------------------
   // SEED DE DATOS DE DEMOSTRACIÓN
   // ---------------------------------------------------------------------
+  // Antes había UN solo laboratorio demo ("demo", tenant.pais="CO" fijo) —
+  // cualquier prospecto que entrara a "Ver Demo Gratis" veía siempre la
+  // versión colombiana (EPS, RIPS, Resolución 3100, pesos colombianos),
+  // sin importar qué país hubiera elegido en el modal de captura de
+  // WhatsApp (ver js/demo-whatsapp-capture.js), que ya pedía el país pero
+  // nunca lo usaba para nada más que guardar el lead. Un prospecto de
+  // Venezuela viendo "EPS"/"RIPS" en su demo (conceptos que no existen
+  // ahí) no es un detalle menor — genera dudas justo en el momento de
+  // decidir. Ahora se siembran VARIOS laboratorios demo, uno por país
+  // (CO/VE/EC/MX + uno genérico "Internacional" para cualquier otro país),
+  // cada uno con tenant.pais correcto — el resto de la app YA se adapta
+  // sola por tenant.pais en todas partes (RIPS/EPS solo CO, Cashea solo
+  // VE, SRI solo EC, DIAN/SENIAT/SRI/SAT en el contrato — ver
+  // pdf-contrato.js), así que con el tenant correcto todo lo demás cae en
+  // su lugar automáticamente. router.js elige cuál de estos tenants usar
+  // según el país que el visitante eligió en el modal (ver
+  // BIO_DEMO_WA.credencialesDemoPorPais). El tenant "demo" (Colombia)
+  // conserva el MISMO id y las MISMAS credenciales de siempre
+  // (admin.demo/laura.gomez/andres.rios/recepcion.demo) para no romper
+  // nada que ya dependa de ellas (role-tabs de app.html, enlaces
+  // existentes con #demo).
   function seedIfEmpty() {
     var db = loadDB();
     if (db) return db;
     db = emptyDB();
 
-    db.tenants["demo"] = {
-      id: "demo",
-      nombre: "Laboratorio Clínico DEMO BIOsoft",
-      slogan: "Precisión, calidez y confianza en cada resultado",
-      nit: "900123456-7",
-      pais: "CO",
-      direccion: "Cra 45 # 12 - 34, Bogotá D.C.",
-      telefonos: "(601) 555 0101 · 300 555 0101",
-      email: "contacto@labdemo.com",
-      sitioWeb: "www.labdemo.com",
-      nivel: 2,
-      resolucionHabilitacion: "Resolución 000000 de 2024 - Secretaría de Salud",
-      codigoREPS: "1100100000-01",
-      bacteriologoResponsable: { nombre: "Laura Gómez Pérez", registro: "TP-BACT 12345 CTBBTQ" },
-      logoDataUrl: "assets/logo-biosoft.png",
-      colorPrimario: "#f97316",
-      colorSecundario: "#2e1065",
-      claveAdmin: "ADMIN2026",
-      mostrarPrecioOrden: true,
-      // Muestra en la demo cómo se ve el equivalente en otra moneda (útil
-      // sobre todo para laboratorios de Venezuela/Ecuador) en la Lista de
-      // Precios del Cotizador y en Órdenes, en vez de dejarlo desactivado.
-      monedaAdicional: { codigo: "USD", tasa: 4000, actualizada: nowISO() },
-      creadoEn: nowISO()
-    };
-
-    var uAdmin = { id: uid("usr"), tenantId: "demo", username: "admin.demo", password: "Demo2026*", nombre: "Carolina Restrepo (Administradora)", rol: "admin", secciones: [], fotoUrl: "assets/avatars/admin-mujer.svg", activo: true, creadoEn: nowISO() };
-    var uLaura = { id: uid("usr"), tenantId: "demo", username: "laura.gomez", password: "Bacterio2026*", nombre: "Laura Gómez Pérez", rol: "bacteriologo", secciones: ["hematologia", "coagulacion", "banco", "quimica", "uroanalisis", "coprologia", "pruebasrapidas", "gases"], registroProfesional: "TP-BACT 12345 CTBBTQ", firmaDataUrl: firmaDemo("Laura Gómez"), fotoUrl: "assets/avatars/bacteriologa.svg", activo: true, creadoEn: nowISO() };
-    var uAndres = { id: uid("usr"), tenantId: "demo", username: "andres.rios", password: "Bacterio2026*", nombre: "Andrés Ríos Molano", rol: "bacteriologo", secciones: ["inmunologia", "microbiologia", "hormonas", "marcadores", "especiales"], registroProfesional: "TP-BACT 67890 CTBBTQ", firmaDataUrl: firmaDemo("A. Ríos M."), fotoUrl: "assets/avatars/bacteriologo.svg", activo: true, creadoEn: nowISO() };
-    db.users.push(
-      { id: uid("usr"), tenantId: null, username: "biosoft", password: "BIOsoft#2026", nombre: "Soporte BIOsoft", rol: "superadmin", secciones: [], activo: true, creadoEn: nowISO() },
-      uAdmin, uLaura, uAndres,
-      { id: uid("usr"), tenantId: "demo", username: "recepcion.demo", password: "Recepcion2026*", nombre: "Juliana Torres (Recepción)", rol: "recepcion", secciones: [], fotoUrl: "assets/avatars/recepcion.svg", activo: true, creadoEn: nowISO() }
-    );
-
-    var p1 = { id: uid("pac"), tenantId: "demo", tipoDocumento: "CC", numeroDocumento: "1010123456", primerNombre: "María", segundoNombre: "Fernanda", primerApellido: "Rojas", segundoApellido: "Cárdenas", fechaNacimiento: "1990-04-12", sexo: "Femenino", pais: "CO", ciudad: "Bogotá D.C.", direccion: "Calle 80 # 20-15", telefono: "", celular: "3011234567", email: "maria.rojas@example.com", tipoAfiliacion: "Contributivo", eps: "Nueva EPS", medicoRemitente: "Dr. Jorge Salamanca", procedencia: "Ambulatorio", ocupacion: "Contadora", observaciones: "", creadoEn: nowISO(), creadoPor: "recepcion.demo" };
-    var p2 = { id: uid("pac"), tenantId: "demo", tipoDocumento: "CC", numeroDocumento: "79345678", primerNombre: "Carlos", segundoNombre: "", primerApellido: "Martínez", segundoApellido: "López", fechaNacimiento: "1975-11-02", sexo: "Masculino", pais: "CO", ciudad: "Bogotá D.C.", direccion: "Av. Suba # 100-20", telefono: "", celular: "3157654321", email: "carlos.martinez@example.com", tipoAfiliacion: "Medicina Prepagada", eps: "Sanitas", medicoRemitente: "Dra. Ana Beltrán", procedencia: "Consulta Externa", ocupacion: "Ingeniero", observaciones: "", creadoEn: nowISO(), creadoPor: "recepcion.demo" };
-    var p3 = { id: uid("pac"), tenantId: "demo", tipoDocumento: "TI", numeroDocumento: "1102345678", primerNombre: "Valentina", segundoNombre: "", primerApellido: "Pérez", segundoApellido: "Gómez", fechaNacimiento: "2010-06-20", sexo: "Femenino", pais: "CO", ciudad: "Chía", direccion: "Cra 10 # 5-40", telefono: "6018765432", celular: "3201122334", email: "", tipoAfiliacion: "Subsidiado", eps: "Coosalud", medicoRemitente: "Dr. Fabián Niño", procedencia: "Urgencias", ocupacion: "Estudiante", observaciones: "", creadoEn: nowISO(), creadoPor: "recepcion.demo" };
-    var p4 = { id: uid("pac"), tenantId: "demo", tipoDocumento: "VCI", numeroDocumento: "V-18234567", primerNombre: "José", segundoNombre: "Luis", primerApellido: "Fernández", segundoApellido: "", fechaNacimiento: "1988-01-15", sexo: "Masculino", pais: "VE", ciudad: "Bogotá D.C.", direccion: "Calle 63 # 9-30", telefono: "", celular: "3187778899", email: "jose.fernandez@example.com", tipoAfiliacion: "Particular", eps: "Particular", medicoRemitente: "Dra. Ana Beltrán", procedencia: "Ambulatorio", ocupacion: "Comerciante", observaciones: "Paciente migrante, sin afiliación aún", creadoEn: nowISO(), creadoPor: "recepcion.demo" };
-    db.patients.push(p1, p2, p3, p4);
+    var today = new Date();
+    // Las órdenes (y el historial de QC/inventario) se ubican relativas al
+    // momento exacto de la siembra, no a una hora fija del día, para que
+    // siempre queden en el pasado sin importar a qué hora se cargue la
+    // demo — de lo contrario, si se entra muy temprano en la mañana, una
+    // fechaOrden fija (ej. "08:15") podría quedar en el futuro frente a
+    // "ahora", dando tiempos de entrega negativos que se descartan y dejan
+    // el KPI de Productividad Mensual en "—".
+    function horasAntes(h) { return new Date(today.getTime() - h * 36e5).toISOString(); }
+    function diasAntes(n) { return new Date(today.getTime() - n * 864e5); }
 
     function item(examId, estado, valores, validador, fechaValidacion) {
       return {
@@ -1312,103 +1303,11 @@
       };
     }
 
-    var today = new Date();
-    // Las órdenes se ubican relativas al momento exacto de la siembra (y no a
-    // una hora fija del día) para que siempre queden en el pasado sin importar
-    // a qué hora se cargue la demo — de lo contrario, si se entra muy temprano
-    // en la mañana, una fechaOrden fija (ej. "08:15") podría quedar en el
-    // futuro frente a "ahora", dando tiempos de entrega negativos que se
-    // descartan y dejan el KPI de Productividad Mensual en "—".
-    function horasAntes(h) { return new Date(today.getTime() - h * 36e5).toISOString(); }
-
-    db.orders.push(
-      {
-        id: uid("ord"), tenantId: "demo", numeroOrden: "20260001", patientId: p1.id, fechaOrden: horasAntes(6),
-        prioridad: "Rutina", procedencia: "Ambulatorio", medicoRemitente: "Dr. Jorge Salamanca", diagnostico: "Control anual",
-        examenes: [
-          item("HEM-001", "validado", [
-            { codigo: "HB", valor: "13.2" }, { codigo: "HTO", valor: "40" }, { codigo: "LEU", valor: "6.8" },
-            { codigo: "NEUT", valor: "55" }, { codigo: "LINF", valor: "35" }, { codigo: "MONO", valor: "5" },
-            { codigo: "EOS", valor: "3" }, { codigo: "BASO", valor: "1" }, { codigo: "PLT", valor: "260" },
-            { codigo: "VCM", valor: "88" }, { codigo: "HCM", valor: "29" }, { codigo: "CHCM", valor: "34" }, { codigo: "RDW", valor: "12.8" }
-          ], uLaura, nowISO()),
-          item("QUI-001", "validado", [{ codigo: "GLU", valor: "128" }], uLaura, nowISO()),
-          item("QUI-008", "validado", [{ codigo: "CREA", valor: "0.9" }], uLaura, nowISO())
-        ],
-        estadoGeneral: "validado", enviado: true, fechaEnvio: nowISO(), creadoEn: nowISO(), creadoPor: "recepcion.demo",
-        valorCobrar: 95000
-      },
-      {
-        id: uid("ord"), tenantId: "demo", numeroOrden: "20260002", patientId: p2.id, fechaOrden: horasAntes(5),
-        prioridad: "Rutina", procedencia: "Consulta Externa", medicoRemitente: "Dra. Ana Beltrán", diagnostico: "Chequeo lipídico",
-        examenes: [
-          item("QUI-004", "validado", [{ codigo: "COLT", valor: "215" }], uLaura, nowISO()),
-          item("QUI-005", "validado", [{ codigo: "HDL", valor: "38" }], uLaura, nowISO()),
-          item("QUI-006", "validado", [{ codigo: "LDL", valor: "142" }], uLaura, nowISO()),
-          item("QUI-007", "validado", [{ codigo: "TGD", valor: "190" }], uLaura, nowISO()),
-          item("URO-001", "pendiente", [])
-        ],
-        estadoGeneral: "parcial", enviado: false, fechaEnvio: "", creadoEn: nowISO(), creadoPor: "recepcion.demo",
-        valorCobrar: 150000
-      },
-      {
-        id: uid("ord"), tenantId: "demo", numeroOrden: "20260003", patientId: p3.id, fechaOrden: horasAntes(3.5),
-        prioridad: "Urgente", procedencia: "Urgencias", medicoRemitente: "Dr. Fabián Niño", diagnostico: "Síndrome febril + disuria",
-        examenes: [
-          item("MIC-001", "pendiente", []),
-          item("HEM-001", "pendiente", [])
-        ],
-        estadoGeneral: "pendiente", enviado: false, fechaEnvio: "", creadoEn: nowISO(), creadoPor: "recepcion.demo",
-        valorCobrar: 110000
-      },
-      {
-        id: uid("ord"), tenantId: "demo", numeroOrden: "20260004", patientId: p4.id, fechaOrden: horasAntes(2),
-        prioridad: "Rutina", procedencia: "Ambulatorio", medicoRemitente: "Dra. Ana Beltrán", diagnostico: "Evaluación tiroidea y prostática",
-        examenes: [
-          item("HOR-001", "validado", [{ codigo: "TSH", valor: "2.1" }], uAndres, nowISO()),
-          item("HOR-002", "validado", [{ codigo: "T4L", valor: "1.2" }], uAndres, nowISO()),
-          item("MAR-001", "preliminar", [{ codigo: "PSA", valor: "1.8" }])
-        ],
-        estadoGeneral: "parcial", enviado: false, fechaEnvio: "", creadoEn: nowISO(), creadoPor: "recepcion.demo",
-        valorCobrar: 180000
-      }
-    );
-
-    // ---- Consentimiento Informado (Resolución 3100 de 2019): un consentimiento
-    // ya firmado sobre la primera orden, para que el módulo se vea con
-    // contenido real (y una firma dibujada de verdad) en vez de vacío. ----
-    (function seedConsentimiento() {
-      var firmaCanvas = document.createElement("canvas");
-      firmaCanvas.width = 220; firmaCanvas.height = 70;
-      var ctx = firmaCanvas.getContext("2d");
-      ctx.fillStyle = "#1e3a8a";
-      ctx.font = "italic 30px 'Segoe Script', 'Brush Script MT', cursive";
-      ctx.save(); ctx.translate(10, 46); ctx.rotate(-4 * Math.PI / 180); ctx.fillText("M. Rojas", 0, 0); ctx.restore();
-      var primeraOrden = db.orders[0];
-      db.consentimientos.push({
-        id: uid("cons"), tenantId: "demo", orderId: primeraOrden.id, patientId: p1.id, creadoPor: "recepcion.demo",
-        procedimiento: "venopuncion",
-        examenes: primeraOrden.examenes.map(function (ex) { return { examId: ex.examId, nombre: BIO_CATALOG.examenPorId(ex.examId).nombre }; }),
-        numeroOrden: primeraOrden.numeroOrden,
-        tenantNombre: db.tenants.demo.nombre, tenantNit: db.tenants.demo.nit, tenantPais: db.tenants.demo.pais,
-        tenantDireccion: db.tenants.demo.direccion, tenantTelefonos: db.tenants.demo.telefonos, tenantCodigoREPS: db.tenants.demo.codigoREPS,
-        tenantLogoDataUrl: db.tenants.demo.logoDataUrl, tenantColorPrimario: db.tenants.demo.colorPrimario,
-        pacienteNombre: [p1.primerNombre, p1.segundoNombre, p1.primerApellido, p1.segundoApellido].filter(Boolean).join(" "),
-        pacienteDocumento: p1.tipoDocumento + " " + p1.numeroDocumento,
-        estado: "firmado",
-        firmaPacienteDataUrl: firmaCanvas.toDataURL("image/png"),
-        nombreFirmante: p1.primerNombre + " " + p1.primerApellido, documentoFirmante: p1.tipoDocumento + " " + p1.numeroDocumento, relacionFirmante: "paciente",
-        nombreProfesional: "Juliana Torres (Recepción)",
-        fechaFirma: horasAntes(6), creadoEn: horasAntes(6)
-      });
-    })();
-
-    // ---- Control de Calidad: controles con ~18 días de historial, para que
-    // la demo muestre la gráfica de Levey-Jennings y el estado de las reglas
-    // de Westgard con datos reales en vez de un módulo vacío. ----
-    function diasAntes(n) { return new Date(today.getTime() - n * 864e5); }
-    function seedControlQC(seccion, analitoCodigo, nivel, lote, media, ds, dias, vencimientoDias, ultimoValor) {
-      var control = { id: uid("qcc"), tenantId: "demo", seccion: seccion, analitoCodigo: analitoCodigo, nivel: nivel, lote: lote, media: media, ds: ds, vencimiento: diasAntes(-vencimientoDias).toISOString().slice(0, 10), activo: true, creadoEn: nowISO() };
+    // ---- Control de Calidad: controles con ~N días de historial, para que
+    // la demo muestre la gráfica de Levey-Jennings y el estado de las
+    // reglas de Westgard con datos reales en vez de un módulo vacío. ----
+    function seedControlQC(tenantId, usuarioNombre, seccion, analitoCodigo, nivel, lote, media, ds, dias, vencimientoDias, ultimoValor) {
+      var control = { id: uid("qcc"), tenantId: tenantId, seccion: seccion, analitoCodigo: analitoCodigo, nivel: nivel, lote: lote, media: media, ds: ds, vencimiento: diasAntes(-vencimientoDias).toISOString().slice(0, 10), activo: true, creadoEn: nowISO() };
       db.qcControles.push(control);
       var historial = [];
       for (var i = dias; i >= 1; i--) {
@@ -1417,67 +1316,443 @@
         historial.push(valor);
         var resultado = BIO_QC.evaluar(historial, media, ds);
         db.qcLecturas.push({
-          id: uid("qcl"), tenantId: "demo", controlId: control.id, fecha: fecha.toISOString(), valor: valor,
-          usuario: "Laura Gómez Pérez", z: resultado.z, reglas: resultado.reglas, estado: resultado.estado, creadoEn: fecha.toISOString()
+          id: uid("qcl"), tenantId: tenantId, controlId: control.id, fecha: fecha.toISOString(), valor: valor,
+          usuario: usuarioNombre, z: resultado.z, reglas: resultado.reglas, estado: resultado.estado, creadoEn: fecha.toISOString()
         });
       }
       return control;
     }
-    seedControlQC("quimica", "GLU", "Normal", "QC-GLU-25B", 100, 5, 18, 120);
-    seedControlQC("quimica", "COLT", "Patológico Alto", "QC-COLT-25A", 220, 12, 15, 90);
-    // El último punto de este control queda deliberadamente en 2.3 DS para
-    // mostrar en la demo cómo BIOsoft detecta y explica un aviso de Westgard.
-    seedControlQC("hematologia", "HB", "Normal", "QC-HB-25C", 13.5, 0.4, 18, 150, 13.5 + 2.3 * 0.4);
-
-    // ---- Cotizador: precio de referencia para todos los exámenes del
-    // catálogo, para que la Lista de Precios y el cotizador no aparezcan
-    // vacíos ("Sin precio") en la demo. ----
-    function hashFNV1a(s) { var h = 0x811c9dc5; for (var i = 0; i < s.length; i++) { h ^= s.charCodeAt(i); h = Math.imul(h, 0x01000193); } return h >>> 0; }
-    BIO_CATALOG.EXAMENES.forEach(function (ex) {
-      // El precio base sube con la complejidad del examen (nivel CUPS y
-      // cantidad de parámetros que reporta), y una variación por hash le da
-      // a cada examen un valor propio en vez de precios idénticos entre sí.
-      var base = (ex.nivel === 2 ? 55000 : 22000) + (ex.parametros ? ex.parametros.length : 1) * 1800;
-      var precio = Math.round((base + (hashFNV1a(ex.id) % 9000)) / 500) * 500;
-      db.preciosExamenes.push({ id: uid("prc"), tenantId: "demo", examId: ex.id, precio: precio, actualizadoEn: nowISO() });
-    });
 
     // ---- Inventario y Reactivos: insumos de ejemplo (uno deliberadamente
-    // bajo de stock, para mostrar la alerta), con su kardex y una receta de
-    // consumo por examen, en vez de un módulo vacío. ----
-    function seedInsumo(nombre, categoria, unidadMedida, stockActual, stockMinimo, costoUnitario, proveedor, lote, vencimientoDias) {
+    // bajo de stock, para mostrar la alerta), con su kardex, en vez de un
+    // módulo vacío. ----
+    function seedInsumo(tenantId, usuarioNombre, nombre, categoria, unidadMedida, stockActual, stockMinimo, costoUnitario, proveedor, lote, vencimientoDias) {
       var ins = {
-        id: uid("ins"), tenantId: "demo", nombre: nombre, categoria: categoria, unidadMedida: unidadMedida,
+        id: uid("ins"), tenantId: tenantId, nombre: nombre, categoria: categoria, unidadMedida: unidadMedida,
         stockActual: stockActual, stockMinimo: stockMinimo, costoUnitario: costoUnitario, proveedor: proveedor, lote: lote,
         fechaVencimiento: vencimientoDias ? diasAntes(-vencimientoDias).toISOString().slice(0, 10) : "",
         creadoEn: nowISO(), actualizadoEn: nowISO()
       };
       db.insumos.push(ins);
       db.kardexInventario.push({
-        id: uid("kdx"), tenantId: "demo", insumoId: ins.id, fecha: diasAntes(20).toISOString(), tipo: "entrada",
-        cantidad: stockActual, motivo: "Compra inicial de inventario", saldoAnterior: 0, saldoNuevo: stockActual, costoUnitario: costoUnitario, usuario: "Carolina Restrepo (Administradora)"
+        id: uid("kdx"), tenantId: tenantId, insumoId: ins.id, fecha: diasAntes(20).toISOString(), tipo: "entrada",
+        cantidad: stockActual, motivo: "Compra inicial de inventario", saldoAnterior: 0, saldoNuevo: stockActual, costoUnitario: costoUnitario, usuario: usuarioNombre
       });
       return ins;
     }
-    var insReactivoGlucosa = seedInsumo("Reactivo Glucosa (kit 100 tests)", "Reactivo", "kits", 8, 3, 185000, "Human de Colombia", "GLU-2026-04", 300);
-    var insControlHb = seedInsumo("Control de Hematología Nivel Normal (vial 5 mL)", "Control", "viales", 4, 2, 95000, "Bio-Rad", "QC-HB-25C", 150);
-    seedInsumo("Tubos EDTA (lavanda) x100", "Material", "unidades", 240, 100, 850, "BD Vacutainer", "EDTA-2026-01", 0);
-    var insTirasOrina = seedInsumo("Tiras Reactivas de Orina (frasco x100)", "Reactivo", "frascos", 2, 3, 145000, "Roche Diagnostics", "URO-2026-02", 200);
-    seedInsumo("Guantes de Nitrilo Talla M (caja x100)", "Insumo", "cajas", 15, 5, 32000, "Distrimédica", "", 0);
-    seedInsumo("Puntas para Pipeta 200µL (bolsa x1000)", "Material", "bolsas", 6, 2, 58000, "Distrimédica", "", 0);
 
-    db.recetasReactivos.push(
-      { id: uid("rec"), tenantId: "demo", examId: "QUI-001", insumoId: insReactivoGlucosa.id, cantidad: 0.01 },
-      { id: uid("rec"), tenantId: "demo", examId: "HEM-001", insumoId: insControlHb.id, cantidad: 0.05 }
-    );
-    var saldoTirasPrevio = insTirasOrina.stockActual + 1;
-    db.kardexInventario.push({
-      id: uid("kdx"), tenantId: "demo", insumoId: insTirasOrina.id, fecha: diasAntes(2).toISOString(), tipo: "salida",
-      cantidad: 1, motivo: "Consumo por examen (Uroanálisis)", saldoAnterior: saldoTirasPrevio, saldoNuevo: insTirasOrina.stockActual,
-      costoUnitario: insTirasOrina.costoUnitario, examId: "URO-001", usuario: "Sistema (automático)"
+    // ---- Cotizador: precio de referencia para todos los exámenes del
+    // catálogo (compartido entre todos los países — el catálogo de
+    // exámenes es uno solo), para que la Lista de Precios y el cotizador
+    // no aparezcan vacíos ("Sin precio") en ninguna demo. "escala" ajusta
+    // el orden de magnitud de los números al tipo de moneda de cada país
+    // (pesos/bolívares vs. dólares vs. pesos mexicanos), para que los
+    // precios se vean realistas y no como "$55.000 dólares" por un
+    // hemograma. ----
+    function hashFNV1a(s) { var h = 0x811c9dc5; for (var i = 0; i < s.length; i++) { h ^= s.charCodeAt(i); h = Math.imul(h, 0x01000193); } return h >>> 0; }
+    var ESCALA_PRECIO = {
+      // { base nivel 1, base nivel 2, por parámetro, variación por hash, redondeo }
+      COP: { n1: 22000, n2: 55000, porParam: 1800, variacion: 9000, redondeo: 500 },
+      USD: { n1: 12, n2: 32, porParam: 1.2, variacion: 14, redondeo: 1 },
+      MXN: { n1: 220, n2: 600, porParam: 22, variacion: 160, redondeo: 10 }
+    };
+    function sembrarPreciosCatalogo(tenantId, escalaCod) {
+      var e = ESCALA_PRECIO[escalaCod] || ESCALA_PRECIO.COP;
+      BIO_CATALOG.EXAMENES.forEach(function (ex) {
+        // El precio base sube con la complejidad del examen (nivel CUPS y
+        // cantidad de parámetros que reporta), y una variación por hash le
+        // da a cada examen un valor propio en vez de precios idénticos.
+        var base = (ex.nivel === 2 ? e.n2 : e.n1) + (ex.parametros ? ex.parametros.length : 1) * e.porParam;
+        var precio = Math.round((base + (hashFNV1a(ex.id) % e.variacion)) / e.redondeo) * e.redondeo;
+        db.preciosExamenes.push({ id: uid("prc"), tenantId: tenantId, examId: ex.id, precio: precio, actualizadoEn: nowISO() });
+      });
+    }
+
+    // ---- Consentimiento Informado: uno ya firmado sobre la primera orden
+    // de cada laboratorio demo, para que el módulo se vea con contenido
+    // real (y una firma dibujada de verdad) en vez de vacío. ----
+    function seedConsentimiento(tenant, orden, paciente, nombreProfesional, firmaIniciales) {
+      var firmaCanvas = document.createElement("canvas");
+      firmaCanvas.width = 220; firmaCanvas.height = 70;
+      var ctx = firmaCanvas.getContext("2d");
+      ctx.fillStyle = "#1e3a8a";
+      ctx.font = "italic 30px 'Segoe Script', 'Brush Script MT', cursive";
+      ctx.save(); ctx.translate(10, 46); ctx.rotate(-4 * Math.PI / 180); ctx.fillText(firmaIniciales, 0, 0); ctx.restore();
+      db.consentimientos.push({
+        id: uid("cons"), tenantId: tenant.id, orderId: orden.id, patientId: paciente.id, creadoPor: orden.creadoPor,
+        procedimiento: "venopuncion",
+        examenes: orden.examenes.map(function (ex) { return { examId: ex.examId, nombre: BIO_CATALOG.examenPorId(ex.examId).nombre }; }),
+        numeroOrden: orden.numeroOrden,
+        tenantNombre: tenant.nombre, tenantNit: tenant.nit, tenantPais: tenant.pais,
+        tenantDireccion: tenant.direccion, tenantTelefonos: tenant.telefonos, tenantCodigoREPS: tenant.codigoREPS,
+        tenantLogoDataUrl: tenant.logoDataUrl, tenantColorPrimario: tenant.colorPrimario,
+        pacienteNombre: [paciente.primerNombre, paciente.segundoNombre, paciente.primerApellido, paciente.segundoApellido].filter(Boolean).join(" "),
+        pacienteDocumento: paciente.tipoDocumento + " " + paciente.numeroDocumento,
+        estado: "firmado",
+        firmaPacienteDataUrl: firmaCanvas.toDataURL("image/png"),
+        nombreFirmante: paciente.primerNombre + " " + paciente.primerApellido, documentoFirmante: paciente.tipoDocumento + " " + paciente.numeroDocumento, relacionFirmante: "paciente",
+        nombreProfesional: nombreProfesional,
+        fechaFirma: orden.fechaOrden, creadoEn: orden.fechaOrden
+      });
+    }
+
+    // =======================================================================
+    // Construye UN laboratorio demo completo (tenant + usuarios + pacientes +
+    // órdenes + QC + precios + inventario + consentimiento) a partir de un
+    // "cfg" con todo lo que varía por país. Se usa una vez por cada país
+    // soportado (ver llamadas al final de esta función).
+    // =======================================================================
+    function construirLabDemo(cfg) {
+      var tid = cfg.tenantId;
+      db.tenants[tid] = Object.assign({
+        id: tid,
+        nombre: "Laboratorio Clínico DEMO BIOsoft",
+        slogan: "Precisión, calidez y confianza en cada resultado",
+        logoDataUrl: "assets/logo-biosoft.png",
+        colorPrimario: "#f97316",
+        colorSecundario: "#2e1065",
+        claveAdmin: "ADMIN2026",
+        mostrarPrecioOrden: true,
+        creadoEn: nowISO()
+      }, cfg.tenant);
+
+      var uAdmin = Object.assign({ id: uid("usr"), tenantId: tid, rol: "admin", secciones: [], fotoUrl: "assets/avatars/admin-mujer.svg", activo: true, creadoEn: nowISO() }, cfg.uAdmin);
+      var uProf1 = Object.assign({ id: uid("usr"), tenantId: tid, rol: "bacteriologo", fotoUrl: "assets/avatars/bacteriologa.svg", activo: true, creadoEn: nowISO() }, cfg.uProf1);
+      uProf1.firmaDataUrl = firmaDemo(cfg.uProf1.firmaIniciales);
+      var uProf2 = Object.assign({ id: uid("usr"), tenantId: tid, rol: "bacteriologo", fotoUrl: "assets/avatars/bacteriologo.svg", activo: true, creadoEn: nowISO() }, cfg.uProf2);
+      uProf2.firmaDataUrl = firmaDemo(cfg.uProf2.firmaIniciales);
+      var uRecep = Object.assign({ id: uid("usr"), tenantId: tid, rol: "recepcion", secciones: [], fotoUrl: "assets/avatars/recepcion.svg", activo: true, creadoEn: nowISO() }, cfg.uRecep);
+      db.users.push(uAdmin, uProf1, uProf2, uRecep);
+
+      var pacientes = cfg.pacientes.map(function (pd) {
+        var p = Object.assign({ id: uid("pac"), tenantId: tid, telefono: "", observaciones: "", creadoEn: nowISO(), creadoPor: uRecep.username }, pd);
+        db.patients.push(p);
+        return p;
+      });
+
+      var ordenes = cfg.ordenes(pacientes, uProf1, uProf2, uRecep, item, horasAntes).map(function (o) {
+        return Object.assign({ id: uid("ord"), tenantId: tid, enviado: false, fechaEnvio: "", creadoEn: nowISO(), creadoPor: uRecep.username }, o);
+      });
+      db.orders.push.apply(db.orders, ordenes);
+
+      seedConsentimiento(db.tenants[tid], ordenes[0], pacientes[0], uRecep.nombre, cfg.firmaConsentimiento);
+
+      cfg.qc.forEach(function (q) {
+        seedControlQC(tid, uProf1.nombre, q.seccion, q.analito, q.nivel, q.lote, q.media, q.ds, q.dias, q.vencimientoDias, q.ultimoValor);
+      });
+
+      sembrarPreciosCatalogo(tid, cfg.escalaPrecio);
+
+      var insumosSembrados = cfg.insumos.map(function (i) {
+        return seedInsumo(tid, uAdmin.nombre, i.nombre, i.categoria, i.unidadMedida, i.stockActual, i.stockMinimo, i.costoUnitario, i.proveedor, i.lote || "", i.vencimientoDias || 0);
+      });
+      if (cfg.receta) {
+        db.recetasReactivos.push.apply(db.recetasReactivos, cfg.receta(insumosSembrados));
+      }
+
+      db.auditLog.push({ id: uid("log"), tenantId: tid, fecha: nowISO(), usuario: "Sistema", rol: "sistema", accion: "SEED_DEMO", entidad: "sistema", entidadId: tid, detalle: "Datos de demostración inicializados." });
+      return { tenantId: tid, adminUsername: uAdmin.username };
+    }
+
+    // ---- 🇨🇴 Colombia — mismo id/credenciales de siempre ("demo",
+    // admin.demo/laura.gomez/andres.rios/recepcion.demo), mismo contenido
+    // que la demo original. ----
+    construirLabDemo({
+      tenantId: "demo",
+      escalaPrecio: "COP",
+      firmaConsentimiento: "M. Rojas",
+      tenant: {
+        nit: "900123456-7", pais: "CO", direccion: "Cra 45 # 12 - 34, Bogotá D.C.",
+        telefonos: "(601) 555 0101 · 300 555 0101", email: "contacto@labdemo.com", sitioWeb: "www.labdemo.com", nivel: 2,
+        resolucionHabilitacion: "Resolución 000000 de 2024 - Secretaría de Salud", codigoREPS: "1100100000-01",
+        bacteriologoResponsable: { nombre: "Laura Gómez Pérez", registro: "TP-BACT 12345 CTBBTQ" },
+        // Muestra en la demo cómo se ve el equivalente en otra moneda en la
+        // Lista de Precios del Cotizador y en Órdenes, en vez de dejarlo
+        // desactivado.
+        monedaAdicional: { codigo: "USD", tasa: 4000, actualizada: nowISO() }
+      },
+      uAdmin: { username: "admin.demo", password: "Demo2026*", nombre: "Carolina Restrepo (Administradora)" },
+      uProf1: { username: "laura.gomez", password: "Bacterio2026*", nombre: "Laura Gómez Pérez", secciones: ["hematologia", "coagulacion", "banco", "quimica", "uroanalisis", "coprologia", "pruebasrapidas", "gases"], registroProfesional: "TP-BACT 12345 CTBBTQ", firmaIniciales: "Laura Gómez" },
+      uProf2: { username: "andres.rios", password: "Bacterio2026*", nombre: "Andrés Ríos Molano", secciones: ["inmunologia", "microbiologia", "hormonas", "marcadores", "especiales"], registroProfesional: "TP-BACT 67890 CTBBTQ", firmaIniciales: "A. Ríos M." },
+      uRecep: { username: "recepcion.demo", password: "Recepcion2026*", nombre: "Juliana Torres (Recepción)" },
+      pacientes: [
+        { tipoDocumento: "CC", numeroDocumento: "1010123456", primerNombre: "María", segundoNombre: "Fernanda", primerApellido: "Rojas", segundoApellido: "Cárdenas", fechaNacimiento: "1990-04-12", sexo: "Femenino", pais: "CO", ciudad: "Bogotá D.C.", direccion: "Calle 80 # 20-15", celular: "3011234567", email: "maria.rojas@example.com", tipoAfiliacion: "Contributivo", eps: "Nueva EPS", medicoRemitente: "Dr. Jorge Salamanca", procedencia: "Ambulatorio", ocupacion: "Contadora" },
+        { tipoDocumento: "CC", numeroDocumento: "79345678", primerNombre: "Carlos", primerApellido: "Martínez", segundoApellido: "López", fechaNacimiento: "1975-11-02", sexo: "Masculino", pais: "CO", ciudad: "Bogotá D.C.", direccion: "Av. Suba # 100-20", celular: "3157654321", email: "carlos.martinez@example.com", tipoAfiliacion: "Medicina Prepagada", eps: "Sanitas", medicoRemitente: "Dra. Ana Beltrán", procedencia: "Consulta Externa", ocupacion: "Ingeniero" },
+        { tipoDocumento: "TI", numeroDocumento: "1102345678", primerNombre: "Valentina", primerApellido: "Pérez", segundoApellido: "Gómez", fechaNacimiento: "2010-06-20", sexo: "Femenino", pais: "CO", ciudad: "Chía", direccion: "Cra 10 # 5-40", telefono: "6018765432", celular: "3201122334", tipoAfiliacion: "Subsidiado", eps: "Coosalud", medicoRemitente: "Dr. Fabián Niño", procedencia: "Urgencias", ocupacion: "Estudiante" },
+        { tipoDocumento: "VCI", numeroDocumento: "V-18234567", primerNombre: "José", segundoNombre: "Luis", primerApellido: "Fernández", fechaNacimiento: "1988-01-15", sexo: "Masculino", pais: "VE", ciudad: "Bogotá D.C.", direccion: "Calle 63 # 9-30", celular: "3187778899", email: "jose.fernandez@example.com", tipoAfiliacion: "Particular", eps: "Particular", medicoRemitente: "Dra. Ana Beltrán", procedencia: "Ambulatorio", ocupacion: "Comerciante", observaciones: "Paciente migrante, sin afiliación aún" }
+      ],
+      ordenes: function (p, uProf1, uProf2, uRecep, item, horasAntes) {
+        return [
+          { numeroOrden: "20260001", patientId: p[0].id, fechaOrden: horasAntes(6), prioridad: "Rutina", procedencia: "Ambulatorio", medicoRemitente: "Dr. Jorge Salamanca", diagnostico: "Control anual",
+            examenes: [
+              item("HEM-001", "validado", [
+                { codigo: "HB", valor: "13.2" }, { codigo: "HTO", valor: "40" }, { codigo: "LEU", valor: "6.8" },
+                { codigo: "NEUT", valor: "55" }, { codigo: "LINF", valor: "35" }, { codigo: "MONO", valor: "5" },
+                { codigo: "EOS", valor: "3" }, { codigo: "BASO", valor: "1" }, { codigo: "PLT", valor: "260" },
+                { codigo: "VCM", valor: "88" }, { codigo: "HCM", valor: "29" }, { codigo: "CHCM", valor: "34" }, { codigo: "RDW", valor: "12.8" }
+              ], uProf1, nowISO()),
+              item("QUI-001", "validado", [{ codigo: "GLU", valor: "128" }], uProf1, nowISO()),
+              item("QUI-008", "validado", [{ codigo: "CREA", valor: "0.9" }], uProf1, nowISO())
+            ], estadoGeneral: "validado", enviado: true, fechaEnvio: nowISO(), valorCobrar: 95000 },
+          { numeroOrden: "20260002", patientId: p[1].id, fechaOrden: horasAntes(5), prioridad: "Rutina", procedencia: "Consulta Externa", medicoRemitente: "Dra. Ana Beltrán", diagnostico: "Chequeo lipídico",
+            examenes: [
+              item("QUI-004", "validado", [{ codigo: "COLT", valor: "215" }], uProf1, nowISO()),
+              item("QUI-005", "validado", [{ codigo: "HDL", valor: "38" }], uProf1, nowISO()),
+              item("QUI-006", "validado", [{ codigo: "LDL", valor: "142" }], uProf1, nowISO()),
+              item("QUI-007", "validado", [{ codigo: "TGD", valor: "190" }], uProf1, nowISO()),
+              item("URO-001", "pendiente", [])
+            ], estadoGeneral: "parcial", valorCobrar: 150000 },
+          { numeroOrden: "20260003", patientId: p[2].id, fechaOrden: horasAntes(3.5), prioridad: "Urgente", procedencia: "Urgencias", medicoRemitente: "Dr. Fabián Niño", diagnostico: "Síndrome febril + disuria",
+            examenes: [item("MIC-001", "pendiente", []), item("HEM-001", "pendiente", [])], estadoGeneral: "pendiente", valorCobrar: 110000 },
+          { numeroOrden: "20260004", patientId: p[3].id, fechaOrden: horasAntes(2), prioridad: "Rutina", procedencia: "Ambulatorio", medicoRemitente: "Dra. Ana Beltrán", diagnostico: "Evaluación tiroidea y prostática",
+            examenes: [
+              item("HOR-001", "validado", [{ codigo: "TSH", valor: "2.1" }], uProf2, nowISO()),
+              item("HOR-002", "validado", [{ codigo: "T4L", valor: "1.2" }], uProf2, nowISO()),
+              item("MAR-001", "preliminar", [{ codigo: "PSA", valor: "1.8" }])
+            ], estadoGeneral: "parcial", valorCobrar: 180000 }
+        ];
+      },
+      qc: [
+        { seccion: "quimica", analito: "GLU", nivel: "Normal", lote: "QC-GLU-25B", media: 100, ds: 5, dias: 18, vencimientoDias: 120 },
+        { seccion: "quimica", analito: "COLT", nivel: "Patológico Alto", lote: "QC-COLT-25A", media: 220, ds: 12, dias: 15, vencimientoDias: 90 },
+        // El último punto de este control queda deliberadamente en 2.3 DS
+        // para mostrar en la demo cómo BIOsoft detecta y explica un aviso
+        // de Westgard.
+        { seccion: "hematologia", analito: "HB", nivel: "Normal", lote: "QC-HB-25C", media: 13.5, ds: 0.4, dias: 18, vencimientoDias: 150, ultimoValor: 13.5 + 2.3 * 0.4 }
+      ],
+      insumos: [
+        { nombre: "Reactivo Glucosa (kit 100 tests)", categoria: "Reactivo", unidadMedida: "kits", stockActual: 8, stockMinimo: 3, costoUnitario: 185000, proveedor: "Human de Colombia", lote: "GLU-2026-04", vencimientoDias: 300 },
+        { nombre: "Control de Hematología Nivel Normal (vial 5 mL)", categoria: "Control", unidadMedida: "viales", stockActual: 4, stockMinimo: 2, costoUnitario: 95000, proveedor: "Bio-Rad", lote: "QC-HB-25C", vencimientoDias: 150 },
+        { nombre: "Tubos EDTA (lavanda) x100", categoria: "Material", unidadMedida: "unidades", stockActual: 240, stockMinimo: 100, costoUnitario: 850, proveedor: "BD Vacutainer", lote: "EDTA-2026-01" },
+        { nombre: "Tiras Reactivas de Orina (frasco x100)", categoria: "Reactivo", unidadMedida: "frascos", stockActual: 2, stockMinimo: 3, costoUnitario: 145000, proveedor: "Roche Diagnostics", lote: "URO-2026-02", vencimientoDias: 200 },
+        { nombre: "Guantes de Nitrilo Talla M (caja x100)", categoria: "Insumo", unidadMedida: "cajas", stockActual: 15, stockMinimo: 5, costoUnitario: 32000, proveedor: "Distrimédica" },
+        { nombre: "Puntas para Pipeta 200µL (bolsa x1000)", categoria: "Material", unidadMedida: "bolsas", stockActual: 6, stockMinimo: 2, costoUnitario: 58000, proveedor: "Distrimédica" }
+      ],
+      receta: function (ins) {
+        var saldoTirasPrevio = ins[3].stockActual + 1;
+        db.kardexInventario.push({
+          id: uid("kdx"), tenantId: "demo", insumoId: ins[3].id, fecha: diasAntes(2).toISOString(), tipo: "salida",
+          cantidad: 1, motivo: "Consumo por examen (Uroanálisis)", saldoAnterior: saldoTirasPrevio, saldoNuevo: ins[3].stockActual,
+          costoUnitario: ins[3].costoUnitario, examId: "URO-001", usuario: "Sistema (automático)"
+        });
+        return [
+          { id: uid("rec"), tenantId: "demo", examId: "QUI-001", insumoId: ins[0].id, cantidad: 0.01 },
+          { id: uid("rec"), tenantId: "demo", examId: "HEM-001", insumoId: ins[1].id, cantidad: 0.05 }
+        ];
+      }
     });
 
-    db.auditLog.push({ id: uid("log"), tenantId: "demo", fecha: nowISO(), usuario: "Sistema", rol: "sistema", accion: "SEED_DEMO", entidad: "sistema", entidadId: "demo", detalle: "Datos de demostración inicializados." });
+    // ---- 🇻🇪 Venezuela — SENIAT (no DIAN), sin EPS/RIPS, Cashea
+    // disponible como forma de pago, precios en USD (muy común en
+    // laboratorios venezolanos por la inflación del bolívar). ----
+    construirLabDemo({
+      tenantId: "demo-ve",
+      escalaPrecio: "USD",
+      firmaConsentimiento: "G. Querales",
+      tenant: {
+        nit: "J-312345678-5", pais: "VE", direccion: "Av. Francisco de Miranda, Urb. Chacao, Caracas",
+        telefonos: "(0212) 555 0101 · 0414 555 0101", email: "contacto@labdemove.com", sitioWeb: "www.labdemove.com", nivel: 2,
+        resolucionHabilitacion: "Registro Sanitario ante el MPPS N° 00000 (2024)",
+        bacteriologoResponsable: { nombre: "María Fernanda Uzcátegui", registro: "MPPS 123456 / CBV 7890" },
+        monedaBase: "USD"
+      },
+      uAdmin: { username: "admin.demo.ve", password: "Demo2026*", nombre: "Gabriela Peña (Administradora)" },
+      uProf1: { username: "maria.uzcategui", password: "Demo2026*", nombre: "María Fernanda Uzcátegui", secciones: ["hematologia", "coagulacion", "banco", "quimica", "uroanalisis", "coprologia", "pruebasrapidas", "gases"], registroProfesional: "MPPS 123456 / CBV 7890", firmaIniciales: "M. Uzcátegui" },
+      uProf2: { username: "luis.marquez", password: "Demo2026*", nombre: "Luis Enrique Márquez", secciones: ["inmunologia", "microbiologia", "hormonas", "marcadores", "especiales"], registroProfesional: "MPPS 654321 / CBV 4567", firmaIniciales: "L. Márquez" },
+      uRecep: { username: "asistente.demo.ve", password: "Demo2026*", nombre: "Génesis Querales (Asistente)" },
+      pacientes: [
+        { tipoDocumento: "VCI", numeroDocumento: "V-18234567", primerNombre: "Gabriela", segundoNombre: "Alejandra", primerApellido: "Pérez", segundoApellido: "Rondón", fechaNacimiento: "1992-03-18", sexo: "Femenino", pais: "VE", ciudad: "Caracas", direccion: "Res. Las Mercedes, Torre B, Piso 4", celular: "4141234567", email: "gabriela.perez@example.com", tipoAfiliacion: "Seguro Privado", medicoRemitente: "Dr. Ramón Oropeza", procedencia: "Ambulatorio", ocupacion: "Abogada" },
+        { tipoDocumento: "VCI", numeroDocumento: "V-9876543", primerNombre: "Miguel", segundoNombre: "Ángel", primerApellido: "Silva", segundoApellido: "Torrealba", fechaNacimiento: "1968-07-09", sexo: "Masculino", pais: "VE", ciudad: "Caracas", direccion: "Urb. La Candelaria, Calle Este 4", celular: "4241112233", tipoAfiliacion: "Particular", medicoRemitente: "Dra. Carolina Ibarra", procedencia: "Consulta Externa", ocupacion: "Comerciante" },
+        { tipoDocumento: "ECI", numeroDocumento: "E-82345671", primerNombre: "Daniela", primerApellido: "Gómez", segundoApellido: "Rivas", fechaNacimiento: "2015-09-02", sexo: "Femenino", pais: "VE", ciudad: "Caracas", direccion: "Urb. El Paraíso, Ca. 3", celular: "4169998877", tipoAfiliacion: "IVSS", medicoRemitente: "Dr. Ramón Oropeza", procedencia: "Urgencias", ocupacion: "Estudiante" }
+      ],
+      ordenes: function (p, uProf1, uProf2, uRecep, item, horasAntes) {
+        return [
+          { numeroOrden: "20260001", patientId: p[0].id, fechaOrden: horasAntes(7), prioridad: "Rutina", procedencia: "Ambulatorio", medicoRemitente: "Dr. Ramón Oropeza", diagnostico: "Control anual",
+            examenes: [
+              item("HEM-001", "validado", [
+                { codigo: "HB", valor: "12.8" }, { codigo: "HTO", valor: "38" }, { codigo: "LEU", valor: "7.1" },
+                { codigo: "PLT", valor: "245" }
+              ], uProf1, nowISO()),
+              item("QUI-001", "validado", [{ codigo: "GLU", valor: "92" }], uProf1, nowISO())
+            ], estadoGeneral: "validado", enviado: true, fechaEnvio: nowISO(), valorCobrar: 18 },
+          { numeroOrden: "20260002", patientId: p[1].id, fechaOrden: horasAntes(4), prioridad: "Rutina", procedencia: "Consulta Externa", medicoRemitente: "Dra. Carolina Ibarra", diagnostico: "Chequeo lipídico y renal",
+            examenes: [
+              item("QUI-004", "validado", [{ codigo: "COLT", valor: "198" }], uProf1, nowISO()),
+              item("QUI-006", "validado", [{ codigo: "LDL", valor: "130" }], uProf1, nowISO()),
+              item("QUI-008", "pendiente", [])
+            ], estadoGeneral: "parcial", valorCobrar: 35 },
+          { numeroOrden: "20260003", patientId: p[2].id, fechaOrden: horasAntes(2), prioridad: "Urgente", procedencia: "Urgencias", medicoRemitente: "Dr. Ramón Oropeza", diagnostico: "Síndrome febril",
+            examenes: [item("HEM-001", "pendiente", []), item("MIC-001", "pendiente", [])], estadoGeneral: "pendiente", valorCobrar: 22 }
+        ];
+      },
+      qc: [
+        { seccion: "quimica", analito: "GLU", nivel: "Normal", lote: "QC-GLU-25B", media: 100, ds: 5, dias: 15, vencimientoDias: 120 },
+        { seccion: "hematologia", analito: "HB", nivel: "Normal", lote: "QC-HB-25C", media: 13.5, ds: 0.4, dias: 15, vencimientoDias: 150 }
+      ],
+      insumos: [
+        { nombre: "Reactivo Glucosa (kit 100 tests)", categoria: "Reactivo", unidadMedida: "kits", stockActual: 6, stockMinimo: 3, costoUnitario: 48, proveedor: "Human de Venezuela", lote: "GLU-2026-04", vencimientoDias: 300 },
+        { nombre: "Tubos EDTA (lavanda) x100", categoria: "Material", unidadMedida: "unidades", stockActual: 180, stockMinimo: 100, costoUnitario: 0.2, proveedor: "BD Vacutainer" },
+        { nombre: "Tiras Reactivas de Orina (frasco x100)", categoria: "Reactivo", unidadMedida: "frascos", stockActual: 2, stockMinimo: 3, costoUnitario: 35, proveedor: "Roche Diagnostics", vencimientoDias: 200 },
+        { nombre: "Guantes de Nitrilo Talla M (caja x100)", categoria: "Insumo", unidadMedida: "cajas", stockActual: 12, stockMinimo: 5, costoUnitario: 8, proveedor: "Distribuidora Médica Caracas" }
+      ]
+    });
+
+    // ---- 🇪🇨 Ecuador — SRI (pantalla propia de Facturación, no DIAN),
+    // sin EPS/RIPS, dólar (moneda oficial). ----
+    construirLabDemo({
+      tenantId: "demo-ec",
+      escalaPrecio: "USD",
+      firmaConsentimiento: "P. Chuquimarca",
+      tenant: {
+        nit: "1792345678001", pais: "EC", direccion: "Av. Amazonas y Naciones Unidas, Quito",
+        telefonos: "(02) 555 0101 · 099 555 0101", email: "contacto@labdemoec.com", sitioWeb: "www.labdemoec.com", nivel: 2,
+        resolucionHabilitacion: "Permiso de Funcionamiento ARCSA N° 00000-LAB-2024",
+        bacteriologoResponsable: { nombre: "Paola Chuquimarca Lema", registro: "MSP 12345" }
+      },
+      uAdmin: { username: "admin.demo.ec", password: "Demo2026*", nombre: "Andrea Salazar (Administradora)" },
+      uProf1: { username: "paola.chuquimarca", password: "Demo2026*", nombre: "Paola Chuquimarca Lema", secciones: ["hematologia", "coagulacion", "banco", "quimica", "uroanalisis", "coprologia", "pruebasrapidas", "gases"], registroProfesional: "MSP 12345", firmaIniciales: "P. Chuquimarca" },
+      uProf2: { username: "daniel.vera", password: "Demo2026*", nombre: "Daniel Vera Jácome", secciones: ["inmunologia", "microbiologia", "hormonas", "marcadores", "especiales"], registroProfesional: "MSP 54321", firmaIniciales: "D. Vera" },
+      uRecep: { username: "asistente.demo.ec", password: "Demo2026*", nombre: "Katherine Mora (Asistente)" },
+      pacientes: [
+        { tipoDocumento: "CI", numeroDocumento: "1712345678", primerNombre: "Katherine", segundoNombre: "Nicole", primerApellido: "Mora", segundoApellido: "Suárez", fechaNacimiento: "1995-05-21", sexo: "Femenino", pais: "EC", ciudad: "Quito", direccion: "Sector La Carolina, Calle N34", celular: "0991234567", email: "katherine.mora@example.com", tipoAfiliacion: "IESS", medicoRemitente: "Dr. Mauricio Peñaherrera", procedencia: "Ambulatorio", ocupacion: "Diseñadora" },
+        { tipoDocumento: "CI", numeroDocumento: "1709876543", primerNombre: "Javier", primerApellido: "Cevallos", segundoApellido: "Arias", fechaNacimiento: "1972-12-03", sexo: "Masculino", pais: "EC", ciudad: "Quito", direccion: "Sector Cumbayá, Av. Interoceánica", celular: "0987654321", tipoAfiliacion: "Seguro Privado", medicoRemitente: "Dra. Gabriela Ponce", procedencia: "Consulta Externa", ocupacion: "Arquitecto" },
+        { tipoDocumento: "CI", numeroDocumento: "1723456789", primerNombre: "Isabella", primerApellido: "Torres", segundoApellido: "Reyes", fechaNacimiento: "2012-02-14", sexo: "Femenino", pais: "EC", ciudad: "Quito", direccion: "Sector El Inca", celular: "0998887766", tipoAfiliacion: "Particular", medicoRemitente: "Dr. Mauricio Peñaherrera", procedencia: "Urgencias", ocupacion: "Estudiante" }
+      ],
+      ordenes: function (p, uProf1, uProf2, uRecep, item, horasAntes) {
+        return [
+          { numeroOrden: "20260001", patientId: p[0].id, fechaOrden: horasAntes(6), prioridad: "Rutina", procedencia: "Ambulatorio", medicoRemitente: "Dr. Mauricio Peñaherrera", diagnostico: "Control anual",
+            examenes: [
+              item("HEM-001", "validado", [{ codigo: "HB", valor: "13.0" }, { codigo: "HTO", valor: "39" }, { codigo: "LEU", valor: "6.5" }], uProf1, nowISO()),
+              item("QUI-001", "validado", [{ codigo: "GLU", valor: "85" }], uProf1, nowISO())
+            ], estadoGeneral: "validado", enviado: true, fechaEnvio: nowISO(), valorCobrar: 20 },
+          { numeroOrden: "20260002", patientId: p[1].id, fechaOrden: horasAntes(4), prioridad: "Rutina", procedencia: "Consulta Externa", medicoRemitente: "Dra. Gabriela Ponce", diagnostico: "Chequeo ejecutivo",
+            examenes: [
+              item("QUI-004", "validado", [{ codigo: "COLT", valor: "205" }], uProf1, nowISO()),
+              item("QUI-005", "validado", [{ codigo: "HDL", valor: "42" }], uProf1, nowISO()),
+              item("HOR-001", "pendiente", [])
+            ], estadoGeneral: "parcial", valorCobrar: 48 },
+          { numeroOrden: "20260003", patientId: p[2].id, fechaOrden: horasAntes(1.5), prioridad: "Urgente", procedencia: "Urgencias", medicoRemitente: "Dr. Mauricio Peñaherrera", diagnostico: "Disuria",
+            examenes: [item("URO-001", "pendiente", [])], estadoGeneral: "pendiente", valorCobrar: 12 }
+        ];
+      },
+      qc: [
+        { seccion: "quimica", analito: "GLU", nivel: "Normal", lote: "QC-GLU-25B", media: 100, ds: 5, dias: 15, vencimientoDias: 120 },
+        { seccion: "hematologia", analito: "HB", nivel: "Normal", lote: "QC-HB-25C", media: 13.5, ds: 0.4, dias: 15, vencimientoDias: 150 }
+      ],
+      insumos: [
+        { nombre: "Reactivo Glucosa (kit 100 tests)", categoria: "Reactivo", unidadMedida: "kits", stockActual: 7, stockMinimo: 3, costoUnitario: 45, proveedor: "Human Ecuador", vencimientoDias: 300 },
+        { nombre: "Tubos EDTA (lavanda) x100", categoria: "Material", unidadMedida: "unidades", stockActual: 200, stockMinimo: 100, costoUnitario: 0.22, proveedor: "BD Vacutainer" },
+        { nombre: "Tiras Reactivas de Orina (frasco x100)", categoria: "Reactivo", unidadMedida: "frascos", stockActual: 3, stockMinimo: 3, costoUnitario: 32, proveedor: "Roche Diagnostics", vencimientoDias: 200 },
+        { nombre: "Guantes de Nitrilo Talla M (caja x100)", categoria: "Insumo", unidadMedida: "cajas", stockActual: 10, stockMinimo: 5, costoUnitario: 9, proveedor: "Distrimédica Quito" }
+      ]
+    });
+
+    // ---- 🇲🇽 México — SAT (no DIAN/SENIAT), sin EPS/RIPS, IMSS/ISSSTE
+    // como afiliación, pesos mexicanos. ----
+    construirLabDemo({
+      tenantId: "demo-mx",
+      escalaPrecio: "MXN",
+      firmaConsentimiento: "R. Hinojosa",
+      tenant: {
+        nit: "LDB240101AB1", pais: "MX", direccion: "Av. Insurgentes Sur 1234, Col. Del Valle, Ciudad de México",
+        telefonos: "(55) 5555 0101 · 55 5555 0101", email: "contacto@labdemomx.com", sitioWeb: "www.labdemomx.com", nivel: 2,
+        resolucionHabilitacion: "Aviso de Funcionamiento COFEPRIS N° 00000/2024",
+        bacteriologoResponsable: { nombre: "Rodrigo Hinojosa Beltrán", registro: "Céd. Prof. 1234567" }
+      },
+      uAdmin: { username: "admin.demo.mx", password: "Demo2026*", nombre: "Mariana Reséndiz (Administradora)" },
+      uProf1: { username: "rodrigo.hinojosa", password: "Demo2026*", nombre: "Rodrigo Hinojosa Beltrán", secciones: ["hematologia", "coagulacion", "banco", "quimica", "uroanalisis", "coprologia", "pruebasrapidas", "gases"], registroProfesional: "Céd. Prof. 1234567", firmaIniciales: "R. Hinojosa" },
+      uProf2: { username: "fernanda.ochoa", password: "Demo2026*", nombre: "Fernanda Ochoa Villalba", secciones: ["inmunologia", "microbiologia", "hormonas", "marcadores", "especiales"], registroProfesional: "Céd. Prof. 7654321", firmaIniciales: "F. Ochoa" },
+      uRecep: { username: "asistente.demo.mx", password: "Demo2026*", nombre: "Itzel Flores (Auxiliar)" },
+      pacientes: [
+        { tipoDocumento: "INE", numeroDocumento: "FLGI920315HDFLRR01", primerNombre: "Itzel", segundoNombre: "Guadalupe", primerApellido: "Flores", segundoApellido: "García", fechaNacimiento: "1992-03-15", sexo: "Femenino", pais: "MX", ciudad: "Ciudad de México", direccion: "Col. Roma Norte, Calle Orizaba 45", celular: "5512345678", email: "itzel.flores@example.com", tipoAfiliacion: "Seguro Privado", medicoRemitente: "Dr. Alejandro Ramírez", procedencia: "Ambulatorio", ocupacion: "Mercadóloga" },
+        { tipoDocumento: "INE", numeroDocumento: "MOCJ650920HDFRRV05", primerNombre: "Javier", primerApellido: "Moreno", segundoApellido: "Cervantes", fechaNacimiento: "1965-09-20", sexo: "Masculino", pais: "MX", ciudad: "Ciudad de México", direccion: "Col. Nápoles, Av. Insurgentes 980", celular: "5587654321", tipoAfiliacion: "IMSS", medicoRemitente: "Dra. Paulina Soto", procedencia: "Consulta Externa", ocupacion: "Contador" },
+        { tipoDocumento: "CURP", numeroDocumento: "TORS180612MDFRYN03", primerNombre: "Sofía", primerApellido: "Torres", segundoApellido: "Reyna", fechaNacimiento: "2018-06-12", sexo: "Femenino", pais: "MX", ciudad: "Ciudad de México", direccion: "Col. Condesa, Calle Amsterdam 210", celular: "5599887766", tipoAfiliacion: "ISSSTE", medicoRemitente: "Dr. Alejandro Ramírez", procedencia: "Urgencias", ocupacion: "N/A" }
+      ],
+      ordenes: function (p, uProf1, uProf2, uRecep, item, horasAntes) {
+        return [
+          { numeroOrden: "20260001", patientId: p[0].id, fechaOrden: horasAntes(6), prioridad: "Rutina", procedencia: "Ambulatorio", medicoRemitente: "Dr. Alejandro Ramírez", diagnostico: "Control anual",
+            examenes: [
+              item("HEM-001", "validado", [{ codigo: "HB", valor: "13.4" }, { codigo: "HTO", valor: "41" }, { codigo: "LEU", valor: "6.2" }], uProf1, nowISO()),
+              item("QUI-001", "validado", [{ codigo: "GLU", valor: "95" }], uProf1, nowISO())
+            ], estadoGeneral: "validado", enviado: true, fechaEnvio: nowISO(), valorCobrar: 320 },
+          { numeroOrden: "20260002", patientId: p[1].id, fechaOrden: horasAntes(4), prioridad: "Rutina", procedencia: "Consulta Externa", medicoRemitente: "Dra. Paulina Soto", diagnostico: "Chequeo ejecutivo",
+            examenes: [
+              item("QUI-004", "validado", [{ codigo: "COLT", valor: "210" }], uProf1, nowISO()),
+              item("QUI-007", "validado", [{ codigo: "TGD", valor: "165" }], uProf1, nowISO()),
+              item("HOR-001", "pendiente", [])
+            ], estadoGeneral: "parcial", valorCobrar: 680 },
+          { numeroOrden: "20260003", patientId: p[2].id, fechaOrden: horasAntes(2), prioridad: "Urgente", procedencia: "Urgencias", medicoRemitente: "Dr. Alejandro Ramírez", diagnostico: "Síndrome febril",
+            examenes: [item("HEM-001", "pendiente", []), item("MIC-001", "pendiente", [])], estadoGeneral: "pendiente", valorCobrar: 410 }
+        ];
+      },
+      qc: [
+        { seccion: "quimica", analito: "GLU", nivel: "Normal", lote: "QC-GLU-25B", media: 100, ds: 5, dias: 15, vencimientoDias: 120 },
+        { seccion: "hematologia", analito: "HB", nivel: "Normal", lote: "QC-HB-25C", media: 13.5, ds: 0.4, dias: 15, vencimientoDias: 150 }
+      ],
+      insumos: [
+        { nombre: "Reactivo Glucosa (kit 100 tests)", categoria: "Reactivo", unidadMedida: "kits", stockActual: 9, stockMinimo: 3, costoUnitario: 950, proveedor: "Human de México", vencimientoDias: 300 },
+        { nombre: "Tubos EDTA (lavanda) x100", categoria: "Material", unidadMedida: "unidades", stockActual: 260, stockMinimo: 100, costoUnitario: 4.5, proveedor: "BD Vacutainer" },
+        { nombre: "Tiras Reactivas de Orina (frasco x100)", categoria: "Reactivo", unidadMedida: "frascos", stockActual: 2, stockMinimo: 3, costoUnitario: 720, proveedor: "Roche Diagnostics", vencimientoDias: 200 },
+        { nombre: "Guantes de Nitrilo Talla M (caja x100)", categoria: "Insumo", unidadMedida: "cajas", stockActual: 18, stockMinimo: 5, costoUnitario: 165, proveedor: "Distribuidora Médica CDMX" }
+      ]
+    });
+
+    // ---- 🌎 Internacional — cualquier otro país: sin reclamar ninguna
+    // norma/autoridad local (nada de DIAN/SENIAT/SRI/SAT, ninguna
+    // resolución inventada), precios en USD como referencia neutra.
+    // tenant.pais queda vacío a propósito: así TODOS los condicionales
+    // "=== CO/VE/EC/MX" del resto de la app caen solos a su versión
+    // genérica, sin tener que listar este caso en cada uno. ----
+    construirLabDemo({
+      tenantId: "demo-intl",
+      escalaPrecio: "USD",
+      firmaConsentimiento: "A. Reyes",
+      tenant: {
+        nit: "", pais: "", direccion: "Centro Médico Internacional, Of. 501",
+        telefonos: "+1 555 010 0101", email: "contacto@labdemo.com", sitioWeb: "www.labdemo.com", nivel: 2,
+        resolucionHabilitacion: "",
+        bacteriologoResponsable: { nombre: "Alejandra Reyes Londoño", registro: "Licencia profesional vigente" }
+      },
+      uAdmin: { username: "admin.demo.intl", password: "Demo2026*", nombre: "Alejandra Reyes Londoño (Administradora)" },
+      uProf1: { username: "especialista1.demo", password: "Demo2026*", nombre: "Alejandra Reyes Londoño", secciones: ["hematologia", "coagulacion", "banco", "quimica", "uroanalisis", "coprologia", "pruebasrapidas", "gases"], registroProfesional: "Licencia profesional vigente", firmaIniciales: "A. Reyes" },
+      uProf2: { username: "especialista2.demo", password: "Demo2026*", nombre: "Tomás Herrera Duque", secciones: ["inmunologia", "microbiologia", "hormonas", "marcadores", "especiales"], registroProfesional: "Licencia profesional vigente", firmaIniciales: "T. Herrera" },
+      uRecep: { username: "recepcion.demo.intl", password: "Demo2026*", nombre: "Camila Duarte (Recepción)" },
+      pacientes: [
+        { tipoDocumento: "PA", numeroDocumento: "AB1234567", primerNombre: "Camila", primerApellido: "Duarte", segundoApellido: "Soto", fechaNacimiento: "1991-01-22", sexo: "Femenino", pais: "", ciudad: "Ciudad Principal", direccion: "Calle Central 100", celular: "5551230101", email: "camila.duarte@example.com", tipoAfiliacion: "Particular", medicoRemitente: "Dr. Tomás Herrera", procedencia: "Ambulatorio", ocupacion: "Profesional" },
+        { tipoDocumento: "PA", numeroDocumento: "CD7654321", primerNombre: "Andrés", primerApellido: "Londoño", segundoApellido: "Vélez", fechaNacimiento: "1980-06-14", sexo: "Masculino", pais: "", ciudad: "Ciudad Principal", direccion: "Avenida Norte 250", celular: "5551230102", tipoAfiliacion: "Seguro Privado", medicoRemitente: "Dra. Alejandra Reyes", procedencia: "Consulta Externa", ocupacion: "Empresario" },
+        { tipoDocumento: "PA", numeroDocumento: "EF2468135", primerNombre: "Valeria", primerApellido: "Vélez", segundoApellido: "Rojas", fechaNacimiento: "2008-11-30", sexo: "Femenino", pais: "", ciudad: "Ciudad Principal", direccion: "Calle Sur 75", celular: "5551230103", tipoAfiliacion: "Particular", medicoRemitente: "Dr. Tomás Herrera", procedencia: "Urgencias", ocupacion: "Estudiante" }
+      ],
+      ordenes: function (p, uProf1, uProf2, uRecep, item, horasAntes) {
+        return [
+          { numeroOrden: "20260001", patientId: p[0].id, fechaOrden: horasAntes(6), prioridad: "Rutina", procedencia: "Ambulatorio", medicoRemitente: "Dr. Tomás Herrera", diagnostico: "Control anual",
+            examenes: [
+              item("HEM-001", "validado", [{ codigo: "HB", valor: "13.1" }, { codigo: "HTO", valor: "39" }, { codigo: "LEU", valor: "6.9" }], uProf1, nowISO()),
+              item("QUI-001", "validado", [{ codigo: "GLU", valor: "90" }], uProf1, nowISO())
+            ], estadoGeneral: "validado", enviado: true, fechaEnvio: nowISO(), valorCobrar: 25 },
+          { numeroOrden: "20260002", patientId: p[1].id, fechaOrden: horasAntes(4), prioridad: "Rutina", procedencia: "Consulta Externa", medicoRemitente: "Dra. Alejandra Reyes", diagnostico: "Chequeo ejecutivo",
+            examenes: [
+              item("QUI-004", "validado", [{ codigo: "COLT", valor: "200" }], uProf1, nowISO()),
+              item("HOR-001", "pendiente", [])
+            ], estadoGeneral: "parcial", valorCobrar: 42 },
+          { numeroOrden: "20260003", patientId: p[2].id, fechaOrden: horasAntes(2), prioridad: "Urgente", procedencia: "Urgencias", medicoRemitente: "Dr. Tomás Herrera", diagnostico: "Síndrome febril",
+            examenes: [item("HEM-001", "pendiente", []), item("MIC-001", "pendiente", [])], estadoGeneral: "pendiente", valorCobrar: 28 }
+        ];
+      },
+      qc: [
+        { seccion: "quimica", analito: "GLU", nivel: "Normal", lote: "QC-GLU-25B", media: 100, ds: 5, dias: 15, vencimientoDias: 120 },
+        { seccion: "hematologia", analito: "HB", nivel: "Normal", lote: "QC-HB-25C", media: 13.5, ds: 0.4, dias: 15, vencimientoDias: 150 }
+      ],
+      insumos: [
+        { nombre: "Reactivo Glucosa (kit 100 tests)", categoria: "Reactivo", unidadMedida: "kits", stockActual: 7, stockMinimo: 3, costoUnitario: 50, proveedor: "Human", vencimientoDias: 300 },
+        { nombre: "Tubos EDTA (lavanda) x100", categoria: "Material", unidadMedida: "unidades", stockActual: 200, stockMinimo: 100, costoUnitario: 0.25, proveedor: "BD Vacutainer" },
+        { nombre: "Tiras Reactivas de Orina (frasco x100)", categoria: "Reactivo", unidadMedida: "frascos", stockActual: 3, stockMinimo: 3, costoUnitario: 38, proveedor: "Roche Diagnostics", vencimientoDias: 200 },
+        { nombre: "Guantes de Nitrilo Talla M (caja x100)", categoria: "Insumo", unidadMedida: "cajas", stockActual: 10, stockMinimo: 5, costoUnitario: 10, proveedor: "Distribuidora Médica" }
+      ]
+    });
+
+    // El superadmin sigue siendo único/global (no pertenece a ningún
+    // tenant), igual que siempre.
+    db.users.push({ id: uid("usr"), tenantId: null, username: "biosoft", password: "BIOsoft#2026", nombre: "Soporte BIOsoft", rol: "superadmin", secciones: [], activo: true, creadoEn: nowISO() });
 
     saveDB(db);
     return db;

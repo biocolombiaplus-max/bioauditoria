@@ -454,6 +454,7 @@
       var btn = e.currentTarget;
       btn.disabled = true; btn.textContent = "Entrando…";
       DWA.marcarDado();
+      DWA.guardarPaisElegido(pais.cod);
       DWA.guardarLead(pais, whatsappCompleto, {}).then(function () {
         BIO_UI.closeModal(wrap);
         onListo();
@@ -465,65 +466,18 @@
     var form = document.getElementById("login-form");
     var toggleBtn = document.getElementById("btn-toggle-login");
     var existingBlock = document.getElementById("existing-login-block");
-    toggleBtn.addEventListener("click", function () {
-      var abierto = !existingBlock.classList.contains("hidden");
-      existingBlock.classList.toggle("hidden");
-      toggleBtn.textContent = abierto ? "¿Ya adquiriste BIOsoft para tu laboratorio? Inicia sesión aquí →" : "← Ocultar inicio de sesión";
-      if (!abierto) existingBlock.scrollIntoView({ behavior: "smooth", block: "nearest" });
-    });
-    // El botón "¿Ya eres cliente? Ingresa aquí" de la landing (index.html)
-    // trae a quien ya tiene BIOsoft directo a app.html#login — aquí se
-    // despliega el formulario de usuario y clave de una vez, sin que tengan
-    // que encontrar y hacer clic aparte en el enlace para revelarlo.
-    if (location.hash === "#login") {
-      existingBlock.classList.remove("hidden");
-      toggleBtn.textContent = "← Ocultar inicio de sesión";
-      history.replaceState(null, "", location.pathname + location.search);
-      setTimeout(function () { document.getElementById("login-username").focus(); }, 150);
-    }
-    var tabs = document.querySelectorAll(".role-tab");
-    tabs.forEach(function (tab) {
-      tab.addEventListener("click", function () {
-        tabs.forEach(function (t) { t.classList.remove("active"); });
-        tab.classList.add("active");
-        document.getElementById("login-username").value = tab.dataset.user;
-        document.getElementById("login-password").value = tab.dataset.pass;
-      });
-    });
-    // Entra a la demo con las credenciales fijas de siempre — factorizado
-    // aparte porque ahora hay DOS caminos para llegar aquí: directo (ya se
-    // dio el WhatsApp antes) o después de cerrar el modal de captura.
-    function entrarDemoQuick() {
-      document.getElementById("login-username").value = "admin.demo";
-      document.getElementById("login-password").value = "Demo2026*";
-      form.requestSubmit();
-    }
-    // "Ver Demo Gratis Ahora" de ESTA pantalla (app.html) es un segundo
-    // punto de entrada a la demo, igual de real que el de la landing
-    // (index.html) — un visitante puede llegar derecho aquí (enlace
-    // compartido, favorito, etc.) sin pasar nunca por index.html. Antes
-    // entraba directo sin pedir ni guardar nada, así que esos visitantes
-    // se perdían por completo para el CRM/remarketing (bug real
-    // reportado: "le doy Ver Demo y no pide WhatsApp"). Mismo criterio
-    // "una sola vez por navegador" que la landing — BIO_DEMO_WA.yaDado()
-    // comparte el mismo localStorage en ambas páginas (mismo origen).
-    document.getElementById("btn-demo-quick").addEventListener("click", function () {
-      if (BIO_DEMO_WA.yaDado()) { entrarDemoQuick(); return; }
-      abrirCapturaWhatsappDemoApp(entrarDemoQuick);
-    });
-    // Quien ya dio su WhatsApp en la landing (ver abrirCapturaWhatsappDemo
-    // en index.html) llega aquí con app.html#demo — entra derecho a la
-    // demo como administrador, sin tener que tocar "Ver Demo Gratis Ahora"
-    // de nuevo ni ninguna otra pantalla: un solo paso de verdad, como pidió
-    // el cliente ("que se active de una, sin ir a otra ventana, sin tocar
-    // más botones").
-    if (location.hash === "#demo") {
-      history.replaceState(null, "", location.pathname + location.search);
-      document.getElementById("login-username").value = "admin.demo";
-      document.getElementById("login-password").value = "Demo2026*";
-      form.requestSubmit();
-    }
-    document.getElementById("btn-forgot-password").addEventListener("click", abrirRecuperarContrasena);
+    // El listener de "submit" se registra AQUÍ, antes que cualquier otra
+    // cosa en esta función — hay dos bloques más abajo (el de "#demo" y,
+    // a través de entrarDemoQuick(), el del botón "Ver Demo Gratis
+    // Ahora") que llaman a form.requestSubmit() de forma síncrona durante
+    // la misma pasada de wireLogin(). Si el listener se registrara
+    // DESPUÉS (como estaba antes), ese primer requestSubmit() no
+    // encontraba ningún listener de "submit" todavía enganchado, así que
+    // el navegador hacía su envío NATIVO por defecto (recarga en blanco a
+    // "app.html?", sin pasar nunca por BIO_AUTH.login) — bug real: el
+    // enlace "app.html#demo" de la landing (y por lo tanto todo el flujo
+    // de "Ver Demo Gratis" después de elegir país) nunca llegaba a iniciar
+    // sesión.
     form.addEventListener("submit", function (e) {
       e.preventDefault();
       var u = document.getElementById("login-username").value.trim();
@@ -560,6 +514,73 @@
         terminar({ ok: false, error: "No se pudo completar el ingreso. Inténtalo de nuevo." });
       });
     });
+    toggleBtn.addEventListener("click", function () {
+      var abierto = !existingBlock.classList.contains("hidden");
+      existingBlock.classList.toggle("hidden");
+      toggleBtn.textContent = abierto ? "¿Ya adquiriste BIOsoft para tu laboratorio? Inicia sesión aquí →" : "← Ocultar inicio de sesión";
+      if (!abierto) existingBlock.scrollIntoView({ behavior: "smooth", block: "nearest" });
+    });
+    // El botón "¿Ya eres cliente? Ingresa aquí" de la landing (index.html)
+    // trae a quien ya tiene BIOsoft directo a app.html#login — aquí se
+    // despliega el formulario de usuario y clave de una vez, sin que tengan
+    // que encontrar y hacer clic aparte en el enlace para revelarlo.
+    if (location.hash === "#login") {
+      existingBlock.classList.remove("hidden");
+      toggleBtn.textContent = "← Ocultar inicio de sesión";
+      history.replaceState(null, "", location.pathname + location.search);
+      setTimeout(function () { document.getElementById("login-username").focus(); }, 150);
+    }
+    var tabs = document.querySelectorAll(".role-tab");
+    tabs.forEach(function (tab) {
+      tab.addEventListener("click", function () {
+        tabs.forEach(function (t) { t.classList.remove("active"); });
+        tab.classList.add("active");
+        document.getElementById("login-username").value = tab.dataset.user;
+        document.getElementById("login-password").value = tab.dataset.pass;
+      });
+    });
+    // Entra a la demo del laboratorio que corresponde al país que el
+    // visitante eligió en el modal de WhatsApp (ver
+    // BIO_DEMO_WA.credencialesDemoPorPais / paisElegido en
+    // demo-whatsapp-capture.js y los laboratorios sembrados por país en
+    // store.js -> seedIfEmpty) — factorizado aparte porque hay DOS caminos
+    // para llegar aquí: directo (ya se dio el WhatsApp antes) o después de
+    // cerrar el modal de captura.
+    function entrarDemoQuick() {
+      var cred = BIO_DEMO_WA.credencialesDemoPorPais(BIO_DEMO_WA.paisElegido());
+      document.getElementById("login-username").value = cred.username;
+      document.getElementById("login-password").value = cred.password;
+      form.requestSubmit();
+    }
+    // "Ver Demo Gratis Ahora" de ESTA pantalla (app.html) es un segundo
+    // punto de entrada a la demo, igual de real que el de la landing
+    // (index.html) — un visitante puede llegar derecho aquí (enlace
+    // compartido, favorito, etc.) sin pasar nunca por index.html. Antes
+    // entraba directo sin pedir ni guardar nada, así que esos visitantes
+    // se perdían por completo para el CRM/remarketing (bug real
+    // reportado: "le doy Ver Demo y no pide WhatsApp"). Mismo criterio
+    // "una sola vez por navegador" que la landing — BIO_DEMO_WA.yaDado()
+    // comparte el mismo localStorage en ambas páginas (mismo origen).
+    document.getElementById("btn-demo-quick").addEventListener("click", function () {
+      if (BIO_DEMO_WA.yaDado()) { entrarDemoQuick(); return; }
+      abrirCapturaWhatsappDemoApp(entrarDemoQuick);
+    });
+    // Quien ya dio su WhatsApp en la landing (ver abrirCapturaWhatsappDemo
+    // en index.html) llega aquí con app.html#demo — entra derecho a la
+    // demo como administrador, sin tener que tocar "Ver Demo Gratis Ahora"
+    // de nuevo ni ninguna otra pantalla: un solo paso de verdad, como pidió
+    // el cliente ("que se active de una, sin ir a otra ventana, sin tocar
+    // más botones"). El país ya quedó guardado por index.html justo antes
+    // de navegar aquí (DWA.guardarPaisElegido), así que entra directo al
+    // laboratorio demo de ESE país.
+    if (location.hash === "#demo") {
+      history.replaceState(null, "", location.pathname + location.search);
+      var credDemo = BIO_DEMO_WA.credencialesDemoPorPais(BIO_DEMO_WA.paisElegido());
+      document.getElementById("login-username").value = credDemo.username;
+      document.getElementById("login-password").value = credDemo.password;
+      form.requestSubmit();
+    }
+    document.getElementById("btn-forgot-password").addEventListener("click", abrirRecuperarContrasena);
   }
 
   function abrirRecuperarContrasena() {

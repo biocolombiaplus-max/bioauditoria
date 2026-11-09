@@ -31,7 +31,8 @@
   var ROL_LABEL_POR_PAIS = {
     CO: { admin: "Administrador", bacteriologo: "Bacteriólogo(a)", recepcion: "Auxiliar de Laboratorio", aliado: "Aliado / Convenio (solo consulta)" },
     VE: { admin: "Administrador", bacteriologo: "Bioanalista", recepcion: "Asistente de Laboratorio", aliado: "Aliado / Convenio (solo consulta)" },
-    EC: { admin: "Administrador", bacteriologo: "Técnico(a) de Laboratorio", recepcion: "Asistente de Laboratorio", aliado: "Aliado / Convenio (solo consulta)" }
+    EC: { admin: "Administrador", bacteriologo: "Técnico(a) de Laboratorio", recepcion: "Asistente de Laboratorio", aliado: "Aliado / Convenio (solo consulta)" },
+    MX: { admin: "Administrador", bacteriologo: "Químico(a) Clínico(a)", recepcion: "Auxiliar de Laboratorio", aliado: "Aliado / Convenio (solo consulta)" }
   };
   function rolLabel(rol, pais) {
     var mapa = ROL_LABEL_POR_PAIS[pais] || ROL_LABEL_POR_PAIS.CO;
@@ -46,7 +47,8 @@
   var TITULO_FIRMA_POR_PAIS = {
     CO: "Bacteriólogo(a) y Laboratorista Clínico",
     VE: "Licenciado(a) en Bioanálisis",
-    EC: "Técnico(a) de Laboratorio Clínico"
+    EC: "Técnico(a) de Laboratorio Clínico",
+    MX: "Químico(a) Farmacéutico(a) Biólogo(a)"
   };
   function tituloFirmaProfesional(pais) {
     return TITULO_FIRMA_POR_PAIS[pais] || TITULO_FIRMA_POR_PAIS.CO;
@@ -1484,7 +1486,7 @@
      como sugerencia inicial razonable. Se usa únicamente para el RÓTULO que
      ve el usuario junto a sus precios (ej. "Precio (Bs)") — nunca cambia el
      número guardado, que siempre es el mismo tal como se digitó. */
-  var MONEDA_BASE_SUGERIDA_POR_PAIS = { CO: "COP", VE: "Bs", EC: "USD" };
+  var MONEDA_BASE_SUGERIDA_POR_PAIS = { CO: "COP", VE: "Bs", EC: "USD", MX: "MXN" };
   function monedaBaseLabel(tenant) {
     if (tenant && tenant.monedaBase) return tenant.monedaBase;
     return MONEDA_BASE_SUGERIDA_POR_PAIS[tenant && tenant.pais] || "COP";
@@ -1498,7 +1500,7 @@
      lo guarda, tenant.porcentajeIva manda siempre, sin importar si cambia
      la tarifa oficial de su país más adelante (cada laboratorio decide
      cuándo actualizarlo). */
-  var PORCENTAJE_IVA_SUGERIDO_POR_PAIS = { CO: 19, EC: 15, VE: 16 };
+  var PORCENTAJE_IVA_SUGERIDO_POR_PAIS = { CO: 19, EC: 15, VE: 16, MX: 16 };
   function porcentajeIvaSugerido(pais) { return PORCENTAJE_IVA_SUGERIDO_POR_PAIS[pais] || 0; }
 
   /* El nombre del impuesto también es editable (tenant.nombreImpuesto) —
@@ -1509,7 +1511,7 @@
      (Excluido)" para servicios de salud exentos en Colombia, en vez de
      ocultar la línea por completo). "IVA" es solo la sugerencia inicial —
      una vez guardado, tenant.nombreImpuesto manda siempre. */
-  var NOMBRE_IMPUESTO_SUGERIDO_POR_PAIS = { CO: "IVA", EC: "IVA", VE: "IVA" };
+  var NOMBRE_IMPUESTO_SUGERIDO_POR_PAIS = { CO: "IVA", EC: "IVA", VE: "IVA", MX: "IVA" };
   function nombreImpuestoSugerido(pais) { return NOMBRE_IMPUESTO_SUGERIDO_POR_PAIS[pais] || "IVA"; }
   function nombreImpuesto(tenant) {
     return (tenant && tenant.nombreImpuesto && tenant.nombreImpuesto.trim()) || nombreImpuestoSugerido(tenant && tenant.pais);
