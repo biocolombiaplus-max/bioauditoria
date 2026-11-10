@@ -18,6 +18,9 @@
 <meta name="twitter:image" content="https://bioauditoria.com/biosoft/assets/og-image.png"/>
 <link rel="icon" type="image/png" href="assets/favicon-biosoft.png"/>
 <link rel="stylesheet" href="css/styles.css?v=10"/>
+<link rel="preconnect" href="https://fonts.googleapis.com"/>
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
+<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,700;12..96,800&family=Instrument+Serif:ital@1&display=swap" rel="stylesheet"/>
 <!-- ===== Meta Pixel Code ===== -->
 <!-- Meta Pixel activo -->
 <script>
@@ -567,6 +570,76 @@ fbq('track', 'PageView');
     .lp-cta-row { flex-direction: column; align-items: stretch; }
     .lp-cta-row .btn { width: 100%; }
   }
+
+  /* =====================================================================
+     REDISEÑO VISUAL PREMIUM — solo esta landing (no toca css/styles.css,
+     así que la app real de adentro sigue exactamente igual). Se apoya en
+     los mismos selectores/clases de arriba; al ir después en el documento
+     gana en cascada sin necesitar !important. Tipografía de exhibición
+     (Bricolage Grotesque) + acento serif itálico (Instrument Serif),
+     inspirados en el lenguaje visual de las landing pages más recientes
+     de la agencia, pero con los colores de marca de siempre de BIOsoft
+     (naranja/morado — var(--brand-primary)/var(--brand-secondary)).
+     ===================================================================== */
+  :root {
+    --lp-display: 'Bricolage Grotesque', 'Poppins', sans-serif;
+    --lp-serif: 'Instrument Serif', Georgia, serif;
+    --lp-yellow: #ffd233;
+  }
+  h1, h2, h3, h4, .lp-logo, .lp-pay-total b, .price-card .amount, .lp-countdown-num, .lp-step .num::before { font-family: var(--lp-display) !important; letter-spacing: -.025em; }
+  .lp-hero h1 { font-weight: 800; letter-spacing: -.04em; }
+  .lp-hero h1 span { font-family: var(--lp-serif) !important; font-style: italic; font-weight: 400; letter-spacing: -.01em; }
+  .lp-section h2, .lp-final h2 { font-weight: 800; }
+  .lp-pdf-kicker, .lp-clientes-kicker, .lp-countdown-tag, .lp-onetime-tag, .lp-cot-urgencia-tag, .lp-promo-hoy {
+    letter-spacing: .1em !important; text-transform: uppercase; display: inline-flex; align-items: center; gap: 8px;
+  }
+  .lp-pdf-kicker::before { content: ""; display: inline-block; width: 20px; height: 2px; background: currentColor; border-radius: 2px; opacity: .7; }
+
+  /* ---- Botones: pastilla + barrido de brillo, solo en esta página ---- */
+  .lp-wrap .btn, .lp-hero .btn, .lp-pdf-side .btn, .lp-final .btn, .lp-nav .btn {
+    border-radius: 999px !important; font-weight: 800 !important; letter-spacing: -.01em;
+    position: relative; overflow: hidden; isolation: isolate;
+    transition: transform .25s cubic-bezier(.2,.8,.2,1), box-shadow .25s ease;
+  }
+  .lp-wrap .btn::after, .lp-hero .btn::after, .lp-pdf-side .btn::after, .lp-final .btn::after {
+    content: ""; position: absolute; top: 0; left: -120%; width: 55%; height: 100%;
+    background: linear-gradient(100deg, transparent, rgba(255,255,255,.55), transparent);
+    transform: skewX(-20deg); animation: lpShine 3.6s ease-in-out infinite; pointer-events: none; z-index: 1;
+  }
+  .lp-wrap .btn > *, .lp-hero .btn > *, .lp-pdf-side .btn > *, .lp-final .btn > * { position: relative; z-index: 2; }
+  @keyframes lpShine { 0%, 55% { left: -120%; } 100% { left: 160%; } }
+  .lp-wrap .btn:hover, .lp-hero .btn:hover, .lp-pdf-side .btn:hover, .lp-final .btn:hover { transform: translateY(-3px); }
+  .lp-wrap .btn:active, .lp-hero .btn:active, .lp-pdf-side .btn:active, .lp-final .btn:active { transform: translateY(0) scale(.98); }
+
+  /* ---- Nav: más presencia, mismo contenido ---- */
+  .lp-nav { background: rgba(255,255,255,.72) !important; backdrop-filter: blur(18px) !important; -webkit-backdrop-filter: blur(18px) !important; border-bottom: 1px solid color-mix(in srgb, var(--border) 70%, transparent) !important; }
+  .lp-logo { font-weight: 800 !important; }
+
+  /* ---- Insignia de IA del héroe: pastilla sólida en vez de glow suelto ---- */
+  .lp-ai-badge {
+    background: linear-gradient(135deg, var(--brand-primary), var(--lp-pink) 60%, var(--lp-purple)) !important;
+    border: none !important; font-weight: 800 !important;
+  }
+  .lp-trust-chip { font-weight: 700 !important; }
+
+  /* ---- Tarjetas de función/showcase: más redondeadas, más "bento" ---- */
+  .lp-feature, .lp-sections-grid .sec-card { border-radius: 22px !important; }
+  .lp-feature:hover { transform: translateY(-6px) !important; box-shadow: 0 20px 40px -16px color-mix(in srgb, var(--brand-primary) 30%, transparent) !important; border-color: color-mix(in srgb, var(--brand-primary) 30%, var(--border)) !important; }
+  .lp-feature .lp-ic, .lp-sections-grid .sec-ic { border-radius: 16px !important; }
+  .lp-shot-frame, .lp-pdf-image, .lp-pdf-image-wrap .lp-pdf-image { border-radius: 20px !important; }
+  .price-card { border-radius: 24px !important; }
+  .price-card .amount { font-weight: 800 !important; }
+
+  /* ---- Cierre final: remate más "premium", menos plano ---- */
+  .lp-final { border-radius: 32px !important; position: relative; overflow: hidden; }
+  .lp-final::before {
+    content: ""; position: absolute; inset: 0; z-index: 0;
+    background: radial-gradient(520px circle at 85% -10%, rgba(255,255,255,.18), transparent 60%), radial-gradient(420px circle at 5% 110%, rgba(255,255,255,.12), transparent 60%);
+  }
+  .lp-final > * { position: relative; z-index: 1; }
+
+  /* ---- Marquee de clientes: sello redondeado más fino ---- */
+  .lp-clientes-kicker { font-weight: 800 !important; }
 </style>
 </head>
 <body>
