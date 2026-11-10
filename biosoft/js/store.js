@@ -391,6 +391,7 @@
           })
           .then(function () {
             secondary.cleanup();
+            if (tenant) invalidarCacheTenantsGlobal();
             return { tenant: tenant, user: userObj, tenantId: tenantId };
           });
       })
@@ -810,16 +811,20 @@
      que esta consulta va siempre directo a Firestore, igual que el CRM. */
   function tenantsColl() { return global.BIO_FB.db.collection("tenants"); }
 
-  /* Lo mismo que tenantsListGlobal() (ver su comentario, justo abajo) pero
+  /* Lo mismo que tenantsListGlobalRico() (ver su comentario, abajo) pero
      SIN leer ni users, ni patients, ni orders de ningún laboratorio — solo
      los documentos de /tenants. Es lo único que el CRM necesita de cada
      laboratorio (fechaProximoPago, planId, suspendido — ver badgeCobro()
-     en views-crm.js): antes pagaba el costo COMPLETO de
-     tenantsListGlobal() (miles de documentos de pacientes/órdenes de
-     TODOS los laboratorios) solo para leer 3 campos del propio tenant. */
+     en views-crm.js): antes pagaba el costo COMPLETO de esa consulta
+     (miles de documentos de pacientes/órdenes de TODOS los laboratorios)
+     solo para leer 3 campos del propio tenant. Si la caché compartida ya
+     está vigente (alguien visitó Resumen Global o Laboratorios Cliente
+     hace poco), se reusa esa directamente y ni siquiera se paga este costo
+     liviano. */
   var tenantsListGlobalBasicoEnVuelo = null;
   function tenantsListGlobalBasico() {
     if (!firebaseDisponible()) return Promise.reject(errorFirebaseNoDisponible());
+    if (cacheTenantsGlobalVigente()) return Promise.resolve(cacheTenantsGlobalRico.datos);
     if (tenantsListGlobalBasicoEnVuelo) return tenantsListGlobalBasicoEnVuelo;
     tenantsListGlobalBasicoEnVuelo = tenantsColl().get().then(function (snap) {
       var tenants = [];
@@ -830,55 +835,47 @@
     return tenantsListGlobalBasicoEnVuelo;
   }
 
-  /* Lo mismo que tenantsListGlobal(), pero SIN sacar la fecha de cada
-     paciente/orden (ni el forEach que las recolecta) — es lo único que
-     "Laboratorios Cliente" necesita (_usuarios, _pacientes, _ordenes — ver
-     buildTenantsGrid en views-admin.js); _pacientesFechas/_ordenesFechas
-     son exclusivas del gráfico "por fecha" de Resumen Global.
-     NOTA: se intentó primero con una consulta de agregación (.count()),
-     que evita descargar los documentos — pero el SDK de Firestore que
-     carga esta app no la trae disponible en este bundle (".count is not a
-     function" en producción), así que se volvió a .get() normal, igual
-     que tenantsListGlobal(). Sigue siendo más liviana que esa: no hace el
-     trabajo extra de leer y guardar cada fecha. */
-  var tenantsListGlobalConConteosEnVuelo = null;
-  function tenantsListGlobalConConteos() {
-    if (!firebaseDisponible()) return Promise.reject(errorFirebaseNoDisponible());
-    if (tenantsListGlobalConConteosEnVuelo) return tenantsListGlobalConConteosEnVuelo;
-    tenantsListGlobalConConteosEnVuelo = tenantsColl().get().then(function (snap) {
-      var tenants = [];
-      snap.forEach(function (doc) { tenants.push(doc.data()); });
-      tenants.sort(function (a, b) { return (b.creadoEn || "").localeCompare(a.creadoEn || ""); });
-      return Promise.all(tenants.map(function (t) {
-        return Promise.all([
-          tenantsColl().doc(t.id).collection("users").get(),
-          tenantsColl().doc(t.id).collection("patients").get(),
-          tenantsColl().doc(t.id).collection("orders").get()
-        ]).then(function (snaps) {
-          return Object.assign({}, t, {
-            _usuarios: snaps[0].size, _pacientes: snaps[1].size, _ordenes: snaps[2].size
-          });
-        });
-      }));
-    }).finally(function () { tenantsListGlobalConConteosEnVuelo = null; });
-    return tenantsListGlobalConConteosEnVuelo;
+  // ---------------------------------------------------------------------
+  // Caché compartida de la consulta MÁS CARA de todo BIOsoft: lee la
+  // colección COMPLETA de users/patients/orders de CADA laboratorio
+  // cliente, solo para contar y (cuando hace falta) sacar la fecha de cada
+  // paciente/orden. Antes "Resumen Global" (tenantsListGlobal, con fechas)
+  // y "Laboratorios Cliente" (tenantsListGlobalConConteos, sin fechas)
+  // pagaban ESTE MISMO costo por separado, cada una con su propia lectura
+  // — con 25+ laboratorios reales eso son cientos o miles de documentos
+  // en CADA visita a cualquiera de las dos pantallas. Era la razón real
+  // detrás de "el superadmin siente lento cambiar de módulo a módulo"
+  // (bug reportado): los demás roles leen de realCache, cargada UNA sola
+  // vez al iniciar sesión (ver initRealtime) — el superadmin no tenía
+  // ningún equivalente, así que cada pantalla volvía a Firestore desde
+  // cero. Ahora ambas funciones son solo dos vistas (con o sin los
+  // arreglos de fechas) sobre el MISMO resultado cacheado: la primera
+  // pantalla que se visite paga la lectura una vez, y cualquier otra
+  // pantalla del superadmin que la necesite durante los siguientes
+  // TENANTS_GLOBAL_CACHE_MS la reutiliza tal cual, sin tocar Firestore de
+  // nuevo. Se invalida sola al vencerse, y también de inmediato apenas el
+  // propio superadmin crea/edita/borra un laboratorio (ver
+  // invalidarCacheTenantsGlobal en updateTenant/createTenant/
+  // provisionRealAccount/deleteTenantCompleto), para que una acción que
+  // acaba de hacer se refleje sin esperar el vencimiento.
+  // NOTA: se intentó primero con una consulta de agregación (.count()),
+  // que evita descargar los documentos — pero el SDK de Firestore que
+  // carga esta app no la trae disponible en este bundle (".count is not a
+  // function" en producción), así que se volvió a .get() normal.
+  // ---------------------------------------------------------------------
+  var TENANTS_GLOBAL_CACHE_MS = 25000;
+  var cacheTenantsGlobalRico = { datos: null, en: 0 };
+  function invalidarCacheTenantsGlobal() { cacheTenantsGlobalRico = { datos: null, en: 0 }; }
+  function cacheTenantsGlobalVigente() {
+    return !!cacheTenantsGlobalRico.datos && (Date.now() - cacheTenantsGlobalRico.en) < TENANTS_GLOBAL_CACHE_MS;
   }
 
-  // tenantsListGlobal() es, por mucho, la consulta más cara de todo
-  // BIOsoft: lee la colección COMPLETA de users/patients/orders de CADA
-  // laboratorio, solo para contar y sacar fechas. Hoy la usa exclusivamente
-  // Resumen Global (views-dashboard-patients.js), el único lugar que de
-  // verdad necesita la fecha de cada paciente/orden para su gráfico "por
-  // fecha" — CRM y Laboratorios Cliente tienen sus propias versiones
-  // ligeras arriba (tenantsListGlobalBasico/tenantsListGlobalConConteos),
-  // que no pagan este costo. Se mantiene el mismo mecanismo de "una sola
-  // lectura en vuelo" para cuando Resumen Global se visita varias veces
-  // seguidas.
-  var tenantsListGlobalEnVuelo = null;
-  function tenantsListGlobal() {
+  var tenantsGlobalRicoEnVuelo = null;
+  function tenantsListGlobalRico(forzar) {
     if (!firebaseDisponible()) return Promise.reject(errorFirebaseNoDisponible());
-    if (tenantsListGlobalEnVuelo) return tenantsListGlobalEnVuelo;
-    tenantsListGlobalEnVuelo = tenantsColl().get().then(function (snap) {
+    if (!forzar && cacheTenantsGlobalVigente()) return Promise.resolve(cacheTenantsGlobalRico.datos);
+    if (tenantsGlobalRicoEnVuelo) return tenantsGlobalRicoEnVuelo;
+    tenantsGlobalRicoEnVuelo = tenantsColl().get().then(function (snap) {
       var tenants = [];
       snap.forEach(function (doc) { tenants.push(doc.data()); });
       tenants.sort(function (a, b) { return (b.creadoEn || "").localeCompare(a.creadoEn || ""); });
@@ -888,12 +885,11 @@
           tenantsColl().doc(t.id).collection("patients").get(),
           tenantsColl().doc(t.id).collection("orders").get()
         ]).then(function (snaps) {
-          // Antes solo se guardaba snaps[1].size/snaps[2].size (el conteo) y
-          // se descartaban los documentos — para el Resumen Global "por
-          // fecha" (cuántos pacientes/órdenes se registraron día a día o en
-          // un rango) hace falta la fecha de creación de cada uno, así que
-          // se guarda aparte SIN pedir nada extra a Firestore (son los
-          // mismos documentos que ya se leyeron para el conteo).
+          // El conteo (_usuarios/_pacientes/_ordenes) es lo único que
+          // "Laboratorios Cliente" necesita; las fechas
+          // (_pacientesFechas/_ordenesFechas) son para el gráfico "por
+          // fecha" de Resumen Global — se sacan de los MISMOS documentos
+          // ya leídos para el conteo, sin pedir nada extra a Firestore.
           var pacientesFechas = [];
           snaps[1].forEach(function (doc) { var d = doc.data(); if (d.creadoEn) pacientesFechas.push(d.creadoEn); });
           var ordenesFechas = [];
@@ -904,9 +900,14 @@
           });
         });
       }));
-    }).finally(function () { tenantsListGlobalEnVuelo = null; });
-    return tenantsListGlobalEnVuelo;
+    }).then(function (tenantsConDatos) {
+      cacheTenantsGlobalRico = { datos: tenantsConDatos, en: Date.now() };
+      return tenantsConDatos;
+    }).finally(function () { tenantsGlobalRicoEnVuelo = null; });
+    return tenantsGlobalRicoEnVuelo;
   }
+  function tenantsListGlobalConConteos(forzar) { return tenantsListGlobalRico(forzar); }
+  function tenantsListGlobal(forzar) { return tenantsListGlobalRico(forzar); }
   // Mismo criterio que crmWatch(): una sola conexión activa a la vez (se
   // cierra la anterior antes de abrir una nueva) y el aviso de cambio se
   // agrupa, para no disparar la lectura carísima de arriba una vez por
@@ -973,7 +974,7 @@
       });
     })).then(function () {
       return tenantDoc.delete();
-    });
+    }).then(function (res) { invalidarCacheTenantsGlobal(); return res; });
   }
 
   /* Lectura puntual (sin caché local) de los usuarios de UN laboratorio
@@ -1869,6 +1870,7 @@
     var actualizado = Object.assign({}, actual, patch, { id: tenantId });
     db.tenants[tenantId] = actualizado;
     saveDB(db);
+    invalidarCacheTenantsGlobal();
     var promesaFirestore;
     // El SDK de Firestore puede lanzar de forma SÍNCRONA (no como promesa
     // rechazada) ante datos que rechaza — por ejemplo, un valor
@@ -1936,6 +1938,7 @@
     }, data, { id: id });
     db.tenants[id] = tenant;
     saveDB(db);
+    invalidarCacheTenantsGlobal();
     return tenant;
   }
 
