@@ -15,6 +15,11 @@
     if (!datos || !datos.dataUrl) return;
     var img = slotEl.querySelector("img");
     if (!img) return;
+    // Transición suave en vez de un "pop" abrupto apenas llega la imagen
+    // (ver .lp-img-cargada en index.html) — se agrega la clase cuando el
+    // navegador ya terminó de decodificarla, nunca antes.
+    img.addEventListener("load", function () { img.classList.add("lp-img-cargada"); }, { once: true });
+    img.decoding = "async";
     img.src = datos.dataUrl;
     img.alt = datos.alt || "";
     slotEl.style.display = "block";

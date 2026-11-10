@@ -192,10 +192,18 @@ fbq('track', 'PageView');
      encima para que el título y los botones se sigan leyendo bien. Sin
      imagen configurada, el héroe se ve exactamente igual que siempre. */
   .lp-hero.lp-tiene-img > .lp-img-slot { position: absolute; inset: 0; z-index: 0; margin: 0; max-width: none; }
-  .lp-hero.lp-tiene-img > .lp-img-slot img { width: 100%; height: 100%; max-height: none; object-fit: cover; border-radius: 0; box-shadow: none; border: 0; }
+  .lp-hero.lp-tiene-img > .lp-img-slot img {
+    width: 100%; height: 100%; max-height: none; object-fit: cover; border-radius: 0; box-shadow: none; border: 0;
+    opacity: 0; transition: opacity .5s ease;
+  }
+  .lp-hero.lp-tiene-img > .lp-img-slot img.lp-img-cargada { opacity: 1; }
+  /* Degradado mucho más suave que antes (antes llegaba a opacidad .8 arriba
+     y a un azul sólido totalmente opaco abajo) — la foto real del
+     laboratorio se ve, no un rectángulo oscuro con una silueta apenas
+     visible detrás del texto. */
   .lp-hero.lp-tiene-img > .lp-img-slot::after {
     content: ""; position: absolute; inset: 0;
-    background: linear-gradient(180deg, rgba(11,7,26,.8) 0%, rgba(11,7,26,.5) 45%, var(--lp-navy) 100%);
+    background: linear-gradient(180deg, rgba(11,7,26,.42) 0%, rgba(11,7,26,.22) 42%, rgba(11,7,26,.78) 100%);
   }
   .lp-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(260px,1fr)); gap: 20px; }
   .lp-feature { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 24px; box-shadow: var(--shadow-sm); transition: transform .2s ease, box-shadow .2s ease; }
@@ -595,7 +603,12 @@ fbq('track', 'PageView');
   }
   .lp-pdf-kicker::before { content: ""; display: inline-block; width: 20px; height: 2px; background: currentColor; border-radius: 2px; opacity: .7; }
 
-  /* ---- Botones: pastilla + barrido de brillo, solo en esta página ---- */
+  /* ---- Botones: pastilla, solo en esta página. El barrido de brillo EN
+     BUCLE quedó solo en los dos CTA del héroe (lo primero que se ve) — en
+     el resto (nav, cada sección, el cierre final) el brillo pasa a
+     dispararse SOLO al pasar el mouse, no de forma continua: antes eran
+     muchas animaciones infinitas a la vez en toda la página, lo que pesaba
+     de más y se sentía recargado en vez de premium. */
   .lp-wrap .btn, .lp-hero .btn, .lp-pdf-side .btn, .lp-final .btn, .lp-nav .btn {
     border-radius: 999px !important; font-weight: 800 !important; letter-spacing: -.01em;
     position: relative; overflow: hidden; isolation: isolate;
@@ -604,15 +617,23 @@ fbq('track', 'PageView');
   .lp-wrap .btn::after, .lp-hero .btn::after, .lp-pdf-side .btn::after, .lp-final .btn::after {
     content: ""; position: absolute; top: 0; left: -120%; width: 55%; height: 100%;
     background: linear-gradient(100deg, transparent, rgba(255,255,255,.55), transparent);
-    transform: skewX(-20deg); animation: lpShine 3.6s ease-in-out infinite; pointer-events: none; z-index: 1;
+    transform: skewX(-20deg); pointer-events: none; z-index: 1; transition: left .6s ease;
   }
+  .lp-hero .btn::after { animation: lpShine 3.6s ease-in-out infinite; }
+  .lp-wrap .btn:hover::after, .lp-pdf-side .btn:hover::after, .lp-final .btn:hover::after, .lp-nav .btn:hover::after { left: 160%; }
   .lp-wrap .btn > *, .lp-hero .btn > *, .lp-pdf-side .btn > *, .lp-final .btn > * { position: relative; z-index: 2; }
   @keyframes lpShine { 0%, 55% { left: -120%; } 100% { left: 160%; } }
   .lp-wrap .btn:hover, .lp-hero .btn:hover, .lp-pdf-side .btn:hover, .lp-final .btn:hover { transform: translateY(-3px); }
   .lp-wrap .btn:active, .lp-hero .btn:active, .lp-pdf-side .btn:active, .lp-final .btn:active { transform: translateY(0) scale(.98); }
+  @media (prefers-reduced-motion: reduce) {
+    .lp-hero .btn::after { animation: none; }
+    .lp-wrap .btn, .lp-hero .btn, .lp-pdf-side .btn, .lp-final .btn, .lp-nav .btn { transition: none; }
+  }
 
-  /* ---- Nav: más presencia, mismo contenido ---- */
-  .lp-nav { background: rgba(255,255,255,.72) !important; backdrop-filter: blur(18px) !important; -webkit-backdrop-filter: blur(18px) !important; border-bottom: 1px solid color-mix(in srgb, var(--border) 70%, transparent) !important; }
+  /* ---- Nav: más presencia, mismo contenido (blur moderado — un blur muy
+     alto sobre una foto a pantalla completa detrás pesa de más al hacer
+     scroll) ---- */
+  .lp-nav { background: rgba(255,255,255,.78) !important; backdrop-filter: blur(10px) !important; -webkit-backdrop-filter: blur(10px) !important; border-bottom: 1px solid color-mix(in srgb, var(--border) 70%, transparent) !important; }
   .lp-logo { font-weight: 800 !important; }
 
   /* ---- Insignia de IA del héroe: pastilla sólida en vez de glow suelto ---- */
@@ -1276,7 +1297,7 @@ fbq('track', 'PageView');
   <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
   <script src="js/firebase-config.js?v=2"></script>
-  <script src="js/landing-images.js?v=2"></script>
+  <script src="js/landing-images.js?v=3"></script>
   <script src="js/landing-clientes.js?v=1"></script>
   <script src="js/landing-tracker.js?v=1"></script>
   <script src="js/demo-whatsapp-capture.js?v=2"></script>
