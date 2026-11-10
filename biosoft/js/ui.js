@@ -151,16 +151,32 @@
     return "";
   }
 
+  // Bug real reportado: una fecha guardada SIN hora (ej. "2026-11-09", lo
+  // que deja un <input type="date">) la interpreta JavaScript como
+  // medianoche UTC, no medianoche local — y toLocaleDateString() la
+  // vuelve a convertir a la hora LOCAL del navegador para mostrarla. En
+  // cualquier huso horario detrás de UTC (Colombia/Venezuela/Ecuador/
+  // México son todos UTC-5 o más atrás) esa resta de horas cruza la
+  // medianoche y el día mostrado queda uno antes del real (ej. un recibo
+  // generado el 9 de noviembre mostraba "8 de noviembre"). Se arregla
+  // anclando la fecha-sin-hora a medianoche LOCAL ("T00:00:00") antes de
+  // construir el Date. Una fecha que SÍ trae hora (ej.
+  // new Date().toISOString(), que termina en "Z") es un instante real en
+  // el tiempo y se deja tal cual — ahí la conversión UTC -> local es la
+  // conversión correcta, no un error.
+  function ancladaAMedianocheLocal(iso) {
+    return typeof iso === "string" && /^\d{4}-\d{2}-\d{2}$/.test(iso) ? iso + "T00:00:00" : iso;
+  }
   function fmtFecha(iso) {
     if (!iso) return "—";
-    var d = new Date(iso);
+    var d = new Date(ancladaAMedianocheLocal(iso));
     if (isNaN(d.getTime())) return iso;
     return d.toLocaleDateString("es-CO", { day: "2-digit", month: "2-digit", year: "numeric" }) + " " +
       d.toLocaleTimeString("es-CO", { hour: "2-digit", minute: "2-digit" });
   }
   function fmtFechaCorta(iso) {
     if (!iso) return "—";
-    var d = new Date(iso);
+    var d = new Date(ancladaAMedianocheLocal(iso));
     if (isNaN(d.getTime())) return iso;
     return d.toLocaleDateString("es-CO", { day: "2-digit", month: "2-digit", year: "numeric" });
   }

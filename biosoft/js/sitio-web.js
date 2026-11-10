@@ -224,9 +224,15 @@
       document.getElementById("rw-error-titulo").textContent = msg || "⚠️ No encontramos un resultado con esos datos.";
       form.style.display = "none"; exito.style.display = "none"; error.style.display = "flex";
     }
+    // "2026-11-09" (sin hora) lo interpreta JS como medianoche UTC — en
+    // Colombia/VE/EC/MX (todos detrás de UTC) eso muestra el día anterior.
+    // Se ancla a medianoche LOCAL antes de formatear (mismo arreglo que
+    // U.fmtFechaCorta en ui.js). Una fecha con hora (ej. fechaOrden,
+    // guardada con new Date().toISOString()) se deja tal cual.
     function fmtFechaCorta(iso) {
       if (!iso) return "—";
-      var d = new Date(iso);
+      var isoAnclado = typeof iso === "string" && /^\d{4}-\d{2}-\d{2}$/.test(iso) ? iso + "T00:00:00" : iso;
+      var d = new Date(isoAnclado);
       if (isNaN(d.getTime())) return iso;
       return d.toLocaleDateString("es-CO", { day: "2-digit", month: "short", year: "numeric" });
     }

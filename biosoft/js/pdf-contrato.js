@@ -35,7 +35,22 @@
     medioPago2: "Llave / código breve NU @OTO262, a nombre de Juan Carlos Cáceres"
   };
 
+  // Bug real reportado: un recibo generado el 9 de noviembre (hora de
+  // Colombia) mostraba "Fecha de pago: 8 de noviembre". Causa: "2026-11-09"
+  // (sin hora) es interpretado por el motor de JavaScript como medianoche
+  // UTC, no medianoche local — y toLocaleDateString() lo vuelve a convertir
+  // a la hora LOCAL del navegador para mostrarlo. En cualquier huso horario
+  // detrás de UTC (Colombia/Venezuela/Ecuador/México, todos UTC-5 o más
+  // atrás) esa resta de horas cruza la medianoche y el día mostrado queda
+  // uno antes del real. Se arregla anclando la fecha-sin-hora a medianoche
+  // LOCAL ("T00:00:00") antes de construir el Date — mismo patrón ya usado
+  // en otras partes de BIOsoft (ver calcEdad() en ui.js, diasRestantes() en
+  // planes.js). Una fecha que SÍ trae hora (ej. new Date().toISOString(),
+  // que termina en "Z") es un instante real en el tiempo y se deja tal
+  // cual: ahí la conversión UTC -> local es la conversión correcta, no un
+  // error.
   function fechaLarga(d) {
+    if (typeof d === "string" && /^\d{4}-\d{2}-\d{2}$/.test(d)) d = d + "T00:00:00";
     return (d instanceof Date ? d : new Date(d)).toLocaleDateString("es-CO", { year: "numeric", month: "long", day: "numeric" });
   }
 

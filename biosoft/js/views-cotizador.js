@@ -31,8 +31,13 @@
     return "https://wa.me/" + (n || WA_NUMBER_GENERICO) + "?text=" + encodeURIComponent(mensaje);
   }
   function fmtMoneda(n) { return BIO_PDF_COTIZACION.fmtMoneda(n); }
+  // "2026-11-09" (sin hora, lo que deja un <input type="date">) lo
+  // interpreta JS como medianoche UTC — en Colombia/VE/EC/MX (todos detrás
+  // de UTC) eso muestra el día anterior. Se ancla a medianoche LOCAL antes
+  // de formatear (mismo arreglo que U.fmtFechaCorta en ui.js).
   function fmtFechaCorta(iso) {
-    return new Date(iso).toLocaleDateString("es-CO", { year: "numeric", month: "short", day: "numeric" });
+    var isoAnclado = typeof iso === "string" && /^\d{4}-\d{2}-\d{2}$/.test(iso) ? iso + "T00:00:00" : iso;
+    return new Date(isoAnclado).toLocaleDateString("es-CO", { year: "numeric", month: "short", day: "numeric" });
   }
 
   // Exámenes de referencia propios de un laboratorio (ej. tarifas de un

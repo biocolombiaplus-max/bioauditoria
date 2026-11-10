@@ -17,9 +17,14 @@
     var dec = Math.round(n) === n ? 0 : 2;
     return "$" + n.toLocaleString("es-CO", { minimumFractionDigits: dec, maximumFractionDigits: 2 });
   }
+  // "2026-11-09" (sin hora, lo que deja un <input type="date">) lo
+  // interpreta JS como medianoche UTC — en Colombia/VE/EC/MX (todos detrás
+  // de UTC) eso muestra el día anterior. Se ancla a medianoche LOCAL antes
+  // de formatear (mismo arreglo que U.fmtFechaCorta en ui.js).
   function fmtFechaCorta(iso) {
     if (!iso) return "—";
-    return new Date(iso).toLocaleDateString("es-CO", { day: "2-digit", month: "short", year: "numeric" });
+    var isoAnclado = typeof iso === "string" && /^\d{4}-\d{2}-\d{2}$/.test(iso) ? iso + "T00:00:00" : iso;
+    return new Date(isoAnclado).toLocaleDateString("es-CO", { day: "2-digit", month: "short", year: "numeric" });
   }
   function diasHasta(iso) {
     if (!iso) return null;

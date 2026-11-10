@@ -65,13 +65,21 @@
   var WA_NUMBER = "573505457420";
   function waLinkTo(numero, mensaje) { return "https://wa.me/" + ((numero || "").replace(/\D/g, "") || WA_NUMBER) + "?text=" + encodeURIComponent(mensaje); }
 
+  // "2026-11-09" (sin hora, lo que deja un <input type="date">) lo
+  // interpreta JS como medianoche UTC — en Colombia/VE/EC/MX (todos detrás
+  // de UTC) eso corre el cálculo y la fecha mostrada un día. Se ancla a
+  // medianoche LOCAL antes de usarla (mismo arreglo que U.fmtFechaCorta en
+  // ui.js).
+  function ancladaAMedianocheLocal(iso) {
+    return typeof iso === "string" && /^\d{4}-\d{2}-\d{2}$/.test(iso) ? iso + "T00:00:00" : iso;
+  }
   function diasHasta(fechaISO) {
     if (!fechaISO) return null;
-    return Math.ceil((new Date(fechaISO) - new Date()) / 86400000);
+    return Math.ceil((new Date(ancladaAMedianocheLocal(fechaISO)) - new Date()) / 86400000);
   }
   function fmtFechaCorta(iso) {
     if (!iso) return "—";
-    return new Date(iso).toLocaleDateString("es-CO", { year: "numeric", month: "short", day: "numeric" });
+    return new Date(ancladaAMedianocheLocal(iso)).toLocaleDateString("es-CO", { year: "numeric", month: "short", day: "numeric" });
   }
 
   // A partir de las fechas de cobro que ya calculó el CRM (c.fechaPagoInicial
