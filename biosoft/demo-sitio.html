@@ -70,20 +70,24 @@
   .campo-demo { flex: 1 1 200px; display: flex; flex-direction: column; gap: 6px; font-size: 12px; font-weight: 700; color: #334155; }
   .campo-demo input { padding: 12px 14px; border-radius: 10px; border: 1px solid #cbd5e1; font-size: 14px; font-family: inherit; }
   .tip-demo { font-size: 11.5px; color: #b45309; background: #fffbeb; border: 1px solid #fde68a; border-radius: 8px; padding: 9px 12px; }
+  /* ---- Resultado encontrado / historial — MISMA estructura y clases que
+     el portal REAL (ver sitio-web.html, #rw-nombre-paciente / #rw-datos-orden
+     / .rw-historial-*), para que esta demo se vea EXACTAMENTE como lo que
+     un paciente de verdad ve, nunca una versión inventada o más elaborada. */
   .resultado-exito { display: none; flex-direction: column; gap: 16px; border: 1px solid #bbf7d0; background: #f0fdf4; border-radius: 16px; padding: 22px; }
   .resultado-error { display: none; flex-direction: column; gap: 10px; border: 1px solid #fecaca; background: #fef2f2; border-radius: 16px; padding: 20px; }
-  .fila-examen { display: flex; justify-content: space-between; align-items: center; padding: 10px 14px; background: #fff; border-radius: 10px; border: 1px solid #e2e8f0; font-size: 13px; }
-  .resultados-header-count { font-size: 12.5px; font-weight: 700; color: #15803d; background: #fff; border: 1px dashed #86efac; border-radius: 10px; padding: 10px 14px; }
   .card-resultado-reciente { position: relative; border: 2px solid #16a34a; background: #fff; border-radius: 16px; padding: 24px 20px 20px; display: flex; flex-direction: column; gap: 14px; box-shadow: 0 14px 34px rgba(22,163,74,.12); }
   .badge-reciente { position: absolute; top: -13px; left: 18px; background: #16a34a; color: #fff; font-size: 10.5px; font-weight: 800; letter-spacing: .03em; padding: 5px 13px; border-radius: 999px; box-shadow: 0 4px 10px rgba(22,163,74,.35); }
-  .historial-resultados { display: flex; flex-direction: column; gap: 8px; }
-  .historial-titulo { font-size: 11.5px; font-weight: 800; color: #475569; text-transform: uppercase; letter-spacing: .04em; margin: 2px 0 0; }
-  .historial-fila { display: flex; justify-content: space-between; align-items: center; background: #fff; border: 1px solid #e2e8f0; border-radius: 10px; padding: 11px 14px; flex-wrap: wrap; gap: 10px; }
-  .historial-fila b { font-size: 12.5px; display: block; color: #0f172a; }
-  .historial-fecha { font-size: 11px; color: #94a3b8; }
-  .badge-validado-mini { background: #dcfce7; color: #15803d; font-size: 10px; font-weight: 800; padding: 4px 10px; border-radius: 999px; white-space: nowrap; }
-  .link-descargar { background: none; border: 1px solid #cbd5e1; color: #334155; font-size: 11px; font-weight: 800; padding: 6px 11px; border-radius: 8px; cursor: pointer; font-family: inherit; white-space: nowrap; }
-  .link-descargar:hover { background: #f1f5f9; }
+  .rw-historial-titulo { font-size: 11.5px; font-weight: 800; letter-spacing: .05em; text-transform: uppercase; color: #94a3b8; margin: 2px 0 10px; }
+  .rw-historial-list { display: flex; flex-direction: column; gap: 10px; }
+  .rw-historial-row { display: flex; align-items: center; justify-content: space-between; gap: 12px; border: 1px solid #e2e8f0; border-radius: 12px; padding: 12px 15px; background: #fff; }
+  .rw-historial-row b { display: block; font-size: 13px; }
+  .rw-historial-row span { font-size: 11.5px; color: #64748b; }
+  .rw-historial-row button { flex: none; background: #f1f5f9; color: #334155; border: none; border-radius: 9px; padding: 8px 14px; font-size: 12px; font-weight: 700; cursor: pointer; font-family: inherit; }
+  @media (max-width: 640px) {
+    .rw-historial-row { flex-direction: column; align-items: stretch; }
+    .rw-historial-row button { width: 100%; }
+  }
   .enlace-orientador-inline { margin-top: 2px; font-size: 12.5px; color: #475569; background: #f8fafc; border: 1px dashed #cbd5e1; border-radius: 10px; padding: 10px 14px; }
   .enlace-orientador-inline button { background: none; border: none; color: var(--accent); font-weight: 800; cursor: pointer; font-family: inherit; font-size: 12.5px; text-decoration: underline; padding: 0; }
 
@@ -162,6 +166,8 @@
     #inicio .stats-row { gap: 16px; }
     #barra-personalizable { font-size: 12px; padding: 10px 14px; flex-direction: column; gap: 8px; }
     .flotante { width: 50px; height: 50px; font-size: 22px; bottom: 78px; }
+    .card-resultado-reciente, .resultado-exito, .resultado-error { padding: 16px; }
+    #rw-btn-descargar { width: 100%; justify-content: center; }
   }
 </style>
 </head>
@@ -233,41 +239,29 @@
           <button type="button" class="btn btn-accent" id="btn-consultar-resultado">Consultar Resultados →</button>
         </div>
 
+        <!-- Esta tarjeta y el historial de abajo son, campo por campo,
+             la MISMA estructura que genera sitio-web.html (el portal real
+             que ve un paciente) — ver #resultados en sitio-web.html y
+             wireResultados() en js/sitio-web.js. Solo los datos son de
+             ejemplo (Ana María Torres, Orden 20260187…); el diseño, las
+             clases y el texto son idénticos a lo que tus pacientes verían
+             de verdad, no una versión inventada para la demo. -->
         <div class="resultado-exito" id="resultado-exito">
-          <div class="resultados-header-count">📋 Encontramos <b>4 resultados</b> para tu documento — aquí tienes el más reciente, listo para descargar</div>
-
           <div class="card-resultado-reciente">
-            <span class="badge-reciente">⭐ MÁS RECIENTE</span>
-            <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px;margin-top:4px">
-              <div>
-                <div style="font-size:10.5px;font-weight:800;color:#16a34a;text-transform:uppercase;letter-spacing:.04em">✅ Resultado Validado</div>
-                <div style="font-size:16px;font-weight:800">Ana María Torres</div>
-                <div style="font-size:12px;color:#64748b">Orden N° 2026-00482 · Tomada el 12 oct 2026</div>
-              </div>
-              <span style="background:#16a34a;color:#fff;font-size:11px;font-weight:700;padding:6px 12px;border-radius:999px">Firmado por Bacterióloga</span>
+            <span class="badge-reciente">✅ RESULTADO ENCONTRADO</span>
+            <div style="margin-top:4px">
+              <div style="font-size:16px;font-weight:800">Ana María Torres</div>
+              <div style="font-size:12px;color:#64748b">Orden No. 20260187 · 12 oct 2026</div>
             </div>
-            <div style="display:flex;flex-direction:column;gap:8px">
-              <div class="fila-examen"><span>Hemograma Completo</span><span style="color:#16a34a;font-weight:700">✓ Completado</span></div>
-              <div class="fila-examen"><span>Glicemia Basal</span><span style="color:#16a34a;font-weight:700">✓ Completado</span></div>
-              <div class="fila-examen"><span>Perfil Lipídico</span><span style="color:#16a34a;font-weight:700">✓ Completado</span></div>
-              <div class="fila-examen"><span>Uroanálisis</span><span style="color:#16a34a;font-weight:700">✓ Completado</span></div>
-            </div>
-            <button type="button" class="btn" style="background:#0f172a;color:#fff;padding:13px 20px;font-size:13.5px;align-self:flex-start">⬇ Descargar PDF del resultado más reciente</button>
+            <a href="#" class="btn" style="background:#0f172a;color:#fff;padding:13px 20px;font-size:13.5px;align-self:flex-start" id="rw-btn-descargar">⬇ Descargar PDF de mi resultado</a>
           </div>
 
-          <div class="historial-resultados">
-            <div class="historial-titulo">🕓 Historial de Resultados Anteriores</div>
-            <div class="historial-fila">
-              <div><b>Orden N° 2026-00210</b><span class="historial-fecha">15 sep 2026 · Química Sanguínea (3 exámenes)</span></div>
-              <div style="display:flex;align-items:center;gap:10px"><span class="badge-validado-mini">✓ Validado</span><button type="button" class="link-descargar">⬇ PDF</button></div>
-            </div>
-            <div class="historial-fila">
-              <div><b>Orden N° 2026-00142</b><span class="historial-fecha">02 ago 2026 · Hemograma Completo</span></div>
-              <div style="display:flex;align-items:center;gap:10px"><span class="badge-validado-mini">✓ Validado</span><button type="button" class="link-descargar">⬇ PDF</button></div>
-            </div>
-            <div class="historial-fila">
-              <div><b>Orden N° 2026-00078</b><span class="historial-fecha">14 jun 2026 · Chequeo Ejecutivo (8 exámenes)</span></div>
-              <div style="display:flex;align-items:center;gap:10px"><span class="badge-validado-mini">✓ Validado</span><button type="button" class="link-descargar">⬇ PDF</button></div>
+          <div id="rw-historial-wrap">
+            <div class="rw-historial-titulo">Historial de resultados anteriores</div>
+            <div class="rw-historial-list" id="rw-historial-list">
+              <div class="rw-historial-row"><div><b>Orden 20260142</b><span>15 sep 2026</span></div><button type="button">⬇ Descargar</button></div>
+              <div class="rw-historial-row"><div><b>Orden 20260098</b><span>02 ago 2026</span></div><button type="button">⬇ Descargar</button></div>
+              <div class="rw-historial-row"><div><b>Orden 20260041</b><span>14 jun 2026</span></div><button type="button">⬇ Descargar</button></div>
             </div>
           </div>
 
@@ -276,7 +270,7 @@
 
         <div class="resultado-error" id="resultado-error">
           <div style="font-weight:700;color:#b91c1c;font-size:14px">⚠️ No encontramos un resultado con esos datos.</div>
-          <div style="font-size:12.5px;color:#991b1b">Verifica tu documento y tu clave de acceso. (Tip de la demo: usa la clave <b>DEMO1234</b>.)</div>
+          <div style="font-size:12.5px;color:#991b1b">Verifica tu documento y tu código de consulta. Si el problema sigue, escríbenos por WhatsApp. (Tip de la demo: usa la clave <b>DEMO1234</b>.)</div>
           <button type="button" class="btn" style="align-self:flex-start;background:#fff;color:#b91c1c;border:1px solid #fecaca;padding:10px 18px;font-size:13px" id="btn-reiniciar-error">Intentar de nuevo</button>
         </div>
 
@@ -378,6 +372,6 @@
   <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
   <script src="js/firebase-config.js?v=2"></script>
-  <script src="js/demo-sitio.js?v=1"></script>
+  <script src="js/demo-sitio.js?v=2"></script>
 </body>
 </html>

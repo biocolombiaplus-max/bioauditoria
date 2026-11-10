@@ -117,6 +117,12 @@
     });
     document.getElementById("btn-reiniciar-resultado").addEventListener("click", reiniciar);
     document.getElementById("btn-reiniciar-error").addEventListener("click", reiniciar);
+    // El botón de descarga es un <a href="#"> (igual que en el portal
+    // real, donde ese href es el PDF) — aquí no hay un PDF real que
+    // descargar, así que solo se evita el salto al inicio de la página al
+    // hacer clic.
+    var btnDescargar = document.getElementById("rw-btn-descargar");
+    if (btnDescargar) btnDescargar.addEventListener("click", function (e) { e.preventDefault(); });
   }
 
   function wireCotizarWhatsapp(numero, nombreLab) {
