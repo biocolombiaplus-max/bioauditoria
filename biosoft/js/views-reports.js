@@ -91,11 +91,16 @@
     if (!(tenant && tenant.paginaWeb && tenant.paginaWeb.activo && order.codigoConsulta)) return;
     if (!order.examenes.some(function (ex) { return ex.estado === "validado" || ex.estado === "remitido"; })) return;
     var pac = S.getPatient(order.patientId);
-    window.BIO_PDF.buildResultadosPDF(order, pac, tenant, "final").then(function (bytes) {
+    // No atrapa el error aquí adentro: cada quien que la llame decide cómo
+    // avisar (un toast visible desde un botón manual, o un simple
+    // console.warn silencioso desde el disparador automático — ver las
+    // llamadas en views-results.js y en el botón "Actualizar" de
+    // views-orders.js).
+    return window.BIO_PDF.buildResultadosPDF(order, pac, tenant, "final").then(function (bytes) {
       order.enviado = true; order.fechaEnvio = order.fechaEnvio || S.nowISO();
       S.saveOrder(order);
       return publicarResultadoPublico(order, pac, tenant, bytes);
-    }).catch(function (err) { console.warn("BIOsoft: no se pudo publicar automáticamente el resultado en la Página Web ->", err); });
+    });
   }
 
   window.BIO_REPORTS = { publicarAutomaticamenteSiCorresponde: publicarAutomaticamenteSiCorresponde };

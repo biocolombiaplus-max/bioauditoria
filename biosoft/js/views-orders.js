@@ -1620,6 +1620,20 @@
       });
       var btnImprimirCodigo = document.getElementById("btn-imprimir-codigo");
       if (btnImprimirCodigo) btnImprimirCodigo.addEventListener("click", function () { imprimirCodigoConsulta(order, pac, tenant); });
+      var btnRepublicarResultado = document.getElementById("btn-republicar-resultado");
+      if (btnRepublicarResultado) btnRepublicarResultado.addEventListener("click", function () {
+        if (!window.BIO_REPORTS) { U.toast("No se pudo cargar el módulo de Reportes — recarga la página e intenta de nuevo.", "error"); return; }
+        var textoOriginal = btnRepublicarResultado.innerHTML;
+        btnRepublicarResultado.disabled = true; btnRepublicarResultado.innerHTML = "Publicando…";
+        window.BIO_REPORTS.publicarAutomaticamenteSiCorresponde(order).then(function () {
+          U.toast("Resultado actualizado en la Página Web — ya se puede consultar con el código " + order.codigoConsulta + ".", "success");
+        }).catch(function (err) {
+          console.warn("BIOsoft: no se pudo republicar el resultado en la Página Web ->", err);
+          U.toast("No se pudo publicar el resultado (revisa tu conexión e intenta de nuevo).", "error");
+        }).finally(function () {
+          btnRepublicarResultado.disabled = false; btnRepublicarResultado.innerHTML = textoOriginal;
+        });
+      });
       var btnGenerarCodigoAhora = document.getElementById("btn-generar-codigo-ahora");
       if (btnGenerarCodigoAhora) btnGenerarCodigoAhora.addEventListener("click", function () {
         // Reintento manual + error VISIBLE: la reserva en segundo plano de
@@ -2104,6 +2118,15 @@
         '<div class="flex gap-2 wrap">' +
           '<button class="btn btn-whatsapp btn-sm" id="btn-enviar-codigo-wa">' + U.icon("send") + " Enviar por WhatsApp</button>" +
           '<button class="btn btn-outline btn-sm" id="btn-imprimir-codigo">' + U.icon("printer") + " Imprimir</button>" +
+          // Botón de respaldo manual: el resultado se publica solo apenas se
+          // valida un examen (ver publicarAutomaticamenteSiCorresponde en
+          // views-reports.js), pero una orden validada ANTES de que esa
+          // función existiera nunca disparó esa publicación — este botón
+          // deja republicarla (o cualquier otra, por si acaso) con un clic,
+          // sin tener que ir hasta Reportes y Envíos a buscarla.
+          (order.examenes.some(function (ex) { return ex.estado === "validado" || ex.estado === "remitido"; })
+            ? '<button class="btn btn-ghost btn-sm" id="btn-republicar-resultado">' + U.icon("history") + " Actualizar en la Página Web</button>"
+            : "") +
         "</div>" +
       "</div>" +
     "</div>";

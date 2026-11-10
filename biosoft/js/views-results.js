@@ -543,7 +543,7 @@
           ex.pdfRemitidoRecorteMm = isNaN(recorteMm) ? 0 : Math.max(0, recorteMm);
           ex.estado = "remitido"; ex.validadoPor = session.nombre; ex.validadoPorUserId = session.userId; ex.fechaValidacion = S.nowISO();
           S.recalcEstadoGeneral(order); S.saveOrder(order);
-          if (window.BIO_REPORTS) window.BIO_REPORTS.publicarAutomaticamenteSiCorresponde(order);
+          if (window.BIO_REPORTS) window.BIO_REPORTS.publicarAutomaticamenteSiCorresponde(order).catch(function (err) { console.warn("BIOsoft: no se pudo publicar automáticamente el resultado en la Página Web ->", err); });
           S.addAudit(session.tenantId, session.nombre, session.rol, "MARK_REFERRED_EXAM", "resultado", order.id + ":" + ex.examId, "Registró remisión de " + exCat.nombre + " al laboratorio " + lab + " (Orden " + order.numeroOrden + ").");
           U.toast("Remisión registrada.", "success");
           card.replaceWith(buildExamCard(ex, idx));
@@ -1152,7 +1152,7 @@
             ex.estado = "validado"; ex.validadoPor = session.nombre; ex.validadoPorUserId = session.userId; ex.fechaValidacion = S.nowISO();
             if (!ex.ingresadoPor) { ex.ingresadoPor = session.username; ex.fechaIngreso = S.nowISO(); }
             S.recalcEstadoGeneral(order); S.saveOrder(order);
-            if (window.BIO_REPORTS) window.BIO_REPORTS.publicarAutomaticamenteSiCorresponde(order);
+            if (window.BIO_REPORTS) window.BIO_REPORTS.publicarAutomaticamenteSiCorresponde(order).catch(function (err) { console.warn("BIOsoft: no se pudo publicar automáticamente el resultado en la Página Web ->", err); });
             S.addAudit(session.tenantId, session.nombre, session.rol, "VALIDATE_RESULT", "resultado", order.id + ":" + ex.examId, "Validó y firmó " + exCat.nombre + " (Orden " + order.numeroOrden + ").");
             U.toast("Resultado validado y firmado.", "success");
             card.replaceWith(buildExamCard(ex, idx));
@@ -1298,7 +1298,7 @@
       ex.version = (ex.version || 1) + 1;
       ex.fechaValidacion = S.nowISO(); ex.validadoPor = session.nombre; ex.validadoPorUserId = session.userId;
       S.recalcEstadoGeneral(order); S.saveOrder(order);
-      if (window.BIO_REPORTS) window.BIO_REPORTS.publicarAutomaticamenteSiCorresponde(order);
+      if (window.BIO_REPORTS) window.BIO_REPORTS.publicarAutomaticamenteSiCorresponde(order).catch(function (err) { console.warn("BIOsoft: no se pudo publicar automáticamente el resultado en la Página Web ->", err); });
       S.addAudit(order.tenantId, session.nombre, session.rol, "CORRECT_REFERRED_EXAM", "resultado", order.id + ":" + ex.examId,
         "Reemplazó el PDF remitido de " + exCat.nombre + " (Orden " + order.numeroOrden + "). Motivo: " + motivo);
       U.toast("PDF remitido actualizado y trazabilidad registrada.", "success");
@@ -1343,7 +1343,7 @@
       ex.validadoPor = session.nombre; ex.validadoPorUserId = session.userId;
       ex.estado = "validado";
       S.recalcEstadoGeneral(order); S.saveOrder(order);
-      if (window.BIO_REPORTS) window.BIO_REPORTS.publicarAutomaticamenteSiCorresponde(order);
+      if (window.BIO_REPORTS) window.BIO_REPORTS.publicarAutomaticamenteSiCorresponde(order).catch(function (err) { console.warn("BIOsoft: no se pudo publicar automáticamente el resultado en la Página Web ->", err); });
       S.addAudit(order.tenantId, session.nombre, session.rol, "CORRECT_VALIDATED_RESULT", "resultado", order.id + ":" + ex.examId,
         "Corrigió resultado validado de " + exCat.nombre + " (Orden " + order.numeroOrden + "). Motivo: " + motivo,
         { valoresAnteriores: valoresAnteriores, valoresNuevos: nuevos });
