@@ -1527,7 +1527,11 @@
               item("QUI-006", "validado", [{ codigo: "LDL", valor: "142" }], uProf1, nowISO()),
               item("QUI-007", "validado", [{ codigo: "TGD", valor: "190" }], uProf1, nowISO()),
               item("URO-001", "pendiente", [])
-            ], estadoGeneral: "parcial", valorCobrar: 150000 },
+            // Ejemplo en vivo del descuento puntual al crear una orden (ver
+            // "Descuento" en Nueva Orden, views-orders.js) — para que la
+            // demo muestre esta función funcionando con datos reales, no
+            // solo el código fuente.
+            ], estadoGeneral: "parcial", valorCobrar: 150000, subtotalAntesDescuento: 170000, descuentoTipo: "valor", descuentoValorIngresado: 20000, descuentoMonto: 20000 },
           { numeroOrden: "20260003", patientId: p[2].id, fechaOrden: horasAntes(3.5), prioridad: "Urgente", procedencia: "Urgencias", medicoRemitente: "Dr. Fabián Niño", diagnostico: "Síndrome febril + disuria",
             examenes: [item("MIC-001", "pendiente", []), item("HEM-001", "pendiente", [])], estadoGeneral: "pendiente", valorCobrar: 110000 },
           { numeroOrden: "20260004", patientId: p[3].id, fechaOrden: horasAntes(2), prioridad: "Rutina", procedencia: "Ambulatorio", medicoRemitente: "Dra. Ana Beltrán", diagnostico: "Evaluación tiroidea y prostática",
@@ -1606,7 +1610,9 @@
               item("QUI-004", "validado", [{ codigo: "COLT", valor: "198" }], uProf1, nowISO()),
               item("QUI-006", "validado", [{ codigo: "LDL", valor: "130" }], uProf1, nowISO()),
               item("QUI-008", "pendiente", [])
-            ], estadoGeneral: "parcial", valorCobrar: 35 },
+            // Mismo ejemplo de descuento que en la demo de Colombia, para
+            // mostrar que la función funciona igual en cualquier país.
+            ], estadoGeneral: "parcial", valorCobrar: 35, subtotalAntesDescuento: 42, descuentoTipo: "valor", descuentoValorIngresado: 7, descuentoMonto: 7 },
           { numeroOrden: "20260003", patientId: p[2].id, fechaOrden: horasAntes(2), prioridad: "Urgente", procedencia: "Urgencias", medicoRemitente: "Dr. Ramón Oropeza", diagnostico: "Síndrome febril",
             examenes: [item("HEM-001", "pendiente", []), item("MIC-001", "pendiente", [])], estadoGeneral: "pendiente", valorCobrar: 22 }
         ];
