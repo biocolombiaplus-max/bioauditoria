@@ -10,6 +10,96 @@
   // la misma lista), mismo patrón que ordenesSearchTerm en views-orders.js.
   var enviosSearchTerm = "";
 
+  // Uint8Array -> base64, en trozos para no reventar la pila con
+  // String.fromCharCode.apply en un PDF grande (varias páginas con muchos
+  // exámenes) — usado solo para publicar el resultado en resultadosPublicos
+  // (ver publicarResultadoPublico), nunca para el PDF que se descarga/adjunta
+  // normalmente.
+  function bytesABase64(bytes) {
+    var binario = "", chunk = 0x8000;
+    for (var i = 0; i < bytes.length; i += chunk) binario += String.fromCharCode.apply(null, bytes.subarray(i, i + chunk));
+    return btoa(binario);
+  }
+
+  // Publica (o actualiza) el PDF de esta orden en la colección pública
+  // resultadosPublicos/{codigo} para que el paciente lo consulte desde la
+  // Página Web real del laboratorio (ver sitio-web.js) — solo si la Página
+  // Web está activada y esta orden sí generó código de consulta al crearse.
+  // Compartida entre el envío manual (openSendModal, más abajo) y la
+  // publicación automática al validar un examen (ver publicarAutomaticamenteSiCorresponde,
+  // usada desde views-results.js). Nunca bloquea el flujo que la llama si
+  // falla (sin internet, PDF grande, etc.).
+  function publicarResultadoPublico(order, pac, tenant, bytes) {
+    if (!(tenant.paginaWeb && tenant.paginaWeb.activo && order.codigoConsulta)) return Promise.resolve();
+    var pdfBase64 = bytesABase64(bytes);
+    // Firestore limita cada documento a 1 MB — un informe con MUCHOS
+    // exámenes/páginas podría acercarse a ese límite codificado en base64
+    // (~33% más pesado que el PDF original). Se deja un margen amplio en
+    // vez de dejar que la escritura falle sola.
+    if (pdfBase64.length >= 900000) {
+      console.warn("BIOsoft: el PDF de esta orden es demasiado grande para publicarlo en la Página Web (límite de Firestore).");
+      return Promise.resolve();
+    }
+    // Historial de resultados anteriores del MISMO paciente, ya publicados
+    // con su propio código — nunca se arma buscando por número de documento
+    // (eso permitiría enumerar resultados de otro paciente con la llave de
+    // API, que no es secreta), solo con órdenes que YA tiene este
+    // laboratorio en memoria. Son referencias livianas ({codigo,
+    // numeroOrden, fechaOrden}, sin el PDF) para que sitio-web.js muestre el
+    // más reciente resaltado y el resto en orden cronológico, y descargue
+    // cada PDF puntual solo cuando el paciente pida verlo.
+    var otrasOrdenesPaciente = S.listOrders(order.tenantId).filter(function (o) {
+      return o.patientId === order.patientId && o.id !== order.id && o.codigoConsulta && o.enviado;
+    });
+    var historialParaEsta = otrasOrdenesPaciente.map(function (o) {
+      return { codigo: o.codigoConsulta, numeroOrden: o.numeroOrden, fechaOrden: o.fechaOrden };
+    });
+    return S.resultadosPublicos.set(order.codigoConsulta, {
+      tenantId: order.tenantId, numeroDocumento: pac ? pac.numeroDocumento : "",
+      nombrePaciente: pac ? U.nombreCompleto(pac) : "", numeroOrden: order.numeroOrden, fechaOrden: order.fechaOrden,
+      pdfDataUrl: "data:application/pdf;base64," + pdfBase64,
+      // Resumen por examen (listo/pendiente) y estado general de la orden —
+      // para que el portal público (sitio-web.js) le muestre al paciente,
+      // SIN tener que abrir el PDF, cuáles exámenes ya están y cuáles
+      // siguen en proceso (ej. cultivos, que tardan varios días). El PDF
+      // en sí ya trae el mismo aviso de "Informe Parcial" (ver pdf.js).
+      estadoGeneral: order.estadoGeneral,
+      examenes: order.examenes.map(function (ex) {
+        return { nombre: BIO_CATALOG.examenEfectivo(ex.examId, tenant).nombre, listo: ex.estado === "validado" || ex.estado === "remitido" };
+      }),
+      historial: historialParaEsta
+    }).then(function () {
+      // Propagación en ambos sentidos: cada resultado anterior también
+      // queda enterado de este nuevo, para que el paciente vea el
+      // historial completo sin importar con cuál código de los suyos
+      // entre a consultar.
+      var entradaNueva = { codigo: order.codigoConsulta, numeroOrden: order.numeroOrden, fechaOrden: order.fechaOrden };
+      otrasOrdenesPaciente.forEach(function (o) { S.resultadosPublicos.agregarHistorial(o.codigoConsulta, entradaNueva); });
+    });
+  }
+
+  // Publicación AUTOMÁTICA, sin ningún clic manual en Reportes: se llama
+  // desde views-results.js justo después de validar/remitir/corregir un
+  // examen, para que el paciente vea de inmediato lo que ya está listo (y
+  // lo que sigue pendiente) sin que el laboratorio tenga que acordarse de
+  // "Enviar Resultados" — igual que los laboratorios de referencia grandes.
+  // Siempre usa modo "final" (solo exámenes validados/remitidos cuentan
+  // como listos): un examen en mero borrador/preliminar nunca se publica
+  // solo, eso sigue siendo una decisión manual del laboratorio.
+  function publicarAutomaticamenteSiCorresponde(order) {
+    var tenant = BIO_AUTH.currentTenant();
+    if (!(tenant && tenant.paginaWeb && tenant.paginaWeb.activo && order.codigoConsulta)) return;
+    if (!order.examenes.some(function (ex) { return ex.estado === "validado" || ex.estado === "remitido"; })) return;
+    var pac = S.getPatient(order.patientId);
+    window.BIO_PDF.buildResultadosPDF(order, pac, tenant, "final").then(function (bytes) {
+      order.enviado = true; order.fechaEnvio = order.fechaEnvio || S.nowISO();
+      S.saveOrder(order);
+      return publicarResultadoPublico(order, pac, tenant, bytes);
+    }).catch(function (err) { console.warn("BIOsoft: no se pudo publicar automáticamente el resultado en la Página Web ->", err); });
+  }
+
+  window.BIO_REPORTS = { publicarAutomaticamenteSiCorresponde: publicarAutomaticamenteSiCorresponde };
+
   window.BIO_VIEWS.reportes = function (root) {
     var session = BIO_AUTH.getSession();
     var tenantId = session.tenantId;
@@ -523,16 +613,6 @@
     // falta que el cliente descargue aparte antes de poder enviar. Adjuntar
     // el archivo al mensaje sigue siendo manual porque ningún navegador
     // permite adjuntarlo automáticamente desde un enlace de WhatsApp/correo.
-    // Uint8Array -> base64, en trozos para no reventar la pila con
-    // String.fromCharCode.apply en un PDF grande (varias páginas con
-    // muchos exámenes) — usado solo para publicar el resultado en
-    // resultadosPublicos (ver más abajo), nunca para el PDF que se
-    // descarga/adjunta normalmente.
-    function bytesABase64(bytes) {
-      var binario = "", chunk = 0x8000;
-      for (var i = 0; i < bytes.length; i += chunk) binario += String.fromCharCode.apply(null, bytes.subarray(i, i + chunk));
-      return btoa(binario);
-    }
     var pdfCache = null;
     var pdfFilenameCache = null;
     function obtenerPdf() {
@@ -547,49 +627,10 @@
         S.saveOrder(order);
         // Publica este PDF para que el paciente lo descargue solo desde la
         // Página Web real del laboratorio (ver "Página Web" en
-        // Configuración) — solo si está activada y esta orden sí generó
-        // código de consulta al crearse. Nunca bloquea el envío normal si
-        // falla (sin internet, PDF grande, etc.): el paciente igual recibe
-        // su resultado por el canal que se eligió aquí.
-        if (tenant.paginaWeb && tenant.paginaWeb.activo && order.codigoConsulta) {
-          var pdfBase64 = bytesABase64(bytes);
-          // Firestore limita cada documento a 1 MB — un informe con MUCHOS
-          // exámenes/páginas podría acercarse a ese límite codificado en
-          // base64 (~33% más pesado que el PDF original). Se deja un
-          // margen amplio en vez de dejar que la escritura falle sola.
-          if (pdfBase64.length < 900000) {
-            // Historial de resultados anteriores del MISMO paciente, ya
-            // publicados con su propio código — nunca se arma buscando por
-            // número de documento (eso permitiría enumerar resultados de
-            // otro paciente con la llave de API, que no es secreta), solo
-            // con órdenes que YA tiene este laboratorio en memoria. Son
-            // referencias livianas ({codigo, numeroOrden, fechaOrden}, sin
-            // el PDF) para que sitio-web.js muestre el más reciente
-            // resaltado y el resto en orden cronológico, y descargue cada
-            // PDF puntual solo cuando el paciente pida verlo.
-            var otrasOrdenesPaciente = S.listOrders(order.tenantId).filter(function (o) {
-              return o.patientId === order.patientId && o.id !== order.id && o.codigoConsulta && o.enviado;
-            });
-            var historialParaEsta = otrasOrdenesPaciente.map(function (o) {
-              return { codigo: o.codigoConsulta, numeroOrden: o.numeroOrden, fechaOrden: o.fechaOrden };
-            });
-            S.resultadosPublicos.set(order.codigoConsulta, {
-              tenantId: order.tenantId, numeroDocumento: pac ? pac.numeroDocumento : "",
-              nombrePaciente: pac ? U.nombreCompleto(pac) : "", numeroOrden: order.numeroOrden, fechaOrden: order.fechaOrden,
-              pdfDataUrl: "data:application/pdf;base64," + pdfBase64,
-              historial: historialParaEsta
-            }).then(function () {
-              // Propagación en ambos sentidos: cada resultado anterior
-              // también queda enterado de este nuevo, para que el paciente
-              // vea el historial completo sin importar con cuál código de
-              // los suyos entre a consultar.
-              var entradaNueva = { codigo: order.codigoConsulta, numeroOrden: order.numeroOrden, fechaOrden: order.fechaOrden };
-              otrasOrdenesPaciente.forEach(function (o) { S.resultadosPublicos.agregarHistorial(o.codigoConsulta, entradaNueva); });
-            }).catch(function (err) { console.warn("BIOsoft: no se pudo publicar el resultado en la Página Web ->", err); });
-          } else {
-            console.warn("BIOsoft: el PDF de esta orden es demasiado grande para publicarlo en la Página Web (límite de Firestore).");
-          }
-        }
+        // Configuración) — nunca bloquea el envío normal si falla (sin
+        // internet, PDF grande, etc.): el paciente igual recibe su
+        // resultado por el canal que se eligió aquí.
+        publicarResultadoPublico(order, pac, tenant, bytes).catch(function (err) { console.warn("BIOsoft: no se pudo publicar el resultado en la Página Web ->", err); });
         return bytes;
       });
     }

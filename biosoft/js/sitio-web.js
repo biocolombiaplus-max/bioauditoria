@@ -6,8 +6,12 @@
    - Branding / secciones / mapa: colección pública "demoSitioWeb" (mismo
      documento que usa la demo, con real:true — ver abrirResolverLimiteUsuarios
      y el guardado de Configuración en views-admin.js).
-   - Resultados: colección pública "resultadosPublicos/{codigo}", escrita al
-     enviar el resultado desde Reportes (ver views-reports.js). Solo permite
+   - Resultados: colección pública "resultadosPublicos/{codigo}", escrita
+     automáticamente apenas se valida/remite un examen (o manualmente desde
+     Reportes) — ver publicarAutomaticamenteSiCorresponde() en
+     views-reports.js. Puede quedar "parcial" (solo los exámenes ya
+     validados, con el resto marcado como pendiente) mientras falten
+     exámenes por validar, ej. cultivos de varios días. Solo permite
      consulta de UN resultado por código + documento — nunca una lista — para
      que nadie pueda enumerar resultados de otro paciente adivinando su cédula.
 
@@ -278,7 +282,7 @@
     // no es el que trae el PDF ya cargado, se resuelve con UNA lectura
     // puntual más por su propio código (nunca una lista/consulta).
     function mostrarExito(d, codigo) {
-      var propio = { codigo: codigo, numeroOrden: d.numeroOrden, fechaOrden: d.fechaOrden, pdfDataUrl: d.pdfDataUrl };
+      var propio = { codigo: codigo, numeroOrden: d.numeroOrden, fechaOrden: d.fechaOrden, pdfDataUrl: d.pdfDataUrl, estadoGeneral: d.estadoGeneral, examenes: d.examenes };
       var todas = [propio].concat((d.historial || []).map(function (h) {
         return { codigo: h.codigo, numeroOrden: h.numeroOrden, fechaOrden: h.fechaOrden, pdfDataUrl: null };
       }));
@@ -286,9 +290,29 @@
       var masReciente = todas[0];
       var resto = todas.slice(1);
 
+      // Estado por examen (ver publicarAutomaticamenteSiCorresponde en
+      // views-reports.js) — ausente en resultados publicados antes de este
+      // cambio, así que el bloque simplemente no se muestra en ese caso.
+      function pintarEstadoExamenes(info) {
+        var pill = document.getElementById("rw-estado-pill");
+        var lista = document.getElementById("rw-examenes-wrap");
+        if (!info.examenes || !info.examenes.length) { pill.classList.add("hidden"); lista.classList.add("hidden"); return; }
+        var esParcial = info.estadoGeneral === "parcial";
+        pill.className = "rw-estado-pill " + (esParcial ? "parcial" : "completo");
+        var listos = info.examenes.filter(function (ex) { return ex.listo; }).length;
+        pill.textContent = esParcial
+          ? "⏳ Resultado parcial — " + listos + " de " + info.examenes.length + " exámenes listos"
+          : "✅ Resultado completo";
+        lista.innerHTML = info.examenes.map(function (ex) {
+          return '<div class="rw-examen-row ' + (ex.listo ? "listo" : "pendiente") + '"><span>' + (ex.nombre || "Examen") + '</span><span class="tag">' + (ex.listo ? "✅ Listo" : "⏳ En proceso") + "</span></div>";
+        }).join("");
+        lista.classList.remove("hidden");
+      }
+
       function pintar() {
         document.getElementById("rw-nombre-paciente").textContent = d.nombrePaciente || "Paciente";
         document.getElementById("rw-datos-orden").textContent = "Orden No. " + (masReciente.numeroOrden || "—") + (masReciente.fechaOrden ? " · " + fmtFechaCorta(masReciente.fechaOrden) : "");
+        pintarEstadoExamenes(masReciente);
         var link = document.getElementById("rw-btn-descargar");
         link.href = masReciente.pdfDataUrl || "#";
         link.setAttribute("download", "Resultado-" + (masReciente.numeroOrden || masReciente.codigo) + ".pdf");
@@ -298,7 +322,10 @@
 
       if (masReciente.pdfDataUrl || masReciente.codigo === codigo) { pintar(); return; }
       db.collection("resultadosPublicos").doc(masReciente.codigo).get().then(function (doc) {
-        if (doc.exists) masReciente.pdfDataUrl = doc.data().pdfDataUrl;
+        if (doc.exists) {
+          var dd = doc.data();
+          masReciente.pdfDataUrl = dd.pdfDataUrl; masReciente.estadoGeneral = dd.estadoGeneral; masReciente.examenes = dd.examenes;
+        }
         pintar();
       }).catch(function () { pintar(); });
     }

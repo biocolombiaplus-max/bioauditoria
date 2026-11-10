@@ -96,6 +96,20 @@
   .spinner-rw { display: inline-block; width: 14px; height: 14px; border: 2px solid rgba(255,255,255,.4); border-top-color: #fff; border-radius: 50%; animation: bio-spin .7s linear infinite; }
   @keyframes bio-spin { to { transform: rotate(360deg); } }
 
+  /* ---- Estado por examen (parcial/completo) — ver mostrarExito() en
+     sitio-web.js. Igual que un laboratorio de referencia grande: el
+     paciente ve de inmediato qué ya está listo y qué sigue en proceso
+     (ej. cultivos de varios días), sin tener que abrir el PDF para
+     enterarse. ---- */
+  .rw-estado-pill { display: inline-flex; align-items: center; gap: 7px; font-size: 11.5px; font-weight: 800; letter-spacing: .02em; padding: 6px 14px; border-radius: 999px; align-self: flex-start; }
+  .rw-estado-pill.completo { background: #dcfce7; color: #15803d; }
+  .rw-estado-pill.parcial { background: #fef3c7; color: #92400e; }
+  .rw-examenes-list { display: flex; flex-direction: column; gap: 8px; }
+  .rw-examen-row { display: flex; align-items: center; justify-content: space-between; gap: 10px; border: 1px solid #e2e8f0; background: #fff; border-radius: 10px; padding: 9px 13px; font-size: 12.5px; font-weight: 600; color: #334155; }
+  .rw-examen-row .tag { font-size: 11px; font-weight: 800; padding: 3px 10px; border-radius: 999px; flex-shrink: 0; }
+  .rw-examen-row.listo .tag { background: #dcfce7; color: #15803d; }
+  .rw-examen-row.pendiente .tag { background: #fef3c7; color: #92400e; }
+
   /* ---- Historial de resultados anteriores (mismo paciente) ---- */
   .rw-historial-titulo { font-size: 11.5px; font-weight: 800; letter-spacing: .05em; text-transform: uppercase; color: #94a3b8; margin: 2px 0 10px; }
   .rw-historial-list { display: flex; flex-direction: column; gap: 10px; }
@@ -334,6 +348,8 @@
               <div style="font-size:16px;font-weight:800" id="rw-nombre-paciente">—</div>
               <div style="font-size:12px;color:#64748b" id="rw-datos-orden">—</div>
             </div>
+            <div id="rw-estado-pill" class="hidden"></div>
+            <div id="rw-examenes-wrap" class="rw-examenes-list hidden"></div>
             <a href="#" id="rw-btn-descargar" class="btn" style="background:#0f172a;color:#fff;padding:13px 20px;font-size:13.5px;align-self:flex-start" download>⬇ Descargar PDF de mi resultado</a>
           </div>
           <div id="rw-historial-wrap" class="hidden">
@@ -463,6 +479,6 @@
   <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
   <script src="js/firebase-config.js?v=2"></script>
-  <script src="js/sitio-web.js?v=6"></script>
+  <script src="js/sitio-web.js?v=7"></script>
 </body>
 </html>
