@@ -588,10 +588,11 @@
           "</select>" +
           '<button type="button" class="btn btn-outline btn-sm" data-panel-addsel="' + p.codigo + '">Agregar</button>' +
           "</div>" +
-          '<div class="flex gap-2 wrap" style="margin-bottom:12px">' +
+          '<div class="flex gap-2 wrap" style="margin-bottom:8px">' +
           '<input type="text" data-panel-nuevo="' + p.codigo + '" placeholder="¿No está en la lista? Escribe el nombre y agrégalo…" style="flex:1;min-width:200px"/>' +
           '<button type="button" class="btn btn-ghost btn-sm" data-panel-addnuevo="' + p.codigo + '">' + U.icon("plus") + " Agregar nuevo</button>" +
-          "</div>";
+          "</div>" +
+          '<div style="margin-bottom:12px"><button type="button" class="btn btn-ghost btn-sm" data-panel-catalogo="' + p.codigo + '">' + U.icon("settings") + " Editar catálogo de " + nombreItem + "s del laboratorio</button></div>";
 
         return '<div class="card" style="background:var(--surface-2);box-shadow:none;margin-top:14px">' +
           "<h4 style='margin:0 0 2px'>" + U.esc(p.nombre) + "</h4>" +
@@ -690,6 +691,8 @@
           agregarItem(nuevo);
           U.toast((p.panelTipo === "alergia" ? "Alérgeno" : p.panelTipo === "parasito" ? "Parásito" : "Antibiótico") + ' "' + nombre + '" agregado al catálogo del laboratorio.', "success");
         });
+        var btnCatalogo = cajaWrap.querySelector('[data-panel-catalogo="' + p.codigo + '"]');
+        if (btnCatalogo) btnCatalogo.addEventListener("click", function () { abrirGestionCatalogoPanel(p, reRenderCaja); });
         cajaWrap.querySelectorAll("[data-panel-quitar]").forEach(function (b) {
           b.addEventListener("click", function () {
             var codItem = b.dataset.panelQuitar.split(":")[1];
@@ -723,6 +726,117 @@
             if (celdaClase) celdaClase.textContent = c ? c.clase : "—";
             if (celdaInterp) celdaInterp.innerHTML = c ? '<span class="flag-' + (c.interpretacion === "Positivo" ? "alto" : "normal") + '">' + c.interpretacion + "</span>" : "—";
           });
+        });
+      }
+
+      // ---------------------------------------------------------------
+      // Catálogo del laboratorio para un parámetro tipo "panel" (alérgenos
+      // / antibióticos / parásitos): antes solo se podía AGREGAR un ítem
+      // nuevo (ver btnAddNuevo arriba) — si quedaba mal escrito, o si el
+      // laboratorio ya no usa uno que agregó antes, no había forma de
+      // corregirlo ni quitarlo salvo volver a escribirlo bien cada vez.
+      // Este modal deja editar (renombrar) y eliminar los que el PROPIO
+      // laboratorio agregó — los del catálogo estándar de BIOsoft se
+      // muestran aparte, de solo lectura, porque son compartidos por
+      // todos los laboratorios y cambiarlos aquí no tendría sentido
+      // (afectaría a los demás). alCerrar() se llama al cerrar el modal
+      // para que la caja del panel (dropdown de "buscar y agregar",
+      // chips de frecuentes) se vuelva a dibujar con el catálogo ya
+      // actualizado.
+      // ---------------------------------------------------------------
+      function abrirGestionCatalogoPanel(p, alCerrar) {
+        var nombreItem = p.panelTipo === "alergia" ? "alérgeno" : p.panelTipo === "parasito" ? "parásito" : "antibiótico";
+        var nombreItemCap = nombreItem.charAt(0).toUpperCase() + nombreItem.slice(1);
+        var huboCambios = false;
+
+        function filaHtml(item) {
+          var personalizado = C.panelEsPersonalizado(tenant, p.panelTipo, item.codigo);
+          return '<tr data-pc-fila="' + item.codigo + '">' +
+            '<td style="min-width:220px">' +
+            (personalizado
+              ? '<input type="text" data-pc-nombre="' + item.codigo + '" value="' + U.esc(item.nombre) + '" style="width:100%"/>'
+              : U.esc(item.nombre) + ' <span class="badge badge-rutina" style="font-size:9.5px;vertical-align:middle">' + U.icon("lock") + " Estándar BIOsoft</span>") +
+            "</td>" +
+            '<td class="text-muted" style="font-size:11px;white-space:nowrap">' + U.esc(item.codigo) + "</td>" +
+            '<td style="white-space:nowrap">' +
+            (personalizado ? '<button type="button" class="btn btn-ghost btn-sm text-danger" data-pc-eliminar="' + item.codigo + '" title="Eliminar">' + U.icon("trash") + "</button>" : "") +
+            "</td></tr>";
+        }
+
+        var wrap = U.openModal(
+          '<h3 class="modal-title">' + U.icon("settings") + " Catálogo de " + nombreItemCap + "s del Laboratorio</h3>" +
+          '<p class="text-muted" style="margin-top:0">Agrega los ' + nombreItem + "s que uses, edita el nombre de los que ya agregaste (haz clic y escribe — se guarda solo) o elimínalos. Los " + nombreItem + "s con " + U.icon("lock") + ' "Estándar BIOsoft" los comparten todos los laboratorios y no se pueden editar ni eliminar desde aquí, pero siempre puedes agregar tu propia versión.</p>' +
+          '<div class="flex gap-2 wrap" style="margin-bottom:4px">' +
+          '<input type="text" id="pc-nuevo" placeholder="Agregar nuevo ' + nombreItem + "…\" style=\"flex:1;min-width:200px\"/>" +
+          '<button type="button" class="btn btn-primary btn-sm" id="pc-btn-agregar">' + U.icon("plus") + " Agregar</button>" +
+          "</div>" +
+          '<div class="table-wrap" style="margin-top:12px;max-height:48vh;overflow-y:auto"><table><thead><tr><th>Nombre</th><th>Código</th><th></th></tr></thead><tbody id="pc-tbody"></tbody></table></div>' +
+          '<div class="flex justify-between" style="margin-top:14px"><span></span><button type="button" class="btn btn-ghost" data-modal-close>Cerrar</button></div>',
+          { lg: true }
+        );
+
+        function render() {
+          var lista = C.panelCatalogo(tenant, p.panelTipo);
+          wrap.querySelector("#pc-tbody").innerHTML = lista.map(filaHtml).join("");
+          wire();
+        }
+
+        function guardarPersonalizados() {
+          var campo = p.panelTipo === "alergia" ? "alergenosPersonalizados" : p.panelTipo === "parasito" ? "parasitosPersonalizados" : "antibioticosPersonalizados";
+          var patch = {}; patch[campo] = tenant[campo];
+          S.updateTenant(tenant.id, patch);
+          huboCambios = true;
+        }
+
+        function wire() {
+          var tbody = wrap.querySelector("#pc-tbody");
+          tbody.querySelectorAll("[data-pc-nombre]").forEach(function (inp) {
+            var guardar = function () {
+              var codigo = inp.dataset.pcNombre;
+              var nuevoNombre = inp.value.trim();
+              if (!nuevoNombre) { U.toast("El nombre no puede quedar vacío.", "error"); inp.focus(); return; }
+              C.panelEditarPersonalizado(tenant, p.panelTipo, codigo, nuevoNombre);
+              guardarPersonalizados();
+              U.toast(nombreItemCap + " actualizado.", "success");
+            };
+            inp.addEventListener("blur", guardar);
+            inp.addEventListener("keydown", function (e) { if (e.key === "Enter") { e.preventDefault(); inp.blur(); } });
+          });
+          tbody.querySelectorAll("[data-pc-eliminar]").forEach(function (b) {
+            b.addEventListener("click", function () {
+              var codigo = b.dataset.pcEliminar;
+              var item = C.panelCatalogo(tenant, p.panelTipo).filter(function (c) { return c.codigo === codigo; })[0];
+              if (!confirm('¿Eliminar "' + (item ? item.nombre : codigo) + '" del catálogo del laboratorio? Ya no aparecerá para agregarlo a nuevos resultados — los resultados que ya lo tengan capturado no cambian.')) return;
+              C.panelEliminarPersonalizado(tenant, p.panelTipo, codigo);
+              guardarPersonalizados();
+              U.toast(nombreItemCap + " eliminado del catálogo.", "success");
+              render();
+            });
+          });
+        }
+
+        wrap.querySelector("#pc-btn-agregar").addEventListener("click", function () {
+          var inpNuevo = wrap.querySelector("#pc-nuevo");
+          var nombre = inpNuevo.value.trim();
+          if (!nombre) { U.toast("Escribe el nombre antes de agregarlo.", "error"); return; }
+          C.panelAgregarPersonalizado(tenant, p.panelTipo, nombre);
+          guardarPersonalizados();
+          inpNuevo.value = "";
+          U.toast(nombreItemCap + ' "' + nombre + '" agregado al catálogo del laboratorio.', "success");
+          render();
+        });
+        wrap.querySelector("#pc-nuevo").addEventListener("keydown", function (e) { if (e.key === "Enter") { e.preventDefault(); wrap.querySelector("#pc-btn-agregar").click(); } });
+
+        render();
+        // El modal se puede cerrar por tres caminos (la ✕, el fondo
+        // oscuro, o este botón "Cerrar") — los tres deben avisarle a la
+        // caja del panel que se actualice si hubo cambios, así que se
+        // cubren los dos mecanismos de cierre que usa BIO_UI.openModal().
+        wrap.addEventListener("click", function (e) {
+          if (e.target.dataset.close && huboCambios && alCerrar) alCerrar();
+        });
+        wrap.querySelectorAll("[data-modal-close]").forEach(function (b) {
+          b.addEventListener("click", function () { if (huboCambios && alCerrar) alCerrar(); });
         });
       }
 

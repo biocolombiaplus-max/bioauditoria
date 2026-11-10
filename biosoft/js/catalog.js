@@ -1064,6 +1064,36 @@
     if (panelTipo === "parasito") return crearParasitoPersonalizado(tenant, nombre);
     return crearAntibioticoPersonalizado(tenant, nombre);
   }
+  // Campo de tenant donde vive el catálogo personalizado de cada tipo de
+  // panel — el mismo mapa que ya usaba views-results.js a mano (ver
+  // "campoPersonalizado" en wirePanelBox) para decidir dónde guardar al
+  // agregar; aquí se reutiliza para poder EDITAR (renombrar) o ELIMINAR un
+  // ítem ya agregado al catálogo del laboratorio, algo que antes no existía
+  // — solo se podía agregar, nunca corregir un nombre ni quitar uno de más.
+  var CAMPO_PANEL_PERSONALIZADO_POR_TIPO = { alergia: "alergenosPersonalizados", parasito: "parasitosPersonalizados", antibiograma: "antibioticosPersonalizados" };
+  function campoPanelPersonalizado(panelTipo) { return CAMPO_PANEL_PERSONALIZADO_POR_TIPO[panelTipo] || CAMPO_PANEL_PERSONALIZADO_POR_TIPO.antibiograma; }
+  // Un ítem "base" (ALERGENOS_BASE/PARASITOS_BASE/ANTIBIOTICOS_BASE) es
+  // compartido por TODOS los laboratorios — nunca se puede editar ni
+  // eliminar desde un tenant puntual, solo los que ESE laboratorio agregó
+  // por su cuenta (tenant.alergenosPersonalizados y equivalentes).
+  function panelEsPersonalizado(tenant, panelTipo, codigo) {
+    var campo = campoPanelPersonalizado(panelTipo);
+    return !!(tenant && tenant[campo] && tenant[campo].some(function (it) { return it.codigo === codigo; }));
+  }
+  function panelEditarPersonalizado(tenant, panelTipo, codigo, nuevoNombre) {
+    var campo = campoPanelPersonalizado(panelTipo);
+    var lista = (tenant && tenant[campo]) || [];
+    var item = lista.filter(function (it) { return it.codigo === codigo; })[0];
+    if (!item) return null;
+    var base = (nuevoNombre || "").trim();
+    if (base) item.nombre = base;
+    return item;
+  }
+  function panelEliminarPersonalizado(tenant, panelTipo, codigo) {
+    var campo = campoPanelPersonalizado(panelTipo);
+    if (!tenant || !tenant[campo]) return;
+    tenant[campo] = tenant[campo].filter(function (it) { return it.codigo !== codigo; });
+  }
   /* El valor de un parámetro "panel" se guarda como el JSON de un arreglo de
      ítems, dentro del mismo "valor" string de siempre — así no hay que tocar
      el modelo de datos de la orden (ex.valores sigue siendo {codigo, valor}). */
@@ -2259,6 +2289,9 @@
     panelCatalogo: panelCatalogo,
     panelFrecuentes: panelFrecuentes,
     panelAgregarPersonalizado: panelAgregarPersonalizado,
+    panelEsPersonalizado: panelEsPersonalizado,
+    panelEditarPersonalizado: panelEditarPersonalizado,
+    panelEliminarPersonalizado: panelEliminarPersonalizado,
     parsePanelValor: parsePanelValor,
     panelCompleto: panelCompleto,
     RIPS_DISCLAIMER: RIPS_DISCLAIMER,
