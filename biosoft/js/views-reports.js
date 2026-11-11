@@ -87,9 +87,15 @@
   // como listos): un examen en mero borrador/preliminar nunca se publica
   // solo, eso sigue siendo una decisión manual del laboratorio.
   function publicarAutomaticamenteSiCorresponde(order) {
+    // Siempre devuelve una Promesa real (nunca "undefined") — quien la llama
+    // (el botón "Actualizar en la Página Web" y el disparo automático al
+    // validar) le encadena .then()/.catch() sin condición, y undefined.then
+    // revienta de forma silenciosa, dejando el botón pegado en "Publicando…"
+    // para siempre sin ningún aviso (bug real: el botón no hacía nada
+    // visible al hacer clic).
     var tenant = BIO_AUTH.currentTenant();
-    if (!(tenant && tenant.paginaWeb && tenant.paginaWeb.activo && order.codigoConsulta)) return;
-    if (!order.examenes.some(function (ex) { return ex.estado === "validado" || ex.estado === "remitido"; })) return;
+    if (!(tenant && tenant.paginaWeb && tenant.paginaWeb.activo && order.codigoConsulta)) return Promise.resolve();
+    if (!order.examenes.some(function (ex) { return ex.estado === "validado" || ex.estado === "remitido"; })) return Promise.resolve();
     var pac = S.getPatient(order.patientId);
     // No atrapa el error aquí adentro: cada quien que la llame decide cómo
     // avisar (un toast visible desde un botón manual, o un simple
