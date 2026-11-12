@@ -985,6 +985,109 @@
     tenant.seccionesPersonalizadas.push(nueva);
     return nueva;
   }
+
+  // -------------------------------------------------------------------
+  // SEDES Y TOMAS DE MUESTRA (opcional, por laboratorio — ver
+  // tenant.multisede y tenant.tomasMuestraHabilitado). Apagado por defecto:
+  // un laboratorio sin estos flags (todos los que ya existían antes de
+  // este cambio) no ve ni una pantalla ni un campo nuevo en ningún lado —
+  // solo el superadmin puede activarlos, laboratorio por laboratorio,
+  // desde "Laboratorios Cliente" (ver abrirConfigurarSedes en
+  // views-admin.js).
+  //
+  // Modelo (igual al de los grandes LIS del mundo): el PACIENTE es único
+  // para toda la razón social — nunca se duplica ni se le asigna una sede
+  // fija, porque puede atenderse en cualquier sede del mismo laboratorio y
+  // su historial clínico debe seguir siendo uno solo. Es cada ORDEN la que
+  // guarda dónde se tomó ESA muestra en particular (order.sedeId /
+  // order.tomaMuestraId, fijados al crearla — ver createOrder en
+  // store.js), porque ahí sí ocurrió en un lugar y un momento concretos.
+  //
+  // Una sede puede tener varias tomas de muestra adentro (ej. "Sede Norte"
+  // con su propio punto + 2 domicilios externos); un laboratorio de una
+  // sola sede puede activar solo tomasMuestraHabilitado sin multisede —
+  // sus tomas quedan con sedeId vacío, colgando directo del laboratorio en
+  // vez de una sede concreta. Cada USUARIO puede quedar asignado a una
+  // sede (user.sedeId, ver crearUsuario/actualizarUsuario en store.js):
+  // vacío significa "ve todas las sedes" — así quedan siempre el
+  // Administrador y cualquier laboratorio que no use esto.
+  // -------------------------------------------------------------------
+  function sedesEfectivas(tenant) {
+    return (tenant && tenant.sedes) || [];
+  }
+  function sedePorId(tenant, sedeId) {
+    return sedesEfectivas(tenant).filter(function (s) { return s.id === sedeId; })[0] || null;
+  }
+  function crearSede(tenant, datos) {
+    tenant.sedes = tenant.sedes || [];
+    var id = "SEDE_" + Date.now().toString(36).toUpperCase() + Math.random().toString(36).slice(2, 5).toUpperCase();
+    var nueva = {
+      id: id, nombre: (datos.nombre || "").trim(), direccion: (datos.direccion || "").trim(),
+      ciudad: (datos.ciudad || "").trim(), telefono: (datos.telefono || "").trim(), activa: true
+    };
+    tenant.sedes.push(nueva);
+    return nueva;
+  }
+  function actualizarSede(tenant, sedeId, patch) {
+    var s = sedePorId(tenant, sedeId);
+    if (!s) return null;
+    Object.assign(s, patch);
+    return s;
+  }
+  // El llamador (views-admin.js) es quien revisa, ANTES de llamar a esta
+  // función, que la sede no tenga usuarios ni órdenes asignadas (esos datos
+  // viven en colecciones aparte — users/orders — que catalog.js no puede
+  // ver; aquí solo se revisa lo que sí vive dentro del propio tenant: sus
+  // tomas de muestra). Devuelve cuántas tomas de muestra siguen apuntando a
+  // esta sede (0 si se pudo eliminar).
+  function eliminarSede(tenant, sedeId) {
+    var enUso = tomasMuestraEfectivas(tenant, sedeId).length;
+    if (enUso) return enUso;
+    if (tenant.sedes) tenant.sedes = tenant.sedes.filter(function (s) { return s.id !== sedeId; });
+    return 0;
+  }
+  // sedeId === undefined -> todas las tomas de muestra del laboratorio;
+  // "" (vacío) -> solo las que cuelgan directo del laboratorio, sin sede.
+  function tomasMuestraEfectivas(tenant, sedeId) {
+    var todas = (tenant && tenant.tomasMuestra) || [];
+    if (sedeId === undefined) return todas;
+    return todas.filter(function (t) { return (t.sedeId || "") === (sedeId || ""); });
+  }
+  function tomaMuestraPorId(tenant, tomaId) {
+    return ((tenant && tenant.tomasMuestra) || []).filter(function (t) { return t.id === tomaId; })[0] || null;
+  }
+  function crearTomaMuestra(tenant, datos) {
+    tenant.tomasMuestra = tenant.tomasMuestra || [];
+    var id = "TOMA_" + Date.now().toString(36).toUpperCase() + Math.random().toString(36).slice(2, 5).toUpperCase();
+    var nueva = {
+      id: id, nombre: (datos.nombre || "").trim(), sedeId: datos.sedeId || "",
+      direccion: (datos.direccion || "").trim(), responsable: (datos.responsable || "").trim(), activa: true
+    };
+    tenant.tomasMuestra.push(nueva);
+    return nueva;
+  }
+  function actualizarTomaMuestra(tenant, tomaId, patch) {
+    var t = tomaMuestraPorId(tenant, tomaId);
+    if (!t) return null;
+    Object.assign(t, patch);
+    return t;
+  }
+  function eliminarTomaMuestra(tenant, tomaId) {
+    if (tenant.tomasMuestra) tenant.tomasMuestra = tenant.tomasMuestra.filter(function (t) { return t.id !== tomaId; });
+  }
+  // Nombre amigable para mostrar en tablas/reportes/PDF — nunca revienta si
+  // la orden es de antes de activar esto (sin sedeId/tomaMuestraId) ni si el
+  // laboratorio luego borró la sede/toma que esa orden vieja tenía guardada.
+  function sedeNombre(tenant, sedeId) {
+    if (!sedeId) return "";
+    var s = sedePorId(tenant, sedeId);
+    return s ? s.nombre : "Sede eliminada";
+  }
+  function tomaMuestraNombre(tenant, tomaId) {
+    if (!tomaId) return "";
+    var t = tomaMuestraPorId(tenant, tomaId);
+    return t ? t.nombre : "Toma de muestra eliminada";
+  }
   // -------------------------------------------------------------------
   // CATÁLOGOS MAESTROS PARA PARÁMETROS TIPO "panel" (antibiograma / alergia).
   // Igual que con las secciones, cada laboratorio puede agregar sus propios
@@ -2259,6 +2362,18 @@
     seccionesEfectivas: seccionesEfectivas,
     crearSeccionPersonalizada: crearSeccionPersonalizada,
     eliminarSeccionPersonalizada: eliminarSeccionPersonalizada,
+    sedesEfectivas: sedesEfectivas,
+    sedePorId: sedePorId,
+    crearSede: crearSede,
+    actualizarSede: actualizarSede,
+    eliminarSede: eliminarSede,
+    tomasMuestraEfectivas: tomasMuestraEfectivas,
+    tomaMuestraPorId: tomaMuestraPorId,
+    crearTomaMuestra: crearTomaMuestra,
+    actualizarTomaMuestra: actualizarTomaMuestra,
+    eliminarTomaMuestra: eliminarTomaMuestra,
+    sedeNombre: sedeNombre,
+    tomaMuestraNombre: tomaMuestraNombre,
     examenPorId: examenPorId,
     examenesEfectivos: examenesEfectivos,
     examenesDisponibles: examenesDisponibles,

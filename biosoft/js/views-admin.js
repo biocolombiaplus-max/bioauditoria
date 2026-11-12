@@ -90,6 +90,7 @@
           var p = C.PERMISOS_EXTRA_BACTERIOLOGO.concat(C.PERMISOS_EXTRA_RECEPCION).filter(function (x) { return x.route === r; })[0];
           return p ? ' <span class="badge badge-preliminar" title="Permiso adicional">' + U.esc(p.label) + "</span>" : "";
         }).join("") : "") +
+        (tenant && tenant.multisede ? ' <span class="badge ' + (u.sedeId ? "badge-rutina" : "badge-suspendido") + '" title="Sede asignada">' + U.icon("building", "ic-sm") + " " + (u.sedeId ? U.esc(C.sedeNombre(tenant, u.sedeId)) : "Todas las sedes") + "</span>" : "") +
         "</td>" +
         "<td>" + (u.activo ? '<span class="badge badge-validado">Activo</span>' : '<span class="badge badge-pendiente">Inactivo</span>') + "</td>" +
         '<td><div class="flex gap-2"><button class="btn btn-ghost btn-sm" data-edit="' + u.id + '">' + U.icon("edit") + " Editar</button>" +
@@ -114,6 +115,17 @@
             F.inp("password", "Contraseña", user.password, !isEdit, "text") +
             F.sel("rol", "Rol", ["admin", "bacteriologo", "recepcion", "aliado"].map(function (r) { return '<option value="' + r + '" ' + (r === user.rol ? "selected" : "") + ">" + U.esc(C.rolLabel(r, tenant && tenant.pais)) + "</option>"; }).join("")) +
           "</div>" +
+          // Solo aparece si el superadmin activó Multisede para este
+          // laboratorio (ver tenant.multisede en catalog.js). Vacío = ve
+          // todas las sedes — así queda siempre el Administrador por
+          // defecto, y cualquier usuario mientras no se le asigne una.
+          (tenant && tenant.multisede ? F.sel("sedeId", "Sede a la que pertenece",
+            '<option value="">Todas las sedes (sin restricción)</option>' +
+            C.sedesEfectivas(tenant).filter(function (s) { return s.activa !== false; }).map(function (s) {
+              return '<option value="' + s.id + '" ' + (user.sedeId === s.id ? "selected" : "") + ">" + U.esc(s.nombre) + "</option>";
+            }).join("")) +
+            '<p class="text-muted" style="margin:-10px 0 10px;font-size:12px">Si le asignas una sede, este usuario solo verá y podrá trabajar los pacientes/órdenes de ESA sede.</p>'
+            : "") +
           '<div id="secciones-box" class="field"></div>' +
           '<div id="permisos-extra-box" class="field"></div>' +
           '<div id="convenio-aliado-box" class="field"></div>' +
@@ -232,10 +244,11 @@
         var g = function (id) { return wrap.querySelector("#f_" + id).value.trim(); };
         var secciones = Array.prototype.slice.call(wrap.querySelectorAll("[data-sec]:checked")).map(function (c) { return c.dataset.sec; });
         var chkRemisiones = wrap.querySelector("#f_puedeGestionarRemisiones");
+        var selSede = wrap.querySelector("#f_sedeId");
         var data = {
           nombre: g("nombre"), numeroDocumento: g("numeroDocumento"), correoContacto: g("correoContacto"), telefonoContacto: U.leerTelefonoCompuesto(wrap, "telefonoContacto"),
           username: g("username"), rol: g("rol"), secciones: secciones, tenantId: session.tenantId, activo: true,
-          puedeGestionarRemisiones: false
+          puedeGestionarRemisiones: false, sedeId: selSede ? selSede.value : ""
         };
         if (data.rol === "bacteriologo" && chkRemisiones) data.puedeGestionarRemisiones = chkRemisiones.checked;
         if (data.rol === "bacteriologo") {
@@ -1472,6 +1485,169 @@
   }
 
   // ------------------------------------------------------------------
+  // SEDES Y TOMAS DE MUESTRA (ver tenant.multisede/tomasMuestraHabilitado
+  // y su comentario en catalog.js). Esta tarjeta solo aparece si el
+  // superadmin activó alguna de las dos para este laboratorio — un
+  // laboratorio sin ninguna activada no ve absolutamente nada nuevo aquí.
+  // ------------------------------------------------------------------
+  function sedesCardHtml(tenant) {
+    if (!tenant.multisede && !tenant.tomasMuestraHabilitado) return "";
+    var sedes = C.sedesEfectivas(tenant);
+    var tomas = C.tomasMuestraEfectivas(tenant);
+    var html = '<div class="card"><div class="card-header"><h3 class="card-title">' + U.icon("building") + " Sedes y Tomas de Muestra</h3></div>" +
+      '<p class="text-muted" style="margin-top:0">Cada orden queda marcada con dónde se tomó la muestra — el paciente sigue siendo uno solo para todo el laboratorio, sin importar en qué sede o punto se le haya atendido.</p>';
+    if (tenant.multisede) {
+      html += '<h4 style="margin:14px 0 6px;font-size:13.5px">Sedes</h4>' +
+        (sedes.length
+          ? '<div class="table-wrap"><table><thead><tr><th>Nombre</th><th>Ciudad</th><th>Dirección</th><th>Teléfono</th><th>Tomas de muestra</th><th>Estado</th><th></th></tr></thead><tbody>' +
+            sedes.map(function (s) {
+              return "<tr><td>" + U.esc(s.nombre) + "</td><td>" + U.esc(s.ciudad || "—") + "</td><td>" + U.esc(s.direccion || "—") + "</td><td>" + U.esc(s.telefono || "—") + "</td>" +
+                "<td>" + C.tomasMuestraEfectivas(tenant, s.id).length + "</td>" +
+                "<td>" + (s.activa ? '<span class="badge badge-validado">Activa</span>' : '<span class="badge badge-suspendido">Inactiva</span>') + "</td>" +
+                '<td><div class="flex gap-1 wrap"><button type="button" class="btn btn-ghost btn-sm" data-editar-sede="' + s.id + '">' + U.icon("edit") + "</button>" +
+                '<button type="button" class="btn btn-ghost btn-sm" data-quitar-sede="' + s.id + '">' + U.icon("trash") + "</button></div></td></tr>";
+            }).join("") + "</tbody></table></div>"
+          : '<p class="text-muted" style="font-size:12.5px">Aún no has agregado ninguna sede.</p>') +
+        '<button type="button" class="btn btn-outline btn-sm" id="btn-agregar-sede" style="margin-top:8px">' + U.icon("plus") + " Agregar Sede</button>";
+    }
+    if (tenant.tomasMuestraHabilitado) {
+      html += '<h4 style="margin:18px 0 6px;font-size:13.5px">Tomas de Muestra</h4>' +
+        (tomas.length
+          ? '<div class="table-wrap"><table><thead><tr><th>Nombre</th>' + (tenant.multisede ? "<th>Sede</th>" : "") + "<th>Dirección</th><th>Responsable</th><th>Estado</th><th></th></tr></thead><tbody>" +
+            tomas.map(function (t) {
+              return "<tr><td>" + U.esc(t.nombre) + "</td>" + (tenant.multisede ? "<td>" + U.esc(t.sedeId ? C.sedeNombre(tenant, t.sedeId) : "Sin sede") + "</td>" : "") +
+                "<td>" + U.esc(t.direccion || "—") + "</td><td>" + U.esc(t.responsable || "—") + "</td>" +
+                "<td>" + (t.activa ? '<span class="badge badge-validado">Activa</span>' : '<span class="badge badge-suspendido">Inactiva</span>') + "</td>" +
+                '<td><div class="flex gap-1 wrap"><button type="button" class="btn btn-ghost btn-sm" data-editar-toma="' + t.id + '">' + U.icon("edit") + "</button>" +
+                '<button type="button" class="btn btn-ghost btn-sm" data-quitar-toma="' + t.id + '">' + U.icon("trash") + "</button></div></td></tr>";
+            }).join("") + "</tbody></table></div>"
+          : '<p class="text-muted" style="font-size:12.5px">Aún no has agregado ninguna toma de muestra.</p>') +
+        '<button type="button" class="btn btn-outline btn-sm" id="btn-agregar-toma" style="margin-top:8px">' + U.icon("plus") + " Agregar Toma de Muestra</button>";
+    }
+    return html + "</div>";
+  }
+
+  function wireSedesCard(tenant, reabrir) {
+    if (!tenant.multisede && !tenant.tomasMuestraHabilitado) return;
+    var session = BIO_AUTH.getSession();
+    var btnAgregarSede = document.getElementById("btn-agregar-sede");
+    if (btnAgregarSede) btnAgregarSede.addEventListener("click", function () { abrirFormSede(tenant, null, reabrir); });
+    document.querySelectorAll("[data-editar-sede]").forEach(function (btn) {
+      btn.addEventListener("click", function () {
+        abrirFormSede(tenant, C.sedePorId(tenant, btn.dataset.editarSede), reabrir);
+      });
+    });
+    document.querySelectorAll("[data-quitar-sede]").forEach(function (btn) {
+      btn.addEventListener("click", function () {
+        var sede = C.sedePorId(tenant, btn.dataset.quitarSede);
+        if (!sede) return;
+        if (!confirm('¿Eliminar la sede "' + sede.nombre + '"? Solo se puede si ya no tiene tomas de muestra asignadas.')) return;
+        var enUso = C.eliminarSede(tenant, sede.id);
+        if (enUso) { U.toast("No se puede eliminar: todavía tiene " + enUso + " toma(s) de muestra asignada(s). Muévelas o elimínalas primero.", "error"); return; }
+        S.updateTenant(tenant.id, { sedes: tenant.sedes });
+        S.addAudit(session.tenantId, session.nombre, session.rol, "DELETE_SEDE", "sede", sede.id, 'Eliminó la sede "' + sede.nombre + '".');
+        U.toast("Sede eliminada.", "success");
+        reabrir();
+      });
+    });
+    var btnAgregarToma = document.getElementById("btn-agregar-toma");
+    if (btnAgregarToma) btnAgregarToma.addEventListener("click", function () { abrirFormTomaMuestra(tenant, null, reabrir); });
+    document.querySelectorAll("[data-editar-toma]").forEach(function (btn) {
+      btn.addEventListener("click", function () {
+        abrirFormTomaMuestra(tenant, C.tomaMuestraPorId(tenant, btn.dataset.editarToma), reabrir);
+      });
+    });
+    document.querySelectorAll("[data-quitar-toma]").forEach(function (btn) {
+      btn.addEventListener("click", function () {
+        var toma = C.tomaMuestraPorId(tenant, btn.dataset.quitarToma);
+        if (!toma) return;
+        if (!confirm('¿Eliminar la toma de muestra "' + toma.nombre + '"? Las órdenes que ya la tengan asignada no se afectan — solo deja de poder elegirse para órdenes nuevas.')) return;
+        C.eliminarTomaMuestra(tenant, toma.id);
+        S.updateTenant(tenant.id, { tomasMuestra: tenant.tomasMuestra });
+        S.addAudit(session.tenantId, session.nombre, session.rol, "DELETE_TOMA_MUESTRA", "toma_muestra", toma.id, 'Eliminó la toma de muestra "' + toma.nombre + '".');
+        U.toast("Toma de muestra eliminada.", "success");
+        reabrir();
+      });
+    });
+  }
+
+  function abrirFormSede(tenant, sede, onSaved) {
+    var editando = !!sede;
+    var wrap = U.openModal(
+      '<h3 class="modal-title">' + (editando ? "Editar Sede" : "Agregar Sede") + "</h3>" +
+      '<form id="sede-form"><div class="form-grid">' +
+      F.inp("nombre", "Nombre de la Sede (ej: Sede Norte)", sede ? sede.nombre : "", true) +
+      F.inp("ciudad", "Ciudad", sede ? sede.ciudad : "") +
+      F.inp("direccion", "Dirección", sede ? sede.direccion : "") +
+      F.inp("telefono", "Teléfono", sede ? sede.telefono : "") +
+      "</div>" +
+      (editando ? '<label class="checkbox-row"><input type="checkbox" id="f_activa" ' + (sede.activa !== false ? "checked" : "") + '/> Sede activa (aparece para elegir en órdenes nuevas)</label>' : "") +
+      '<div class="flex gap-2 justify-between" style="margin-top:10px"><button type="button" class="btn btn-ghost" data-modal-close>Cancelar</button><button type="submit" class="btn btn-primary">' + U.icon("check") + " Guardar</button></div>" +
+      "</form>"
+    );
+    wrap.querySelector("#sede-form").addEventListener("submit", function (e) {
+      e.preventDefault();
+      var session = BIO_AUTH.getSession();
+      var g = function (id) { return wrap.querySelector("#f_" + id).value.trim(); };
+      var nombre = g("nombre");
+      if (!nombre) { U.toast("Ponle un nombre a la sede.", "error"); return; }
+      var datos = { nombre: nombre, ciudad: g("ciudad"), direccion: g("direccion"), telefono: g("telefono") };
+      if (editando) {
+        if (wrap.querySelector("#f_activa")) datos.activa = wrap.querySelector("#f_activa").checked;
+        C.actualizarSede(tenant, sede.id, datos);
+        S.addAudit(session.tenantId, session.nombre, session.rol, "UPDATE_SEDE", "sede", sede.id, 'Actualizó la sede "' + nombre + '".');
+      } else {
+        var nueva = C.crearSede(tenant, datos);
+        S.addAudit(session.tenantId, session.nombre, session.rol, "CREATE_SEDE", "sede", nueva.id, 'Creó la sede "' + nombre + '".');
+      }
+      S.updateTenant(tenant.id, { sedes: tenant.sedes });
+      U.toast("Guardado.", "success");
+      U.closeModal(wrap);
+      onSaved();
+    });
+  }
+
+  function abrirFormTomaMuestra(tenant, toma, onSaved) {
+    var editando = !!toma;
+    var sedes = C.sedesEfectivas(tenant);
+    var wrap = U.openModal(
+      '<h3 class="modal-title">' + (editando ? "Editar Toma de Muestra" : "Agregar Toma de Muestra") + "</h3>" +
+      '<form id="toma-form"><div class="form-grid">' +
+      F.inp("nombre", "Nombre (ej: Punto de toma Unicentro)", toma ? toma.nombre : "", true) +
+      (tenant.multisede
+        ? F.sel("sede", "Sede a la que pertenece", '<option value="">Sin sede (directo del laboratorio)</option>' +
+            sedes.map(function (s) { return "<option value='" + s.id + "' " + (toma && toma.sedeId === s.id ? "selected" : "") + ">" + U.esc(s.nombre) + "</option>"; }).join(""))
+        : "") +
+      F.inp("direccion", "Dirección", toma ? toma.direccion : "") +
+      F.inp("responsable", "Responsable (opcional)", toma ? toma.responsable : "") +
+      "</div>" +
+      (editando ? '<label class="checkbox-row"><input type="checkbox" id="f_activa" ' + (toma.activa !== false ? "checked" : "") + '/> Toma de muestra activa (aparece para elegir en órdenes nuevas)</label>' : "") +
+      '<div class="flex gap-2 justify-between" style="margin-top:10px"><button type="button" class="btn btn-ghost" data-modal-close>Cancelar</button><button type="submit" class="btn btn-primary">' + U.icon("check") + " Guardar</button></div>" +
+      "</form>"
+    );
+    wrap.querySelector("#toma-form").addEventListener("submit", function (e) {
+      e.preventDefault();
+      var session = BIO_AUTH.getSession();
+      var g = function (id) { var el = wrap.querySelector("#f_" + id); return el ? el.value.trim() : ""; };
+      var nombre = g("nombre");
+      if (!nombre) { U.toast("Ponle un nombre a la toma de muestra.", "error"); return; }
+      var datos = { nombre: nombre, sedeId: tenant.multisede ? g("sede") : "", direccion: g("direccion"), responsable: g("responsable") };
+      if (editando) {
+        if (wrap.querySelector("#f_activa")) datos.activa = wrap.querySelector("#f_activa").checked;
+        C.actualizarTomaMuestra(tenant, toma.id, datos);
+        S.addAudit(session.tenantId, session.nombre, session.rol, "UPDATE_TOMA_MUESTRA", "toma_muestra", toma.id, 'Actualizó la toma de muestra "' + nombre + '".');
+      } else {
+        var nueva = C.crearTomaMuestra(tenant, datos);
+        S.addAudit(session.tenantId, session.nombre, session.rol, "CREATE_TOMA_MUESTRA", "toma_muestra", nueva.id, 'Creó la toma de muestra "' + nombre + '".');
+      }
+      S.updateTenant(tenant.id, { tomasMuestra: tenant.tomasMuestra });
+      U.toast("Guardado.", "success");
+      U.closeModal(wrap);
+      onSaved();
+    });
+  }
+
+  // ------------------------------------------------------------------
   // PERFILES DE IMPRESORA / TAMAÑO DE ETIQUETA (para stickers de muestra)
   // ------------------------------------------------------------------
   function perfilesEtiquetaCardHtml(tenant) {
@@ -1638,6 +1814,7 @@
       '<button type="button" class="btn btn-primary" id="btn-manual-enviar">' + U.icon("send") + ' Enviar por WhatsApp o Correo</button>' +
       "</div></div>" +
       equiposCardHtml(tenant) +
+      sedesCardHtml(tenant) +
       perfilesEtiquetaCardHtml(tenant) +
       '<div class="card"><div class="card-header"><h3 class="card-title">Identidad y Datos del Laboratorio</h3></div>' +
       '<form id="cfg-form">' +
@@ -1839,6 +2016,7 @@
       "</form></div>";
 
     wireEquiposCard(tenant, function () { window.BIO_VIEWS.config(root); });
+    wireSedesCard(tenant, function () { window.BIO_VIEWS.config(root); });
     wirePerfilesEtiquetaCard(tenant, function () { window.BIO_VIEWS.config(root); });
 
     actualizarLabelDocumento(document, "pais", "nit");
@@ -2555,7 +2733,8 @@
           { label: "Reparar Permisos Operativos", icon: "settings", onClick: function () { abrirRepararPermisos(tenant); } }
         ].concat(sobreLimiteTenant ? [{ label: "⚠️ Resolver Límite de Usuarios", icon: "edit", onClick: function () { abrirResolverLimiteUsuarios(tenant); } }] : [])},
         { titulo: "Catálogo", acciones: [
-          { label: "Plantilla de Precios y Valores de Referencia (Excel)", icon: "download", onClick: function () { abrirPlantillaCatalogo(tenant); } }
+          { label: "Plantilla de Precios y Valores de Referencia (Excel)", icon: "download", onClick: function () { abrirPlantillaCatalogo(tenant); } },
+          { label: "Sedes y Tomas de Muestra", icon: "building", onClick: function () { abrirConfigurarMultisede(tenant); } }
         ]},
         { titulo: "CRM", acciones: [
           { label: "Crear / Vincular en el CRM", icon: "send", onClick: function () {
@@ -2568,6 +2747,48 @@
           { label: "Eliminar Laboratorio", icon: "trash", danger: true, onClick: function () { abrirEliminarLaboratorio(tenant); } }
         ]}
       ]);
+    }
+
+    // Activa/desactiva, SOLO el superadmin y laboratorio por laboratorio,
+    // las dos funciones de Sedes/Tomas de Muestra (ver su comentario en
+    // catalog.js). Apagado por defecto: un laboratorio nuevo o ya existente
+    // que nunca se toque aquí no ve ni un campo nuevo en ningún lado. Una
+    // vez activado, el propio Administrador del laboratorio crea y
+    // administra sus sedes/tomas de muestra desde su Configuración — este
+    // modal solo prende/apaga el interruptor, no administra los datos.
+    function abrirConfigurarMultisede(tenant) {
+      var wrap = U.openModal(
+        '<h3 class="modal-title">' + U.icon("building") + " Sedes y Tomas de Muestra — " + U.esc(tenant.nombre) + "</h3>" +
+        '<p class="text-muted" style="margin-top:0">Actívalas solo para el laboratorio que de verdad las necesite — quedan apagadas por defecto y no afectan a ningún otro laboratorio. Una vez activada cualquiera de las dos, el Administrador de ' + U.esc(tenant.nombre) + ' encontrará "Sedes y Tomas de Muestra" en su Configuración para crearlas y administrarlas él mismo.</p>' +
+        '<div class="card" style="background:var(--surface-2);box-shadow:none;margin-bottom:10px">' +
+        '<label class="checkbox-row"><input type="checkbox" id="f_multisede" ' + (tenant.multisede ? "checked" : "") + '/> <b>Multisede</b> — el laboratorio tiene varias sedes/sucursales, cada una con sus propios usuarios</label>' +
+        '<p class="text-muted" style="margin:4px 0 0 26px;font-size:12px">Ej. una misma razón social con "Sede Norte" y "Sede Centro". El paciente sigue siendo uno solo para todo el laboratorio; cada orden queda marcada con la sede donde se tomó.</p>' +
+        "</div>" +
+        '<div class="card" style="background:var(--surface-2);box-shadow:none">' +
+        '<label class="checkbox-row"><input type="checkbox" id="f_tomasMuestra" ' + (tenant.tomasMuestraHabilitado ? "checked" : "") + '/> <b>Tomas de Muestra</b> — el laboratorio quiere diferenciar varios puntos de recolección</label>' +
+        '<p class="text-muted" style="margin:4px 0 0 26px;font-size:12px">Útil incluso en un laboratorio de una sola sede (ej. su propia sala + 2 puntos externos). Si además activas Multisede, cada toma de muestra se anida dentro de una sede concreta.</p>' +
+        "</div>" +
+        '<div class="flex gap-2 justify-between" style="margin-top:16px"><button class="btn btn-ghost" data-modal-close>Cancelar</button><button type="button" class="btn btn-primary" id="btn-guardar-multisede">' + U.icon("check") + " Guardar</button></div>"
+      );
+      wrap.querySelector("#btn-guardar-multisede").addEventListener("click", function () {
+        var session = BIO_AUTH.getSession();
+        var multisede = wrap.querySelector("#f_multisede").checked;
+        var tomasMuestraHabilitado = wrap.querySelector("#f_tomasMuestra").checked;
+        var cambios = [];
+        if (multisede !== !!tenant.multisede) cambios.push(multisede ? "activó Multisede" : "desactivó Multisede");
+        if (tomasMuestraHabilitado !== !!tenant.tomasMuestraHabilitado) cambios.push(tomasMuestraHabilitado ? "activó Tomas de Muestra" : "desactivó Tomas de Muestra");
+        tenant.multisede = multisede;
+        tenant.tomasMuestraHabilitado = tomasMuestraHabilitado;
+        S.updateTenant(tenant.id, { multisede: multisede, tomasMuestraHabilitado: tomasMuestraHabilitado });
+        // addAudit() exige un tenantId real para escribir (el superadmin no
+        // tiene uno propio — session.tenantId es null) — se usa el del
+        // LABORATORIO para que el cambio quede visible en SU Trazabilidad,
+        // con el autor identificado como soporte/superadmin, no como si lo
+        // hubiera hecho alguien del propio laboratorio.
+        if (cambios.length) S.addAudit(tenant.id, session.nombre + " (Soporte BIOsoft)", "superadmin", "CONFIGURE_MULTISEDE", "laboratorio", tenant.id, "El superadmin " + cambios.join(" y ") + " para este laboratorio.");
+        U.toast("Guardado.", "success");
+        U.closeModal(wrap);
+      });
     }
 
     // El primer plan (ordenado por límite de usuarios) que alcanza a cubrir

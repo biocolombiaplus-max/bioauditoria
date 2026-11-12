@@ -424,6 +424,21 @@
             "</select>" +
             '<input id="f_medicoRemitenteTexto" placeholder="Nombre del médico" style="margin-top:6px"/></div>' +
           F.sel("procedencia", "Procedencia", C.PROCEDENCIAS.map(function (p) { return "<option>" + p + "</option>"; }).join("")) +
+          // Sede/Toma de Muestra (ver tenant.multisede/tomasMuestraHabilitado
+          // en catalog.js): dónde se tomó ESTA muestra en particular — queda
+          // fijo desde que se crea la orden, igual que el convenio o el
+          // médico remitente. Si quien registra la orden tiene una sede
+          // asignada (session.sedeId — ver "Sede a la que pertenece" en
+          // Usuarios), el selector queda bloqueado en la suya: un usuario
+          // de la Sede Norte no puede registrar una orden "de" la Sede
+          // Centro, porque después ni siquiera podría volver a verla (ver
+          // el aislamiento por sede en listOrders/listPatients de store.js).
+          (tenant.multisede ? '<div class="field"><label>Sede</label><select id="f_sedeId" ' + (session.sedeId ? "disabled" : "") + '>' +
+            (session.sedeId ? "" : '<option value="">Selecciona la sede…</option>') +
+            C.sedesEfectivas(tenant).filter(function (s) { return s.activa !== false || s.id === session.sedeId; }).map(function (s) {
+              return '<option value="' + s.id + '" ' + (s.id === session.sedeId ? "selected" : "") + ">" + U.esc(s.nombre) + "</option>";
+            }).join("") + "</select></div>" : "") +
+          (tenant.tomasMuestraHabilitado ? '<div class="field"><label>Toma de Muestra</label><select id="f_tomaMuestraId"><option value="">Sin especificar</option></select></div>' : "") +
           F.inp("diagnostico", "Diagnóstico / Motivo", "") +
           (tenant.pais === "CO" ? F.inp("numAutorizacion", "N° de Autorización (si aplica, para RIPS)", "") + F.inp("diagnosticoCIE10", "Código CIE-10 (opcional, para RIPS)", "") : "") +
           '<div class="field" style="grid-column:1/-1"><label>Observaciones Clínicas (opcional)</label>' +
@@ -598,6 +613,21 @@
     function actualizarCampoMedicoRemitente() { inpMedicoRemitenteTexto.style.display = selMedicoRemitente.value ? "none" : ""; }
     selMedicoRemitente.addEventListener("change", actualizarCampoMedicoRemitente);
     actualizarCampoMedicoRemitente();
+
+    // Sede / Toma de Muestra: la lista de tomas de muestra depende de la
+    // sede elegida (si el laboratorio usa Multisede) — se repinta cada vez
+    // que cambia la sede, para no ofrecer una toma de otra sede distinta.
+    var selSedeOrden = document.getElementById("f_sedeId");
+    var selTomaMuestra = document.getElementById("f_tomaMuestraId");
+    function renderTomasMuestraOrden() {
+      if (!selTomaMuestra) return;
+      var sedeElegida = selSedeOrden ? selSedeOrden.value : undefined;
+      var tomas = C.tomasMuestraEfectivas(tenant, tenant.multisede ? sedeElegida : undefined).filter(function (t) { return t.activa !== false; });
+      selTomaMuestra.innerHTML = '<option value="">Sin especificar</option>' +
+        tomas.map(function (t) { return '<option value="' + t.id + '">' + U.esc(t.nombre) + "</option>"; }).join("");
+    }
+    if (selSedeOrden) selSedeOrden.addEventListener("change", renderTomasMuestraOrden);
+    renderTomasMuestraOrden();
 
     function renderSections() {
       document.getElementById("sec-list").innerHTML = seccionesActuales().map(function (s) {
@@ -835,6 +865,11 @@
       var patientId = document.getElementById("f_patient_id").value;
       if (!patientId) { U.toast("Selecciona un paciente.", "error"); return; }
       if (!selectedExams.length && !selectedPaquetes.length) { U.toast("Selecciona al menos un examen o paquete.", "error"); return; }
+      // La sede es obligatoria cuando el laboratorio la activó: toda orden
+      // nueva debe quedar marcada con dónde se tomó, igual que ya pasa con
+      // el paciente o el examen — sin esto no se podría filtrar nada por
+      // sede más adelante (ver el aislamiento en store.js).
+      if (tenant.multisede && !selSedeOrden.value) { U.toast("Selecciona la sede donde se está tomando esta muestra.", "error"); return; }
       // Un paquete no es un "examen" real del catálogo — es un atajo de
       // selección (varios exámenes con un precio con descuento). La orden
       // necesita un renglón real por examen para poder capturar
@@ -873,6 +908,8 @@
         } : null,
         convenioId: convenioIdSel || "",
         convenioNombre: convenioSel ? convenioSel.nombre : "",
+        sedeId: tenant.multisede ? selSedeOrden.value : "",
+        tomaMuestraId: tenant.tomasMuestraHabilitado && selTomaMuestra ? selTomaMuestra.value : "",
         fechaOrden: new Date().toISOString(),
         prioridad: document.getElementById("f_prioridad").value,
         procedencia: document.getElementById("f_procedencia").value,
