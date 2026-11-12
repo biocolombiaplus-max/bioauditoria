@@ -126,7 +126,8 @@
     var colspanVacio = 7 + (conPrecio ? 1 : 0) + (conEstadoPago ? 1 : 0);
     root.innerHTML =
       '<div class="card"><div class="card-header"><h3 class="card-title">Órdenes de Laboratorio (' + orders.length + (hayFiltrosActivos ? " de " + todasLasOrdenes.length : "") + ')</h3>' +
-      '<button class="btn btn-primary" id="btn-new-ord">' + U.icon("plus") + ' Nueva Orden</button></div>' +
+      '<div class="flex gap-2"><button class="btn btn-ghost btn-sm" id="btn-verificar-duplicados" title="Revisa que ningún número de orden esté repetido entre dos pacientes distintos">' + U.icon("history") + ' Verificar duplicados</button>' +
+      '<button class="btn btn-primary" id="btn-new-ord">' + U.icon("plus") + ' Nueva Orden</button></div></div>' +
       '<div class="flex gap-2 wrap items-center" style="margin-bottom:14px">' +
         '<div class="field" style="max-width:320px;margin-bottom:0"><input type="text" id="ord-buscar" placeholder="🔎 Buscar por nombre o cédula del paciente…" value="' + U.esc(ordenesSearchTerm) + '"/></div>' +
         '<div class="field" style="max-width:260px;margin-bottom:0"><select id="ord-filtro-convenio">' +
@@ -176,6 +177,28 @@
       });
     });
     document.getElementById("btn-new-ord").addEventListener("click", function () { location.hash = "#/ordenes/nueva"; });
+    var btnVerificarDuplicados = document.getElementById("btn-verificar-duplicados");
+    if (btnVerificarDuplicados) btnVerificarDuplicados.addEventListener("click", function () {
+      var textoOriginal = btnVerificarDuplicados.innerHTML;
+      btnVerificarDuplicados.disabled = true; btnVerificarDuplicados.innerHTML = "Verificando…";
+      setTimeout(function () {
+        try {
+          var corregidas = S.verificarYCorregirNumerosOrdenDuplicados(session.tenantId);
+          if (!corregidas.length) {
+            U.toast("Todo en orden: ningún número de orden está repetido.", "success");
+          } else {
+            U.toast(corregidas.length + " número(s) de orden duplicado(s) corregido(s): " +
+              corregidas.map(function (c) { return c.numeroAnterior + " → " + c.numeroNuevo; }).join(", "), "success");
+            build();
+          }
+        } catch (err) {
+          console.error("BIOsoft: error al verificar números de orden duplicados ->", err);
+          U.toast("No se pudo completar la verificación. Intenta de nuevo.", "error");
+        } finally {
+          btnVerificarDuplicados.disabled = false; btnVerificarDuplicados.innerHTML = textoOriginal;
+        }
+      }, 50);
+    });
     var inputBuscar = document.getElementById("ord-buscar");
     inputBuscar.addEventListener("input", function (e) {
       ordenesSearchTerm = e.target.value;

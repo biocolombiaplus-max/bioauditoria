@@ -267,7 +267,7 @@
     // todavía (ej. el historial completo de auditoría).
     return Promise.all([tenantPromise, attach("users", "users", false)]).then(function () {
       [
-        "patients", "orders", "qcControles", "qcLecturas", "preciosExamenes",
+        "patients", "qcControles", "qcLecturas", "preciosExamenes",
         "examenesPersonalizados", "cotizaciones", "reglasRemarketing", "remarketingContactos",
         "insumos", "recetasReactivos", "kardexInventario", "consentimientos", "examenesReferencia",
         // Estas 5 colecciones se escriben con fbWrite/fbDelete desde hace
@@ -280,6 +280,15 @@
         "convenios", "convenioPrecios", "ripsGenerados", "facturasGeneradas", "paquetesExamenes",
         "medicosRemitentes", "medicoTarifasExamen", "convenioPagos"
       ].forEach(function (coll) { attach(coll, coll, false); });
+      // "orders" se trata aparte (en vez de ir dentro del forEach de arriba)
+      // para poder enganchar, apenas llegue su primer snapshot, la revisión
+      // automática de números de orden duplicados (ver
+      // verificarYCorregirNumerosOrdenDuplicados más abajo) — nunca bloquea
+      // el inicio de sesión ni nada más: corre sola, en segundo plano, una
+      // vez que las órdenes de verdad ya están en memoria.
+      attach("orders", "orders", false).then(function () {
+        try { verificarYCorregirNumerosOrdenDuplicados(tenantId); } catch (e) { console.warn("BIOsoft: no se pudo revisar números de orden duplicados ->", e); }
+      });
       return realCache;
     });
   }
@@ -2105,22 +2114,86 @@
     anual: { nombre: "Anual: Año + consecutivo del año (ej. 2026-0007)", prefijo: function (now) { return "" + now.getFullYear() + "-"; }, minDigitos: 4 },
     continuo: { nombre: "Continuo: un solo consecutivo, nunca se reinicia (ej. 000007)", prefijo: function () { return ""; }, minDigitos: 6 }
   };
-  function nextOrderNumber(tenantId) {
+  // Calcula el siguiente número de orden LIBRE para el tenant, evitando
+  // cualquier número de la lista "ocupados" que se le pase — la usan tanto
+  // nextOrderNumber() (con los números que YA existen en memoria) como
+  // verificarYCorregirNumerosOrdenDuplicados() (que además evita los números
+  // nuevos que ya repartió en la misma pasada, antes de guardarlos).
+  function numeroOrdenLibre(tenantId, ocupados) {
     var db = loadDB();
     var tenant = db.tenants[tenantId];
     var formato = FORMATOS_NUMERO_ORDEN[tenant && tenant.formatoNumeroOrden] || FORMATOS_NUMERO_ORDEN.diario;
     var prefijo = formato.prefijo(new Date());
+    var ocupadosSet = {};
     var maxSeq = 0;
-    db.orders.forEach(function (o) {
-      if (o.tenantId !== tenantId) return;
-      var num = String(o.numeroOrden || "");
+    (ocupados || []).forEach(function (numOriginal) {
+      var num = String(numOriginal || "");
+      ocupadosSet[num] = true;
       if (prefijo && num.indexOf(prefijo) !== 0) return;
       var seq = parseInt(prefijo ? num.slice(prefijo.length) : num, 10);
       if (!isNaN(seq) && seq > maxSeq) maxSeq = seq;
     });
-    var seqStr = String(maxSeq + 1);
-    while (seqStr.length < formato.minDigitos) seqStr = "0" + seqStr;
-    return prefijo + seqStr;
+    function construir(n) {
+      var s = String(n);
+      while (s.length < formato.minDigitos) s = "0" + s;
+      return prefijo + s;
+    }
+    var seq = maxSeq + 1, candidato = construir(seq);
+    // Cinturón de seguridad: si por lo que sea ese número "libre" ya está
+    // ocupado (ej. un hueco en la numeración que alguien llenó a mano),
+    // sigue subiendo hasta encontrar uno de verdad disponible, en vez de
+    // asumir ciegamente que maxSeq+1 nunca puede chocar.
+    while (ocupadosSet[candidato]) { seq++; candidato = construir(seq); }
+    return candidato;
+  }
+  function nextOrderNumber(tenantId) {
+    var db = loadDB();
+    var ocupados = db.orders.filter(function (o) { return o.tenantId === tenantId; }).map(function (o) { return o.numeroOrden; });
+    return numeroOrdenLibre(tenantId, ocupados);
+  }
+  // El número de orden se asigna al instante, del lado del cliente, sin
+  // esperar ninguna respuesta del servidor (mismo criterio que
+  // reservarCodigoConsulta más arriba: una transacción de Firestore para
+  // garantizar unicidad total se queda esperando PARA SIEMPRE si la conexión
+  // está degradada, y eso rompería crear órdenes sin internet — el Modo
+  // Offline de BIOsoft). Eso significa que, en el rarísimo caso de que dos
+  // dispositivos distintos creen una orden casi al mismo instante antes de
+  // que la sincronización en tiempo real le avise al otro, los DOS pueden
+  // calcular el mismo "siguiente número" (bug real reportado: dos pacientes
+  // distintos con la misma orden "2026-0659"). Esta función se corre sola al
+  // iniciar sesión (ver rehydrate()/loginReal() -> restoreRealtime()) y
+  // también se puede disparar a mano (botón en Configuración del
+  // Laboratorio): detecta duplicados YA guardados y le asigna uno nuevo,
+  // único, a todas las órdenes del grupo salvo la más antigua (que conserva
+  // el número original, por ser la que de verdad "le pertenecía" primero).
+  function verificarYCorregirNumerosOrdenDuplicados(tenantId) {
+    var db = loadDB();
+    var ordenesTenant = db.orders.filter(function (o) { return o.tenantId === tenantId; });
+    var porNumero = {};
+    ordenesTenant.forEach(function (o) {
+      var num = o.numeroOrden || "";
+      if (!num) return;
+      (porNumero[num] = porNumero[num] || []).push(o);
+    });
+    var ocupados = ordenesTenant.map(function (o) { return o.numeroOrden; });
+    var corregidas = [];
+    Object.keys(porNumero).forEach(function (num) {
+      var grupo = porNumero[num];
+      if (grupo.length < 2) return;
+      grupo.sort(function (a, b) { return (a.creadoEn || a.fechaOrden || "").localeCompare(b.creadoEn || b.fechaOrden || ""); });
+      for (var i = 1; i < grupo.length; i++) {
+        var o = grupo[i];
+        var numeroAnterior = o.numeroOrden;
+        var nuevoNumero = numeroOrdenLibre(tenantId, ocupados);
+        ocupados.push(nuevoNumero);
+        o.numeroOrden = nuevoNumero;
+        saveOrder(o);
+        addAudit(tenantId, "Sistema", "sistema", "FIX_DUPLICATE_ORDER_NUMBER", "orden", o.id,
+          "Se corrigió un número de orden duplicado: la orden del paciente pasó de " + numeroAnterior + " a " + nuevoNumero + " (" + numeroAnterior + " ya estaba en uso por otra orden distinta).");
+        corregidas.push({ id: o.id, numeroAnterior: numeroAnterior, numeroNuevo: nuevoNumero, patientId: o.patientId });
+      }
+    });
+    return corregidas;
   }
   function createOrder(data) {
     var db = loadDB();
@@ -2916,6 +2989,7 @@
     listOrders: listOrders,
     getOrder: getOrder,
     nextOrderNumber: nextOrderNumber,
+    verificarYCorregirNumerosOrdenDuplicados: verificarYCorregirNumerosOrdenDuplicados,
     FORMATOS_NUMERO_ORDEN: FORMATOS_NUMERO_ORDEN,
     createOrder: createOrder,
     deleteOrder: deleteOrder,

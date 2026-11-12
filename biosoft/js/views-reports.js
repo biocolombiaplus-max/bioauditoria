@@ -75,6 +75,14 @@
       // entre a consultar.
       var entradaNueva = { codigo: order.codigoConsulta, numeroOrden: order.numeroOrden, fechaOrden: order.fechaOrden };
       otrasOrdenesPaciente.forEach(function (o) { S.resultadosPublicos.agregarHistorial(o.codigoConsulta, entradaNueva); });
+      // Seguimiento de envíos (ver celdaCanales en la lista de Reportes): la
+      // publicación en la Página Web cuenta como un canal más, para
+      // distinguirla de un envío activo (WhatsApp/correo) donde de verdad se
+      // le avisó al paciente, de uno donde el resultado solo quedó
+      // disponible para que él lo busque por su cuenta.
+      order.canalesEnvio = order.canalesEnvio || [];
+      order.canalesEnvio.push({ canal: "Página Web", destino: order.codigoConsulta, fecha: S.nowISO() });
+      S.saveOrder(order);
     });
   }
 
@@ -177,9 +185,31 @@
       }
     }
 
+    // Seguimiento de a quién se le envió el resultado y por cuál canal (ver
+    // order.canalesEnvio, que va acumulando una entrada por cada envío real
+    // — WhatsApp, correo, o la publicación automática/manual en la Página
+    // Web — sin pisar los anteriores). Antes solo existía un único
+    // "enviado sí/no" genérico, que no decía SI de verdad se le avisó al
+    // paciente por algún canal o si solo quedó publicado en el portal para
+    // que él mismo lo busque — con varios canales mezclados, el laboratorio
+    // no tenía forma de saber a quién todavía le falta un seguimiento real.
+    function celdaCanales(o) {
+      if (o.canalesEnvio && o.canalesEnvio.length) {
+        var porCanal = {};
+        o.canalesEnvio.forEach(function (c) { if (!porCanal[c.canal] || c.fecha > porCanal[c.canal]) porCanal[c.canal] = c.fecha; });
+        return '<div class="flex gap-1 wrap">' + Object.keys(porCanal).map(function (canal) {
+          return '<span class="badge badge-enviado" title="' + U.esc(U.fmtFecha(porCanal[canal])) + '">✓ ' + U.esc(canal) + " · " + U.fmtFechaCorta(porCanal[canal]) + "</span>";
+        }).join("") + "</div>";
+      }
+      // Compatibilidad con órdenes enviadas ANTES de que existiera el
+      // seguimiento por canal: solo se sabe que sí se envió algo, pero no por
+      // dónde ni distinguiéndolo de la publicación automática.
+      if (o.enviado) return '<span class="badge badge-enviado">Enviado ' + U.fmtFechaCorta(o.fechaEnvio) + "</span>";
+      return '<span class="chip" style="background:#fef3c7;color:#92400e">⏳ Pendiente de enviar</span>';
+    }
     function rowHtml(o, pac) {
       return "<tr><td><b>" + o.numeroOrden + "</b></td><td>" + (pac ? U.esc(U.nombreCompleto(pac)) : "—") + "</td><td>" + window.BIO_badgeEstado(o.estadoGeneral) + "</td>" +
-        "<td>" + (o.enviado ? '<span class="badge badge-enviado">Enviado ' + U.fmtFechaCorta(o.fechaEnvio) + "</span>" : '<span class="text-muted">No enviado</span>') + "</td>" +
+        "<td>" + celdaCanales(o) + "</td>" +
         '<td><div class="flex gap-2 wrap"><button class="btn btn-outline btn-sm" data-pdf="' + o.id + '">' + U.icon("file") + " Ver / Descargar</button>" +
         '<button class="btn btn-primary btn-sm" data-send="' + o.id + '">' + U.icon("send") + " Enviar Resultados</button></div></td></tr>";
     }
@@ -645,9 +675,15 @@
         return bytes;
       });
     }
-    function registrarEnvio(destino) {
+    function registrarEnvio(destino, canal) {
       var tipo = wrap.querySelector("#send-tipo").value;
       S.addAudit(session.tenantId, session.nombre, session.rol, "SEND_REPORT", "orden", order.id, "Envió el informe (" + tipo + ") de la orden " + order.numeroOrden + " a " + destino + ".");
+      // Seguimiento de a quién se le envió y por cuál canal (ver celdaCanales
+      // en la lista de Reportes) — se acumula, nunca se pisa, para poder ver
+      // TODOS los canales por los que ha recibido su resultado este paciente.
+      order.canalesEnvio = order.canalesEnvio || [];
+      order.canalesEnvio.push({ canal: canal, destino: destino, fecha: S.nowISO(), tipo: tipo });
+      S.saveOrder(order);
       onDone();
     }
     function conBotonOcupado(btn, tarea) {
@@ -662,7 +698,7 @@
         conBotonOcupado(e.currentTarget, function () {
           return obtenerPdf().then(function (bytes) {
             U.compartirPDF(bytes, pdfFilenameCache, wrap.querySelector("#send-msg").value);
-            registrarEnvio("compartir (PDF adjunto)");
+            registrarEnvio("compartir (PDF adjunto)", "Compartir");
           });
         });
       });
@@ -683,7 +719,7 @@
           return obtenerPdf().then(function () {
             var url = "https://wa.me/" + numero + "?text=" + encodeURIComponent(wrap.querySelector("#send-msg").value);
             if (pestana) pestana.location.href = url; else window.open(url, "_blank");
-            registrarEnvio("WhatsApp (" + numero + ")");
+            registrarEnvio("WhatsApp (" + numero + ")", "WhatsApp");
           }).catch(function (err) {
             if (pestana) pestana.close();
             throw err;
@@ -707,7 +743,7 @@
             var cuerpo = wrap.querySelector("#send-msg").value;
             var url = canal.buildUrl(U.emailLinks(correo, asunto, cuerpo));
             if (pestana) pestana.location.href = url; else window.open(url, "_blank");
-            registrarEnvio(correo);
+            registrarEnvio(correo, "Correo");
             U.toast("PDF descargado y correo abierto — adjunta el archivo antes de enviar.", "success");
           }).catch(function (err) {
             if (pestana) pestana.close();
