@@ -158,6 +158,24 @@
       ];
     });
   }
+  // Total a pagar por periodo (software + servicios adicionales, cada uno
+  // visible por separado, nunca mezclados en un solo número de entrada —
+  // ver periodoConServicios() en views-crm.js). Solo tiene sentido mostrarla
+  // cuando de verdad hay algún servicio incluido: sin servicios, el total
+  // sería idéntico a lo que ya muestra la tabla de Resumen de la Inversión.
+  function filasTotalAPagar(ri) {
+    function fila(p) {
+      return [
+        p.periodo,
+        "$" + p.cop.toLocaleString("es-CO") + " COP",
+        "$" + p.servicios.cop.toLocaleString("es-CO") + " COP",
+        "$" + p.total.cop.toLocaleString("es-CO") + " COP\n(aprox. $" + p.total.usd + " USD)"
+      ];
+    }
+    var filas = [fila(ri.primer), fila(ri.segundo)];
+    if (ri.tercero) filas.push(fila(ri.tercero));
+    return filas;
+  }
   function lineasMediosPago() {
     return [PROVEEDOR.medioPago1, PROVEEDOR.medioPago2, "Estos son los ÚNICOS dos medios de pago autorizados por " + PROVEEDOR.nombre + " — no realices consignaciones a ninguna otra cuenta, persona o canal."];
   }
@@ -956,8 +974,8 @@
       y = doc.lastAutoTable.finalY + 8;
       parrafo(notaInversionPersonalizada(ri, EQUIPOS), { size: 8.5, color: [120, 120, 120], gap: 16 });
       if (ri.servicios && ri.servicios.length) {
-        tituloSeccion("Servicios adicionales incluidos en esta propuesta");
-        parrafo("Ya sumados dentro del Valor a Pagar de cada periodo de arriba — aquí el detalle de cada uno.", { size: 8.5, color: [120, 120, 120], gap: 8 });
+        tituloSeccion("Servicios adicionales contratados — cobro independiente");
+        parrafo("Estos servicios se cobran por separado de la suscripción mensual del software (tabla de arriba) — nunca se mezclan en un solo valor.", { size: 8.5, color: [120, 120, 120], gap: 8 });
         checkPage(ri.servicios.length * 26 + 40);
         doc.autoTable({
           startY: y, margin: { left: margin, right: margin },
@@ -967,6 +985,19 @@
           styles: { fontSize: 8.7, cellPadding: 7, valign: "middle" },
           headStyles: { fillColor: [46, 16, 101], textColor: 255, fontStyle: "bold" },
           columnStyles: { 3: { fontStyle: "bold", halign: "right" } }
+        });
+        y = doc.lastAutoTable.finalY + 16;
+
+        tituloSeccion("Total a pagar por periodo (software + servicios)");
+        checkPage(80);
+        doc.autoTable({
+          startY: y, margin: { left: margin, right: margin },
+          head: [["Periodo", "Software BIOsoft", "Servicios adicionales", "Total a pagar"]],
+          body: filasTotalAPagar(ri),
+          theme: "grid",
+          styles: { fontSize: 8.7, cellPadding: 7, valign: "middle" },
+          headStyles: { fillColor: [249, 115, 22], textColor: 255, fontStyle: "bold" },
+          columnStyles: { 0: { fontStyle: "bold" }, 3: { fontStyle: "bold", halign: "right" } }
         });
         y = doc.lastAutoTable.finalY + 16;
       }
@@ -1262,8 +1293,8 @@
       y = doc.lastAutoTable.finalY + 8;
       parrafo(notaInversionPersonalizada(ri, EQUIPOS), { size: 8.5, color: [120, 120, 120], gap: 16 });
       if (ri.servicios && ri.servicios.length) {
-        tituloSeccion("Servicios adicionales incluidos en esta cotización");
-        parrafo("Ya sumados dentro del Valor a Pagar de cada periodo de arriba — aquí el detalle de cada uno.", { size: 8.5, color: [120, 120, 120], gap: 8 });
+        tituloSeccion("Servicios adicionales contratados — cobro independiente");
+        parrafo("Estos servicios se cobran por separado de la suscripción mensual del software (tabla de arriba) — nunca se mezclan en un solo valor.", { size: 8.5, color: [120, 120, 120], gap: 8 });
         checkPage(ri.servicios.length * 26 + 40);
         doc.autoTable({
           startY: y, margin: { left: margin, right: margin },
@@ -1273,6 +1304,19 @@
           styles: { fontSize: 8.7, cellPadding: 7, valign: "middle" },
           headStyles: { fillColor: [46, 16, 101], textColor: 255, fontStyle: "bold" },
           columnStyles: { 3: { fontStyle: "bold", halign: "right" } }
+        });
+        y = doc.lastAutoTable.finalY + 16;
+
+        tituloSeccion("Total a pagar por periodo (software + servicios)");
+        checkPage(80);
+        doc.autoTable({
+          startY: y, margin: { left: margin, right: margin },
+          head: [["Periodo", "Software BIOsoft", "Servicios adicionales", "Total a pagar"]],
+          body: filasTotalAPagar(ri),
+          theme: "grid",
+          styles: { fontSize: 8.7, cellPadding: 7, valign: "middle" },
+          headStyles: { fillColor: [249, 115, 22], textColor: 255, fontStyle: "bold" },
+          columnStyles: { 0: { fontStyle: "bold" }, 3: { fontStyle: "bold", halign: "right" } }
         });
         y = doc.lastAutoTable.finalY + 16;
       }

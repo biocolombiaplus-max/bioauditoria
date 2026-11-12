@@ -658,6 +658,27 @@
         return { cop: acc.cop + p.cop, usd: acc.usd + p.usd };
       }, { cop: 0, usd: 0 });
     }
+    // Suma de todos los servicios adicionales en un RANGO de meses (para el
+    // caso "6 meses de una vez" — ver más abajo).
+    function serviciosEnRango(servicios, mesInicio, mesFin) {
+      var cop = 0, usd = 0;
+      for (var m = mesInicio; m <= mesFin; m++) {
+        var ps = serviciosEnMes(servicios, m);
+        cop += ps.cop; usd += ps.usd;
+      }
+      return { cop: cop, usd: usd };
+    }
+    // Arma un período completo del Resumen de la Inversión: el total de la
+    // SUSCRIPCIÓN del software queda SIEMPRE separado del total de los
+    // servicios adicionales — nunca se mezclan en un solo número — para que
+    // el cliente vea con total claridad qué paga por el software y qué paga
+    // por cada servicio aparte. "total" es la suma de ambos, solo para el
+    // bloque final de Total a Pagar.
+    function periodoConServicios(periodo, montoPlan, montoServicios) {
+      periodo.servicios = montoServicios;
+      periodo.total = { cop: montoPlan.cop + montoServicios.cop, usd: montoPlan.usd + montoServicios.usd };
+      return periodo;
+    }
     function calcularResumenPlanPersonalizado(plan, modalidad, implementacionCOP, equipos, cobrarEquipos, descuentoPlan, servicios) {
       servicios = servicios || [];
       var equiposCOP = cobrarEquipos ? equipos * BIO_PLANES.INTERFAZ_EQUIPOS.costoPorEquipoCop : 0;
@@ -665,23 +686,24 @@
 
       if (modalidad === "semestral") {
         // Cada "periodo" es un bloque de 6 meses pagado de una vez — se suma
-        // mes a mes (plan + servicios) para que un descuento de, por ejemplo,
-        // solo 3 meses, se refleje correctamente DENTRO del primer bloque,
-        // en vez de descontarlo completo o nada.
-        function lote(mesInicio) {
+        // mes a mes (plan Y, por separado, servicios) para que un descuento
+        // de, por ejemplo, solo 3 meses, se refleje correctamente DENTRO del
+        // primer bloque, en vez de descontarlo completo o nada.
+        function lotePlan(mesInicio) {
           var cop = 0, usd = 0;
           for (var m = mesInicio; m < mesInicio + 6; m++) {
-            var pp = precioPlanEnMes(plan, descuentoPlan, m), ps = serviciosEnMes(servicios, m);
-            cop += pp.cop + ps.cop; usd += pp.usd + ps.usd;
+            var pp = precioPlanEnMes(plan, descuentoPlan, m);
+            cop += pp.cop; usd += pp.usd;
           }
           return { cop: cop, usd: usd };
         }
-        var lote1 = lote(1), lote2 = lote(7);
+        var lote1 = lotePlan(1), lote2 = lotePlan(7);
+        var servLote1 = serviciosEnRango(servicios, 1, 6), servLote2 = serviciosEnRango(servicios, 7, 12);
         return {
           planNombre: plan.nombre, planUsuarios: plan.usuarios, equipos: equipos, cobrarEquipos: cobrarEquipos,
           descuentoPlan: descuentoPlan, servicios: servicios,
-          primer: { periodo: "Primer mes", label: "6 meses de una vez · sin implementación" + (equipos ? " + conexión de " + equipos + " equipo(s)" : ""), cop: lote1.cop + equiposCOP, usd: lote1.usd + equiposUSD },
-          segundo: { periodo: "A partir del mes 7", label: "6 meses de una vez · sin implementación", cop: lote2.cop, usd: lote2.usd },
+          primer: periodoConServicios({ periodo: "Primer mes", label: "6 meses de una vez · sin implementación" + (equipos ? " + conexión de " + equipos + " equipo(s)" : ""), cop: lote1.cop + equiposCOP, usd: lote1.usd + equiposUSD }, servLote1),
+          segundo: periodoConServicios({ periodo: "A partir del mes 7", label: "6 meses de una vez · sin implementación", cop: lote2.cop, usd: lote2.usd }, servLote2),
           tercero: null
         };
       }
@@ -695,19 +717,19 @@
       // mensualidad normal y se le suma la ya descontada de ESE mes puntual,
       // sin tocar la cuota de implementación (el descuento es solo sobre la
       // mensualidad del software, nunca sobre la implementación ni los
-      // equipos).
-      function montoPeriodo(calcN, mes) {
+      // equipos). Los servicios adicionales NUNCA entran aquí — quedan
+      // siempre como un monto aparte (ver periodoConServicios).
+      function montoPlanPeriodo(calcN, mes) {
         var pp = precioPlanEnMes(plan, descuentoPlan, mes);
-        var ps = serviciosEnMes(servicios, mes);
-        return { cop: calcN.totalCOP - plan.precio + pp.cop + ps.cop, usd: calcN.totalUSD - plan.usd + pp.usd + ps.usd };
+        return { cop: calcN.totalCOP - plan.precio + pp.cop, usd: calcN.totalUSD - plan.usd + pp.usd };
       }
-      var m1 = montoPeriodo(calc1, 1), m2 = montoPeriodo(calc2, 2), m3 = hayTercero ? montoPeriodo(calc3, 3) : null;
+      var m1 = montoPlanPeriodo(calc1, 1), m2 = montoPlanPeriodo(calc2, 2), m3 = hayTercero ? montoPlanPeriodo(calc3, 3) : null;
       return {
         planNombre: plan.nombre, planUsuarios: plan.usuarios, equipos: equipos, cobrarEquipos: cobrarEquipos,
         descuentoPlan: descuentoPlan, servicios: servicios,
-        primer: { periodo: "Primer mes", label: calc1.conceptoLabel + (equipos ? " + conexión de " + equipos + " equipo(s)" : ""), cop: m1.cop + equiposCOP, usd: m1.usd + equiposUSD },
-        segundo: { periodo: hayTercero ? "Segundo mes" : "Desde el segundo mes", label: calc2.conceptoLabel, cop: m2.cop, usd: m2.usd },
-        tercero: hayTercero ? { periodo: "Desde el tercer mes", label: calc3.conceptoLabel, cop: m3.cop, usd: m3.usd } : null
+        primer: periodoConServicios({ periodo: "Primer mes", label: calc1.conceptoLabel + (equipos ? " + conexión de " + equipos + " equipo(s)" : ""), cop: m1.cop + equiposCOP, usd: m1.usd + equiposUSD }, serviciosEnMes(servicios, 1)),
+        segundo: periodoConServicios({ periodo: hayTercero ? "Segundo mes" : "Desde el segundo mes", label: calc2.conceptoLabel, cop: m2.cop, usd: m2.usd }, serviciosEnMes(servicios, 2)),
+        tercero: hayTercero ? periodoConServicios({ periodo: "Desde el tercer mes", label: calc3.conceptoLabel, cop: m3.cop, usd: m3.usd }, serviciosEnMes(servicios, 3)) : null
       };
     }
     // Lee del formulario los servicios adicionales marcados como incluidos,
@@ -756,13 +778,23 @@
         // solo si el descuento de la mensualidad del plan sigue vigente en
         // ese mes puntual — mismo criterio que usa el PDF.
         function notaDesc(mes) { return descuentoVigenteEnMes(r.descuentoPlan, mes) ? " — con descuento (" + textoDescuento(r.descuentoPlan) + ")" : ""; }
-        wrap.querySelector("#" + prefix + "-resumen-primer").textContent = r.primer.label + " — " + fmtInversionCOP(r.primer.cop) + " (aprox. " + fmtInversionUSD(r.primer.usd) + ")" + notaDesc(1);
+        // El software y los servicios adicionales se muestran SIEMPRE por
+        // separado, nunca mezclados en un solo número — con un "Total a
+        // pagar" al final que los suma, solo cuando de verdad hay algún
+        // servicio incluido (si no hay ninguno, el total sería idéntico al
+        // del software y solo generaría ruido repetirlo).
+        function lineaPeriodo(p, mes) {
+          var linea = "Software: " + fmtInversionCOP(p.cop) + " (aprox. " + fmtInversionUSD(p.usd) + ")" + notaDesc(mes);
+          if (r.servicios.length) linea += " · Servicios adicionales: " + fmtInversionCOP(p.servicios.cop) + " · Total a pagar: " + fmtInversionCOP(p.total.cop) + " (aprox. " + fmtInversionUSD(p.total.usd) + ")";
+          return p.label + " — " + linea;
+        }
+        wrap.querySelector("#" + prefix + "-resumen-primer").textContent = lineaPeriodo(r.primer, 1);
         wrap.querySelector("#" + prefix + "-resumen-segundo-label").textContent = r.segundo.periodo + ":";
-        wrap.querySelector("#" + prefix + "-resumen-segundo").textContent = r.segundo.label + " — " + fmtInversionCOP(r.segundo.cop) + " (aprox. " + fmtInversionUSD(r.segundo.usd) + ")" + notaDesc(2);
+        wrap.querySelector("#" + prefix + "-resumen-segundo").textContent = lineaPeriodo(r.segundo, 2);
         wrap.querySelector("#" + prefix + "-resumen-tercero-wrap").classList.toggle("hidden", !r.tercero);
-        if (r.tercero) wrap.querySelector("#" + prefix + "-resumen-tercero").textContent = r.tercero.label + " — " + fmtInversionCOP(r.tercero.cop) + " (aprox. " + fmtInversionUSD(r.tercero.usd) + ")" + notaDesc(3);
+        if (r.tercero) wrap.querySelector("#" + prefix + "-resumen-tercero").textContent = lineaPeriodo(r.tercero, 3);
         wrap.querySelector("#" + prefix + "-resumen-servicios").textContent = r.servicios.length
-          ? "Servicios adicionales: " + r.servicios.map(function (s) { return s.nombre + " (" + fmtInversionCOP(s.valorCOP) + "/mes" + (s.descuento ? ", con descuento" : "") + ")"; }).join(" · ")
+          ? "Servicios incluidos: " + r.servicios.map(function (s) { return s.nombre + " (" + fmtInversionCOP(s.valorCOP) + "/mes" + (s.descuento ? ", con descuento" : "") + ")"; }).join(" · ")
           : "";
       }
       ["#" + prefix + "-plan", "#" + prefix + "-modalidad", "#" + prefix + "-implementacion", "#" + prefix + "-equipos", "#" + prefix + "-cobrar-equipos"].forEach(function (sel) {
