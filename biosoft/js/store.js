@@ -1031,6 +1031,46 @@
   function cacheTenantsConConteosVigente() {
     return !!cacheTenantsConConteos.datos && (Date.now() - cacheTenantsConConteos.en) < TENANTS_CON_CONTEOS_CACHE_MS;
   }
+  // Migra UN tenant sin contadores: cuenta sus 3 subcolecciones y guarda
+  // el resultado para siempre (fire-and-forget la escritura).
+  function migrarContadoresDeTenant(t) {
+    return Promise.all([
+      tenantsColl().doc(t.id).collection("users").get(),
+      tenantsColl().doc(t.id).collection("patients").get(),
+      tenantsColl().doc(t.id).collection("orders").get()
+    ]).then(function (snaps) {
+      var contadores = { contadorUsuarios: snaps[0].size, contadorPacientes: snaps[1].size, contadorOrdenes: snaps[2].size };
+      tenantsColl().doc(t.id).set(contadores, { merge: true }).catch(function (e) {
+        console.warn("BIOsoft: no se pudo guardar el contador inicial del laboratorio " + t.id + " ->", e);
+      });
+      return Object.assign({}, t, contadores, { _usuarios: contadores.contadorUsuarios, _pacientes: contadores.contadorPacientes, _ordenes: contadores.contadorOrdenes });
+    });
+  }
+  // Procesa la lista en grupos pequeños, uno después del otro (no los
+  // 25+ tenants a la vez) — en una conexión móvil débil, abrir de golpe
+  // 3 lecturas POR CADA laboratorio sin contadores aún (75+ peticiones
+  // simultáneas la primera vez que se usa esta pantalla) competía por el
+  // mismo ancho de banda limitado y ninguna alcanzaba a completarse a
+  // tiempo (bug real reportado: "Esto está tardando más de lo normal",
+  // una y otra vez, siempre en la misma conexión floja). De a
+  // TANDA_MIGRACION a la vez, cada tenant SÍ alcanza a terminar, y una
+  // conexión lenta tarda más en total pero de verdad progresa en vez de
+  // quedarse en el mismo punto para siempre.
+  var TANDA_MIGRACION = 4;
+  function procesarPorTandas(items, fn, tamano) {
+    var resultados = [];
+    var i = 0;
+    function siguienteTanda() {
+      if (i >= items.length) return Promise.resolve(resultados);
+      var tanda = items.slice(i, i + tamano);
+      i += tamano;
+      return Promise.all(tanda.map(fn)).then(function (parciales) {
+        resultados = resultados.concat(parciales);
+        return siguienteTanda();
+      });
+    }
+    return siguienteTanda();
+  }
   var tenantsListGlobalConConteosEnVuelo = null;
   function tenantsListGlobalConConteos(forzar) {
     if (!firebaseDisponible()) return Promise.reject(errorFirebaseNoDisponible());
@@ -1040,26 +1080,12 @@
       var tenants = [];
       snap.forEach(function (doc) { tenants.push(doc.data()); });
       tenants.sort(function (a, b) { return (b.creadoEn || "").localeCompare(a.creadoEn || ""); });
-      return Promise.all(tenants.map(function (t) {
+      return procesarPorTandas(tenants, function (t) {
         var tieneContadores = typeof t.contadorUsuarios === "number" && typeof t.contadorPacientes === "number" && typeof t.contadorOrdenes === "number";
-        if (tieneContadores) {
-          return Object.assign({}, t, { _usuarios: t.contadorUsuarios, _pacientes: t.contadorPacientes, _ordenes: t.contadorOrdenes });
-        }
-        return Promise.all([
-          tenantsColl().doc(t.id).collection("users").get(),
-          tenantsColl().doc(t.id).collection("patients").get(),
-          tenantsColl().doc(t.id).collection("orders").get()
-        ]).then(function (snaps) {
-          var contadores = { contadorUsuarios: snaps[0].size, contadorPacientes: snaps[1].size, contadorOrdenes: snaps[2].size };
-          // Guarda la migración de este tenant para que la próxima visita
-          // ya lo encuentre con contadores — fire-and-forget, nunca debe
-          // bloquear ni tumbar esta pantalla si falla.
-          tenantsColl().doc(t.id).set(contadores, { merge: true }).catch(function (e) {
-            console.warn("BIOsoft: no se pudo guardar el contador inicial del laboratorio " + t.id + " ->", e);
-          });
-          return Object.assign({}, t, contadores, { _usuarios: contadores.contadorUsuarios, _pacientes: contadores.contadorPacientes, _ordenes: contadores.contadorOrdenes });
-        });
-      }));
+        return tieneContadores
+          ? Object.assign({}, t, { _usuarios: t.contadorUsuarios, _pacientes: t.contadorPacientes, _ordenes: t.contadorOrdenes })
+          : migrarContadoresDeTenant(t);
+      }, TANDA_MIGRACION);
     }).then(function (tenantsConDatos) {
       cacheTenantsConConteos = { datos: tenantsConDatos, en: Date.now() };
       return tenantsConDatos;

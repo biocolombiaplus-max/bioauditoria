@@ -2540,7 +2540,13 @@
       // su comentario) pendiente PARA SIEMPRE — ni resuelve ni rechaza, así
       // que "Cargando laboratorios…" se quedaba pegado sin ningún aviso
       // (bug real reportado). Ver el comentario del helper en store.js.
-      S.conLimiteDeTiempo(function () { return S.tenantsGlobal.listConConteos(); }).then(function (list) {
+      // 45s en vez de los 15s por defecto: la PRIMERA vez que se usa esta
+      // pantalla (o tras agregar un laboratorio nuevo) puede tener que
+      // migrar a varios tenants sin contador todavía — ahora en tandas
+      // pequeñas (ver TANDA_MIGRACION en store.js), así que en una
+      // conexión floja de verdad conviene esperar un poco más antes de
+      // rendirse, en vez de cortar justo cuando ya iba a mitad de camino.
+      S.conLimiteDeTiempo(function () { return S.tenantsGlobal.listConConteos(); }, 45000).then(function (list) {
         tenants = list;
         cargando = false;
         build();
