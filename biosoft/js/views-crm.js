@@ -773,7 +773,23 @@
         var modalidad = wrap.querySelector("#" + prefix + "-modalidad").value;
         var sinImplementacion = modalidad === "sin_implementacion" || modalidad === "semestral";
         wrap.querySelector("#" + prefix + "-implementacion-box").classList.toggle("hidden", sinImplementacion);
-        var r = leerResumenPlanPersonalizado(wrap, prefix);
+        // Nunca se deja la vista previa en blanco sin explicación: si algo
+        // falla al calcular (bug real reportado: un error aquí dejaba el
+        // recuadro vacío, sin ningún aviso, y encima bloqueaba en silencio
+        // "Generar Propuesta/Cotización" más abajo), se muestra el motivo
+        // tal cual en el propio recuadro para poder diagnosticarlo de una.
+        var r;
+        try {
+          r = leerResumenPlanPersonalizado(wrap, prefix);
+        } catch (err) {
+          console.error("BIOsoft: error al calcular el resumen de inversión ->", err);
+          wrap.querySelector("#" + prefix + "-resumen-primer").textContent = "⚠️ No se pudo calcular el resumen (" + (err && err.message) + "). Revisa los valores de arriba.";
+          wrap.querySelector("#" + prefix + "-resumen-segundo-label").textContent = "";
+          wrap.querySelector("#" + prefix + "-resumen-segundo").textContent = "";
+          wrap.querySelector("#" + prefix + "-resumen-tercero-wrap").classList.add("hidden");
+          wrap.querySelector("#" + prefix + "-resumen-servicios").textContent = "";
+          return;
+        }
         // Nota de descuento en vivo en la vista previa (ver textoDescuento),
         // solo si el descuento de la mensualidad del plan sigue vigente en
         // ese mes puntual — mismo criterio que usa el PDF.
@@ -881,7 +897,14 @@
         var paisCod = wrap.querySelector("#pp-pais").value;
         if (!nombre || !correo) { U.toast("Completa nombre y correo.", "error"); return; }
 
-        var resumenInversion = leerResumenPlanPersonalizado(wrap, "pp");
+        var resumenInversion;
+        try {
+          resumenInversion = leerResumenPlanPersonalizado(wrap, "pp");
+        } catch (err) {
+          console.error("BIOsoft: error al calcular el resumen de inversión (Propuesta) ->", err);
+          U.toast("No se pudo calcular el resumen de inversión. Revisa el plan y los servicios adicionales e intenta de nuevo.", "error");
+          return;
+        }
         var facturacionMaquinaFiscal = paisCod === "VE" && wrap.querySelector("#pp-mf").checked;
         var datosPropuesta = { nombre: nombre, correo: correo, telefono: whatsapp, pais: nombrePais(paisCod), facturacionMaquinaFiscal: facturacionMaquinaFiscal, resumenInversion: resumenInversion };
 
@@ -899,7 +922,8 @@
             titulo: "Enviar Propuesta", bytes: bytes, nombreArchivo: "Propuesta_BIOsoft_" + nombre.replace(/\s+/g, "_") + ".pdf",
             contacto: { correo: correo, whatsapp: whatsapp }, mensaje: mensaje, asuntoCorreo: "Propuesta Comercial — BIOsoft"
           });
-        }).catch(function () {
+        }).catch(function (err) {
+          console.error("BIOsoft: error al generar el PDF de la Propuesta ->", err);
           submitBtn.disabled = false; submitBtn.textContent = textoOriginal;
           U.toast("No se pudo generar la propuesta. Intenta de nuevo.", "error");
         });
@@ -976,14 +1000,28 @@
         var ciudad = wrap.querySelector("#cz-ciudad").value.trim();
         var paisCod = wrap.querySelector("#cz-pais").value;
         var validezDias = parseInt(wrap.querySelector("#cz-validez").value, 10);
-        var resumenInversion = leerResumenPlanPersonalizado(wrap, "cz");
+        if (!empresa || !contactoNombre || !correo) { U.toast("Completa laboratorio, contacto y correo.", "error"); return; }
+        var resumenInversion;
+        try {
+          resumenInversion = leerResumenPlanPersonalizado(wrap, "cz");
+        } catch (err) {
+          console.error("BIOsoft: error al calcular el resumen de inversión (Cotización) ->", err);
+          U.toast("No se pudo calcular el resumen de inversión. Revisa el plan y los servicios adicionales e intenta de nuevo.", "error");
+          return;
+        }
         var incluirPromo = !resumenInversion && wrap.querySelector("#cz-promo").checked;
         var facturacionMaquinaFiscal = paisCod === "VE" && wrap.querySelector("#cz-mf").checked;
-        if (!empresa || !contactoNombre || !correo) { U.toast("Completa laboratorio, contacto y correo.", "error"); return; }
-        var bytes = BIO_PDF_CRM.buildCotizacionPDF(
-          { empresa: empresa, nit: nit, contacto: contactoNombre, correo: correo, whatsapp: whatsapp, ciudad: ciudad, pais: nombrePais(paisCod), facturacionMaquinaFiscal: facturacionMaquinaFiscal, resumenInversion: resumenInversion },
-          { validezDias: validezDias, incluirPromo: incluirPromo }
-        );
+        var bytes;
+        try {
+          bytes = BIO_PDF_CRM.buildCotizacionPDF(
+            { empresa: empresa, nit: nit, contacto: contactoNombre, correo: correo, whatsapp: whatsapp, ciudad: ciudad, pais: nombrePais(paisCod), facturacionMaquinaFiscal: facturacionMaquinaFiscal, resumenInversion: resumenInversion },
+            { validezDias: validezDias, incluirPromo: incluirPromo }
+          );
+        } catch (err) {
+          console.error("BIOsoft: error al generar el PDF de la Cotización ->", err);
+          U.toast("No se pudo generar el documento de la cotización. Intenta de nuevo.", "error");
+          return;
+        }
         U.closeModal(wrap);
         var mensaje = "Hola " + contactoNombre.split(" ")[0] + " 👋 Te comparto la cotización formal de BIOsoft para " + empresa + (resumenInversion ? ", con los valores exactos para el Plan " + resumenInversion.planNombre : ", con todos los módulos y planes detallados") + ". Cualquier duda, quedo atento.";
         abrirEnviarDocumento({
