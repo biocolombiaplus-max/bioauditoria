@@ -61,7 +61,7 @@
         cargando = false;
         error = err && err.code === "permission-denied"
           ? "Falta publicar la regla nueva de Firestore (landingVisitantes) — ver instrucciones en firestore.rules."
-          : (err && err.message) || String(err);
+          : S.mensajeErrorFirestore(err);
         build();
       });
     }

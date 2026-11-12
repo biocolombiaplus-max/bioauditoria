@@ -238,7 +238,7 @@
       }).catch(function (err) {
         cargando = false;
         console.error("BIOsoft: no se pudo cargar crmClientes ->", err.code, err.message);
-        root.innerHTML = '<div class="card"><p class="text-muted">No se pudo cargar el CRM (crmClientes): ' + U.esc(err.message || String(err)) + (err.code ? " — código: " + U.esc(err.code) : "") + '</p><button type="button" class="btn btn-outline btn-sm" id="btn-reintentar-crm" style="margin-top:8px">' + U.icon("history") + ' Reintentar</button></div>';
+        root.innerHTML = '<div class="card"><p class="text-muted">No se pudo cargar el CRM: ' + U.esc(S.mensajeErrorFirestore(err)) + '</p><button type="button" class="btn btn-outline btn-sm" id="btn-reintentar-crm" style="margin-top:8px">' + U.icon("history") + ' Reintentar</button></div>';
         var btnReintentar = document.getElementById("btn-reintentar-crm");
         if (btnReintentar) btnReintentar.addEventListener("click", function () { cargando = true; build(); cargar(); });
       });

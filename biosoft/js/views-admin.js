@@ -2553,7 +2553,7 @@
       }).catch(function (err) {
         cargando = false;
         console.error("BIOsoft: no se pudieron cargar los laboratorios cliente ->", err.code, err.message);
-        root.innerHTML = '<div class="card"><p class="text-muted">No se pudieron cargar los laboratorios cliente: ' + U.esc(err.message || String(err)) + (err.code ? " — código: " + U.esc(err.code) : "") + '</p><button type="button" class="btn btn-outline btn-sm" id="btn-reintentar-tenants" style="margin-top:8px">' + U.icon("history") + ' Reintentar</button></div>';
+        root.innerHTML = '<div class="card"><p class="text-muted">No se pudieron cargar los laboratorios cliente: ' + U.esc(S.mensajeErrorFirestore(err)) + '</p><button type="button" class="btn btn-outline btn-sm" id="btn-reintentar-tenants" style="margin-top:8px">' + U.icon("history") + ' Reintentar</button></div>';
         var btnReintentar = document.getElementById("btn-reintentar-tenants");
         if (btnReintentar) btnReintentar.addEventListener("click", function () { cargando = true; build(); cargar(); });
       });
