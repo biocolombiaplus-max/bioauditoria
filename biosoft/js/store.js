@@ -412,7 +412,12 @@
           tenantId = uid("lab");
           tenant = Object.assign({
             id: tenantId, nivel: 1, colorPrimario: "#f97316", colorSecundario: "#2e1065", logoDataUrl: "",
-            claveAdmin: "ADMIN" + Math.floor(1000 + Math.random() * 9000), creadoEn: nowISO()
+            claveAdmin: "ADMIN" + Math.floor(1000 + Math.random() * 9000), creadoEn: nowISO(),
+            // Contadores denormalizados (ver su comentario junto a
+            // incrementarContadorTenant más abajo) — un laboratorio nuevo
+            // arranca con su primer usuario (el admin que se está creando
+            // en esta misma llamada) y cero pacientes/órdenes todavía.
+            contadorUsuarios: 1, contadorPacientes: 0, contadorOrdenes: 0
           }, opts.tenantData, { id: tenantId });
         }
         var userObj = Object.assign({ activo: true, secciones: [], creadoEn: nowISO() }, opts.userData, { id: newUid, tenantId: tenantId });
@@ -420,6 +425,15 @@
         return secondary.db.collection("userProfiles").doc(newUid).set({ tenantId: tenantId, rol: userObj.rol })
           .then(function () { if (tenant) return secondary.db.collection("tenants").doc(tenantId).set(tenant); })
           .then(function () { return secondary.db.collection("tenants").doc(tenantId).collection("users").doc(newUid).set(userObj); })
+          .then(function () {
+            // Si NO es un laboratorio nuevo (tenant sigue null aquí), es un
+            // usuario agregado a uno ya existente — ese laboratorio ya
+            // tiene su contadorUsuarios de antes (o se migra solo la
+            // próxima vez que alguien visite "Laboratorios Cliente", ver
+            // tenantsListGlobalConConteos), así que solo hace falta
+            // sumarle 1, nunca reemplazarlo.
+            if (!tenant) return secondary.db.collection("tenants").doc(tenantId).set({ contadorUsuarios: firebase.firestore.FieldValue.increment(1) }, { merge: true });
+          })
           .then(function () {
             var detalle = tenant ? "Se creó el laboratorio cliente " + tenant.nombre + "." : "Se creó el usuario " + userObj.nombre + ".";
             var entry = { id: uid("log"), tenantId: tenantId, fecha: nowISO(), usuario: "Soporte BIOsoft", rol: "superadmin", accion: tenant ? "CREATE_TENANT" : "CREATE_USER", entidad: tenant ? "laboratorio" : "usuario", entidadId: tenant ? tenantId : newUid, detalle: detalle };
@@ -882,19 +896,51 @@
      que esta consulta va siempre directo a Firestore, igual que el CRM. */
   function tenantsColl() { return global.BIO_FB.db.collection("tenants"); }
 
-  /* Lo mismo que tenantsListGlobalRico() (ver su comentario, abajo) pero
-     SIN leer ni users, ni patients, ni orders de ningún laboratorio — solo
-     los documentos de /tenants. Es lo único que el CRM necesita de cada
-     laboratorio (fechaProximoPago, planId, suspendido — ver badgeCobro()
-     en views-crm.js): antes pagaba el costo COMPLETO de esa consulta
-     (miles de documentos de pacientes/órdenes de TODOS los laboratorios)
-     solo para leer 3 campos del propio tenant. Si la caché compartida ya
-     está vigente (alguien visitó Resumen Global o Laboratorios Cliente
-     hace poco), se reusa esa directamente y ni siquiera se paga este costo
-     liviano. */
+  // Contadores denormalizados (contadorPacientes/contadorOrdenes/
+  // contadorUsuarios) en el propio documento del tenant — ver su uso en
+  // tenantsListGlobalConConteos más abajo. Bug real reportado: "Laboratorios
+  // Cliente" descargaba la colección COMPLETA de patients/orders de CADA
+  // laboratorio cliente SOLO para contarlas (snap.size) — con 25+
+  // laboratorios reales eso son miles de documentos en cada visita, y en
+  // una conexión móvil débil esto agotaba la memoria del navegador y
+  // tumbaba la página entera (mensaje de iOS "Ocurrió un problema varias
+  // veces"). .count() de Firestore evitaría exactamente esto, pero no está
+  // disponible en el SDK que carga esta app (ver el hotfix que lo revirtió,
+  // commit ad11c37) — así que, en vez de contar en el servidor, se
+  // mantiene el conteo ya hecho, sumando/restando 1 en el propio documento
+  // del tenant cada vez que se crea/borra un paciente, una orden o un
+  // usuario (ver createPatient/deletePatient/createOrder/deleteOrder más
+  // abajo, y provisionRealAccount más arriba). FieldValue.increment() es
+  // atómico del lado del servidor — dos dispositivos creando a la vez
+  // nunca se pisan el conteo entre sí, a diferencia de leer-sumar-guardar
+  // desde el cliente. "Fire and forget" a propósito: nunca debe bloquear
+  // ni poner en riesgo la creación real del paciente/orden/usuario, que ya
+  // se hizo bien — si este ajuste falla (ej. sin internet en ese instante),
+  // el conteo queda un poco desactualizado hasta el próximo que sí se
+  // guarde, nunca peor que eso.
+  function incrementarContadorTenant(tenantId, campo, delta) {
+    if (MODE !== "real" || !tenantId || !firebaseDisponible()) return;
+    var patch = {};
+    patch[campo] = firebase.firestore.FieldValue.increment(delta);
+    tenantsColl().doc(tenantId).set(patch, { merge: true }).catch(function (err) {
+      console.warn("BIOsoft: no se pudo actualizar el contador '" + campo + "' del laboratorio " + tenantId + " ->", err);
+    });
+  }
+
+  /* Lo mismo que tenantsListGlobal()/tenantsListGlobalConConteos() (ver sus
+     comentarios, abajo) pero SIN leer ni users, ni patients, ni orders de
+     ningún laboratorio — solo los documentos de /tenants. Es lo único que
+     el CRM necesita de cada laboratorio (fechaProximoPago, planId,
+     suspendido — ver badgeCobro() en views-crm.js): antes pagaba el costo
+     COMPLETO de esa consulta (miles de documentos de pacientes/órdenes de
+     TODOS los laboratorios) solo para leer 3 campos del propio tenant. Si
+     cualquiera de esas dos cachés ya está vigente (alguien visitó Resumen
+     Global o Laboratorios Cliente hace poco), se reusa esa directamente y
+     ni siquiera se paga este costo liviano. */
   var tenantsListGlobalBasicoEnVuelo = null;
   function tenantsListGlobalBasico() {
     if (!firebaseDisponible()) return Promise.reject(errorFirebaseNoDisponible());
+    if (cacheTenantsConConteosVigente()) return Promise.resolve(cacheTenantsConConteos.datos);
     if (cacheTenantsGlobalVigente()) return Promise.resolve(cacheTenantsGlobalRico.datos);
     if (tenantsListGlobalBasicoEnVuelo) return tenantsListGlobalBasicoEnVuelo;
     tenantsListGlobalBasicoEnVuelo = tenantsColl().get().then(function (snap) {
@@ -907,28 +953,22 @@
   }
 
   // ---------------------------------------------------------------------
-  // Caché compartida de la consulta MÁS CARA de todo BIOsoft: lee la
-  // colección COMPLETA de users/patients/orders de CADA laboratorio
-  // cliente, solo para contar y (cuando hace falta) sacar la fecha de cada
-  // paciente/orden. Antes "Resumen Global" (tenantsListGlobal, con fechas)
-  // y "Laboratorios Cliente" (tenantsListGlobalConConteos, sin fechas)
-  // pagaban ESTE MISMO costo por separado, cada una con su propia lectura
-  // — con 25+ laboratorios reales eso son cientos o miles de documentos
-  // en CADA visita a cualquiera de las dos pantallas. Era la razón real
-  // detrás de "el superadmin siente lento cambiar de módulo a módulo"
-  // (bug reportado): los demás roles leen de realCache, cargada UNA sola
-  // vez al iniciar sesión (ver initRealtime) — el superadmin no tenía
-  // ningún equivalente, así que cada pantalla volvía a Firestore desde
-  // cero. Ahora ambas funciones son solo dos vistas (con o sin los
-  // arreglos de fechas) sobre el MISMO resultado cacheado: la primera
-  // pantalla que se visite paga la lectura una vez, y cualquier otra
-  // pantalla del superadmin que la necesite durante los siguientes
-  // TENANTS_GLOBAL_CACHE_MS la reutiliza tal cual, sin tocar Firestore de
-  // nuevo. Se invalida sola al vencerse, y también de inmediato apenas el
-  // propio superadmin crea/edita/borra un laboratorio (ver
-  // invalidarCacheTenantsGlobal en updateTenant/createTenant/
-  // provisionRealAccount/deleteTenantCompleto), para que una acción que
-  // acaba de hacer se refleje sin esperar el vencimiento.
+  // La consulta MÁS CARA de todo BIOsoft: lee la colección COMPLETA de
+  // users/patients/orders de CADA laboratorio cliente, para sacar la fecha
+  // de cada paciente/orden (único dato que de verdad lo necesita: el
+  // gráfico "por fecha" de Resumen Global). Hasta hace poco "Laboratorios
+  // Cliente" pagaba ESTE MISMO costo solo para mostrar 3 números por
+  // laboratorio (usuarios/pacientes/órdenes) — con 25+ laboratorios reales
+  // eso son miles de documentos en cada visita, y en una conexión móvil
+  // débil agotaba la memoria del navegador y tumbaba la página entera
+  // (bug real reportado: "Ocurrió un problema varias veces" en iOS).
+  // Ahora "Laboratorios Cliente" tiene su propia función, independiente y
+  // barata (tenantsListGlobalConConteos, más abajo): usa los contadores
+  // denormalizados del propio documento del tenant (ver
+  // incrementarContadorTenant más arriba) en vez de volver a leer
+  // pacientes/órdenes completos. Esta función de aquí (tenantsListGlobal)
+  // sigue pagando el costo completo porque Resumen Global SÍ necesita las
+  // fechas reales, pero ya es la única pantalla que lo hace.
   // NOTA: se intentó primero con una consulta de agregación (.count()),
   // que evita descargar los documentos — pero el SDK de Firestore que
   // carga esta app no la trae disponible en este bundle (".count is not a
@@ -936,13 +976,13 @@
   // ---------------------------------------------------------------------
   var TENANTS_GLOBAL_CACHE_MS = 25000;
   var cacheTenantsGlobalRico = { datos: null, en: 0 };
-  function invalidarCacheTenantsGlobal() { cacheTenantsGlobalRico = { datos: null, en: 0 }; }
+  function invalidarCacheTenantsGlobal() { cacheTenantsGlobalRico = { datos: null, en: 0 }; invalidarCacheTenantsConConteos(); }
   function cacheTenantsGlobalVigente() {
     return !!cacheTenantsGlobalRico.datos && (Date.now() - cacheTenantsGlobalRico.en) < TENANTS_GLOBAL_CACHE_MS;
   }
 
   var tenantsGlobalRicoEnVuelo = null;
-  function tenantsListGlobalRico(forzar) {
+  function tenantsListGlobal(forzar) {
     if (!firebaseDisponible()) return Promise.reject(errorFirebaseNoDisponible());
     if (!forzar && cacheTenantsGlobalVigente()) return Promise.resolve(cacheTenantsGlobalRico.datos);
     if (tenantsGlobalRicoEnVuelo) return tenantsGlobalRicoEnVuelo;
@@ -956,11 +996,9 @@
           tenantsColl().doc(t.id).collection("patients").get(),
           tenantsColl().doc(t.id).collection("orders").get()
         ]).then(function (snaps) {
-          // El conteo (_usuarios/_pacientes/_ordenes) es lo único que
-          // "Laboratorios Cliente" necesita; las fechas
-          // (_pacientesFechas/_ordenesFechas) son para el gráfico "por
-          // fecha" de Resumen Global — se sacan de los MISMOS documentos
-          // ya leídos para el conteo, sin pedir nada extra a Firestore.
+          // El conteo (_usuarios/_pacientes/_ordenes) va también aquí por
+          // si acaso (compatibilidad con quien lea este resultado), pero
+          // ya nadie lo necesita de esta función — ver tenantsListGlobalConConteos.
           var pacientesFechas = [];
           snaps[1].forEach(function (doc) { var d = doc.data(); if (d.creadoEn) pacientesFechas.push(d.creadoEn); });
           var ordenesFechas = [];
@@ -977,8 +1015,57 @@
     }).finally(function () { tenantsGlobalRicoEnVuelo = null; });
     return tenantsGlobalRicoEnVuelo;
   }
-  function tenantsListGlobalConConteos(forzar) { return tenantsListGlobalRico(forzar); }
-  function tenantsListGlobal(forzar) { return tenantsListGlobalRico(forzar); }
+
+  // "Laboratorios Cliente": SOLO lee /tenants (liviano) y usa los
+  // contadores denormalizados ya guardados en cada documento. Un tenant
+  // que todavía no los tenga (creado antes de este cambio) se migra UNA
+  // SOLA VEZ aquí mismo: se cuentan sus propias subcolecciones (no las de
+  // los demás tenants) y el resultado queda guardado en su documento —
+  // la próxima vez que cualquiera visite esta pantalla, ESE tenant ya
+  // sale por la vía barata también. Con el tiempo (apenas cada laboratorio
+  // se visite una vez desde aquí) esta pantalla deja de leer una sola
+  // orden/paciente ajeno, para siempre.
+  var TENANTS_CON_CONTEOS_CACHE_MS = 25000;
+  var cacheTenantsConConteos = { datos: null, en: 0 };
+  function invalidarCacheTenantsConConteos() { cacheTenantsConConteos = { datos: null, en: 0 }; }
+  function cacheTenantsConConteosVigente() {
+    return !!cacheTenantsConConteos.datos && (Date.now() - cacheTenantsConConteos.en) < TENANTS_CON_CONTEOS_CACHE_MS;
+  }
+  var tenantsListGlobalConConteosEnVuelo = null;
+  function tenantsListGlobalConConteos(forzar) {
+    if (!firebaseDisponible()) return Promise.reject(errorFirebaseNoDisponible());
+    if (!forzar && cacheTenantsConConteosVigente()) return Promise.resolve(cacheTenantsConConteos.datos);
+    if (tenantsListGlobalConConteosEnVuelo) return tenantsListGlobalConConteosEnVuelo;
+    tenantsListGlobalConConteosEnVuelo = tenantsColl().get().then(function (snap) {
+      var tenants = [];
+      snap.forEach(function (doc) { tenants.push(doc.data()); });
+      tenants.sort(function (a, b) { return (b.creadoEn || "").localeCompare(a.creadoEn || ""); });
+      return Promise.all(tenants.map(function (t) {
+        var tieneContadores = typeof t.contadorUsuarios === "number" && typeof t.contadorPacientes === "number" && typeof t.contadorOrdenes === "number";
+        if (tieneContadores) {
+          return Object.assign({}, t, { _usuarios: t.contadorUsuarios, _pacientes: t.contadorPacientes, _ordenes: t.contadorOrdenes });
+        }
+        return Promise.all([
+          tenantsColl().doc(t.id).collection("users").get(),
+          tenantsColl().doc(t.id).collection("patients").get(),
+          tenantsColl().doc(t.id).collection("orders").get()
+        ]).then(function (snaps) {
+          var contadores = { contadorUsuarios: snaps[0].size, contadorPacientes: snaps[1].size, contadorOrdenes: snaps[2].size };
+          // Guarda la migración de este tenant para que la próxima visita
+          // ya lo encuentre con contadores — fire-and-forget, nunca debe
+          // bloquear ni tumbar esta pantalla si falla.
+          tenantsColl().doc(t.id).set(contadores, { merge: true }).catch(function (e) {
+            console.warn("BIOsoft: no se pudo guardar el contador inicial del laboratorio " + t.id + " ->", e);
+          });
+          return Object.assign({}, t, contadores, { _usuarios: contadores.contadorUsuarios, _pacientes: contadores.contadorPacientes, _ordenes: contadores.contadorOrdenes });
+        });
+      }));
+    }).then(function (tenantsConDatos) {
+      cacheTenantsConConteos = { datos: tenantsConDatos, en: Date.now() };
+      return tenantsConDatos;
+    }).finally(function () { tenantsListGlobalConConteosEnVuelo = null; });
+    return tenantsListGlobalConConteosEnVuelo;
+  }
   // Mismo criterio que crmWatch(): una sola conexión activa a la vez (se
   // cierra la anterior antes de abrir una nueva) y el aviso de cambio se
   // agrupa, para no disparar la lectura carísima de arriba una vez por
@@ -2063,6 +2150,7 @@
     db.patients.push(p);
     saveDB(db);
     fbWrite("patients", p.id, p);
+    incrementarContadorTenant(p.tenantId, "contadorPacientes", 1);
     return p;
   }
   function updatePatient(id, patch) {
@@ -2085,9 +2173,11 @@
     var db = loadDB();
     var tieneOrdenes = db.orders.some(function (o) { return o.patientId === id; });
     if (tieneOrdenes) return { ok: false, error: "Este paciente ya tiene órdenes registradas — no se puede eliminar." };
+    var paciente = db.patients.filter(function (p) { return p.id === id; })[0];
     db.patients = db.patients.filter(function (p) { return p.id !== id; });
     saveDB(db);
     fbDelete("patients", id);
+    if (paciente) incrementarContadorTenant(paciente.tenantId, "contadorPacientes", -1);
     return { ok: true };
   }
 
@@ -2322,6 +2412,7 @@
     db.orders.push(o);
     saveDB(db);
     fbWrite("orders", o.id, o);
+    incrementarContadorTenant(o.tenantId, "contadorOrdenes", 1);
     return o;
   }
   /* Elimina una orden por completo (ej. se creó de más por error, con
@@ -2329,9 +2420,11 @@
      — es un borrado directo, sin dejar la orden "cancelada" a la vista. */
   function deleteOrder(id) {
     var db = loadDB();
+    var orden = db.orders.filter(function (o) { return o.id === id; })[0];
     db.orders = db.orders.filter(function (o) { return o.id !== id; });
     saveDB(db);
     fbDelete("orders", id);
+    if (orden) incrementarContadorTenant(orden.tenantId, "contadorOrdenes", -1);
   }
   function saveOrder(order) {
     var db = loadDB();
