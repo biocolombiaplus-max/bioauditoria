@@ -712,6 +712,7 @@
         var servLote1 = serviciosEnRango(servicios, 1, 6), servLote2 = serviciosEnRango(servicios, 7, 12);
         return {
           planNombre: plan.nombre, planUsuarios: plan.usuarios, equipos: equipos, cobrarEquipos: cobrarEquipos,
+          planPrecioCOP: plan.precio, planPrecioUSD: plan.usd,
           descuentoPlan: descuentoPlan, servicios: servicios,
           primer: periodoConServicios({ periodo: "Primer mes", label: "6 meses de una vez · sin implementación" + (equipos ? " + conexión de " + equipos + " equipo(s)" : ""), cop: lote1.cop + equiposCOP, usd: lote1.usd + equiposUSD }, servLote1),
           segundo: periodoConServicios({ periodo: "A partir del mes 7", label: "6 meses de una vez · sin implementación", cop: lote2.cop, usd: lote2.usd }, servLote2),
@@ -737,6 +738,7 @@
       var m1 = montoPlanPeriodo(calc1, 1), m2 = montoPlanPeriodo(calc2, 2), m3 = hayTercero ? montoPlanPeriodo(calc3, 3) : null;
       return {
         planNombre: plan.nombre, planUsuarios: plan.usuarios, equipos: equipos, cobrarEquipos: cobrarEquipos,
+        planPrecioCOP: plan.precio, planPrecioUSD: plan.usd,
         descuentoPlan: descuentoPlan, servicios: servicios,
         primer: periodoConServicios({ periodo: "Primer mes", label: calc1.conceptoLabel + (equipos ? " + conexión de " + equipos + " equipo(s)" : ""), cop: m1.cop + equiposCOP, usd: m1.usd + equiposUSD }, serviciosEnMes(servicios, 1)),
         segundo: periodoConServicios({ periodo: hayTercero ? "Segundo mes" : "Desde el segundo mes", label: calc2.conceptoLabel, cop: m2.cop, usd: m2.usd }, serviciosEnMes(servicios, 2)),
@@ -802,10 +804,20 @@
           wrap.querySelector("#" + prefix + "-resumen-servicios").textContent = "";
           return;
         }
-        // Nota de descuento en vivo en la vista previa (ver textoDescuento),
-        // solo si el descuento de la mensualidad del plan sigue vigente en
-        // ese mes puntual — mismo criterio que usa el PDF.
-        function notaDesc(mes) { return descuentoVigenteEnMes(r.descuentoPlan, mes) ? " — con descuento (" + textoDescuento(r.descuentoPlan) + ")" : ""; }
+        // "Antes/Ahora/Ahorras" en vivo — el mismo juego de psicología de
+        // venta que el PDF (ver ahorroPlanPDF/ahorroServicioPDF en
+        // pdf-contrato.js): mostrar el precio original tachado-en-palabras
+        // junto al ahorro real motiva más que solo mostrar el precio final.
+        function ahorroPlan(mes) {
+          if (!descuentoVigenteEnMes(r.descuentoPlan, mes)) return null;
+          var d = aplicarDescuentoMonto(r.planPrecioCOP, r.planPrecioUSD, r.descuentoPlan);
+          return { normal: r.planPrecioCOP, ahorro: r.planPrecioCOP - d.cop, pct: r.planPrecioCOP > 0 ? Math.round((r.planPrecioCOP - d.cop) / r.planPrecioCOP * 100) : 0 };
+        }
+        function notaDesc(mes) {
+          var a = ahorroPlan(mes);
+          if (!a) return "";
+          return " — antes $" + a.normal.toLocaleString("es-CO") + " COP · ¡ahorras $" + a.ahorro.toLocaleString("es-CO") + " COP (" + a.pct + "%)!";
+        }
         // El software y los servicios adicionales se muestran SIEMPRE por
         // separado, nunca mezclados en un solo número — con un "Total a
         // pagar" al final que los suma, solo cuando de verdad hay algún
@@ -823,7 +835,12 @@
         if (r.tercero) wrap.querySelector("#" + prefix + "-resumen-tercero").textContent = lineaPeriodo(r.tercero, 3);
         wrap.querySelector("#" + prefix + "-resumen-servicios").textContent = r.servicios.length
           ? "Servicios incluidos: " + r.servicios.map(function (s) {
-              return s.nombre + " (" + fmtInversionCOP(s.valorCOP) + (s.tipoCobro === "unico" ? ", pago único" : "/mes") + (s.descuento ? ", con descuento" : "") + ")";
+              var txt = s.nombre + " (" + fmtInversionCOP(s.valorCOP) + (s.tipoCobro === "unico" ? ", pago único" : "/mes") + ")";
+              if (s.descuento) {
+                var d = aplicarDescuentoMonto(s.valorCOP, s.valorUSD, s.descuento);
+                txt += " — ¡ahorras " + fmtInversionCOP(s.valorCOP - d.cop) + "!";
+              }
+              return txt;
             }).join(" · ")
           : "";
       }

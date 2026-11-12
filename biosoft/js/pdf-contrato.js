@@ -115,21 +115,59 @@
     if (!descuento) return false;
     return descuento.meses == null || mes <= descuento.meses;
   }
+  // Descuento de la mensualidad del plan, convertido a un monto, igual que
+  // aplicarDescuentoMonto() en views-crm.js (duplicado aquí a propósito:
+  // pdf-contrato.js no depende de views-crm.js).
+  function aplicarDescuentoMontoPDF(cop, usd, descuento) {
+    if (!descuento) return { cop: cop, usd: usd };
+    if (descuento.tipo === "porcentaje") {
+      var factor = Math.max(0, 1 - descuento.valor / 100);
+      return { cop: Math.round(cop * factor), usd: Math.round(usd * factor) };
+    }
+    var copFinal = Math.max(0, cop - descuento.valor);
+    var usdFinal = cop > 0 ? Math.max(0, Math.round(usd * (copFinal / cop))) : usd;
+    return { cop: copFinal, usd: usdFinal };
+  }
+  // ¿Cuánto ahorra el cliente en la mensualidad del plan en un mes puntual?
+  // null si en ese mes el descuento ya no está vigente (o no hay ninguno).
+  function ahorroPlanPDF(ri, mes) {
+    if (!descuentoVigenteEnMesPDF(ri.descuentoPlan, mes)) return null;
+    var d = aplicarDescuentoMontoPDF(ri.planPrecioCOP, ri.planPrecioUSD, ri.descuentoPlan);
+    var ahorroCOP = ri.planPrecioCOP - d.cop;
+    return { normalCOP: ri.planPrecioCOP, ahorroCOP: ahorroCOP, pct: ri.planPrecioCOP > 0 ? Math.round(ahorroCOP / ri.planPrecioCOP * 100) : 0 };
+  }
+  // Tabla de la mensualidad del plan — juega la misma carta que cualquier
+  // buena página de precios: el precio normal tachado-en-palabras ("Antes"),
+  // el precio final en grande, y el ahorro resaltado con signos de
+  // exclamación — para que el descuento se SIENTA, no solo se calcule.
   function filasInversionPersonalizada(ri) {
-    // Nota de "(con descuento...)" junto al concepto de cada periodo, solo
-    // si el descuento de la mensualidad del plan sigue vigente en ese mes
-    // puntual (1, 2 o 3) — así el documento deja clarísimo desde cuándo
-    // el precio vuelve a ser el normal, si el descuento es temporal.
+    function celdaValor(p, mes) {
+      var celda = "$" + p.cop.toLocaleString("es-CO") + " COP\n(aprox. $" + p.usd + " USD)";
+      var a = ahorroPlanPDF(ri, mes);
+      if (a) celda += "\n\nAntes: $" + a.normalCOP.toLocaleString("es-CO") + " COP\n¡AHORRAS $" + a.ahorroCOP.toLocaleString("es-CO") + " COP (" + a.pct + "%)!";
+      return celda;
+    }
     function notaDescuento(mes) {
       if (!descuentoVigenteEnMesPDF(ri.descuentoPlan, mes)) return "";
       var d = ri.descuentoPlan;
       var valorTxt = d.tipo === "porcentaje" ? d.valor + "%" : "$" + Math.round(d.valor).toLocaleString("es-CO") + " COP";
       return " (con descuento de " + valorTxt + " en la mensualidad" + (d.meses == null ? ", permanente" : " — vigente por " + d.meses + " mes(es)") + ")";
     }
-    var filas = [[ri.primer.periodo, ri.primer.label + notaDescuento(1), "$" + ri.primer.cop.toLocaleString("es-CO") + " COP\n(aprox. $" + ri.primer.usd + " USD)"]];
-    filas.push([ri.segundo.periodo, ri.segundo.label + notaDescuento(2), "$" + ri.segundo.cop.toLocaleString("es-CO") + " COP\n(aprox. $" + ri.segundo.usd + " USD)"]);
-    if (ri.tercero) filas.push([ri.tercero.periodo, ri.tercero.label + notaDescuento(3), "$" + ri.tercero.cop.toLocaleString("es-CO") + " COP\n(aprox. $" + ri.tercero.usd + " USD)"]);
+    var filas = [[ri.primer.periodo, ri.primer.label + notaDescuento(1), celdaValor(ri.primer, 1)]];
+    filas.push([ri.segundo.periodo, ri.segundo.label + notaDescuento(2), celdaValor(ri.segundo, 2)]);
+    if (ri.tercero) filas.push([ri.tercero.periodo, ri.tercero.label + notaDescuento(3), celdaValor(ri.tercero, 3)]);
     return filas;
+  }
+  // Resalta en verde, con fondo suave, la celda de "Valor a pagar" de
+  // cualquier fila con descuento vigente — para que el ahorro también se
+  // note a simple vista, no solo en el texto. "filas" debe venir de
+  // filasInversionPersonalizada(ri) en el MISMO orden (una por periodo).
+  function didParseCellAhorroPlan(ri) {
+    return function (data) {
+      if (data.section !== "body" || data.column.index !== 2) return;
+      if (!ahorroPlanPDF(ri, data.row.index + 1)) return;
+      data.cell.styles.fillColor = [220, 252, 231]; data.cell.styles.textColor = [21, 128, 61]; data.cell.styles.fontStyle = "bold";
+    };
   }
   function notaInversionPersonalizada(ri, EQUIPOS) {
     return "Estos son los valores exactos calculados para tu laboratorio según lo conversado — fijos, sin cargos ocultos y sin cambios mientras continúes bajo estas mismas condiciones." +
@@ -152,13 +190,38 @@
         (s.descuento.tipo === "porcentaje" ? s.descuento.valor + "%" : "$" + Math.round(s.descuento.valor).toLocaleString("es-CO") + " COP") +
         (esUnico ? "" : s.descuento.meses == null ? " (permanente)" : " (por " + s.descuento.meses + " mes(es))");
       var sufijo = esUnico ? "" : "/mes";
+      var celdaFinal = "$" + valorConDescuento.toLocaleString("es-CO") + " COP" + sufijo;
+      if (tieneDesc) celdaFinal += "\n\nAntes: $" + s.valorCOP.toLocaleString("es-CO") + " COP" + sufijo + "\n¡AHORRAS $" + (s.valorCOP - valorConDescuento).toLocaleString("es-CO") + " COP" + sufijo + "!";
       return [
         s.nombre + (esUnico ? "\n(pago único — solo se cobra el primer mes)" : "\n(mensual, recurrente)"),
         "$" + s.valorCOP.toLocaleString("es-CO") + " COP" + sufijo,
         descTxt,
-        "$" + valorConDescuento.toLocaleString("es-CO") + " COP" + sufijo
+        celdaFinal
       ];
     });
+  }
+  // Suma del ahorro TOTAL del primer mes (plan + todos los servicios con
+  // descuento) — el cierre de venta clásico: "en total, ahorras $X este mes".
+  function totalAhorroPrimerMes(ri) {
+    var total = 0;
+    var ap = ahorroPlanPDF(ri, 1);
+    if (ap) total += ap.ahorroCOP;
+    (ri.servicios || []).forEach(function (s) {
+      if (!s.descuento) return;
+      var d = aplicarDescuentoMontoPDF(s.valorCOP, s.valorUSD, s.descuento);
+      total += s.valorCOP - d.cop;
+    });
+    return total;
+  }
+  // Resalta en verde la celda final de cualquier servicio CON descuento —
+  // mismo criterio visual que didParseCellAhorroPlan, para la tabla de
+  // Servicios Adicionales.
+  function didParseCellAhorroServicios(servicios) {
+    return function (data) {
+      if (data.section !== "body" || data.column.index !== 3) return;
+      if (!servicios[data.row.index] || !servicios[data.row.index].descuento) return;
+      data.cell.styles.fillColor = [220, 252, 231]; data.cell.styles.textColor = [21, 128, 61]; data.cell.styles.fontStyle = "bold";
+    };
   }
   // Total a pagar por periodo (software + servicios adicionales, cada uno
   // visible por separado, nunca mezclados en un solo número de entrada —
@@ -963,7 +1026,7 @@
         { size: 9, color: [90, 90, 90], gap: 8 }
       );
       var filasInversion = filasInversionPersonalizada(ri);
-      checkPage(filasInversion.length * 30 + 40);
+      checkPage(filasInversion.length * 60 + 40);
       doc.autoTable({
         startY: y, margin: { left: margin, right: margin },
         head: [["Periodo", "Concepto", "Valor a pagar"]],
@@ -971,14 +1034,15 @@
         theme: "grid",
         styles: { fontSize: 9, cellPadding: 7, valign: "middle" },
         headStyles: { fillColor: [249, 115, 22], textColor: 255, fontStyle: "bold" },
-        columnStyles: { 0: { fontStyle: "bold", cellWidth: maxW * 0.16 }, 2: { fontStyle: "bold", halign: "right", cellWidth: maxW * 0.27 } }
+        columnStyles: { 0: { fontStyle: "bold", cellWidth: maxW * 0.16 }, 2: { fontStyle: "bold", halign: "right", cellWidth: maxW * 0.27 } },
+        didParseCell: didParseCellAhorroPlan(ri)
       });
       y = doc.lastAutoTable.finalY + 8;
       parrafo(notaInversionPersonalizada(ri, EQUIPOS), { size: 8.5, color: [120, 120, 120], gap: 16 });
       if (ri.servicios && ri.servicios.length) {
         tituloSeccion("Servicios adicionales contratados — cobro independiente");
         parrafo("Estos servicios se cobran por separado de la suscripción mensual del software (tabla de arriba) — nunca se mezclan en un solo valor.", { size: 8.5, color: [120, 120, 120], gap: 8 });
-        checkPage(ri.servicios.length * 26 + 40);
+        checkPage(ri.servicios.length * 50 + 40);
         doc.autoTable({
           startY: y, margin: { left: margin, right: margin },
           head: [["Servicio", "Valor mensual", "Descuento", "Valor con descuento"]],
@@ -986,7 +1050,8 @@
           theme: "grid",
           styles: { fontSize: 8.7, cellPadding: 7, valign: "middle" },
           headStyles: { fillColor: [46, 16, 101], textColor: 255, fontStyle: "bold" },
-          columnStyles: { 3: { fontStyle: "bold", halign: "right" } }
+          columnStyles: { 3: { fontStyle: "bold", halign: "right" } },
+          didParseCell: didParseCellAhorroServicios(ri.servicios)
         });
         y = doc.lastAutoTable.finalY + 16;
 
@@ -1002,6 +1067,12 @@
           columnStyles: { 0: { fontStyle: "bold" }, 3: { fontStyle: "bold", halign: "right" } }
         });
         y = doc.lastAutoTable.finalY + 16;
+      }
+      var totalAhorroMes1 = totalAhorroPrimerMes(ri);
+      if (totalAhorroMes1 > 0) {
+        recuadro("Tu ahorro en esta propuesta", [
+          "Solo en el primer mes, ahorras $" + totalAhorroMes1.toLocaleString("es-CO") + " COP frente al precio normal — y seguirás ahorrando mientras el descuento esté vigente."
+        ]);
       }
     } else {
       recuadro("Oferta de lanzamiento — gratis al aceptar esta propuesta hoy", [
@@ -1282,22 +1353,24 @@
         { size: 9.5, bold: true, color: [46, 16, 101], gap: 10 }
       );
       tituloSeccion("Resumen de la inversión — valores fijos de este documento");
-      checkPage(120);
+      var filasInversionCot = filasInversionPersonalizada(ri);
+      checkPage(filasInversionCot.length * 60 + 40);
       doc.autoTable({
         startY: y, margin: { left: margin, right: margin },
         head: [["Periodo", "Concepto", "Valor a pagar"]],
-        body: filasInversionPersonalizada(ri),
+        body: filasInversionCot,
         theme: "grid",
         styles: { fontSize: 9, cellPadding: 7, valign: "middle" },
         headStyles: { fillColor: [249, 115, 22], textColor: 255, fontStyle: "bold" },
-        columnStyles: { 0: { fontStyle: "bold", cellWidth: maxW * 0.16 }, 2: { fontStyle: "bold", halign: "right", cellWidth: maxW * 0.27 } }
+        columnStyles: { 0: { fontStyle: "bold", cellWidth: maxW * 0.16 }, 2: { fontStyle: "bold", halign: "right", cellWidth: maxW * 0.27 } },
+        didParseCell: didParseCellAhorroPlan(ri)
       });
       y = doc.lastAutoTable.finalY + 8;
       parrafo(notaInversionPersonalizada(ri, EQUIPOS), { size: 8.5, color: [120, 120, 120], gap: 16 });
       if (ri.servicios && ri.servicios.length) {
         tituloSeccion("Servicios adicionales contratados — cobro independiente");
         parrafo("Estos servicios se cobran por separado de la suscripción mensual del software (tabla de arriba) — nunca se mezclan en un solo valor.", { size: 8.5, color: [120, 120, 120], gap: 8 });
-        checkPage(ri.servicios.length * 26 + 40);
+        checkPage(ri.servicios.length * 50 + 40);
         doc.autoTable({
           startY: y, margin: { left: margin, right: margin },
           head: [["Servicio", "Valor mensual", "Descuento", "Valor con descuento"]],
@@ -1305,7 +1378,8 @@
           theme: "grid",
           styles: { fontSize: 8.7, cellPadding: 7, valign: "middle" },
           headStyles: { fillColor: [46, 16, 101], textColor: 255, fontStyle: "bold" },
-          columnStyles: { 3: { fontStyle: "bold", halign: "right" } }
+          columnStyles: { 3: { fontStyle: "bold", halign: "right" } },
+          didParseCell: didParseCellAhorroServicios(ri.servicios)
         });
         y = doc.lastAutoTable.finalY + 16;
 
@@ -1321,6 +1395,12 @@
           columnStyles: { 0: { fontStyle: "bold" }, 3: { fontStyle: "bold", halign: "right" } }
         });
         y = doc.lastAutoTable.finalY + 16;
+      }
+      var totalAhorroMes1Cot = totalAhorroPrimerMes(ri);
+      if (totalAhorroMes1Cot > 0) {
+        recuadro("Tu ahorro en esta cotización", [
+          "Solo en el primer mes, ahorras $" + totalAhorroMes1Cot.toLocaleString("es-CO") + " COP frente al precio normal — y seguirás ahorrando mientras el descuento esté vigente."
+        ]);
       }
     } else {
       tituloSeccion("Planes disponibles por usuarios (Colombia)");
