@@ -127,6 +127,7 @@
     root.innerHTML =
       '<div class="card"><div class="card-header"><h3 class="card-title">Órdenes de Laboratorio (' + orders.length + (hayFiltrosActivos ? " de " + todasLasOrdenes.length : "") + ')</h3>' +
       '<div class="flex gap-2"><button class="btn btn-ghost btn-sm" id="btn-verificar-duplicados" title="Revisa que ningún número de orden esté repetido entre dos pacientes distintos">' + U.icon("history") + ' Verificar duplicados</button>' +
+      '<button class="btn btn-ghost btn-sm" id="btn-restaurar-numeros" title="Restaura el número original de órdenes a las que el verificador de duplicados les cambió el número por error (falso positivo), confirmado por el historial de Auditoría">' + U.icon("history") + ' Restaurar números afectados</button>' +
       '<button class="btn btn-primary" id="btn-new-ord">' + U.icon("plus") + ' Nueva Orden</button></div></div>' +
       '<div class="flex gap-2 wrap items-center" style="margin-bottom:14px">' +
         '<div class="field" style="max-width:320px;margin-bottom:0"><input type="text" id="ord-buscar" placeholder="🔎 Buscar por nombre o cédula del paciente…" value="' + U.esc(ordenesSearchTerm) + '"/></div>' +
@@ -183,13 +184,13 @@
       btnVerificarDuplicados.disabled = true; btnVerificarDuplicados.innerHTML = "Verificando…";
       setTimeout(function () {
         try {
-          var corregidas = S.verificarYCorregirNumerosOrdenDuplicados(session.tenantId);
-          if (!corregidas.length) {
+          var detectados = S.verificarYCorregirNumerosOrdenDuplicados(session.tenantId);
+          if (!detectados.length) {
             U.toast("Todo en orden: ningún número de orden está repetido.", "success");
           } else {
-            U.toast(corregidas.length + " número(s) de orden duplicado(s) corregido(s): " +
-              corregidas.map(function (c) { return c.numeroAnterior + " → " + c.numeroNuevo; }).join(", "), "success");
-            build();
+            U.toast(detectados.length + " número(s) de orden duplicado(s) ENTRE PACIENTES DISTINTOS: " +
+              detectados.map(function (d) { return d.numeroOrden; }).join(", ") +
+              ". No se cambió nada automáticamente — revisa Trazabilidad y renumera a mano la que corresponda.", "error");
           }
         } catch (err) {
           console.error("BIOsoft: error al verificar números de orden duplicados ->", err);
@@ -198,6 +199,25 @@
           btnVerificarDuplicados.disabled = false; btnVerificarDuplicados.innerHTML = textoOriginal;
         }
       }, 50);
+    });
+    var btnRestaurarNumeros = document.getElementById("btn-restaurar-numeros");
+    if (btnRestaurarNumeros) btnRestaurarNumeros.addEventListener("click", function () {
+      var textoOriginal = btnRestaurarNumeros.innerHTML;
+      btnRestaurarNumeros.disabled = true; btnRestaurarNumeros.innerHTML = "Restaurando…";
+      S.repararNumerosOrdenRevertidosPorFalsoPositivo(session.tenantId).then(function (restauradas) {
+        if (!restauradas.length) {
+          U.toast("No hay órdenes pendientes de restaurar.", "success");
+        } else {
+          U.toast(restauradas.length + " orden(es) restaurada(s) a su número original: " +
+            restauradas.map(function (r) { return r.numeroQueTenia + " → " + r.numeroRestaurado; }).join(", "), "success");
+          build();
+        }
+      }).catch(function (err) {
+        console.error("BIOsoft: error al restaurar números de orden ->", err);
+        U.toast("No se pudo completar la restauración. Intenta de nuevo.", "error");
+      }).finally(function () {
+        btnRestaurarNumeros.disabled = false; btnRestaurarNumeros.innerHTML = textoOriginal;
+      });
     });
     var inputBuscar = document.getElementById("ord-buscar");
     inputBuscar.addEventListener("input", function (e) {

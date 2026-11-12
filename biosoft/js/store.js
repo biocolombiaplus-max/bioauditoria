@@ -18,6 +18,7 @@
   var FB_TENANT_ID = null;
   var realCache = null;
   var realUnsubs = [];
+  var realGen = 0; // ver comentario dentro de initRealtime()
   var onRealtimeChangeCb = null;
 
   /* Caso real que motivó esto: guardar Configuración del Laboratorio se
@@ -135,6 +136,23 @@
     // parte de cerrar los unsubs.
     realUnsubs.forEach(function (u) { try { u(); } catch (e) {} });
     realUnsubs = [];
+    // u() de arriba deja de pedir snapshots NUEVOS, pero no cancela un
+    // evento que el SDK de Firestore ya haya puesto en la cola de
+    // microtareas justo antes de llamar unsub() (ventana de carrera real,
+    // milisegundos). Sin este contador, ese evento "fantasma" del intento
+    // VIEJO podía llegar a ejecutarse después de que las líneas de abajo
+    // ya reiniciaron realCache para el intento NUEVO — escribiendo en el
+    // arreglo nuevo una copia extra de un documento que el intento nuevo
+    // también estaba a punto de insertar (mismo id, dos posiciones). Eso
+    // fue la causa raíz de un bug real reportado: verificarYCorregir...
+    // (más abajo) veía esa orden "duplicada" en memoria y, creyendo que
+    // eran 2 órdenes de 2 pacientes distintas, le cambiaba el número a la
+    // única orden real que había — ya entregada/impresa. Cada llamada a
+    // initRealtime() sube realGen; cualquier evento que llegue de un
+    // intento anterior (miGen distinto al realGen actual) se descarta sin
+    // tocar nada.
+    realGen++;
+    var miGen = realGen;
     MODE = "real";
     FB_TENANT_ID = tenantId;
     realCache = emptyDB();
@@ -170,6 +188,7 @@
         var resuelto = false;
         function terminar() { if (!resuelto) { resuelto = true; resolve(); } }
         var unsub = fbColl(coll).onSnapshot(function (snap) {
+          if (miGen !== realGen) return; // evento tardío de un intento de login ya reemplazado (ver comentario en initRealtime)
           // Set de ids YA presentes en realCache[arrKey] en este instante
           // — se arma UNA vez por evento (no por cada "added"), y solo si
           // de verdad hace falta (la mayoría de los eventos en vivo son
@@ -238,6 +257,7 @@
     var tenantPromise = new Promise(function (resolve, reject) {
       var resuelto = false;
       var unsub = db.collection("tenants").doc(tenantId).onSnapshot(function (doc) {
+        if (miGen !== realGen) return; // evento tardío de un intento de login ya reemplazado
         if (doc.exists) realCache.tenants[tenantId] = doc.data();
         if (!resuelto) { resuelto = true; resolve(); }
         if (onRealtimeChangeCb) onRealtimeChangeCb();
@@ -314,6 +334,11 @@
     // documento recibido.
     realUnsubs.forEach(function (u) { try { u(); } catch (e) {} });
     realUnsubs = [];
+    // Mismo contador de generación que initRealtime() (ver su comentario):
+    // descarta cualquier evento tardío de un intento de login anterior que
+    // ya haya sido reemplazado por este.
+    realGen++;
+    var miGen = realGen;
     MODE = "real";
     FB_TENANT_ID = tenantId;
     realCache = emptyDB();
@@ -328,6 +353,7 @@
     var tenantPromise = new Promise(function (resolve, reject) {
       var resuelto = false;
       var unsub = db.collection("tenants").doc(tenantId).onSnapshot(function (doc) {
+        if (miGen !== realGen) return;
         if (doc.exists) realCache.tenants[tenantId] = doc.data();
         if (!resuelto) { resuelto = true; resolve(); }
         if (onRealtimeChangeCb) onRealtimeChangeCb();
@@ -345,6 +371,7 @@
     var ordersPromise = new Promise(function (resolve) {
       var resuelto = false;
       var unsub = ordersQuery.onSnapshot(function (snap) {
+        if (miGen !== realGen) return;
         snap.docChanges().forEach(function (change) {
           if (change.type === "removed") { realCache.orders = realCache.orders.filter(function (x) { return x.id !== change.doc.id; }); return; }
           var idx = realCache.orders.findIndex(function (x) { return x.id === change.doc.id; });
@@ -2163,9 +2190,26 @@
   // distintos con la misma orden "2026-0659"). Esta función se corre sola al
   // iniciar sesión (ver rehydrate()/loginReal() -> restoreRealtime()) y
   // también se puede disparar a mano (botón en Configuración del
-  // Laboratorio): detecta duplicados YA guardados y le asigna uno nuevo,
-  // único, a todas las órdenes del grupo salvo la más antigua (que conserva
-  // el número original, por ser la que de verdad "le pertenecía" primero).
+  // Laboratorio).
+  //
+  // INCIDENTE REAL (nov 2026): esta función ANTES le asignaba ella sola un
+  // número nuevo a la orden "sobrante" del grupo duplicado, apenas lo
+  // detectaba. El problema: agrupaba solo por el VALOR de numeroOrden, sin
+  // comprobar que las entradas del grupo tuvieran un id distinto entre sí.
+  // Existe una ventana de carrera (ver el comentario de realGen dentro de
+  // initRealtime()) que puede dejar, por una fracción de segundo, la MISMA
+  // orden real duplicada dos veces en memoria (mismo id). Esta función
+  // confundía ese espejismo con una colisión real entre 2 pacientes y le
+  // cambiaba el número a una orden que nunca estuvo duplicada de verdad —
+  // ya impresa/entregada al paciente (3 pacientes afectados, reportado por
+  // el laboratorio: "el sistema les cambió el número"). Ya se corrigió la
+  // ventana de carrera (realGen), pero esta función además deja de
+  // reasignar número por su cuenta: un numeroOrden ya puede estar en un
+  // sticker, un recibo o dicho de palabra al paciente — cambiarlo sin que
+  // un humano lo confirme causa más daño que el duplicado mismo. Ahora solo
+  // detecta y REPORTA en Auditoría (acción "DUPLICATE_ORDER_NUMBER_DETECTED")
+  // cuando encuentra 2+ órdenes con id distinto compartiendo numeroOrden;
+  // el Administrador decide a mano, desde Trazabilidad, cuál renumerar.
   function verificarYCorregirNumerosOrdenDuplicados(tenantId) {
     var db = loadDB();
     var ordenesTenant = db.orders.filter(function (o) { return o.tenantId === tenantId; });
@@ -2173,27 +2217,69 @@
     ordenesTenant.forEach(function (o) {
       var num = o.numeroOrden || "";
       if (!num) return;
-      (porNumero[num] = porNumero[num] || []).push(o);
+      var grupo = porNumero[num] = porNumero[num] || [];
+      // Si ya hay una entrada con este mismo id en el grupo, es el espejismo
+      // de la ventana de carrera (la misma orden real repetida en memoria),
+      // no una segunda orden distinta chocando con la primera — se ignora.
+      if (grupo.some(function (x) { return x.id === o.id; })) return;
+      grupo.push(o);
     });
-    var ocupados = ordenesTenant.map(function (o) { return o.numeroOrden; });
-    var corregidas = [];
+    var detectados = [];
     Object.keys(porNumero).forEach(function (num) {
       var grupo = porNumero[num];
       if (grupo.length < 2) return;
-      grupo.sort(function (a, b) { return (a.creadoEn || a.fechaOrden || "").localeCompare(b.creadoEn || b.fechaOrden || ""); });
-      for (var i = 1; i < grupo.length; i++) {
-        var o = grupo[i];
-        var numeroAnterior = o.numeroOrden;
-        var nuevoNumero = numeroOrdenLibre(tenantId, ocupados);
-        ocupados.push(nuevoNumero);
-        o.numeroOrden = nuevoNumero;
-        saveOrder(o);
-        addAudit(tenantId, "Sistema", "sistema", "FIX_DUPLICATE_ORDER_NUMBER", "orden", o.id,
-          "Se corrigió un número de orden duplicado: la orden del paciente pasó de " + numeroAnterior + " a " + nuevoNumero + " (" + numeroAnterior + " ya estaba en uso por otra orden distinta).");
-        corregidas.push({ id: o.id, numeroAnterior: numeroAnterior, numeroNuevo: nuevoNumero, patientId: o.patientId });
-      }
+      addAudit(tenantId, "Sistema", "sistema", "DUPLICATE_ORDER_NUMBER_DETECTED", "orden", grupo[0].id,
+        "Se detectaron " + grupo.length + " órdenes de pacientes DISTINTOS usando el mismo número de orden (" + num +
+        "): " + grupo.map(function (o) { return o.id; }).join(", ") +
+        ". No se cambió ningún número automáticamente — un Administrador debe revisar cuál de estas órdenes renumerar.");
+      detectados.push({ numeroOrden: num, ids: grupo.map(function (o) { return o.id; }) });
     });
-    return corregidas;
+    return detectados;
+  }
+  // Reparación puntual del incidente de nov 2026 (ver comentario arriba en
+  // verificarYCorregirNumerosOrdenDuplicados): busca, en el historial real
+  // de Auditoría, las órdenes a las que la versión anterior (con el bug)
+  // les cambió el número por un falso positivo, y les devuelve su número
+  // original — pero SOLO cuando es seguro:
+  //   1. la orden todavía tiene el número "nuevo" que quedó registrado (si
+  //      ya cambió otra vez por otro motivo, no se toca);
+  //   2. el número original ya no está en uso por ninguna otra orden (si
+  //      alguien lo reutilizó después, revertir chocaría de nuevo — se deja
+  //      así y queda reportado para revisión manual).
+  // Es manual (botón en Órdenes), no automático en cada login: a diferencia
+  // de verificarYCorregirNumerosOrdenDuplicados(), esto necesita leer TODO
+  // el historial de Auditoría (listAuditRemoto(), una lectura completa de
+  // la colección) y no vale la pena pagar ese costo en cada inicio de
+  // sesión para siempre — solo mientras se termina de limpiar este
+  // incidente puntual.
+  function repararNumerosOrdenRevertidosPorFalsoPositivo(tenantId) {
+    if (!firebaseDisponible()) return Promise.reject(errorFirebaseNoDisponible());
+    return listAuditRemoto().then(function (auditLog) {
+      var db = loadDB();
+      var ordenesTenant = db.orders.filter(function (o) { return o.tenantId === tenantId; });
+      var porId = {};
+      ordenesTenant.forEach(function (o) { porId[o.id] = o; });
+      var ocupados = ordenesTenant.map(function (o) { return o.numeroOrden; });
+      var restauradas = [];
+      auditLog
+        .filter(function (a) { return a.tenantId === tenantId && a.accion === "FIX_DUPLICATE_ORDER_NUMBER"; })
+        .forEach(function (a) {
+          var m = /pasó de (\S+) a (\S+) \(/.exec(a.detalle || "");
+          if (!m) return;
+          var numeroAnterior = m[1], numeroNuevo = m[2];
+          var o = porId[a.entidadId];
+          if (!o || o.numeroOrden !== numeroNuevo) return;
+          if (ocupados.indexOf(numeroAnterior) !== -1) return;
+          o.numeroOrden = numeroAnterior;
+          saveOrder(o);
+          addAudit(tenantId, "Sistema", "sistema", "REVERT_SUSPICIOUS_ORDER_RENUMBER", "orden", o.id,
+            "Se restauró el número de orden original (" + numeroAnterior + "): el cambio anterior a " + numeroNuevo +
+            " se debió a un falso positivo del verificador de duplicados, no a una colisión real.");
+          ocupados.push(numeroAnterior);
+          restauradas.push({ id: o.id, numeroRestaurado: numeroAnterior, numeroQueTenia: numeroNuevo, patientId: o.patientId });
+        });
+      return restauradas;
+    });
   }
   function createOrder(data) {
     var db = loadDB();
@@ -2990,6 +3076,7 @@
     getOrder: getOrder,
     nextOrderNumber: nextOrderNumber,
     verificarYCorregirNumerosOrdenDuplicados: verificarYCorregirNumerosOrdenDuplicados,
+    repararNumerosOrdenRevertidosPorFalsoPositivo: repararNumerosOrdenRevertidosPorFalsoPositivo,
     FORMATOS_NUMERO_ORDEN: FORMATOS_NUMERO_ORDEN,
     createOrder: createOrder,
     deleteOrder: deleteOrder,
