@@ -210,14 +210,21 @@
     var unsubClientes = null, unsubPlantillas = null;
 
     function cargar() {
-      S.crm.list().then(function (list) {
+      // conLimiteDeTiempo en cada lectura: sin esto, una conexión mala a
+      // mitad de camino podía dejar cualquiera de estas 3 lecturas pendiente
+      // PARA SIEMPRE — ni resuelve ni rechaza, así que ni siquiera el
+      // .catch() de plantillas/tenantsGlobal (que ya tolera un error real)
+      // alcanzaba a disparar, y "Cargando clientes…" se quedaba pegado sin
+      // ningún aviso (bug real reportado). Ver el comentario del helper en
+      // store.js.
+      S.conLimiteDeTiempo(function () { return S.crm.list(); }).then(function (list) {
         clientes = list;
         return Promise.all([
-          S.plantillas.list().catch(function (err) {
+          S.conLimiteDeTiempo(function () { return S.plantillas.list(); }).catch(function (err) {
             console.error("BIOsoft: no se pudieron cargar las plantillas ->", err.code, err.message);
             return [];
           }),
-          S.tenantsGlobal.listBasico().catch(function (err) {
+          S.conLimiteDeTiempo(function () { return S.tenantsGlobal.listBasico(); }).catch(function (err) {
             console.error("BIOsoft: no se pudieron cargar los laboratorios para el CRM ->", err.code, err.message);
             return [];
           })
@@ -231,7 +238,9 @@
       }).catch(function (err) {
         cargando = false;
         console.error("BIOsoft: no se pudo cargar crmClientes ->", err.code, err.message);
-        root.innerHTML = '<div class="card"><p class="text-muted">No se pudo cargar el CRM (crmClientes): ' + U.esc(err.message || String(err)) + (err.code ? " — código: " + U.esc(err.code) : "") + '</p></div>';
+        root.innerHTML = '<div class="card"><p class="text-muted">No se pudo cargar el CRM (crmClientes): ' + U.esc(err.message || String(err)) + (err.code ? " — código: " + U.esc(err.code) : "") + '</p><button type="button" class="btn btn-outline btn-sm" id="btn-reintentar-crm" style="margin-top:8px">' + U.icon("history") + ' Reintentar</button></div>';
+        var btnReintentar = document.getElementById("btn-reintentar-crm");
+        if (btnReintentar) btnReintentar.addEventListener("click", function () { cargando = true; build(); cargar(); });
       });
     }
 

@@ -44,9 +44,14 @@
     var unsubVisitantes = null;
 
     function cargar() {
-      S.crm.list().then(function (list) {
+      // conLimiteDeTiempo: sin esto, una conexión mala a mitad de camino
+      // podía dejar crm.list()/visitantesLanding.list() pendientes PARA
+      // SIEMPRE — ni resuelve ni rechaza, así que "Cargando…" se quedaba
+      // pegado sin ningún aviso (bug real reportado). Ver el comentario
+      // del helper en store.js.
+      S.conLimiteDeTiempo(function () { return S.crm.list(); }).then(function (list) {
         leads = list;
-        return S.visitantesLanding.list();
+        return S.conLimiteDeTiempo(function () { return S.visitantesLanding.list(); });
       }).then(function (list) {
         visitantes = list;
         cargando = false;
@@ -74,7 +79,12 @@
 
     function build() {
       if (cargando) { root.innerHTML = '<div class="card"><p class="text-muted">Cargando…</p></div>'; return; }
-      if (error) { root.innerHTML = '<div class="card"><p class="text-muted">' + U.esc(error) + "</p></div>"; return; }
+      if (error) {
+        root.innerHTML = '<div class="card"><p class="text-muted">' + U.esc(error) + '</p><button type="button" class="btn btn-outline btn-sm" id="btn-reintentar-campanas" style="margin-top:8px">' + U.icon("history") + ' Reintentar</button></div>';
+        var btnReintentar = document.getElementById("btn-reintentar-campanas");
+        if (btnReintentar) btnReintentar.addEventListener("click", function () { cargando = true; error = ""; build(); cargar(); });
+        return;
+      }
 
       var todos = visitantes || [];
       var desde = desdePeriodo();

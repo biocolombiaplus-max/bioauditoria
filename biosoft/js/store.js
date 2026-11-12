@@ -504,6 +504,41 @@
   function firebaseDisponible() { return !!global.BIO_FB; }
   function errorFirebaseNoDisponible() { return new Error("No se pudo conectar con el servidor. Verifica tu conexión a internet."); }
 
+  // Firestore puede dejar una promesa pendiente PARA SIEMPRE si la conexión
+  // está mala a mitad de camino (no falla, no avisa nada: simplemente nunca
+  // resuelve) — mismo problema real ya resuelto puntualmente para "Guardar
+  // Configuración"/Diagnóstico de Acceso en views-admin.js (ver su propio
+  // conLimiteDeTiempo ahí), aplicado aquí de forma genérica para las
+  // pantallas de superadmin que SÍ pueden quedarse pegadas en "Cargando…"
+  // para siempre sin ningún aviso (bug real reportado: "Clientes (CRM)" y
+  // "Laboratorios Cliente" se quedaban cargando sin fin, indistinguible de
+  // un bug real). Solo limita la ESPERA (no cancela la operación real, que
+  // Firestore puede seguir intentando sola de fondo) a 15 segundos — más
+  // que los 8s del otro helper porque estas pantallas sí pueden bajar
+  // miles de documentos en una conexión lenta mas no muerta, y no se quiere
+  // avisar "tardó mucho" cuando en realidad solo iba a tardar un poco más.
+  // Recibe la promesa ya empezada o, mejor, una función que la arranca
+  // (así un error SÍNCRONO al armar la consulta también se atrapa aquí en
+  // vez de tronar el script a mitad de camino con la vista pegada).
+  function conLimiteDeTiempo(promesaOFuncion, ms) {
+    var promesa;
+    try {
+      promesa = typeof promesaOFuncion === "function" ? promesaOFuncion() : promesaOFuncion;
+    } catch (err) {
+      return Promise.reject(err);
+    }
+    var yaTermino = false;
+    promesa.then(function () { yaTermino = true; }, function () { yaTermino = true; });
+    return Promise.race([
+      promesa,
+      new Promise(function (resolve, reject) {
+        setTimeout(function () {
+          if (!yaTermino) reject(new Error("Esto está tardando más de lo normal — revisa tu conexión a internet e inténtalo de nuevo."));
+        }, ms || 15000);
+      })
+    ]);
+  }
+
   function crmColl() { return global.BIO_FB.db.collection("crmClientes"); }
 
   // crmList() en vuelo (si varias pantallas de superadmin -CRM, Campañas-
@@ -3052,6 +3087,7 @@
     addAudit: addAudit,
     listAudit: listAudit,
     listAuditRemoto: listAuditRemoto,
+    conLimiteDeTiempo: conLimiteDeTiempo,
     listTenants: listTenants,
     getTenant: getTenant,
     saveTenant: saveTenant,
