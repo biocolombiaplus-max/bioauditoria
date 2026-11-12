@@ -661,6 +661,60 @@ fbq('track', 'PageView');
 
   /* ---- Marquee de clientes: sello redondeado más fino ---- */
   .lp-clientes-kicker { font-weight: 800 !important; }
+
+  /* =====================================================================
+     SECCIÓN "PÁGINA WEB DE RESULTADOS" — mockup animado de navegador con
+     el formulario de Consulta de Resultados REAL (mismo flujo que
+     sitio-web.html), reproduciéndose solo en bucle: escribe el documento
+     y el código, presiona "Consultar" y muestra el resultado encontrado.
+     Es la prueba visual más fuerte de "esto funciona de verdad" — en vez
+     de solo describir la función, se ve pasar en vivo frente al visitante
+     (ver js/landing-demo-resultados.js). Pura maqueta de ventas: no hace
+     ninguna consulta real a Firestore. ---- */
+  .lp-demo-browser {
+    background: #fff; border-radius: 16px; overflow: hidden; border: 1px solid rgba(15,23,42,.08);
+    box-shadow: 0 24px 54px -10px rgba(76,29,149,.22), 0 10px 24px -8px rgba(0,0,0,.12); max-width: 420px; margin: 0 auto;
+  }
+  .lp-demo-bar { display: flex; align-items: center; gap: 6px; padding: 10px 14px; background: var(--surface-2); border-bottom: 1px solid var(--border); }
+  .lp-demo-bar i { width: 9px; height: 9px; border-radius: 50%; background: #cbd5e1; display: block; }
+  .lp-demo-bar-url { margin-left: 8px; font-size: 10.5px; color: var(--text-muted); background: #fff; border: 1px solid var(--border); padding: 3px 12px; border-radius: 8px; flex: 1; display: flex; align-items: center; gap: 5px; }
+  .lp-demo-screen { position: relative; padding: 26px 22px 30px; background: linear-gradient(170deg, #fff 0%, #fff7ed 100%); min-height: 330px; }
+  .lp-demo-card, .lp-demo-success { transition: opacity .4s ease, transform .4s ease; }
+  .lp-demo-lock { width: 38px; height: 38px; border-radius: 10px; background: var(--brand-secondary); color: #fff; display: flex; align-items: center; justify-content: center; font-size: 16px; margin-bottom: 10px; }
+  .lp-demo-card h4 { margin: 0 0 2px; font-size: 16px; }
+  .lp-demo-card > p { margin: 0 0 16px; font-size: 11.5px; color: var(--text-muted); }
+  .lp-demo-field-label { font-size: 10.5px; font-weight: 700; color: var(--text-muted); margin: 10px 0 4px; display: block; }
+  .lp-demo-input { background: var(--surface-2); border: 1.5px solid var(--border); border-radius: 9px; padding: 9px 12px; font-size: 13px; font-weight: 600; color: var(--text); min-height: 17px; display: flex; align-items: center; letter-spacing: .5px; }
+  .lp-demo-cursor { display: inline-block; width: 2px; height: 13px; background: var(--brand-primary); margin-left: 1px; animation: lpDemoCursor .8s step-end infinite; }
+  @keyframes lpDemoCursor { 0%, 100% { opacity: 1; } 50% { opacity: 0; } }
+  .lp-demo-btn {
+    width: 100%; margin-top: 16px; background: linear-gradient(135deg, var(--brand-primary), var(--brand-primary-dark)); color: #fff; border: none;
+    border-radius: 10px; padding: 12px; font-weight: 800; font-size: 13.5px; font-family: inherit; cursor: default;
+    transition: transform .15s ease, box-shadow .15s ease; box-shadow: 0 8px 18px -6px color-mix(in srgb, var(--brand-primary) 50%, transparent);
+  }
+  .lp-demo-btn.lp-demo-press { transform: scale(.96); box-shadow: 0 4px 10px -4px color-mix(in srgb, var(--brand-primary) 50%, transparent); }
+  .lp-demo-btn-dark { background: var(--brand-secondary); margin-top: 14px; }
+  .lp-demo-success {
+    position: absolute; inset: 20px 22px; display: flex; flex-direction: column; align-items: center; text-align: center; justify-content: center;
+    opacity: 0; transform: translateY(8px) scale(.97); pointer-events: none;
+  }
+  .lp-demo-success.on { opacity: 1; transform: translateY(0) scale(1); }
+  .lp-demo-card.lp-demo-fade { opacity: 0; transform: translateY(-6px) scale(.98); pointer-events: none; }
+  .lp-demo-check {
+    width: 52px; height: 52px; border-radius: 50%; background: #dcfce7; color: #16a34a; font-size: 26px; font-weight: 800;
+    display: flex; align-items: center; justify-content: center; margin-bottom: 10px; animation: lpDemoPop .5s cubic-bezier(.34,1.56,.64,1);
+  }
+  @keyframes lpDemoPop { 0% { transform: scale(0); } 70% { transform: scale(1.15); } 100% { transform: scale(1); } }
+  .lp-demo-success b { font-size: 15px; }
+  .lp-demo-success span { font-size: 11.5px; color: var(--text-muted); margin: 4px 0 14px; }
+  @media (prefers-reduced-motion: reduce) {
+    .lp-demo-cursor { animation: none; }
+    .lp-demo-check { animation: none; }
+  }
+  @media (max-width: 760px) {
+    .lp-demo-browser { max-width: 320px; }
+    .lp-demo-screen { padding: 22px 16px 26px; min-height: 300px; }
+  }
 </style>
 </head>
 <body>
@@ -792,6 +846,50 @@ fbq('track', 'PageView');
         <a class="btn btn-primary btn-glow-brand btn-block" href="assets/muestra-informe-biosoft.pdf" target="_blank" rel="noopener" download>📄 Descargar informe de ejemplo</a>
         <a class="btn btn-whatsapp btn-block" id="wa-pdfpro-lp" href="#" target="_blank" rel="noopener">💬 Tengo una duda sobre esto</a>
         <p class="text-muted" style="font-size:11.5px;text-align:center;margin-top:8px">Es un PDF real, generado con BIOsoft. Así vas a entregar tus resultados desde el primer día.</p>
+      </div>
+    </div>
+  </section>
+
+  <section class="lp-section lp-pdf-section" id="pagina-web-resultados">
+    <div class="lp-pdf-kicker">✨ EXCLUSIVO EN BIOSOFT — Servicio Premium</div>
+    <h2>Tu propia página web, con resultados en línea las 24 horas</h2>
+    <p class="lead">Deja de recibir la misma llamada todos los días — <b>"¿ya está mi resultado?"</b>. Con la Página Web de BIOsoft, tu paciente entra, escribe su documento y su código, y descarga su PDF solo — a cualquier hora, desde su celular. Tu laboratorio se ve moderno, serio y de confianza desde el primer clic.</p>
+    <div class="lp-pdf-showcase">
+      <div class="lp-pdf-image-wrap">
+        <span class="lp-nuevo-badge">✨ EXCLUSIVO</span>
+        <div class="lp-demo-browser" id="lp-demo-browser">
+          <div class="lp-demo-bar"><i></i><i></i><i></i><span class="lp-demo-bar-url">🔒 tulaboratorio.com</span></div>
+          <div class="lp-demo-screen">
+            <div class="lp-demo-card" id="lp-demo-card">
+              <div class="lp-demo-lock">🔒</div>
+              <h4>Consulte sus Resultados</h4>
+              <p>Acceso seguro y confidencial</p>
+              <span class="lp-demo-field-label">Número de Documento</span>
+              <div class="lp-demo-input"><span id="lp-demo-doc"></span><i class="lp-demo-cursor" id="lp-demo-cursor-doc"></i></div>
+              <span class="lp-demo-field-label">Código de Consulta</span>
+              <div class="lp-demo-input"><span id="lp-demo-cod"></span><i class="lp-demo-cursor hidden" id="lp-demo-cursor-cod"></i></div>
+              <button type="button" class="lp-demo-btn" id="lp-demo-btn" tabindex="-1">Consultar Resultados →</button>
+            </div>
+            <div class="lp-demo-success" id="lp-demo-success">
+              <div class="lp-demo-check">✓</div>
+              <b>Resultado encontrado</b>
+              <span>Orden No. 20260412 · Hoy</span>
+              <button type="button" class="lp-demo-btn lp-demo-btn-dark" tabindex="-1">⬇ Descargar PDF</button>
+            </div>
+          </div>
+        </div>
+        <p class="text-muted" style="font-size:11px;text-align:center;margin-top:10px">Simulación en vivo — así consulta tu paciente, en su propio celular.</p>
+      </div>
+      <div class="lp-pdf-side">
+        <div class="lp-pdf-feature"><span>📲</span> Tu paciente consulta solo, sin llamar ni escribir a nadie — con su documento y un código de 6 dígitos</div>
+        <div class="lp-pdf-feature"><span>⏰</span> Disponible 24 horas al día, los 365 días del año — incluso de madrugada o festivos</div>
+        <div class="lp-pdf-feature"><span>🎨</span> 100% personalizada con tu logo, colores y dominio propio (tulaboratorio.com)</div>
+        <div class="lp-pdf-feature"><span>📱</span> Perfecta en celular — justo desde donde consultan la mayoría de tus pacientes</div>
+        <div class="lp-pdf-feature"><span>🔐</span> Acceso privado y confidencial: solo con documento + código, nunca una lista pública</div>
+        <div class="lp-pdf-feature"><span>☎️</span> Menos llamadas a tu recepción — tu equipo se enfoca en atender, no en repetir el mismo resultado por teléfono</div>
+        <div class="lp-ia-callout">🌟 <b>Es el mismo diferencial que ya usan los grandes laboratorios de referencia</b> — ahora al alcance de tu laboratorio, sin desarrollarlo tú mismo ni pagar aparte una agencia web.</div>
+        <a class="btn btn-whatsapp btn-block" id="wa-paginaweb-lp" href="#" target="_blank" rel="noopener">💬 Quiero esta página web para mi laboratorio</a>
+        <a class="btn btn-outline btn-block" href="app.html">🚀 Ver Demo Gratis</a>
       </div>
     </div>
   </section>
@@ -1300,6 +1398,7 @@ fbq('track', 'PageView');
   <script src="js/landing-images.js?v=3"></script>
   <script src="js/landing-clientes.js?v=1"></script>
   <script src="js/landing-tracker.js?v=1"></script>
+  <script src="js/landing-demo-resultados.js?v=1"></script>
   <script src="js/demo-whatsapp-capture.js?v=2"></script>
   <script>
     document.getElementById("sections-list").innerHTML = BIO_CATALOG.SECCIONES.map(function (s) {
@@ -1543,6 +1642,7 @@ fbq('track', 'PageView');
     document.getElementById("wa-marketing-lp").href = waLink("Hola 👋 vi el módulo de Marketing Digital con IA (Remarketing + Creador de Imágenes) de BIOsoft y quiero activarlo esta semana con acompañamiento personalizado. ¿Me ayudan?");
     document.getElementById("wa-inventario-lp").href = waLink("Hola 👋 vi el módulo de Control de Inventario y Reactivos con Kardex de BIOsoft y quiero reservarlo esta semana para que me lo incluyan sin costo. ¿Me ayudan a activarlo?");
     document.getElementById("wa-pdfpro-lp").href = waLink("Hola 👋 vi el ejemplo de informe en PDF de BIOsoft, con firma digital y código QR, y tengo una duda antes de activarlo. ¿Me ayudan?");
+    document.getElementById("wa-paginaweb-lp").href = waLink("Hola 👋 vi la Página Web de Resultados de BIOsoft (consulta en línea 24/7) y quiero esto para mi laboratorio. ¿Me ayudan a activarlo?");
     document.getElementById("wa-controlcalidad-lp").href = waLink("Hola 👋 vi el Control de Calidad con Inteligencia Artificial de BIOsoft (Levey-Jennings + reglas de Westgard) y quiero que mi laboratorio tenga esto. ¿Me ayudan a activarlo?");
     document.getElementById("wa-equipos-lp").href = waLink("Hola 👋 quiero conectar los equipos de mi laboratorio directamente a BIOsoft (módulo LIS). ¿Me ayudan a activarlo?");
     document.getElementById("wa-paneles-lp").href = waLink("Hola 👋 tengo una duda sobre los paneles de Antibiograma y Alergia de BIOsoft. ¿Me ayudan?");
