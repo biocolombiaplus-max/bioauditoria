@@ -517,8 +517,23 @@
     // ids de ambos modales nunca choquen si en algún momento se abren a la
     // vez. Sin plan elegido, el documento sigue siendo el general de
     // siempre, con los 4 planes como opciones.
+    // HTML de un bloque de descuento reutilizable (tipo/valor/duración) —
+    // lo usan tanto el descuento del plan como el de cada servicio
+    // adicional, con un "idBase" distinto para que nunca choquen los ids.
+    function descuentoHtml(idBase, etiquetaCheck) {
+      return '<label class="flex gap-2" style="align-items:center;font-weight:400;margin-bottom:6px"><input type="checkbox" id="' + idBase + '-activo" style="width:auto"/> ' + etiquetaCheck + "</label>" +
+        '<div class="form-grid hidden" id="' + idBase + '-box" style="margin:0 0 4px">' +
+        '<div class="field"><label>Tipo de descuento</label><select id="' + idBase + '-tipo">' +
+        '<option value="porcentaje">Porcentaje (%)</option><option value="fijo">Valor fijo (COP)</option>' +
+        "</select></div>" +
+        '<div class="field"><label>Valor del descuento</label><input type="number" min="0" step="1" id="' + idBase + '-valor" value="10"/></div>' +
+        '<div class="field" style="align-self:end"><label class="flex gap-2" style="align-items:center;font-weight:400"><input type="checkbox" id="' + idBase + '-indefinido" style="width:auto"/> Descuento permanente (no vence)</label></div>' +
+        '<div class="field" id="' + idBase + '-meses-box"><label>Durante cuántos meses</label><input type="number" min="1" step="1" id="' + idBase + '-meses" value="3"/></div>' +
+        "</div>";
+    }
     function camposPlanPersonalizadoHtml(prefix) {
       var PLANES = BIO_PLANES.PLANES;
+      var SERVICIOS = BIO_PLANES.SERVICIOS_ADICIONALES;
       return '<div class="field"><label>Plan a proponer (opcional)</label><select id="' + prefix + '-plan"><option value="">— Documento general, sin valores fijos —</option>' +
         PLANES.map(function (p) { return '<option value="' + p.id + '">' + U.esc(p.nombre) + " — " + U.esc(p.usuarios) + "</option>"; }).join("") +
         "</select></div>" +
@@ -532,13 +547,89 @@
         '<div class="field" id="' + prefix + '-implementacion-box"><label>Valor de implementación (COP)</label><input type="number" min="0" step="10000" id="' + prefix + '-implementacion" value="' + BIO_PLANES.IMPLEMENTACION.cop + '"/></div>' +
         '<div class="field"><label>Cantidad de equipos a conectar (déjalo en 0 si aún no se define)</label><input type="number" min="0" step="1" id="' + prefix + '-equipos" value="0"/></div>' +
         '<div class="field" style="align-self:end"><label class="flex gap-2" style="align-items:center;font-weight:400"><input type="checkbox" id="' + prefix + '-cobrar-equipos" checked style="width:auto"/> Cobrar por la conexión de estos equipos</label></div>' +
+        '<div class="field" style="grid-column:1/-1;border-top:1px dashed var(--border);padding-top:10px;margin-top:2px">' +
+        descuentoHtml(prefix + "-desc-plan", "Aplicar descuento a la mensualidad del plan") +
+        "</div>" +
+        '<div class="field" style="grid-column:1/-1;border-top:1px dashed var(--border);padding-top:10px">' +
+        '<label style="font-weight:700;display:block;margin-bottom:8px">Servicios adicionales (opcional)</label>' +
+        SERVICIOS.map(function (s) {
+          var sid = prefix + "-serv-" + s.id;
+          return '<div class="card" style="padding:12px;margin-bottom:8px;background:var(--surface-2)">' +
+            '<label class="flex gap-2" style="align-items:center;font-weight:600"><input type="checkbox" id="' + sid + '-check" style="width:auto"/> ' + U.esc(s.nombre) + "</label>" +
+            '<p class="text-muted" style="margin:2px 0 8px;font-size:11.5px">' + U.esc(s.descripcion) + "</p>" +
+            '<div class="form-grid hidden" id="' + sid + '-box">' +
+            '<div class="field"><label>Valor mensual (COP)</label><input type="number" min="0" step="10000" id="' + sid + '-valor" value="' + s.precio + '"/></div>' +
+            '<div class="field" style="grid-column:1/-1">' + descuentoHtml(sid + "-desc", "Aplicar descuento a este servicio") + "</div>" +
+            "</div>" +
+            "</div>";
+        }).join("") +
+        "</div>" +
         "</div>" +
         '<div class="hidden" id="' + prefix + '-resumen-box" style="margin:6px 0 10px;padding:12px 14px;border:1px solid #f97316;border-radius:8px;background:#fff7ed">' +
         '<p style="margin:0 0 6px;font-weight:700;font-size:12px;color:#9a3412;text-transform:uppercase;letter-spacing:.03em">Resumen de la inversión — valores fijos de este documento</p>' +
         '<p style="margin:2px 0;font-size:13px"><b>Primer mes:</b> <span id="' + prefix + '-resumen-primer"></span></p>' +
         '<p style="margin:2px 0;font-size:13px"><b id="' + prefix + '-resumen-segundo-label"></b> <span id="' + prefix + '-resumen-segundo"></span></p>' +
         '<p style="margin:2px 0;font-size:13px" class="hidden" id="' + prefix + '-resumen-tercero-wrap"><b>Desde el tercer mes:</b> <span id="' + prefix + '-resumen-tercero"></span></p>' +
+        '<p style="margin:6px 0 0;font-size:12px;color:#9a3412" id="' + prefix + '-resumen-servicios"></p>' +
         "</div>";
+    }
+    // Conecta el checkbox "activo" de un bloque de descuento (ver
+    // descuentoHtml) para mostrar/ocultar sus campos, y el de "permanente"
+    // para ocultar el campo de meses cuando el descuento no vence.
+    function wireDescuentoBox(wrap, idBase, onChange) {
+      var chkActivo = wrap.querySelector("#" + idBase + "-activo");
+      var box = wrap.querySelector("#" + idBase + "-box");
+      var chkIndefinido = wrap.querySelector("#" + idBase + "-indefinido");
+      var mesesBox = wrap.querySelector("#" + idBase + "-meses-box");
+      function actualizar() {
+        box.classList.toggle("hidden", !chkActivo.checked);
+        mesesBox.classList.toggle("hidden", chkIndefinido.checked);
+        onChange();
+      }
+      [chkActivo, chkIndefinido, wrap.querySelector("#" + idBase + "-tipo"), wrap.querySelector("#" + idBase + "-valor"), wrap.querySelector("#" + idBase + "-meses")]
+        .forEach(function (el) { el.addEventListener("input", actualizar); el.addEventListener("change", actualizar); });
+      actualizar();
+    }
+    // Lee un bloque de descuento (ver descuentoHtml) y lo devuelve como
+    // {tipo, valor, meses} (meses: null = permanente) o null si no está
+    // activo — listo para pasarlo a aplicarDescuentoMonto()/ri.
+    function leerDescuentoBox(wrap, idBase) {
+      if (!wrap.querySelector("#" + idBase + "-activo").checked) return null;
+      var valor = parseFloat(wrap.querySelector("#" + idBase + "-valor").value) || 0;
+      if (!valor) return null;
+      var indefinido = wrap.querySelector("#" + idBase + "-indefinido").checked;
+      return {
+        tipo: wrap.querySelector("#" + idBase + "-tipo").value,
+        valor: valor,
+        meses: indefinido ? null : (parseInt(wrap.querySelector("#" + idBase + "-meses").value, 10) || 1)
+      };
+    }
+    // Aplica un descuento {tipo, valor} a un monto en COP, y devuelve
+    // también el equivalente proporcional en USD (misma proporción de
+    // descuento en ambas monedas, para no tener que pedir el valor fijo dos
+    // veces en dos monedas distintas).
+    function aplicarDescuentoMonto(cop, usd, descuento) {
+      if (!descuento) return { cop: cop, usd: usd };
+      if (descuento.tipo === "porcentaje") {
+        var factor = Math.max(0, 1 - descuento.valor / 100);
+        return { cop: Math.round(cop * factor), usd: Math.round(usd * factor) };
+      }
+      // Fijo: se resta el valor en COP, y la MISMA proporción (valor/cop
+      // original) en USD, para que el descuento "pese" igual en ambas
+      // monedas sin pedir el valor fijo dos veces.
+      var copFinal = Math.max(0, cop - descuento.valor);
+      var usdFinal = cop > 0 ? Math.max(0, Math.round(usd * (copFinal / cop))) : usd;
+      return { cop: copFinal, usd: usdFinal };
+    }
+    // ¿Sigue vigente un descuento en el mes número "mes" (1, 2, 3...)?
+    function descuentoVigenteEnMes(descuento, mes) {
+      if (!descuento) return false;
+      return descuento.meses == null || mes <= descuento.meses;
+    }
+    function textoDescuento(descuento) {
+      if (!descuento) return "";
+      var valorTxt = descuento.tipo === "porcentaje" ? descuento.valor + "%" : "$" + Math.round(descuento.valor).toLocaleString("es-CO") + " COP";
+      return valorTxt + (descuento.meses == null ? " · permanente" : " · durante " + descuento.meses + " mes(es)");
     }
     function fmtInversionCOP(n) { return "$" + Math.round(n).toLocaleString("es-CO") + " COP"; }
     function fmtInversionUSD(n) { return "$" + Math.round(n) + " USD"; }
@@ -548,19 +639,94 @@
     // verdad. Simula el avance de cuotas llamándola 3 veces seguidas,
     // pasándole cuántas cuotas de implementación ya habría pagado en cada
     // una, sin tocar ningún dato real del cliente.
-    function calcularResumenPlanPersonalizado(plan, modalidad, implementacionCOP, equipos, cobrarEquipos) {
+    // Precio del plan en un mes puntual (1, 2, 3...), con su descuento
+    // aplicado si todavía está vigente en ese mes (ver descuentoVigenteEnMes).
+    function precioPlanEnMes(plan, descuentoPlan, mes) {
+      if (descuentoVigenteEnMes(descuentoPlan, mes)) return aplicarDescuentoMonto(plan.precio, plan.usd, descuentoPlan);
+      return { cop: plan.precio, usd: plan.usd };
+    }
+    // Lo mismo, para un servicio adicional ya leído del formulario
+    // ({valorCOP, valorUSD, descuento}).
+    function precioServicioEnMes(servicio, mes) {
+      if (descuentoVigenteEnMes(servicio.descuento, mes)) return aplicarDescuentoMonto(servicio.valorCOP, servicio.valorUSD, servicio.descuento);
+      return { cop: servicio.valorCOP, usd: servicio.valorUSD };
+    }
+    // Suma de todos los servicios adicionales incluidos, en un mes puntual.
+    function serviciosEnMes(servicios, mes) {
+      return servicios.reduce(function (acc, s) {
+        var p = precioServicioEnMes(s, mes);
+        return { cop: acc.cop + p.cop, usd: acc.usd + p.usd };
+      }, { cop: 0, usd: 0 });
+    }
+    function calcularResumenPlanPersonalizado(plan, modalidad, implementacionCOP, equipos, cobrarEquipos, descuentoPlan, servicios) {
+      servicios = servicios || [];
       var equiposCOP = cobrarEquipos ? equipos * BIO_PLANES.INTERFAZ_EQUIPOS.costoPorEquipoCop : 0;
       var equiposUSD = cobrarEquipos ? equipos * BIO_PLANES.INTERFAZ_EQUIPOS.costoPorEquipoUsd : 0;
+
+      if (modalidad === "semestral") {
+        // Cada "periodo" es un bloque de 6 meses pagado de una vez — se suma
+        // mes a mes (plan + servicios) para que un descuento de, por ejemplo,
+        // solo 3 meses, se refleje correctamente DENTRO del primer bloque,
+        // en vez de descontarlo completo o nada.
+        function lote(mesInicio) {
+          var cop = 0, usd = 0;
+          for (var m = mesInicio; m < mesInicio + 6; m++) {
+            var pp = precioPlanEnMes(plan, descuentoPlan, m), ps = serviciosEnMes(servicios, m);
+            cop += pp.cop + ps.cop; usd += pp.usd + ps.usd;
+          }
+          return { cop: cop, usd: usd };
+        }
+        var lote1 = lote(1), lote2 = lote(7);
+        return {
+          planNombre: plan.nombre, planUsuarios: plan.usuarios, equipos: equipos, cobrarEquipos: cobrarEquipos,
+          descuentoPlan: descuentoPlan, servicios: servicios,
+          primer: { periodo: "Primer mes", label: "6 meses de una vez · sin implementación" + (equipos ? " + conexión de " + equipos + " equipo(s)" : ""), cop: lote1.cop + equiposCOP, usd: lote1.usd + equiposUSD },
+          segundo: { periodo: "A partir del mes 7", label: "6 meses de una vez · sin implementación", cop: lote2.cop, usd: lote2.usd },
+          tercero: null
+        };
+      }
+
       var calc1 = calcularTotalesPago({ cuotasImplementacionPagadas: 0 }, plan, modalidad, implementacionCOP);
       var calc2 = calcularTotalesPago({ cuotasImplementacionPagadas: calc1.cuotasTrasEstePago }, plan, modalidad, implementacionCOP);
       var calc3 = calcularTotalesPago({ cuotasImplementacionPagadas: calc2.cuotasTrasEstePago }, plan, modalidad, implementacionCOP);
       var hayTercero = modalidad === "mensual" && calc3.totalCOP !== calc2.totalCOP;
+      // Cada calcN.totalCOP/USD trae la mensualidad SIN descontar mezclada
+      // con la cuota de implementación (si aplica) — se le resta la
+      // mensualidad normal y se le suma la ya descontada de ESE mes puntual,
+      // sin tocar la cuota de implementación (el descuento es solo sobre la
+      // mensualidad del software, nunca sobre la implementación ni los
+      // equipos).
+      function montoPeriodo(calcN, mes) {
+        var pp = precioPlanEnMes(plan, descuentoPlan, mes);
+        var ps = serviciosEnMes(servicios, mes);
+        return { cop: calcN.totalCOP - plan.precio + pp.cop + ps.cop, usd: calcN.totalUSD - plan.usd + pp.usd + ps.usd };
+      }
+      var m1 = montoPeriodo(calc1, 1), m2 = montoPeriodo(calc2, 2), m3 = hayTercero ? montoPeriodo(calc3, 3) : null;
       return {
         planNombre: plan.nombre, planUsuarios: plan.usuarios, equipos: equipos, cobrarEquipos: cobrarEquipos,
-        primer: { periodo: "Primer mes", label: calc1.conceptoLabel + (equipos ? " + conexión de " + equipos + " equipo(s)" : ""), cop: calc1.totalCOP + equiposCOP, usd: calc1.totalUSD + equiposUSD },
-        segundo: { periodo: modalidad === "semestral" ? "A partir del mes 7" : hayTercero ? "Segundo mes" : "Desde el segundo mes", label: calc2.conceptoLabel, cop: calc2.totalCOP, usd: calc2.totalUSD },
-        tercero: hayTercero ? { periodo: "Desde el tercer mes", label: calc3.conceptoLabel, cop: calc3.totalCOP, usd: calc3.totalUSD } : null
+        descuentoPlan: descuentoPlan, servicios: servicios,
+        primer: { periodo: "Primer mes", label: calc1.conceptoLabel + (equipos ? " + conexión de " + equipos + " equipo(s)" : ""), cop: m1.cop + equiposCOP, usd: m1.usd + equiposUSD },
+        segundo: { periodo: hayTercero ? "Segundo mes" : "Desde el segundo mes", label: calc2.conceptoLabel, cop: m2.cop, usd: m2.usd },
+        tercero: hayTercero ? { periodo: "Desde el tercer mes", label: calc3.conceptoLabel, cop: m3.cop, usd: m3.usd } : null
       };
+    }
+    // Lee del formulario los servicios adicionales marcados como incluidos,
+    // con su valor y su propio descuento (ver descuentoHtml/leerDescuentoBox)
+    // — ratioUsdCop del PLAN elegido para poder aproximar un valor en USD de
+    // cada servicio sin tener que pedirlo dos veces en dos monedas.
+    function leerServiciosSeleccionados(wrap, prefix, plan) {
+      var ratioUsdCop = plan.precio / plan.usd;
+      return BIO_PLANES.SERVICIOS_ADICIONALES.filter(function (s) {
+        var chk = wrap.querySelector("#" + prefix + "-serv-" + s.id + "-check");
+        return chk && chk.checked;
+      }).map(function (s) {
+        var sid = prefix + "-serv-" + s.id;
+        var valorCOP = parseFloat(wrap.querySelector("#" + sid + "-valor").value) || 0;
+        return {
+          id: s.id, nombre: s.nombre, valorCOP: valorCOP, valorUSD: Math.round(valorCOP / ratioUsdCop),
+          descuento: leerDescuentoBox(wrap, sid + "-desc")
+        };
+      });
     }
     function leerResumenPlanPersonalizado(wrap, prefix) {
       var planId = wrap.querySelector("#" + prefix + "-plan").value;
@@ -571,7 +737,9 @@
       var implementacionCOP = sinImplementacion ? 0 : (parseFloat(wrap.querySelector("#" + prefix + "-implementacion").value) || 0);
       var equipos = parseInt(wrap.querySelector("#" + prefix + "-equipos").value, 10) || 0;
       var cobrarEquipos = wrap.querySelector("#" + prefix + "-cobrar-equipos").checked;
-      return calcularResumenPlanPersonalizado(plan, modalidad, implementacionCOP, equipos, cobrarEquipos);
+      var descuentoPlan = leerDescuentoBox(wrap, prefix + "-desc-plan");
+      var servicios = leerServiciosSeleccionados(wrap, prefix, plan);
+      return calcularResumenPlanPersonalizado(plan, modalidad, implementacionCOP, equipos, cobrarEquipos, descuentoPlan, servicios);
     }
     function wirePlanPersonalizado(wrap, prefix) {
       function actualizar() {
@@ -584,15 +752,31 @@
         var sinImplementacion = modalidad === "sin_implementacion" || modalidad === "semestral";
         wrap.querySelector("#" + prefix + "-implementacion-box").classList.toggle("hidden", sinImplementacion);
         var r = leerResumenPlanPersonalizado(wrap, prefix);
-        wrap.querySelector("#" + prefix + "-resumen-primer").textContent = r.primer.label + " — " + fmtInversionCOP(r.primer.cop) + " (aprox. " + fmtInversionUSD(r.primer.usd) + ")";
+        // Nota de descuento en vivo en la vista previa (ver textoDescuento),
+        // solo si el descuento de la mensualidad del plan sigue vigente en
+        // ese mes puntual — mismo criterio que usa el PDF.
+        function notaDesc(mes) { return descuentoVigenteEnMes(r.descuentoPlan, mes) ? " — con descuento (" + textoDescuento(r.descuentoPlan) + ")" : ""; }
+        wrap.querySelector("#" + prefix + "-resumen-primer").textContent = r.primer.label + " — " + fmtInversionCOP(r.primer.cop) + " (aprox. " + fmtInversionUSD(r.primer.usd) + ")" + notaDesc(1);
         wrap.querySelector("#" + prefix + "-resumen-segundo-label").textContent = r.segundo.periodo + ":";
-        wrap.querySelector("#" + prefix + "-resumen-segundo").textContent = r.segundo.label + " — " + fmtInversionCOP(r.segundo.cop) + " (aprox. " + fmtInversionUSD(r.segundo.usd) + ")";
+        wrap.querySelector("#" + prefix + "-resumen-segundo").textContent = r.segundo.label + " — " + fmtInversionCOP(r.segundo.cop) + " (aprox. " + fmtInversionUSD(r.segundo.usd) + ")" + notaDesc(2);
         wrap.querySelector("#" + prefix + "-resumen-tercero-wrap").classList.toggle("hidden", !r.tercero);
-        if (r.tercero) wrap.querySelector("#" + prefix + "-resumen-tercero").textContent = r.tercero.label + " — " + fmtInversionCOP(r.tercero.cop) + " (aprox. " + fmtInversionUSD(r.tercero.usd) + ")";
+        if (r.tercero) wrap.querySelector("#" + prefix + "-resumen-tercero").textContent = r.tercero.label + " — " + fmtInversionCOP(r.tercero.cop) + " (aprox. " + fmtInversionUSD(r.tercero.usd) + ")" + notaDesc(3);
+        wrap.querySelector("#" + prefix + "-resumen-servicios").textContent = r.servicios.length
+          ? "Servicios adicionales: " + r.servicios.map(function (s) { return s.nombre + " (" + fmtInversionCOP(s.valorCOP) + "/mes" + (s.descuento ? ", con descuento" : "") + ")"; }).join(" · ")
+          : "";
       }
       ["#" + prefix + "-plan", "#" + prefix + "-modalidad", "#" + prefix + "-implementacion", "#" + prefix + "-equipos", "#" + prefix + "-cobrar-equipos"].forEach(function (sel) {
         wrap.querySelector(sel).addEventListener("input", actualizar);
         wrap.querySelector(sel).addEventListener("change", actualizar);
+      });
+      wireDescuentoBox(wrap, prefix + "-desc-plan", actualizar);
+      BIO_PLANES.SERVICIOS_ADICIONALES.forEach(function (s) {
+        var sid = prefix + "-serv-" + s.id;
+        var chk = wrap.querySelector("#" + sid + "-check");
+        var box = wrap.querySelector("#" + sid + "-box");
+        chk.addEventListener("change", function () { box.classList.toggle("hidden", !chk.checked); actualizar(); });
+        wrap.querySelector("#" + sid + "-valor").addEventListener("input", actualizar);
+        wireDescuentoBox(wrap, sid + "-desc", actualizar);
       });
       actualizar();
       return actualizar;

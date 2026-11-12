@@ -64,6 +64,18 @@
       extra: ["🎁 GRATIS: página web propia con consulta de resultados en línea, 24/7"] }
   ];
 
+  /* Servicios adicionales (negocio nuevo de BIOMarketing, aparte del
+     software): opcionales, se activan uno por uno al armar una Propuesta o
+     Cotización desde el CRM (ver views-crm.js). "precio"/"usd" son solo una
+     SUGERENCIA de partida — el superadmin puede escribir el valor que de
+     verdad se negoció con cada laboratorio antes de generar el documento. */
+  var SERVICIOS_ADICIONALES = [
+    { id: "pagina_web", nombre: "Página Web Profesional", descripcion: "Sitio web propio del laboratorio, con tu marca, servicios y ubicación.", precio: 150000, precioFmt: "150.000", usd: 40 },
+    { id: "whatsapp_ia", nombre: "Automatización de WhatsApp con IA", descripcion: "Un asistente con IA responde, agenda y hace seguimiento a tus pacientes por WhatsApp, las 24 horas.", precio: 200000, precioFmt: "200.000", usd: 55 },
+    { id: "redes_sociales", nombre: "Manejo de Redes Sociales", descripcion: "Gestión y publicación de contenido en las redes sociales de tu laboratorio.", precio: 250000, precioFmt: "250.000", usd: 70 }
+  ];
+  function servicioAdicionalPorId(id) { return SERVICIOS_ADICIONALES.filter(function (s) { return s.id === id; })[0]; }
+
   // Oferta de lanzamiento vigente: se regala al activarse hoy, sin importar
   // el plan elegido — no es una diferencia entre planes, es una promoción
   // sobre TODOS ellos por igual.
@@ -160,6 +172,7 @@
 
   global.BIO_PLANES = {
     IMPLEMENTACION: IMPLEMENTACION, PLANES: PLANES, porId: porId,
+    SERVICIOS_ADICIONALES: SERVICIOS_ADICIONALES, servicioAdicionalPorId: servicioAdicionalPorId,
     INTERFAZ_EQUIPOS: INTERFAZ_EQUIPOS, PROMOCION_LANZAMIENTO: PROMOCION_LANZAMIENTO, cobraPorEquipos: cobraPorEquipos,
     ESTADOS_CUENTA: ESTADOS_CUENTA, DIAS_AVISO_VENCIMIENTO: DIAS_AVISO_VENCIMIENTO, estadoCuenta: estadoCuenta,
     DIAS_PRUEBA_GRATIS: DIAS_PRUEBA_GRATIS, diasRestantes: diasRestantes,

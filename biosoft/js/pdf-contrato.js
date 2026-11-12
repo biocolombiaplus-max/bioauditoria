@@ -108,15 +108,55 @@
   // tabla (periodo/concepto/valor) y la nota de equipos sin definir salen
   // idénticas en ambos documentos.
   // -----------------------------------------------------------------------
+  // ¿Sigue vigente un descuento {tipo,valor,meses} en el mes número "mes"?
+  // (meses == null significa "permanente, nunca vence"). Mismo criterio que
+  // descuentoVigenteEnMes() en views-crm.js.
+  function descuentoVigenteEnMesPDF(descuento, mes) {
+    if (!descuento) return false;
+    return descuento.meses == null || mes <= descuento.meses;
+  }
   function filasInversionPersonalizada(ri) {
-    var filas = [[ri.primer.periodo, ri.primer.label, "$" + ri.primer.cop.toLocaleString("es-CO") + " COP\n(aprox. $" + ri.primer.usd + " USD)"]];
-    filas.push([ri.segundo.periodo, ri.segundo.label, "$" + ri.segundo.cop.toLocaleString("es-CO") + " COP\n(aprox. $" + ri.segundo.usd + " USD)"]);
-    if (ri.tercero) filas.push([ri.tercero.periodo, ri.tercero.label, "$" + ri.tercero.cop.toLocaleString("es-CO") + " COP\n(aprox. $" + ri.tercero.usd + " USD)"]);
+    // Nota de "(con descuento...)" junto al concepto de cada periodo, solo
+    // si el descuento de la mensualidad del plan sigue vigente en ese mes
+    // puntual (1, 2 o 3) — así el documento deja clarísimo desde cuándo
+    // el precio vuelve a ser el normal, si el descuento es temporal.
+    function notaDescuento(mes) {
+      if (!descuentoVigenteEnMesPDF(ri.descuentoPlan, mes)) return "";
+      var d = ri.descuentoPlan;
+      var valorTxt = d.tipo === "porcentaje" ? d.valor + "%" : "$" + Math.round(d.valor).toLocaleString("es-CO") + " COP";
+      return " (con descuento de " + valorTxt + " en la mensualidad" + (d.meses == null ? ", permanente" : " — vigente por " + d.meses + " mes(es)") + ")";
+    }
+    var filas = [[ri.primer.periodo, ri.primer.label + notaDescuento(1), "$" + ri.primer.cop.toLocaleString("es-CO") + " COP\n(aprox. $" + ri.primer.usd + " USD)"]];
+    filas.push([ri.segundo.periodo, ri.segundo.label + notaDescuento(2), "$" + ri.segundo.cop.toLocaleString("es-CO") + " COP\n(aprox. $" + ri.segundo.usd + " USD)"]);
+    if (ri.tercero) filas.push([ri.tercero.periodo, ri.tercero.label + notaDescuento(3), "$" + ri.tercero.cop.toLocaleString("es-CO") + " COP\n(aprox. $" + ri.tercero.usd + " USD)"]);
     return filas;
   }
   function notaInversionPersonalizada(ri, EQUIPOS) {
     return "Estos son los valores exactos calculados para tu laboratorio según lo conversado — fijos, sin cargos ocultos y sin cambios mientras continúes bajo estas mismas condiciones." +
       (ri.equipos ? "" : " La cantidad de equipos de laboratorio a conectar aún no está definida: cada equipo que decidas conectar tiene un pago único de $" + EQUIPOS.costoPorEquipoCopFmt + " COP (aprox. $" + EQUIPOS.costoPorEquipoUsd + " USD), que se cobra solo el mes en que lo conectes y nunca se repite.");
+  }
+  // Tabla de servicios adicionales contratados (Página Web, Automatización
+  // de WhatsApp con IA, Manejo de Redes Sociales, etc. — ver
+  // BIO_PLANES.SERVICIOS_ADICIONALES) con su valor y descuento propio, ya
+  // incluidos dentro del "Valor a pagar" de cada periodo de arriba — esta
+  // tabla es solo para dejar claro, por separado, QUÉ es cada cosa y cuánto
+  // vale individualmente.
+  function filasServiciosAdicionales(servicios) {
+    return servicios.map(function (s) {
+      var tieneDesc = !!s.descuento;
+      var valorConDescuento = tieneDesc
+        ? (s.descuento.tipo === "porcentaje" ? Math.round(s.valorCOP * (1 - s.descuento.valor / 100)) : Math.max(0, s.valorCOP - s.descuento.valor))
+        : s.valorCOP;
+      var descTxt = !tieneDesc ? "—" :
+        (s.descuento.tipo === "porcentaje" ? s.descuento.valor + "%" : "$" + Math.round(s.descuento.valor).toLocaleString("es-CO") + " COP") +
+        (s.descuento.meses == null ? " (permanente)" : " (por " + s.descuento.meses + " mes(es))");
+      return [
+        s.nombre,
+        "$" + s.valorCOP.toLocaleString("es-CO") + " COP/mes",
+        descTxt,
+        "$" + valorConDescuento.toLocaleString("es-CO") + " COP/mes"
+      ];
+    });
   }
   function lineasMediosPago() {
     return [PROVEEDOR.medioPago1, PROVEEDOR.medioPago2, "Estos son los ÚNICOS dos medios de pago autorizados por " + PROVEEDOR.nombre + " — no realices consignaciones a ninguna otra cuenta, persona o canal."];
@@ -915,6 +955,21 @@
       });
       y = doc.lastAutoTable.finalY + 8;
       parrafo(notaInversionPersonalizada(ri, EQUIPOS), { size: 8.5, color: [120, 120, 120], gap: 16 });
+      if (ri.servicios && ri.servicios.length) {
+        tituloSeccion("Servicios adicionales incluidos en esta propuesta");
+        parrafo("Ya sumados dentro del Valor a Pagar de cada periodo de arriba — aquí el detalle de cada uno.", { size: 8.5, color: [120, 120, 120], gap: 8 });
+        checkPage(ri.servicios.length * 26 + 40);
+        doc.autoTable({
+          startY: y, margin: { left: margin, right: margin },
+          head: [["Servicio", "Valor mensual", "Descuento", "Valor con descuento"]],
+          body: filasServiciosAdicionales(ri.servicios),
+          theme: "grid",
+          styles: { fontSize: 8.7, cellPadding: 7, valign: "middle" },
+          headStyles: { fillColor: [46, 16, 101], textColor: 255, fontStyle: "bold" },
+          columnStyles: { 3: { fontStyle: "bold", halign: "right" } }
+        });
+        y = doc.lastAutoTable.finalY + 16;
+      }
     } else {
       recuadro("Oferta de lanzamiento — gratis al aceptar esta propuesta hoy", [
         "Implementación, adaptación del catálogo y capacitación virtual a la medida de tu laboratorio: normalmente $" + PROMO.implementacionUsd + " USD, HOY sin ningún costo.",
@@ -1206,6 +1261,21 @@
       });
       y = doc.lastAutoTable.finalY + 8;
       parrafo(notaInversionPersonalizada(ri, EQUIPOS), { size: 8.5, color: [120, 120, 120], gap: 16 });
+      if (ri.servicios && ri.servicios.length) {
+        tituloSeccion("Servicios adicionales incluidos en esta cotización");
+        parrafo("Ya sumados dentro del Valor a Pagar de cada periodo de arriba — aquí el detalle de cada uno.", { size: 8.5, color: [120, 120, 120], gap: 8 });
+        checkPage(ri.servicios.length * 26 + 40);
+        doc.autoTable({
+          startY: y, margin: { left: margin, right: margin },
+          head: [["Servicio", "Valor mensual", "Descuento", "Valor con descuento"]],
+          body: filasServiciosAdicionales(ri.servicios),
+          theme: "grid",
+          styles: { fontSize: 8.7, cellPadding: 7, valign: "middle" },
+          headStyles: { fillColor: [46, 16, 101], textColor: 255, fontStyle: "bold" },
+          columnStyles: { 3: { fontStyle: "bold", halign: "right" } }
+        });
+        y = doc.lastAutoTable.finalY + 16;
+      }
     } else {
       tituloSeccion("Planes disponibles por usuarios (Colombia)");
       checkPage(120);
