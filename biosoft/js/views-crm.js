@@ -674,9 +674,9 @@
     // el cliente vea con total claridad qué paga por el software y qué paga
     // por cada servicio aparte. "total" es la suma de ambos, solo para el
     // bloque final de Total a Pagar.
-    function periodoConServicios(periodo, montoPlan, montoServicios) {
+    function periodoConServicios(periodo, montoServicios) {
       periodo.servicios = montoServicios;
-      periodo.total = { cop: montoPlan.cop + montoServicios.cop, usd: montoPlan.usd + montoServicios.usd };
+      periodo.total = { cop: periodo.cop + montoServicios.cop, usd: periodo.usd + montoServicios.usd };
       return periodo;
     }
     function calcularResumenPlanPersonalizado(plan, modalidad, implementacionCOP, equipos, cobrarEquipos, descuentoPlan, servicios) {
