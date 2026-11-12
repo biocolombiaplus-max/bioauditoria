@@ -660,9 +660,19 @@
           "<td><div class='flex gap-1 wrap'>" + (overNum ? '<button type="button" class="btn btn-ghost btn-sm" data-reset="' + p.codigo + '">Restablecer</button>' : "") + bandasHtml + rangosHtml + calculadoHtml + quitarHtml + "</div></td></tr>";
       }
       if (p.tipo === "cualitativo" || p.tipo === "descriptivo") {
-        var overCual = base && (p.normal !== base.normal || p.refText !== base.refText || p.nombre !== base.nombre);
+        var overCual = base && (p.normal !== base.normal || p.refText !== base.refText || p.nombre !== base.nombre ||
+          (p.tipo === "cualitativo" && JSON.stringify(p.opciones || []) !== JSON.stringify(base.opciones || [])));
         var ocultarRefHtmlCual = '<label class="checkbox-row" style="margin:4px 0 0;font-size:10.5px;font-weight:400"><input type="checkbox" data-ocultarref ' + (p.ocultarEnInforme ? "checked" : "") + '/> No mostrar en el informe</label>';
         var ocultarInterpHtmlCual = p.tipo === "cualitativo" ? '<label class="checkbox-row" style="margin:2px 0 0;font-size:10.5px;font-weight:400"><input type="checkbox" data-ocultarinterp ' + (p.ocultarInterpretacionEnInforme ? "checked" : "") + '/> No mostrar la interpretación en el informe</label>' : "";
+        // "Editar opciones" abre un modal aparte en vez de permitir editar la
+        // lista aquí mismo (bug real reportado: para corregir, agregar o
+        // quitar una opción de la lista desplegable — ej. agregar "Rojo" a
+        // Color — había que ELIMINAR el campo completo y volver a crearlo
+        // desde cero, perdiendo nombre, texto de referencia, etc. ya
+        // configurados). Ver abrirOpcionesParametro más abajo.
+        var opcionesHtml = p.tipo === "cualitativo"
+          ? '<button type="button" class="btn btn-ghost btn-sm" data-opciones="' + p.codigo + '" title="Agregar, quitar o renombrar las opciones de esta lista desplegable">📋 Editar opciones</button>'
+          : "";
         return '<tr data-prow="' + p.codigo + '">' +
           "<td>" + moverHtml + "</td>" +
           "<td>" + nombreHtml + "</td>" +
@@ -673,7 +683,7 @@
           "</td>" +
           '<td><input data-reftext value="' + U.esc(p.refText) + '"/>' + ocultarRefHtmlCual + ocultarInterpHtmlCual + "</td>" +
           '<td class="text-muted" style="font-size:11px">' + (esDeFabrica ? "Fábrica: " + U.esc(base.normal || "—") : "—") + "</td>" +
-          "<td><div class='flex gap-1 wrap'>" + (overCual ? '<button type="button" class="btn btn-ghost btn-sm" data-reset="' + p.codigo + '">Restablecer</button>' : "") + quitarHtml + "</div></td></tr>";
+          "<td><div class='flex gap-1 wrap'>" + (overCual ? '<button type="button" class="btn btn-ghost btn-sm" data-reset="' + p.codigo + '">Restablecer</button>' : "") + opcionesHtml + quitarHtml + "</div></td></tr>";
       }
       var overNombreSolo = base && p.nombre !== base.nombre;
       var restablecerNombreHtml = overNombreSolo ? '<button type="button" class="btn btn-ghost btn-sm" data-reset="' + p.codigo + '">Restablecer</button>' : "";
@@ -822,6 +832,13 @@
       reabrir();
     });
 
+    wrap.querySelectorAll("[data-opciones]").forEach(function (btn) {
+      btn.addEventListener("click", function () {
+        var p = efectivo.parametros.filter(function (pp) { return pp.codigo === btn.dataset.opciones; })[0];
+        abrirOpcionesParametro(tenant, examId, exCat, p, reabrir);
+      });
+    });
+
     wrap.querySelectorAll("[data-bandas]").forEach(function (btn) {
       btn.addEventListener("click", function () {
         var p = efectivo.parametros.filter(function (pp) { return pp.codigo === btn.dataset.bandas; })[0];
@@ -915,8 +932,14 @@
           var normalSel = row.querySelector("[data-normal]");
           var refText2 = row.querySelector("[data-reftext]").value.trim();
           var normal = normalSel ? normalSel.value : p.normal;
-          if (base && normal === base.normal && refText2 === base.refText && nombreNuevo === base.nombre && ocultarRef === ocultarRefBase && ocultarInterp === ocultarInterpBase) { C.clearOverride(tenant, examId, p.codigo); return; }
-          C.setOverride(tenant, examId, p.codigo, { nombre: nombreNuevo, normal: normal, refText: refText2 || ("Normal: " + normal), ocultarEnInforme: ocultarRef, ocultarInterpretacionEnInforme: ocultarInterp });
+          // Las opciones de la lista (ver "Editar opciones"/abrirOpcionesParametro
+          // más abajo) viven en este mismo override — hay que compararlas
+          // contra la base también, para no llamar clearOverride() por error
+          // y borrar en silencio una lista de opciones ya personalizada solo
+          // porque el nombre/normal/texto de referencia siguen igual a fábrica.
+          var opcionesIgualBase = !base || JSON.stringify(p.opciones || []) === JSON.stringify(base.opciones || []);
+          if (base && normal === base.normal && refText2 === base.refText && nombreNuevo === base.nombre && ocultarRef === ocultarRefBase && ocultarInterp === ocultarInterpBase && opcionesIgualBase) { C.clearOverride(tenant, examId, p.codigo); return; }
+          C.setOverride(tenant, examId, p.codigo, { nombre: nombreNuevo, normal: normal, refText: refText2 || ("Normal: " + normal), ocultarEnInforme: ocultarRef, ocultarInterpretacionEnInforme: ocultarInterp, opciones: p.opciones });
           cambios++;
         } else if (p.tipo === "descriptivo") {
           var refText3 = row.querySelector("[data-reftext]").value.trim();
@@ -1176,6 +1199,60 @@
       '<input type="text" data-opcion-valor value="' + U.esc(valor || "") + '" placeholder="Ej: Positivo" style="flex:1"/>' +
       '<button type="button" class="btn btn-ghost btn-sm" data-quitar-fila-opcion title="Quitar esta opción">' + U.icon("trash") + "</button>" +
       "</div>";
+  }
+
+  // Edita la lista de opciones de un parámetro de tipo "lista desplegable"
+  // (ej. Color: Amarillo/Ámbar/Rojo…) sin tener que eliminar el campo
+  // completo y volver a crearlo desde cero (bug real reportado: para
+  // agregar o corregir una opción había que borrar el parámetro, perdiendo
+  // su nombre, texto de referencia y demás ya configurados). Reusa la misma
+  // fila con radio (filaOpcionDesplegable) que "Agregar Campo Personalizado"
+  // para que se sienta igual al crear una lista que al editarla.
+  function abrirOpcionesParametro(tenant, examId, exCat, param, onDone) {
+    var session = BIO_AUTH.getSession();
+    var wrap = U.openModal(
+      '<h3 class="modal-title">📋 Editar Opciones — ' + U.esc(param.nombre) + '</h3>' +
+      '<p class="text-muted" style="margin-top:0">Agrega, quita o corrige las opciones de esta lista desplegable. Marca con el círculo cuál es el valor NORMAL. Los resultados que ya se hayan guardado con una opción no se modifican, aunque luego la renombres o la quites de la lista.</p>' +
+      '<div id="opciones-lista"></div>' +
+      '<button type="button" class="btn btn-outline btn-sm" id="btn-agregar-opcion-editar" style="margin-top:2px">' + U.icon("plus") + " Agregar opción</button>" +
+      '<div class="flex gap-2 justify-between" style="margin-top:16px">' +
+      '<button type="button" class="btn btn-ghost" data-modal-close>Cancelar</button>' +
+      '<button type="button" class="btn btn-primary" id="btn-guardar-opciones">' + U.icon("check") + " Guardar Opciones</button>" +
+      "</div>"
+    );
+    var lista = wrap.querySelector("#opciones-lista");
+    param.opciones.forEach(function (o) { lista.insertAdjacentHTML("beforeend", filaOpcionDesplegable(o, o === param.normal)); });
+    wrap.querySelector("#btn-agregar-opcion-editar").addEventListener("click", function () {
+      lista.insertAdjacentHTML("beforeend", filaOpcionDesplegable("", false));
+    });
+    lista.addEventListener("click", function (e) {
+      var btn = e.target.closest("[data-quitar-fila-opcion]");
+      if (!btn) return;
+      btn.closest("[data-fila-opcion]").remove();
+    });
+    wrap.querySelector("#btn-guardar-opciones").addEventListener("click", function () {
+      var normal = "";
+      var opciones = [];
+      wrap.querySelectorAll("[data-fila-opcion]").forEach(function (fila) {
+        var valor = fila.querySelector("[data-opcion-valor]").value.trim();
+        if (!valor) return;
+        opciones.push(valor);
+        if (fila.querySelector('input[type="radio"]').checked) normal = valor;
+      });
+      if (opciones.length < 2) { U.toast("Agrega al menos 2 opciones a la lista.", "error"); return; }
+      if (!normal) normal = opciones[0];
+      // refText solo se actualiza si todavía decía el genérico "Normal: X"
+      // de la opción anterior — si el laboratorio ya había escrito un texto
+      // de referencia propio, se respeta tal cual.
+      var refText = /^Normal: /.test(param.refText || "") ? "Normal: " + normal : param.refText;
+      C.setOverride(tenant, examId, param.codigo, { opciones: opciones, normal: normal, refText: refText });
+      S.updateTenant(tenant.id, { refOverrides: tenant.refOverrides || {} });
+      S.addAudit(session.tenantId, session.nombre, session.rol, "UPDATE_PARAM_OPCIONES", "catalogo", examId + ":" + param.codigo,
+        "Editó las opciones de la lista desplegable de " + param.nombre + " en " + exCat.nombre + ": " + opciones.join(", ") + ".");
+      U.toast("Opciones guardadas.", "success");
+      U.closeModal(wrap);
+      onDone();
+    });
   }
 
   function abrirAgregarCampo(tenant, examId, exCat, onSaved) {

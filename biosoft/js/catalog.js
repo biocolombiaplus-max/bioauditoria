@@ -447,6 +447,41 @@
       parametros: [texto("MICOL", "Resultado", "No se observan estructuras fúngicas")] },
     { id: "MIC-014", seccion: "microbiologia", nombre: "Gota Gruesa y Extendido de Malaria", cups: "907370", nivel: 1, muestra: "Sangre total EDTA", metodo: "Microscopía (Coloración de Giemsa)", tubo: "edta",
       parametros: [cual("MALARIA", "Resultado", ["No se observan hemoparásitos", "Se observan hemoparásitos"], "No se observan hemoparásitos")] },
+    // Un solo examen con las DOS técnicas que casi siempre se piden juntas
+    // para flujo vaginal (así lo reportan la mayoría de laboratorios en
+    // Colombia: un reporte, dos secciones) — evita que el bacteriólogo
+    // tenga que diligenciar dos exámenes sueltos y que el paciente reciba
+    // dos informes separados para una sola muestra. Los campos van
+    // agrupados por técnica, en el mismo orden en que se observan al
+    // microscopio: primero el Examen en Fresco (motilidad/Trichomonas,
+    // células clave, levaduras — se pierden si se demora el montaje, por
+    // eso siempre se mira primero), después la Coloración de Gram (flora
+    // bacteriana, Nugent simplificado). Los campos semicuantitativos
+    // (Escasos/Moderados/Abundantes) usan desc() en vez de cual() porque
+    // ahí NO hay un único valor "normal" — depende del hallazgo combinado,
+    // no de cada campo por separado (por eso la interpretación global va
+    // aparte, en FV_INTERP).
+    { id: "MIC-015", seccion: "microbiologia", nombre: "Frotis de Flujo Vaginal (Fresco y Gram)", cups: "907118", nivel: 1, muestra: "Secreción vaginal", metodo: "Microscopía directa (fresco) + Coloración de Gram", tubo: "hisopo",
+      parametros: [
+        num("FV_LEUFRES", "Leucocitos (Examen en Fresco)", "x campo", 0, 10),
+        num("FV_HEMFRES", "Hematíes (Examen en Fresco)", "x campo", 0, 3),
+        desc("FV_EPITFRES", "Células Epiteliales (Examen en Fresco)", ["Escasas", "Moderadas", "Abundantes"]),
+        desc("FV_FLORAFRES", "Flora Bacteriana (Examen en Fresco)", ["Escasa", "Moderada", "Abundante"]),
+        cual("FV_TRICH", "Trichomonas vaginalis", ["Negativo", "Positivo"], "Negativo"),
+        cual("FV_LEVAFRES", "Levaduras y/o Pseudohifas (Examen en Fresco)", ["Negativo", "Positivo"], "Negativo"),
+        cual("FV_CLAVEFRES", "Células Clave / Guía (Examen en Fresco)", ["Negativo", "Positivo"], "Negativo"),
+        texto("FV_OBSFRES", "Observaciones del Examen en Fresco", "Sin otros hallazgos"),
+        desc("FV_LACTO", "Bacilos Gram Positivos (Lactobacilos)", ["Abundantes", "Moderados", "Escasos", "Ausentes"]),
+        desc("FV_COCOSPOS", "Cocos Gram Positivos", ["Ausentes", "Escasos", "Moderados", "Abundantes"]),
+        desc("FV_BACLNEG", "Bacilos Gram Negativos", ["Ausentes", "Escasos", "Moderados", "Abundantes"]),
+        cual("FV_DIPLO", "Diplococos Gram Negativos Intracelulares (sugestivos de N. gonorrhoeae)", ["Negativo", "Positivo"], "Negativo"),
+        cual("FV_LEVAGRAM", "Levaduras y/o Pseudohifas (Gram)", ["Negativo", "Positivo"], "Negativo"),
+        cual("FV_CLAVEGRAM", "Células Clave / Guía (Gram)", ["Negativo", "Positivo"], "Negativo"),
+        num("FV_LEUGRAM", "Leucocitos (Gram)", "x campo", 0, 10),
+        cual("FV_INTERP", "Interpretación de Flora Vaginal", ["Flora normal (Lactobacilos predominantes)", "Flora intermedia", "Vaginosis bacteriana"], "Flora normal (Lactobacilos predominantes)"),
+        texto("FV_OBSGRAM", "Observaciones de la Coloración de Gram", "Sin otros hallazgos")
+      ]
+    },
 
     // ---------------- ENDOCRINOLOGÍA / HORMONAS ----------------
     { id: "HOR-001", seccion: "hormonas", nombre: "Hormona Estimulante de Tiroides (TSH)", cups: "904125", nivel: 1, muestra: "Suero", metodo: "Quimioluminiscencia", tubo: "gel",
@@ -1883,9 +1918,16 @@
     if (nombre && nombre.trim()) c.nombre = nombre.trim(); else delete c.nombre;
   }
 
+  // Se MEZCLA con el override que ya hubiera (no lo reemplaza entero): así,
+  // un modal que solo toca una parte del parámetro (ej. "Editar opciones"
+  // de una lista desplegable) no borra en silencio lo que otro modal ya
+  // había guardado para ese mismo parámetro (ej. el nombre personalizado o
+  // si está oculto en el informe). Para BORRAR un campo puntual del
+  // override, pásalo explícitamente en el patch (ej. formula: "").
   function setOverride(tenant, examId, codigo, patch) {
     tenant.refOverrides = tenant.refOverrides || {};
-    tenant.refOverrides[overrideKey(examId, codigo)] = patch;
+    var key = overrideKey(examId, codigo);
+    tenant.refOverrides[key] = Object.assign({}, tenant.refOverrides[key], patch);
   }
 
   function clearOverride(tenant, examId, codigo) {
