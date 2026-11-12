@@ -143,18 +143,20 @@
   // vale individualmente.
   function filasServiciosAdicionales(servicios) {
     return servicios.map(function (s) {
+      var esUnico = s.tipoCobro === "unico";
       var tieneDesc = !!s.descuento;
       var valorConDescuento = tieneDesc
         ? (s.descuento.tipo === "porcentaje" ? Math.round(s.valorCOP * (1 - s.descuento.valor / 100)) : Math.max(0, s.valorCOP - s.descuento.valor))
         : s.valorCOP;
       var descTxt = !tieneDesc ? "—" :
         (s.descuento.tipo === "porcentaje" ? s.descuento.valor + "%" : "$" + Math.round(s.descuento.valor).toLocaleString("es-CO") + " COP") +
-        (s.descuento.meses == null ? " (permanente)" : " (por " + s.descuento.meses + " mes(es))");
+        (esUnico ? "" : s.descuento.meses == null ? " (permanente)" : " (por " + s.descuento.meses + " mes(es))");
+      var sufijo = esUnico ? "" : "/mes";
       return [
-        s.nombre,
-        "$" + s.valorCOP.toLocaleString("es-CO") + " COP/mes",
+        s.nombre + (esUnico ? "\n(pago único — solo se cobra el primer mes)" : "\n(mensual, recurrente)"),
+        "$" + s.valorCOP.toLocaleString("es-CO") + " COP" + sufijo,
         descTxt,
-        "$" + valorConDescuento.toLocaleString("es-CO") + " COP/mes"
+        "$" + valorConDescuento.toLocaleString("es-CO") + " COP" + sufijo
       ];
     });
   }

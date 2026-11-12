@@ -558,7 +558,11 @@
             '<label class="flex gap-2" style="align-items:center;font-weight:600"><input type="checkbox" id="' + sid + '-check" style="width:auto"/> ' + U.esc(s.nombre) + "</label>" +
             '<p class="text-muted" style="margin:2px 0 8px;font-size:11.5px">' + U.esc(s.descripcion) + "</p>" +
             '<div class="form-grid hidden" id="' + sid + '-box">' +
-            '<div class="field"><label>Valor mensual (COP)</label><input type="number" min="0" step="10000" id="' + sid + '-valor" value="' + s.precio + '"/></div>' +
+            '<div class="field"><label>Tipo de cobro</label><select id="' + sid + '-tipo-cobro">' +
+            '<option value="mensual">Mes a mes (recurrente, todos los meses)</option>' +
+            '<option value="unico">Pago único (se cobra solo el primer mes, nunca más)</option>' +
+            "</select></div>" +
+            '<div class="field"><label id="' + sid + '-valor-label">Valor mensual (COP)</label><input type="number" min="0" step="10000" id="' + sid + '-valor" value="' + s.precio + '"/></div>' +
             '<div class="field" style="grid-column:1/-1">' + descuentoHtml(sid + "-desc", "Aplicar descuento a este servicio") + "</div>" +
             "</div>" +
             "</div>";
@@ -646,8 +650,15 @@
       return { cop: plan.precio, usd: plan.usd };
     }
     // Lo mismo, para un servicio adicional ya leído del formulario
-    // ({valorCOP, valorUSD, descuento}).
+    // ({valorCOP, valorUSD, descuento, tipoCobro}) — un servicio "único" solo
+    // se cobra en el mes 1 de toda la relación (nunca se repite, ni siquiera
+    // en el segundo bloque de 6 meses de la modalidad semestral); uno
+    // "mensual" se cobra siempre, todos los meses, igual que antes.
     function precioServicioEnMes(servicio, mes) {
+      if (servicio.tipoCobro === "unico") return mes === 1 ? aplicarPrecioServicioBase(servicio, 1) : { cop: 0, usd: 0 };
+      return aplicarPrecioServicioBase(servicio, mes);
+    }
+    function aplicarPrecioServicioBase(servicio, mes) {
       if (descuentoVigenteEnMes(servicio.descuento, mes)) return aplicarDescuentoMonto(servicio.valorCOP, servicio.valorUSD, servicio.descuento);
       return { cop: servicio.valorCOP, usd: servicio.valorUSD };
     }
@@ -746,6 +757,7 @@
         var valorCOP = parseFloat(wrap.querySelector("#" + sid + "-valor").value) || 0;
         return {
           id: s.id, nombre: s.nombre, valorCOP: valorCOP, valorUSD: Math.round(valorCOP / ratioUsdCop),
+          tipoCobro: wrap.querySelector("#" + sid + "-tipo-cobro").value,
           descuento: leerDescuentoBox(wrap, sid + "-desc")
         };
       });
@@ -810,7 +822,9 @@
         wrap.querySelector("#" + prefix + "-resumen-tercero-wrap").classList.toggle("hidden", !r.tercero);
         if (r.tercero) wrap.querySelector("#" + prefix + "-resumen-tercero").textContent = lineaPeriodo(r.tercero, 3);
         wrap.querySelector("#" + prefix + "-resumen-servicios").textContent = r.servicios.length
-          ? "Servicios incluidos: " + r.servicios.map(function (s) { return s.nombre + " (" + fmtInversionCOP(s.valorCOP) + "/mes" + (s.descuento ? ", con descuento" : "") + ")"; }).join(" · ")
+          ? "Servicios incluidos: " + r.servicios.map(function (s) {
+              return s.nombre + " (" + fmtInversionCOP(s.valorCOP) + (s.tipoCobro === "unico" ? ", pago único" : "/mes") + (s.descuento ? ", con descuento" : "") + ")";
+            }).join(" · ")
           : "";
       }
       ["#" + prefix + "-plan", "#" + prefix + "-modalidad", "#" + prefix + "-implementacion", "#" + prefix + "-equipos", "#" + prefix + "-cobrar-equipos"].forEach(function (sel) {
@@ -822,8 +836,16 @@
         var sid = prefix + "-serv-" + s.id;
         var chk = wrap.querySelector("#" + sid + "-check");
         var box = wrap.querySelector("#" + sid + "-box");
+        var selTipoCobro = wrap.querySelector("#" + sid + "-tipo-cobro");
+        var valorLabel = wrap.querySelector("#" + sid + "-valor-label");
         chk.addEventListener("change", function () { box.classList.toggle("hidden", !chk.checked); actualizar(); });
         wrap.querySelector("#" + sid + "-valor").addEventListener("input", actualizar);
+        // "Pago único" relabela el campo de valor para que quede clarísimo
+        // que ese número es un cobro de una sola vez, no una mensualidad.
+        selTipoCobro.addEventListener("change", function () {
+          valorLabel.textContent = selTipoCobro.value === "unico" ? "Valor del pago único (COP)" : "Valor mensual (COP)";
+          actualizar();
+        });
         wireDescuentoBox(wrap, sid + "-desc", actualizar);
       });
       actualizar();
