@@ -60,6 +60,21 @@
     if (err && err.code === "failed-precondition" || /already been terminated/i.test(msg)) {
       return "Parece que tienes BIOsoft abierto en otra pestaña o ventana del navegador, y eso está bloqueando esta acción. Cierra TODAS las demás pestañas de BIOsoft (o cierra el navegador por completo), abre una sola de nuevo e inténtalo otra vez.";
     }
+    // "INTERNAL ASSERTION FAILED" (sin código auth/* ni permission-denied —
+    // es un error interno del propio SDK, nada que ver con las Reglas de
+    // Firestore) es la copia local de Firestore (IndexedDB, para el Modo
+    // Offline) quedando corrupta en ESTE dispositivo/navegador en
+    // particular — caso real reportado: pasaba justo después de que la
+    // misma pestaña se hubiera cerrado/recargado sola varias veces seguidas
+    // (ej. por quedarse sin memoria en un celular con señal débil). Cerrar
+    // otras pestañas no alcanza a arreglar esto (a diferencia del caso de
+    // arriba): hay que borrar los datos guardados de este sitio en el
+    // navegador para que Firestore reconstruya esa copia local desde cero.
+    // No es un problema de ningún otro laboratorio ni del servidor — queda
+    // aislado a este dispositivo.
+    if (/internal assertion failed/i.test(msg)) {
+      return "Hubo un problema con los datos sin conexión guardados en ESTE navegador/celular (no afecta a nadie más). Para solucionarlo: borra los datos de navegación de bioauditoria.com (Configuración del navegador → Privacidad → Borrar datos de este sitio) y vuelve a entrar. Si no puedes borrarlos, prueba en modo incógnito/privado o en otro navegador.";
+    }
     return msg || "Ocurrió un error inesperado.";
   }
   function fbColl(coll) {

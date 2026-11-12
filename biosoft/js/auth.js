@@ -26,7 +26,14 @@
     // (esas fallan con "permission-denied") ni con el correo/contraseña. Se
     // centraliza en BIO_STORE.mensajeErrorFirestore() porque afecta por
     // igual al login y a cualquier botón del superadmin (ver store.js).
-    if ((err && err.code === "failed-precondition") || (err && err.message && /already been terminated/i.test(err.message))) {
+    // "INTERNAL ASSERTION FAILED" (sin código): la copia local de Firestore
+    // (IndexedDB) quedó corrupta en este dispositivo — misma centralización
+    // que el caso de "pestaña bloqueada" de arriba, ver el comentario
+    // completo en BIO_STORE.mensajeErrorFirestore(). Bug real reportado: el
+    // mensaje crudo del SDK salía tal cual bajo el formulario de login,
+    // justo después de que el navegador se hubiera cerrado solo varias
+    // veces por quedarse sin memoria (celular con señal débil).
+    if ((err && err.code === "failed-precondition") || (err && err.message && (/already been terminated/i.test(err.message) || /internal assertion failed/i.test(err.message)))) {
       return BIO_STORE.mensajeErrorFirestore(err);
     }
     // Errores propios que lanza loginReal() (ej. "Esta cuenta no tiene un
