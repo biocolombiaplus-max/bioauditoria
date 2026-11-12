@@ -4210,6 +4210,17 @@
         });
       });
     }
+    // Antes el primer render de esta pantalla lo disparaba la respuesta de
+    // cargar() (listConConteos(): la consulta más cara de todo BIOsoft —
+    // ver su comentario en store.js) — mientras esa respuesta no llegaba,
+    // #content quedaba en blanco (router.js lo vacía ANTES de llamar a
+    // esta función), así que cambiar a "Laboratorios Cliente" se sentía
+    // congelado/sin responder, sobre todo la primera vez en la sesión o
+    // cuando ya venció la caché de 25s (bug real reportado: "se demora
+    // mucho tiempo en responder"). build() ya sabía pintar "Cargando
+    // laboratorios…" con cargando=true (ver más arriba) — solo faltaba
+    // llamarlo UNA vez aquí, de inmediato, antes de disparar cargar().
+    build();
     cargar();
     unsubTenants = S.tenantsGlobal.watch(function () { cargar(); });
   };

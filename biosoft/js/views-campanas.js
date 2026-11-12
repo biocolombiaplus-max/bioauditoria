@@ -206,6 +206,11 @@
     }
     var leadsPorIdGlobal = {};
 
+    // Mismo bug real reportado que en "Laboratorios Cliente"/CRM (ver sus
+    // comentarios en views-admin.js/views-crm.js): sin este build() inicial,
+    // #content (ya vaciado por router.js) se quedaba en blanco, pareciendo
+    // congelado, mientras cargar() esperaba la respuesta de Firestore.
+    build();
     cargar();
   };
 })();

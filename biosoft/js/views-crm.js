@@ -1892,6 +1892,14 @@
       });
     }
 
+    // Mismo bug real reportado que en "Laboratorios Cliente" (ver su
+    // comentario en views-admin.js): router.js vacía #content ANTES de
+    // llamar a esta función, y sin este build() inicial la pantalla se
+    // quedaba en blanco (pareciendo congelada) mientras cargar() esperaba
+    // crmClientes + plantillas + tenantsGlobal.listBasico() — build() ya
+    // sabía pintar "Cargando clientes…" con cargando=true, solo faltaba
+    // llamarlo de inmediato, antes de disparar cargar().
+    build();
     cargar();
     unsubClientes = S.crm.watch(function () { cargar(); });
     unsubPlantillas = S.plantillas.watch(function () { cargar(); });
