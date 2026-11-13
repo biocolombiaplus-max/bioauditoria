@@ -94,7 +94,8 @@
   function renderList(root) {
     var session = BIO_AUTH.getSession();
     var tenant = BIO_AUTH.currentTenant();
-    var todasLasOrdenes = S.listOrders(session.tenantId);
+    var todasLasOrdenes = BIO_AUTH.filtrarPorSedeActual(S.listOrders(session.tenantId));
+    var mostrarSede = !!(tenant && tenant.multisede);
     var conPrecio = !!(tenant && tenant.mostrarPrecioOrden);
     // El estado de pago (Pagado / Pago pendiente) solo aplica donde se
     // genera Recibo de Pago (ver puedeReciboOrden más abajo) — así el
@@ -123,7 +124,7 @@
       if (ordenesFiltroFecha && fechaInputDe(o.fechaOrden) !== ordenesFiltroFecha) return false;
       return true;
     });
-    var colspanVacio = 7 + (conPrecio ? 1 : 0) + (conEstadoPago ? 1 : 0);
+    var colspanVacio = 7 + (conPrecio ? 1 : 0) + (conEstadoPago ? 1 : 0) + (mostrarSede ? 1 : 0);
     root.innerHTML =
       '<div class="card"><div class="card-header"><h3 class="card-title">Órdenes de Laboratorio (' + orders.length + (hayFiltrosActivos ? " de " + todasLasOrdenes.length : "") + ')</h3>' +
       '<div class="flex gap-2"><button class="btn btn-ghost btn-sm" id="btn-verificar-duplicados" title="Revisa que ningún número de orden esté repetido entre dos pacientes distintos">' + U.icon("history") + ' Verificar duplicados</button>' +
@@ -139,8 +140,8 @@
         '<div class="field" style="margin-bottom:0"><input type="date" id="ord-filtro-fecha" title="Filtrar por fecha de la orden" value="' + U.esc(ordenesFiltroFecha) + '"/></div>' +
         (hayFiltrosActivos ? '<button type="button" class="btn btn-ghost btn-sm" id="ord-limpiar-filtros">' + U.icon("x") + " Limpiar filtros</button>" : "") +
       "</div>" +
-      '<div class="table-wrap"><table><thead><tr><th>N° Orden</th><th>Paciente</th><th>Fecha</th><th>Prioridad</th><th># Exámenes</th>' + (conPrecio ? "<th>Valor a Cobrar</th>" : "") + (conEstadoPago ? "<th>Pago</th>" : "") + '<th>Estado</th><th></th></tr></thead><tbody>' +
-      (orders.length ? orders.map(function (o) { return rowOrder(o, conPrecio, conEstadoPago, tenant); }).join("") : '<tr><td colspan="' + colspanVacio + '" class="text-muted">' + (hayFiltrosActivos ? "Ninguna orden coincide con los filtros aplicados." : "No hay órdenes registradas.") + "</td></tr>") +
+      '<div class="table-wrap"><table><thead><tr><th>N° Orden</th><th>Paciente</th>' + (mostrarSede ? "<th>Sede</th>" : "") + '<th>Fecha</th><th>Prioridad</th><th># Exámenes</th>' + (conPrecio ? "<th>Valor a Cobrar</th>" : "") + (conEstadoPago ? "<th>Pago</th>" : "") + '<th>Estado</th><th></th></tr></thead><tbody>' +
+      (orders.length ? orders.map(function (o) { return rowOrder(o, conPrecio, conEstadoPago, tenant, mostrarSede); }).join("") : '<tr><td colspan="' + colspanVacio + '" class="text-muted">' + (hayFiltrosActivos ? "Ninguna orden coincide con los filtros aplicados." : "No hay órdenes registradas.") + "</td></tr>") +
       "</tbody></table></div></div>";
     document.getElementById("ord-filtro-convenio").value = ordenesFiltroConvenio;
     document.getElementById("ord-filtro-convenio").addEventListener("change", function (e) { ordenesFiltroConvenio = e.target.value; renderList(root); });
@@ -267,7 +268,7 @@
     });
   }
 
-  function rowOrder(o, conPrecio, conEstadoPago, tenant) {
+  function rowOrder(o, conPrecio, conEstadoPago, tenant, mostrarSede) {
     var pac = S.getPatient(o.patientId);
     var celdaPago = "";
     if (conEstadoPago) {
@@ -287,11 +288,12 @@
     }
     var abierto = !!ordenesExpandidas[o.id];
     var muestrasPendientes = o.examenes.filter(function (ex) { return ex.muestraPendiente; }).length;
-    var colspanTotal = 7 + (conPrecio ? 1 : 0) + (conEstadoPago ? 1 : 0);
+    var colspanTotal = 7 + (conPrecio ? 1 : 0) + (conEstadoPago ? 1 : 0) + (mostrarSede ? 1 : 0);
+    var celdaSede = mostrarSede ? "<td>" + (o.sedeId ? U.esc(C.sedeNombre(tenant, o.sedeId)) : '<span class="text-muted">—</span>') + "</td>" : "";
     var filaPrincipal = "<tr><td><b>" + o.numeroOrden + "</b>" + (o.convenioNombre ? '<div class="text-muted" style="font-size:11px">🤝 ' + U.esc(o.convenioNombre) + "</div>" : "") +
       (o.descuentoMonto > 0 ? '<div style="font-size:11px;color:var(--brand-primary);font-weight:600">🏷️ Descuento ' + (o.descuentoTipo === "porcentaje" ? (o.descuentoValorIngresado + "%") : fmtMoneda(o.descuentoValorIngresado)) + " (−" + fmtMoneda(o.descuentoMonto) + ")</div>" : "") +
       (muestrasPendientes ? '<div class="badge-muestra-pendiente-mini">🧪 Muestra pendiente' + (muestrasPendientes > 1 ? " (" + muestrasPendientes + ")" : "") + "</div>" : "") +
-      "</td><td><span class=\"orden-paciente-toggle\" data-toggle-orden=\"" + o.id + "\">" + U.icon("chevron-down", "fila-grupo-chevron" + (abierto ? " abierto" : "")) + " " + (pac ? U.esc(U.nombreCompleto(pac)) : "—") + "</span></td><td>" + U.fmtFecha(o.fechaOrden) + "</td>" +
+      "</td><td><span class=\"orden-paciente-toggle\" data-toggle-orden=\"" + o.id + "\">" + U.icon("chevron-down", "fila-grupo-chevron" + (abierto ? " abierto" : "")) + " " + (pac ? U.esc(U.nombreCompleto(pac)) : "—") + "</span></td>" + celdaSede + "<td>" + U.fmtFecha(o.fechaOrden) + "</td>" +
       '<td><span class="badge badge-' + (o.prioridad === "Urgente" ? "urgente" : "rutina") + '">' + o.prioridad + "</span></td>" +
       "<td>" + o.examenes.length + "</td>" + (conPrecio ? "<td>" + (o.valorCobrar ? fmtMoneda(o.valorCobrar) + fmtMonedaEquiv(tenant, o.valorCobrar) + (o.monedaPago ? ' <span class="text-muted" style="font-size:11px">· ' + o.monedaPago + "</span>" : "") : "—") + "</td>" : "") + celdaPago +
       "<td>" + window.BIO_badgeEstado(o.estadoGeneral) + '</td><td class="flex gap-2 wrap"><button class="btn btn-outline btn-sm" data-view="' + o.id + '">Ver</button>' +
@@ -432,7 +434,8 @@
           // Usuarios), el selector queda bloqueado en la suya: un usuario
           // de la Sede Norte no puede registrar una orden "de" la Sede
           // Centro, porque después ni siquiera podría volver a verla (ver
-          // el aislamiento por sede en listOrders/listPatients de store.js).
+          // BIO_AUTH.filtrarPorSedeActual, que aísla los listados de cada
+          // vista — órdenes, resultados, hojas de trabajo, dashboard).
           (tenant.multisede ? '<div class="field"><label>Sede</label><select id="f_sedeId" ' + (session.sedeId ? "disabled" : "") + '>' +
             (session.sedeId ? "" : '<option value="">Selecciona la sede…</option>') +
             C.sedesEfectivas(tenant).filter(function (s) { return s.activa !== false || s.id === session.sedeId; }).map(function (s) {
@@ -1611,6 +1614,13 @@
         root.innerHTML = '<div class="card"><p class="text-muted">Cargando la orden…</p></div>';
         return;
       }
+      root.innerHTML = '<div class="card">Orden no encontrada.</div>';
+      return;
+    }
+    // Un usuario con sede asignada no puede entrar a una orden de otra
+    // sede ni adivinando el enlace a mano (#/ordenes/:id) — mismo criterio
+    // que ya oculta esa orden en el listado (BIO_AUTH.filtrarPorSedeActual).
+    if (BIO_AUTH.sedeRestringida() && order.sedeId !== session.sedeId) {
       root.innerHTML = '<div class="card">Orden no encontrada.</div>';
       return;
     }

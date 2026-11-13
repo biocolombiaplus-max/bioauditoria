@@ -141,7 +141,7 @@
     // ENVÍO DE RESULTADOS (comportamiento original de este módulo)
     // ---------------------------------------------------------------------
     function buildEnviosHtml() {
-      var todasLasOrdenes = S.listOrders(tenantId).filter(function (o) {
+      var todasLasOrdenes = BIO_AUTH.filtrarPorSedeActual(S.listOrders(tenantId)).filter(function (o) {
         return o.examenes.some(function (ex) { return ex.estado === "validado" || ex.estado === "remitido" || ex.estado === "preliminar"; });
       });
       // Carga los pacientes UNA vez en un mapa por id, en vez de llamar
@@ -383,7 +383,7 @@
         var convenioIdCartera = elConvenioCartera ? elConvenioCartera.value : "";
         var elMonedaCartera = document.getElementById("rep-cartera-moneda");
         var monedaIdCartera = elMonedaCartera ? elMonedaCartera.value : "";
-        var orders = S.listOrders(tenantId).filter(function (o) {
+        var orders = BIO_AUTH.filtrarPorSedeActual(S.listOrders(tenantId)).filter(function (o) {
           var fecha = (o.fechaOrden || "").slice(0, 10);
           if (convenioIdCartera && o.convenioId !== convenioIdCartera) return false;
           if (monedaIdCartera && o.monedaPago !== monedaIdCartera) return false;
@@ -459,7 +459,7 @@
         }
         var elConvenioRelacion = document.getElementById("rep-relacion-convenio");
         var convenioIdRelacion = elConvenioRelacion ? elConvenioRelacion.value : "";
-        var ordenes = S.listOrders(tenantId).filter(function (o) {
+        var ordenes = BIO_AUTH.filtrarPorSedeActual(S.listOrders(tenantId)).filter(function (o) {
           var fecha = (o.fechaOrden || "").slice(0, 10);
           if (convenioIdRelacion && o.convenioId !== convenioIdRelacion) return false;
           return fecha >= desde && fecha <= hasta && o.examenes && o.examenes.length;
@@ -499,7 +499,7 @@
         // cierre del día en que realmente se recibió, no todo amontonado
         // en la fecha del primer pago.
         var filas = [];
-        S.listOrders(tenantId).forEach(function (o) {
+        BIO_AUTH.filtrarPorSedeActual(S.listOrders(tenantId)).forEach(function (o) {
           var esCopago = !!(o.pago && o.pago.tieneCopago);
           (o.abonos || []).forEach(function (abono) {
             var fechaAbono = (abono.fecha || "").slice(0, 10);
@@ -538,7 +538,7 @@
         // catálogo, no tiene una tarifa configurada con la que calcular
         // ninguna comisión.
         var filas = [];
-        S.listOrders(tenantId).filter(function (o) {
+        BIO_AUTH.filtrarPorSedeActual(S.listOrders(tenantId)).filter(function (o) {
           var fecha = (o.fechaOrden || "").slice(0, 10);
           if (!o.medicoRemitenteId || !medicosPorId[o.medicoRemitenteId]) return false;
           if (medicoIdFiltro && o.medicoRemitenteId !== medicoIdFiltro) return false;

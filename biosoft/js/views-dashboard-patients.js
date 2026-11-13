@@ -17,8 +17,19 @@
 
     var tenantId = session.tenantId;
     var tenant = S.getTenant(tenantId);
-    var patients = S.listPatients(tenantId);
-    var orders = S.listOrders(tenantId);
+    var orders = BIO_AUTH.filtrarPorSedeActual(S.listOrders(tenantId));
+    // El paciente es único por laboratorio (nunca se duplica por sede, ver
+    // catalog.js), así que para un usuario con sede asignada "Pacientes
+    // Registrados" cuenta los pacientes que SÍ tienen al menos una orden
+    // en su sede — no el total del laboratorio completo, que incluiría
+    // pacientes atendidos solo en otras sedes.
+    var patients = BIO_AUTH.sedeRestringida()
+      ? (function () {
+          var idsConOrdenEnSede = {};
+          orders.forEach(function (o) { idsConOrdenEnSede[o.patientId] = true; });
+          return S.listPatients(tenantId).filter(function (p) { return idsConOrdenEnSede[p.id]; });
+        })()
+      : S.listPatients(tenantId);
     var todayStr = new Date().toISOString().slice(0, 10);
     var ordersToday = orders.filter(function (o) { return o.fechaOrden.slice(0, 10) === todayStr; });
 
@@ -330,7 +341,17 @@
     renderList("");
 
     function renderList(filter) {
+      // Mismo criterio que el KPI "Pacientes Registrados" del dashboard: un
+      // usuario con sede asignada solo ve en esta lista a los pacientes que
+      // tienen al menos una orden en SU sede (el paciente en sí es único
+      // por laboratorio, nunca se duplica por sede — ver catalog.js).
+      var idsConOrdenEnSede = null;
+      if (BIO_AUTH.sedeRestringida()) {
+        idsConOrdenEnSede = {};
+        BIO_AUTH.filtrarPorSedeActual(S.listOrders(session.tenantId)).forEach(function (o) { idsConOrdenEnSede[o.patientId] = true; });
+      }
       var patients = S.listPatients(session.tenantId).filter(function (p) {
+        if (idsConOrdenEnSede && !idsConOrdenEnSede[p.id]) return false;
         if (!filter) return true;
         var f = filter.toLowerCase();
         return U.nombreCompleto(p).toLowerCase().indexOf(f) !== -1 || p.numeroDocumento.indexOf(f) !== -1;
@@ -408,7 +429,7 @@
     if (!patient) return;
     var session = BIO_AUTH.getSession();
     var tenant = BIO_AUTH.currentTenant();
-    var ordenes = S.listOrders(session.tenantId)
+    var ordenes = BIO_AUTH.filtrarPorSedeActual(S.listOrders(session.tenantId))
       .filter(function (o) { return o.patientId === patient.id; })
       .sort(function (a, b) { return (b.fechaOrden || "").localeCompare(a.fechaOrden || ""); });
 

@@ -14,7 +14,7 @@
     var modoPantalla = false;
 
     function itemsFor(fecha, seccion) {
-      var orders = S.listOrders(session.tenantId);
+      var orders = BIO_AUTH.filtrarPorSedeActual(S.listOrders(session.tenantId));
       var out = [];
       orders.forEach(function (o) {
         if (o.fechaOrden.slice(0, 10) !== fecha) return;

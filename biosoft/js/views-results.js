@@ -66,7 +66,7 @@
   function renderBandeja(root) {
     var session = BIO_AUTH.getSession();
     var tenant = BIO_AUTH.currentTenant();
-    var orders = S.listOrders(session.tenantId);
+    var orders = BIO_AUTH.filtrarPorSedeActual(S.listOrders(session.tenantId));
     var filtroEstado = "todos";
     var filtroSeccion = "todas";
     // Qué órdenes con más de un examen están desplegadas mostrando cada
@@ -257,7 +257,7 @@
   function renderCaptura(root, orderId) {
     var session = BIO_AUTH.getSession();
     var order = S.getOrder(orderId);
-    if (!order) { root.innerHTML = '<div class="card">Orden no encontrada.</div>'; return; }
+    if (!order || (BIO_AUTH.sedeRestringida() && order.sedeId !== session.sedeId)) { root.innerHTML = '<div class="card">Orden no encontrada.</div>'; return; }
     var pac = S.getPatient(order.patientId);
     var tenant = BIO_AUTH.currentTenant();
 

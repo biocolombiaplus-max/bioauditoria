@@ -248,6 +248,30 @@
     return !!tenant && tenant.claveAdmin === clave;
   }
 
+  // -----------------------------------------------------------------------
+  // AISLAMIENTO POR SEDE (ver tenant.multisede en catalog.js): un usuario
+  // con una sede asignada ("Sede a la que pertenece" en Usuarios del
+  // Laboratorio) solo debe ver/trabajar los pacientes y órdenes de ESA
+  // sede — nunca los de otra sede del mismo laboratorio. El Administrador
+  // SIEMPRE ve todo el laboratorio completo, sin importar si por error le
+  // quedó una sede asignada (es la decisión de diseño original: "el
+  // Administrador siempre ve todo"). Un usuario sin sede asignada
+  // (sedeId vacío) también ve todo — así quedan, sin ningún cambio, todos
+  // los laboratorios que nunca activaron Multisede.
+  // -----------------------------------------------------------------------
+  function sedeRestringida() {
+    var s = getSession();
+    return !!(s && s.sedeId && s.rol !== "admin");
+  }
+  /* Filtra un arreglo de registros con campo sedeId (órdenes, hojas de
+     trabajo, etc.) a solo lo de la sede del usuario actual — no filtra
+     nada si el usuario no está restringido por sede. */
+  function filtrarPorSedeActual(items) {
+    if (!sedeRestringida()) return items;
+    var sedeId = getSession().sedeId;
+    return items.filter(function (x) { return x.sedeId === sedeId; });
+  }
+
   global.BIO_AUTH = {
     login: login,
     logout: logout,
@@ -257,6 +281,8 @@
     isRole: isRole,
     tienePermisoExtra: tienePermisoExtra,
     verificarClaveAdmin: verificarClaveAdmin,
-    recuperarContrasena: recuperarContrasena
+    recuperarContrasena: recuperarContrasena,
+    sedeRestringida: sedeRestringida,
+    filtrarPorSedeActual: filtrarPorSedeActual
   };
 })(window);
