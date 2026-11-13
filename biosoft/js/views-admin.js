@@ -2072,6 +2072,11 @@
         '<option value="clasica"' + (tenant.formatoFactura === "clasica" ? " selected" : "") + '>Factura Estilo Clásico (código / descripción / precio / cant. / importe, con N° de Factura)</option>' +
         "</select></div>" +
         '<p class="text-muted" style="margin:4px 0 12px;font-size:12.5px">Con "Factura Estilo Clásico", al generar el Recibo de Pago de una orden por primera vez se abre un formulario para revisar el código, precio y cantidad de cada examen (por si necesitas facturar más de una unidad de un mismo examen) y agregar descuento, impuesto y observaciones — igual que una factura de venta tradicional. Solo se pide una vez por orden: al reenviarla, se reutiliza lo que ya se armó.</p>' +
+        '<div class="field" style="max-width:420px"><label>Exámenes en la Factura / Recibo</label><select id="f_facturaAgrupacion">' +
+        '<option value="examen"' + (!tenant.facturaAgrupacion || tenant.facturaAgrupacion === "examen" ? " selected" : "") + '>Un renglón por examen (el de siempre)</option>' +
+        '<option value="familia"' + (tenant.facturaAgrupacion === "familia" ? " selected" : "") + '>Agrupados por sección/familia (Hematología, Química Sanguínea, etc.)</option>' +
+        "</select></div>" +
+        '<p class="text-muted" style="margin:4px 0 12px;font-size:12.5px">Cuando una orden tiene muchos exámenes (ej. un perfil o chequeo completo), agrupar por sección/familia deja la Factura o Recibo más corto y ordenado: una sola línea por sección (ej. "Química Sanguínea") con la suma de sus exámenes y, debajo, el detalle de cuáles incluye — en vez de un renglón por cada uno. Aplica tanto al Recibo de Pago de siempre como a la Factura Estilo Clásico (ahí puedes seguir ajustando el precio de cada sección agrupada antes de generarla, igual que hoy con cada examen).</p>' +
         '<div class="checkbox-row"><input type="checkbox" id="f_facturaConMembrete" ' + (tenant.facturaConMembrete !== false ? "checked" : "") + '/><label style="margin:0" for="f_facturaConMembrete">Incluir el membrete (logo, nombre y datos del laboratorio) en la Factura / Recibo</label></div>' +
         '<p class="text-muted" style="margin:4px 0 12px;font-size:12.5px">Desactívalo si vas a imprimir sobre un papel que ya viene membretado de fábrica — muy común en Venezuela con la "Forma Libre" numerada por el SENIAT (logo, RIF y N° de Factura ya impresos de la imprenta, como en tu ejemplo). Con esta opción apagada, BIOsoft NO dibuja ningún logo, dato del laboratorio ni número de factura/recibo propio — eso lo duplicaría o entraría en conflicto con el número oficial que ya trae tu hoja — el documento sale solo con los datos de la orden (cliente, exámenes, totales). Esto no afecta al Informe de Resultados ni a la Cotización, que tienen su propia opción de membrete más abajo.</p>' +
         '<div id="factura-sin-membrete-opciones" class="' + (tenant.facturaConMembrete === false ? "" : "hidden") + '" style="margin:0 0 12px;padding-left:2px">' +
@@ -2395,6 +2400,7 @@
       tenant.calcularIndicesHematimetricos = document.getElementById("f_calcularIndicesHematimetricos").checked;
       tenant.reciboConvenioComoCredito = document.getElementById("f_reciboConvenioComoCredito").checked;
       tenant.formatoFactura = document.getElementById("f_formatoFactura").value;
+      tenant.facturaAgrupacion = document.getElementById("f_facturaAgrupacion").value;
       tenant.facturaConMembrete = document.getElementById("f_facturaConMembrete").checked;
       tenant.facturaMembreteEspacioSuperior = parseFloat(document.getElementById("f_facturaEspacioSuperior").value) || 4.5;
       tenant.formatoNumeroOrden = document.getElementById("f_formatoNumeroOrden").value;
@@ -2490,7 +2496,7 @@
           resolucionHabilitacion: tenant.resolucionHabilitacion, codigoREPS: tenant.codigoREPS, nivel: tenant.nivel,
           bacteriologoResponsable: tenant.bacteriologoResponsable, mostrarPrecioOrden: tenant.mostrarPrecioOrden, reportarCIM: tenant.reportarCIM,
           calcularIndicesHematimetricos: tenant.calcularIndicesHematimetricos,
-          reciboConvenioComoCredito: tenant.reciboConvenioComoCredito, formatoFactura: tenant.formatoFactura, facturaConMembrete: tenant.facturaConMembrete, facturaMembreteEspacioSuperior: tenant.facturaMembreteEspacioSuperior, formatoNumeroOrden: tenant.formatoNumeroOrden,
+          reciboConvenioComoCredito: tenant.reciboConvenioComoCredito, formatoFactura: tenant.formatoFactura, facturaAgrupacion: tenant.facturaAgrupacion, facturaConMembrete: tenant.facturaConMembrete, facturaMembreteEspacioSuperior: tenant.facturaMembreteEspacioSuperior, formatoNumeroOrden: tenant.formatoNumeroOrden,
           cobraIva: tenant.cobraIva, porcentajeIva: tenant.porcentajeIva, nombreImpuesto: tenant.nombreImpuesto,
           cuotaAdministrativaValor: tenant.cuotaAdministrativaValor, casheaRecargoPorcentaje: tenant.casheaRecargoPorcentaje,
           logoGrandeReporte: tenant.logoGrandeReporte, logoAnchoCompleto: tenant.logoAnchoCompleto, logoAnchoPorcentaje: tenant.logoAnchoPorcentaje, ocultarNombreEncabezado: tenant.ocultarNombreEncabezado,

@@ -1926,6 +1926,33 @@
     return clone;
   }
 
+  // Agrupa los exámenes de una orden por su sección/familia (Hematología,
+  // Química Sanguínea, etc.) — usado en el Recibo de Pago y la Factura
+  // Clásica cuando el laboratorio activa "Exámenes en la Factura" =
+  // "Agrupados por sección/familia" (Configuración → Operación), para que
+  // una orden con muchos exámenes (ej. un perfil o chequeo completo) quede
+  // en una sola línea por sección en vez de un renglón por cada examen.
+  // items: [{examId, valor}], valor ya en la unidad final a mostrar (el
+  // llamador decide si ya trae cantidad/factores aplicados). Devuelve
+  // [{familia, examenes: [nombre,...], valor}], en el orden en que cada
+  // familia aparece por primera vez (nunca alfabético, para no reordenar
+  // la orden original de la factura).
+  function agruparPorFamilia(items, tenant) {
+    var ordenFamilias = [];
+    var porFamilia = {};
+    items.forEach(function (it) {
+      var exCat = examenEfectivo(it.examId, tenant);
+      var familiaNombre = (exCat && exCat.seccion) ? seccionNombre(exCat.seccion, tenant) : "Otros";
+      if (!porFamilia[familiaNombre]) {
+        porFamilia[familiaNombre] = { familia: familiaNombre, examenes: [], valor: 0 };
+        ordenFamilias.push(familiaNombre);
+      }
+      porFamilia[familiaNombre].examenes.push(exCat ? exCat.nombre : it.examId);
+      porFamilia[familiaNombre].valor += it.valor || 0;
+    });
+    return ordenFamilias.map(function (f) { return porFamilia[f]; });
+  }
+
   function tieneOverride(examId, tenant) {
     if (!tenant) return false;
     if (!examenPorId(examId)) return true; // es un examen 100% propio del laboratorio
@@ -2451,6 +2478,7 @@
     generarCodigoConsulta: generarCodigoConsulta,
     calcularFlag: calcularFlag,
     examenEfectivo: examenEfectivo,
+    agruparPorFamilia: agruparPorFamilia,
     parametroEfectivo: parametroEfectivo,
     tieneOverride: tieneOverride,
     setOverride: setOverride,

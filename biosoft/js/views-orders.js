@@ -1115,10 +1115,28 @@
     // criterio que pdf-recibo-orden.js; el detalle exacto solo lo ve el
     // administrador en el Informe Cashea (pestaña del Cotizador).
     var factorCashea = (order.pago && order.pago.casheaRecargoValor > 0) ? 1 + (order.pago.casheaRecargoPorcentaje / 100) : 1;
-    var filas = order.examenes.map(function (ex) {
-      var exCat = C.examenEfectivo(ex.examId, tenant);
-      return { examId: ex.examId, codigo: exCat ? exCat.cups : "", descripcion: exCat ? exCat.nombre : ex.examId, precio: (precios[ex.examId] || 0) * factorCashea, cantidad: 1 };
-    });
+    // "Exámenes en la Factura" = "familia" (Configuración → Operación):
+    // una sola línea editable por sección/familia (ej. "Química
+    // Sanguínea"), con la suma de sus exámenes, en vez de un renglón por
+    // cada uno — pensado para órdenes con muchos exámenes (perfiles,
+    // chequeos completos), donde revisar precio y cantidad examen por
+    // examen se vuelve largo. El administrador puede seguir editando el
+    // precio/cantidad de cada sección agrupada antes de generar la
+    // factura, igual que hoy con cada examen.
+    var filas;
+    if (tenant.facturaAgrupacion === "familia") {
+      var itemsAgrupar = order.examenes.map(function (ex) {
+        return { examId: ex.examId, valor: (precios[ex.examId] || 0) * factorCashea };
+      });
+      filas = C.agruparPorFamilia(itemsAgrupar, tenant).map(function (g) {
+        return { examId: "", codigo: "", descripcion: g.familia + " (" + g.examenes.join(", ") + ")", precio: g.valor, cantidad: 1 };
+      });
+    } else {
+      filas = order.examenes.map(function (ex) {
+        var exCat = C.examenEfectivo(ex.examId, tenant);
+        return { examId: ex.examId, codigo: exCat ? exCat.cups : "", descripcion: exCat ? exCat.nombre : ex.examId, precio: (precios[ex.examId] || 0) * factorCashea, cantidad: 1 };
+      });
+    }
     // Línea aparte y editable (igual que cualquier examen) para la Cuota
     // Administrativa, si esta orden la incluyó (ver Nueva/Editar Orden) —
     // así el admin puede ajustar su precio o cantidad aquí mismo antes de

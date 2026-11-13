@@ -172,13 +172,32 @@
     if (order.cuotaAdministrativaIncluida) sumaListaConCashea += (order.cuotaAdministrativaValor || 0) * factorCashea;
     var factorAjuste = (hayAlgunPrecio && sumaListaConCashea > 0 && order.valorCobrar > 0) ? order.valorCobrar / sumaListaConCashea : 1;
     var factorLinea = factorCashea * factorAjuste;
-    var filasExamenes = order.examenes.map(function (ex) {
-      var exCat = C.examenEfectivo(ex.examId, tenant);
-      var nombre = exCat ? exCat.nombre : ex.examId;
-      if (!hayAlgunPrecio) return [nombre];
-      var precio = preciosPorId[ex.examId];
-      return [nombre, precio != null ? fmtMoneda(precio * factorLinea) : "—"];
-    });
+    // "Exámenes en la Factura" = "familia" (Configuración → Operación):
+    // en vez de un renglón por examen, una sola línea por sección/familia
+    // (ej. "Química Sanguínea") con la suma de sus exámenes, y debajo el
+    // detalle de cuáles incluye — pensado para órdenes con muchos exámenes
+    // (perfiles, chequeos completos), donde un renglón por examen hace la
+    // tabla demasiado larga.
+    var filasExamenes;
+    if (tenant.facturaAgrupacion === "familia") {
+      var itemsAgrupar = order.examenes.map(function (ex) {
+        var precio = preciosPorId[ex.examId];
+        return { examId: ex.examId, valor: precio != null ? precio * factorLinea : 0 };
+      });
+      filasExamenes = C.agruparPorFamilia(itemsAgrupar, tenant).map(function (g) {
+        var etiqueta = g.familia + (g.examenes.length ? "\n" + g.examenes.join(", ") : "");
+        if (!hayAlgunPrecio) return [etiqueta];
+        return [etiqueta, fmtMoneda(g.valor)];
+      });
+    } else {
+      filasExamenes = order.examenes.map(function (ex) {
+        var exCat = C.examenEfectivo(ex.examId, tenant);
+        var nombre = exCat ? exCat.nombre : ex.examId;
+        if (!hayAlgunPrecio) return [nombre];
+        var precio = preciosPorId[ex.examId];
+        return [nombre, precio != null ? fmtMoneda(precio * factorLinea) : "—"];
+      });
+    }
     // Solo aparece en laboratorios que definieron un valor de Cuota
     // Administrativa (Configuración → Operación) y la incluyeron en esta
     // orden — se muestra como una línea más de la tabla, con el valor YA
@@ -187,9 +206,10 @@
     if (order.cuotaAdministrativaIncluida) {
       filasExamenes.push(hayAlgunPrecio ? ["Cuota Administrativa", fmtMoneda((order.cuotaAdministrativaValor || 0) * factorLinea)] : ["Cuota Administrativa"]);
     }
+    var tituloColExamen = tenant.facturaAgrupacion === "familia" ? "Sección / Exámenes Incluidos" : "Examen";
     doc.autoTable({
       startY: y, margin: { left: margin, right: margin },
-      head: hayAlgunPrecio ? [["Examen", "Valor"]] : [["Examen"]],
+      head: hayAlgunPrecio ? [[tituloColExamen, "Valor"]] : [[tituloColExamen]],
       body: filasExamenes,
       theme: "grid", styles: { fontSize: 9, cellPadding: 6, lineColor: [226, 228, 233], lineWidth: 0.6 },
       headStyles: { fillColor: [247, 248, 250], textColor: 40, fontStyle: "bold" },
