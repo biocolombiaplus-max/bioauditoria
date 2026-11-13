@@ -463,6 +463,29 @@
       .catch(function (err) { secondary.cleanup(); throw err; });
   }
 
+  // Bug real reportado: un laboratorio al que el superadmin acababa de
+  // REACTIVAR (quitarle "suspendido") seguía sin poder ingresar — el
+  // mensaje de "acceso suspendido por pago pendiente" le seguía saliendo.
+  // Causa: la revisión de suspensión al iniciar sesión leía
+  // tenant.suspendido desde realCache, que initRealtime() llena con el
+  // PRIMER snapshot que entregue el listener — y con el Modo Offline
+  // activo (ver enablePersistence en firebase-config.js), ese primer
+  // snapshot puede venir de la copia local en IndexedDB de ESE
+  // dispositivo, no necesariamente ya actualizada con lo que el
+  // superadmin acaba de guardar en el servidor. Esta función fuerza una
+  // lectura directa AL SERVIDOR (source: "server", ignora la copia local)
+  // SOLO para esta decisión puntual — vale la pena el medio segundo extra
+  // de ida y vuelta porque dejar a alguien afuera (o adentro) por una
+  // copia local desactualizada es mucho peor. Si de verdad no hay
+  // conexión, no bloquea el ingreso por un problema de red (initRealtime()
+  // ya tiene su propio manejo de conexión degradada) — se asume "no
+  // suspendido" y se deja continuar.
+  function verificarSuspensionEnServidor(tenantId) {
+    return global.BIO_FB.db.collection("tenants").doc(tenantId).get({ source: "server" }).then(function (doc) {
+      return !!(doc.exists && doc.data().suspendido);
+    }).catch(function () { return false; });
+  }
+
   /* Autentica un correo/contraseña de laboratorio real y ubica su perfil
      (a qué tenant pertenece). No toca el login Demo en absoluto. */
   function loginReal(email, password) {
@@ -492,30 +515,37 @@
           MODE = "real"; // habilita fbWrite/onSnapshot para el CRM sin tenant asociado
           return { id: uidAuth, username: email, nombre: perfil.nombre || "Soporte BIOsoft", rol: "superadmin", tenantId: null, secciones: [] };
         }
-        // Un aliado (usuario de solo consulta de un convenio/empresa) nunca
-        // pasa por initRealtime(): esa función sincroniza todas las
-        // colecciones del laboratorio, y las reglas de Firestore ya NO se
-        // lo permiten a este rol a propósito (ver esDeEsteLab() en
-        // firestore.rules). Se lee su propio documento de usuario (permitido
-        // por regla, es lectura de su propio id) para saber a qué convenio
-        // quedó asignado, y de ahí se arma un espejo mínimo con
-        // initRealtimePortalAliado().
-        if (perfil.rol === "aliado") {
-          return db.collection("tenants").doc(perfil.tenantId).collection("users").doc(uidAuth).get().then(function (userDoc) {
-            if (!userDoc.exists) throw new Error("Tu cuenta de acceso existe pero no aparece como usuario de tu laboratorio en el sistema. Contacta a soporte de BIOsoft para que reparen tu perfil.");
-            var aliadoUser = userDoc.data();
-            return initRealtimePortalAliado(perfil.tenantId, aliadoUser.convenioId).then(function () { return aliadoUser; });
+        // Se revisa la suspensión AQUÍ, con una lectura forzada al servidor
+        // (ver verificarSuspensionEnServidor arriba), ANTES de arrancar
+        // initRealtime()/initRealtimePortalAliado() — nunca después, para
+        // no dejar pasar a nadie basándose en una copia local que todavía
+        // no se enteró de la reactivación.
+        return verificarSuspensionEnServidor(perfil.tenantId).then(function (suspendido) {
+          if (suspendido) throw new Error("El acceso de tu laboratorio está suspendido por pago pendiente. Escríbenos por WhatsApp para reactivarlo.");
+          // Un aliado (usuario de solo consulta de un convenio/empresa) nunca
+          // pasa por initRealtime(): esa función sincroniza todas las
+          // colecciones del laboratorio, y las reglas de Firestore ya NO se
+          // lo permiten a este rol a propósito (ver esDeEsteLab() en
+          // firestore.rules). Se lee su propio documento de usuario (permitido
+          // por regla, es lectura de su propio id) para saber a qué convenio
+          // quedó asignado, y de ahí se arma un espejo mínimo con
+          // initRealtimePortalAliado().
+          if (perfil.rol === "aliado") {
+            return global.BIO_FB.db.collection("tenants").doc(perfil.tenantId).collection("users").doc(uidAuth).get().then(function (userDoc) {
+              if (!userDoc.exists) throw new Error("Tu cuenta de acceso existe pero no aparece como usuario de tu laboratorio en el sistema. Contacta a soporte de BIOsoft para que reparen tu perfil.");
+              var aliadoUser = userDoc.data();
+              return initRealtimePortalAliado(perfil.tenantId, aliadoUser.convenioId).then(function () { return aliadoUser; });
+            });
+          }
+          return initRealtime(perfil.tenantId).then(function () {
+            var user = realCache.users.filter(function (u) { return u.id === uidAuth; })[0];
+            if (!user) throw new Error("Tu cuenta de acceso existe pero no aparece como usuario de tu laboratorio en el sistema. Contacta a soporte de BIOsoft para que reparen tu perfil.");
+            return user;
           });
-        }
-        return initRealtime(perfil.tenantId).then(function () {
-          var user = realCache.users.filter(function (u) { return u.id === uidAuth; })[0];
-          if (!user) throw new Error("Tu cuenta de acceso existe pero no aparece como usuario de tu laboratorio en el sistema. Contacta a soporte de BIOsoft para que reparen tu perfil.");
-          return user;
         });
       });
     });
   }
-
   function logoutReal() {
     if (MODE === "real") { global.BIO_FB.auth.signOut().catch(function () {}); }
     stopRealtime();
@@ -3269,6 +3299,7 @@
     onRealtimeChange: onRealtimeChange,
     provisionRealAccount: provisionRealAccount,
     loginReal: loginReal,
+    verificarSuspensionEnServidor: verificarSuspensionEnServidor,
     logoutReal: logoutReal,
     restoreRealtime: restoreRealtime,
     restoreRealtimePortalAliado: restoreRealtimePortalAliado,

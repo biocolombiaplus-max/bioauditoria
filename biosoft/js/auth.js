@@ -162,19 +162,13 @@
       : s.rol === "aliado" ? BIO_STORE.restoreRealtimePortalAliado(s.tenantId, s.convenioId)
       : BIO_STORE.restoreRealtime(s.tenantId);
     return restaurar.then(function () {
-      if (s.rol !== "superadmin") {
-        var tenant = BIO_STORE.getTenant(s.tenantId);
-        if (tenant && tenant.suspendido) {
-          BIO_STORE.logoutReal();
-          sessionStorage.removeItem(SESSION_KEY);
-          return false;
-        }
-        // La sesión guarda una FOTO de secciones/permisosExtra tomada al
-        // iniciar sesión — si un administrador le cambia esos permisos a un
-        // usuario que ya tenía la pestaña abierta, sin esto el cambio nunca
-        // se reflejaba hasta que esa persona cerrara sesión del todo (un
-        // simple refrescar de página no alcanzaba). Aquí se refresca desde
-        // su documento real, que restoreRealtime ya acaba de traer.
+      // La sesión guarda una FOTO de secciones/permisosExtra tomada al
+      // iniciar sesión — si un administrador le cambia esos permisos a un
+      // usuario que ya tenía la pestaña abierta, sin esto el cambio nunca
+      // se reflejaba hasta que esa persona cerrara sesión del todo (un
+      // simple refrescar de página no alcanzaba). Aquí se refresca desde
+      // su documento real, que restoreRealtime ya acaba de traer.
+      function actualizarSesionDesdeUsuario() {
         var usuarioActual = BIO_STORE.listUsers(s.tenantId).filter(function (u) { return u.id === s.userId; })[0];
         if (usuarioActual) {
           s.secciones = usuarioActual.secciones || [];
@@ -183,8 +177,22 @@
           s.rol = usuarioActual.rol || s.rol;
           sessionStorage.setItem(SESSION_KEY, JSON.stringify(s));
         }
+        return true;
       }
-      return true;
+      if (s.rol === "superadmin") return true;
+      // Lectura forzada al servidor (no la copia local en realCache, que
+      // puede venir de la caché del Modo Offline) — mismo motivo que
+      // verificarSuspensionEnServidor() en store.js: un laboratorio
+      // recién reactivado no debe quedar afuera por una copia local
+      // desactualizada en ESTE dispositivo.
+      return BIO_STORE.verificarSuspensionEnServidor(s.tenantId).then(function (suspendido) {
+        if (suspendido) {
+          BIO_STORE.logoutReal();
+          sessionStorage.removeItem(SESSION_KEY);
+          return false;
+        }
+        return actualizarSesionDesdeUsuario();
+      });
     }).catch(function () {
       sessionStorage.removeItem(SESSION_KEY);
       return false;
