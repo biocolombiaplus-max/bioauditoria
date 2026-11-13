@@ -436,6 +436,7 @@
         '<button class="btn btn-primary btn-sm" id="btn-nuevo-examen">' + U.icon("plus") + " Agregar Examen Nuevo</button>" +
         "</div></div>" +
         '<p class="text-muted" style="margin-top:0">Cada laboratorio puede usar equipos o metodologías distintas, por lo que los valores normales pueden variar. Ajusta aquí los rangos de tu laboratorio sin afectar el catálogo general de BIOsoft; los cambios se aplican de inmediato en la captura de resultados y en los informes. Elige una sección específica para poder ordenar tus exámenes como los trabajas normalmente. Si tu laboratorio procesa una prueba que el catálogo no trae, agrégala con "Agregar Examen Nuevo", o súbelas todas de una vez con "Subir Excel de Exámenes" si son muchas — el catálogo de fábrica de BIOsoft sigue intacto, tus exámenes propios aparecen aparte, con una insignia "📊 Excel" para los que vinieron de tu archivo.</p>' +
+        bannerDuplicadosHtml(tenant) +
         '<div class="flex gap-2 wrap" style="margin-bottom:14px">' +
         '<input id="cat-busqueda" placeholder="Buscar examen por nombre o código CUPS…" style="max-width:320px" value="' + U.esc(busqueda) + '"/>' +
         '<select id="cat-seccion"><option value="todas">Todas las secciones</option>' + C.seccionesEfectivas(tenant).map(function (s) { return '<option value="' + s.id + '" ' + (s.id === filtroSeccion ? "selected" : "") + ">" + s.nombre + "</option>"; }).join("") + "</select>" +
@@ -462,7 +463,26 @@
         filtroSeccion = "todas";
         build();
       });
+      root.querySelectorAll(".link-duplicado-examen").forEach(function (b) {
+        b.addEventListener("click", function () { filtroSeccion = "todas"; busqueda = b.dataset.nombre; build(); });
+      });
       renderTabla();
+    }
+
+    // Aviso de exámenes con el MISMO NOMBRE repetidos en el catálogo
+    // efectivo del laboratorio (ej. su propio "Colesterol Total" junto al
+    // que BIOsoft ya trae de fábrica) — suele quedar así desde una
+    // Plantilla de Excel subida sin darse cuenta de que ese examen ya
+    // existía. Sin limpiarlo, una orden que por error incluya ambos sale
+    // con ese examen impreso DOS VECES en el informe de resultados.
+    function bannerDuplicadosHtml(tenant) {
+      var grupos = C.gruposExamenesDuplicados(tenant);
+      if (!grupos.length) return "";
+      return '<div style="background:#fef3c7;border:1px solid #fbbf24;border-radius:10px;padding:10px 14px;margin-bottom:14px;font-size:12.5px;color:#78350f">' +
+        "⚠️ <b>" + grupos.length + " examen(es) con el mismo nombre repetido(s)</b> en tu catálogo — revisa cada uno y elimina el que sobre, para que no vuelva a salir duplicado en un informe de resultados: " +
+        grupos.map(function (g) {
+          return '<button type="button" class="link-duplicado-examen" data-nombre="' + U.esc(g[0].nombre) + '" style="background:none;border:none;padding:0;margin:0 4px 0 0;color:#78350f;text-decoration:underline;cursor:pointer;font:inherit">"' + U.esc(g[0].nombre) + '" (' + g.length + ")</button>";
+        }).join(" · ") + "</div>";
     }
 
     // Deja un examen de fábrica exactamente como viene de BIOsoft, por si
@@ -619,10 +639,19 @@
           if (!parametros.length && !paramsConError.length) errores.push("no tiene ningún parámetro válido");
           if (errores.length) { invalidos.push({ codigo: codigo, nombre: nombre || codigo, errores: errores }); return; }
           var existente = (tenant.examenesPersonalizados || []).filter(function (x) { return (x.codigoExcel || "").trim().toUpperCase() === codigo.toUpperCase(); })[0];
+          // Si esta fila va a crear un examen NUEVO (no actualiza uno que
+          // ya subiste por Excel antes) y su nombre coincide con uno que
+          // ya existe — de BIOsoft o propio — se marca para avisar en la
+          // pantalla de confirmación: sin este aviso, el laboratorio
+          // termina con dos exámenes distintos para lo mismo (ej. su
+          // propio "Colesterol Total" junto al que BIOsoft ya trae), y si
+          // alguna orden llega a incluir ambos por error, ese examen sale
+          // impreso DOS VECES en el informe de resultados.
+          var duplicados = !existente ? C.examenesConMismoNombre(tenant, nombre) : [];
           grupos.push({
             codigoExcel: codigo, nombre: nombre, seccion: seccion.id, cups: primero("CUPS"), metodo: primero("Método"),
             muestra: primero("Tipo de Muestra"), tubo: resolverTuboPorNombre(primero("Tubo")), parametros: parametros,
-            esNuevo: !existente, nombreAnterior: existente ? existente.nombre : ""
+            esNuevo: !existente, nombreAnterior: existente ? existente.nombre : "", duplicados: duplicados
           });
         });
 
@@ -640,16 +669,22 @@
 
   function abrirConfirmarExamenesExcel(tenant, grupos, invalidos, onDone) {
     var session = BIO_AUTH.getSession();
+    var conDuplicados = grupos.filter(function (g) { return g.duplicados && g.duplicados.length; });
     var wrap = U.openModal(
       '<h3 class="modal-title">Confirmar exámenes del Excel (' + grupos.length + ')</h3>' +
       '<p class="text-muted" style="margin-top:0">Cada uno se creará como examen propio nuevo, o — si el "Código Examen" ya coincide con uno que subiste antes — ACTUALIZARÁ sus parámetros por completo con lo que traiga esta fila (lo que ya no esté en el archivo, deja de estar en el examen).' +
       (invalidos.length ? " <b>" + invalidos.length + " fila(s) con problemas no se pudieron incluir</b> (se listan abajo)." : "") + "</p>" +
+      (conDuplicados.length
+        ? '<div style="background:#fef3c7;border:1px solid #fbbf24;border-radius:10px;padding:10px 14px;margin-bottom:10px;font-size:12.5px;color:#78350f">⚠️ <b>' + conDuplicados.length + " examen(es) de este archivo tienen el mismo nombre que uno que ya existe</b> en tu catálogo (marcados abajo) — si los creas de todas formas, vas a tener dos exámenes distintos para lo mismo, y una orden que por error incluya ambos lo mostraría <b>duplicado</b> en el informe de resultados. Revisa si realmente necesitas uno nuevo o si ibas a actualizar el que ya existe (desmárcalo aquí y edítalo desde el Catálogo)." + "</div>"
+        : "") +
       '<div class="flex gap-2" style="margin-bottom:8px"><button type="button" class="btn btn-ghost btn-sm" id="exex-marcar-todos">Marcar todos</button><button type="button" class="btn btn-ghost btn-sm" id="exex-desmarcar-todos">Desmarcar todos</button></div>' +
       '<div class="table-wrap" style="max-height:400px;overflow-y:auto"><table><thead><tr><th></th><th>Código</th><th>Nombre</th><th>Sección</th><th># Parámetros</th><th>Estado</th></tr></thead><tbody>' +
       grupos.map(function (g) {
         return "<tr><td><input type='checkbox' data-exex-match='" + g.codigoExcel + "' checked/></td>" +
           "<td><code>" + U.esc(g.codigoExcel) + "</code></td><td>" + U.esc(g.nombre) + "</td><td>" + C.seccionNombre(g.seccion, tenant) + "</td><td>" + g.parametros.length + "</td>" +
-          "<td>" + (g.esNuevo ? '<span class="badge badge-validado">Nuevo</span>' : '<span class="badge badge-preliminar">Actualiza "' + U.esc(g.nombreAnterior) + '"</span>') + "</td></tr>";
+          "<td>" + (g.esNuevo ? '<span class="badge badge-validado">Nuevo</span>' : '<span class="badge badge-preliminar">Actualiza "' + U.esc(g.nombreAnterior) + '"</span>') +
+          (g.duplicados && g.duplicados.length ? ' <span class="badge badge-pendiente" title="Ya existe un examen con este nombre en: ' + U.esc(g.duplicados.map(function (d) { return C.seccionNombre(d.seccion, tenant); }).join(", ")) + '">⚠️ Nombre repetido</span>' : "") +
+          "</td></tr>";
       }).join("") + "</tbody></table></div>" +
       (invalidos.length
         ? '<p class="text-muted" style="margin:10px 0 0;font-size:12.5px"><b>No incluidos:</b></p><ul style="margin:4px 0 0;padding-left:18px;font-size:12.5px;color:var(--text-muted)">' +
@@ -759,6 +794,16 @@
       var g = function (id) { return wrap.querySelector("#f_" + id).value.trim(); };
       var nombre = g("nombre");
       if (!nombre) { U.toast("Ponle un nombre al examen.", "error"); return; }
+      // Avisa ANTES de crear un examen con el mismo nombre que uno que ya
+      // existe (de BIOsoft o propio) — sin esto, el laboratorio termina
+      // con dos exámenes distintos para lo mismo, y si alguna orden llega
+      // a incluir ambos por error, ese examen sale impreso DOS VECES en el
+      // informe de resultados (bug real reportado por un laboratorio).
+      var duplicados = C.examenesConMismoNombre(tenant, nombre);
+      if (duplicados.length && !confirm('Ya existe ' + (duplicados.length > 1 ? "más de un examen llamado" : "un examen llamado") + ' "' + nombre + '" en tu catálogo (' +
+          duplicados.map(function (d) { return C.seccionNombre(d.seccion, tenant); }).join(", ") + '). Si creas otro con el mismo nombre, vas a tener dos exámenes separados para lo mismo, y podrían aparecer DUPLICADOS en un informe si una orden llega a incluir ambos. ¿Seguro quieres crear uno nuevo? (Si solo querías cambiarle el método o la sección al que ya existe, cancela y edítalo desde la lista del catálogo.)')) {
+        return;
+      }
       var nuevo = C.crearExamenPersonalizado(tenant, {
         nombre: nombre, seccion: g("seccion"), cups: g("cups"), nivel: parseInt(g("nivel"), 10) || 1,
         muestra: g("muestra"), metodo: g("metodo"), tubo: leerTuboSeleccionado(wrap, "tubo")

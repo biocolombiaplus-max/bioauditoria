@@ -1520,6 +1520,41 @@
     return EXAMENES.concat(propios).map(function (e) { return examenEfectivo(e.id, tenant); });
   }
 
+  // Normaliza un nombre de examen para comparar duplicados (sin tildes,
+  // mayúsculas ni espacios de más) — "Colesterol Total" y "colesterol  total"
+  // deben detectarse como el mismo examen.
+  function normalizarNombreExamen(nombre) {
+    return (nombre || "").normalize("NFD").replace(/[̀-ͯ]/g, "").toLowerCase().trim().replace(/\s+/g, " ");
+  }
+  // Busca, entre TODOS los exámenes que el laboratorio puede seleccionar
+  // (los de BIOsoft + los propios), cuáles tienen el MISMO nombre que
+  // "nombre" — para avisar ANTES de crear o importar por Excel un examen
+  // que terminaría duplicando uno que ya existe (ej. crear "Colesterol
+  // Total" propio cuando BIOsoft ya trae uno con ese nombre). Sin este
+  // aviso, el laboratorio termina con dos exámenes distintos para lo mismo
+  // y, si alguna orden llega a incluir ambos por error, ese examen sale
+  // impreso DOS VECES en el informe de resultados.
+  function examenesConMismoNombre(tenant, nombre, excluirId) {
+    var buscado = normalizarNombreExamen(nombre);
+    if (!buscado) return [];
+    return examenesEfectivos(tenant).filter(function (e) { return e.id !== excluirId && normalizarNombreExamen(e.nombre) === buscado; });
+  }
+  // Todos los grupos de 2+ exámenes con el mismo nombre que YA existen hoy
+  // en el catálogo efectivo del laboratorio — para señalarlos en la
+  // pantalla de Catálogo y que el laboratorio pueda revisarlos/eliminar el
+  // que sobra, aunque hayan quedado duplicados desde antes de este aviso
+  // (ej. una Plantilla de Excel subida hace tiempo que repitió un examen
+  // que BIOsoft ya traía de fábrica).
+  function gruposExamenesDuplicados(tenant) {
+    var porNombre = {};
+    examenesEfectivos(tenant).forEach(function (e) {
+      var k = normalizarNombreExamen(e.nombre);
+      if (!k) return;
+      (porNombre[k] = porNombre[k] || []).push(e);
+    });
+    return Object.keys(porNombre).map(function (k) { return porNombre[k]; }).filter(function (g) { return g.length > 1; });
+  }
+
   /* Los exámenes que realmente se pueden elegir para una orden o cotización
      NUEVA: el catálogo efectivo, sin los exámenes de fábrica que el
      laboratorio ocultó. */
@@ -2312,10 +2347,26 @@
   /* Reordena un arreglo de objetos (exámenes de una orden, filas de un
      examen del catálogo, etc.) según la preferencia de orden GLOBAL del
      laboratorio (tenant.ordenExamenes: arreglo de examId). Los exámenes que
-     no estén en esa lista conservan su orden relativo, al final. */
+     no estén en esa lista conservan su orden relativo, al final.
+
+     Si el laboratorio nunca personalizó el orden (el caso de la gran
+     mayoría — tenant.ordenExamenes vacío), ANTES esta función no hacía
+     nada y dejaba los exámenes en el orden en que se agregaron a ESA
+     orden en particular — que depende de en qué secuencia la persona que
+     la creó hizo clic en cada examen, y por eso dos órdenes con exactamente
+     los mismos exámenes podían salir en un orden distinto cada vez (bug
+     real: "a veces sale desordenado"). Ahora, sin configuración alguna,
+     cae en el orden NATURAL y ESTABLE del catálogo del laboratorio
+     (examenesEfectivos: primero los de BIOsoft en su orden de siempre,
+     luego los propios del laboratorio en el orden en que los creó/
+     importó) — el mismo punto de partida que ya usaba moverExamen() al
+     personalizar el orden por primera vez — para que el informe de
+     resultados (y la captura, y el catálogo) siempre salga igual, sin
+     depender de cómo se armó cada orden. */
   function ordenarPorExamen(items, tenant, getExamId) {
-    var orden = tenant && tenant.ordenExamenes;
-    if (!orden || !orden.length) return items;
+    var orden = (tenant && tenant.ordenExamenes && tenant.ordenExamenes.length)
+      ? tenant.ordenExamenes
+      : examenesEfectivos(tenant).map(function (e) { return e.id; });
     return items.slice().sort(function (a, b) {
       var ia = orden.indexOf(getExamId(a)), ib = orden.indexOf(getExamId(b));
       if (ia === -1 && ib === -1) return 0;
@@ -2457,6 +2508,8 @@
     texto: texto,
     examenPorId: examenPorId,
     examenesEfectivos: examenesEfectivos,
+    examenesConMismoNombre: examenesConMismoNombre,
+    gruposExamenesDuplicados: gruposExamenesDuplicados,
     examenesDisponibles: examenesDisponibles,
     ocultarExamenFabrica: ocultarExamenFabrica,
     mostrarExamenFabrica: mostrarExamenFabrica,
