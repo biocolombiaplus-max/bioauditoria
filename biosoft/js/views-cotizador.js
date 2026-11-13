@@ -59,6 +59,7 @@
     var tenant;
     var vista = "nueva";
     var precios = {}; // examId -> precio
+    var preciosOrigen = {}; // examId -> "manual" | "excel" (ver badge en renderPreciosTabla)
     var cotizaciones = [];
     var customExams = []; // exámenes propios del laboratorio, fuera del catálogo global
     var convenios = [];
@@ -147,7 +148,8 @@
       tenant = S.getTenant(tenantId);
       var lista = S.cotizador.listPrecios(tenantId);
       precios = {};
-      lista.forEach(function (p) { precios[p.examId] = p.precio; });
+      preciosOrigen = {};
+      lista.forEach(function (p) { precios[p.examId] = p.precio; preciosOrigen[p.examId] = p.origen || "manual"; });
       cotizaciones = S.cotizador.listCotizaciones(tenantId);
       customExams = S.cotizador.listExamenesPersonalizados(tenantId);
       paquetes = S.cotizador.listPaquetes(tenantId);
@@ -575,7 +577,8 @@
         : todos;
       document.getElementById("precios-tbody").innerHTML = pool.map(function (e) {
         var valor = preciosEditados.hasOwnProperty(e.id) ? preciosEditados[e.id] : precioDe(e.id);
-        return "<tr><td>" + U.esc(e.nombre) + "</td><td>" + resolverSeccionNombre(e.seccion) + "</td><td>" + e.cups + "</td>" +
+        var insigniaExcel = preciosOrigen[e.id] === "excel" ? ' <span class="badge badge-preliminar" title="Este precio llegó de la última plantilla de Excel que subiste">📊 Excel</span>' : "";
+        return "<tr><td>" + U.esc(e.nombre) + insigniaExcel + "</td><td>" + resolverSeccionNombre(e.seccion) + "</td><td>" + e.cups + "</td>" +
           "<td><input type='text' inputmode='decimal' data-precio-exam='" + e.id + "' value='" + (valor || "") + "' placeholder='0'/>" +
           '<span data-precio-equiv="' + e.id + '" class="text-muted" style="display:block;font-size:11px;margin-top:2px">' + equivalenteMonedaTexto(valor) + "</span></td></tr>";
       }).join("") || '<tr><td colspan="4" class="text-muted">Sin resultados.</td></tr>';
@@ -592,9 +595,13 @@
         inp.addEventListener("change", function () {
           var examId = inp.dataset.precioExam;
           var precio = U.parseMonto(inp.value);
-          S.cotizador.setPrecio(tenantId, examId, precio);
+          S.cotizador.setPrecio(tenantId, examId, precio, "manual");
           delete preciosEditados[examId];
           precios[examId] = precio;
+          // Si este precio venía "📊 Excel" y ahora se edita a mano, queda
+          // registrado como manual — la insignia se quita en la próxima
+          // repintada para reflejar quién lo mantiene de verdad.
+          preciosOrigen[examId] = "manual";
           U.toast("Precio guardado.", "success");
         });
       });
@@ -641,7 +648,7 @@
       document.getElementById("btn-guardar-precios").addEventListener("click", function () {
         var pares = Object.keys(preciosEditados).map(function (examId) { return { examId: examId, precio: preciosEditados[examId] }; });
         if (!pares.length) { U.toast("No hay cambios para guardar.", "error"); return; }
-        S.cotizador.bulkSetPrecios(tenantId, pares);
+        S.cotizador.bulkSetPrecios(tenantId, pares, "manual");
         preciosEditados = {};
         U.toast("Precios guardados.", "success");
         cargar();
@@ -782,7 +789,7 @@
       wrap.querySelector("#conf-aplicar").addEventListener("click", function () {
         var idsMarcados = Array.prototype.slice.call(wrap.querySelectorAll("[data-conf-match]:checked")).map(function (c) { return c.dataset.confMatch; });
         var pares = matches.filter(function (m) { return idsMarcados.indexOf(m.examId) !== -1; }).map(function (m) { return { examId: m.examId, precio: m.precio }; });
-        if (pares.length) S.cotizador.bulkSetPrecios(tenantId, pares);
+        if (pares.length) S.cotizador.bulkSetPrecios(tenantId, pares, "excel");
         var partes = [];
         if (pares.length) partes.push(pares.length + " precio(s) de tu catálogo actualizados");
         if (totalPersonalizados) partes.push(totalPersonalizados + " examen(es) de referencia agregados a tu lista personalizada");

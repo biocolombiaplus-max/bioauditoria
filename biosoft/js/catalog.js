@@ -1993,6 +1993,52 @@
     if (tenant.ordenExamenes) tenant.ordenExamenes = tenant.ordenExamenes.filter(function (id) { return id !== examId; });
   }
 
+  /* "Subir Excel de Exámenes" (ver abrirSubirExcelExamenes en
+     views-admin.js): crea o ACTUALIZA de una sola vez varios exámenes
+     propios completos (con todos sus parámetros/valores de referencia),
+     a partir de un archivo que el propio laboratorio arma y vuelve a
+     subir cuando quiera cambiar algo — igual de "plantilla real" que ya
+     funciona "Subir Excel de Precios" en Cotizador.
+     grupos: [{ codigoExcel, nombre, seccion, cups, metodo, muestra, tubo,
+     parametros }] — codigoExcel es el identificador que el propio archivo
+     trae (columna "Código Examen"): es lo que permite que volver a subir
+     el MISMO archivo, con una fila editada, ACTUALICE el examen que ya
+     existía en vez de crear uno repetido. Cada re-subida REEMPLAZA por
+     completo los parámetros de ese examen (como una plantilla de verdad:
+     lo que ya no está en el archivo, deja de estar en el examen) — a
+     diferencia de los campos personalizados que se agregan a mano uno por
+     uno en "Valores de Referencia del Catálogo", pensados para ajustes
+     puntuales, no para administrar el examen completo desde afuera.
+     Todo examen tocado por esta función queda con origen:"excel", para
+     que se distinga con su propia insignia de los creados a mano
+     ("Examen propio") sin dejar de aparecer junto a ellos y al catálogo
+     de fábrica de BIOsoft — nunca lo reemplaza ni lo oculta.
+     Devuelve { creados, actualizados }. */
+  function bulkUpsertExamenesPersonalizadosCompletos(tenant, grupos) {
+    tenant.examenesPersonalizados = tenant.examenesPersonalizados || [];
+    var creados = 0, actualizados = 0;
+    grupos.forEach(function (g) {
+      var codigoNorm = (g.codigoExcel || "").trim().toUpperCase();
+      var existente = tenant.examenesPersonalizados.filter(function (e) {
+        return (e.codigoExcel || "").trim().toUpperCase() === codigoNorm;
+      })[0];
+      var datos = {
+        nombre: g.nombre, seccion: g.seccion, cups: g.cups || "", metodo: g.metodo || "",
+        muestra: g.muestra || "", tubo: g.tubo || "seco", parametros: g.parametros,
+        codigoExcel: g.codigoExcel, origen: "excel"
+      };
+      if (existente) {
+        Object.assign(existente, datos, { id: existente.id });
+        actualizados++;
+      } else {
+        var id = "PROPIO_" + Date.now().toString(36).toUpperCase() + "_" + Math.floor(100 + Math.random() * 900) + "_" + creados;
+        tenant.examenesPersonalizados.push(Object.assign({ id: id }, datos));
+        creados++;
+      }
+    });
+    return { creados: creados, actualizados: actualizados };
+  }
+
   /* Botón de emergencia para un examen de FÁBRICA que el laboratorio
      personalizó (nombre, método, campos ocultos/agregados/reordenados,
      valores min/max, bandas por género/edad, rangos de interpretación): lo
@@ -2374,6 +2420,14 @@
     eliminarTomaMuestra: eliminarTomaMuestra,
     sedeNombre: sedeNombre,
     tomaMuestraNombre: tomaMuestraNombre,
+    // Constructores de parámetro (ver su definición arriba, cerca de
+    // EXAMENES) — se exportan para que "Subir Excel de Exámenes"
+    // (views-admin.js) arme cada parámetro con la MISMA forma exacta que
+    // usa el catálogo de fábrica, en vez de duplicar esa lógica aparte.
+    num: num,
+    cual: cual,
+    desc: desc,
+    texto: texto,
     examenPorId: examenPorId,
     examenesEfectivos: examenesEfectivos,
     examenesDisponibles: examenesDisponibles,
@@ -2385,6 +2439,7 @@
     crearExamenPersonalizado: crearExamenPersonalizado,
     actualizarExamenPersonalizado: actualizarExamenPersonalizado,
     eliminarExamenPersonalizado: eliminarExamenPersonalizado, restablecerExamenAFabrica: restablecerExamenAFabrica,
+    bulkUpsertExamenesPersonalizadosCompletos: bulkUpsertExamenesPersonalizadosCompletos,
     cambiarMetodoExamen: cambiarMetodoExamen,
     cambiarSeccionExamen: cambiarSeccionExamen,
     cambiarTuboExamen: cambiarTuboExamen,

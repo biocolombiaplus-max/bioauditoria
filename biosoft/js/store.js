@@ -2582,25 +2582,32 @@
     var db = loadDB();
     return db.preciosExamenes.filter(function (p) { return p.tenantId === tenantId; });
   }
-  function upsertPrecioEnDB(db, tenantId, examId, precio) {
+  // origen ("manual" | "excel"): de dónde vino ESTE precio — se muestra
+  // como insignia "📊 Desde Excel" en Lista de Precios (ver
+  // buildPreciosHtml en views-cotizador.js) para que el laboratorio sepa,
+  // de un vistazo, cuáles precios digitó él mismo y cuáles llegaron de la
+  // última plantilla que subió, sin que eso oculte ni reemplace el
+  // catálogo de BIOsoft — el examen sigue siendo el mismo, solo cambia de
+  // dónde se sabe que vino el número.
+  function upsertPrecioEnDB(db, tenantId, examId, precio, origen) {
     var reg = db.preciosExamenes.filter(function (p) { return p.tenantId === tenantId && p.examId === examId; })[0];
-    if (reg) { reg.precio = precio; reg.actualizadoEn = nowISO(); }
-    else { reg = { id: uid("prc"), tenantId: tenantId, examId: examId, precio: precio, actualizadoEn: nowISO() }; db.preciosExamenes.push(reg); }
+    if (reg) { reg.precio = precio; reg.actualizadoEn = nowISO(); reg.origen = origen || "manual"; }
+    else { reg = { id: uid("prc"), tenantId: tenantId, examId: examId, precio: precio, actualizadoEn: nowISO(), origen: origen || "manual" }; db.preciosExamenes.push(reg); }
     return reg;
   }
-  function setPrecio(tenantId, examId, precio) {
+  function setPrecio(tenantId, examId, precio, origen) {
     var db = loadDB();
-    var reg = upsertPrecioEnDB(db, tenantId, examId, precio);
+    var reg = upsertPrecioEnDB(db, tenantId, examId, precio, origen);
     saveDB(db);
     fbWrite("preciosExamenes", reg.id, reg);
     return reg;
   }
-  function bulkSetPrecios(tenantId, pares) {
+  function bulkSetPrecios(tenantId, pares, origen) {
     // pares: [{ examId, precio }] — se carga y guarda la base de datos UNA
     // sola vez para todo el lote (listas de precios reales pueden traer
     // cientos o miles de filas; guardar por cada una sería demasiado lento).
     var db = loadDB();
-    var regs = pares.map(function (par) { return upsertPrecioEnDB(db, tenantId, par.examId, par.precio); });
+    var regs = pares.map(function (par) { return upsertPrecioEnDB(db, tenantId, par.examId, par.precio, origen); });
     saveDB(db);
     regs.forEach(function (reg) { fbWrite("preciosExamenes", reg.id, reg); });
     return regs;
@@ -2632,11 +2639,15 @@
   }
   function bulkUpsertExamenesPersonalizados(tenantId, examenes) {
     // examenes: [{ cups, nombre, precio }] — igual que bulkSetPrecios, un
-    // solo ciclo de carga/guardado para todo el lote.
+    // solo ciclo de carga/guardado para todo el lote. Esta función SOLO la
+    // llama la subida de Excel de precios (ver subirExcelPrecios en
+    // views-cotizador.js) — por eso el origen queda fijo en "excel", sin
+    // necesidad de parámetro.
     var db = loadDB();
     var regs = examenes.map(function (ex) {
       var reg = upsertExamenPersonalizadoEnDB(db, tenantId, ex.cups, ex.nombre);
-      upsertPrecioEnDB(db, tenantId, reg.id, ex.precio);
+      reg.origen = "excel";
+      upsertPrecioEnDB(db, tenantId, reg.id, ex.precio, "excel");
       return reg;
     });
     saveDB(db);

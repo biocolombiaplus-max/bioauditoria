@@ -430,8 +430,12 @@
       tenant = S.getTenant(session.tenantId);
       root.innerHTML =
         '<div class="card"><div class="card-header"><h3 class="card-title">Valores de Referencia del Catálogo</h3>' +
-        '<button class="btn btn-primary btn-sm" id="btn-nuevo-examen">' + U.icon("plus") + " Agregar Examen Nuevo</button></div>" +
-        '<p class="text-muted" style="margin-top:0">Cada laboratorio puede usar equipos o metodologías distintas, por lo que los valores normales pueden variar. Ajusta aquí los rangos de tu laboratorio sin afectar el catálogo general de BIOsoft; los cambios se aplican de inmediato en la captura de resultados y en los informes. Elige una sección específica para poder ordenar tus exámenes como los trabajas normalmente. Si tu laboratorio procesa una prueba que el catálogo no trae, agrégala con "Agregar Examen Nuevo".</p>' +
+        '<div class="flex gap-2 wrap">' +
+        '<button class="btn btn-outline btn-sm" id="btn-descargar-plantilla-examenes">' + U.icon("download") + " Plantilla Excel de Exámenes</button>" +
+        '<label class="btn btn-outline btn-sm" style="cursor:pointer">' + U.icon("plus") + ' Subir Excel de Exámenes<input type="file" id="input-excel-examenes" accept=".xlsx,.xls,.csv" style="display:none"/></label>' +
+        '<button class="btn btn-primary btn-sm" id="btn-nuevo-examen">' + U.icon("plus") + " Agregar Examen Nuevo</button>" +
+        "</div></div>" +
+        '<p class="text-muted" style="margin-top:0">Cada laboratorio puede usar equipos o metodologías distintas, por lo que los valores normales pueden variar. Ajusta aquí los rangos de tu laboratorio sin afectar el catálogo general de BIOsoft; los cambios se aplican de inmediato en la captura de resultados y en los informes. Elige una sección específica para poder ordenar tus exámenes como los trabajas normalmente. Si tu laboratorio procesa una prueba que el catálogo no trae, agrégala con "Agregar Examen Nuevo", o súbelas todas de una vez con "Subir Excel de Exámenes" si son muchas — el catálogo de fábrica de BIOsoft sigue intacto, tus exámenes propios aparecen aparte, con una insignia "📊 Excel" para los que vinieron de tu archivo.</p>' +
         '<div class="flex gap-2 wrap" style="margin-bottom:14px">' +
         '<input id="cat-busqueda" placeholder="Buscar examen por nombre o código CUPS…" style="max-width:320px" value="' + U.esc(busqueda) + '"/>' +
         '<select id="cat-seccion"><option value="todas">Todas las secciones</option>' + C.seccionesEfectivas(tenant).map(function (s) { return '<option value="' + s.id + '" ' + (s.id === filtroSeccion ? "selected" : "") + ">" + s.nombre + "</option>"; }).join("") + "</select>" +
@@ -444,6 +448,8 @@
       document.getElementById("cat-busqueda").addEventListener("input", function (e) { busqueda = e.target.value; renderTabla(); });
       document.getElementById("cat-seccion").addEventListener("change", function (e) { filtroSeccion = e.target.value; build(); });
       document.getElementById("btn-nuevo-examen").addEventListener("click", function () { abrirCrearExamen(tenant, build); });
+      document.getElementById("btn-descargar-plantilla-examenes").addEventListener("click", function () { descargarPlantillaExcelExamenes(tenant); });
+      document.getElementById("input-excel-examenes").addEventListener("change", function (e) { subirExcelExamenes(e, tenant, build); });
       document.getElementById("btn-nueva-categoria").addEventListener("click", function () { abrirCrearCategoria(tenant, build); });
       var btnEliminarCategoria = document.getElementById("btn-eliminar-categoria");
       if (btnEliminarCategoria) btnEliminarCategoria.addEventListener("click", function () {
@@ -484,7 +490,8 @@
           '<button class="btn btn-ghost btn-sm" data-mover="' + e.id + '" data-dir="1" ' + (i === total - 1 ? "disabled" : "") + ' title="Bajar">▼</button>' +
           "</div></td>" : "") +
         "<td>" + U.esc(e.nombre) + "<div class='text-muted' style='font-size:11px'>" + (e.cups ? "CUPS " + U.esc(e.cups) : "Sin CUPS") + "</div></td><td>" + C.seccionNombre(e.seccion, tenant) + "</td><td>" + e.parametros.length + "</td>" +
-        "<td>" + (oculto ? '<span class="badge badge-suspendido">No ofrecido</span>' : propio ? '<span class="badge badge-validado">Examen propio</span>' : personalizado ? '<span class="badge badge-preliminar">Personalizado</span>' : '<span class="text-muted">Valores de fábrica</span>') + "</td>" +
+        "<td>" + (oculto ? '<span class="badge badge-suspendido">No ofrecido</span>' : propio ? '<span class="badge badge-validado">Examen propio</span>' : personalizado ? '<span class="badge badge-preliminar">Personalizado</span>' : '<span class="text-muted">Valores de fábrica</span>') +
+        (e.origen === "excel" ? ' <span class="badge badge-preliminar" title="Este examen llegó de la última plantilla de Excel que subiste">📊 Excel</span>' : "") + "</td>" +
         '<td><div class="flex gap-2 wrap"><button class="btn btn-outline btn-sm" data-editexam="' + e.id + '">' + U.icon("edit") + " Editar</button>" +
         (propio ? '<button class="btn btn-ghost btn-sm" data-eliminarexam="' + e.id + '" title="Eliminar este examen propio">' + U.icon("trash") + "</button>" : "") +
         (!propio && personalizado ? '<button class="btn btn-ghost btn-sm" data-restablecerexam="' + e.id + '" title="Restablecer este examen a los valores originales de fábrica de BIOsoft">' + U.icon("history") + " Restablecer</button>" : "") +
@@ -495,6 +502,180 @@
     }
     build();
   };
+
+  // -------------------------------------------------------------------
+  // SUBIR EXCEL DE EXÁMENES — crea o actualiza de una sola vez varios
+  // exámenes propios COMPLETOS (con sus parámetros/valores de referencia),
+  // igual de "plantilla real" que ya funciona "Subir Excel de Precios" en
+  // Cotizador: una fila por PARÁMETRO, agrupadas por "Código Examen" (el
+  // identificador que decide el propio laboratorio — es lo que permite que
+  // volver a subir el archivo con una fila corregida actualice el examen
+  // que ya existía en vez de crear uno repetido). Nunca toca el catálogo
+  // de fábrica de BIOsoft: solo agrega/actualiza exámenes PROPIOS del
+  // laboratorio, que quedan marcados con la insignia "📊 Excel" (ver
+  // rowHtml más arriba) para distinguirlos de un examen propio creado a
+  // mano o del catálogo de fábrica, sin dejar de aparecer junto a ellos.
+  // -------------------------------------------------------------------
+  function descargarPlantillaExcelExamenes(tenant) {
+    var seccionEjemplo = C.seccionesEfectivas(tenant)[0] ? C.seccionesEfectivas(tenant)[0].nombre : "Química Sanguínea";
+    var filas = [
+      { "Código Examen": "MIEXAMEN1", "Nombre del Examen": "Mi Examen de Ejemplo", "Sección": seccionEjemplo, "CUPS": "", "Método": "", "Tipo de Muestra": "", "Tubo": "Tapa Roja (Seco / Sin anticoagulante)", "Parámetro": "Resultado Numérico", "Tipo de Parámetro": "Numérico", "Unidad": "mg/dL", "Mínimo": 0, "Máximo": 10, "Opciones (separadas por coma)": "", "Valor Normal": "", "Texto de Referencia": "" },
+      { "Código Examen": "MIEXAMEN1", "Nombre del Examen": "", "Sección": "", "CUPS": "", "Método": "", "Tipo de Muestra": "", "Tubo": "", "Parámetro": "Resultado Cualitativo", "Tipo de Parámetro": "Lista", "Unidad": "", "Mínimo": "", "Máximo": "", "Opciones (separadas por coma)": "Negativo,Positivo", "Valor Normal": "Negativo", "Texto de Referencia": "" },
+      { "Código Examen": "MIEXAMEN1", "Nombre del Examen": "", "Sección": "", "CUPS": "", "Método": "", "Tipo de Muestra": "", "Tubo": "", "Parámetro": "Observaciones", "Tipo de Parámetro": "Texto", "Unidad": "", "Mínimo": "", "Máximo": "", "Opciones (separadas por coma)": "", "Valor Normal": "", "Texto de Referencia": "" }
+    ];
+    var ws = XLSX.utils.json_to_sheet(filas);
+    var wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, "Examenes");
+    XLSX.writeFile(wb, "Plantilla_Examenes_BIOsoft.xlsx");
+  }
+
+  function codigoParametroDesdeNombre(nombre, usados) {
+    var base = U.normalizar(nombre || "").toUpperCase().replace(/[^A-Z0-9]+/g, "_").replace(/^_+|_+$/g, "").slice(0, 20) || "PARAM";
+    var codigo = base, n = 2;
+    while (usados[codigo]) { codigo = base + "_" + n; n++; }
+    usados[codigo] = true;
+    return codigo;
+  }
+
+  function resolverSeccionPorNombre(tenant, nombre) {
+    var n = U.normalizar(nombre || "");
+    return C.seccionesEfectivas(tenant).filter(function (s) { return U.normalizar(s.nombre) === n; })[0] || null;
+  }
+  function resolverTuboPorNombre(nombre) {
+    var n = U.normalizar(nombre || "");
+    if (!n) return "seco";
+    var key = Object.keys(C.TUBOS).filter(function (k) { return U.normalizar(C.TUBOS[k].nombre) === n; })[0];
+    return key || "seco";
+  }
+
+  // Arma el parámetro de ESTA fila según "Tipo de Parámetro" — devuelve
+  // null (y deja el motivo en fila.errorParametro) si la fila no trae lo
+  // mínimo indispensable para su tipo, en vez de adivinar un valor.
+  function parametroDesdeFila(fila, usados) {
+    var nombreParam = String(fila["Parámetro"] || "").trim();
+    if (!nombreParam) return null;
+    var tipo = U.normalizar(String(fila["Tipo de Parámetro"] || "")).toLowerCase();
+    var codigo = codigoParametroDesdeNombre(nombreParam, usados);
+    var refText = String(fila["Texto de Referencia"] || "").trim() || undefined;
+    if (tipo.indexOf("numeric") === 0 || tipo === "numero" || tipo === "numérico") {
+      var min = parseFloat(fila["Mínimo"]), max = parseFloat(fila["Máximo"]);
+      if (isNaN(min) || isNaN(max)) { fila._error = 'El parámetro "' + nombreParam + '" es Numérico pero le falta Mínimo o Máximo válido.'; return null; }
+      return C.num(codigo, nombreParam, String(fila["Unidad"] || "").trim(), min, max, refText);
+    }
+    if (tipo === "lista" || tipo === "cualitativo") {
+      var opciones = String(fila["Opciones (separadas por coma)"] || "").split(",").map(function (o) { return o.trim(); }).filter(Boolean);
+      if (opciones.length < 2) { fila._error = 'El parámetro "' + nombreParam + '" es Lista pero necesita al menos 2 Opciones separadas por coma.'; return null; }
+      var normal = String(fila["Valor Normal"] || "").trim() || opciones[0];
+      if (opciones.indexOf(normal) === -1) opciones.unshift(normal);
+      return C.cual(codigo, nombreParam, opciones, normal, refText);
+    }
+    // "Texto" (o cualquier otro valor no reconocido): campo de texto libre,
+    // nunca rechaza la fila — siempre hay algo razonable que hacer con ella.
+    return C.texto(codigo, nombreParam, refText || "");
+  }
+
+  function subirExcelExamenes(e, tenant, onDone) {
+    var file = e.target.files[0];
+    e.target.value = ""; // permite volver a elegir el MISMO archivo dos veces seguidas
+    if (!file) return;
+    var reader = new FileReader();
+    reader.onload = function (ev) {
+      try {
+        var wb = XLSX.read(new Uint8Array(ev.target.result), { type: "array" });
+        var filasTodas = [];
+        wb.SheetNames.forEach(function (nombreHoja) {
+          filasTodas = filasTodas.concat(XLSX.utils.sheet_to_json(wb.Sheets[nombreHoja], { defval: "" }));
+        });
+        if (!filasTodas.length) { U.toast("El archivo no tiene filas — verifica que tenga la columna \"Código Examen\" con datos debajo.", "error"); return; }
+
+        var porCodigo = {};
+        var ordenCodigos = [];
+        filasTodas.forEach(function (fila) {
+          var codigo = String(fila["Código Examen"] || "").trim();
+          if (!codigo) return;
+          if (!porCodigo[codigo]) { porCodigo[codigo] = []; ordenCodigos.push(codigo); }
+          porCodigo[codigo].push(fila);
+        });
+        if (!ordenCodigos.length) { U.toast("No encontramos ninguna fila con \"Código Examen\" diligenciado.", "error"); return; }
+
+        var grupos = [], invalidos = [];
+        ordenCodigos.forEach(function (codigo) {
+          var filas = porCodigo[codigo];
+          var primero = function (campo) {
+            for (var i = 0; i < filas.length; i++) { var v = String(filas[i][campo] || "").trim(); if (v) return v; }
+            return "";
+          };
+          var nombre = primero("Nombre del Examen");
+          var nombreSeccion = primero("Sección");
+          var seccion = resolverSeccionPorNombre(tenant, nombreSeccion);
+          var errores = [];
+          if (!nombre) errores.push("falta el Nombre del Examen");
+          if (!nombreSeccion) errores.push("falta la Sección");
+          else if (!seccion) errores.push('la Sección "' + nombreSeccion + '" no existe en tu catálogo (revisa que esté escrita igual, o créala primero con "Nueva Categoría")');
+          var usadosCodigos = {};
+          var parametros = filas.map(function (fila) { return parametroDesdeFila(fila, usadosCodigos); }).filter(Boolean);
+          var paramsConError = filas.map(function (f) { return f._error; }).filter(Boolean);
+          errores = errores.concat(paramsConError);
+          if (!parametros.length && !paramsConError.length) errores.push("no tiene ningún parámetro válido");
+          if (errores.length) { invalidos.push({ codigo: codigo, nombre: nombre || codigo, errores: errores }); return; }
+          var existente = (tenant.examenesPersonalizados || []).filter(function (x) { return (x.codigoExcel || "").trim().toUpperCase() === codigo.toUpperCase(); })[0];
+          grupos.push({
+            codigoExcel: codigo, nombre: nombre, seccion: seccion.id, cups: primero("CUPS"), metodo: primero("Método"),
+            muestra: primero("Tipo de Muestra"), tubo: resolverTuboPorNombre(primero("Tubo")), parametros: parametros,
+            esNuevo: !existente, nombreAnterior: existente ? existente.nombre : ""
+          });
+        });
+
+        if (!grupos.length) {
+          U.toast("Ningún examen del archivo se pudo procesar — revisa: " + invalidos.map(function (i) { return i.codigo + " (" + i.errores[0] + ")"; }).join("; ") + ".", "error");
+          return;
+        }
+        abrirConfirmarExamenesExcel(tenant, grupos, invalidos, onDone);
+      } catch (err) {
+        U.toast("No se pudo leer el archivo: " + err.message, "error");
+      }
+    };
+    reader.readAsArrayBuffer(file);
+  }
+
+  function abrirConfirmarExamenesExcel(tenant, grupos, invalidos, onDone) {
+    var session = BIO_AUTH.getSession();
+    var wrap = U.openModal(
+      '<h3 class="modal-title">Confirmar exámenes del Excel (' + grupos.length + ')</h3>' +
+      '<p class="text-muted" style="margin-top:0">Cada uno se creará como examen propio nuevo, o — si el "Código Examen" ya coincide con uno que subiste antes — ACTUALIZARÁ sus parámetros por completo con lo que traiga esta fila (lo que ya no esté en el archivo, deja de estar en el examen).' +
+      (invalidos.length ? " <b>" + invalidos.length + " fila(s) con problemas no se pudieron incluir</b> (se listan abajo)." : "") + "</p>" +
+      '<div class="flex gap-2" style="margin-bottom:8px"><button type="button" class="btn btn-ghost btn-sm" id="exex-marcar-todos">Marcar todos</button><button type="button" class="btn btn-ghost btn-sm" id="exex-desmarcar-todos">Desmarcar todos</button></div>' +
+      '<div class="table-wrap" style="max-height:400px;overflow-y:auto"><table><thead><tr><th></th><th>Código</th><th>Nombre</th><th>Sección</th><th># Parámetros</th><th>Estado</th></tr></thead><tbody>' +
+      grupos.map(function (g) {
+        return "<tr><td><input type='checkbox' data-exex-match='" + g.codigoExcel + "' checked/></td>" +
+          "<td><code>" + U.esc(g.codigoExcel) + "</code></td><td>" + U.esc(g.nombre) + "</td><td>" + C.seccionNombre(g.seccion, tenant) + "</td><td>" + g.parametros.length + "</td>" +
+          "<td>" + (g.esNuevo ? '<span class="badge badge-validado">Nuevo</span>' : '<span class="badge badge-preliminar">Actualiza "' + U.esc(g.nombreAnterior) + '"</span>') + "</td></tr>";
+      }).join("") + "</tbody></table></div>" +
+      (invalidos.length
+        ? '<p class="text-muted" style="margin:10px 0 0;font-size:12.5px"><b>No incluidos:</b></p><ul style="margin:4px 0 0;padding-left:18px;font-size:12.5px;color:var(--text-muted)">' +
+          invalidos.map(function (i) { return "<li>" + U.esc(i.codigo) + (i.nombre && i.nombre !== i.codigo ? " (" + U.esc(i.nombre) + ")" : "") + ": " + U.esc(i.errores.join("; ")) + "</li>"; }).join("") + "</ul>"
+        : "") +
+      '<div class="flex gap-2 justify-between" style="margin-top:14px"><button class="btn btn-ghost" data-modal-close>Cancelar</button><button class="btn btn-primary" id="exex-aplicar">' + U.icon("check") + " Aplicar exámenes marcados</button></div>"
+    );
+    wrap.querySelector("#exex-marcar-todos").addEventListener("click", function () {
+      wrap.querySelectorAll("[data-exex-match]").forEach(function (c) { c.checked = true; });
+    });
+    wrap.querySelector("#exex-desmarcar-todos").addEventListener("click", function () {
+      wrap.querySelectorAll("[data-exex-match]").forEach(function (c) { c.checked = false; });
+    });
+    wrap.querySelector("#exex-aplicar").addEventListener("click", function () {
+      var marcados = Array.prototype.slice.call(wrap.querySelectorAll("[data-exex-match]:checked")).map(function (c) { return c.dataset.exexMatch; });
+      var elegidos = grupos.filter(function (g) { return marcados.indexOf(g.codigoExcel) !== -1; });
+      if (!elegidos.length) { U.toast("No marcaste ningún examen para aplicar.", "error"); return; }
+      var resumen = C.bulkUpsertExamenesPersonalizadosCompletos(tenant, elegidos);
+      S.updateTenant(tenant.id, { examenesPersonalizados: tenant.examenesPersonalizados });
+      S.addAudit(session.tenantId, session.nombre, session.rol, "IMPORT_EXAMS_EXCEL", "catalogo", tenant.id,
+        "Subió un Excel de exámenes: " + resumen.creados + " examen(es) propio(s) nuevo(s) y " + resumen.actualizados + " actualizado(s).");
+      U.toast(resumen.creados + " examen(es) nuevo(s) y " + resumen.actualizados + " actualizado(s).", "success");
+      U.closeModal(wrap);
+      onDone();
+    });
+  }
 
   function abrirCrearCategoria(tenant, onDone) {
     var session = BIO_AUTH.getSession();
