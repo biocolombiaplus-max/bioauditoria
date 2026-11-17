@@ -24,6 +24,17 @@
     return "$" + n.toLocaleString("es-CO", { minimumFractionDigits: dec, maximumFractionDigits: 2 });
   }
   var METODO_PAGO_LABEL = window.BIO_PDF_RECIBO_ORDEN ? window.BIO_PDF_RECIBO_ORDEN.METODO_PAGO_LABEL : {};
+  // Convierte un monto en MONEDA ADICIONAL (ej. lo que el cajero recibió
+  // en bolívares) de vuelta a la moneda base del laboratorio (ej. USD) —
+  // el inverso de C.convertirMonedaAdicional (que solo convierte base ->
+  // adicional), necesario para la Calculadora de Cambio cuando el pago
+  // llega mezclado en las dos monedas. Devuelve 0 si no hay tasa
+  // configurada (nunca divide por cero).
+  function convertirDesdeAdicional(tenant, montoAdicional) {
+    var unidad = C.convertirMonedaAdicional(tenant, 1);
+    if (!unidad) return 0;
+    return (montoAdicional || 0) / unidad;
+  }
 
   window.BIO_VIEWS.caja = function (root) {
     var session = BIO_AUTH.getSession();
@@ -94,7 +105,10 @@
       root.innerHTML =
         '<div class="card">' +
         '<div class="card-header"><h3 class="card-title">' + U.icon("wallet") + " Caja" + "</h3>" +
+        '<div class="flex gap-2 wrap" style="align-items:center">' +
         (puedeElegirSede ? sedeSelectorHtml() : "") +
+        '<button type="button" class="btn btn-outline btn-sm" id="btn-calculadora-cambio">🧮 Calculadora de Cambio</button>' +
+        "</div>" +
         "</div>" +
         (turno ? htmlTurnoAbierto(turno) : htmlTurnoCerrado()) +
         "</div>" +
@@ -122,10 +136,10 @@
       var r = resumenTurno(turno);
       return '<p class="text-muted" style="margin:0 0 14px">Abierta por <b>' + U.esc(turno.abiertoPor) + "</b> desde " + new Date(turno.fechaApertura).toLocaleString("es-CO") + "</p>" +
         '<div class="kpi-grid" style="margin-bottom:16px">' +
-        kpi(fmtMoneda(turno.baseInicial), "Base Inicial") +
-        kpi(fmtMoneda(r.efectivoOrdenes), "Efectivo de Órdenes") +
-        kpi(fmtMoneda(r.ingresosManual - r.egresosManual), "Movimientos Manuales (neto)") +
-        kpi(fmtMoneda(r.esperado), "Esperado en Caja Ahora") +
+        kpi(fmtMoneda(turno.baseInicial), "Base Inicial", equivTexto(turno.baseInicial)) +
+        kpi(fmtMoneda(r.efectivoOrdenes), "Efectivo de Órdenes", equivTexto(r.efectivoOrdenes)) +
+        kpi(fmtMoneda(r.ingresosManual - r.egresosManual), "Movimientos Manuales (neto)", equivTexto(r.ingresosManual - r.egresosManual)) +
+        kpi(fmtMoneda(r.esperado), "Esperado en Caja Ahora", equivTexto(r.esperado)) +
         "</div>" +
         (Object.keys(r.porMetodo).length ? '<p class="text-muted" style="margin:0 0 14px;font-size:12.5px">Recibido en el turno por método: ' +
           Object.keys(r.porMetodo).map(function (m) { return "<b>" + U.esc(m) + "</b> " + fmtMoneda(r.porMetodo[m]); }).join("   ·   ") + "</p>" : "") +
@@ -146,8 +160,18 @@
         "</tbody></table></div>";
     }
 
-    function kpi(valor, etiqueta) {
-      return '<div class="kpi"><div class="kpi-value">' + valor + '</div><div class="kpi-label">' + etiqueta + "</div></div>";
+    function kpi(valor, etiqueta, equivTexto) {
+      return '<div class="kpi"><div class="kpi-value">' + valor + "</div>" +
+        (equivTexto ? '<div class="text-muted" style="font-size:11px;margin-top:-2px">' + equivTexto + "</div>" : "") +
+        '<div class="kpi-label">' + etiqueta + "</div></div>";
+    }
+    // Equivalente en la moneda adicional del laboratorio (ej. bolívares,
+    // si el laboratorio tiene sus precios en dólares) — "" si no hay
+    // ninguna moneda adicional configurada (ver tenant.monedaAdicional en
+    // catalog.js/Cotizador), para que el resto de BIOsoft (laboratorios
+    // fuera de Venezuela, o que no activaron esto) nunca vea nada distinto.
+    function equivTexto(n) {
+      return C.fmtMonedaAdicional(tenant, n || 0);
     }
 
     function htmlCobrosPendientes() {
@@ -163,8 +187,9 @@
       var saldo = o.pago ? C.saldoPendienteOrden(o) : o.valorCobrar;
       var esPagoNuevo = !o.pago;
       return "<tr><td><b>" + o.numeroOrden + "</b></td><td>" + (pac ? U.esc(U.nombreCompleto(pac)) : "—") + "</td>" +
-        "<td>" + fmtMoneda(o.valorCobrar) + "</td><td>" + fmtMoneda(saldo) + "</td>" +
-        '<td><button class="btn btn-primary btn-sm" data-cobrar="' + o.id + '">' + U.icon("check") + (esPagoNuevo ? " Registrar Pago" : " Agregar Abono") + "</button></td></tr>";
+        "<td>" + fmtMoneda(o.valorCobrar) + "</td><td>" + fmtMoneda(saldo) + (equivTexto(saldo) ? ' <span class="text-muted" style="font-size:11px">(' + equivTexto(saldo) + ")</span>" : "") + "</td>" +
+        '<td class="flex gap-2 wrap"><button class="btn btn-primary btn-sm" data-cobrar="' + o.id + '">' + U.icon("check") + (esPagoNuevo ? " Registrar Pago" : " Agregar Abono") + "</button>" +
+        '<button class="btn btn-ghost btn-sm" data-calcular-cambio="' + saldo + '" title="Calcular cuánto recibir/devolver si paga en varias monedas">🧮</button></td></tr>';
     }
 
     function htmlHistorial() {
@@ -208,6 +233,66 @@
           else window.BIO_ORDER_PAGOS.abrirAgregarAbono(o, tenant, build);
         });
       });
+
+      var btnCalculadora = document.getElementById("btn-calculadora-cambio");
+      if (btnCalculadora) btnCalculadora.addEventListener("click", function () { abrirCalculadoraCambio(0); });
+      root.querySelectorAll("[data-calcular-cambio]").forEach(function (b) {
+        b.addEventListener("click", function () { abrirCalculadoraCambio(parseFloat(b.dataset.calcularCambio) || 0); });
+      });
+    }
+
+    // Calculadora de cambio/vuelto: cuánto cobrar y cuánto devolver cuando
+    // el paciente paga en efectivo con más de una moneda a la vez (ej.
+    // parte en dólares, parte en bolívares) — muy común en laboratorios de
+    // Venezuela. NO registra ningún pago ni toca ninguna orden: es solo
+    // una herramienta de apoyo para el cajero, igual que una calculadora
+    // de mano — el pago real se sigue registrando con "Registrar Pago" /
+    // "Agregar Abono" de siempre. Si el laboratorio no tiene una Moneda
+    // Adicional configurada (Cotizador → Lista de Precios), el segundo
+    // campo de moneda no aparece y la calculadora solo suma/resta en la
+    // moneda base, igual de útil para cualquier país.
+    function abrirCalculadoraCambio(montoInicial) {
+      var monedaBase = C.monedaBaseLabel(tenant);
+      var tieneAdicional = !!(tenant.monedaAdicional && tenant.monedaAdicional.codigo && tenant.monedaAdicional.tasa);
+      var codigoAdicional = tieneAdicional ? tenant.monedaAdicional.codigo : "";
+      var wrap = U.openModal(
+        '<h3 class="modal-title">🧮 Calculadora de Cambio</h3>' +
+        '<p class="text-muted" style="margin-top:0">Solo calcula — no registra ningún pago. Para eso, usa "Registrar Pago" / "Agregar Abono" como siempre.</p>' +
+        '<div class="field"><label>Total a Cobrar (' + U.esc(monedaBase) + ")</label><input type='text' inputmode='decimal' id='cc-total' value='" + (montoInicial || 0) + "'/></div>" +
+        '<div class="form-grid">' +
+        '<div class="field"><label>Recibido en ' + U.esc(monedaBase) + '</label><input type="text" inputmode="decimal" id="cc-recibido-base" value="0"/></div>' +
+        (tieneAdicional ? '<div class="field"><label>Recibido en ' + U.esc(codigoAdicional) + '</label><input type="text" inputmode="decimal" id="cc-recibido-adicional" value="0"/></div>' : "") +
+        "</div>" +
+        '<div id="cc-resultado" style="background:var(--surface-2);border-radius:10px;padding:14px 16px;margin-top:4px;font-size:14px"></div>' +
+        '<div class="flex justify-between" style="margin-top:16px"><button class="btn btn-primary" data-modal-close>Listo</button></div>',
+        { lg: true }
+      );
+      var inpTotal = wrap.querySelector("#cc-total");
+      var inpRecibidoBase = wrap.querySelector("#cc-recibido-base");
+      var inpRecibidoAdicional = wrap.querySelector("#cc-recibido-adicional");
+      var elResultado = wrap.querySelector("#cc-resultado");
+      function recalcular() {
+        var total = U.parseMonto(inpTotal.value) || 0;
+        var recibidoBase = U.parseMonto(inpRecibidoBase.value) || 0;
+        var recibidoAdicional = inpRecibidoAdicional ? (U.parseMonto(inpRecibidoAdicional.value) || 0) : 0;
+        var recibidoAdicionalEnBase = tieneAdicional ? convertirDesdeAdicional(tenant, recibidoAdicional) : 0;
+        var totalRecibido = recibidoBase + recibidoAdicionalEnBase;
+        var diferencia = Math.round((totalRecibido - total) * 100) / 100;
+        var html = '<div style="display:flex;justify-content:space-between;flex-wrap:wrap;gap:6px"><span>Total recibido (en ' + U.esc(monedaBase) + ')</span><b>' + fmtMoneda(totalRecibido) + "</b></div>";
+        if (diferencia < -0.009) {
+          html += '<div style="margin-top:8px;color:var(--danger,#b91c1c);font-weight:700">Falta por cobrar: ' + fmtMoneda(Math.abs(diferencia)) + (equivTexto(Math.abs(diferencia)) ? " (" + equivTexto(Math.abs(diferencia)) + ")" : "") + "</div>";
+        } else if (diferencia > 0.009) {
+          html += '<div style="margin-top:8px;color:var(--success,#0b8a4a);font-weight:700">Vuelto a entregar: ' + fmtMoneda(diferencia) + "</div>";
+          if (tieneAdicional) {
+            html += '<div class="text-muted" style="font-size:12.5px">— o su equivalente: ' + equivTexto(diferencia) + " —</div>";
+          }
+        } else {
+          html += '<div style="margin-top:8px;color:var(--success,#0b8a4a);font-weight:700">Exacto — no hay que dar vuelto.</div>';
+        }
+        elResultado.innerHTML = html;
+      }
+      [inpTotal, inpRecibidoBase, inpRecibidoAdicional].forEach(function (inp) { if (inp) inp.addEventListener("input", recalcular); });
+      recalcular();
     }
 
     function abrirModalApertura() {

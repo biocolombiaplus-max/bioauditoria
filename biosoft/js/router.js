@@ -321,6 +321,10 @@
     // al primer ingreso (login nuevo o sesión restaurada). Nunca bloquea
     // nada si el módulo no cargó por alguna razón.
     if (global.BIO_ANUNCIOS_PROMO) global.BIO_ANUNCIOS_PROMO.mostrarSiCorresponde();
+    // Tasa de cambio BCV (solo Venezuela, solo si el laboratorio activó
+    // "Actualizar automáticamente" — ver tasa-bcv.js) — nunca bloquea el
+    // ingreso, se actualiza sola de fondo cuando ya terminó.
+    if (global.BIO_TASA_BCV) global.BIO_TASA_BCV.actualizarSiCorresponde();
   }
 
   /* Con la persistencia offline de Firestore ya activada (ver

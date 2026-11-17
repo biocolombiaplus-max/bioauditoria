@@ -506,6 +506,17 @@
       var d = new Date();
       return d.getFullYear() + "-" + String(d.getMonth() + 1).padStart(2, "0") + "-" + String(d.getDate()).padStart(2, "0");
     }
+    // Estado de la tasa automática del BCV, para que quede claro de un
+    // vistazo si ya se actualizó hoy o si se quedó pegada (ej. porque
+    // nadie abrió BIOsoft ese día, o porque el servicio de terceros falló
+    // — ver tasa-bcv.js, que nunca bloquea nada si eso pasa).
+    function textoEstadoTasaAutomatica(moneda) {
+      if (!moneda.tasa) return "Todavía no se ha traído ninguna tasa — toca \"Actualizar tasa ahora\".";
+      var esDeHoy = moneda.fecha === hoyISO();
+      var cuando = moneda.actualizada ? new Date(moneda.actualizada).toLocaleString("es-VE", { day: "2-digit", month: "2-digit", hour: "2-digit", minute: "2-digit" }) : "—";
+      return (esDeHoy ? "✅ Al día — " : "⚠️ Todavía no se actualiza hoy — ") + "última tasa: " +
+        Number(moneda.tasa).toLocaleString("es-VE", { maximumFractionDigits: 4 }) + " Bs/USD (" + cuando + ").";
+    }
     // "Fecha Valor" tal como la publica el Banco Central de Venezuela (ej.
     // "Miércoles, 26 de agosto de 2026") — se guarda como la fecha a la que
     // corresponde la tasa (no la fecha en que se guardó, que puede ser
@@ -554,6 +565,11 @@
         MONEDAS_COMUNES.map(function (cod) { return '<option value="' + cod + '" ' + (cod === monedaBaseActual ? "selected" : "") + ">" + cod + "</option>"; }).join("") +
         "</select></div>" +
         "</div>" +
+        (tenant.pais === "VE"
+          ? '<div class="checkbox-row" style="margin-top:10px"><input type="checkbox" id="f-tasa-automatica" ' + (moneda.automatico ? "checked" : "") + '/><label style="margin:0" for="f-tasa-automatica">Actualizar esta tasa automáticamente todos los días desde el Banco Central de Venezuela (BCV)</label></div>' +
+            '<p class="text-muted" style="margin:4px 0 10px;font-size:12.5px">Con esto activado ya no hace falta digitarla cada día — BIOsoft la trae sola del BCV la primera vez que alguien del laboratorio entra cada día. Si algún día necesitas corregirla a mano (ej. mientras no haya internet), desactívala un momento.</p>'
+          : "") +
+        '<div id="moneda-manual-box" class="' + (moneda.automatico ? "hidden" : "") + '">' +
         '<div class="form-grid" style="align-items:end;margin-top:10px">' +
         '<div class="field"><label>Moneda adicional a mostrar (opcional)</label><select id="moneda-codigo">' +
         ["", "USD", "EUR", "VES", "Bs", "COP"].map(function (cod) { return '<option value="' + cod + '" ' + (cod === (moneda.codigo || "") ? "selected" : "") + ">" + (cod || "— Ninguna —") + "</option>"; }).join("") +
@@ -563,6 +579,11 @@
         '<button type="button" class="btn btn-outline btn-sm" id="btn-guardar-moneda">' + U.icon("check") + " Guardar Moneda</button>" +
         "</div>" +
         '<p class="text-muted" id="moneda-ejemplo" style="margin:8px 0 0;font-size:12.5px">' + textoEjemploTasaCambio(monedaBaseActual, moneda) + "</p>" +
+        "</div>" +
+        '<div id="moneda-auto-box" class="' + (moneda.automatico ? "" : "hidden") + '" style="margin-top:10px">' +
+        '<p class="text-muted" id="tasa-auto-estado" style="margin:0 0 8px;font-size:12.5px">' + U.esc(textoEstadoTasaAutomatica(moneda)) + "</p>" +
+        '<button type="button" class="btn btn-outline btn-sm" id="btn-actualizar-tasa-ahora">' + U.icon("history") + " Actualizar tasa ahora</button>" +
+        "</div>" +
         "</fieldset>" +
         '<div class="field" style="margin-bottom:12px"><input id="precio-search" placeholder="Buscar examen por nombre o código CUPS…"/></div>' +
         '<div class="table-wrap" style="max-height:480px;overflow-y:auto"><table><thead><tr><th>Examen</th><th>Sección</th><th>CUPS</th><th style="min-width:150px">Precio (' + U.esc(monedaBaseActual) + ')</th></tr></thead><tbody id="precios-tbody"></tbody></table></div>' +
@@ -645,6 +666,50 @@
         U.toast(monedaAdicional ? "Moneda y tasa de cambio guardadas." : "Moneda guardada.", "success");
         build();
       });
+      // Tasa automática del BCV (solo Venezuela) — ver tasa-bcv.js.
+      var chkTasaAutomatica = document.getElementById("f-tasa-automatica");
+      if (chkTasaAutomatica) {
+        var btnActualizarAhora = document.getElementById("btn-actualizar-tasa-ahora");
+        function actualizarTasaAhora(avisarSiYaEstaba) {
+          btnActualizarAhora.disabled = true;
+          var textoOriginal = btnActualizarAhora.innerHTML;
+          btnActualizarAhora.innerHTML = "Actualizando…";
+          BIO_TASA_BCV.obtenerTasaBCV().then(function (tasa) {
+            var nuevaMoneda = { codigo: BIO_TASA_BCV.codigoAdicionalBCV(tenant), tasa: tasa, fecha: hoyISO(), actualizada: new Date().toISOString(), automatico: true };
+            tenant.monedaBase = document.getElementById("moneda-base").value;
+            tenant.monedaAdicional = nuevaMoneda;
+            S.updateTenant(tenantId, { monedaBase: tenant.monedaBase, monedaAdicional: nuevaMoneda });
+            U.toast("Tasa actualizada desde el BCV: " + tasa.toLocaleString("es-VE", { maximumFractionDigits: 4 }) + " Bs/USD.", "success");
+            build();
+          }).catch(function (err) {
+            console.error("BIOsoft: no se pudo traer la tasa del BCV ->", err);
+            U.toast("No se pudo conectar con el servicio de tasa — intenta de nuevo en un momento.", "error");
+            btnActualizarAhora.disabled = false;
+            btnActualizarAhora.innerHTML = textoOriginal;
+          });
+        }
+        if (btnActualizarAhora) btnActualizarAhora.addEventListener("click", function () { actualizarTasaAhora(); });
+        chkTasaAutomatica.addEventListener("change", function () {
+          var activar = chkTasaAutomatica.checked;
+          var monedaBase = document.getElementById("moneda-base").value;
+          tenant.monedaBase = monedaBase;
+          if (activar) {
+            tenant.monedaAdicional = Object.assign({}, tenant.monedaAdicional, { automatico: true, codigo: BIO_TASA_BCV.codigoAdicionalBCV(tenant) });
+            S.updateTenant(tenantId, { monedaBase: monedaBase, monedaAdicional: tenant.monedaAdicional });
+            build();
+            // Si nunca se había traído ninguna tasa (laboratorio nuevo
+            // activando esto por primera vez), se trae de una vez — así no
+            // se queda con la tasa automática activada pero en 0.
+            if (!tenant.monedaAdicional.tasa) {
+              setTimeout(function () { var b = document.getElementById("btn-actualizar-tasa-ahora"); if (b) b.click(); }, 50);
+            }
+          } else {
+            tenant.monedaAdicional = Object.assign({}, tenant.monedaAdicional, { automatico: false });
+            S.updateTenant(tenantId, { monedaBase: monedaBase, monedaAdicional: tenant.monedaAdicional });
+            build();
+          }
+        });
+      }
       document.getElementById("btn-guardar-precios").addEventListener("click", function () {
         var pares = Object.keys(preciosEditados).map(function (examId) { return { examId: examId, precio: preciosEditados[examId] }; });
         if (!pares.length) { U.toast("No hay cambios para guardar.", "error"); return; }
