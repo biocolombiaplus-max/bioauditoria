@@ -2104,6 +2104,11 @@
         '<p class="text-muted" style="margin:8px 0 0;font-size:12.5px">El logo secundario es opcional — úsalo si tu laboratorio trabaja con un aliado (ej. otro laboratorio que procesa la muestra) y necesitas que su logo también aparezca en tus reportes, cotizaciones y recibos, junto al tuyo.</p>' +
         "</fieldset>" +
         '<fieldset><legend>Operación</legend>' +
+        '<div class="field" style="max-width:420px"><label>Ingreso del nombre del paciente</label><select id="f_ingresoNombrePaciente">' +
+        '<option value="separado"' + (!tenant.ingresoNombrePaciente || tenant.ingresoNombrePaciente === "separado" ? " selected" : "") + '>Por partes (Primer Nombre, Segundo Nombre, Primer Apellido, Segundo Apellido)</option>' +
+        '<option value="completo"' + (tenant.ingresoNombrePaciente === "completo" ? " selected" : "") + '>Un solo campo (Nombre Completo)</option>' +
+        "</select></div>" +
+        '<p class="text-muted" style="margin:4px 0 12px;font-size:12.5px">Con "Un solo campo", en Nuevo/Editar Paciente se escribe el nombre completo de una vez (ej. "Juan Carlos Pérez Gómez") y BIOsoft lo separa solo en nombres y apellidos — te muestra cómo quedó dividido antes de guardar, por si necesitas corregirlo. Internamente el dato se sigue guardando igual que con "Por partes" (nunca se pierde el detalle de cada nombre/apellido), así que puedes cambiar esta opción en cualquier momento sin afectar a los pacientes ya registrados.</p>' +
         '<div class="checkbox-row"><input type="checkbox" id="f_mostrarPrecioOrden" ' + (tenant.mostrarPrecioOrden ? "checked" : "") + '/><label style="margin:0" for="f_mostrarPrecioOrden">Permitir indicar el valor a cobrar al crear una orden</label></div>' +
         '<p class="text-muted" style="margin:4px 0 12px;font-size:12.5px">Actívalo si en tu laboratorio la persona que recibe al paciente (Recepción, un Bacteriólogo(a) o cualquiera que registre la orden) también le informa cuánto debe pagar en ese momento. Se queda desactivado por defecto — actívalo solo si lo necesitas.</p>' +
         '<div class="checkbox-row"><input type="checkbox" id="f_reportarCIM" ' + (tenant.reportarCIM ? "checked" : "") + '/><label style="margin:0" for="f_reportarCIM">Reportar Concentración Inhibitoria Mínima (CIM) en antibiogramas</label></div>' +
@@ -2440,6 +2445,7 @@
       tenant.telefonos = g("telefonos"); tenant.email = g("email"); tenant.sitioWeb = g("sitioWeb");
       tenant.resolucionHabilitacion = g("resolucionHabilitacion"); tenant.codigoREPS = g("codigoREPS"); tenant.nivel = parseInt(g("nivel"), 10);
       tenant.bacteriologoResponsable = { nombre: g("bactNombre"), registro: g("bactRegistro") };
+      tenant.ingresoNombrePaciente = document.getElementById("f_ingresoNombrePaciente").value;
       tenant.mostrarPrecioOrden = document.getElementById("f_mostrarPrecioOrden").checked;
       tenant.reportarCIM = document.getElementById("f_reportarCIM").checked;
       tenant.calcularIndicesHematimetricos = document.getElementById("f_calcularIndicesHematimetricos").checked;
@@ -2539,7 +2545,7 @@
           nombre: tenant.nombre, slogan: tenant.slogan, nit: tenant.nit, pais: tenant.pais, direccion: tenant.direccion,
           telefonos: tenant.telefonos, email: tenant.email, sitioWeb: tenant.sitioWeb,
           resolucionHabilitacion: tenant.resolucionHabilitacion, codigoREPS: tenant.codigoREPS, nivel: tenant.nivel,
-          bacteriologoResponsable: tenant.bacteriologoResponsable, mostrarPrecioOrden: tenant.mostrarPrecioOrden, reportarCIM: tenant.reportarCIM,
+          bacteriologoResponsable: tenant.bacteriologoResponsable, ingresoNombrePaciente: tenant.ingresoNombrePaciente, mostrarPrecioOrden: tenant.mostrarPrecioOrden, reportarCIM: tenant.reportarCIM,
           calcularIndicesHematimetricos: tenant.calcularIndicesHematimetricos,
           reciboConvenioComoCredito: tenant.reciboConvenioComoCredito, formatoFactura: tenant.formatoFactura, facturaAgrupacion: tenant.facturaAgrupacion, facturaConMembrete: tenant.facturaConMembrete, facturaMembreteEspacioSuperior: tenant.facturaMembreteEspacioSuperior, formatoNumeroOrden: tenant.formatoNumeroOrden,
           cobraIva: tenant.cobraIva, porcentajeIva: tenant.porcentajeIva, nombreImpuesto: tenant.nombreImpuesto,

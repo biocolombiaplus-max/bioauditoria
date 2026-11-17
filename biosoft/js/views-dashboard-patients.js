@@ -489,6 +489,40 @@
     if (btnNuevaOrden) btnNuevaOrden.addEventListener("click", function () { U.closeModal(wrap); location.hash = "#/ordenes/nueva-" + patient.id; });
   }
 
+  // Separa un nombre completo escrito de una sola vez (ej. "Juan Carlos
+  // Pérez Gómez") en los 4 campos que BIOsoft guarda internamente
+  // (primerNombre/segundoNombre/primerApellido/segundoApellido) — ver
+  // tenant.ingresoNombrePaciente === "completo" en openPatientForm. El
+  // dato guardado es SIEMPRE el mismo sin importar cuál modo de ingreso
+  // eligió el laboratorio, así que cambiar esta opción más adelante nunca
+  // afecta a los pacientes ya registrados.
+  //
+  // Convención usada con nombres ambiguos (siempre se le muestra el
+  // resultado a quien registra, para que lo corrija si hace falta —ver
+  // "#pac-nombre-preview"):
+  //   1 palabra  -> solo primer nombre (sin apellido; el formulario exige
+  //                 al menos 2 palabras, igual que exige primer apellido
+  //                 en modo "Por partes").
+  //   2 palabras -> Nombre Apellido.
+  //   3 palabras -> Nombre Apellido1 Apellido2 (la persona tiene un solo
+  //                 nombre pero dos apellidos — lo más común en Colombia/
+  //                 Venezuela/Ecuador cuando solo hay 3 palabras).
+  //   4+ palabras -> las 2 últimas son Apellido1 y Apellido2; todo lo
+  //                 demás son nombres (Primer Nombre + Segundo Nombre,
+  //                 uniendo cualquier palabra extra al segundo nombre).
+  function dividirNombreCompleto(texto) {
+    var palabras = (texto || "").trim().replace(/\s+/g, " ").split(" ").filter(Boolean);
+    if (!palabras.length) return { primerNombre: "", segundoNombre: "", primerApellido: "", segundoApellido: "" };
+    if (palabras.length === 1) return { primerNombre: palabras[0], segundoNombre: "", primerApellido: "", segundoApellido: "" };
+    if (palabras.length === 2) return { primerNombre: palabras[0], segundoNombre: "", primerApellido: palabras[1], segundoApellido: "" };
+    if (palabras.length === 3) return { primerNombre: palabras[0], segundoNombre: "", primerApellido: palabras[1], segundoApellido: palabras[2] };
+    var n = palabras.length;
+    return {
+      primerNombre: palabras[0], segundoNombre: palabras.slice(1, n - 2).join(" "),
+      primerApellido: palabras[n - 2], segundoApellido: palabras[n - 1]
+    };
+  }
+
   function openPatientForm(patient, onSaved) {
     var session = BIO_AUTH.getSession();
     var isEdit = !!patient;
@@ -498,6 +532,11 @@
     // maneja (CO/VE/EC); cualquier otro país de tenant cae a Colombia, que
     // sigue siendo el valor por defecto de siempre.
     var tenant = BIO_AUTH.currentTenant();
+    // "Un solo campo" (Configuración → Operación) no cambia el dato
+    // guardado (sigue siendo primerNombre/segundoNombre/primerApellido/
+    // segundoApellido) — solo cómo se captura en este formulario. Ver
+    // dividirNombreCompleto() más arriba.
+    var ingresoNombreCompleto = tenant && tenant.ingresoNombrePaciente === "completo";
     var paisPorDefecto = tenant && ["CO", "VE", "EC", "MX"].indexOf(tenant.pais) !== -1 ? tenant.pais : "CO";
     // El tipo de documento y el tipo de afiliación por defecto también
     // dependen del país: "CC"/"Contributivo" no existen en las listas de
@@ -586,10 +625,15 @@
           sel("sexo", "Sexo Biológico", ["Femenino", "Masculino", "Indeterminado"].map(function (s) { return '<option ' + (s === patient.sexo ? "selected" : "") + ">" + s + "</option>"; }).join("")) +
         "</div>" +
         '<p class="text-muted" style="margin:0 0 8px">Ingresa la fecha de nacimiento o, si no se conoce, al menos la edad aproximada — no hace falta llenar los dos.</p></fieldset>' +
-        '<fieldset><legend>Nombres</legend><div class="form-grid">' +
-          inp("primerNombre", "Primer Nombre", patient.primerNombre, true) + inp("segundoNombre", "Segundo Nombre", patient.segundoNombre) +
-          inp("primerApellido", "Primer Apellido", patient.primerApellido, true) + inp("segundoApellido", "Segundo Apellido", patient.segundoApellido) +
-        "</div></fieldset>" +
+        '<fieldset><legend>Nombres</legend>' +
+        (ingresoNombreCompleto
+          ? '<div class="form-grid">' + inp("nombreCompleto", "Nombre Completo", U.nombreCompleto(patient), true) + "</div>" +
+            '<p id="pac-nombre-preview" class="text-muted" style="margin:0 0 4px;font-size:12.5px"></p>'
+          : '<div class="form-grid">' +
+            inp("primerNombre", "Primer Nombre", patient.primerNombre, true) + inp("segundoNombre", "Segundo Nombre", patient.segundoNombre) +
+            inp("primerApellido", "Primer Apellido", patient.primerApellido, true) + inp("segundoApellido", "Segundo Apellido", patient.segundoApellido) +
+            "</div>") +
+        "</fieldset>" +
         '<fieldset><legend>Contacto</legend><div class="form-grid">' +
           inp("direccion", "Dirección de Residencia", patient.direccion) +
           '<div class="field"><label id="lbl-departamento">' + C.DIVISION_ADMINISTRATIVA_LABEL[patient.pais] + '</label><select id="f_departamento">' + depOptions(patient.pais, depInicial) + "</select></div>" +
@@ -654,6 +698,26 @@
     // paciente (ej. al editar uno que ya vivía en Bogotá).
     actualizarVisibilidadUbicacion();
 
+    // Con "Un solo campo" (ver dividirNombreCompleto() más arriba), se le
+    // muestra a quien registra CÓMO quedó dividido el nombre apenas
+    // termina de escribirlo — así puede corregirlo ahí mismo (ej.
+    // agregando una coma mental: "escribe dos palabras más") si la
+    // separación automática no da lo que esperaba, antes de guardar.
+    if (ingresoNombreCompleto) {
+      var inpNombreCompleto = wrap.querySelector("#f_nombreCompleto");
+      var previewNombre = wrap.querySelector("#pac-nombre-preview");
+      function actualizarPreviewNombre() {
+        var partes = dividirNombreCompleto(inpNombreCompleto.value);
+        if (!partes.primerNombre) { previewNombre.textContent = ""; return; }
+        if (!partes.primerApellido) { previewNombre.textContent = "Escribe también el apellido — por ahora solo se reconoce el nombre \"" + partes.primerNombre + "\"."; previewNombre.style.color = "var(--danger, #b91c1c)"; return; }
+        previewNombre.style.color = "";
+        previewNombre.innerHTML = "Se guardará como — Nombre: <b>" + U.esc([partes.primerNombre, partes.segundoNombre].filter(Boolean).join(" ")) +
+          "</b> · Apellidos: <b>" + U.esc([partes.primerApellido, partes.segundoApellido].filter(Boolean).join(" ")) + "</b>";
+      }
+      inpNombreCompleto.addEventListener("input", actualizarPreviewNombre);
+      actualizarPreviewNombre();
+    }
+
     function refreshDependentSelects() {
       var pais = wrap.querySelector("#f_pais").value;
       wrap.querySelector("#f_tipoDocumento").innerHTML = docOptions(pais, patient.tipoDocumento);
@@ -708,6 +772,14 @@
         var el = wrap.querySelector("#f_" + c);
         if (el && encontrado[c] != null) el.value = encontrado[c];
       });
+      // Con "Un solo campo" los 4 campos de arriba no existen en este
+      // formulario (ver fieldset "Nombres") — se precarga en cambio el
+      // nombre completo reconstruido, y se refresca su vista previa.
+      var inpNombreCompletoExistente = wrap.querySelector("#f_nombreCompleto");
+      if (inpNombreCompletoExistente) {
+        inpNombreCompletoExistente.value = U.nombreCompleto(encontrado);
+        inpNombreCompletoExistente.dispatchEvent(new Event("input"));
+      }
       // El celular es un campo compuesto (indicativo + número, ver
       // U.telefonoInputHtml) — no un solo <input>, así que se separa antes
       // de precargarlo.
@@ -753,9 +825,16 @@
       var esBogotaSel = esBogota(g("pais"), departamento);
       var municipioSel = wrap.querySelector("#f_municipio").value;
       var ciudad = municipioSel === OTRO_MUNICIPIO ? g("municipio_otro") : municipioSel;
+      // El dato guardado (primerNombre/segundoNombre/primerApellido/
+      // segundoApellido) es siempre el mismo, sin importar cuál de los dos
+      // modos de captura eligió el laboratorio (ver dividirNombreCompleto
+      // y tenant.ingresoNombrePaciente más arriba).
+      var nombrePartes = ingresoNombreCompleto
+        ? dividirNombreCompleto(g("nombreCompleto"))
+        : { primerNombre: g("primerNombre"), segundoNombre: g("segundoNombre"), primerApellido: g("primerApellido"), segundoApellido: g("segundoApellido") };
       var data = {
         tenantId: session.tenantId, pais: g("pais"), tipoDocumento: g("tipoDocumento"), numeroDocumento: g("numeroDocumento"),
-        primerNombre: g("primerNombre"), segundoNombre: g("segundoNombre"), primerApellido: g("primerApellido"), segundoApellido: g("segundoApellido"),
+        primerNombre: nombrePartes.primerNombre, segundoNombre: nombrePartes.segundoNombre, primerApellido: nombrePartes.primerApellido, segundoApellido: nombrePartes.segundoApellido,
         fechaNacimiento: g("fechaNacimiento"), edadAnios: g("edadAnios"), sexo: g("sexo"), direccion: g("direccion"),
         departamento: departamento, ciudad: ciudad, localidad: esBogotaSel ? g("localidad") : "", telefono: g("telefono"),
         celular: U.leerTelefonoCompuesto(wrap, "celular"), email: g("email"), tipoAfiliacion: g("tipoAfiliacion"), eps: g("eps"), medicoRemitente: g("medicoRemitente"),
@@ -763,7 +842,7 @@
         zonaResidencial: g("zonaResidencial"), codigoMunicipioDane: g("codigoMunicipioDane"), auxiliarTomaMuestra: g("auxiliarTomaMuestra")
       };
       if (!data.numeroDocumento || !data.primerNombre || !data.primerApellido) {
-        U.toast("Completa los campos obligatorios: documento, primer nombre y primer apellido.", "error");
+        U.toast(ingresoNombreCompleto ? "Completa el documento y escribe al menos el nombre y el apellido del paciente." : "Completa los campos obligatorios: documento, primer nombre y primer apellido.", "error");
         return;
       }
       if (!data.fechaNacimiento && !data.edadAnios) {
