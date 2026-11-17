@@ -418,6 +418,13 @@
                 '<button type="button" class="btn btn-ghost btn-sm" id="btn-change-selected-patient" style="padding:2px 8px;font-size:11.5px">✕ Cambiar</button>' +
               "</span>" +
             "</div>" +
+            // Aviso cuando este paciente YA tiene una orden creada hoy
+            // mismo (ver ordenesHoyDelPaciente más abajo) — pensado para
+            // pacientes que vuelven varias veces el mismo día (ej. una
+            // muestra en ayunas en la mañana y otra en la tarde): en vez de
+            // crear dos órdenes sueltas sin darse cuenta, se puede agregar
+            // el examen nuevo directo a la orden de hoy que ya existe.
+            '<div id="patient-orden-hoy-banner" class="hidden" style="margin-top:8px;background:#fff7ed;border:1px solid #fdba74;border-radius:8px;padding:10px 12px;font-size:12.5px;color:#7c2d12"></div>' +
           "</div>" +
           F.sel("prioridad", "Prioridad", C.PRIORIDADES.map(function (p) { return "<option>" + p + "</option>"; }).join("")) +
           '<div class="field"><label>Médico Remitente</label><select id="f_medicoRemitenteId">' +
@@ -544,6 +551,7 @@
       var elIdOculto = document.getElementById("f_patient_id");
       var elSeleccionado = document.getElementById("patient-selected");
       var elSeleccionadoTxt = document.getElementById("patient-selected-txt");
+      var elOrdenHoyBanner = document.getElementById("patient-orden-hoy-banner");
 
       function normalizar(txt) {
         return (txt || "").toString().normalize("NFD").replace(/[̀-ͯ]/g, "").toLowerCase();
@@ -551,16 +559,48 @@
       function textoPaciente(p) {
         return p.tipoDocumento + " " + p.numeroDocumento + " — " + U.nombreCompleto(p);
       }
+      // Las órdenes de HOY de este paciente (comparando solo la fecha, en
+      // la misma sede que esta orden nueva va a quedar) — más reciente
+      // primero, para ofrecer la de hoy más obvia si llega a tener más de
+      // una.
+      function ordenesHoyDelPaciente(patientId) {
+        var hoy = new Date().toISOString().slice(0, 10);
+        return BIO_AUTH.filtrarPorSedeActual(S.listOrders(session.tenantId)).filter(function (o) {
+          return o.patientId === patientId && (o.fechaOrden || "").slice(0, 10) === hoy;
+        }).sort(function (a, b) { return (b.fechaOrden || "").localeCompare(a.fechaOrden || ""); });
+      }
+      function actualizarAvisoOrdenHoy(p) {
+        var ordenesHoy = ordenesHoyDelPaciente(p.id);
+        if (!ordenesHoy.length) { elOrdenHoyBanner.classList.add("hidden"); elOrdenHoyBanner.innerHTML = ""; return; }
+        var ordenHoy = ordenesHoy[0];
+        elOrdenHoyBanner.classList.remove("hidden");
+        elOrdenHoyBanner.innerHTML = "🔔 <b>" + U.esc(U.nombreCompleto(p).split(" ")[0]) + "</b> ya tiene la orden <b>" + ordenHoy.numeroOrden + "</b> creada hoy a las " +
+          new Date(ordenHoy.fechaOrden).toLocaleTimeString("es-CO", { hour: "2-digit", minute: "2-digit" }) +
+          ". ¿Quieres agregar los exámenes de esta vez a esa misma orden, o de verdad es una orden aparte (ej. una muestra distinta en otro momento del día)?" +
+          '<div class="flex gap-2 wrap" style="margin-top:8px">' +
+          '<button type="button" class="btn btn-primary btn-sm" id="btn-ir-orden-hoy" data-orden="' + ordenHoy.id + '">' + U.icon("plus") + " Agregar a la Orden " + ordenHoy.numeroOrden + "</button>" +
+          '<button type="button" class="btn btn-ghost btn-sm" id="btn-ignorar-orden-hoy">Sí, es una orden aparte — continuar aquí</button>' +
+          "</div>";
+        var btnIr = document.getElementById("btn-ir-orden-hoy");
+        if (btnIr) btnIr.addEventListener("click", function () {
+          var pac = S.getPatient(p.id);
+          abrirAgregarExamenesOrden(ordenHoy, pac, tenant, function () { location.hash = "#/ordenes/" + ordenHoy.id; });
+        });
+        var btnIgnorar = document.getElementById("btn-ignorar-orden-hoy");
+        if (btnIgnorar) btnIgnorar.addEventListener("click", function () { elOrdenHoyBanner.classList.add("hidden"); });
+      }
       function mostrarSeleccionado(p) {
         elIdOculto.value = p.id;
         elSeleccionadoTxt.textContent = textoPaciente(p);
         elSeleccionado.classList.remove("hidden");
         inpBusqueda.classList.add("hidden");
         elResultados.classList.add("hidden");
+        actualizarAvisoOrdenHoy(p);
       }
       function mostrarBuscador() {
         elIdOculto.value = "";
         elSeleccionado.classList.add("hidden");
+        elOrdenHoyBanner.classList.add("hidden");
         inpBusqueda.classList.remove("hidden");
         inpBusqueda.value = "";
         inpBusqueda.focus();
