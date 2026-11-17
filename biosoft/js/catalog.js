@@ -929,13 +929,21 @@
      ALLOWED_ROUTES). Antes había que marcarlo aquí uno por uno, y ese
      "opt-in" era la causa más común de que un laboratorio reportara "no me
      deja crear ni ver pacientes/órdenes/resultados": casi ningún
-     administrador encontraba este checkbox al crear al auxiliar. Este
-     arreglo queda vacío (reservado por si en el futuro surge algún permiso
-     de verdad opcional para este rol) — validar/firmar sigue siendo
-     SIEMPRE exclusivo de Administrador y Bacteriólogo(a)/Bioanalista, sin
-     importar nada de esto (ver views-results.js -> puedeValidar y
-     firestore.rules -> esRecepcion()). */
-  var PERMISOS_EXTRA_RECEPCION = [];
+     administrador encontraba este checkbox al crear al auxiliar. Validar/
+     firmar sigue siendo SIEMPRE exclusivo de Administrador y
+     Bacteriólogo(a)/Bioanalista, sin importar nada de esto (ver
+     views-results.js -> puedeValidar y firestore.rules -> esRecepcion()).
+
+     "Caja" sí es un permiso de verdad opcional: en muchos laboratorios
+     pequeños el mismo Auxiliar/Asistente que recibe al paciente y toma la
+     muestra es quien además abre y cierra caja según su turno — en vez de
+     obligarlo a elegir entre ser Auxiliar/Asistente o ser Cajero(a) (rol
+     aparte, de solo caja — ver router.js), el Administrador puede
+     agregarle este permiso puntual sin tocarle NADA de su acceso normal
+     (pacientes, órdenes, toma de muestra siguen intactos). */
+  var PERMISOS_EXTRA_RECEPCION = [
+    { route: "caja", label: "Caja (abrir, mover y cerrar turno)", navLabel: "Caja", icon: "wallet" }
+  ];
 
   /* Tamaños de etiqueta térmica más comunes en laboratorios de la región,
      para el selector rápido al agregar un "Perfil de Impresora" (ver

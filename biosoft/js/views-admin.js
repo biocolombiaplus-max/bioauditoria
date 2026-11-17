@@ -159,16 +159,19 @@
       // laboratorios pequeños donde la misma persona hace de todo. Se puede
       // agregar o quitar en cualquier momento editando al usuario; "usuarios",
       // "config" y "auditoría" nunca aparecen aquí, se quedan solo para
-      // Administrador. Un Auxiliar/Asistente de Recepción no tiene ningún
-      // permiso opcional que marcar aquí: pacientes, órdenes y resultados
-      // (borrador/preliminar) ya son parte de su acceso base (ver router.js).
+      // Administrador. Un Auxiliar/Asistente de Recepción tiene un único
+      // permiso opcional que marcar aquí: "Caja" (ver PERMISOS_EXTRA_RECEPCION
+      // en catalog.js) — pacientes, órdenes y resultados (borrador/
+      // preliminar) ya son parte de su acceso base sin necesidad de
+      // marcarlos (ver router.js).
       function renderPermisosExtra() {
         var rol = wrap.querySelector("#f_rol").value;
         var box = wrap.querySelector("#permisos-extra-box");
-        var catalogo = rol === "bacteriologo" ? C.PERMISOS_EXTRA_BACTERIOLOGO : null;
+        var catalogo = rol === "bacteriologo" ? C.PERMISOS_EXTRA_BACTERIOLOGO : rol === "recepcion" ? C.PERMISOS_EXTRA_RECEPCION : null;
         if (!catalogo) { box.innerHTML = ""; return; }
         var disponibles = catalogo.filter(function (p) { return !p.soloCO || (tenant && tenant.pais === "CO"); });
-        box.innerHTML = "<label>Permisos adicionales (además de sus secciones)</label><div class='form-grid'>" +
+        if (!disponibles.length) { box.innerHTML = ""; return; }
+        box.innerHTML = "<label>Permisos adicionales" + (rol === "bacteriologo" ? " (además de sus secciones)" : "") + "</label><div class='form-grid'>" +
           disponibles.map(function (p) {
             var checked = (user.permisosExtra || []).indexOf(p.route) !== -1;
             return '<div class="checkbox-row"><input type="checkbox" data-permextra="' + p.route + '" ' + (checked ? "checked" : "") + '/><label style="margin:0">' + U.esc(p.label) + "</label></div>";
@@ -251,7 +254,7 @@
           puedeGestionarRemisiones: false, sedeId: selSede ? selSede.value : ""
         };
         if (data.rol === "bacteriologo" && chkRemisiones) data.puedeGestionarRemisiones = chkRemisiones.checked;
-        if (data.rol === "bacteriologo") {
+        if (data.rol === "bacteriologo" || data.rol === "recepcion") {
           data.permisosExtra = Array.prototype.slice.call(wrap.querySelectorAll("[data-permextra]:checked")).map(function (c) { return c.dataset.permextra; });
         } else {
           data.permisosExtra = [];
