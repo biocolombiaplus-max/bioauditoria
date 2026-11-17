@@ -43,6 +43,7 @@
         { route: "resultados", label: "Resultados", icon: "flask" },
         { route: "hojas-trabajo", label: "Hojas de Trabajo", icon: "printer" },
         { route: "reportes", label: "Reportes y Envíos", icon: "send" },
+        { route: "caja", label: "Caja", icon: "wallet" },
         { route: "productividad", label: "Productividad Mensual", icon: "activity" },
         { route: "calidad", label: "Control de Calidad", icon: "shield" },
         { route: "cotizador", label: "Cotizaciones", icon: "file" },
@@ -91,6 +92,13 @@
     ],
     aliado: [
       { sec: "GENERAL", items: [{ route: "portal-aliado", label: "Portal de Resultados", icon: "flask" }] }
+    ],
+    // Acceso financiero puro: abre, mueve y cierra la caja de su sede (o
+    // la del laboratorio completo, si no usa Multisede) y cobra órdenes
+    // con saldo pendiente — nunca ve pacientes, resultados clínicos,
+    // catálogo ni configuración. Ver views-caja.js y ALLOWED_ROUTES abajo.
+    cajero: [
+      { sec: "GENERAL", items: [{ route: "caja", label: "Caja", icon: "wallet" }] }
     ]
   };
 
@@ -210,7 +218,7 @@
     dashboard: "Panel Principal", pacientes: "Pacientes", ordenes: "Órdenes de Laboratorio",
     resultados: "Resultados de Laboratorio", "hojas-trabajo": "Hojas de Trabajo Diarias",
     reportes: "Reportes y Envío de Resultados", usuarios: "Usuarios del Laboratorio",
-    config: "Configuración del Laboratorio", auditoria: "Trazabilidad y Auditoría", tenants: "Laboratorios Cliente",
+    config: "Configuración del Laboratorio", auditoria: "Trazabilidad y Auditoría", tenants: "Laboratorios Cliente", caja: "Caja",
     catalogo: "Valores de Referencia del Catálogo", productividad: "Productividad Mensual", crm: "Clientes (CRM)",
     calidad: "Control de Calidad", cotizador: "Cotizador de Exámenes", marketing: "Marketing Digital", inventario: "Inventario y Reactivos",
     facturacion: "Facturación y RIPS", "landing-imagenes": "Imágenes de la Landing", "anuncio-popup": "Popup del Día", "portal-aliado": "Portal de Resultados",
@@ -224,10 +232,11 @@
 
   var ALLOWED_ROUTES = {
     superadmin: ["crm", "tenants", "dashboard", "campanas", "landing-imagenes", "anuncio-popup"],
-    admin: ["dashboard", "pacientes", "ordenes", "resultados", "hojas-trabajo", "reportes", "productividad", "calidad", "cotizador", "marketing", "inventario", "usuarios", "medicos", "config", "auditoria", "catalogo", "facturacion"],
+    admin: ["dashboard", "pacientes", "ordenes", "resultados", "hojas-trabajo", "reportes", "caja", "productividad", "calidad", "cotizador", "marketing", "inventario", "usuarios", "medicos", "config", "auditoria", "catalogo", "facturacion"],
     bacteriologo: ["dashboard", "resultados", "hojas-trabajo", "calidad"],
     recepcion: ["dashboard", "pacientes", "ordenes", "resultados", "hojas-trabajo", "reportes", "cotizador", "marketing"],
-    aliado: ["portal-aliado"]
+    aliado: ["portal-aliado"],
+    cajero: ["caja"]
   };
 
   function currentRoute() {

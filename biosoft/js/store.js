@@ -313,7 +313,7 @@
         // de vuelta a memoria). paquetesExamenes se agrega ya de una vez
         // junto con las demás para no repetir el mismo olvido.
         "convenios", "convenioPrecios", "ripsGenerados", "facturasGeneradas", "paquetesExamenes",
-        "medicosRemitentes", "medicoTarifasExamen", "convenioPagos"
+        "medicosRemitentes", "medicoTarifasExamen", "convenioPagos", "cajaTurnos"
       ].forEach(function (coll) { attach(coll, coll, false); });
       // "orders" se trata aparte (en vez de ir dentro del forEach de arriba)
       // para poder enganchar, apenas llegue su primer snapshot, la revisión
@@ -1181,7 +1181,7 @@
       "users", "patients", "orders", "qcControles", "qcLecturas", "preciosExamenes", "examenesPersonalizados",
       "cotizaciones", "reglasRemarketing", "remarketingContactos", "insumos", "recetasReactivos", "kardexInventario",
       "ripsGenerados", "facturasGeneradas", "convenios", "convenioPrecios", "medicosRemitentes", "medicoTarifasExamen",
-      "convenioPagos", "examenesReferencia", "paquetesExamenes", "consentimientos"
+      "convenioPagos", "examenesReferencia", "paquetesExamenes", "consentimientos", "cajaTurnos"
     ];
     var tenantDoc = tenantsColl().doc(tenantId);
     return Promise.all(SUBCOLECCIONES.map(function (nombre) {
@@ -1506,7 +1506,7 @@
       tenants: {}, users: [], patients: [], orders: [], auditLog: [], qcControles: [], qcLecturas: [], preciosExamenes: [], cotizaciones: [],
       reglasRemarketing: [], remarketingContactos: [], insumos: [], recetasReactivos: [], kardexInventario: [], examenesPersonalizados: [],
       ripsGenerados: [], facturasGeneradas: [], convenios: [], convenioPrecios: [], consentimientos: [], examenesReferencia: [], paquetesExamenes: [],
-      medicosRemitentes: [], medicoTarifasExamen: [], convenioPagos: []
+      medicosRemitentes: [], medicoTarifasExamen: [], convenioPagos: [], cajaTurnos: []
     };
   }
 
@@ -3156,6 +3156,85 @@
   }
 
   // ---------------------------------------------------------------------
+  // CAJA — apertura, movimientos y cierre de turno, igual que una caja
+  // registradora física: cada sede (o el laboratorio completo, si no usa
+  // Multisede — sedeId queda "") tiene SU PROPIO turno abierto a la vez,
+  // nunca dos al mismo tiempo, para que siempre quede claro quién lo abrió,
+  // quién lo cerró y qué pasó mientras estuvo abierto. El efectivo recibido
+  // por pagos de órdenes NO se guarda aquí (ya vive en order.pago/abonos,
+  // ver pdf-cierre-caja.js) — este turno solo guarda la base inicial, los
+  // movimientos manuales de caja menor (ingresos/egresos que no vienen de
+  // una orden, ej. un domicilio pagado en efectivo) y el resultado del
+  // arqueo al cerrar. Ver views-caja.js para cómo se calcula lo "esperado".
+  // ---------------------------------------------------------------------
+  function turnoAbiertoCaja(tenantId, sedeId) {
+    var db = loadDB();
+    return (db.cajaTurnos || []).filter(function (t) {
+      return t.tenantId === tenantId && (t.sedeId || "") === (sedeId || "") && t.estado === "abierta";
+    })[0] || null;
+  }
+  function listTurnosCaja(tenantId, sedeId) {
+    var db = loadDB();
+    return (db.cajaTurnos || [])
+      .filter(function (t) { return t.tenantId === tenantId && (sedeId === undefined || (t.sedeId || "") === (sedeId || "")); })
+      .sort(function (a, b) { return b.fechaApertura.localeCompare(a.fechaApertura); });
+  }
+  function getTurnoCaja(turnoId) {
+    var db = loadDB();
+    return (db.cajaTurnos || []).filter(function (t) { return t.id === turnoId; })[0] || null;
+  }
+  function abrirTurnoCaja(tenantId, sedeId, usuario, usuarioId, baseInicial) {
+    var db = loadDB();
+    db.cajaTurnos = db.cajaTurnos || [];
+    var yaAbierto = db.cajaTurnos.filter(function (t) {
+      return t.tenantId === tenantId && (t.sedeId || "") === (sedeId || "") && t.estado === "abierta";
+    })[0];
+    if (yaAbierto) return { error: "Ya hay una caja abierta" + (yaAbierto.abiertoPor ? " por " + yaAbierto.abiertoPor : "") + " desde " + new Date(yaAbierto.fechaApertura).toLocaleString("es-CO") + " — ciérrala antes de abrir una nueva." };
+    var turno = {
+      id: uid("caja"), tenantId: tenantId, sedeId: sedeId || "", estado: "abierta",
+      baseInicial: baseInicial || 0, abiertoPor: usuario || "", abiertoPorUserId: usuarioId || "", fechaApertura: nowISO(),
+      movimientos: [],
+      cerradoPor: "", cerradoPorUserId: "", fechaCierre: "", montoContado: null, montoEsperadoEfectivo: null, diferencia: null,
+      desglosePorMetodoPago: null, observacionesCierre: ""
+    };
+    db.cajaTurnos.push(turno);
+    saveDB(db);
+    fbWrite("cajaTurnos", turno.id, turno);
+    return { ok: true, turno: turno };
+  }
+  function agregarMovimientoCaja(turnoId, datos) {
+    var db = loadDB();
+    var turno = (db.cajaTurnos || []).filter(function (t) { return t.id === turnoId; })[0];
+    if (!turno || turno.estado !== "abierta") return null;
+    var mov = {
+      id: uid("mov"), tipo: datos.tipo, concepto: (datos.concepto || "").trim(), monto: datos.monto || 0,
+      usuario: datos.usuario || "", fecha: nowISO()
+    };
+    turno.movimientos = turno.movimientos || [];
+    turno.movimientos.push(mov);
+    saveDB(db);
+    fbWrite("cajaTurnos", turno.id, turno);
+    return mov;
+  }
+  function cerrarTurnoCaja(turnoId, datos) {
+    var db = loadDB();
+    var turno = (db.cajaTurnos || []).filter(function (t) { return t.id === turnoId; })[0];
+    if (!turno || turno.estado !== "abierta") return null;
+    turno.estado = "cerrada";
+    turno.cerradoPor = datos.usuario || "";
+    turno.cerradoPorUserId = datos.usuarioId || "";
+    turno.fechaCierre = nowISO();
+    turno.montoContado = datos.montoContado || 0;
+    turno.montoEsperadoEfectivo = datos.montoEsperadoEfectivo || 0;
+    turno.diferencia = round2(turno.montoContado - turno.montoEsperadoEfectivo);
+    turno.desglosePorMetodoPago = datos.desglosePorMetodoPago || null;
+    turno.observacionesCierre = (datos.observaciones || "").trim();
+    saveDB(db);
+    fbWrite("cajaTurnos", turno.id, turno);
+    return turno;
+  }
+
+  // ---------------------------------------------------------------------
   // FACTURACIÓN Y RIPS — SOLO COLOMBIA. Ver rips.js para la construcción
   // del JSON del RIPS (Resolución 2275 de 2023) y views-facturacion.js para
   // la pantalla. Aquí solo se guarda un historial de lo generado (para
@@ -3359,6 +3438,10 @@
       list: listMedicosRemitentes, get: getMedicoRemitente, create: createMedicoRemitente,
       update: updateMedicoRemitente, eliminar: eliminarMedicoRemitente,
       listTarifasExamen: listMedicoTarifasExamen, setTarifaExamen: setMedicoTarifaExamen, quitarTarifaExamen: quitarMedicoTarifaExamen
+    },
+    caja: {
+      turnoAbierto: turnoAbiertoCaja, listTurnos: listTurnosCaja, getTurno: getTurnoCaja,
+      abrirTurno: abrirTurnoCaja, agregarMovimiento: agregarMovimientoCaja, cerrarTurno: cerrarTurnoCaja
     }
   };
 })(window);

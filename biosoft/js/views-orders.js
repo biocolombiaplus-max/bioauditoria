@@ -2286,4 +2286,10 @@
   // Remisión" sin duplicar el modal — la ruta "ordenes" no está permitida
   // para el rol bacteriologo, así que ese es su único punto de acceso real.
   window.BIO_REMISION = { puedeGestionar: puedeGestionarRemision, abrir: abrirGenerarRemision };
+
+  // Se expone para que views-caja.js (el módulo de Caja, único punto de
+  // acceso del rol "cajero" — ver router.js) pueda cobrar una orden sin
+  // duplicar toda la lógica de recibos/facturas/Cashea/convenios que ya
+  // vive aquí — "ordenes" tampoco está permitida para ese rol.
+  window.BIO_ORDER_PAGOS = { abrirReciboOrden: abrirReciboOrden, abrirAgregarAbono: abrirAgregarAbono };
 })();

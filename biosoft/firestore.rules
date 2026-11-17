@@ -15,14 +15,24 @@ service cloud.firestore {
     // único acceso de lectura son las reglas puntuales que lo mencionan más
     // abajo (tenants, su propio documento en users, y orders filtradas por
     // su convenio) — nunca escritura de nada.
+    // Un "cajero" (rol de acceso SOLO financiero — ver router.js/views-caja.js)
+    // tampoco debe tener el acceso amplio de un miembro normal del
+    // laboratorio: queda excluido aquí igual que "aliado", y se le da acceso
+    // puntual más abajo, solo a lo que de verdad necesita (su propio
+    // usuario, el tenant para el membrete de sus recibos, leer pacientes y
+    // órdenes para cobrar, y escribir SOLO el pago/abono de una orden —
+    // nunca sus exámenes ni su estado clínico — y la caja misma).
     function esDeEsteLab(tenantId) {
-      return autenticado() && perfil().tenantId == tenantId && perfil().rol != "aliado";
+      return autenticado() && perfil().tenantId == tenantId && perfil().rol != "aliado" && perfil().rol != "cajero";
     }
     function esSuperadmin() {
       return autenticado() && perfil().rol == "superadmin";
     }
     function esAliado(tenantId) {
       return autenticado() && perfil().tenantId == tenantId && perfil().rol == "aliado";
+    }
+    function esCajero(tenantId) {
+      return autenticado() && perfil().tenantId == tenantId && perfil().rol == "cajero";
     }
 
     // Cada usuario autenticado solo puede leer SU PROPIO perfil (para saber a
@@ -186,7 +196,7 @@ service cloud.firestore {
       // Cliente"), no solo el propio — de ahí el esSuperadmin() en la lectura.
       // Un aliado también puede leer el documento del tenant (nombre/logo
       // para el encabezado de su portal), pero nada más de esta colección.
-      allow read: if esDeEsteLab(tenantId) || esSuperadmin() || esAliado(tenantId);
+      allow read: if esDeEsteLab(tenantId) || esSuperadmin() || esAliado(tenantId) || esCajero(tenantId);
       // El superadmin también puede actualizar (asignar/cambiar el plan y el
       // límite de usuarios de cada laboratorio desde el panel de socios).
       allow update: if esDeEsteLab(tenantId) || esSuperadmin();
@@ -206,15 +216,14 @@ service cloud.firestore {
         // Un aliado solo puede leer SU PROPIO documento de usuario (para
         // saber a qué convenio quedó asignado al iniciar sesión) — nunca la
         // lista completa de usuarios del laboratorio.
-        allow read: if esDeEsteLab(tenantId) || esSuperadmin() || (esAliado(tenantId) && userId == request.auth.uid);
+        allow read: if esDeEsteLab(tenantId) || esSuperadmin() || (esAliado(tenantId) && userId == request.auth.uid) || (esCajero(tenantId) && userId == request.auth.uid);
         // El aprovisionamiento de CUALQUIER usuario real (ver
         // provisionRealAccount en store.js) crea este documento autenticado
         // como el usuario recién creado (no como quien lo está registrando),
-        // así que un aliado necesita poder crear UNA VEZ su propio
-        // documento — pero nunca actualizarlo después (para que no pueda
-        // cambiarse a sí mismo el convenioId y leer resultados de un
-        // convenio que no es el suyo).
-        allow create: if esDeEsteLab(tenantId) || (esAliado(tenantId) && userId == request.auth.uid);
+        // así que un aliado/cajero necesita poder crear UNA VEZ su propio
+        // documento — pero nunca actualizarlo después (un cajero no puede
+        // cambiarse a sí mismo el rol ni la sede desde el cliente).
+        allow create: if esDeEsteLab(tenantId) || (esAliado(tenantId) && userId == request.auth.uid) || (esCajero(tenantId) && userId == request.auth.uid);
         // El superadmin del panel de socios solo puede tocar tres campos de
         // un usuario ya existente: "rol" (para "Restablecer Administrador",
         // darle también el rol de Administrador cuando el laboratorio se
@@ -231,7 +240,9 @@ service cloud.firestore {
         allow delete: if esDeEsteLab(tenantId) || esSuperadmin();
       }
       match /patients/{patientId} {
-        allow read: if esDeEsteLab(tenantId) || esSuperadmin();
+        // Un cajero necesita ver el nombre del paciente para cobrar su
+        // orden, pero nunca crear, editar ni borrar ningún paciente.
+        allow read: if esDeEsteLab(tenantId) || esSuperadmin() || esCajero(tenantId);
         allow write: if esDeEsteLab(tenantId) || esSuperadmin();
       }
       // Un usuario de Recepción/Auxiliar con el permiso adicional
@@ -252,7 +263,11 @@ service cloud.firestore {
         // resource.data.convenioId, el campo que views-orders.js graba en
         // cada orden) — nunca las de otro convenio ni las de un paciente
         // particular. Nunca puede escribir (no aparece en create/update).
-        allow read: if esDeEsteLab(tenantId) || esSuperadmin() || (esAliado(tenantId) && perfil().convenioId == resource.data.convenioId);
+        // Un cajero puede leer cualquier orden del laboratorio (necesita
+        // buscar cuáles tienen saldo pendiente para cobrar), pero nunca las
+        // de otro laboratorio ni filtradas por convenio (eso es exclusivo
+        // del aliado).
+        allow read: if esDeEsteLab(tenantId) || esSuperadmin() || (esAliado(tenantId) && perfil().convenioId == resource.data.convenioId) || esCajero(tenantId);
         // NOTA: antes esto revisaba examen por examen con
         // request.resource.data.examenes.exists(...)/.all(...), pero esas
         // NO son funciones válidas del lenguaje de Firestore Rules (no hay
@@ -283,9 +298,17 @@ service cloud.firestore {
         allow create: if esDeEsteLab(tenantId) && (
           !esRecepcion() || request.resource.data.get("tieneValidado", false) == false
         );
-        allow update: if esDeEsteLab(tenantId) && (
+        allow update: if (esDeEsteLab(tenantId) && (
           !esRecepcion() ||
           resource.data.get("tieneValidado", false) == request.resource.data.get("tieneValidado", false)
+        )) || (
+          // Un cajero SOLO puede escribir el pago/abonos de una orden (ver
+          // abrirReciboOrden/abrirAgregarAbono en views-orders.js, que
+          // también usa views-caja.js) — nunca sus exámenes, su estado
+          // clínico, ni ningún otro campo, ni siquiera con una escritura
+          // directa a Firestore saltándose la interfaz.
+          esCajero(tenantId) &&
+          request.resource.data.diff(resource.data).affectedKeys().hasOnly(["pago", "abonos"])
         );
         // El superadmin también puede borrar (sin poder crear/editar
         // ninguna) — lo usa "Eliminar Laboratorio" para limpiar las
@@ -302,7 +325,7 @@ service cloud.firestore {
         // editar ni borrar) — por ejemplo, al dejar registro de que
         // restableció el acceso de un laboratorio desde el panel de socios.
         allow read: if esDeEsteLab(tenantId) || esSuperadmin();
-        allow create: if esDeEsteLab(tenantId) || esSuperadmin() || esAliado(tenantId);
+        allow create: if esDeEsteLab(tenantId) || esSuperadmin() || esAliado(tenantId) || esCajero(tenantId);
         allow update, delete: if false;
       }
       // A partir de aquí, todas estas subcolecciones de datos operativos
@@ -320,7 +343,11 @@ service cloud.firestore {
         allow read, write: if esDeEsteLab(tenantId) || esSuperadmin();
       }
       match /preciosExamenes/{precioId} {
-        allow read, write: if esDeEsteLab(tenantId) || esSuperadmin();
+        // Lectura (nunca escritura) también para el cajero — así su recibo
+        // de pago puede mostrar el desglose por examen, igual que el de
+        // Recepción/Administración.
+        allow read: if esDeEsteLab(tenantId) || esSuperadmin() || esCajero(tenantId);
+        allow write: if esDeEsteLab(tenantId) || esSuperadmin();
       }
       match /examenesPersonalizados/{examenId} {
         allow read, write: if esDeEsteLab(tenantId) || esSuperadmin();
@@ -342,6 +369,13 @@ service cloud.firestore {
       }
       match /kardexInventario/{movimientoId} {
         allow read, write: if esDeEsteLab(tenantId) || esSuperadmin();
+      }
+      // Turnos de Caja (apertura, movimientos manuales y cierre con arqueo
+      // — ver views-caja.js/store.js -> BIO_STORE.caja). A diferencia de
+      // orders, aquí el cajero SÍ tiene acceso completo: es exactamente lo
+      // que su rol existe para operar.
+      match /cajaTurnos/{turnoId} {
+        allow read, write: if esDeEsteLab(tenantId) || esSuperadmin() || esCajero(tenantId);
       }
       match /ripsGenerados/{ripsId} {
         allow read, write: if esDeEsteLab(tenantId) || esSuperadmin();

@@ -113,7 +113,7 @@
           '<div class="form-grid">' +
             F.inp("username", "Usuario (login)", user.username, true) +
             F.inp("password", "Contraseña", user.password, !isEdit, "text") +
-            F.sel("rol", "Rol", ["admin", "bacteriologo", "recepcion", "aliado"].map(function (r) { return '<option value="' + r + '" ' + (r === user.rol ? "selected" : "") + ">" + U.esc(C.rolLabel(r, tenant && tenant.pais)) + "</option>"; }).join("")) +
+            F.sel("rol", "Rol", ["admin", "bacteriologo", "recepcion", "cajero", "aliado"].map(function (r) { return '<option value="' + r + '" ' + (r === user.rol ? "selected" : "") + ">" + U.esc(C.rolLabel(r, tenant && tenant.pais)) + "</option>"; }).join("")) +
           "</div>" +
           // Solo aparece si el superadmin activó Multisede para este
           // laboratorio (ver tenant.multisede en catalog.js). Vacío = ve
