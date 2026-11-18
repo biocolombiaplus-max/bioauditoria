@@ -871,7 +871,7 @@
       var nombreHtml = '<input type="text" data-pnombre="' + p.codigo + '" value="' + U.esc(p.nombre) + '" style="font-weight:600;border:none;background:transparent;padding:2px 0;width:100%;color:inherit;font-size:inherit"/>' + codigoHtml + (esDeFabrica ? "" : ' <span class="badge badge-preliminar" style="font-size:9px">Personalizado</span>');
 
       if (p.tipo === "numerico") {
-        var overNum = base && (p.min !== base.min || p.max !== base.max || p.refText !== base.refText || p.nombre !== base.nombre);
+        var overNum = base && (p.min !== base.min || p.max !== base.max || p.refText !== base.refText || p.nombre !== base.nombre || (p.unidad || "") !== (base.unidad || ""));
         var conBandas = C.tieneBandas(tenant, examId, p.codigo);
         var bandasHtml = '<button type="button" class="btn btn-ghost btn-sm" data-bandas="' + p.codigo + '" title="Definir rangos distintos por género y/o edad">🚻 ' + (conBandas ? "Rangos (activo)" : "Por género/edad") + "</button>";
         var conRangos = C.tieneRangosInterpretacion(tenant, examId, p.codigo);
@@ -894,11 +894,14 @@
         var ocultarInterpHtml = '<label class="checkbox-row" style="margin:2px 0 0;font-size:10.5px;font-weight:400"><input type="checkbox" data-ocultarinterp ' + (p.ocultarInterpretacionEnInforme ? "checked" : "") + '/> No mostrar la interpretación en el informe</label>';
         return '<tr data-prow="' + p.codigo + '">' +
           "<td>" + moverHtml + "</td>" +
-          "<td>" + nombreHtml + '<div class="text-muted" style="font-size:11px">' + (p.unidad || "") + (p.calculado ? ' · <span title="' + U.esc(p.formula || "") + '">🧮 Calculado</span>' : "") + "</div></td>" +
+          "<td>" + nombreHtml + '<div class="flex gap-1" style="align-items:center;margin-top:3px">' +
+          '<input type="text" data-punidad value="' + U.esc(p.unidad || "") + '" placeholder="Unidad (ej: mg/dL)" style="width:100px;font-size:11px;padding:2px 5px;border:1px solid var(--border);border-radius:4px;background:var(--surface-2);color:var(--text-muted)"/>' +
+          (p.calculado ? ' <span style="font-size:11px" title="' + U.esc(p.formula || "") + '">🧮 Calculado</span>' : "") +
+          "</div></td>" +
           '<td><input type="number" step="any" data-min value="' + p.min + '" style="width:90px" title="' + (conRangos ? "Se usa solo si un resultado no cae en ninguno de los rangos de interpretación" : "") + '"/></td>' +
           '<td><input type="number" step="any" data-max value="' + p.max + '" style="width:90px" title="' + (conRangos ? "Se usa solo si un resultado no cae en ninguno de los rangos de interpretación" : "") + '"/></td>' +
           '<td><input data-reftext value="' + U.esc(p.refText) + '" ' + (conRangos ? "disabled title='Se genera automáticamente a partir de los rangos de interpretación'" : "") + "/>" + ocultarRefHtml + ocultarInterpHtml + "</td>" +
-          '<td class="text-muted" style="font-size:11px">' + (esDeFabrica ? "Fábrica: " + base.min + " - " + base.max : "—") + "</td>" +
+          '<td class="text-muted" style="font-size:11px">' + (esDeFabrica ? "Fábrica: " + base.min + " - " + base.max + " " + (base.unidad || "") : "—") + "</td>" +
           "<td><div class='flex gap-1 wrap'>" + (overNum ? '<button type="button" class="btn btn-ghost btn-sm" data-reset="' + p.codigo + '">Restablecer</button>' : "") + bandasHtml + rangosHtml + calculadoHtml + quitarHtml + "</div></td></tr>";
       }
       if (p.tipo === "cualitativo" || p.tipo === "descriptivo") {
@@ -1155,6 +1158,8 @@
         if (p.tipo === "numerico") {
           var min = parseFloat(row.querySelector("[data-min]").value);
           var max = parseFloat(row.querySelector("[data-max]").value);
+          var unidadInput = row.querySelector("[data-punidad]");
+          var unidadNueva = unidadInput ? unidadInput.value.trim() : (p.unidad || "");
           var conRangosGuardado = C.tieneRangosInterpretacion(tenant, examId, p.codigo);
           // Con rangos de interpretación activos, el texto de referencia se
           // genera solo a partir de esos rangos (el campo queda deshabilitado
@@ -1167,8 +1172,8 @@
           // porque setOverride() reemplaza TODO el override del
           // parámetro de una vez, no solo lo que cambió en esta tabla.
           var calcIgualBase = !p.calculado === !(base && base.calculado) && (p.formula || "") === ((base && base.formula) || "");
-          if (base && min === base.min && max === base.max && refText === base.refText && nombreNuevo === base.nombre && calcIgualBase && ocultarRef === ocultarRefBase && ocultarInterp === ocultarInterpBase) { C.clearOverride(tenant, examId, p.codigo); return; }
-          C.setOverride(tenant, examId, p.codigo, { nombre: nombreNuevo, min: min, max: max, refText: refText || (min + " - " + max + " " + (p.unidad || "")), calculado: !!p.calculado, formula: p.formula || "", ocultarEnInforme: ocultarRef, ocultarInterpretacionEnInforme: ocultarInterp });
+          if (base && min === base.min && max === base.max && refText === base.refText && nombreNuevo === base.nombre && unidadNueva === (base.unidad || "") && calcIgualBase && ocultarRef === ocultarRefBase && ocultarInterp === ocultarInterpBase) { C.clearOverride(tenant, examId, p.codigo); return; }
+          C.setOverride(tenant, examId, p.codigo, { nombre: nombreNuevo, unidad: unidadNueva, min: min, max: max, refText: refText || (min + " - " + max + " " + (unidadNueva || "")), calculado: !!p.calculado, formula: p.formula || "", ocultarEnInforme: ocultarRef, ocultarInterpretacionEnInforme: ocultarInterp });
           cambios++;
         } else if (p.tipo === "cualitativo") {
           var normalSel = row.querySelector("[data-normal]");
