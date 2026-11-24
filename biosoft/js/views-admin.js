@@ -560,6 +560,18 @@
     return codigo;
   }
 
+  // Igual idea que codigoParametroDesdeNombre(), pero para el "Código
+  // Examen" (codigoExcel) de un examen propio nuevo creado desde una lista
+  // de precios simple (ver abrirConfirmarListaSimple) — así, si el mismo
+  // nombre aparece dos veces en el archivo, el segundo no pisa al primero.
+  function codigoExamenDesdeNombre(nombre, usados) {
+    var base = "EXCEL_" + (U.normalizar(nombre || "").toUpperCase().replace(/[^A-Z0-9]+/g, "_").replace(/^_+|_+$/g, "").slice(0, 40) || "EXAMEN");
+    var codigo = base, n = 2;
+    while (usados[codigo]) { codigo = base + "_" + n; n++; }
+    usados[codigo] = true;
+    return codigo;
+  }
+
   function resolverSeccionPorNombre(tenant, nombre) {
     var n = U.normalizar(nombre || "");
     return C.seccionesEfectivas(tenant).filter(function (s) { return U.normalizar(s.nombre) === n; })[0] || null;
@@ -4175,6 +4187,7 @@
         '<label class="btn btn-outline btn-sm" style="cursor:pointer">' + U.icon("plus") + ' Subir Excel Completado<input type="file" id="pc-input" accept=".xlsx,.xls" style="display:none"/></label>' +
         "</div>" +
         '<p class="text-muted" style="font-size:12px;line-height:1.55">La hoja <b>Precios</b> trae ID Examen, CUPS, Examen, Sección y Precio Actual — deja el precio en blanco para NO cambiarlo. La hoja <b>Valores de Referencia</b> trae una fila base por cada parámetro numérico (Género "Ambos", sin edad) y, debajo, una fila adicional por cada rango que ya tenga por género/edad. Para agregar un rango nuevo, copia una fila del mismo examen/parámetro y llena Género y/o Edad Mín/Máx. Para quitar un rango existente, borra esa fila antes de subir. No cambies las columnas "ID Examen" ni "Código Parámetro" — identifican cada fila al volver a subir el archivo.</p>' +
+        '<p class="text-muted" style="font-size:12px;line-height:1.55">💡 También puedes subir directamente <b>la propia lista de precios del laboratorio</b>, tal cual la tenga armada (una columna con el nombre del examen y otra con el precio, sin usar esta plantilla) — BIOsoft reconoce cada examen por su nombre: si ya existe en el catálogo de este laboratorio le actualiza el precio, y si no existe lo crea como examen propio nuevo, marcado como "Desde Excel".</p>' +
         '<div class="flex gap-2 justify-between" style="margin-top:10px"><button class="btn btn-ghost" data-modal-close>Cerrar</button><span id="pc-estado" class="text-muted" style="font-size:12.5px"></span></div>'
       );
 
@@ -4206,6 +4219,7 @@
           estado("");
           if (err) { U.toast(err, "error"); return; }
           U.closeModal(wrap);
+          if (datos.modoSimple) { abrirConfirmarListaSimple(tenant, datos.filasSimples); return; }
           abrirConfirmarMoneda(tenant, monedaActual, datos);
         });
       });
@@ -4359,6 +4373,41 @@
       XLSX.writeFile(wb, "Plantilla_" + (tenant.nombre || "Laboratorio").replace(/[^a-z0-9]+/gi, "_") + "_BIOsoft.xlsx");
     }
 
+    // Detecta y lee una lista de precios "cruda" (sin la estructura de la
+    // plantilla de este panel): busca, en cada hoja del archivo, una fila de
+    // encabezado con una columna de nombre de examen y una de precio, entre
+    // las primeras 15 filas (igual criterio que ubicarEncabezado() en
+    // views-cotizador.js, pero por NOMBRE en vez de por CUPS — así sirve
+    // también para laboratorios fuera de Colombia, que no manejan CUPS).
+    // Devuelve [{ nombre, precio }] o null si ninguna hoja tiene algo
+    // reconocible.
+    function leerListaSimple(wb) {
+      var out = [];
+      wb.SheetNames.forEach(function (nombreHoja) {
+        var filas = XLSX.utils.sheet_to_json(wb.Sheets[nombreHoja], { header: 1, defval: "" });
+        var maxFilasABuscar = Math.min(filas.length, 15);
+        var encabezado = null;
+        for (var f = 0; f < maxFilasABuscar && !encabezado; f++) {
+          var fila = filas[f] || [];
+          var colNombre = -1, colPrecio = -1;
+          for (var c = 0; c < fila.length; c++) {
+            var t = U.normalizar(String(fila[c] || "")).toLowerCase();
+            if (colNombre === -1 && (t.indexOf("examen") !== -1 || t.indexOf("prueba") !== -1 || t.indexOf("nombre") !== -1 || t.indexOf("descripcion") !== -1)) colNombre = c;
+            if (colPrecio === -1 && (t.indexOf("precio") !== -1 || t.indexOf("tarifa") !== -1 || t.indexOf("valor") !== -1)) colPrecio = c;
+          }
+          if (colNombre !== -1 && colPrecio !== -1) encabezado = { fila: f, colNombre: colNombre, colPrecio: colPrecio };
+        }
+        if (!encabezado) return;
+        for (var i = encabezado.fila + 1; i < filas.length; i++) {
+          var nombre = String((filas[i] || [])[encabezado.colNombre] || "").trim();
+          var precio = parseNumeroLatam((filas[i] || [])[encabezado.colPrecio]);
+          if (!nombre || isNaN(precio)) continue;
+          out.push({ nombre: nombre, precio: precio });
+        }
+      });
+      return out.length ? out : null;
+    }
+
     function leerArchivoCatalogo(file, cb) {
       var reader = new FileReader();
       reader.onload = function (ev) {
@@ -4366,7 +4415,24 @@
           var wb = XLSX.read(new Uint8Array(ev.target.result), { type: "array" });
           var hojaPrecios = wb.Sheets["Precios"];
           var hojaRef = wb.Sheets["Valores de Referencia"];
-          if (!hojaPrecios && !hojaRef) { cb('No encontramos las hojas "Precios" ni "Valores de Referencia" en el archivo. Descarga la plantilla para ver el formato esperado.'); return; }
+          if (!hojaPrecios && !hojaRef) {
+            // No es la plantilla que genera este mismo panel (con sus hojas
+            // "Precios"/"Valores de Referencia" e "ID Examen") — es muy común
+            // que el cliente simplemente mande SU PROPIA lista de precios tal
+            // cual la tiene armada (ej. una columna con el nombre del examen y
+            // otra con el precio, sin ningún código). En vez de rechazarla,
+            // se intenta leer en "modo simple": busca, en la primera hoja con
+            // datos, una fila de encabezado con una columna de nombre
+            // (Examen/Prueba/Descripción) y una de precio (Precio/Tarifa/
+            // Valor) — y resuelve cada examen por NOMBRE contra el catálogo
+            // efectivo de este laboratorio en abrirConfirmarListaSimple(),
+            // creando como examen propio nuevo (marcado origen "excel") el
+            // que no encuentre.
+            var filasSimples = leerListaSimple(wb);
+            if (!filasSimples) { cb('No encontramos las hojas "Precios"/"Valores de Referencia" de la plantilla, ni columnas reconocibles de nombre de examen y precio en el archivo. Descarga la plantilla para ver el formato esperado, o revisa que tu lista tenga una columna de nombre y una de precio.'); return; }
+            cb(null, { modoSimple: true, filasSimples: filasSimples });
+            return;
+          }
 
           // "EJEMPLO" es el ID Examen centinela de las filas de demostración
           // que trae la propia plantilla (ver generarYDescargarPlantilla) —
@@ -4486,13 +4552,91 @@
             C.setBandas(t, c.examId, c.codigo, c.bandas);
           });
           var tareas = [S.updateTenant(t.id, { refOverrides: t.refOverrides || {}, refBandas: t.refBandas || {} })._fbPromise || Promise.resolve()];
-          if (datos.pares.length) tareas.push(S.tenantsGlobal.bulkSetPreciosOnce(t.id, datos.pares));
+          if (datos.pares.length) tareas.push(S.tenantsGlobal.bulkSetPreciosOnce(t.id, datos.pares, "excel"));
           return conLimiteDeTiempo(function () { return Promise.all(tareas); });
         }).then(function () {
           U.closeModal(wrap);
           U.toast("Catálogo de " + tenant.nombre + " actualizado.", "success");
           S.tenantsGlobal.addAuditOnce(tenant.id, session.nombre, session.rol, "UPDATE_CATALOGO_EXCEL", "catalogo", tenant.id,
             "Cargó desde Excel " + datos.pares.length + " precio(s) y " + cambiosRef.length + " parámetro(s) de valores de referencia para " + tenant.nombre + ".").catch(function () {});
+        }).catch(function (err) {
+          btn.disabled = false; btn.textContent = "Aplicar a " + tenant.nombre;
+          U.toast("No se pudo aplicar: " + S.mensajeErrorFirestore(err), "error");
+        });
+      });
+    }
+
+    /* Confirmación para una lista de precios "cruda" (ver leerListaSimple)
+       — a diferencia de abrirConfirmarCatalogo(), aquí cada examen se
+       resuelve por NOMBRE contra el catálogo efectivo de ESTE laboratorio:
+       si ya existe (de fábrica o propio) solo se le actualiza el precio; si
+       no existe, se crea como examen propio nuevo (un único campo de texto
+       libre "Resultado" — sin datos de parámetros/referencia en el archivo
+       no hay nada más que inventar) marcado origen "excel", igual que
+       cualquier otro examen cargado por Excel. */
+    function abrirConfirmarListaSimple(tenant, filasSimples) {
+      var session = BIO_AUTH.getSession();
+      var existentes = [], nuevos = [], ambiguos = [];
+      filasSimples.forEach(function (f) {
+        var matches = C.examenesConMismoNombre(tenant, f.nombre);
+        if (matches.length === 1) existentes.push({ examId: matches[0].id, precio: f.precio });
+        else if (matches.length > 1) ambiguos.push(f);
+        else nuevos.push(f);
+      });
+      var secciones = C.seccionesEfectivas(tenant);
+
+      var wrap = U.openModal(
+        '<h3 class="modal-title">Confirmar lista de precios — ' + U.esc(tenant.nombre) + '</h3>' +
+        '<p class="text-muted" style="margin-top:0">Encontramos <b>' + filasSimples.length + ' fila(s)</b> con nombre de examen y precio en el archivo:</p>' +
+        '<ul style="margin:0 0 10px;padding-left:20px;font-size:13.5px">' +
+        '<li><b>' + existentes.length + "</b> ya existen en el catálogo de " + U.esc(tenant.nombre) + " — se les actualizará el precio</li>" +
+        '<li><b>' + nuevos.length + '</b> no existen todavía — se crearán como examen propio nuevo, marcados <span class="badge badge-preliminar">📊 Excel</span></li>' +
+        (ambiguos.length ? "<li><b>" + ambiguos.length + "</b> coinciden con más de un examen del catálogo — no se tocarán, revísalos a mano desde el Catálogo</li>" : "") +
+        "</ul>" +
+        (nuevos.length ? '<div class="field" style="max-width:360px"><label>Sección para los ' + nuevos.length + ' examen(es) nuevo(s)</label><select id="cls-seccion">' +
+          secciones.map(function (s) { return "<option value='" + s.id + "'>" + U.esc(s.nombre) + "</option>"; }).join("") +
+          "</select></div>" +
+          '<p class="text-muted" style="font-size:12px;margin:4px 0 10px">Se crean con un único campo de texto libre ("Resultado") — entra luego a Catálogo → Valores de Referencia de cada uno para configurarle su rango/unidad, si aplica.</p>'
+          : "") +
+        (nuevos.length ? '<details style="margin-bottom:10px"><summary style="cursor:pointer;font-size:12.5px;color:var(--text-muted)">Ver los ' + nuevos.length + " examen(es) nuevo(s)</summary>" +
+          '<div class="table-wrap" style="max-height:260px;overflow-y:auto;margin-top:6px"><table><thead><tr><th>Examen</th><th>Precio</th></tr></thead><tbody>' +
+          nuevos.map(function (f) { return "<tr><td>" + U.esc(f.nombre) + "</td><td>" + f.precio + "</td></tr>"; }).join("") +
+          "</tbody></table></div></details>" : "") +
+        (ambiguos.length ? '<details style="margin-bottom:10px"><summary style="cursor:pointer;font-size:12.5px;color:#b45309">⚠️ Ver los ' + ambiguos.length + " caso(s) ambiguo(s)</summary><p class=\"text-muted\" style=\"font-size:12px\">" + ambiguos.map(function (f) { return U.esc(f.nombre); }).join(", ") + "</p></details>" : "") +
+        '<div class="flex gap-2 justify-between" style="margin-top:10px"><button class="btn btn-ghost" data-modal-close>Cancelar</button><button class="btn btn-primary" id="cls-aplicar">' + U.icon("check") + " Aplicar a " + U.esc(tenant.nombre) + "</button></div>"
+      );
+
+      wrap.querySelector("#cls-aplicar").addEventListener("click", function (e) {
+        var btn = e.currentTarget;
+        btn.disabled = true; btn.textContent = "Aplicando…";
+        var seccionElegida = nuevos.length ? wrap.querySelector("#cls-seccion").value : "";
+        conLimiteDeTiempo(function () { return S.tenantsGlobal.getOnce(tenant.id); }).then(function (fresco) {
+          var t = fresco || tenant;
+          var usadosCodigo = {};
+          var gruposNuevos = nuevos.map(function (f) {
+            return {
+              codigoExcel: codigoExamenDesdeNombre(f.nombre, usadosCodigo),
+              nombre: f.nombre, seccion: seccionElegida, cups: "", metodo: "", muestra: "", tubo: "seco",
+              parametros: [C.texto("RESULTADO", "Resultado", "")]
+            };
+          });
+          if (gruposNuevos.length) C.bulkUpsertExamenesPersonalizadosCompletos(t, gruposNuevos);
+          var idsNuevosPorCodigo = {};
+          (t.examenesPersonalizados || []).forEach(function (ex) { idsNuevosPorCodigo[ex.codigoExcel] = ex.id; });
+          var paresPrecio = existentes.map(function (m) { return { examId: m.examId, precio: m.precio }; });
+          gruposNuevos.forEach(function (g, i) {
+            var id = idsNuevosPorCodigo[g.codigoExcel];
+            if (id) paresPrecio.push({ examId: id, precio: nuevos[i].precio });
+          });
+          var tareas = [];
+          if (gruposNuevos.length) tareas.push(S.updateTenant(t.id, { examenesPersonalizados: t.examenesPersonalizados })._fbPromise || Promise.resolve());
+          if (paresPrecio.length) tareas.push(S.tenantsGlobal.bulkSetPreciosOnce(t.id, paresPrecio, "excel"));
+          return conLimiteDeTiempo(function () { return Promise.all(tareas); });
+        }).then(function () {
+          U.closeModal(wrap);
+          U.toast(existentes.length + " precio(s) actualizado(s) y " + nuevos.length + " examen(es) nuevo(s) creado(s) para " + tenant.nombre + ".", "success");
+          S.tenantsGlobal.addAuditOnce(tenant.id, session.nombre, session.rol, "UPDATE_CATALOGO_EXCEL", "catalogo", tenant.id,
+            "Cargó desde una lista de precios simple: " + existentes.length + " precio(s) actualizado(s) y " + nuevos.length + " examen(es) propio(s) nuevo(s) para " + tenant.nombre + ".").catch(function () {});
         }).catch(function (err) {
           btn.disabled = false; btn.textContent = "Aplicar a " + tenant.nombre;
           U.toast("No se pudo aplicar: " + S.mensajeErrorFirestore(err), "error");

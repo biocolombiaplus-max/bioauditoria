@@ -1261,7 +1261,7 @@
      el lugar equivocado (o en ningún lado) sin avisar — por eso esta
      función arma su propia ruta de Firestore con el tenantId explícito de principio a fin.
      pares: [{ examId, precio }]. */
-  function tenantBulkSetPreciosOnce(tenantId, pares) {
+  function tenantBulkSetPreciosOnce(tenantId, pares, origen) {
     if (!firebaseDisponible()) return Promise.reject(errorFirebaseNoDisponible());
     var coll = tenantsColl().doc(tenantId).collection("preciosExamenes");
     return coll.get().then(function (snap) {
@@ -1279,7 +1279,7 @@
           lote.forEach(function (par) {
             var id = idPorExamId[par.examId] || uid("prc");
             idPorExamId[par.examId] = id;
-            batch.set(coll.doc(id), { id: id, tenantId: tenantId, examId: par.examId, precio: par.precio, actualizadoEn: nowISO() });
+            batch.set(coll.doc(id), { id: id, tenantId: tenantId, examId: par.examId, precio: par.precio, actualizadoEn: nowISO(), origen: origen || "manual" });
           });
           return batch.commit();
         });

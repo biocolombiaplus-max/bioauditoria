@@ -3,6 +3,7 @@
   "use strict";
   window.BIO_VIEWS = window.BIO_VIEWS || {};
   var U = BIO_UI, S = BIO_STORE;
+  function fmtMoneda(n) { return BIO_PDF_CARTERA.fmtMoneda(n); }
 
   // Buscador de "Envío de Resultados" por nombre/cédula del paciente (o N°
   // de orden, de paso) — a nivel de módulo para que el término escrito
@@ -298,6 +299,44 @@
         '<button class="btn btn-primary btn-block" id="btn-rep-relacion">' + U.icon("download") + " Generar PDF</button>" +
         "</div>" +
         '<div class="lp-feature">' +
+        '<div class="lp-ic">📑</div><h3>Facturación Detallada</h3>' +
+        '<p>Un renglón por orden facturada entre fechas, con los datos del paciente (documento, nombre, edad, sexo), los exámenes, el valor facturado, lo abonado, el saldo y el método de pago — para contabilidad. Descárgalo en PDF o en Excel.</p>' +
+        '<div class="form-grid" style="margin:10px 0">' +
+        '<div class="field"><label>Desde</label><input type="date" id="rep-facturacion-desde" value="' + primerDiaMes() + '"/></div>' +
+        '<div class="field"><label>Hasta</label><input type="date" id="rep-facturacion-hasta" value="' + hoyISO() + '"/></div>' +
+        "</div>" +
+        (conveniosActivos.length ?
+          '<div class="field" style="margin:0 0 10px"><label>Convenio (opcional)</label><select id="rep-facturacion-convenio"><option value="">Todos los convenios y particulares</option>' +
+          conveniosActivos.map(function (c) { return '<option value="' + c.id + '">' + U.esc(c.nombre) + "</option>"; }).join("") +
+          "</select></div>" : "") +
+        (tenant.pais === "VE" ?
+          '<div class="field" style="margin:0 0 10px"><label>Moneda (opcional)</label><select id="rep-facturacion-moneda"><option value="">Todas las monedas</option>' +
+          BIO_CATALOG.MONEDAS_PAGO.map(function (m) { return '<option value="' + m.id + '">' + U.esc(m.nombre) + "</option>"; }).join("") +
+          "</select></div>" : "") +
+        '<div id="facturacion-resumen" style="margin:0 0 10px"></div>' +
+        '<div class="flex gap-2"><button class="btn btn-primary" style="flex:1" id="btn-rep-facturacion-pdf">' + U.icon("download") + " PDF</button>" +
+        '<button class="btn btn-outline" style="flex:1" id="btn-rep-facturacion-excel">' + U.icon("download") + " Excel</button></div>" +
+        "</div>" +
+        '<div class="lp-feature">' +
+        '<div class="lp-ic">🧮</div><h3>Recibos Generados</h3>' +
+        '<p>Igual que Facturación Detallada, pero solo las órdenes a las que ya se les generó su Recibo de Pago entre fechas (filtra por la fecha del recibo, no de la orden) — con su N° de Recibo, monto, método de pago y datos del paciente. Útil para cuadrar contra los recibos físicos o enviados.</p>' +
+        '<div class="form-grid" style="margin:10px 0">' +
+        '<div class="field"><label>Desde</label><input type="date" id="rep-recibos-desde" value="' + primerDiaMes() + '"/></div>' +
+        '<div class="field"><label>Hasta</label><input type="date" id="rep-recibos-hasta" value="' + hoyISO() + '"/></div>' +
+        "</div>" +
+        (conveniosActivos.length ?
+          '<div class="field" style="margin:0 0 10px"><label>Convenio (opcional)</label><select id="rep-recibos-convenio"><option value="">Todos los convenios y particulares</option>' +
+          conveniosActivos.map(function (c) { return '<option value="' + c.id + '">' + U.esc(c.nombre) + "</option>"; }).join("") +
+          "</select></div>" : "") +
+        (tenant.pais === "VE" ?
+          '<div class="field" style="margin:0 0 10px"><label>Moneda (opcional)</label><select id="rep-recibos-moneda"><option value="">Todas las monedas</option>' +
+          BIO_CATALOG.MONEDAS_PAGO.map(function (m) { return '<option value="' + m.id + '">' + U.esc(m.nombre) + "</option>"; }).join("") +
+          "</select></div>" : "") +
+        '<div id="recibos-resumen" style="margin:0 0 10px"></div>' +
+        '<div class="flex gap-2"><button class="btn btn-primary" style="flex:1" id="btn-rep-recibos-pdf">' + U.icon("download") + " PDF</button>" +
+        '<button class="btn btn-outline" style="flex:1" id="btn-rep-recibos-excel">' + U.icon("download") + " Excel</button></div>" +
+        "</div>" +
+        '<div class="lp-feature">' +
         '<div class="lp-ic">💵</div><h3>Cierre de Caja</h3>' +
         '<p>Cuánto dinero entró realmente en el periodo (pagos confirmados, no cargos a crédito de convenio), separado por moneda de pago y, dentro de cada una, por método de pago — para cuadrar caja.</p>' +
         '<div class="form-grid" style="margin:10px 0">' +
@@ -484,6 +523,202 @@
         var sufijoConvenioRelacion = convenioFiltroRelacion ? "_" + convenioFiltroRelacion.nombre.replace(/\s+/g, "_") : "";
         U.downloadBytes(bytesRelacion, "Relacion_Ordenes_Examenes_" + desde + "_a_" + hasta + sufijoConvenioRelacion + ".pdf");
         U.toast("Relación de órdenes y exámenes descargada.", "success");
+      });
+      // -------------------------------------------------------------------
+      // Resumen en vivo (Total Facturado / Abonado / Saldo) debajo de los
+      // filtros de Facturación Detallada y Recibos Generados — se
+      // actualiza solo al cambiar fechas/convenio/moneda, sin tener que
+      // descargar nada para ver el total del periodo.
+      // -------------------------------------------------------------------
+      function htmlResumenTotales(filas) {
+        if (!filas.length) return '<p class="text-muted" style="font-size:12px;margin:0">Sin resultados en ese periodo.</p>';
+        var total = filas.reduce(function (a, f) { return a + f.valorTotal; }, 0);
+        var abonado = filas.reduce(function (a, f) { return a + f.valorAbonado; }, 0);
+        var saldo = total - abonado;
+        return '<div class="flex gap-2 wrap">' +
+          '<span class="chip" style="background:#f0fdf4;color:#15803d">Total Facturado: <b>' + fmtMoneda(total) + "</b></span>" +
+          '<span class="chip" style="background:#eff6ff;color:#1d4ed8">Abonado: <b>' + fmtMoneda(abonado) + "</b></span>" +
+          '<span class="chip" style="background:' + (saldo > 0 ? "#fef2f2" : "#f0fdf4") + ";color:" + (saldo > 0 ? "#b91c1c" : "#15803d") + '">Saldo: <b>' + fmtMoneda(saldo) + "</b></span>" +
+          "</div>" +
+          '<p class="text-muted" style="font-size:11px;margin:4px 0 0">' + filas.length + " orden(es) en el periodo.</p>";
+      }
+      function wireResumenLive(camposIds, divId, datosFn) {
+        var div = document.getElementById(divId);
+        if (!div) return;
+        function actualizar() { div.innerHTML = htmlResumenTotales(datosFn().filas); }
+        camposIds.forEach(function (id) {
+          var el = document.getElementById(id);
+          if (el) el.addEventListener(el.tagName === "SELECT" ? "change" : "input", actualizar);
+        });
+        actualizar();
+      }
+      // -------------------------------------------------------------------
+      // FACTURACIÓN DETALLADA — un renglón por orden, con los datos del
+      // paciente y los valores facturados (comparte el mismo cálculo de
+      // "abonado/saldo" que Cartera de Clientes, para que ambos reportes
+      // siempre cuadren entre sí).
+      // -------------------------------------------------------------------
+      function datosFacturacion() {
+        var desde = document.getElementById("rep-facturacion-desde").value;
+        var hasta = document.getElementById("rep-facturacion-hasta").value;
+        var elConvenio = document.getElementById("rep-facturacion-convenio");
+        var convenioId = elConvenio ? elConvenio.value : "";
+        var elMoneda = document.getElementById("rep-facturacion-moneda");
+        var monedaId = elMoneda ? elMoneda.value : "";
+        var ordenes = BIO_AUTH.filtrarPorSedeActual(S.listOrders(tenantId)).filter(function (o) {
+          var fecha = (o.fechaOrden || "").slice(0, 10);
+          if (convenioId && o.convenioId !== convenioId) return false;
+          if (monedaId && o.monedaPago !== monedaId) return false;
+          return fecha >= desde && fecha <= hasta && o.valorCobrar != null;
+        });
+        var filas = ordenes.map(function (o) {
+          var pac = S.getPatient(o.patientId);
+          var valorTotal = o.valorCobrar || 0;
+          var valorAbonado = !o.pago ? 0 : BIO_CATALOG.totalAbonado(o);
+          var metodosUsados = {};
+          (o.abonos || []).forEach(function (a) { metodosUsados[BIO_PDF_RECIBO_ORDEN.METODO_PAGO_LABEL[a.metodoPago] || a.metodoPago || "—"] = true; });
+          return {
+            numeroOrden: o.numeroOrden,
+            fecha: o.fechaOrden,
+            documento: pac ? (pac.tipoDocumento || "") + " " + pac.numeroDocumento : "—",
+            paciente: pac ? U.nombreCompleto(pac) : "—",
+            edad: pac ? U.edadTexto(pac) : "—",
+            sexo: pac ? pac.sexo : "—",
+            aliado: o.convenioNombre || "Particulares",
+            examenes: (o.examenes || []).map(function (ex) { var exCat = BIO_CATALOG.examenEfectivo(ex.examId, tenant); return exCat ? exCat.nombre : ex.examId; }).join(", "),
+            moneda: o.monedaPago ? BIO_CATALOG.monedaPagoLabel(o.monedaPago) : BIO_CATALOG.monedaBaseLabel(tenant),
+            metodoPago: Object.keys(metodosUsados).join(", ") || "—",
+            valorTotal: valorTotal,
+            valorAbonado: valorAbonado,
+            saldoPendiente: valorTotal - valorAbonado
+          };
+        }).sort(function (a, b) { return a.fecha.localeCompare(b.fecha); });
+        var convenioFiltro = convenioId ? conveniosActivos.filter(function (c) { return c.id === convenioId; })[0] : null;
+        return { filas: filas, desde: desde, hasta: hasta, convenioFiltro: convenioFiltro, monedaFiltroId: monedaId, monedaFiltroLabel: monedaId ? BIO_CATALOG.monedaPagoLabel(monedaId) : "" };
+      }
+      wireResumenLive(["rep-facturacion-desde", "rep-facturacion-hasta", "rep-facturacion-convenio", "rep-facturacion-moneda"], "facturacion-resumen", datosFacturacion);
+      var btnFacturacionPdf = document.getElementById("btn-rep-facturacion-pdf");
+      if (btnFacturacionPdf) btnFacturacionPdf.addEventListener("click", function () {
+        var d = datosFacturacion();
+        var bytes = BIO_PDF_FACTURACION.buildFacturacionDetalladaPDF(d.filas, tenant, d.desde, d.hasta, d.convenioFiltro ? d.convenioFiltro.nombre : "", d.monedaFiltroLabel);
+        var sufijoConvenio = d.convenioFiltro ? "_" + d.convenioFiltro.nombre.replace(/\s+/g, "_") : "";
+        var sufijoMoneda = d.monedaFiltroId ? "_" + d.monedaFiltroId : "";
+        U.downloadBytes(bytes, "Facturacion_Detallada_" + d.desde + "_a_" + d.hasta + sufijoConvenio + sufijoMoneda + ".pdf");
+        U.toast("Reporte de facturación descargado.", "success");
+      });
+      var btnFacturacionExcel = document.getElementById("btn-rep-facturacion-excel");
+      if (btnFacturacionExcel) btnFacturacionExcel.addEventListener("click", function () {
+        var d = datosFacturacion();
+        if (!d.filas.length) { U.toast("No hay órdenes facturadas en ese periodo.", "error"); return; }
+        var filasExcel = d.filas.map(function (f) {
+          return {
+            "N° Orden": f.numeroOrden, Fecha: U.fmtFechaCorta(f.fecha), Documento: f.documento, Paciente: f.paciente,
+            Edad: f.edad, Sexo: f.sexo, "Aliado/Convenio": f.aliado, "Exámenes Facturados": f.examenes,
+            Moneda: f.moneda, "Método de Pago": f.metodoPago,
+            "Valor Facturado": f.valorTotal, Abonado: f.valorAbonado, "Saldo Pendiente": f.saldoPendiente
+          };
+        });
+        var totalFacturado = d.filas.reduce(function (a, f) { return a + f.valorTotal; }, 0);
+        var totalAbonadoExcel = d.filas.reduce(function (a, f) { return a + f.valorAbonado; }, 0);
+        var totalSaldoExcel = d.filas.reduce(function (a, f) { return a + f.saldoPendiente; }, 0);
+        filasExcel.push({
+          "N° Orden": "", Fecha: "", Documento: "TOTAL GENERAL DEL PERIODO", Paciente: "", Edad: "", Sexo: "",
+          "Aliado/Convenio": "", "Exámenes Facturados": "", Moneda: "", "Método de Pago": "",
+          "Valor Facturado": totalFacturado, Abonado: totalAbonadoExcel, "Saldo Pendiente": totalSaldoExcel
+        });
+        var ws = XLSX.utils.json_to_sheet(filasExcel);
+        var wb = XLSX.utils.book_new();
+        XLSX.utils.book_append_sheet(wb, ws, "Facturación");
+        var sufijoConvenioExcel = d.convenioFiltro ? "_" + d.convenioFiltro.nombre.replace(/\s+/g, "_") : "";
+        var sufijoMonedaExcel = d.monedaFiltroId ? "_" + d.monedaFiltroId : "";
+        XLSX.writeFile(wb, "Facturacion_Detallada_" + d.desde + "_a_" + d.hasta + sufijoConvenioExcel + sufijoMonedaExcel + ".xlsx");
+        U.toast("Reporte de facturación descargado en Excel.", "success");
+      });
+      // -------------------------------------------------------------------
+      // RECIBOS GENERADOS — igual que Facturación Detallada, pero solo las
+      // órdenes a las que YA se les generó su Recibo de Pago (order.pago
+      // existe), filtrando por la fecha del recibo (order.pago.fecha) y no
+      // por la fecha de la orden — una orden puede crearse un día y
+      // pagarse/recibirse días después.
+      // -------------------------------------------------------------------
+      function datosRecibos() {
+        var desde = document.getElementById("rep-recibos-desde").value;
+        var hasta = document.getElementById("rep-recibos-hasta").value;
+        var elConvenio = document.getElementById("rep-recibos-convenio");
+        var convenioId = elConvenio ? elConvenio.value : "";
+        var elMoneda = document.getElementById("rep-recibos-moneda");
+        var monedaId = elMoneda ? elMoneda.value : "";
+        var ordenes = BIO_AUTH.filtrarPorSedeActual(S.listOrders(tenantId)).filter(function (o) {
+          if (!o.pago) return false;
+          var fechaRecibo = (o.pago.fecha || "").slice(0, 10);
+          if (convenioId && o.convenioId !== convenioId) return false;
+          if (monedaId && o.monedaPago !== monedaId) return false;
+          return fechaRecibo >= desde && fechaRecibo <= hasta;
+        });
+        var filas = ordenes.map(function (o) {
+          var pac = S.getPatient(o.patientId);
+          var valorTotal = o.pago.monto != null ? o.pago.monto : (o.valorCobrar || 0);
+          var valorAbonado = BIO_CATALOG.totalAbonado(o);
+          var metodosUsados = {};
+          (o.abonos || []).forEach(function (a) { metodosUsados[BIO_PDF_RECIBO_ORDEN.METODO_PAGO_LABEL[a.metodoPago] || a.metodoPago || "—"] = true; });
+          var metodoPago = (o.pago.esCredito && !o.pago.tieneCopago) ? "Crédito de Convenio" : (Object.keys(metodosUsados).join(", ") || (BIO_PDF_RECIBO_ORDEN.METODO_PAGO_LABEL[o.pago.metodoPago] || o.pago.metodoPago || "—"));
+          return {
+            numeroOrden: o.numeroOrden,
+            numeroRecibo: BIO_PDF_RECIBO_ORDEN.numeroRecibo(o),
+            fecha: o.pago.fecha,
+            documento: pac ? (pac.tipoDocumento || "") + " " + pac.numeroDocumento : "—",
+            paciente: pac ? U.nombreCompleto(pac) : "—",
+            edad: pac ? U.edadTexto(pac) : "—",
+            sexo: pac ? pac.sexo : "—",
+            aliado: o.convenioNombre || "Particulares",
+            examenes: (o.examenes || []).map(function (ex) { var exCat = BIO_CATALOG.examenEfectivo(ex.examId, tenant); return exCat ? exCat.nombre : ex.examId; }).join(", "),
+            moneda: o.monedaPago ? BIO_CATALOG.monedaPagoLabel(o.monedaPago) : BIO_CATALOG.monedaBaseLabel(tenant),
+            metodoPago: metodoPago,
+            valorTotal: valorTotal,
+            valorAbonado: valorAbonado,
+            saldoPendiente: valorTotal - valorAbonado
+          };
+        }).sort(function (a, b) { return a.fecha.localeCompare(b.fecha); });
+        var convenioFiltro = convenioId ? conveniosActivos.filter(function (c) { return c.id === convenioId; })[0] : null;
+        return { filas: filas, desde: desde, hasta: hasta, convenioFiltro: convenioFiltro, monedaFiltroId: monedaId, monedaFiltroLabel: monedaId ? BIO_CATALOG.monedaPagoLabel(monedaId) : "" };
+      }
+      wireResumenLive(["rep-recibos-desde", "rep-recibos-hasta", "rep-recibos-convenio", "rep-recibos-moneda"], "recibos-resumen", datosRecibos);
+      var btnRecibosPdf = document.getElementById("btn-rep-recibos-pdf");
+      if (btnRecibosPdf) btnRecibosPdf.addEventListener("click", function () {
+        var d = datosRecibos();
+        var bytes = BIO_PDF_FACTURACION.buildRecibosGeneradosPDF(d.filas, tenant, d.desde, d.hasta, d.convenioFiltro ? d.convenioFiltro.nombre : "", d.monedaFiltroLabel);
+        var sufijoConvenio = d.convenioFiltro ? "_" + d.convenioFiltro.nombre.replace(/\s+/g, "_") : "";
+        var sufijoMoneda = d.monedaFiltroId ? "_" + d.monedaFiltroId : "";
+        U.downloadBytes(bytes, "Recibos_Generados_" + d.desde + "_a_" + d.hasta + sufijoConvenio + sufijoMoneda + ".pdf");
+        U.toast("Reporte de recibos generados descargado.", "success");
+      });
+      var btnRecibosExcel = document.getElementById("btn-rep-recibos-excel");
+      if (btnRecibosExcel) btnRecibosExcel.addEventListener("click", function () {
+        var d = datosRecibos();
+        if (!d.filas.length) { U.toast("No hay recibos generados en ese periodo.", "error"); return; }
+        var filasExcel = d.filas.map(function (f) {
+          return {
+            "N° Orden": f.numeroOrden, "N° Recibo": f.numeroRecibo, Fecha: U.fmtFechaCorta(f.fecha), Documento: f.documento, Paciente: f.paciente,
+            Edad: f.edad, Sexo: f.sexo, "Aliado/Convenio": f.aliado, "Exámenes Facturados": f.examenes,
+            Moneda: f.moneda, "Método de Pago": f.metodoPago,
+            "Valor Facturado": f.valorTotal, Abonado: f.valorAbonado, "Saldo Pendiente": f.saldoPendiente
+          };
+        });
+        var totalFacturadoRecibos = d.filas.reduce(function (a, f) { return a + f.valorTotal; }, 0);
+        var totalAbonadoRecibos = d.filas.reduce(function (a, f) { return a + f.valorAbonado; }, 0);
+        var totalSaldoRecibos = d.filas.reduce(function (a, f) { return a + f.saldoPendiente; }, 0);
+        filasExcel.push({
+          "N° Orden": "", "N° Recibo": "", Fecha: "", Documento: "TOTAL GENERAL DEL PERIODO", Paciente: "", Edad: "", Sexo: "",
+          "Aliado/Convenio": "", "Exámenes Facturados": "", Moneda: "", "Método de Pago": "",
+          "Valor Facturado": totalFacturadoRecibos, Abonado: totalAbonadoRecibos, "Saldo Pendiente": totalSaldoRecibos
+        });
+        var ws = XLSX.utils.json_to_sheet(filasExcel);
+        var wb = XLSX.utils.book_new();
+        XLSX.utils.book_append_sheet(wb, ws, "Recibos");
+        var sufijoConvenioExcel = d.convenioFiltro ? "_" + d.convenioFiltro.nombre.replace(/\s+/g, "_") : "";
+        var sufijoMonedaExcel = d.monedaFiltroId ? "_" + d.monedaFiltroId : "";
+        XLSX.writeFile(wb, "Recibos_Generados_" + d.desde + "_a_" + d.hasta + sufijoConvenioExcel + sufijoMonedaExcel + ".xlsx");
+        U.toast("Reporte de recibos descargado en Excel.", "success");
       });
       var btnCaja = document.getElementById("btn-rep-caja");
       if (btnCaja) btnCaja.addEventListener("click", function () {
