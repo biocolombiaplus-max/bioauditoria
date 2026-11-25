@@ -85,6 +85,16 @@
     costoPorEquipoUsd: INTERFAZ_EQUIPOS.costoPorEquipoUsd
   };
 
+  // Oferta de pago anual: un año completo de BIOsoft pagado de una sola
+  // vez, muy por debajo de la mensualidad normal de cualquiera de los 4
+  // planes — pensada como gancho puntual de campaña/reenganche (ver
+  // "Generar Propuesta Comercial" en el CRM). Los 365 días de cobertura se
+  // cuentan desde que el laboratorio registra su PRIMER paciente real, no
+  // desde que activa la cuenta, para que configurarlo todo a su gusto
+  // antes de arrancar nunca le reste días ya pagados. A partir del segundo
+  // año el cliente elige libremente seguir anual o pasar a mes a mes.
+  var OFERTA_ANUAL = { usd: 180, usdMensualEquivalente: 15, diasCobertura: 365 };
+
   function porId(id) { return PLANES.filter(function (p) { return p.id === id; })[0]; }
 
   /* Si a ESTE laboratorio en particular se le cobra por cada equipo que
@@ -173,7 +183,7 @@
   global.BIO_PLANES = {
     IMPLEMENTACION: IMPLEMENTACION, PLANES: PLANES, porId: porId,
     SERVICIOS_ADICIONALES: SERVICIOS_ADICIONALES, servicioAdicionalPorId: servicioAdicionalPorId,
-    INTERFAZ_EQUIPOS: INTERFAZ_EQUIPOS, PROMOCION_LANZAMIENTO: PROMOCION_LANZAMIENTO, cobraPorEquipos: cobraPorEquipos,
+    INTERFAZ_EQUIPOS: INTERFAZ_EQUIPOS, PROMOCION_LANZAMIENTO: PROMOCION_LANZAMIENTO, OFERTA_ANUAL: OFERTA_ANUAL, cobraPorEquipos: cobraPorEquipos,
     ESTADOS_CUENTA: ESTADOS_CUENTA, DIAS_AVISO_VENCIMIENTO: DIAS_AVISO_VENCIMIENTO, estadoCuenta: estadoCuenta,
     DIAS_PRUEBA_GRATIS: DIAS_PRUEBA_GRATIS, diasRestantes: diasRestantes,
     proximaFechaCobroTrasPago: proximaFechaCobroTrasPago

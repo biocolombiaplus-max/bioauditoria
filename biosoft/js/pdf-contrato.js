@@ -1018,6 +1018,22 @@
         : "Gracias por tu interés en " + PROVEEDOR.producto + ". Esta propuesta reúne todo lo que incluye BIOsoft y los planes disponibles, para que elijas el que mejor se ajuste al tamaño de tu equipo — con la información completa y sin letra pequeña."
     );
 
+    // Oferta de pago anual (ver OFERTA_ANUAL en planes.js) — un gancho de
+    // campaña puntual, independiente de cuál plan se haya negociado (o si
+    // no se eligió ninguno todavía), por eso va primero y bien destacada:
+    // es lo más probable que decida al prospecto a aceptar hoy mismo.
+    if (datos.ofertaAnual) {
+      var OA = (window.BIO_PLANES && window.BIO_PLANES.OFERTA_ANUAL) || { usd: 180, usdMensualEquivalente: 15, diasCobertura: 365 };
+      recuadro("💰 Oferta especial — Plan Anual con descuento", [
+        "$" + OA.usd + " USD por el año completo — equivale a solo $" + OA.usdMensualEquivalente + " USD al mes, el valor más bajo de todos los planes de BIOsoft.",
+        "El conteo de los " + OA.diasCobertura + " días de cobertura arranca el día en que registras tu PRIMER paciente real en el sistema, no desde que activas la cuenta — así nunca pierdes un solo día pagado mientras configuras todo a tu gusto.",
+        "Cubre " + OA.diasCobertura + " días completos de uso del software, sin límite de pacientes ni de órdenes.",
+        "El pago de la renovación se realiza al cumplirse esos " + OA.diasCobertura + " días.",
+        "A partir del segundo año, decides tú: puedes seguir pagando anual (mismo beneficio) o pasar a la modalidad mes a mes — lo que mejor te convenga en ese momento.",
+        "La base de datos de tus pacientes es 100% tuya: la puedes descargar cuando quieras, sin ninguna restricción ni costo adicional."
+      ]);
+    }
+
     if (datos.resumenInversion) {
       var ri = datos.resumenInversion;
       tituloSeccion("Tu propuesta personalizada — Plan " + ri.planNombre);

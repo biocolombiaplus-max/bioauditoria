@@ -903,6 +903,7 @@
         '<div class="field"><label>WhatsApp (opcional, con indicativo)</label><input id="pp-whatsapp" placeholder="573001234567"/></div>' +
         '<div class="field"><label>País</label><select id="pp-pais">' + PAISES_COTIZACION.map(function (p) { return "<option value='" + p.cod + "' " + (p.cod === "CO" ? "selected" : "") + ">" + p.nombre + "</option>"; }).join("") + "</select></div>" +
         '<div class="checkbox-row hidden" id="pp-mf-row" style="align-self:end"><input type="checkbox" id="pp-mf" checked/><label style="margin:0">Incluir cláusula de Facturación con Máquina Fiscal (Venezuela)</label></div>' +
+        '<div class="checkbox-row" style="align-self:end;grid-column:1/-1"><input type="checkbox" id="pp-oferta-anual"/><label style="margin:0">💰 Incluir oferta de pago anual ($' + BIO_PLANES.OFERTA_ANUAL.usd + ' USD/año = $' + BIO_PLANES.OFERTA_ANUAL.usdMensualEquivalente + ' USD/mes)</label></div>' +
         camposPlanPersonalizadoHtml("pp") +
         "</div>" +
         '<div class="flex gap-2 justify-between" style="margin-top:6px">' +
@@ -954,7 +955,8 @@
           return;
         }
         var facturacionMaquinaFiscal = paisCod === "VE" && wrap.querySelector("#pp-mf").checked;
-        var datosPropuesta = { nombre: nombre, correo: correo, telefono: whatsapp, pais: nombrePais(paisCod), facturacionMaquinaFiscal: facturacionMaquinaFiscal, resumenInversion: resumenInversion };
+        var ofertaAnual = wrap.querySelector("#pp-oferta-anual").checked;
+        var datosPropuesta = { nombre: nombre, correo: correo, telefono: whatsapp, pais: nombrePais(paisCod), facturacionMaquinaFiscal: facturacionMaquinaFiscal, resumenInversion: resumenInversion, ofertaAnual: ofertaAnual };
 
         // Genera de forma asíncrona: precarga las capturas de pantalla de
         // cada módulo antes de armar el PDF (igual que el Manual de
@@ -965,7 +967,7 @@
         submitBtn.disabled = true; submitBtn.textContent = "Generando…";
         BIO_PDF_CRM.buildPropuestaPDF(datosPropuesta).then(function (bytes) {
           U.closeModal(wrap);
-          var mensaje = "Hola " + nombre.split(" ")[0] + " 👋 Te comparto la propuesta con todo lo que incluye BIOsoft" + (resumenInversion ? ", con los valores exactos para el Plan " + resumenInversion.planNombre : "") + ". Cualquier duda, quedo atento.";
+          var mensaje = "Hola " + nombre.split(" ")[0] + " 👋 Te comparto la propuesta con todo lo que incluye BIOsoft" + (resumenInversion ? ", con los valores exactos para el Plan " + resumenInversion.planNombre : "") + (ofertaAnual ? " — incluye la oferta especial de pago anual ($" + BIO_PLANES.OFERTA_ANUAL.usd + " USD/año, equivalente a $" + BIO_PLANES.OFERTA_ANUAL.usdMensualEquivalente + " USD/mes)" : "") + ". Cualquier duda, quedo atento.";
           abrirEnviarDocumento({
             titulo: "Enviar Propuesta", bytes: bytes, nombreArchivo: "Propuesta_BIOsoft_" + nombre.replace(/\s+/g, "_") + ".pdf",
             contacto: { correo: correo, whatsapp: whatsapp }, mensaje: mensaje, asuntoCorreo: "Propuesta Comercial — BIOsoft"
