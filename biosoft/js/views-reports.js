@@ -363,7 +363,210 @@
           '<p class="text-muted" style="font-size:12px">Aún no has registrado ningún médico remitente — hazlo en Administración → Médicos Remitentes.</p>') +
         '<button class="btn btn-primary btn-block" id="btn-rep-comisiones" ' + (medicosRemitentes.length ? "" : "disabled") + '>' + U.icon("download") + " Generar PDF</button>" +
         "</div>" +
+        "</div>" +
+        buildEstadisticasExamenHtml(tenant);
+    }
+
+    // -------------------------------------------------------------------
+    // ESTADÍSTICAS POR EXAMEN — volumen, tendencia, ingresos y desglose por
+    // aliado de UN examen específico entre fechas. Va aparte del grid de
+    // tarjetas de arriba (ocupa todo el ancho) porque trae una gráfica.
+    // -------------------------------------------------------------------
+    function buildEstadisticasExamenHtml(tenant) {
+      var examenes = BIO_CATALOG.examenesEfectivos(tenant).slice().sort(function (a, b) { return a.nombre.localeCompare(b.nombre); });
+      return '<div style="margin-top:28px;padding-top:22px;border-top:1px solid var(--border)">' +
+        '<div class="flex gap-2" style="align-items:center;margin-bottom:4px"><span style="font-size:19px">📈</span><h3 style="margin:0">Estadísticas por Examen</h3></div>' +
+        '<p class="text-muted" style="margin:4px 0 14px">Elige un examen y un periodo para ver cuántas veces se realizó, su tendencia, lo que generó en ingresos y de dónde vienen esas órdenes.</p>' +
+        '<div class="form-grid" style="margin-bottom:10px">' +
+        '<div class="field" style="grid-column:span 2"><label>Examen</label><select id="stat-examen">' +
+        examenes.map(function (e) { return '<option value="' + e.id + '">' + U.esc(e.nombre) + "</option>"; }).join("") +
+        "</select></div>" +
+        '<div class="field"><label>Desde</label><input type="date" id="stat-desde" value="' + primerDiaMes() + '"/></div>' +
+        '<div class="field"><label>Hasta</label><input type="date" id="stat-hasta" value="' + hoyISO() + '"/></div>' +
+        "</div>" +
+        '<button class="btn btn-primary" id="btn-stat-ver">' + U.icon("trending") + " Ver Estadísticas</button>" +
+        '<div id="stat-resultado" style="margin-top:4px"></div>' +
         "</div>";
+    }
+
+    function kpi(value, label) {
+      return '<div class="kpi"><div class="kpi-value">' + value + '</div><div class="kpi-label">' + label + '</div></div>';
+    }
+
+    // Igual lógica que valorExamen() en el botón de Relación de Órdenes y
+    // Exámenes (tarifa especial del convenio si la tiene, si no su
+    // descuento general, si no el precio de lista) — repetida aquí en vez
+    // de compartida porque cada reporte arma su propio cálculo de forma
+    // independiente (mismo patrón que el resto de este archivo).
+    function valorExamenEnConvenio(tenantId, examId, convenioId, preciosPorId, convenios, cachePorConvenio) {
+      var base = preciosPorId[examId] || 0;
+      if (!convenioId) return base;
+      var convenio = convenios.filter(function (c) { return c.id === convenioId; })[0];
+      if (!convenio) return base;
+      if (!cachePorConvenio[convenioId]) {
+        var mapa = {};
+        S.cotizador.listConvenioPrecios(tenantId, convenioId).forEach(function (p) { mapa[p.examId] = p; });
+        cachePorConvenio[convenioId] = mapa;
+      }
+      var especial = cachePorConvenio[convenioId][examId];
+      if (especial) return especial.modo === "fijo" ? especial.valor : Math.max(0, base * (1 - especial.valor / 100));
+      if (convenio.descuentoGeneral > 0) return Math.max(0, base * (1 - convenio.descuentoGeneral / 100));
+      return base;
+    }
+
+    function calcularEstadisticasExamen(tenantId, examId, desde, hasta) {
+      var ordenes = BIO_AUTH.filtrarPorSedeActual(S.listOrders(tenantId)).filter(function (o) {
+        var fecha = (o.fechaOrden || "").slice(0, 10);
+        return fecha >= desde && fecha <= hasta;
+      });
+      var preciosPorId = {}; S.cotizador.listPrecios(tenantId).forEach(function (p) { preciosPorId[p.examId] = p.precio; });
+      var convenios = S.cotizador.listConvenios(tenantId);
+      var cachePorConvenio = {};
+      var porDia = {}, porAliado = {};
+      var total = 0, totalIngresos = 0, sumaDiasEntrega = 0, countEntrega = 0;
+      ordenes.forEach(function (o) {
+        (o.examenes || []).forEach(function (ex) {
+          if (ex.examId !== examId) return;
+          total++;
+          var fecha = (o.fechaOrden || "").slice(0, 10);
+          porDia[fecha] = (porDia[fecha] || 0) + 1;
+          var aliado = o.convenioNombre || "Particulares";
+          porAliado[aliado] = (porAliado[aliado] || 0) + 1;
+          totalIngresos += valorExamenEnConvenio(tenantId, examId, o.convenioId, preciosPorId, convenios, cachePorConvenio);
+          if ((ex.estado === "validado" || ex.estado === "remitido") && ex.fechaValidacion) {
+            var dias = (new Date(ex.fechaValidacion) - new Date(o.fechaOrden)) / 86400000;
+            if (dias >= 0) { sumaDiasEntrega += dias; countEntrega++; }
+          }
+        });
+      });
+      var rango = construirBucketsEstadisticas(porDia, desde, hasta);
+      var totalDiasPeriodo = Math.max(1, Math.round((new Date(hasta) - new Date(desde)) / 86400000) + 1);
+      var promedioDias = countEntrega ? sumaDiasEntrega / countEntrega : null;
+      return {
+        total: total, totalIngresos: totalIngresos, porAliado: porAliado,
+        promedioDiario: total / totalDiasPeriodo,
+        entregaTexto: promedioDias == null ? "—" : (promedioDias < 1 ? (promedioDias * 24).toFixed(1) + " horas" : promedioDias.toFixed(1) + " días"),
+        buckets: rango.buckets, granularidad: rango.granularidad
+      };
+    }
+
+    // Agrupa el conteo diario en los mismos buckets que se van a graficar:
+    // uno por día si el periodo cabe cómodo en pantalla (≤62 días), o uno
+    // por semana si es más largo — para que la gráfica nunca intente dibujar
+    // cientos de puntos ilegibles en un rango de varios meses/años.
+    function construirBucketsEstadisticas(porDia, desde, hasta) {
+      var msDia = 86400000;
+      var dIni = new Date(desde + "T00:00:00");
+      var dFin = new Date(hasta + "T00:00:00");
+      var totalDias = Math.max(1, Math.round((dFin - dIni) / msDia) + 1);
+      var granularidad = totalDias <= 62 ? "dia" : "semana";
+      var buckets = [];
+      if (granularidad === "dia") {
+        for (var i = 0; i < totalDias; i++) {
+          var iso = new Date(dIni.getTime() + i * msDia).toISOString().slice(0, 10);
+          buckets.push({ label: U.fmtFechaCorta(iso), count: porDia[iso] || 0 });
+        }
+      } else {
+        var cursor = new Date(dIni);
+        while (cursor <= dFin) {
+          var finSemana = new Date(Math.min(cursor.getTime() + 6 * msDia, dFin.getTime()));
+          var suma = 0;
+          for (var dd = new Date(cursor); dd <= finSemana; dd = new Date(dd.getTime() + msDia)) {
+            suma += porDia[dd.toISOString().slice(0, 10)] || 0;
+          }
+          buckets.push({ label: U.fmtFechaCorta(cursor.toISOString().slice(0, 10)) + "–" + U.fmtFechaCorta(finSemana.toISOString().slice(0, 10)), count: suma });
+          cursor = new Date(finSemana.getTime() + msDia);
+        }
+      }
+      return { buckets: buckets, granularidad: granularidad };
+    }
+
+    // Gráfica de líneas en SVG puro (sin ninguna librería): un punto por
+    // bucket, área sombreada degradada, y una "banda" invisible por punto
+    // (ver wireChartHover) que cubre exactamente hasta la mitad de camino
+    // con sus vecinos — así el mouse puede estar en cualquier parte de esa
+    // franja y siempre resalta el punto más cercano, sin huecos ni que dos
+    // bandas se encimen.
+    function buildTrendChartSvg(buckets) {
+      var w = 600, h = 180, padL = 34, padR = 10, padT = 10, padB = 22;
+      var innerW = w - padL - padR, innerH = h - padT - padB;
+      var n = buckets.length;
+      var maxVal = Math.max.apply(null, buckets.map(function (b) { return b.count; }).concat([1]));
+      var stepX = n > 1 ? innerW / (n - 1) : 0;
+      var puntos = buckets.map(function (b, i) {
+        return { x: padL + (n > 1 ? stepX * i : innerW / 2), y: padT + innerH - (b.count / maxVal) * innerH, count: b.count, label: b.label };
+      });
+      var linePath = puntos.map(function (p, i) { return (i === 0 ? "M" : "L") + p.x.toFixed(1) + "," + p.y.toFixed(1); }).join(" ");
+      var baseY = (padT + innerH).toFixed(1);
+      var areaPath = linePath + " L" + puntos[n - 1].x.toFixed(1) + "," + baseY + " L" + puntos[0].x.toFixed(1) + "," + baseY + " Z";
+      var gridYs = [0, 0.5, 1];
+      var gridHtml = gridYs.map(function (f) {
+        var y = (padT + innerH - f * innerH).toFixed(1);
+        return '<line class="stat-chart-grid" x1="' + padL + '" x2="' + (w - padR) + '" y1="' + y + '" y2="' + y + '"/>' +
+          '<text class="stat-chart-axis-label" x="' + (padL - 6) + '" y="' + (parseFloat(y) + 3).toFixed(1) + '" text-anchor="end">' + Math.round(f * maxVal) + "</text>";
+      }).join("");
+      var idxEtiquetas = n <= 1 ? [0] : [0, Math.floor((n - 1) / 2), n - 1];
+      var xLabelsHtml = idxEtiquetas.map(function (i) {
+        return '<text class="stat-chart-axis-label" x="' + puntos[i].x.toFixed(1) + '" y="' + (h - 4) + '" text-anchor="middle">' + U.esc(puntos[i].label) + "</text>";
+      }).join("");
+      var hoverRectsHtml = puntos.map(function (p, i) {
+        var left = i === 0 ? padL : (puntos[i - 1].x + p.x) / 2;
+        var right = i === n - 1 ? padL + innerW : (p.x + puntos[i + 1].x) / 2;
+        return '<rect data-stat-hover="' + i + '" x="' + left.toFixed(1) + '" y="' + padT + '" width="' + (right - left).toFixed(1) + '" height="' + innerH + '" fill="transparent"/>';
+      }).join("");
+      var svg = '<svg class="stat-chart-svg" viewBox="0 0 ' + w + " " + h + '">' +
+        '<defs><linearGradient id="stat-area-grad" x1="0" y1="0" x2="0" y2="1">' +
+        '<stop offset="0%" style="stop-color:var(--brand-primary);stop-opacity:.35"/>' +
+        '<stop offset="100%" style="stop-color:var(--brand-primary);stop-opacity:0"/>' +
+        "</linearGradient></defs>" +
+        gridHtml + xLabelsHtml +
+        '<path class="stat-chart-area" d="' + areaPath + '"/>' +
+        '<path class="stat-chart-line" d="' + linePath + '"/>' +
+        '<line class="stat-chart-crosshair" id="stat-crosshair" x1="0" x2="0" y1="' + padT + '" y2="' + (padT + innerH) + '"/>' +
+        '<circle id="stat-hover-dot" class="stat-chart-dot" r="4" opacity="0"/>' +
+        hoverRectsHtml +
+        "</svg>";
+      return { svg: svg, puntos: puntos, w: w, h: h };
+    }
+
+    function wireTrendChartHover(wrap, chart) {
+      var tooltip = wrap.querySelector(".stat-tooltip");
+      var crosshair = wrap.querySelector("#stat-crosshair");
+      var hoverDot = wrap.querySelector("#stat-hover-dot");
+      function mostrar(i) {
+        var p = chart.puntos[i];
+        crosshair.setAttribute("x1", p.x); crosshair.setAttribute("x2", p.x); crosshair.style.opacity = 1;
+        hoverDot.setAttribute("cx", p.x); hoverDot.setAttribute("cy", p.y); hoverDot.style.opacity = 1;
+        tooltip.style.opacity = 1;
+        tooltip.textContent = p.label + ": " + p.count;
+        tooltip.style.left = (p.x / chart.w * 100) + "%";
+        tooltip.style.top = (p.y / chart.h * 100) + "%";
+      }
+      function ocultar() { crosshair.style.opacity = 0; hoverDot.style.opacity = 0; tooltip.style.opacity = 0; }
+      wrap.querySelectorAll("[data-stat-hover]").forEach(function (rect) {
+        rect.addEventListener("mouseenter", function () { mostrar(parseInt(rect.dataset.statHover, 10)); });
+      });
+      wrap.querySelector(".stat-chart-svg").addEventListener("mouseleave", ocultar);
+    }
+
+    function htmlResultadoEstadisticas(stats, tenant) {
+      if (!stats.total) return '<p class="text-muted" style="margin-top:10px">No se realizó este examen en el periodo elegido.</p>';
+      var kpisHtml = '<div class="kpi-grid" style="margin-top:14px">' +
+        kpi(stats.total, "Total Realizados") +
+        kpi(stats.promedioDiario.toFixed(1), "Promedio por Día") +
+        (tenant.mostrarPrecioOrden ? kpi(fmtMoneda(stats.totalIngresos), "Ingresos Generados") : "") +
+        kpi(stats.entregaTexto, "Tiempo Promedio de Entrega") +
+        "</div>";
+      var chartHtml = '<h4 style="margin:18px 0 4px">Volumen ' + (stats.granularidad === "dia" ? "diario" : "semanal") + '</h4>' +
+        '<div class="stat-chart-wrap" id="stat-chart-wrap">' + buildTrendChartSvg(stats.buckets).svg + '<div class="stat-tooltip"></div></div>';
+      var aliados = Object.keys(stats.porAliado).sort(function (a, b) { return stats.porAliado[b] - stats.porAliado[a]; });
+      var maxAliado = Math.max.apply(null, aliados.map(function (a) { return stats.porAliado[a]; }).concat([1]));
+      var barsHtml = aliados.length > 1 ? '<h4 style="margin:18px 0 10px">Por Aliado / Convenio</h4><div class="prod-bars">' +
+        aliados.map(function (a) {
+          var pct = Math.round(stats.porAliado[a] / maxAliado * 100);
+          return '<div class="prod-bar-row"><div class="prod-bar-label">' + U.esc(a) + '</div><div class="prod-bar-track"><div class="prod-bar-fill" style="width:' + pct + '%"></div></div><div class="prod-bar-count">' + stats.porAliado[a] + "</div></div>";
+        }).join("") + "</div>" : "";
+      return kpisHtml + chartHtml + barsHtml;
     }
 
     function wireAdmin() {
@@ -808,6 +1011,17 @@
         var sufijoMedico = medicoFiltroLabel ? "_" + medicoFiltroLabel.replace(/\s+/g, "_") : "";
         U.downloadBytes(bytesComisiones, "Comisiones_Medicos_" + desde + "_a_" + hasta + sufijoMedico + ".pdf");
         U.toast("Reporte de comisiones descargado.", "success");
+      });
+      var btnStatVer = document.getElementById("btn-stat-ver");
+      if (btnStatVer) btnStatVer.addEventListener("click", function () {
+        var examId = document.getElementById("stat-examen").value;
+        var desde = document.getElementById("stat-desde").value;
+        var hasta = document.getElementById("stat-hasta").value;
+        if (!examId || !desde || !hasta || desde > hasta) { U.toast("Elige un examen y un rango de fechas válido.", "error"); return; }
+        var stats = calcularEstadisticasExamen(tenantId, examId, desde, hasta);
+        var contenedor = document.getElementById("stat-resultado");
+        contenedor.innerHTML = htmlResultadoEstadisticas(stats, tenant);
+        if (stats.total) wireTrendChartHover(contenedor, buildTrendChartSvg(stats.buckets));
       });
     }
 
