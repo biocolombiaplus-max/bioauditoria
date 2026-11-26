@@ -1,5 +1,74 @@
 # Interfaz BIOsoft ↔ Equipos de Laboratorio (Módulo LIS)
 
+## Divina Misericordia — 2 equipos observados directamente en sitio (vía AnyDesk)
+
+### Mindray BC-760 (hematología) — con LabXpert ya instalado
+
+- **Es LIS sobre RED, en modo "el equipo es el servidor" (al revés de lo
+  más común).** En su pantalla de Comunicación el equipo trae SU PROPIA
+  IP fija (`10.0.0.12`, máscara `255.255.255.0`, puerta de enlace
+  `10.0.0.254`), protocolo **HL7**, puerto **5100**, y un selector "Canal
+  de datos" que solo ofrece **"labXpert"** (sin otras opciones ni campo
+  para un segundo destino). Nunca aparece un campo "IP host LIS"/"Servidor"
+  como en el BS-220 — porque aquí es el equipo el que escucha, no el que
+  marca hacia afuera.
+- Esto significa: **para este equipo hay que usar `index-hl7.js` en
+  `"modo": "cliente"`** (ver sección "Modo cliente" más abajo), apuntando
+  a `ipEquipo: "10.0.0.12"`, `puerto: 5100` — NO el modo servidor por
+  defecto que sí sirve para el BS-220.
+- Se investigó a fondo si LabXpert (ya instalado y funcionando con este
+  equipo) tiene alguna forma de REENVIAR los resultados a un segundo LIS
+  externo, para no desconectar lo que el cliente ya usa — se revisaron
+  las pestañas "Conexión instrum", "Conf. comunicación" (incluyendo
+  "C LIS/HIS bi", que resultó ser sobre RECIBIR órdenes, no sobre enviar
+  resultados) y "Otros", sin encontrar un campo de IP/puerto para un
+  tercer sistema. **Validar primero con `capturar-hl7.js cliente 10.0.0.12
+  5100`** (con LabXpert corriendo normal al mismo tiempo) si el equipo
+  acepta una SEGUNDA conexión HL7 simultánea — si la rechaza, hay que
+  coordinar con el distribuidor (Labotech) antes de seguir.
+- **Aún no existe mapeo de parámetros para el BC-760** — se construye con
+  el `.log` real que genere `capturar-hl7.js`, igual que cualquier equipo
+  nuevo. Al ser hematología (un solo panel), parte de
+  `mapeo-generico-hl7-template.js`, no de la versión multiexamen.
+- **Se buscó documentación pública antes de construir ese mapeo, sin
+  éxito — no inventes códigos a partir de esto.** No se encontró el
+  manual de operación ni el apéndice de comunicación LIS del BC-760/BC-780
+  (los manuales públicos que sí aparecen son de otros modelos — BS-200,
+  BS-360E, BC-5380, Yumizen H550 — y sus códigos NO se pueden asumir
+  iguales). Un dato curioso y contradictorio encontrado: un proveedor de
+  terceros (LisBridge) describe que "el BC-760 típicamente se conecta por
+  ASTM E1394 (serial o TCP/IP)" y que su propio puente lo convierte a HL7
+  — lo cual choca con lo que SÍ se vio de primera mano en la pantalla real
+  del equipo en Divina Misericordia ("Protoc comuni: HL7"). Ante esa
+  contradicción, confía en lo observado directamente en el equipo, no en
+  la descripción genérica de un tercero. Tampoco se confirmó por este
+  medio si el BC-760 es de diferencial de 3 o 5 poblaciones (la ficha
+  técnica sugiere 5 partes, pero es una inferencia, no un dato confirmado)
+  — verifica ambas cosas con la captura real antes de construir el mapeo.
+
+### Total Care 200 (química, marca genérica "TotalCare"/Bio Suministros Katy)
+
+- **Es ASTM/LIS sobre RED, en modo "el equipo es el cliente" (lo más
+  común).** En su propio software (menú Procesamiento de datos ->
+  Exportar datos) trae "Modo de: TCP/IP", "Servidor IP" y "Puerto"
+  (`8087` de fábrica, apuntando a `127.0.0.1` — hay que cambiarlo),
+  "Formato de codificación: ASCII" (coincide con ASTM, no con HL7), y
+  checkboxes "Transporte en tiempo real" / "Conectar automáticamente".
+- Esto significa: **usar `index-tcp.js` en modo "servidor" (el valor por
+  defecto)** — justo el gap que no existía en este proyecto hasta ahora
+  (solo había `capturar-tcp.js` para probar, sin una versión que
+  escribiera de verdad en BIOsoft). Pon en el equipo la IP de la
+  computadora donde corra `index-tcp.js` y el mismo puerto de tu
+  `config-tcp.json`.
+- **Tampoco existe mapeo todavía** — es un equipo de química (multi-examen,
+  cada prueba es un examId separado en BIOsoft), así que parte de
+  `mapeo-generico-multiexamen-template.js`. Primero confirma el formato
+  real con `capturar-tcp.js servidor <puerto>`.
+- **No se encontró ningún manual público de este equipo.** "Total Care
+  200"/"SHY-200-KZ" (distribuido por Bio Suministros Katy) parece ser una
+  marca genérica/OEM china sin documentación técnica indexada — no hay
+  ningún atajo aquí, el mapeo depende 100% de la captura real.
+
 ## Investigación pública sobre 3 equipos concretos (Dymind DF52, Dirui CS-T240, Maglumi 800)
 
 Antes de una visita real a un cliente con estos tres equipos, se buscó
@@ -244,6 +313,33 @@ números que llegan a BIOsoft coinciden con lo que el equipo mostró en su
 propia pantalla. Cada marca/modelo nuevo necesita su propio piloto de
 validación, aunque reutilice todo el resto de este middleware.**
 
+## Modo servidor vs. modo cliente (importante, léelo antes de instalar)
+
+Un equipo de red se conecta de una de estas dos formas — **no hay una
+sola convención entre marcas, hay que confirmarlo en cada equipo**:
+
+- **Modo servidor** (`"modo": "servidor"`, o simplemente no pongas el
+  campo — es el valor por defecto, compatible con toda configuración
+  vieja): esta computadora escucha, **el equipo se conecta a ella como
+  cliente**. Reconócelo porque el equipo trae un campo tipo "IP host
+  LIS"/"Servidor IP"/"Host" donde TÚ escribes la IP de esta computadora
+  (ej. Mindray BS-220, Total Care 200).
+- **Modo cliente** (`"modo": "cliente"`, + `"ipEquipo": "..."`): al
+  revés — **esta computadora se conecta HACIA el equipo**. Reconócelo
+  porque el equipo trae SU PROPIA IP fija configurada (máscara, puerta de
+  enlace) y NINGÚN campo para apuntar a un servidor externo — todo lo que
+  configuras ahí es la identidad de red del equipo mismo, nunca un
+  destino (ej. Mindray BC-760).
+
+Si no sabes cuál es el tuyo, usa primero `capturar.js`/`capturar-tcp.js`/
+`capturar-hl7.js` (no necesitan usuario ni clave de BIOsoft) en modo
+servidor; si no aparece nada ahí, prueba el mismo archivo en modo
+cliente apuntando a la IP del equipo. Una vez confirmado, usa el mismo
+`"modo"` en tu `config*.json` real (`index.js`/`index-tcp.js`/
+`index-hl7.js`) — estos SÍ reintentan solos la conexión si se corta
+(cada 10 segundos) en modo cliente, cosa que las herramientas de solo
+captura no necesitan hacer.
+
 ## Cómo funciona (arquitectura)
 
 ```
@@ -329,16 +425,30 @@ ejemplo — así sabes exactamente qué esperar cuando sí sea el equipo real.
      ```
      Completa `config.json` con los datos de los pasos 1 y 2, y el puerto
      serial donde está conectado el equipo.
-   - **Red / HL7 sobre TCP** (Mindray BS-220, Dymind DF52 — el equipo tiene
-     una pantalla "LIS" con IP/Puerto en vez de un puerto serial):
+   - **Red / ASTM sobre TCP** (Maglumi 800, Total Care 200, u otro equipo
+     con salida de red que use el mismo formato ASTM que el de puerto
+     serial — ver "Modo servidor vs. modo cliente" arriba para saber cuál
+     usar):
+     ```
+     npm install
+     cp config-tcp.example.json config-tcp.json
+     ```
+     Completa ese archivo con los datos de los pasos 1 y 2, el `"modo"` y
+     el puerto/IP correspondientes. `npm run start:tcp` (o
+     `node index-tcp.js config-tcp.json`) para iniciarlo.
+   - **Red / HL7 sobre TCP** (Mindray BS-220/BC-760, Dymind DF52 — el
+     equipo tiene una pantalla "LIS"/"Comunicación" con IP/Puerto en vez
+     de un puerto serial; ver "Modo servidor vs. modo cliente" arriba):
      ```
      npm install
      cp config-bs220.example.json config-bs220.json    # o config-hl7.example.json para otra marca HL7
      ```
-     Completa ese archivo con los datos de los pasos 1 y 2. En el equipo,
+     Completa ese archivo con los datos de los pasos 1 y 2, y el `"modo"`
+     correspondiente. En modo servidor (el más común), en el equipo
      cambia "IP host LIS" por la IP de ESTA computadora (la imprime
      `capturar-hl7.js` al arrancar) y "Puerto" por el mismo puerto del
-     archivo de configuración.
+     archivo de configuración; en modo cliente, deja la red del equipo
+     tal como está y solo completa `ipEquipo`/`puerto` en el archivo.
 4. **Si tu equipo es un Mindray BC-10:** ya tienes un mapeo de referencia
    (`mindray-bc10-map.js`). **Si es un Mindray BS-220:** ya tienes
    `mindray-bs220-hl7-map.js`, con los códigos que debes pedirle al cliente
@@ -381,21 +491,35 @@ ejemplo — así sabes exactamente qué esperar cuando sí sea el equipo real.
   anterior. Se ajusta según qué archivo de mapeo uses (`archivoMapeo` en
   `config.json`).
 
+**Red / ASTM sobre TCP:**
+- `capturar-tcp.js` — herramienta de solo captura (Paso 0) para equipos de
+  red que hablan ASTM, en modo servidor o cliente (ver "Modo servidor vs.
+  modo cliente" arriba).
+- `index-tcp.js` — punto de entrada de producción para estos equipos:
+  reutiliza exactamente la misma lógica de mapeo/deduplicación/escritura
+  en Firestore que `index.js` (se la pide con `require`, no la duplica),
+  solo cambia el transporte (socket TCP en vez de puerto serial). Soporta
+  `"modo": "servidor"` (por defecto) o `"modo": "cliente"` + `"ipEquipo"`,
+  con reintento automático cada 10s si la conexión se cae en modo cliente.
+
 **Red / HL7 sobre TCP:**
 - `capturar-hl7.js` — herramienta de solo captura (Paso 0) para equipos de
-  red, sin necesitar usuario/clave de BIOsoft.
+  red, sin necesitar usuario/clave de BIOsoft. Soporta modo servidor o
+  cliente.
 - `mindray-bs220-hl7-map.js` — mapeo multi-examen del Mindray BS-220
   (química) a códigos de BIOsoft, usando los códigos LIS que se le piden
   al cliente escribir en "Correspondencia de test" en el equipo (ver
   "Mindray BS-220" arriba).
 - `mapeo-generico-hl7-template.js` — plantilla para un equipo HL7 de UN
-  SOLO panel (ej. Dymind DF52, hematología).
+  SOLO panel (ej. Dymind DF52, Mindray BC-760, hematología).
 - `mapeo-generico-hl7-multiexamen-template.js` — plantilla para un equipo
   HL7 que reporta VARIOS exámenes distintos por mensaje (ej. otra química).
-- `index-hl7.js` — punto de entrada para equipos de red: escucha por TCP
-  (el equipo se conecta como cliente) y conecta todo lo anterior. Se
-  ajusta según qué archivo de mapeo uses (`archivoMapeo` en
-  `config-hl7.json`/`config-bs220.json`).
+- `index-hl7.js` — punto de entrada para equipos de red: por defecto
+  escucha por TCP (modo servidor, el equipo se conecta como cliente);
+  soporta también `"modo": "cliente"` + `"ipEquipo"` para equipos que son
+  ELLOS el servidor (ej. Mindray BC-760 — ver más arriba), con reintento
+  automático cada 10s si la conexión se cae. Se ajusta según qué archivo
+  de mapeo uses (`archivoMapeo` en `config-hl7.json`/`config-bs220.json`).
 
 **Comunes a ambos:**
 - `firestore-writer.js` — autenticación y escritura en Firestore,

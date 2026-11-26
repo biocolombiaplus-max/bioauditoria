@@ -171,25 +171,64 @@ function wireSocket(config, mapeo, db, socket) {
   socket.on("close", () => console.log("[BIOsoft-HL7] Conexión cerrada por el equipo."));
 }
 
+/* "Modo servidor" (por defecto, compatible con todo config*.json ya
+ * existente que nunca tuvo este campo): esta computadora escucha, el
+ * equipo se conecta a ella — lo más común para HL7 (ej. Mindray BS-220,
+ * Dymind DF52, que traen una pantalla "IP host LIS"/"Puerto" apuntando
+ * hacia afuera).
+ *
+ * "Modo cliente" (config.modo = "cliente", + config.ipEquipo): AL REVÉS —
+ * el equipo es el que escucha en su propia IP (ej. un analizador que se
+ * configura con su propia IP de red fija y un puerto "LIS/Host", sin
+ * ningún campo para apuntar a un servidor externo — confirmado así en un
+ * Mindray BC-760 real en sitio: pantalla de Comunicación solo trae la IP
+ * del EQUIPO, máscara, puerta de enlace y puerto, nunca un destino). Aquí
+ * es este middleware el que se conecta HACIA el equipo, igual que
+ * `capturar-hl7.js cliente <ip> <puerto>` (ver ese archivo para probar
+ * primero sin credenciales de BIOsoft). */
+function abrirConexion(config, onSocket) {
+  const puerto = config.puerto || 5001;
+  if (config.modo === "cliente") {
+    if (!config.ipEquipo) { console.error('[BIOsoft-HL7] config.modo es "cliente" pero falta "ipEquipo" en la configuración.'); process.exit(1); }
+    console.log(`[BIOsoft-HL7] Modo cliente: conectando a ${config.ipEquipo}:${puerto}...`);
+    const socket = net.createConnection({ host: config.ipEquipo, port: puerto }, () => {
+      console.log(`[BIOsoft-HL7] Conectado a ${config.ipEquipo}:${puerto}. Esperando transmisiones del equipo...`);
+    });
+    onSocket(socket);
+    socket.on("error", (e) => console.error(`[BIOsoft-HL7] No se pudo conectar a ${config.ipEquipo}:${puerto} -> ${e.message}`));
+    // El equipo (o la red) puede cerrar la conexión en cualquier momento
+    // (reinicio del equipo, corte de red) — a diferencia del modo servidor
+    // (donde el equipo simplemente vuelve a conectarse cuando quiera), en
+    // modo cliente hay que reintentar NOSOTROS la conexión, o el
+    // middleware se queda "corriendo" pero sordo para siempre.
+    socket.on("close", () => {
+      console.warn("[BIOsoft-HL7] Conexión con el equipo cerrada — reintentando en 10 segundos...");
+      setTimeout(() => abrirConexion(config, onSocket), 10000);
+    });
+  } else {
+    const server = net.createServer((socket) => {
+      console.log(`[BIOsoft-HL7] Equipo conectado desde ${socket.remoteAddress}:${socket.remotePort}`);
+      onSocket(socket);
+    });
+    server.listen(puerto, () => {
+      console.log(`[BIOsoft-HL7] Escuchando en el puerto ${puerto}. Configura esta IP y este puerto como "servidor LIS" en el equipo.`);
+    });
+    server.on("error", (e) => console.error("[BIOsoft-HL7] Error al escuchar:", e.message));
+  }
+}
+
 async function main() {
   const config = cargarConfig();
   const mapeo = cargarMapeo(config);
   console.log(`[BIOsoft-HL7] Usando mapeo de parámetros: ${config.archivoMapeo || "mapeo-generico-hl7-template"}`);
+  console.log(`[BIOsoft-HL7] Modo de conexión: ${config.modo === "cliente" ? "cliente (nos conectamos al equipo)" : "servidor (el equipo se conecta a nosotros)"}`);
 
   console.log("[BIOsoft-HL7] Conectando con BIOsoft...");
   const { auth, db } = crearClienteBiosoft();
   await iniciarSesion(auth, config.usuarioEmail, config.usuarioPassword);
   console.log("[BIOsoft-HL7] Sesión iniciada como", config.usuarioEmail);
 
-  const puerto = config.puerto || 5001;
-  const server = net.createServer((socket) => {
-    console.log(`[BIOsoft-HL7] Equipo conectado desde ${socket.remoteAddress}:${socket.remotePort}`);
-    wireSocket(config, mapeo, db, socket);
-  });
-  server.listen(puerto, () => {
-    console.log(`[BIOsoft-HL7] Escuchando en el puerto ${puerto}. Configura esta IP y este puerto como "servidor LIS" en el equipo.`);
-  });
-  server.on("error", (e) => console.error("[BIOsoft-HL7] Error al escuchar:", e.message));
+  abrirConexion(config, (socket) => wireSocket(config, mapeo, db, socket));
 }
 
 // Solo arranca de verdad (abre el puerto TCP, inicia sesión en Firebase)

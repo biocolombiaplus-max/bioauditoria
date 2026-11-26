@@ -1,0 +1,28 @@
+{
+  "_comentario": "Copia este archivo a config-tcp.json (sin el _comentario) y completa los valores reales. NUNCA subas config-tcp.json a git — ya está en .gitignore. Es para equipos ASTM E1394 que se conectan por RED (TCP/Ethernet) en vez de cable serial — ver index-tcp.js. Si tu equipo usa cable serial, usa config.example.json + index.js en su lugar. Si tu equipo habla HL7 (no ASTM) por red, usa config-hl7.example.json + index-hl7.js.",
+
+  "tenantId": "ID-DE-TU-LABORATORIO",
+  "_tenantId_donde_lo_saco": "Configuración del Laboratorio -> Equipos Conectados -> al registrar el equipo, se muestra el 'ID del Laboratorio (tenantId)'.",
+
+  "nombreEquipo": "Nombre del equipo — Sección",
+  "_nombreEquipo_donde_lo_saco": "El mismo nombre que le pusiste al registrar el equipo en BIOsoft.",
+
+  "archivoMapeo": "mapeo-generico-template",
+  "_archivoMapeo_ojo": "Copia mapeo-generico-template.js (un solo examen, ej. hematología) o mapeo-generico-multiexamen-template.js (varios exámenes por mensaje, ej. química) a un archivo nuevo, llénalo con los códigos reales de TU equipo (confirmados con capturar-tcp.js primero) y pon aquí ese nombre de archivo.",
+
+  "usuarioEmail": "interfaz.equipo@tu-laboratorio.com",
+  "usuarioPassword": "CAMBIA-ESTA-CLAVE",
+  "_usuario_como_crearlo": "En BIOsoft: Usuarios del Laboratorio -> Nuevo Usuario -> rol Bacteriólogo(a), asignado SOLO a la sección correspondiente. Dedica ese usuario exclusivamente a este middleware (no lo use una persona).",
+
+  "puerto": 5000,
+  "_puerto_ojo": "Puerto TCP. En modo servidor (ver abajo), es donde este middleware escucha (el mismo que pongas en el equipo como 'Servidor IP'/'Host'/'Puerto'). En modo cliente, es el puerto donde YA escucha el equipo.",
+
+  "modo": "servidor",
+  "_modo_ojo": "'servidor' (lo más común, y el valor que se usa si omites este campo): esta computadora escucha, el equipo se conecta a ella — confirmado así, por ejemplo, en un analizador de química 'Total Care 200' (pantalla Procesamiento de datos -> Exportar datos -> Modo TCP/IP: trae 'Servidor IP' + 'Puerto', el EQUIPO inicia la conexión). 'cliente': al revés, el equipo escucha en su propia IP fija y este middleware se conecta hacia él. Si no sabes cuál es el tuyo, prueba primero con capturar-tcp.js (servidor y luego cliente) antes de decidir.",
+
+  "ipEquipo": "",
+  "_ipEquipo_ojo": "SOLO si modo es 'cliente': la IP fija del equipo. Déjalo vacío en modo servidor.",
+
+  "verboso": true,
+  "_verboso": "Déjalo en true mientras haces el piloto con el equipo real, para ver en consola cada trama que llega. Pásalo a false en uso diario."
+}

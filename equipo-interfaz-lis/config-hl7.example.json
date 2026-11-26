@@ -15,5 +15,11 @@
   "_usuario_como_crearlo": "En BIOsoft: Usuarios del Laboratorio -> Nuevo Usuario -> rol Bacteriólogo(a), asignado SOLO a la sección correspondiente. Dedica ese usuario exclusivamente a este middleware (no lo use una persona).",
 
   "puerto": 5001,
-  "_puerto_ojo": "Puerto TCP donde este middleware escucha — el mismo que configures en el equipo como 'servidor LIS'/'Host'."
+  "_puerto_ojo": "Puerto TCP. En modo servidor (ver abajo), es donde este middleware escucha. En modo cliente, es el puerto donde YA escucha el equipo.",
+
+  "modo": "servidor",
+  "_modo_ojo": "'servidor' (lo más común, y el valor que se usa si omites este campo): esta computadora escucha, el equipo se conecta a ella. 'cliente': AL REVÉS — el equipo escucha en su propia IP fija (confirmado así, por ejemplo, en un Mindray BC-760 real: su pantalla de Comunicación solo trae la IP/puerto DEL EQUIPO, sin ningún campo para apuntar a un servidor externo) y este middleware se conecta hacia él. Si no sabes cuál es el tuyo, prueba primero con capturar-hl7.js (servidor y luego cliente) antes de decidir.",
+
+  "ipEquipo": "",
+  "_ipEquipo_ojo": "SOLO si modo es 'cliente': la IP fija del equipo (la que tiene configurada en su propia pantalla de red/comunicación). Déjalo vacío en modo servidor."
 }
